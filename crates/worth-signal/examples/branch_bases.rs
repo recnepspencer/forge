@@ -90,7 +90,8 @@ fn branch_with_a_superseded_target(
 ///
 /// Ordinary readmission asks "does this branch still select this state?" and
 /// refuses once the reference moves. Retention asks "is this exact immutable
-/// state still here?", never consults the branch reference, and says yes.
+/// state still available?" and says yes. Currentness never denies retention;
+/// the branch's current head only ever adds availability evidence.
 fn residency_is_not_currentness(
     runtime: &ExampleRuntime,
     superseded: &AdmittedSignalBranchBasis,
@@ -140,7 +141,8 @@ fn residency_is_not_currentness(
     drop(lease);
 }
 
-/// Explicit release is the only terminal path that hands back governed evidence.
+/// The runtime lane is the explicit release to prefer while you hold the issuing
+/// runtime: it checks owner affinity before spending the obligation.
 fn explicit_release_returns_governed_evidence(
     runtime: &ExampleRuntime,
     superseded: &AdmittedSignalBranchBasis,
@@ -232,6 +234,9 @@ fn an_obligation_outlives_its_owner(
     // hand that state back: the ledger survives the runtime, the data does not.
     assert_eq!(orphan.descriptor(), &descriptor);
 
+    // No runtime is left to offer this back to.
+    // `SignalBranchRetentionLease::release` needs none, so an orphaned
+    // obligation can still be ended with a governed receipt.
     let receipt = orphan.release();
     assert_eq!(
         receipt.outcome(),
@@ -245,8 +250,15 @@ fn an_obligation_outlives_its_owner(
     );
 
     // The ledger outlives the runtime, so the loss stays observable.
+    //
+    // That single release moved two independent axes at once: by cause it is an
+    // explicit release, and by owner posture it is an owner-loss release. The
+    // posture counter overlays the cause buckets rather than forming a third
+    // one, so `terminal_releases()` advances by one, not two.
     let counts = witness.owner_terminal_counts();
     assert_eq!(counts.explicit_releases(), before.explicit_releases() + 1);
+    assert_eq!(counts.dropped_releases(), before.dropped_releases());
+    assert_eq!(counts.terminal_releases(), before.terminal_releases() + 1);
     assert_eq!(
         counts.owner_loss_releases(),
         before.owner_loss_releases() + 1

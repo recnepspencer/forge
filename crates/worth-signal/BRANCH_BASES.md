@@ -42,6 +42,16 @@ methods on `SignalRuntime`:
 - `reconstruct_signal_branch_snapshot` for pristine-runtime construction only
 - `plan_signal_branch_retirement` and `retire_signal_branch`
 
+One terminal operation lives on the obligation itself rather than on the
+runtime:
+
+- `SignalBranchRetentionLease::release` consumes the obligation and returns the
+  same governed receipt without needing a runtime to call it through. It is the
+  explicit path that remains once the issuing runtime is gone.
+
+The lease's inspection accessors are described under
+[Inspection And Debugging](#inspection-and-debugging).
+
 `SignalBranchBasisDescriptor` is the transport form. It is descriptive data,
 not permission to operate. `AdmittedSignalBranchBasis` is the runtime-issued
 form accepted by governed operations.
@@ -110,14 +120,19 @@ readmit_signal_branch_basis(descriptor)
 
 retain_signal_component_basis(&basis)
     "Is this exact immutable state still available?"
-    -> Ok, and it never consults the branch reference at all.
+    -> Ok. Currentness is never a reason to refuse.
 ```
 
 An obligation over a historical target is therefore ordinary, not exceptional.
 `SignalBranchRetentionAcquisitionDenial` has no stale-basis variant on purpose:
 every refusal it can give is a fact about the owner, the branch lifecycle, the
-Signal definition, or the continued availability of that exact target. How
-current the target is never enters the decision.
+Signal definition, or the continued availability of that exact target.
+
+Be precise about what this does and does not say. Currentness never *denies*
+retention. The branch reference is still allowed to *help*: a target is
+available if the runtime still holds it as a stored snapshot state **or** if it
+is the branch's current head. Consulting the reference can therefore only add
+availability evidence, never subtract it.
 
 A lease is consequently **not** evidence that its branch reference is current,
 and it is not a private copy of the state. It is an obligation the owner
@@ -147,21 +162,30 @@ So retain **before** you drop the last admitted basis for a state you will
 need. Once no admitted basis and no obligation remain, that exact target is no
 longer reachable, and branch retirement is free to reclaim it.
 
-### Both Terminal Paths End the Obligation
+### Every Terminal Path Ends the Obligation Exactly Once
 
-An obligation reaches a terminal state exactly once, by either path:
+An obligation reaches a terminal state exactly once. Three surfaces get it
+there, and two of them are explicit:
 
-- `release_signal_component_basis` consumes it and returns a
+- `SignalRuntime::release_signal_component_basis` offers the obligation back to
+  a runtime. This is the path to prefer while you still hold the issuing
+  runtime, because it checks owner affinity first: a runtime that did not issue
+  the obligation answers `Denied` and hands the live lease back instead of
+  spending it. On acceptance it returns a
   `SignalBranchRetentionReleaseReceipt`: the released target, the terminal
   outcome, and both remaining counts.
-- Dropping it takes the same exactly-once terminal path, recorded as a dropped
-  release instead of fabricating a receipt nobody asked for.
+- `SignalBranchRetentionLease::release` consumes the obligation directly and
+  returns the same receipt. It needs no runtime, so it is the explicit path
+  that remains once the issuing runtime is gone and there is no runtime left
+  to offer the obligation to. Because there is no runtime to compare against,
+  it performs no affinity check; reach for the runtime lane when you have a
+  runtime to reach for.
+- Dropping the lease takes the same exactly-once terminal path, recorded as a
+  dropped release instead of fabricating a receipt nobody asked for.
 
-Forgetting to release is therefore not a leak. Both paths discharge identical
-accounting and both unblock retirement; only explicit release yields governed
-evidence. `signal_component_retention_terminal_counts` reports the owner's view
-as `explicit_releases`, `dropped_releases`, `owner_loss_releases`, and
-`unknown_lease_defenses`.
+Forgetting to release is therefore not a leak. Every path discharges identical
+accounting and every path unblocks retirement; only the two explicit paths
+yield governed evidence.
 
 An obligation may also outlive the runtime that issued it. Its
 `owner_posture()` becomes `Lost`, releasing it reports
@@ -170,6 +194,25 @@ and `owner_terminal_counts()` stays readable so the loss remains observable.
 The owner ledger survives the runtime; the retained state does not. A lost
 owner cannot hand the target back, so `readmit_retained_signal_branch_basis`
 reports `UnavailableRetainedTarget`.
+
+### Reading The Terminal Counters
+
+`signal_component_retention_terminal_counts` reports two independent axes, not
+four disjoint buckets. Reading them as a flat tally will not add up.
+
+- **Cause** is a partition of every obligation the ledger accounted as
+  terminally released. `explicit_releases` and `dropped_releases` are its two
+  buckets, and `terminal_releases()` is exactly their sum.
+- **Owner posture** is an overlay on those same events.
+  `owner_loss_releases` counts how many of them found no live owner, so it is a
+  subset of `terminal_releases()` rather than a third bucket. One release of an
+  orphaned obligation increments a cause bucket *and* the overlay: an explicit
+  release after owner loss raises both `explicit_releases` and
+  `owner_loss_releases` by one, and a dropped one raises both
+  `dropped_releases` and `owner_loss_releases`.
+- `unknown_lease_defenses` is on neither axis. It counts terminal attempts the
+  ledger did not recognise, where nothing was released, so it is never part of
+  `terminal_releases()`.
 
 Branch retirement is denied while external obligations remain. Retirement
 planning consumes the branch's unique admitted basis into a linear plan;
@@ -187,8 +230,10 @@ releases that final internal obligation before reclamation.
 6. Retain an exact basis when another component must keep that state
    available. This is legitimate before or after the branch reference moves
    past it, because retention decides availability rather than currentness.
-7. End the obligation by releasing it for a receipt, or by dropping it for the
-   same terminal accounting without one.
+7. End the obligation: offer it to its runtime through
+   `release_signal_component_basis` for an affinity-checked receipt, consume it
+   directly through `SignalBranchRetentionLease::release` for the same receipt
+   without a runtime, or drop it for the same terminal accounting without one.
 8. To retire a branch, pass its sole admitted basis by value once no external
    obligation remains. A successful plan owns that basis until retirement
    executes.
@@ -294,6 +339,7 @@ let second = runtime
     .retain_signal_component_basis(&superseded)
     .expect("a second obligation over the same exact target is legitimate");
 
+// The runtime lane checks owner affinity before spending the obligation.
 let receipt = match runtime.release_signal_component_basis(first) {
     SignalBranchRetentionReleaseOutcome::Released(receipt) => receipt,
     // A denial hands the still-live obligation back rather than dissolving it.
@@ -314,10 +360,12 @@ assert_eq!(receipt.remaining_branch_leases(), 1);
 
 // Dropping the second is the same terminal path; only the receipt is forgone.
 drop(second);
+// Cause is a partition; `terminal_releases()` is exactly its two buckets summed.
 let counts = runtime.signal_component_retention_terminal_counts();
 assert_eq!(counts.explicit_releases(), 1);
 assert_eq!(counts.dropped_releases(), 1);
 assert_eq!(counts.terminal_releases(), 2);
+assert_eq!(counts.owner_loss_releases(), 0);
 assert_eq!(counts.unknown_lease_defenses(), 0);
 
 // An obligation may outlive its runtime. The ledger survives; the state does not.
@@ -333,13 +381,23 @@ assert_eq!(
     orphan.owner_posture(),
     SignalBranchRetentionOwnerPosture::Lost
 );
+// No runtime is left to offer this back to, so consume the obligation itself
+// and still get a governed receipt for it.
 let receipt = orphan.release();
 assert_eq!(
     receipt.outcome(),
     SignalBranchRetentionTerminalOutcome::OwnerUnavailable,
     "owner loss is recorded distinctly from an ordinary release"
 );
-assert_eq!(witness.owner_terminal_counts().owner_loss_releases(), 1);
+
+// That one release moved two independent axes: it is an explicit release by
+// cause, and an owner-loss release by posture. The overlay is not a third
+// bucket, so it is not added into `terminal_releases()`.
+let counts = witness.owner_terminal_counts();
+assert_eq!(counts.explicit_releases(), 2);
+assert_eq!(counts.dropped_releases(), 1);
+assert_eq!(counts.terminal_releases(), 3);
+assert_eq!(counts.owner_loss_releases(), 1);
 ```
 
 The runtime is authoritative throughout. Retaining the superseded basis never
@@ -393,10 +451,12 @@ For an obligation, ask it directly:
 - `owner_terminal_counts()` reads the issuing owner's ledger, and stays
   readable after that runtime is gone.
 
-For the owner-side view, `signal_component_retention_terminal_counts` separates
-explicit releases, dropped releases, owner-loss releases, and unknown-lease
-defenses. When a release receipt surprises you, read `remaining_target_leases`
-and `remaining_branch_leases` as the different questions they are.
+For the owner-side view, `signal_component_retention_terminal_counts` reports
+cause and owner posture as independent axes; see
+[Reading The Terminal Counters](#reading-the-terminal-counters) before treating
+its four numbers as a flat tally. When a release receipt surprises you, read
+`remaining_target_leases` and `remaining_branch_leases` as the different
+questions they are.
 
 For lifecycle failures, inspect the typed retention or retirement denial.
 Do not infer liveness from graph diagnostic output; ask the runtime owner.
@@ -421,6 +481,9 @@ Do not infer liveness from graph diagnostic output; ask the runtime owner.
   retaining it; ordinary readmission will refuse to give it back.
 - Do not treat an unreleased lease as a leak to be defended against with
   `std::mem::forget` or a second bookkeeping layer. Drop is terminal.
+- Do not sum `owner_loss_releases` alongside `explicit_releases` and
+  `dropped_releases` as though the three were disjoint. It overlays the same
+  events those two buckets already partition.
 - Do not create a second Signal graph for Query-installed operations hosted by
   Runtime Bridge.
 
@@ -480,15 +543,22 @@ exact retained basis back through `readmit_retained_signal_branch_basis`;
 ordinary `readmit_signal_branch_basis` answers the currentness question and
 will refuse.
 
-The obligation ends exactly once, either through
-`release_signal_component_basis` for a governed receipt or by being dropped for
-the same terminal accounting. An integrating owner is therefore not required to
-build leak defenses around it. A release offered to a runtime that did not
-issue the obligation is denied with the live lease handed back, so the
-integrator must rebind that returned lease rather than discard it. An
-obligation that outlives its Signal runtime reports a `Lost` owner posture and
-an `OwnerUnavailable` terminal outcome; the surviving ledger is observability,
-not a promise that the retained state can still be produced.
+The obligation ends exactly once, through any of three surfaces, and an
+integrating owner is therefore not required to build leak defenses around it.
+While the owner still holds the issuing runtime it should prefer
+`release_signal_component_basis`, which checks owner affinity: a release
+offered to a runtime that did not issue the obligation is denied with the live
+lease handed back, so the integrator must rebind that returned lease rather
+than discard it. Where no runtime is in hand, `SignalBranchRetentionLease::release`
+consumes the obligation directly and returns the same governed receipt.
+Dropping the lease is equally terminal and simply forgoes the receipt.
+
+An obligation that outlives its Signal runtime reports a `Lost` owner posture,
+and releasing it reports an `OwnerUnavailable` terminal outcome. Since the
+issuing runtime no longer exists to be called,
+`SignalBranchRetentionLease::release` is the path by which an integrator can
+still obtain that governed receipt. The surviving ledger is observability, not
+a promise that the retained state can still be produced.
 
 All Signal branch catalog state, admitted bases, stored branch snapshots, and
 retention accounting remain memory-resident. Restart durability is deferred to
