@@ -58,7 +58,7 @@ impl WorthQueryMemoryWorkspace {
             .push_batch(batch)
             .map_err(super::transaction_denial::staging)?;
         let result = transaction
-            .commit(&mut self.runtime)
+            .commit(&self.runtime)
             .map_err(super::transaction_denial::commit)?;
         let published_snapshot = result.snapshot.clone();
         self.next_client_key = next_key;

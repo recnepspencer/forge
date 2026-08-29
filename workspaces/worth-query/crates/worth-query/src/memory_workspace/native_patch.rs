@@ -175,7 +175,7 @@ impl WorthQueryMemoryWorkspace {
             .push_batch(WorkerIntentBatch::new("query-memory-native-aspect-patch").push(intent))
             .map_err(super::transaction_denial::staging)?;
         let result = transaction
-            .commit(&mut self.runtime)
+            .commit(&self.runtime)
             .map_err(super::transaction_denial::commit)?;
         let published_snapshot = result.snapshot.clone();
         let receipt = self.receipt_from_commit(result, mutation_kind, touches);

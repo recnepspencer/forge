@@ -158,7 +158,7 @@ impl WorthQueryMemoryWorkspace {
         )
         .map_err(super::transaction_denial::staging)?;
         let result = txn
-            .commit(&mut self.runtime)
+            .commit(&self.runtime)
             .map_err(super::transaction_denial::commit)?;
         let published_snapshot = result.snapshot.clone();
         let mut receipt =

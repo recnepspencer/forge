@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn equal_version_snapshot_from_another_branch_cannot_satisfy_affinity() {
-        let mut runtime = RelationalRuntimeApi::builder()
+        let runtime = RelationalRuntimeApi::builder()
             .schema_registry(
                 RelationalSchemaRegistry::new()
                     .register_entity_kind(EntityKindRegistration {
@@ -98,7 +98,7 @@ mod tests {
             ))
             .expect("test staging stays within configured resource budgets");
         let committed = transaction
-            .commit(&mut runtime)
+            .commit(&runtime)
             .expect("branch-affinity fixture root commits");
         assert!(runtime
             .snapshots()
