@@ -162,10 +162,12 @@ impl HistorySubsystem {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn recorded_patch_position_count(&self) -> usize {
         self.ledger.read().patch_stream_index.len()
     }
 
+    #[cfg(test)]
     pub(crate) fn commit_graph_len(&self) -> usize {
         self.ledger.read().commit_graph.len()
     }
@@ -176,6 +178,7 @@ impl HistorySubsystem {
 
     /// The reserved commit/version identity floors, read together so a court
     /// cannot observe half of an advanced sequence.
+    #[cfg(test)]
     pub(crate) fn reserved_sequence_floors(&self) -> (u64, u64) {
         let ledger = self.ledger.read();
         (ledger.next_commit_id, ledger.next_version_id)

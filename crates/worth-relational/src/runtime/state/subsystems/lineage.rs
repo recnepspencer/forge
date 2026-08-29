@@ -103,6 +103,7 @@ impl LineageSubsystem {
         self.state.read().nodes.values().cloned().collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn node_count(&self) -> usize {
         self.state.read().nodes.len()
     }
@@ -162,6 +163,7 @@ impl LineageSubsystem {
         self.state.read().shared_events()
     }
 
+    #[cfg(test)]
     pub(crate) fn event_count(&self) -> usize {
         self.state.read().events().count()
     }

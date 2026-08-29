@@ -161,6 +161,7 @@ impl IndexingSubsystem {
     }
 
     /// Read the unique aspect field index without letting the guard escape.
+    #[cfg(test)]
     pub(crate) fn with_unique_index<R>(
         &self,
         read: impl FnOnce(&UniqueEntityAspectFieldIndex) -> R,
