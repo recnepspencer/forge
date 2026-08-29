@@ -148,14 +148,14 @@ mod state;
 
 pub mod facade;
 
-/// Compiles the branch-basis guide's examples against the real public facade.
+/// Compiles the branch-basis guide against the real public facade.
 ///
-/// This item exists only while rustdoc collects doctests, so it never enters
-/// the public API. It is here so `BRANCH_BASES.md` cannot drift away from the
-/// facade without breaking `cargo test`.
+/// The module exists only while rustdoc collects doctests, so it never enters
+/// the public API and `BRANCH_BASES.md` is never rendered as a rustdoc page.
+/// It is here so the guide cannot drift away from the facade without breaking
+/// `cargo test`.
 #[cfg(doctest)]
-#[doc = include_str!("../BRANCH_BASES.md")]
-pub struct BranchBasesGuide;
+pub mod branch_bases_guide;
 
 #[cfg(test)]
 mod tests;

@@ -246,7 +246,7 @@ from failures that occur only after the owner performed the operation.
 
 ## Small Example
 
-```no_run
+```rust,no_run
 use worth_signal::facade::branch::SignalBranchBasisReadmissionDenial;
 use worth_signal::facade::{SignalGraph, SignalRuntime};
 
@@ -305,7 +305,7 @@ the exact state it moved off is still there.
 
 ## Real Example
 
-```no_run
+```rust,no_run
 use worth_signal::facade::branch::{
     SignalBranchRetentionOwnerPosture, SignalBranchRetentionReleaseOutcome,
     SignalBranchRetentionTerminalOutcome,
