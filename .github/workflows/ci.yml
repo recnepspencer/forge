@@ -161,6 +161,30 @@ jobs:
           --features test-operation-control
           --selection mvcc_cancellation_publication_boundaries::
 
+      - name: worth-relational operation-control preparation locality lane
+        run: >-
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification
+          --features test-operation-control
+          --exact
+          --selection mvcc_owner_phase_locality::paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked
+
+      - name: worth-relational operation-control publication locality lane
+        run: >-
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification
+          --features test-operation-control
+          --exact
+          --selection mvcc_owner_phase_locality::paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked
+
+      - name: worth-relational operation-control schema transition cancellation lane
+        run: >-
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification
+          --features test-operation-control
+          --exact
+          --selection schema_transition_cancellation::cancelled_schema_transition_leaves_no_target_or_branch_residue
+
       - name: Run WORTH Query ordinary tests
         run: cargo test --manifest-path workspaces/worth-query/Cargo.toml --workspace --exclude worth-query-certification --exclude worth-query-replay
 
