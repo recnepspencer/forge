@@ -60,11 +60,11 @@ pub(crate) struct BranchCoordination {
 }
 
 impl OwnerPhaseCourtBranches {
-    pub(crate) fn fork(world: &mut ProductionSeededSupplyChainWorld) -> Self {
+    pub(crate) fn fork(world: &ProductionSeededSupplyChainWorld) -> Self {
         let storm = BranchId("storm".to_owned());
         let maintenance = BranchId("maintenance".to_owned());
-        fork_supply_chain_branch_from_main(&mut world.runtime, storm.clone());
-        fork_supply_chain_branch_from_main(&mut world.runtime, maintenance.clone());
+        fork_supply_chain_branch_from_main(&world.runtime, storm.clone());
+        fork_supply_chain_branch_from_main(&world.runtime, maintenance.clone());
         Self { storm, maintenance }
     }
 
@@ -111,6 +111,32 @@ impl PausedCourtObservation {
             committed.commit,
             "the observed maintenance head is exactly the returned canonical commit"
         );
+    }
+
+    /// Report a paused branch that moved or coordinated while the unrelated
+    /// commit was still in flight.
+    ///
+    /// The park is held across that whole window, so storm's own reference and
+    /// counters are stable inside it; reading them there refuses evidence a
+    /// gate taken and released inside the unrelated commit would leave equal at
+    /// both endpoints. The violation is returned rather than raised so the
+    /// caller can open the park before unwinding through scope teardown.
+    fn contested_violation(
+        &self,
+        court: &OwnerPhaseCourtBranches,
+        runtime: &RelationalRuntime,
+    ) -> Option<String> {
+        let coordination = coordination_counters(runtime, &court.storm);
+        if branch_reference_state(runtime, &court.storm) != self.storm_reference {
+            Some("the in-flight unrelated commit moved the paused storm reference".to_owned())
+        } else if coordination != self.storm_coordination {
+            Some(format!(
+                "the in-flight unrelated commit charged the paused storm branch {coordination:?} against {:?}",
+                self.storm_coordination
+            ))
+        } else {
+            None
+        }
     }
 }
 
@@ -233,13 +259,16 @@ pub(crate) fn join_paused_worker<T>(
 /// and convict serialization by name instead of hanging. The worker is scoped
 /// because it borrows the court-owned world in place: `std::thread::scope` is
 /// what lets that borrow cross the spawn without manufacturing `'static`
-/// ownership of the runtime. The `&mut` below is the supply-chain driver
-/// helper's own signature, not a demand of the commit facade, which takes a
-/// shared receiver. Scope teardown joins, so every failing exit opens the park
-/// before it returns.
+/// ownership of the runtime, and it ends that borrow with the court's own
+/// frame. Both halves reach the runtime through a shared reference, and the
+/// court reads the paused branch while the worker still holds its own, so
+/// reintroducing an exclusive borrow here stops compiling instead of quietly
+/// becoming a locality claim nothing observes. Scope teardown joins, so every
+/// failing exit opens the park before it returns.
 pub(crate) fn commit_unrelated_branch_while_paused(
-    world: &mut ProductionSeededSupplyChainWorld,
+    world: &ProductionSeededSupplyChainWorld,
     court: &OwnerPhaseCourtBranches,
+    before: &PausedCourtObservation,
     batch: WorkerIntentBatch,
     pause: &OwnerPhasePause,
     phase: &str,
@@ -247,7 +276,7 @@ pub(crate) fn commit_unrelated_branch_while_paused(
     let (finished, completion) = sync_channel(1);
     let branch = court.maintenance.clone();
     std::thread::scope(|scope| {
-        let runtime = &mut world.runtime;
+        let runtime = &world.runtime;
         let committer = scope.spawn(move || {
             let committed = commit_branch_batch_with_result(runtime, branch, batch);
             finished
@@ -255,6 +284,10 @@ pub(crate) fn commit_unrelated_branch_while_paused(
                 .expect("the locality court still owns the completion receiver");
             committed
         });
+        if let Some(violation) = before.contested_violation(court, &world.runtime) {
+            pause.open();
+            panic!("{violation}");
+        }
         match completion.recv_timeout(OWNER_PHASE_COURT_TIMEOUT) {
             Ok(()) => {}
             Err(RecvTimeoutError::Timeout) => {
@@ -276,7 +309,7 @@ pub(crate) fn commit_unrelated_branch_while_paused(
 /// then close the exact snapshot it named, so a finished court leaves no open
 /// published-snapshot handle behind.
 pub(crate) fn assert_court_commit_matches_oracle(
-    world: &mut ProductionSeededSupplyChainWorld,
+    world: &ProductionSeededSupplyChainWorld,
     committed: &CommitResult,
     branch: BranchLabel,
     delta: DeltaId,
@@ -299,12 +332,12 @@ pub(crate) fn assert_court_commit_matches_oracle(
 }
 
 pub(crate) fn lower_court_delta(
-    world: &mut ProductionSeededSupplyChainWorld,
+    world: &ProductionSeededSupplyChainWorld,
     branch: &BranchId,
     delta: DeltaId,
 ) -> WorkerIntentBatch {
     lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         branch,

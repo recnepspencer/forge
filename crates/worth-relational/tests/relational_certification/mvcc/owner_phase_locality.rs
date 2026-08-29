@@ -32,12 +32,12 @@ use worth_relational::facade::mvcc::{
 
 #[test]
 fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
-    let court = OwnerPhaseCourtBranches::fork(&mut world);
-    let storm_batch = lower_court_delta(&mut world, &court.storm, DeltaId::StormRerouteAurora);
+    let court = OwnerPhaseCourtBranches::fork(&world);
+    let storm_batch = lower_court_delta(&world, &court.storm, DeltaId::StormRerouteAurora);
     let maintenance_batch =
-        lower_court_delta(&mut world, &court.maintenance, DeltaId::MaintainAtlasBerth);
+        lower_court_delta(&world, &court.maintenance, DeltaId::MaintainAtlasBerth);
 
     let pause = OwnerPhasePause::new();
     let storm_transaction = begin_court_transaction(
@@ -53,8 +53,9 @@ fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked()
 
     let before = court.capture(&world.runtime);
     let committed = commit_unrelated_branch_while_paused(
-        &mut world,
+        &world,
         &court,
+        &before,
         maintenance_batch,
         &pause,
         "candidate preparation",
@@ -72,7 +73,7 @@ fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked()
         .discard_prepared_candidate(storm_candidate)
         .expect("the released storm candidate discards through its own owner port");
     assert_court_commit_matches_oracle(
-        &mut world,
+        &world,
         &committed,
         BranchLabel::Maintenance,
         DeltaId::MaintainAtlasBerth,
@@ -82,12 +83,12 @@ fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked()
 
 #[test]
 fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
-    let court = OwnerPhaseCourtBranches::fork(&mut world);
-    let storm_batch = lower_court_delta(&mut world, &court.storm, DeltaId::StormRerouteAurora);
+    let court = OwnerPhaseCourtBranches::fork(&world);
+    let storm_batch = lower_court_delta(&world, &court.storm, DeltaId::StormRerouteAurora);
     let maintenance_batch =
-        lower_court_delta(&mut world, &court.maintenance, DeltaId::MaintainAtlasBerth);
+        lower_court_delta(&world, &court.maintenance, DeltaId::MaintainAtlasBerth);
 
     let pause = OwnerPhasePause::new();
     let storm_transaction = begin_court_transaction(
@@ -107,8 +108,9 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
 
     let before = court.capture(&world.runtime);
     let committed = commit_unrelated_branch_while_paused(
-        &mut world,
+        &world,
         &court,
+        &before,
         maintenance_batch,
         &pause,
         "publication critical-section entry",
@@ -147,7 +149,7 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
         "storm's own publication charges exactly one uncontended storm contact, so the zero-delta claim measures a live counter"
     );
     assert_court_commit_matches_oracle(
-        &mut world,
+        &world,
         &committed,
         BranchLabel::Maintenance,
         DeltaId::MaintainAtlasBerth,
@@ -157,12 +159,12 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
 
 #[test]
 fn paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
-    let court = OwnerPhaseCourtBranches::fork(&mut world);
-    let storm_batch = lower_court_delta(&mut world, &court.storm, DeltaId::StormRerouteAurora);
+    let court = OwnerPhaseCourtBranches::fork(&world);
+    let storm_batch = lower_court_delta(&world, &court.storm, DeltaId::StormRerouteAurora);
     let maintenance_batch =
-        lower_court_delta(&mut world, &court.maintenance, DeltaId::MaintainAtlasBerth);
+        lower_court_delta(&world, &court.maintenance, DeltaId::MaintainAtlasBerth);
 
     let pause = OwnerPhasePause::new();
     let storm_transaction = begin_court_transaction(
@@ -209,8 +211,9 @@ fn paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked() 
     let before = court.capture(&world.runtime);
     let maintenance_before = coordination_counters(&world.runtime, &court.maintenance);
     let committed = commit_unrelated_branch_while_paused(
-        &mut world,
+        &world,
         &court,
+        &before,
         maintenance_batch,
         &pause,
         "settlement executor",
@@ -241,7 +244,7 @@ fn paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked() 
         "the unrelated branch reserved, used, and released its own pending record while storm held its own"
     );
     assert_court_commit_matches_oracle(
-        &mut world,
+        &world,
         &committed,
         BranchLabel::Maintenance,
         DeltaId::MaintainAtlasBerth,
@@ -263,7 +266,7 @@ fn paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked() 
         "finished settlement leaves no pending record behind"
     );
     assert_court_commit_matches_oracle(
-        &mut world,
+        &world,
         &storm_committed,
         BranchLabel::Storm,
         DeltaId::StormRerouteAurora,
