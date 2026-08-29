@@ -18,13 +18,13 @@ pub(super) struct CheckpointEnvelopeLocation {
 /// without holding the lock across durability I/O.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct DurabilityState {
-    pub(crate) log: Vec<Arc<PositionedCanonicalCommit>>,
-    pub(crate) checkpoints: Vec<Arc<DurableCheckpoint>>,
-    pub(crate) log_commit_index: HashMap<CommitId, usize>,
-    pub(crate) checkpoint_commit_index: HashMap<CommitId, CheckpointEnvelopeLocation>,
-    pub(crate) store: Option<Arc<DurableStore>>,
+    pub(super) log: Vec<Arc<PositionedCanonicalCommit>>,
+    pub(super) checkpoints: Vec<Arc<DurableCheckpoint>>,
+    log_commit_index: HashMap<CommitId, usize>,
+    checkpoint_commit_index: HashMap<CommitId, CheckpointEnvelopeLocation>,
+    pub(super) store: Option<Arc<DurableStore>>,
     #[cfg(any(test, feature = "test-durability-faults"))]
-    pub(crate) fail_next_append: bool,
+    pub(super) fail_next_append: bool,
 }
 
 impl DurabilityState {

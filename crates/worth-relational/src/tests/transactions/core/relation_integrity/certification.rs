@@ -2,6 +2,8 @@ use super::fixtures::{
     certification_authority_source_min_one_runtime, publication_pair_min_two_runtime,
     publication_source_min_one_runtime,
 };
+use crate::facade::publication::PublicationError;
+use crate::facade::runtime::InvariantExecutionResult;
 use crate::tests::support::*;
 
 #[test]
@@ -87,10 +89,21 @@ fn relation_integrity_certification_boundary_is_authority_owned_and_blocks_publi
     let mut runtime = certification_authority_source_min_one_runtime();
     let _orphan = create_entity(&mut runtime, "orphan");
 
-    let error = runtime
+    let shared: &RelationalRuntime = &runtime;
+    let error = shared
         .certify_current_state()
         .expect_err("certification boundary should block incomplete topology");
 
     assert_eq!(error.stage, PublicationStage::InvariantCheck);
     assert!(error.detail.contains("source_min_one"));
+}
+
+/// The certification boundary observes state and emits diagnostics through
+/// shared capabilities, so it belongs to the shared-borrow receiver matrix.
+/// Coercing it to a shared-receiver function pointer fails to compile the moment
+/// it reclaims an exclusive borrow of the whole runtime.
+#[test]
+fn certification_boundary_is_addressable_through_a_shared_borrow() {
+    let _certify: fn(&RelationalRuntime) -> Result<InvariantExecutionResult, PublicationError> =
+        RelationalRuntime::certify_current_state;
 }

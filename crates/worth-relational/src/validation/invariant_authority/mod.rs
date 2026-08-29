@@ -17,7 +17,7 @@ impl RelationalRuntime {
         CertificationInvariantAuthority::new(self)
     }
 
-    pub fn certify_current_state(&mut self) -> Result<InvariantExecutionResult, PublicationError> {
+    pub fn certify_current_state(&self) -> Result<InvariantExecutionResult, PublicationError> {
         self.certification_invariant_authority()
             .enforce_certification_boundary()
     }
@@ -45,7 +45,7 @@ impl<'runtime> CertificationInvariantAuthority<'runtime> {
     }
 
     pub(crate) fn enforce_certification_boundary(
-        &mut self,
+        &self,
     ) -> Result<InvariantExecutionResult, PublicationError> {
         let result = self.runtime.validation().certification_state();
         emit_preparation_diagnostics(self.runtime, &result);

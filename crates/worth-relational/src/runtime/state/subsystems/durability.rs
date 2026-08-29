@@ -7,7 +7,7 @@ use crate::runtime::RelationalRuntimeConfig;
 
 mod state;
 
-pub(crate) use state::DurabilityState;
+use state::DurabilityState;
 
 /// The runtime's durable log and checkpoint authority, owned behind its own
 /// lock so durability I/O never demands exclusive access to the runtime.
