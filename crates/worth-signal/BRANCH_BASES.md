@@ -404,8 +404,22 @@ The runtime is authoritative throughout. Retaining the superseded basis never
 pretends it is still current; it only keeps that exact state available, and the
 obligation ends exactly once however it ends.
 
-The full runnable owner workflow, including the retained readmission lane, is
-[`examples/branch_bases.rs`](./examples/branch_bases.rs):
+The two snippets above are compiled against the real facade on every
+`cargo test`, so their types, method names, and outcome variants cannot drift
+away from the runtime. They are not executed: a `SignalRuntime` does not fit
+the main-thread stack a doctest binary gets.
+
+The workflow they narrate, and the exact totals they assert, are executed by
+[`examples/branch_bases.rs`](./examples/branch_bases.rs), which also covers the
+retained readmission lane. The crate manifest declares that example a test
+target, so it runs as part of an ordinary package test run and of a
+workspace-wide one:
+
+```text
+cargo test -p worth-signal
+```
+
+To watch the same workflow instead of only seeing it pass:
 
 ```text
 cargo run -p worth-signal --example branch_bases
