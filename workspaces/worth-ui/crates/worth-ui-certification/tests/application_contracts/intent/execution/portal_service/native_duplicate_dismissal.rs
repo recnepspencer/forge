@@ -25,22 +25,25 @@ use super::super::{execution_deadline, execution_reading};
 use super::native_recovery::native_activation_drain;
 use crate::intent::{
     operability::{build_open_portal_application_with_host, PrimaryIntent},
-    runtime_services_kit::RuntimeServiceSemanticOutcome,
+    runtime_services_kit::{NativeRuntimeServiceEvidence, RuntimeServiceSemanticOutcome},
 };
 
 #[test]
 fn duplicate_escape_survives_indeterminate_portal_dismissal_recovery() {
     let evidence = run_native_runtime_service_scenario();
-    assert!(evidence.portal_was_visible);
-    assert!(evidence.focus_was_placed);
-    assert!(evidence.dismissal_closed_only_top);
-    assert!(evidence.focus_restored_to_previous);
-    assert!(evidence.duplicate_was_idempotent);
-    assert!(evidence.proposals_are_zero);
-    assert!(evidence.terminal_resources_are_zero);
+    assert!(evidence.semantic.portal_was_visible);
+    assert!(evidence.semantic.focus_was_placed);
+    assert!(evidence.semantic.dismissal_closed_only_top);
+    assert!(evidence.semantic.focus_restored_to_previous);
+    assert!(evidence.semantic.duplicate_was_idempotent);
+    assert!(evidence.semantic.proposals_are_zero);
+    assert!(evidence.semantic.terminal_resources_are_zero);
+    assert!(evidence.indeterminate_effect_retained);
+    assert!(evidence.reconciled_from_exact_host_truth);
+    assert!(evidence.predecessor_was_reconstructed);
 }
 
-pub(crate) fn run_native_runtime_service_scenario() -> RuntimeServiceSemanticOutcome {
+pub(crate) fn run_native_runtime_service_scenario() -> NativeRuntimeServiceEvidence {
     let host = worth_ui_runtime::certification_support::ScriptedPresentationHost::default();
     host.set_capabilities(
         worth_ui_host_contract::WorthUiHostCapabilityReport::available(vec![
@@ -134,6 +137,11 @@ pub(crate) fn run_native_runtime_service_scenario() -> RuntimeServiceSemanticOut
         shell.begin_managed_portal_dismissal(duplicate, 51),
         WorthUiNativeManagedPortalDismissalOutcome::Pending
     ));
+    let indeterminate_effect_retained = host.last_presentation_correlation() == Some(correlation);
+    assert!(
+        indeterminate_effect_retained,
+        "duplicate dismissal cannot replace the retained indeterminate effect correlation"
+    );
 
     host.push_native_display_presented();
     host.push_native_display_presented();
@@ -146,14 +154,16 @@ pub(crate) fn run_native_runtime_service_scenario() -> RuntimeServiceSemanticOut
         worth_ui_runtime::native_platform::UiNativeApplicationPhysicalProgress::from_certification(
             grant,
         );
-    assert!(matches!(
+    let reconciled_from_exact_host_truth = matches!(
         shell
             .progress_managed_rebind(&progress)
             .expect("the exact managed recovery remains session-bound"),
         WorthUiNativeManagedRebindProgress::PortalDismissed(_)
-    ));
+    );
+    assert!(reconciled_from_exact_host_truth);
+    let predecessor_was_reconstructed = host.reconstruction_portal_overlay_counts().contains(&1);
     assert!(
-        host.reconstruction_portal_overlay_counts().contains(&1),
+        predecessor_was_reconstructed,
         "dismissal recovery must reconstruct the visible predecessor overlay before replay"
     );
     let portal = shell.inspect_portal_runtime_for_certification();
@@ -182,18 +192,25 @@ pub(crate) fn run_native_runtime_service_scenario() -> RuntimeServiceSemanticOut
     assert_eq!(shutdown.portal_final_active_records(), 0);
     assert_eq!(shutdown.portal_abandoned_indeterminate_records(), 0);
     assert_eq!(shutdown.focus_abandoned_indeterminate_request(), None);
-    assert!(shutdown.host_session_released());
-    RuntimeServiceSemanticOutcome {
-        portal_was_visible,
-        focus_was_placed,
-        dismissal_closed_only_top: portal.active_portals() == 1
-            && portal.open_portals() == 0
-            && portal.closing_portals() == 1,
-        focus_restored_to_previous: restored_focus.current_participant()
-            == pre_portal_focus.current_participant(),
-        duplicate_was_idempotent,
-        proposals_are_zero,
-        terminal_resources_are_zero: shutdown.runtime_service_resources_empty(),
+    let host_session_released = shutdown.host_session_released();
+    assert!(host_session_released);
+    NativeRuntimeServiceEvidence {
+        semantic: RuntimeServiceSemanticOutcome {
+            portal_was_visible,
+            focus_was_placed,
+            dismissal_closed_only_top: portal.active_portals() == 1
+                && portal.open_portals() == 0
+                && portal.closing_portals() == 1,
+            focus_restored_to_previous: restored_focus.current_participant()
+                == pre_portal_focus.current_participant(),
+            duplicate_was_idempotent,
+            proposals_are_zero,
+            terminal_resources_are_zero: shutdown.runtime_service_resources_empty()
+                && host_session_released,
+        },
+        indeterminate_effect_retained,
+        reconciled_from_exact_host_truth,
+        predecessor_was_reconstructed,
     }
 }
 

@@ -1,8 +1,9 @@
 use worth_ui::facade::{
     intent::{
+        UiIntentAdmissionCancellationReason, UiIntentAdmissionSettlementPosture,
         UiIntentConsequencePublicationOutcome, UiIntentDefinition, UiIntentExecutionAdvanceOutcome,
-        UiIntentExecutionDispatchOutcome, UiIntentExecutionTransitionPosture,
-        UiIntentRuntimeServiceDestination,
+        UiIntentExecutionDispatchOutcome, UiIntentExecutionDispatchStopReason,
+        UiIntentExecutionTransitionPosture, UiIntentRuntimeServiceDestination,
     },
     rebind::{UiRebindExecutionPolicy, UiRebindExecutionRequest},
 };
@@ -35,6 +36,82 @@ pub(crate) struct HeadlessRuntimeServiceEvidence {
     pub(crate) hot_rebind_preserved_portal: bool,
     pub(crate) focus_retargeted_to_successor: bool,
     pub(crate) inspection_was_bounded: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeRuntimeServiceEvidence {
+    pub(crate) semantic: RuntimeServiceSemanticOutcome,
+    pub(crate) indeterminate_effect_retained: bool,
+    pub(crate) reconciled_from_exact_host_truth: bool,
+    pub(crate) predecessor_was_reconstructed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct CancelledRuntimeServiceAdmissionEvidence {
+    pub(crate) cancelled_for_application_rebind: bool,
+    pub(crate) active_attempts_after: usize,
+    pub(crate) portal_truth_unchanged: bool,
+    pub(crate) focus_truth_unchanged: bool,
+    pub(crate) proposals_are_zero: bool,
+    pub(crate) terminal_resources_are_zero: bool,
+}
+
+pub(crate) fn run_cancelled_runtime_service_admission_scenario(
+) -> CancelledRuntimeServiceAdmissionEvidence {
+    let (application, facts, _) =
+        build_open_portal_application(UiHeadlessRecorderCapacity::new(8, 8, 16_384));
+    let mut world =
+        AdmissionWorld::launch_application_with_target(application, facts, 1, 2, [18, 20]);
+    let definition = UiIntentDefinition::<PrimaryIntent>::runtime_service(
+        UiIntentRuntimeServiceDestination::OpenPortal,
+    );
+    let admitted = world.admit_exact_definition(0, definition);
+    world.rebind_application();
+    let portal_before_dispatch = world.session.inspect_portal_runtime_for_certification();
+    let focus_before_dispatch = world.session.inspect_focus_runtime_for_certification();
+    let stopped = match world
+        .session
+        .dispatch_admitted_intent(admitted, execution_deadline(20))
+    {
+        UiIntentExecutionDispatchOutcome::AttemptPrepared(_) => {
+            panic!("a stale admitted runtime-service request opened an execution lane")
+        }
+        UiIntentExecutionDispatchOutcome::Stopped(stopped) => stopped,
+    };
+    let cancelled_for_application_rebind = matches!(
+        stopped.reason(),
+        UiIntentExecutionDispatchStopReason::AdmissionSettled(
+            UiIntentAdmissionSettlementPosture::LifecycleCancelled(
+                UiIntentAdmissionCancellationReason::ApplicationRebound
+            )
+        )
+    );
+    let active_attempts_after = stopped.active_after();
+    let portal_truth_unchanged =
+        world.session.inspect_portal_runtime_for_certification() == portal_before_dispatch;
+    let focus_truth_unchanged =
+        world.session.inspect_focus_runtime_for_certification() == focus_before_dispatch;
+    let proposals_are_zero = world
+        .session
+        .inspect_service_proposals_for_certification()
+        .is_zero();
+    let shutdown = world.session.shutdown();
+    let terminal_resources_are_zero = shutdown.runtime_service_resource_census().is_empty()
+        && shutdown.intent_resource_census().is_empty()
+        && shutdown.mounted_presentation().is_empty()
+        && shutdown.rebind().is_empty()
+        && matches!(
+            shutdown.host_session_release(),
+            Some(worth_ui_host_contract::UiHostSessionReleaseOutcome::Released(_))
+        );
+    CancelledRuntimeServiceAdmissionEvidence {
+        cancelled_for_application_rebind,
+        active_attempts_after,
+        portal_truth_unchanged,
+        focus_truth_unchanged,
+        proposals_are_zero,
+        terminal_resources_are_zero,
+    }
 }
 
 pub(crate) fn run_headless_runtime_service_scenario() -> HeadlessRuntimeServiceEvidence {
@@ -127,6 +204,14 @@ pub(crate) fn run_headless_runtime_service_scenario() -> HeadlessRuntimeServiceE
         .inspect_service_proposals_for_certification()
         .is_zero();
     let shutdown = world.session.shutdown();
+    let terminal_resources_are_zero = shutdown.runtime_service_resource_census().is_empty()
+        && shutdown.intent_resource_census().is_empty()
+        && shutdown.mounted_presentation().is_empty()
+        && shutdown.rebind().is_empty()
+        && matches!(
+            shutdown.host_session_release(),
+            Some(worth_ui_host_contract::UiHostSessionReleaseOutcome::Released(_))
+        );
 
     HeadlessRuntimeServiceEvidence {
         semantic: RuntimeServiceSemanticOutcome {
@@ -147,7 +232,7 @@ pub(crate) fn run_headless_runtime_service_scenario() -> HeadlessRuntimeServiceE
                 && after_duplicate.visible_portals() == dismissed.visible_portals()
                 && after_duplicate.closing_portals() == dismissed.closing_portals(),
             proposals_are_zero,
-            terminal_resources_are_zero: shutdown.runtime_service_resource_census().is_empty(),
+            terminal_resources_are_zero,
         },
         hot_rebind_preserved_portal,
         focus_retargeted_to_successor,
