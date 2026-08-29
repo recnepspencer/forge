@@ -187,7 +187,7 @@ fn heavy_profiles_keep_recent_visibility_cache_small_under_sustained_history_rea
 }
 
 fn assert_recent_version_admission_candidate(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     version_id: crate::facade::identity::VersionId,
 ) {
     let read_path = runtime
@@ -206,7 +206,7 @@ fn assert_recent_version_admission_candidate(
 }
 
 fn assert_version_read_path_has_cache_hit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     version_id: crate::facade::identity::VersionId,
 ) {
     let read_path = runtime
@@ -220,7 +220,7 @@ fn assert_version_read_path_has_cache_hit(
 }
 
 fn assert_evicted_version_is_not_cached(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     version_id: crate::facade::identity::VersionId,
 ) {
     let read_path = runtime

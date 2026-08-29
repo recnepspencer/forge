@@ -62,7 +62,7 @@ fn fork_tail_plan(mutate: fn(&mut crate::branch::RelationalBranchCellCheckpoint)
 fn assert_recovery_rejects_fork_checkpoint(plan: RecoveryPlan) {
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("malformed fork provenance must fail closed");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);

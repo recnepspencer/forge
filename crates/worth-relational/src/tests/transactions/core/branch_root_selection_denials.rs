@@ -4,7 +4,7 @@ use crate::branch::{
 use crate::facade::history::BranchId;
 use crate::tests::support::{create_entity, install_empty_test_branch, runtime_with_test_schema};
 
-fn committed_child(runtime: &mut crate::runtime::RelationalRuntime) -> BranchId {
+fn committed_child(runtime: &crate::runtime::RelationalRuntime) -> BranchId {
     create_entity(runtime, "root-selection-source");
     let source = BranchId("main".to_owned());
     let (_, basis) = runtime

@@ -289,7 +289,7 @@ fn field_comparison_key(value: &str) -> AuthoritativeFieldComparisonKey {
 }
 
 fn create_entity_with_aspect_fields(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     client_key: &str,
     fields: AspectFieldPatch,
 ) -> crate::facade::identity::EntityId {

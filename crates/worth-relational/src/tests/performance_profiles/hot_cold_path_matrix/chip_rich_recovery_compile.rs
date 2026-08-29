@@ -88,7 +88,7 @@ pub(super) fn certify_chip_rich_compile_hot_vs_recovery_compile(suite: &'static 
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("chip rich hot/cold recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

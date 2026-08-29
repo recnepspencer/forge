@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn replay_commit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     commit_id: crate::history::data::CommitId,
     branch_id: BranchId,
 ) -> crate::facade::replay::RelationalReplayOutcome {
@@ -75,7 +75,7 @@ pub(super) fn planning_evidence(
 }
 
 pub(super) fn recover_stage(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     root_path: std::path::PathBuf,
 ) -> RelationalRuntime {
     let (_recovery, recovered) =
@@ -174,7 +174,7 @@ pub(super) fn recover_stage_from_final_history(
     .with_commit_strategy_executors(source.commit_strategy_executor_registry().clone());
     let mut recovered = persisted_strategy_runtime(root_path);
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("recover staged runtime from final history");
     if let Some(base_commit_id) = recovered

@@ -141,7 +141,7 @@ fn comparison_runtime() -> crate::runtime::RelationalRuntime {
 }
 
 fn create_comparison_entity(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     name: &str,
     remaining: Option<u64>,
     text_bound: Option<&str>,
@@ -154,7 +154,7 @@ fn create_comparison_entity(
 }
 
 fn write_comparison_fields(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &crate::runtime::RelationalRuntime,
     entity: EntityId,
     remaining: Option<u64>,
     text_bound: Option<&str>,
@@ -192,7 +192,7 @@ fn write_comparison_fields(
 }
 
 fn observe_predicate(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     principal: EntityId,
     scope: EntityId,
     expected: AspectValue,
@@ -213,7 +213,7 @@ fn observe_predicate(
 }
 
 fn observe_field_constraint(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     principal: EntityId,
     scope: EntityId,
     right_field: worth_foundational::facade::AspectFieldLocator,
@@ -233,7 +233,7 @@ fn observe_field_constraint(
 }
 
 fn observe_path(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     principal: EntityId,
     scope: EntityId,
     path: RelationalAuthorizationPathPlan,

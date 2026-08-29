@@ -15,7 +15,7 @@ pub(super) fn replicas_canonical_bytes(
 }
 
 pub(super) fn visible_truth_for_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: &BranchId,
     entity: crate::facade::identity::EntityId,
 ) -> KubernetesVisibleTruthEvidence {

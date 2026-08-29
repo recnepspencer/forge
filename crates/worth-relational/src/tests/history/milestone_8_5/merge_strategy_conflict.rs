@@ -6,7 +6,7 @@ pub(super) struct PrimaryStrategyConflictProof {
 }
 
 pub(super) fn certify_primary_strategy_conflict(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     entity: crate::facade::identity::EntityId,
     feature_branch: &BranchId,
 ) -> PrimaryStrategyConflictProof {

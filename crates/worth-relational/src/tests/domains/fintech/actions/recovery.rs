@@ -25,7 +25,7 @@ pub(crate) fn recover_runtime_from_plan(
 ) -> Result<(RelationalRuntime, RecoveryOutcome), String> {
     let mut recovered = RelationalRuntime::new(plan.config.clone());
     let outcome = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .map_err(|error| format!("failed to recover persisted fintech world: {error:?}"))?;
     Ok((recovered, outcome))

@@ -50,7 +50,7 @@ fn unique_entity_aspect_field_rejects_entity_aspect_create() {
         .clone();
     let patch = whole_summary_patch(&contract, "shared-title", "open");
 
-    let create = |runtime: &mut crate::runtime::RelationalRuntime, key: &str| {
+    let create = |runtime: &crate::runtime::RelationalRuntime, key: &str| {
         let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
         transaction
             .push_batch(WorkerIntentBatch::new(key).push(MutationIntent::Create(
@@ -130,7 +130,7 @@ struct RuntimeMarker {
     snapshot_version_id: crate::identity::data::VersionId,
 }
 
-fn runtime_marker(runtime: &mut crate::runtime::RelationalRuntime) -> RuntimeMarker {
+fn runtime_marker(runtime: &crate::runtime::RelationalRuntime) -> RuntimeMarker {
     let identity = runtime.main_branch_identity();
     let snapshot = crate::tests::support::snapshot_for_owner_identity(runtime, &identity);
     RuntimeMarker {
@@ -142,7 +142,7 @@ fn runtime_marker(runtime: &mut crate::runtime::RelationalRuntime) -> RuntimeMar
 }
 
 fn assert_runtime_marker_unchanged(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     before: RuntimeMarker,
 ) {
     assert_eq!(runtime_marker(runtime), before);
@@ -189,7 +189,7 @@ fn assert_unique_entity_field_conflict(error: TransactionCommitError, value: &st
 }
 
 fn assert_entity_summary(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     entity_id: crate::identity::data::EntityId,
     title: &str,
     status: &str,

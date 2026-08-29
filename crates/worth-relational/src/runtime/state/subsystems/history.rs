@@ -187,26 +187,30 @@ impl HistorySubsystem {
         self.branch_head_versions.clone()
     }
 
-    pub(crate) fn prepare_recovery_sequence(&mut self, commit_id: CommitId, version_id: VersionId) {
+    pub(crate) fn prepare_recovery_sequence(&self, commit_id: CommitId, version_id: VersionId) {
         self.ledger.write().set_sequence(commit_id.0, version_id.0);
-        self.commit_identity_allocator = Arc::new(AtomicU64::new(commit_id.0));
-        self.version_identity_allocator = Arc::new(AtomicU64::new(version_id.0));
+        self.commit_identity_allocator
+            .store(commit_id.0, Ordering::Relaxed);
+        self.version_identity_allocator
+            .store(version_id.0, Ordering::Relaxed);
     }
 
     pub(crate) fn install_recovered_sequence_floor(
-        &mut self,
+        &self,
         next_commit_id: u64,
         next_version_id: u64,
     ) {
         self.ledger
             .write()
             .set_sequence(next_commit_id, next_version_id);
-        self.commit_identity_allocator = Arc::new(AtomicU64::new(next_commit_id));
-        self.version_identity_allocator = Arc::new(AtomicU64::new(next_version_id));
+        self.commit_identity_allocator
+            .store(next_commit_id, Ordering::Relaxed);
+        self.version_identity_allocator
+            .store(next_version_id, Ordering::Relaxed);
     }
 
     pub(crate) fn prepare_replay_target_sequence(
-        &mut self,
+        &self,
         commit_id: CommitId,
         version_id: VersionId,
     ) -> Result<(), &'static str> {
@@ -217,8 +221,10 @@ impl HistorySubsystem {
             }
             ledger.set_sequence(commit_id.0, version_id.0);
         }
-        self.commit_identity_allocator = Arc::new(AtomicU64::new(commit_id.0));
-        self.version_identity_allocator = Arc::new(AtomicU64::new(version_id.0));
+        self.commit_identity_allocator
+            .store(commit_id.0, Ordering::Relaxed);
+        self.version_identity_allocator
+            .store(version_id.0, Ordering::Relaxed);
         Ok(())
     }
 

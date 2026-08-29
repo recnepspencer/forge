@@ -313,7 +313,7 @@ fn exact_entity_field_lookup_uses_one_branch_root_after_both_heads_diverge() {
     );
 }
 
-fn build_entity_field_generation(runtime: &mut RelationalRuntime, index_id: DerivedIndexId) {
+fn build_entity_field_generation(runtime: &RelationalRuntime, index_id: DerivedIndexId) {
     let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     let build = runtime
         .index_authority()

@@ -7,7 +7,7 @@ use crate::lineage::data::{
 
 impl<'runtime> LineageAuthority<'runtime> {
     pub(crate) fn install_published_lineage(
-        &mut self,
+        &self,
         events: crate::runtime::ValidatedLineageEventBatch,
         publication_commit_id: crate::history::data::CommitId,
         new_nodes: impl IntoIterator<Item = crate::lineage::data::LineageNode>,

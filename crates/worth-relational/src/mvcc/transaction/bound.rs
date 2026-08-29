@@ -74,7 +74,7 @@ impl BranchBoundRelationalTransaction {
 
     pub fn commit(
         self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<
         crate::transactions::data::CommitResult,
         crate::transactions::data::TransactionCommitError,

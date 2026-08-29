@@ -7,7 +7,7 @@ use crate::storage::substrate::{
 };
 
 type RefreshRetention =
-    fn(&mut RelationalRuntime, PartitionId, usize, Option<VersionId>, VersionId);
+    fn(&RelationalRuntime, PartitionId, usize, Option<VersionId>, VersionId);
 
 #[derive(Default)]
 pub(super) struct RetentionCounts {
@@ -33,7 +33,7 @@ pub(super) struct RetentionPassCounts {
 }
 
 pub(super) fn refresh_entity_retention_state(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     partition_id: PartitionId,
     slot: usize,
     retired_at: Option<VersionId>,
@@ -50,7 +50,7 @@ pub(super) fn refresh_entity_retention_state(
 }
 
 pub(super) fn refresh_relation_retention_state(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     partition_id: PartitionId,
     slot: usize,
     retired_at: Option<VersionId>,
@@ -67,7 +67,7 @@ pub(super) fn refresh_relation_retention_state(
 }
 
 pub(super) fn inspect_partition_retention<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     partition_id: PartitionId,
     retention_fence: VersionId,
     refresh_retention: RefreshRetention,
@@ -98,7 +98,7 @@ pub(super) fn inspect_partition_retention<K: RecordKind>(
 }
 
 pub(super) fn run_partition_retention_pass<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     pass: PartitionRetentionPass,
     count_scan: impl Fn(&RelationalRuntime),
     refresh_retention: RefreshRetention,
@@ -151,7 +151,7 @@ pub(super) fn run_partition_retention_pass<K: RecordKind>(
 }
 
 pub(super) fn trim_live_history<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     slots_by_partition: std::collections::BTreeMap<PartitionId, std::collections::BTreeSet<usize>>,
     oldest_pinned_version: VersionId,
     count_trimmed: impl Fn(&RelationalRuntime, usize),

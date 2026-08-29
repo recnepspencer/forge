@@ -75,7 +75,7 @@ pub(crate) fn merge_execution_failure_artifact(
 }
 
 pub(super) fn emit_merge_execution_failure_artifact(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     prepared: &PreparedMergeExecution,
     error: &crate::merge::data::MergeExecutionError,
 ) {

@@ -246,7 +246,7 @@ fn structural_identity_recovery_preserves_current_evidence_and_queries() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     let actual_left = recovered
         .inspect_what_happened()
@@ -285,7 +285,7 @@ fn inspection_truth_bundle_recovery_parity_holds_for_current_and_historical_surf
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let actual = capture_inspection_truth_bundle(
         &recovered,
         &BranchId("main".to_string()),

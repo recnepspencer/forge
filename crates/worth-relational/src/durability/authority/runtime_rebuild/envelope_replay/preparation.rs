@@ -94,7 +94,7 @@ fn admit_carried_branch_checkpoint(
 }
 
 fn validate_parent_closure(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
     available_commit_ids: &BTreeSet<crate::history::data::CommitId>,
 ) -> Result<(), DurabilityError> {

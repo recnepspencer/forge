@@ -39,7 +39,7 @@ pub(super) fn restore_checkpoint_state(
 }
 
 fn prepare_checkpoint_state(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     checkpoint: &DurableCheckpoint,
 ) -> Result<PreparedCheckpointState, DurabilityError> {
     validate_checkpoint_lineage_artifact(checkpoint)?;
@@ -60,7 +60,7 @@ fn prepare_checkpoint_state(
 }
 
 fn prepare_symbols(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     checkpoint: &DurableCheckpoint,
 ) -> crate::symbols::data::StringInterner {
     let mut symbols = restored.services.symbols.interner_snapshot();
@@ -69,7 +69,7 @@ fn prepare_symbols(
 }
 
 fn prepare_partitions(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     checkpoint: &DurableCheckpoint,
 ) -> Result<
     std::collections::BTreeMap<
@@ -99,7 +99,7 @@ fn prepare_partitions(
 }
 
 fn prepare_history(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     checkpoint: &DurableCheckpoint,
     branch_roots: &branch_root_images::RestoredBranchRootImages,
     symbols: &crate::symbols::data::StringInterner,
@@ -167,7 +167,7 @@ fn prepare_history(
 }
 
 fn prepare_lineage(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     checkpoint: &DurableCheckpoint,
 ) -> LineageState {
     let mut lineage = restored.lineage.snapshot();

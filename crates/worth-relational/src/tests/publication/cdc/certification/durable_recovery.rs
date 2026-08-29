@@ -60,7 +60,7 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_patch_batch = recovered
@@ -94,7 +94,7 @@ fn cdc_certification_persisted_seeded_matrix_survives_checkpoint_compaction_and_
         );
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
         recovered
-            .durability_authority()
+            .durability_recovery()
             .recover(recovery_plan)
             .unwrap();
         let recovered_patch_stream = collect_patch_stream_from_head(&recovered, 4096);

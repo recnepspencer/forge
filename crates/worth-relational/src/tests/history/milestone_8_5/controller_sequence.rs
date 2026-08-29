@@ -6,7 +6,7 @@ pub(super) struct ControllerSequenceProof {
 }
 
 pub(super) fn certify_controller_sequence_shared_truth(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
 ) -> ControllerSequenceProof {
     let controller_sequence_entity = create_entity(&mut runtime, "controller-sequence");
     let _controller_initial_intent = execute_strategy_commit(

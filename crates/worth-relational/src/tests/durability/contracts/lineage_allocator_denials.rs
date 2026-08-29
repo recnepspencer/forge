@@ -20,7 +20,7 @@ fn tail_created_lineage_allocator_exhaustion_denies_before_replay() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("tail lineage allocator exhaustion must deny");
 

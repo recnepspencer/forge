@@ -4,7 +4,7 @@ mod event_emission;
 use crate::runtime::RelationalRuntime;
 
 pub struct LineageAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 pub(crate) struct LineagePreparationAuthority<'runtime> {
@@ -12,7 +12,7 @@ pub(crate) struct LineagePreparationAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub(crate) fn lineage_authority(&mut self) -> LineageAuthority<'_> {
+    pub(crate) fn lineage_authority(&self) -> LineageAuthority<'_> {
         LineageAuthority::new(self)
     }
 }
@@ -30,7 +30,7 @@ impl<'runtime> LineagePreparationAuthority<'runtime> {
 }
 
 impl<'runtime> LineageAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 }

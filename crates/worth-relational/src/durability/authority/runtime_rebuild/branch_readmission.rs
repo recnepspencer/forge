@@ -105,7 +105,7 @@ pub(super) fn admit_legacy_branch_from_first_parent(
 }
 
 pub(super) fn recovered_branch_basis(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
 ) -> Result<crate::branch::AdmittedRelationalBranchBasis, DurabilityError> {
     let identity = restored.branch_identity(branch_id).map_err(|denial| {

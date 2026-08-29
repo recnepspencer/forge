@@ -232,7 +232,7 @@ fn merge_collaboration_truth_denies_cross_family_witness_mismatch() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = runtime_with_collaboration_merge_history();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::ReplayFailure);
     assert_eq!(error.history_drift_class, None);
@@ -277,7 +277,7 @@ fn merge_collaboration_truth_denies_summary_only_and_planner_shortcuts() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = runtime_with_collaboration_merge_history();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::ReplayFailure);
     assert_eq!(error.history_drift_class, None);

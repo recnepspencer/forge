@@ -14,7 +14,7 @@ fn planned_query_execution_parallelized_traversal_matches_serial_reference() {
             .build()
     }
 
-    fn build_fixture(runtime: &mut RelationalRuntime) -> (SnapshotHandle, PlannedQueryPacket) {
+    fn build_fixture(runtime: &RelationalRuntime) -> (SnapshotHandle, PlannedQueryPacket) {
         let seeds = vec![
             create_entity_in_partition(runtime, "s0", PartitionId(7)),
             create_entity_in_partition(runtime, "s1", PartitionId(11)),
@@ -123,7 +123,7 @@ fn planned_query_execution_reports_workload_derived_scratch_reuse_consistently_a
             .build()
     }
 
-    fn build_fixture(runtime: &mut RelationalRuntime) -> (SnapshotHandle, PlannedQueryPacket) {
+    fn build_fixture(runtime: &RelationalRuntime) -> (SnapshotHandle, PlannedQueryPacket) {
         let seeds = vec![
             create_entity_in_partition(runtime, "s0", PartitionId(7)),
             create_entity_in_partition(runtime, "s1", PartitionId(11)),
@@ -221,7 +221,7 @@ fn planned_query_execution_parallelized_overlapping_seed_traversal_dedupes_and_m
             .build()
     }
 
-    fn build_fixture(runtime: &mut RelationalRuntime) -> (SnapshotHandle, PlannedQueryPacket) {
+    fn build_fixture(runtime: &RelationalRuntime) -> (SnapshotHandle, PlannedQueryPacket) {
         let seed_a = create_entity_in_partition(runtime, "seed-a", PartitionId(7));
         let seed_b = create_entity_in_partition(runtime, "seed-b", PartitionId(11));
         let shared = create_entity_in_partition(runtime, "shared", PartitionId(13));

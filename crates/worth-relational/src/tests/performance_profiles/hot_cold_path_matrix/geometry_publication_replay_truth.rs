@@ -79,7 +79,7 @@ pub(super) fn certify_geometry_rich_publication_hot_vs_replay_truth(suite: &'sta
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("geometry rich hot/cold recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

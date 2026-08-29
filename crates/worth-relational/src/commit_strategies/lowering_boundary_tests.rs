@@ -219,7 +219,7 @@ fn create_batch(client_key: &str) -> WorkerIntentBatch {
     )))
 }
 
-fn fork_from_main(runtime: &mut crate::runtime::RelationalRuntime, branch: &str) {
+fn fork_from_main(runtime: &crate::runtime::RelationalRuntime, branch: &str) {
     let (_, basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main has a committed fork source");

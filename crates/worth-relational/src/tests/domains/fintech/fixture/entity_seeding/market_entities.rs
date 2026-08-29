@@ -10,7 +10,7 @@ use super::super::MARKET_PARTITION;
 use super::bulk_create::bulk_create_entities;
 
 pub(super) fn seed_instruments(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(
@@ -48,7 +48,7 @@ pub(super) fn seed_instruments(
 }
 
 pub(super) fn seed_market_points(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(

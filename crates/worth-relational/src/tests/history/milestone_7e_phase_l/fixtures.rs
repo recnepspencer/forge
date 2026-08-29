@@ -72,7 +72,7 @@ pub(super) fn runtime_with_schema_declared_entity_policy(persisted: bool) -> Rel
     builder.build()
 }
 
-pub(super) fn prepared_merge(runtime: &mut RelationalRuntime) -> PreparedMergeExecution {
+pub(super) fn prepared_merge(runtime: &RelationalRuntime) -> PreparedMergeExecution {
     let shared = create_entity(runtime, "shared");
     create_branch_from_main(runtime, "feature");
     update_entity_status_on_branch(runtime, shared, "inactive", "main");
@@ -84,7 +84,7 @@ pub(super) fn prepared_merge(runtime: &mut RelationalRuntime) -> PreparedMergeEx
 }
 
 fn update_entity_status_on_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     status: &str,
     branch: &str,

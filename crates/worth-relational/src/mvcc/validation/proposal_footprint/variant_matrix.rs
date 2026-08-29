@@ -209,7 +209,7 @@ fn relation_summary_patch(
     ))
 }
 
-fn commit_intent(mut runtime: &mut crate::runtime::RelationalRuntime, intent: MutationIntent) {
+fn commit_intent(mut runtime: &crate::runtime::RelationalRuntime, intent: MutationIntent) {
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction

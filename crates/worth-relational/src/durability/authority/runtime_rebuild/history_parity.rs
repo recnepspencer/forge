@@ -82,7 +82,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
 }
 
 pub(super) fn validate_recovered_history_parity(
-    runtime: &RelationalRuntime,
+    runtime: &mut RelationalRuntime,
     durable_envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
     let replay_access = runtime.replay();
@@ -213,7 +213,7 @@ fn branch_observation_truth_matches(
 }
 
 pub(super) fn validate_expected_recovery_parent_shape(
-    runtime: &RelationalRuntime,
+    runtime: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
     let ordered_parents = envelope.commit.ordered_parents();

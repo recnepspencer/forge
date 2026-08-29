@@ -139,7 +139,7 @@ proptest! {
         world.runtime.durability_authority().checkpoint().unwrap();
         let recovery_plan = world.runtime.durability().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
-        recovered.durability_authority().recover(recovery_plan).unwrap();
+        recovered.durability_recovery().recover(recovery_plan).unwrap();
         let recovered_patch_stream = collect_patch_stream_from_head(&recovered, 4096);
         prop_assert_eq!(recovered_patch_stream, head);
         let truth = VisibleTruthSummary::capture(&mut world.runtime);

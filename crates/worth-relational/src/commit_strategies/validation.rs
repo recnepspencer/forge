@@ -7,7 +7,7 @@ use crate::transactions::data::TransactionCommitError;
 use crate::transactions::data::{CommitConflict, ConflictClass};
 
 pub(crate) fn validate_lowered_plan(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     lowered: LoweredStrategyCommitPlan,
 ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
     lowered

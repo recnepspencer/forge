@@ -5,7 +5,7 @@ use crate::tests::support::{capture_aspect_truth_bundle, checkpoint_and_recover_
 use super::artifacts::MergeExecutionCertificationArtifacts;
 
 pub(super) fn certify_merge_execution_with_recovery<F>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     merge: &crate::facade::merge::MergeExecutionOutcome,
     recovered_factory: F,
 ) -> MergeExecutionCertificationArtifacts

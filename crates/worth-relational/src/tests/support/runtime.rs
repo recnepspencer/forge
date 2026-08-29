@@ -37,7 +37,7 @@ pub(crate) fn runtime_with_test_schema() -> RelationalRuntime {
 }
 
 pub(crate) fn snapshot_for_owner_identity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     identity: &crate::branch::RelationalBranchIdentity,
 ) -> crate::snapshots::data::SnapshotHandle {
     let (_, basis) = runtime
@@ -50,7 +50,7 @@ pub(crate) fn snapshot_for_owner_identity(
 }
 
 pub(crate) fn snapshot_for_owner_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: &BranchId,
 ) -> crate::snapshots::data::SnapshotHandle {
     let identity = runtime

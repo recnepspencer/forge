@@ -5,7 +5,7 @@ use crate::commit_strategies::data::{
 use crate::runtime::RelationalRuntime;
 
 pub(crate) fn lower_execution(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     request: &CanonicalStrategyCommitRequest,
     execution: &StrategyExecutionDraft,
     mut transaction: crate::mvcc::BranchBoundRelationalTransaction,

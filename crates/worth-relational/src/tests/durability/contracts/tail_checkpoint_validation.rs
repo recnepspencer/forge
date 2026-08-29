@@ -35,7 +35,7 @@ fn durability_contract_recovery_rejects_tail_target_without_immutable_artifact()
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("tail admission must validate its target artifact");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);

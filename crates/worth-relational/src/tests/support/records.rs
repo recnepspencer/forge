@@ -41,7 +41,7 @@ pub(crate) fn relation_label_field_patch(label: &str) -> AspectFieldPatch {
 }
 
 pub(crate) fn create_entity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     name: &str,
 ) -> crate::facade::identity::EntityId {
     let outcome = create_entity_outcome(runtime, name);
@@ -51,7 +51,7 @@ pub(crate) fn create_entity(
 }
 
 pub(crate) fn create_entity_in_partition(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     name: &str,
     partition_id: PartitionId,
 ) -> crate::facade::identity::EntityId {
@@ -59,7 +59,7 @@ pub(crate) fn create_entity_in_partition(
 }
 
 pub(crate) fn create_entity_in_partition_on_branch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     name: &str,
     partition_id: PartitionId,
     branch_id: BranchId,
@@ -84,12 +84,12 @@ pub(crate) fn create_entity_in_partition_on_branch(
     entity
 }
 
-pub(crate) fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitResult {
+pub(crate) fn create_entity_outcome(runtime: &RelationalRuntime, name: &str) -> CommitResult {
     create_entity_outcome_on_branch(runtime, name, BranchId("main".to_string()))
 }
 
 pub(crate) fn create_entity_outcome_on_branch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     name: &str,
     branch_id: BranchId,
 ) -> CommitResult {
@@ -129,14 +129,14 @@ fn entity_fields_for_runtime(runtime: &RelationalRuntime, name: &str) -> AspectF
 }
 
 pub(crate) fn delete_entity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
 ) -> CommitResult {
     delete_entity_on_branch(runtime, entity_id, BranchId("main".to_string()))
 }
 
 pub(crate) fn delete_entity_on_branch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     branch_id: BranchId,
 ) -> CommitResult {
@@ -152,7 +152,7 @@ pub(crate) fn delete_entity_on_branch(
 }
 
 pub(crate) fn delete_relation_on_branch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     relation_id: RelationId,
     branch_id: BranchId,
 ) -> CommitResult {
@@ -168,7 +168,7 @@ pub(crate) fn delete_relation_on_branch(
 }
 
 pub(crate) fn update_entity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     name: &str,
 ) -> CommitResult {
@@ -176,7 +176,7 @@ pub(crate) fn update_entity(
 }
 
 pub(crate) fn update_entity_and_release_snapshot(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     name: &str,
 ) {
@@ -185,7 +185,7 @@ pub(crate) fn update_entity_and_release_snapshot(
 }
 
 pub(crate) fn update_entity_on_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     name: &str,
     branch_id: BranchId,
@@ -194,7 +194,7 @@ pub(crate) fn update_entity_on_branch(
 }
 
 pub(crate) fn try_update_entity_on_branch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     name: &str,
     branch_id: BranchId,
@@ -214,7 +214,7 @@ pub(crate) fn try_update_entity_on_branch(
 }
 
 pub(crate) fn create_relation(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
     client_key: &str,
@@ -230,7 +230,7 @@ pub(crate) fn create_relation(
 }
 
 pub(crate) fn create_relation_in_partition(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
     client_key: &str,
@@ -247,7 +247,7 @@ pub(crate) fn create_relation_in_partition(
 }
 
 pub(crate) fn create_relation_with_aspect_label(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
     client_key: &str,
@@ -266,7 +266,7 @@ pub(crate) fn create_relation_with_aspect_label(
 }
 
 pub(crate) fn create_relation_in_partition_on_branch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
     client_key: &str,
@@ -297,7 +297,7 @@ pub(crate) fn create_relation_in_partition_on_branch(
 }
 
 pub(crate) fn create_relation_outcome(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
     client_key: &str,
@@ -366,7 +366,7 @@ pub(crate) fn apply_batches(batches: Vec<WorkerIntentBatch>) -> RelationalRuntim
 }
 
 pub(crate) fn release_test_commit_snapshot(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     outcome: &CommitResult,
 ) {
     runtime
@@ -376,7 +376,7 @@ pub(crate) fn release_test_commit_snapshot(
 }
 
 pub(crate) fn merge_commit_from_branches(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     target_branch: BranchId,
     merge_parent_branches: Vec<BranchId>,
 ) -> CommitResult {

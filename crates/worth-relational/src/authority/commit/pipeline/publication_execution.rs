@@ -150,7 +150,7 @@ pub(super) fn prepare_commit_publication_execution(
 }
 
 pub(crate) fn publish_commit_execution(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     prepared: PreparedCommitPublicationCompletion,
     published_snapshot_basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
 ) -> Result<

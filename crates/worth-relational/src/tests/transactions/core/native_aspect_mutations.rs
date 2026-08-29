@@ -230,7 +230,7 @@ fn native_patch_state_survives_checkpoint_readmission() {
 }
 
 fn commit_entity_create(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
     let mut transaction =
@@ -251,7 +251,7 @@ fn commit_entity_create(
 }
 
 fn commit_entity_patch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     entity_id: EntityId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
@@ -271,7 +271,7 @@ fn commit_entity_patch(
 }
 
 fn commit_relation_create(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     source: EntityId,
     target: EntityId,
     aspect_patch: PortableRecordAspectPatch,
@@ -296,7 +296,7 @@ fn commit_relation_create(
 }
 
 fn commit_relation_patch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     relation_id: RelationId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {

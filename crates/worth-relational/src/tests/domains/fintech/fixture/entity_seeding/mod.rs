@@ -37,7 +37,7 @@ pub(super) struct SeededEntityState {
 }
 
 pub(super) fn seed_entities(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> SeededEntityState {
     let desk_names = unique_names(case_seeds.iter().map(|seed| seed.desk_name));

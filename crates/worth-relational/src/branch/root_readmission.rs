@@ -14,7 +14,7 @@ use super::{
 
 impl RelationalBranchRoot {
     pub(crate) fn readmit(
-        issuer: &mut RelationalBranchRootIdentityIssuer,
+        issuer: &RelationalBranchRootIdentityIssuer,
         partitions: &BTreeMap<PartitionId, PartitionState>,
         envelope: Arc<CanonicalCommitEnvelope>,
         descriptor: RelationalBranchRootDescriptor,

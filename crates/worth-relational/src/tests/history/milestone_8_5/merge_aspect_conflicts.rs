@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn certify_overlapping_aspect_strategy_conflict(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     aspect_overlap_entity: crate::facade::identity::EntityId,
     aspect_overlap_branch: &BranchId,
 ) {
@@ -65,7 +65,7 @@ pub(super) fn certify_overlapping_aspect_strategy_conflict(
 }
 
 pub(super) fn certify_disjoint_aspect_strategy_truth(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     aspect_disjoint_entity: crate::facade::identity::EntityId,
     aspect_disjoint_branch: &BranchId,
 ) {

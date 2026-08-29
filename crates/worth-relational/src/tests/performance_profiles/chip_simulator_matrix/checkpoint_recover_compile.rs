@@ -49,7 +49,7 @@ pub(super) fn certify_checkpoint_window_recover_compile_round_trip(suite: &'stat
             );
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("chip checkpoint recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

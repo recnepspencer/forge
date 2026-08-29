@@ -44,7 +44,7 @@ fn perf_recoverability_policy_matrix() {
                 RelationalRuntimeProfile::GeometryKernel,
             );
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("policy geometry recovery");
             let replay_started_at = Instant::now();
@@ -187,7 +187,7 @@ fn perf_recoverability_policy_matrix() {
                 RelationalRuntimeProfile::ChipSimulation,
             );
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("policy chip recovery");
             let replay_started_at = Instant::now();

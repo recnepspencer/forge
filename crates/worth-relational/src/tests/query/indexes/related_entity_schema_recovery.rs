@@ -174,13 +174,13 @@ fn transition_checkpoint_and_recover(
         .schema_registry(v2_registry)
         .build();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("both exact root schema carriers recover");
     recovered
 }
 
-fn register_related_ordering_index(runtime: &mut RelationalRuntime) -> DerivedIndexDefinition {
+fn register_related_ordering_index(runtime: &RelationalRuntime) -> DerivedIndexDefinition {
     runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "relation.owns.schema-qualified-child-name".to_owned(),

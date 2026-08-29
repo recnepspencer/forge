@@ -56,7 +56,7 @@ fn topology_identity_survival_preserves_reidentification_truth_across_recovery()
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     let recovered_resolution =
         recovered

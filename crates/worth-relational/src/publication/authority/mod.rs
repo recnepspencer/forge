@@ -9,7 +9,7 @@ mod post_commit_diagnostics;
 use crate::runtime::RelationalRuntime;
 
 pub struct PublicationAuthority<'runtime> {
-    pub(super) runtime: &'runtime mut RelationalRuntime,
+    pub(super) runtime: &'runtime RelationalRuntime,
 }
 
 pub(crate) struct PublicationPreparationAuthority<'runtime> {
@@ -17,7 +17,7 @@ pub(crate) struct PublicationPreparationAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub(crate) fn publication_authority(&mut self) -> PublicationAuthority<'_> {
+    pub(crate) fn publication_authority(&self) -> PublicationAuthority<'_> {
         PublicationAuthority::new(self)
     }
 }
@@ -35,7 +35,7 @@ impl<'runtime> PublicationPreparationAuthority<'runtime> {
 }
 
 impl<'runtime> PublicationAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 }

@@ -88,7 +88,7 @@ impl PreparedRecoveredRelationalPublication {
 
     pub(crate) fn install_recovered(
         self,
-        runtime: &mut RelationalRuntime,
+        runtime: &RelationalRuntime,
         positioned: &crate::history::data::PositionedCanonicalCommit,
     ) -> Result<(), String> {
         runtime
@@ -104,7 +104,7 @@ impl PreparedRelationalPublicationAccelerators {
 
     pub(crate) fn install(
         self,
-        runtime: &mut RelationalRuntime,
+        runtime: &RelationalRuntime,
         position: crate::publication::patch::data::PatchStreamPosition,
     ) {
         runtime

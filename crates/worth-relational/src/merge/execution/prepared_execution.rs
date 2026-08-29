@@ -10,7 +10,7 @@ use crate::transactions::data::{
 };
 
 pub(in crate::merge) fn execute_prepared_merge(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     prepared: PreparedMergeExecution,
 ) -> Result<MergeExecutionOutcome, MergeExecutionError> {
     let complexity_baseline = current_complexity_counters(runtime);
@@ -105,7 +105,7 @@ fn current_complexity_counters(
 }
 
 fn emit_failure(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     prepared: &PreparedMergeExecution,
     error: MergeExecutionError,
 ) -> MergeExecutionError {

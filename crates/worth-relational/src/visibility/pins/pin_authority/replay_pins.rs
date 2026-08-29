@@ -1,7 +1,7 @@
 use super::*;
 
 impl<'runtime> VisibilityPinAuthority<'runtime> {
-    pub(crate) fn pin_replay_state(&mut self, state: &SnapshotState) {
+    pub(crate) fn pin_replay_state(&self, state: &SnapshotState) {
         for (partition_id, pins) in &state.pinned_partitions {
             for slot in pins.entity_slots.iter_set_slots() {
                 self.pin_replay_entity(crate::identity::data::EntityId::new(
@@ -20,7 +20,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         }
     }
 
-    pub(crate) fn unpin_replay_state(&mut self, state: &SnapshotState) {
+    pub(crate) fn unpin_replay_state(&self, state: &SnapshotState) {
         for (partition_id, pins) in &state.pinned_partitions {
             for slot in pins.entity_slots.iter_set_slots() {
                 self.unpin_replay_entity(crate::identity::data::EntityId::new(
@@ -39,19 +39,19 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         }
     }
 
-    fn pin_replay_entity(&mut self, entity_id: crate::identity::data::EntityId) {
+    fn pin_replay_entity(&self, entity_id: crate::identity::data::EntityId) {
         adjust_entity_pin(self.runtime, entity_id, SubstratePinClass::Replay, 1);
     }
 
-    fn unpin_replay_entity(&mut self, entity_id: crate::identity::data::EntityId) {
+    fn unpin_replay_entity(&self, entity_id: crate::identity::data::EntityId) {
         adjust_entity_pin(self.runtime, entity_id, SubstratePinClass::Replay, -1);
     }
 
-    fn pin_replay_relation(&mut self, relation_id: crate::identity::data::RelationId) {
+    fn pin_replay_relation(&self, relation_id: crate::identity::data::RelationId) {
         adjust_relation_pin(self.runtime, relation_id, SubstratePinClass::Replay, 1);
     }
 
-    fn unpin_replay_relation(&mut self, relation_id: crate::identity::data::RelationId) {
+    fn unpin_replay_relation(&self, relation_id: crate::identity::data::RelationId) {
         adjust_relation_pin(self.runtime, relation_id, SubstratePinClass::Replay, -1);
     }
 }

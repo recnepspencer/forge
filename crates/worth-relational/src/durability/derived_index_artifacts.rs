@@ -22,7 +22,7 @@ pub(crate) fn restore_checkpoint_derived_index_artifacts(
 }
 
 pub(crate) fn apply_envelope_derived_index_artifacts(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) {
     if envelope.derived_index_artifacts().is_empty() {

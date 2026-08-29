@@ -2,7 +2,7 @@ use super::HistoryAuthority;
 
 impl<'runtime> HistoryAuthority<'runtime> {
     pub(crate) fn remove_commit_envelope_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         let position = self.runtime.history.canonical_stream_position(commit_id);
@@ -23,7 +23,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
     }
 
     pub(crate) fn remove_commit_envelope_preserving_patch_stream_position_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         let removed = self
@@ -35,7 +35,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
     }
 
     pub(crate) fn evict_commit_envelope_for_durable_recovery_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         let removed = self.remove_commit_envelope_for_test(commit_id);
@@ -46,7 +46,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
     }
 
     pub(crate) fn evict_commit_envelope_preserving_patch_position_for_durable_recovery_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         let removed =
@@ -58,7 +58,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
     }
 
     pub(crate) fn tamper_commit_patch_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
         mutate: impl FnOnce(&mut crate::publication::patch::data::CanonicalAuthoritativePatch),
     ) -> bool {
@@ -77,7 +77,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
     }
 
     pub(crate) fn tamper_commit_envelope_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
         mutate: impl FnOnce(&mut crate::history::data::CanonicalCommitEnvelope),
     ) -> bool {

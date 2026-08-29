@@ -18,7 +18,7 @@ impl HistorySubsystem {
     }
 
     #[cfg(test)]
-    fn fill_retired_branch_name_capacity_for_test(&mut self) {
+    fn fill_retired_branch_name_capacity_for_test(&self) {
         let mut ordinal = 0_u64;
         loop {
             if self
@@ -40,7 +40,7 @@ impl HistorySubsystem {
 
 #[cfg(test)]
 impl crate::runtime::RelationalRuntime {
-    pub(crate) fn fill_retired_branch_name_capacity_for_test(&mut self) {
+    pub(crate) fn fill_retired_branch_name_capacity_for_test(&self) {
         self.history.fill_retired_branch_name_capacity_for_test();
     }
 }

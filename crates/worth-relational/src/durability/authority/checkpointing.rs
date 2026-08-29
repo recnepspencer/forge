@@ -22,13 +22,13 @@ use crate::durability::log::local_store::{
 use crate::durability::log::native_file_codec::write_checkpoint_file;
 
 impl<'runtime> DurabilityAuthority<'runtime> {
-    pub fn checkpoint(&mut self) -> Result<DurableCheckpoint, DurabilityError> {
+    pub fn checkpoint(&self) -> Result<DurableCheckpoint, DurabilityError> {
         let captured = self.capture_checkpoint_basis()?;
         self.finalize_captured_checkpoint(captured)
     }
 
     pub(super) fn capture_checkpoint_basis(
-        &mut self,
+        &self,
     ) -> Result<super::checkpoint_capture::CapturedCheckpointBasis, DurabilityError> {
         let checkpoint_routes = self.runtime.history.canonical_checkpoint_gate();
         let selection = checkpoint_routes
@@ -42,7 +42,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     }
 
     pub(super) fn finalize_captured_checkpoint(
-        &mut self,
+        &self,
         captured: super::checkpoint_capture::CapturedCheckpointBasis,
     ) -> Result<DurableCheckpoint, DurabilityError> {
         let checkpoint = captured.build_checkpoint_image()?;
@@ -70,7 +70,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         Ok(checkpoint)
     }
 
-    pub fn compact_store(&mut self) -> Result<CompactionOutcome, DurabilityError> {
+    pub fn compact_store(&self) -> Result<CompactionOutcome, DurabilityError> {
         if self.runtime.runtime_config().durability.policy.mode
             != DurabilityMode::PersistedSegmentedLocalFs
         {
@@ -140,7 +140,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         })
     }
 
-    pub(crate) fn compact_log_if_needed(&mut self) {
+    pub(crate) fn compact_log_if_needed(&self) {
         use crate::config::data::DurableLogRetentionMode;
 
         let policy = self.runtime.runtime_config().durability.policy.log.clone();
@@ -179,7 +179,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     }
 
     pub(crate) fn append_commit(
-        &mut self,
+        &self,
         authority: super::DurableAppendAuthority,
         positioned: &crate::history::data::PositionedCanonicalCommit,
     ) -> Result<(), DurabilityError> {
@@ -294,14 +294,14 @@ impl<'runtime> DurabilityAuthority<'runtime> {
 
     #[cfg(test)]
     pub(crate) fn remove_durable_envelope_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         self.runtime.durability.remove_log_commit(commit_id)
     }
 
     fn persist_checkpoint_file(
-        &mut self,
+        &self,
         checkpoint: &DurableCheckpoint,
     ) -> Result<DurableCheckpointManifest, DurabilityError> {
         let mut store = ensure_loaded_store(self.runtime)?;

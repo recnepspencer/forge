@@ -138,7 +138,7 @@ fn newly_matching_parallel_path_stales_the_exact_observation() {
 }
 
 fn create_relation_of_kind(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &crate::runtime::RelationalRuntime,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
     kind_id: KindId,

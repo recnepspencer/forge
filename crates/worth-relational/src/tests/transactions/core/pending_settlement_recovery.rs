@@ -288,7 +288,7 @@ fn durability_repair_leaves_a_live_witness_its_usable_published_snapshot() {
 }
 
 fn perform_main_write(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     name: &str,
 ) -> crate::mvcc::PerformedRelationalCommit {
     let mut transaction = test_owner_begin_transaction_for_main(runtime);

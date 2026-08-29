@@ -47,7 +47,7 @@ fn tail_lineage_event_allocator_exhaustion_denies_before_replay() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("tail allocator exhaustion must deny");
 
@@ -119,7 +119,7 @@ fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     let recovery = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("recovery stops at the last acknowledged checkpoint");
     assert_eq!(recovery.recovered_commits, 1);
@@ -207,7 +207,7 @@ fn branch_local_sparse_slot_create_publishes_and_recovers_exact_lineage() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("sparse branch-local lineage recovers");
     assert_eq!(

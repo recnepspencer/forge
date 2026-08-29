@@ -57,7 +57,7 @@ fn exact_next_hop_anchor_retains_revocation_currentness() {
 }
 
 fn observe_anchored_path(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     principal: crate::identity::data::EntityId,
     anchor: crate::identity::data::EntityId,
     scope: crate::identity::data::EntityId,

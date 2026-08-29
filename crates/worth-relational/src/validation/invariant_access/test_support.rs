@@ -188,7 +188,7 @@ pub(super) fn relation_integrity_runtime_with_scope_budget(
 }
 
 pub(super) fn create_entity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
     let mut txn = {

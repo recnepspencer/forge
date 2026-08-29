@@ -130,7 +130,7 @@ pub(super) fn rocketship_query_target_count(node_count: usize) -> usize {
 }
 
 pub(super) fn seed_rocketship_world(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     node_count: usize,
 ) -> RocketshipSeedOutcome {
     let entity_commit_started_at = Instant::now();

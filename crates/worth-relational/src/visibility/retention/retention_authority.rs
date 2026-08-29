@@ -15,15 +15,15 @@ use partition_pass::{
 };
 
 pub struct VisibilityRetentionAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 impl<'runtime> VisibilityRetentionAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 
-    pub fn inspect_plan(&mut self) -> RetentionPlan {
+    pub fn inspect_plan(&self) -> RetentionPlan {
         let retention_fence = self
             .runtime
             .visibility
@@ -96,7 +96,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
         plan
     }
 
-    pub fn run_pass(&mut self) -> RetentionPassOutcome {
+    pub fn run_pass(&self) -> RetentionPassOutcome {
         let mut outcome = RetentionPassOutcome {
             entity_reclaimable: 0,
             entity_reclaimed: 0,
@@ -166,7 +166,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
     }
 
     pub(crate) fn trim_live_history_for_records(
-        &mut self,
+        &self,
         changed_records: &[crate::transactions::data::RecordRef],
         published_version: crate::identity::data::VersionId,
     ) {
@@ -233,7 +233,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
     }
 
     pub(crate) fn reconcile_changed_record_states(
-        &mut self,
+        &self,
         changed_records: &[crate::transactions::data::RecordRef],
         published_version: crate::identity::data::VersionId,
     ) {
@@ -285,7 +285,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub(crate) fn retention_authority(&mut self) -> VisibilityRetentionAuthority<'_> {
+    pub(crate) fn retention_authority(&self) -> VisibilityRetentionAuthority<'_> {
         VisibilityRetentionAuthority::new(self)
     }
 }

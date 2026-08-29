@@ -135,12 +135,12 @@ impl RelationalRuntime {
 }
 
 impl<'runtime> PublicationAuthority<'runtime> {
-    pub(crate) fn push_diagnostic_artifact(&mut self, artifact: RelationalDiagnosticArtifact) {
+    pub(crate) fn push_diagnostic_artifact(&self, artifact: RelationalDiagnosticArtifact) {
         let _ = emit_filtered_artifact(self.runtime, artifact);
     }
 
     pub(crate) fn push_bounded_diagnostic(
-        &mut self,
+        &self,
         scope: DiagnosticsScope,
         kind: DiagnosticsArtifactKind,
         entries: Vec<RelationalDiagnosticsEntry>,

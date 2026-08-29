@@ -8,17 +8,17 @@ use crate::storage::substrate::{EntityRecordKind, RecordKind, RelationRecordKind
 use crate::visibility::snapshot_states::SnapshotState;
 
 pub(crate) struct VisibilityPinAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 impl<'runtime> VisibilityPinAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 }
 
 fn adjust_entity_pin(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::identity::data::EntityId,
     class: SubstratePinClass,
     delta: i32,
@@ -27,7 +27,7 @@ fn adjust_entity_pin(
 }
 
 fn adjust_relation_pin(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     relation_id: crate::identity::data::RelationId,
     class: SubstratePinClass,
     delta: i32,
@@ -36,7 +36,7 @@ fn adjust_relation_pin(
 }
 
 fn adjust_record_pin<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     record_id: crate::identity::data::RecordId<K::Domain>,
     class: SubstratePinClass,
     delta: i32,
@@ -50,7 +50,7 @@ fn adjust_record_pin<K: RecordKind>(
 }
 
 impl RelationalRuntime {
-    pub(crate) fn visibility_pins(&mut self) -> VisibilityPinAuthority<'_> {
+    pub(crate) fn visibility_pins(&self) -> VisibilityPinAuthority<'_> {
         VisibilityPinAuthority::new(self)
     }
 }

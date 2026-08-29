@@ -177,7 +177,7 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("fresh recovery replays A after checkpointed B");
     assert_eq!(

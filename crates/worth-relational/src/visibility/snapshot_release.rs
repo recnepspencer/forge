@@ -25,7 +25,7 @@ impl RelationalSnapshotReleaseReceipt {
 
 impl super::authority::VisibilityAuthority<'_> {
     pub fn release_snapshot(
-        &mut self,
+        &self,
         handle: &crate::snapshots::data::SnapshotHandle,
     ) -> Result<RelationalSnapshotReleaseReceipt, RelationalSnapshotReleaseDenial> {
         if handle.runtime_instance_id() != self.runtime.runtime_instance_id() {
@@ -43,7 +43,7 @@ impl super::authority::VisibilityAuthority<'_> {
             .visibility
             .published_snapshot_binding(handle.snapshot_id());
         let binding = active_binding
-            .or(published_binding.as_ref())
+            .or(published_binding)
             .ok_or(RelationalSnapshotReleaseDenial::UnknownSnapshot)?;
         if binding.branch_id != *handle.branch_id()
             || binding.version_id != handle.version_id()

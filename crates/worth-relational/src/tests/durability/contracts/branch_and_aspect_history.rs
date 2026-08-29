@@ -230,7 +230,7 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
         .durable_store_layout(store_layout)
         .cascade_delete_policy(CascadeDeletePolicy::RetainDanglingForAudit)
         .build();
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let outcome = recovered.durability_recovery().recover(plan).unwrap();
 
     let recovered_main_digest = relation_aspect_history_digest_on_branch(
         &recovered,

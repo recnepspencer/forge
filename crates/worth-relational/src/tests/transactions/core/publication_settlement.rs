@@ -86,7 +86,7 @@ fn direct_publication_settles_before_a_child_can_acknowledge() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("fresh runtime recovers the baseline checkpoint plus exact tail");
     assert_eq!(
@@ -184,7 +184,7 @@ fn failed_durable_append_returns_an_idempotent_owner_repair_capability() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("fresh runtime recovers repaired parent and child");
     assert_eq!(

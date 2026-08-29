@@ -19,7 +19,7 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
     let mut recovered = RelationalRuntimeApi::builder()
         .schema_registry(mismatched_registry)
         .build();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
@@ -42,7 +42,7 @@ fn durability_contract_failure_descriptor_semantics_version_mismatch_is_explicit
     plan.descriptor_semantics_version = DescriptorSemanticsVersion(99);
 
     let mut recovered = runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
@@ -229,7 +229,7 @@ fn durability_recovery_emits_authority_continuity_diagnostic_before_execution() 
     );
 
     let mut recovered = persisted_runtime_with_test_schema();
-    let _ = recovered.durability_authority().recover(plan).unwrap();
+    let _ = recovered.durability_recovery().recover(plan).unwrap();
 
     let diagnostics = recovered.publication().diagnostics();
     let authority_continuity_entry = diagnostics
@@ -258,7 +258,7 @@ fn durability_certification_recovery_authority_continuity_is_explained_and_count
     );
 
     let mut recovered = persisted_runtime_with_test_schema();
-    let _ = recovered.durability_authority().recover(plan).unwrap();
+    let _ = recovered.durability_recovery().recover(plan).unwrap();
 
     let diagnostics = recovered.publication().diagnostics();
     let authority_continuity_entry = diagnostics

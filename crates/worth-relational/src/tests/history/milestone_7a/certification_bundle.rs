@@ -207,7 +207,7 @@ fn commit_closure_ids(
 }
 
 fn replay_merge_ready_commit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     commit_id: crate::facade::history::CommitId,
 ) -> crate::replay::data::RelationalReplayOutcome {
     runtime

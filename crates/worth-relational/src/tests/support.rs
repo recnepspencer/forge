@@ -136,7 +136,7 @@ pub(super) struct AspectTruthBundle {
 }
 
 pub(super) fn capture_aspect_truth_bundle(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_ids: &[crate::facade::identity::EntityId],
     relation_ids: &[RelationId],
     lineage_ids: &[LineageId],
@@ -236,8 +236,8 @@ pub(super) fn assert_stable_aspect_truth_bundle_eq(
 }
 
 pub(super) fn assert_recovered_commit_truth_matches(
-    original_runtime: &mut RelationalRuntime,
-    recovered_runtime: &mut RelationalRuntime,
+    original_runtime: &RelationalRuntime,
+    recovered_runtime: &RelationalRuntime,
     commit_id: crate::facade::history::CommitId,
     entity_ids: &[crate::facade::identity::EntityId],
     relation_ids: &[RelationId],

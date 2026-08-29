@@ -49,7 +49,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = canonical_empty_supply_chain_runtime(scale);
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("in-memory preservation recovery succeeds");
 

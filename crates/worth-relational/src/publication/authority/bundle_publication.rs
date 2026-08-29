@@ -40,7 +40,7 @@ impl<'runtime> PublicationPreparationAuthority<'runtime> {
 
 impl<'runtime> PublicationAuthority<'runtime> {
     pub(crate) fn publish_artifacts(
-        &mut self,
+        &self,
         version_id: VersionId,
         artifacts: PublicationArtifacts,
         patch_position: crate::publication::patch::data::PatchStreamPosition,

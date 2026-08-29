@@ -22,7 +22,7 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let replay = recovered.replay();
     let recovered_merge = replay
         .canonical_commit_envelope(merge.commit.commit_id)
@@ -66,7 +66,7 @@ fn durability_contract_replays_empty_intent_merge_currentness_once() {
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let actual = recovered
         .branch_reference_state(&BranchId("main".to_string()))
         .expect("main state after recovery");
@@ -147,7 +147,7 @@ fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_a
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let replay = recovered.replay();
     let recovered_merge = replay
         .canonical_commit_envelope(merge.commit.commit.commit_id)
@@ -209,7 +209,7 @@ fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::ReplayFailure);
     assert_eq!(
@@ -263,7 +263,7 @@ fn durability_contract_does_not_reconstruct_missing_merge_authority_from_diagnos
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::ReplayFailure);
     assert_eq!(error.history_drift_class, None);

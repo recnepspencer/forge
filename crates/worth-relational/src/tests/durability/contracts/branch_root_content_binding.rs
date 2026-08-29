@@ -108,7 +108,7 @@ fn tail_replay_reconstructs_the_owner_content_root() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("one production tail commit reconstructs");
 
@@ -255,7 +255,7 @@ fn corrupt_recovery_error(
         .iter()
         .all(|cell| matches!(cell.observation.target(), FoundationalBranchTarget::Empty)));
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("corrupt root binding cannot be readmitted");
 

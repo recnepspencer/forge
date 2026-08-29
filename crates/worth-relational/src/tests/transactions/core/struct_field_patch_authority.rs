@@ -147,7 +147,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
 }
 
 pub(super) fn create_entity_with_summary_fields(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,

@@ -9,7 +9,7 @@ use crate::visibility::materialization::read_records::{
     entity_query_locus_comparison_key, relation_query_locus_comparison_key,
 };
 
-pub(crate) fn install_empty_test_branch(runtime: &mut RelationalRuntime, branch_id: BranchId) {
+pub(crate) fn install_empty_test_branch(runtime: &RelationalRuntime, branch_id: BranchId) {
     let cell = crate::branch::RelationalBranchReferenceCell::empty(
         runtime.runtime_instance_id(),
         branch_id.clone(),

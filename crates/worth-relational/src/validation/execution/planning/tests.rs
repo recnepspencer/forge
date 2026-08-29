@@ -96,7 +96,7 @@ fn request_for_plan<'runtime>(
 }
 
 fn create_entity(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);

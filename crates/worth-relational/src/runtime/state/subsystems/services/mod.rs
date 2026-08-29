@@ -48,7 +48,7 @@ impl RuntimeServices {
     pub(crate) fn compiled_artifact(
         &self,
         compiled_artifact_id: u64,
-    ) -> Option<&crate::simulation::data::CompiledExecutionArtifact> {
+    ) -> Option<std::sync::Arc<crate::simulation::data::CompiledExecutionArtifact>> {
         self.simulation.compiled_artifact(compiled_artifact_id)
     }
 
@@ -57,7 +57,7 @@ impl RuntimeServices {
     }
 
     pub(crate) fn store_compiled_artifact(
-        &mut self,
+        &self,
         artifact: crate::simulation::data::CompiledExecutionArtifact,
     ) -> u64 {
         self.simulation.store_compiled_artifact(artifact)
@@ -75,7 +75,7 @@ impl RuntimeSubsystem for RuntimeServices {
         Self {
             sequence: RuntimeSequenceState::new(),
             instrumentation: self.instrumentation.fork(),
-            simulation: self.simulation.clone(),
+            simulation: self.simulation.detached(),
             symbols: self.symbols.detached_owner_snapshot(),
         }
     }

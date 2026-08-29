@@ -203,7 +203,7 @@ fn candidate_population_exhaustion_is_typed_and_released_by_discard() {
 }
 
 fn prepared_write(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     basis: &crate::branch::AdmittedRelationalBranchBasis,
     key: &str,
 ) -> Result<

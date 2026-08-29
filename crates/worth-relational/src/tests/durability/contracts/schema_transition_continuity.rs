@@ -67,7 +67,7 @@ fn durable_recovery_and_schema_mismatch_test() {
         })
         .build();
     let _outcome = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan.clone())
         .unwrap();
     let recovered_envelope = recovered
@@ -122,7 +122,7 @@ fn durable_recovery_and_schema_mismatch_test() {
     let mut mismatched = RelationalRuntimeApi::builder()
         .schema_registry(mismatched_registry)
         .build();
-    let error = mismatched.durability_authority().recover(plan).unwrap_err();
+    let error = mismatched.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
@@ -189,7 +189,7 @@ fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
     let mut recovered = RelationalRuntimeApi::builder()
         .schema_registry(mismatched_registry)
         .build();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_ne!(expected_revision, mismatched_revision);
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
@@ -303,7 +303,7 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout)
         .build();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(

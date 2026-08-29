@@ -30,7 +30,7 @@ pub(super) fn certify_persisted_recovery_replay_round_trip(suite: &'static str) 
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             let recovery_outcome = recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(recovery_plan)
                 .expect("workflow recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

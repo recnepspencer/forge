@@ -77,7 +77,7 @@ fn delete_and_endpoint_rewrite_preserve_unlink_and_link_meaning() {
 }
 
 fn validate(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     intents: impl IntoIterator<Item = MutationIntent>,
 ) -> crate::mvcc::ValidatedRelationalProposal {
     let batch = intents.into_iter().fold(

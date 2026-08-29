@@ -44,7 +44,7 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn install_branch_root(
-        &mut self,
+        &self,
         branch_id: &BranchId,
         root: Arc<RelationalBranchRoot>,
     ) -> Result<(), RelationalRetentionAcquisitionDenial> {

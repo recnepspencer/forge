@@ -171,7 +171,7 @@ pub(super) fn certify_replay_recovery(
     let mut missing_executor_runtime =
         persisted_strategy_runtime_without_executors(recovered_root.clone());
     missing_executor_runtime
-        .durability_authority()
+        .durability_recovery()
         .recover(missing_executor_plan)
         .expect("recover without executors");
     let missing_executor_replay =
@@ -200,7 +200,7 @@ pub(super) fn certify_replay_recovery(
         .commit_strategy_executor_registry()
         .clone();
     failing_executor_runtime
-        .durability_authority()
+        .durability_recovery()
         .recover(failing_executor_plan)
         .expect("recover with failing intent executor");
     let failing_executor_replay =

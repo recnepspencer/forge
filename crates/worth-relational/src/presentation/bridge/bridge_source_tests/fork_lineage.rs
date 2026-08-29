@@ -131,7 +131,7 @@ fn retained_fork_fixture() -> RetainedForkFixture {
 }
 
 pub(super) fn replace_entity_on_branch(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     entity: crate::identity::data::EntityId,
     replacement: &str,
     branch: BranchId,

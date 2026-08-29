@@ -55,7 +55,7 @@ pub(super) fn persisted_strategy_runtime(root_path: std::path::PathBuf) -> Relat
 }
 
 pub(super) fn execute_strategy_commit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     request: NativeStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> CommitResult {

@@ -10,7 +10,7 @@ use super::projected_field_values::{
 };
 
 pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     basis: &crate::mvcc::PreparedIndexRefreshBasis,
 ) {
@@ -33,7 +33,7 @@ pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
 }
 
 pub(crate) fn rebuild_unique_entity_aspect_field_indexes(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
 ) -> Result<(), crate::branch::RelationalBranchBasisDenial> {
     let tracked_fields = tracked_unique_entity_aspect_fields(runtime);
     if tracked_fields.is_empty() {
@@ -59,7 +59,7 @@ pub(crate) fn rebuild_unique_entity_aspect_field_indexes(
 }
 
 fn remove_changed_entities_from_unique_entity_aspect_field_index(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     tracked_fields: &BTreeSet<AspectFieldLocator>,
 ) {
@@ -81,7 +81,7 @@ fn remove_changed_entities_from_unique_entity_aspect_field_index(
 }
 
 fn write_unique_entity_aspect_field_index_entries(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entries: Vec<(
         AspectFieldLocator,
         AuthoritativeFieldComparisonKey,

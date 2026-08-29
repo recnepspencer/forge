@@ -27,7 +27,7 @@ use super::unique_entity_aspect_field_index::{
 };
 
 pub struct IndexAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 enum IndexBuildProjection<'runtime> {
@@ -85,7 +85,7 @@ impl IndexGenerationPublicationBasis {
 }
 
 fn publish_index_generations(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     basis: &IndexGenerationPublicationBasis,
     results: Vec<IndexPreparationResult>,
     failed_indexes: &mut Vec<DerivedIndexId>,
@@ -130,22 +130,22 @@ fn failed_build_outcome(
 }
 
 impl RelationalRuntime {
-    pub fn index_authority(&mut self) -> IndexAuthority<'_> {
+    pub fn index_authority(&self) -> IndexAuthority<'_> {
         IndexAuthority::new(self)
     }
 }
 
 impl<'runtime> IndexAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 
-    pub fn register(&mut self, definition: DerivedIndexDefinition) -> DerivedIndexDefinition {
+    pub fn register(&self, definition: DerivedIndexDefinition) -> DerivedIndexDefinition {
         self.runtime.indexes.register_definition(definition)
     }
 
     pub fn build_for_commit(
-        &mut self,
+        &self,
         request: DerivedIndexBuildRequest,
     ) -> DerivedIndexBuildOutcome {
         let mut generations = Vec::new();
@@ -245,7 +245,7 @@ impl<'runtime> IndexAuthority<'runtime> {
     }
 
     pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
-        &mut self,
+        &self,
         changed_records: &[crate::transactions::data::RecordRef],
         basis: &crate::mvcc::PreparedIndexRefreshBasis,
     ) {
@@ -253,7 +253,7 @@ impl<'runtime> IndexAuthority<'runtime> {
     }
 
     pub(crate) fn rebuild_unique_entity_aspect_field_indexes(
-        &mut self,
+        &self,
     ) -> Result<(), crate::branch::RelationalBranchBasisDenial> {
         rebuild_unique_entity_aspect_field_indexes(self.runtime)
     }
@@ -272,7 +272,7 @@ impl<'runtime> IndexAuthority<'runtime> {
     }
 
     fn publish_build_diagnostic(
-        &mut self,
+        &self,
         request: &DerivedIndexBuildRequest,
         branch_id: &crate::history::data::BranchId,
         generations: &[DerivedIndexGeneration],

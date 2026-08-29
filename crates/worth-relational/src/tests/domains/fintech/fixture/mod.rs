@@ -310,7 +310,7 @@ impl FintechWorld {
     }
 }
 
-pub(super) fn create_analysis_branch(runtime: &mut RelationalRuntime) -> BranchId {
+pub(super) fn create_analysis_branch(runtime: &RelationalRuntime) -> BranchId {
     let branch = BranchId("analysis".to_string());
     runtime
         .history_authority()

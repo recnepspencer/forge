@@ -85,7 +85,7 @@ impl PreparedRecoveredVersionedArtifactPublication {
 
 impl HistorySubsystem {
     pub(crate) fn install_prepared_recovered_versioned_artifact(
-        &mut self,
+        &self,
         prepared: PreparedRecoveredVersionedArtifactPublication,
         positioned: &crate::history::data::PositionedCanonicalCommit,
     ) -> Result<(), String> {
@@ -126,7 +126,7 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn install_prepared_versioned_accelerators(
-        &mut self,
+        &self,
         prepared: PreparedVersionedArtifactAccelerators,
         patch_position: crate::publication::patch::data::PatchStreamPosition,
     ) {

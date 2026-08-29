@@ -6,7 +6,7 @@ use crate::facade::transactions::{
 };
 
 pub(super) fn bulk_create_entities<I>(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     batch_name: &str,
     partition_id: PartitionId,
     specs: I,

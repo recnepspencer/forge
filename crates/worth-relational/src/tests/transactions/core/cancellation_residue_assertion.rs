@@ -11,7 +11,7 @@ pub(super) struct CancellationResidueSnapshot {
 
 impl CancellationResidueSnapshot {
     pub(super) fn capture(
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
         branch_id: &BranchId,
     ) -> Self {
         Self {

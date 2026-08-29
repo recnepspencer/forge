@@ -221,7 +221,7 @@ fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
 }
 
 pub(super) fn execute_strategy_commit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     request: NativeStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> crate::facade::transactions::CommitResult {

@@ -101,7 +101,7 @@ pub(crate) fn canonical_commit_envelope(
 }
 
 pub(crate) fn append_durable_commit(
-    runtime: &mut (impl DiagnosticArtifactSink + DurabilityWrite),
+    runtime: &(impl DiagnosticArtifactSink + DurabilityWrite),
     append_authority: crate::durability::authority::DurableAppendAuthority,
     positioned_commit: &crate::history::data::PositionedCanonicalCommit,
 ) -> Result<(), TransactionCommitError> {

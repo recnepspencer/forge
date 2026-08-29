@@ -15,7 +15,7 @@ use crate::tests::support::{
 use super::{scenario_branch_main, ActiveRelation};
 
 pub(super) fn apply_operation(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     snapshots: &mut Vec<SnapshotHandle>,
     relations: &mut Vec<ActiveRelation>,
@@ -138,7 +138,7 @@ pub(super) fn apply_operation(
 }
 
 fn replace_entity_through_authoritative_patch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     entity_slot: usize,
@@ -188,7 +188,7 @@ fn replace_entity_through_authoritative_patch(
 }
 
 fn create_live_relation(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entities: &[EntityId],
     relations: &mut Vec<ActiveRelation>,
     generator: &mut DeterministicGenerator,
@@ -227,7 +227,7 @@ fn create_live_relation(
 }
 
 fn release_snapshot(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     snapshots: &mut Vec<SnapshotHandle>,
     snapshot_slot: usize,
 ) {
@@ -243,7 +243,7 @@ fn release_snapshot(
 }
 
 fn delete_relation(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     relation_slot: usize,
@@ -268,7 +268,7 @@ fn delete_relation(
 }
 
 fn delete_entity(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     branches: &[BranchId],
@@ -298,7 +298,7 @@ fn delete_entity(
 }
 
 fn create_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branches: &mut Vec<BranchId>,
     branch_name: &str,
     from_branch_slot: usize,
@@ -324,7 +324,7 @@ fn create_branch(
 }
 
 fn merge_branch_into_main(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     branches: &[BranchId],
@@ -348,7 +348,7 @@ fn merge_branch_into_main(
 }
 
 fn refresh_live_world(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
 ) {

@@ -70,7 +70,6 @@ pub(crate) fn resolve_snapshot_state(
     if let Some(binding) = runtime
         .visibility
         .active_handle_binding(handle.snapshot_id)
-        .cloned()
     {
         let resolved_handle = SnapshotHandle {
             runtime_instance_id: runtime.runtime_instance_id(),

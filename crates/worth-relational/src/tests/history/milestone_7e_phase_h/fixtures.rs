@@ -181,7 +181,7 @@ pub(super) fn runtime_with_relation_identity_registry(
 }
 
 pub(super) fn create_named_entity_on_branch(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     client_key: &str,
     name: &str,
     status: Option<&str>,

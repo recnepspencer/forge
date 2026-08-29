@@ -100,6 +100,19 @@ impl BranchHeadVersionIndexAuthority {
             .move_head(previous, next);
     }
 
+    /// Replace the whole index with the given live heads under one lock, so a
+    /// concurrent fence read never observes a half-rebuilt index.
+    pub(crate) fn rebuild(&self, versions: impl IntoIterator<Item = VersionId>) {
+        let mut index = self
+            .index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *index = BranchHeadVersionIndex::default();
+        for version in versions {
+            index.move_head(None, Some(version));
+        }
+    }
+
     pub(super) fn oldest(&self) -> Option<VersionId> {
         self.index
             .lock()

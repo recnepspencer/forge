@@ -15,7 +15,7 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
             crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
         );
         let mut recovered = FintechWorld::setup_persisted_world().runtime;
-        let outcome = recovered.durability_authority().recover(plan).unwrap();
+        let outcome = recovered.durability_recovery().recover(plan).unwrap();
         capture_recovery_probe(&recovered, &outcome)
     };
 

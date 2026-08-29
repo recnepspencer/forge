@@ -33,7 +33,7 @@ fn tail_replay_consumes_canonical_reused_record_allocation() {
     let mut recovered = persisted_runtime_with_test_schema_profile(
         crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
     );
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     assert_eq!(replacement.local_slot, original.local_slot);
     assert!(replacement.generation.0 > original.generation.0);
@@ -70,7 +70,7 @@ fn checkpoint_restores_burned_append_frontier_beyond_all_retained_roots() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let after_recovery = create_entity(&mut recovered, "frontier-after-recovery");
 
     assert_eq!(after_recovery.local_slot.0, original.local_slot.0 + 2);
@@ -96,7 +96,7 @@ fn recovery_releases_orphaned_append_reservation_without_reusing_its_gap() {
     drop(pending);
 
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     assert!(recovered.record_identity.pending_snapshot().is_empty());
     let after_recovery = create_entity(&mut recovered, "orphan-append-after");
@@ -137,7 +137,7 @@ fn recovery_returns_orphaned_reclaimed_reservation_to_reuse() {
     let mut recovered = persisted_runtime_with_test_schema_profile(
         crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
     );
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     assert!(recovered.record_identity.pending_snapshot().is_empty());
     let replacement = create_entity(&mut recovered, "orphan-reclaimed-after");
@@ -176,7 +176,7 @@ fn tail_replay_rejects_canonical_allocation_targeting_a_live_slot() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("replay must not overwrite a live checkpoint slot");
 
@@ -202,7 +202,7 @@ fn tail_replay_rejects_missing_canonical_allocation_evidence() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("replay must require canonical allocation evidence");
 
@@ -239,7 +239,7 @@ fn tail_replay_gap_admission_cannot_replace_a_different_canonical_effect() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("gap admission cannot authorize a different replayed effect");
 
@@ -283,7 +283,7 @@ fn metadata_only_merge_rejects_unconsumable_allocation_evidence() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("a metadata-only merge cannot carry allocation evidence");
 

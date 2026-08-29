@@ -9,7 +9,7 @@ fn durability_contract_empty_checkpoint_restores_a_live_retained_head() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     let identity = recovered.main_branch_identity();
     let (_, basis) = recovered
@@ -29,7 +29,7 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let outcome = recovered.durability_recovery().recover(plan).unwrap();
 
     assert_eq!(outcome.recovered_commits, 2);
     assert_eq!(outcome.latest_commit, Some(later.commit.clone()));
@@ -67,7 +67,7 @@ fn durability_tail_replay_releases_each_commit_snapshot_beyond_live_capacity() {
         crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
     );
 
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let outcome = recovered.durability_recovery().recover(plan).unwrap();
 
     assert_eq!(outcome.recovered_commits, 71);
     assert_eq!(
@@ -96,7 +96,7 @@ fn durability_contract_recovery_fails_closed_without_exact_branch_cells() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("recovery must not synthesize branch cells from legacy heads");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
@@ -139,7 +139,7 @@ fn durability_contract_recovery_rejects_branch_cell_target_without_catalog_artif
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("recovery must reject a branch target with no immutable artifact");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
@@ -176,7 +176,7 @@ fn durability_contract_recovery_rejects_tail_checkpoint_drift_before_mutation() 
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("recovery must reject a mismatching existing branch checkpoint");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
@@ -217,7 +217,7 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     let index_access = recovered.index_access();
     let generation = index_access
@@ -289,7 +289,7 @@ fn durability_contract_checkpoint_recovers_lineage_authority() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let graph = recovered
         .lineage_access()
         .graph(crate::facade::lineage::LineageGraphRequest {
@@ -343,7 +343,7 @@ fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_check
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let outcome = recovered.durability_recovery().recover(plan).unwrap();
 
     assert_eq!(outcome.latest_commit, Some(second.commit.clone()));
     assert!(!outcome

@@ -109,7 +109,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout)
         .build();
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let outcome = recovered.durability_recovery().recover(plan).unwrap();
 
     assert_eq!(outcome.latest_commit, latest_commit_before.clone());
     assert_eq!(
@@ -176,7 +176,7 @@ fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit(
     );
     let mut recovered = runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(corrupt_plan)
         .unwrap_err();
 

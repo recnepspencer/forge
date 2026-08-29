@@ -346,7 +346,7 @@ fn recover_error(
 ) -> crate::durability::data::DurabilityError {
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("corrupt lineage artifact must deny recovery");
     assert_eq!(recovered.history().immutable_commit_count(), 0);

@@ -12,7 +12,7 @@ impl IndexAuthority<'_> {
     /// Build against the exact immutable root already carried by an admitted
     /// owner basis. This path performs no historical retention reacquisition.
     pub fn build_for_basis(
-        &mut self,
+        &self,
         request: DerivedIndexBuildRequest,
         basis: &AdmittedRelationalBranchBasis,
     ) -> DerivedIndexBuildOutcome {

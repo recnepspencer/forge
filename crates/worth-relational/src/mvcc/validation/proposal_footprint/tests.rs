@@ -172,7 +172,7 @@ fn omitted_demand_performs_no_footprint_scan_or_materialization() {
 }
 
 fn validate(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &crate::runtime::RelationalRuntime,
     intents: impl IntoIterator<Item = MutationIntent>,
 ) -> ValidatedRelationalProposal {
     let batch = intents.into_iter().fold(

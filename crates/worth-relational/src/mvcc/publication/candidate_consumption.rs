@@ -15,7 +15,7 @@ impl RelationalRuntime {
     }
 
     pub(crate) fn publish_prepared_candidate(
-        &mut self,
+        &self,
         candidate: crate::mvcc::PreparedRelationalCommitCandidate,
     ) -> Result<CommitResult, TransactionCommitError> {
         self.ensure_candidate_owner(&candidate)?;

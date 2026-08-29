@@ -9,7 +9,9 @@ use super::snapshot_handle_binding::SnapshotHandleBinding;
 
 #[derive(Debug, Default)]
 pub(crate) struct SnapshotHandles {
-    active: HashMap<SnapshotId, SnapshotHandleBinding>,
+    /// Live active handles, owned behind their own lock so an observer can open
+    /// or close a snapshot without exclusive access to the runtime.
+    active: Mutex<HashMap<SnapshotId, SnapshotHandleBinding>>,
     published: Arc<Mutex<PublishedSnapshotHandles>>,
     next_snapshot_id: Arc<AtomicU64>,
     active_key_lookups: AtomicU64,
@@ -187,7 +189,7 @@ impl SnapshotHandles {
 
     pub(crate) fn new() -> Self {
         Self {
-            active: HashMap::new(),
+            active: Mutex::new(HashMap::new()),
             published: Arc::new(Mutex::new(PublishedSnapshotHandles::default())),
             next_snapshot_id: Arc::new(AtomicU64::new(1)),
             active_key_lookups: AtomicU64::new(0),
@@ -197,7 +199,7 @@ impl SnapshotHandles {
 
     pub(crate) fn fork(&self) -> Self {
         Self {
-            active: HashMap::new(),
+            active: Mutex::new(HashMap::new()),
             published: Arc::new(Mutex::new(PublishedSnapshotHandles::default())),
             next_snapshot_id: Arc::new(AtomicU64::new(1)),
             active_key_lookups: AtomicU64::new(0),
@@ -206,7 +208,7 @@ impl SnapshotHandles {
     }
 
     pub(crate) fn active_count(&self) -> usize {
-        self.active.len()
+        self.lock_active().len()
     }
 
     pub(crate) fn published_count(&self) -> usize {
@@ -222,48 +224,48 @@ impl SnapshotHandles {
             .map(SnapshotId)
     }
 
-    pub(crate) fn insert_active(
-        &mut self,
-        snapshot_id: SnapshotId,
-        binding: SnapshotHandleBinding,
-    ) {
+    pub(crate) fn insert_active(&self, snapshot_id: SnapshotId, binding: SnapshotHandleBinding) {
+        let mut active = self.lock_active();
         assert!(
-            !self.active.contains_key(&snapshot_id),
+            !active.contains_key(&snapshot_id),
             "snapshot identity allocator collided with a live active handle"
         );
         self.active_key_lookups.fetch_add(1, Ordering::Relaxed);
         self.active_mutations.fetch_add(1, Ordering::Relaxed);
-        self.active.insert(snapshot_id, binding);
+        active.insert(snapshot_id, binding);
     }
 
-    pub(crate) fn remove_active(
-        &mut self,
-        snapshot_id: SnapshotId,
-    ) -> Option<SnapshotHandleBinding> {
+    pub(crate) fn remove_active(&self, snapshot_id: SnapshotId) -> Option<SnapshotHandleBinding> {
         self.active_key_lookups.fetch_add(1, Ordering::Relaxed);
-        let removed = self.active.remove(&snapshot_id);
+        let removed = self.lock_active().remove(&snapshot_id);
         if removed.is_some() {
             self.active_mutations.fetch_add(1, Ordering::Relaxed);
         }
         removed
     }
 
-    pub(crate) fn active_binding(&self, snapshot_id: SnapshotId) -> Option<&SnapshotHandleBinding> {
+    /// The binding for one live active handle, copied out of the registry lock.
+    pub(crate) fn active_binding(&self, snapshot_id: SnapshotId) -> Option<SnapshotHandleBinding> {
         self.active_key_lookups.fetch_add(1, Ordering::Relaxed);
-        self.active.get(&snapshot_id)
+        self.lock_active().get(&snapshot_id).cloned()
     }
 
     pub(crate) fn is_known_snapshot(&self, snapshot_id: SnapshotId) -> bool {
-        self.active.contains_key(&snapshot_id)
+        self.lock_active().contains_key(&snapshot_id)
             || self.lock_published().by_id.contains_key(&snapshot_id)
     }
 
-    pub(crate) fn active_versions(&self) -> impl Iterator<Item = VersionId> + '_ {
-        self.active.values().map(|binding| binding.version_id)
+    /// Every version an active handle currently retains, collected so no caller
+    /// scans the registry while holding its lock.
+    pub(crate) fn active_versions(&self) -> Vec<VersionId> {
+        self.lock_active()
+            .values()
+            .map(|binding| binding.version_id)
+            .collect()
     }
 
     pub(crate) fn insert_published(
-        &mut self,
+        &self,
         snapshot_id: SnapshotId,
         binding: SnapshotHandleBinding,
     ) {
@@ -286,7 +288,7 @@ impl SnapshotHandles {
     }
 
     pub(crate) fn remove_published(
-        &mut self,
+        &self,
         snapshot_id: SnapshotId,
     ) -> Option<SnapshotHandleBinding> {
         remove_published_handle(&mut self.lock_published(), snapshot_id)
@@ -339,6 +341,12 @@ impl SnapshotHandles {
             .then(|| PublishedSnapshotCloseout::new(&self.published, capacity, snapshot_id))
     }
 
+    fn lock_active(&self) -> std::sync::MutexGuard<'_, HashMap<SnapshotId, SnapshotHandleBinding>> {
+        self.active
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     fn lock_published(&self) -> std::sync::MutexGuard<'_, PublishedSnapshotHandles> {
         self.published
             .lock()
@@ -349,7 +357,7 @@ impl SnapshotHandles {
     pub(crate) fn registry_cost_counters(&self) -> SnapshotHandleRegistryCostCounters {
         let published = self.lock_published();
         SnapshotHandleRegistryCostCounters {
-            active_entries: self.active.len() as u64,
+            active_entries: self.lock_active().len() as u64,
             active_key_lookups: self.active_key_lookups.load(Ordering::Relaxed),
             active_mutations: self.active_mutations.load(Ordering::Relaxed),
             published_entries: published.by_id.len() as u64,

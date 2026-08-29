@@ -208,7 +208,7 @@ fn assert_summary_projects_exact_basis(summary: &MergeExecutionSummary) {
     );
 }
 
-fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &BranchId) {
+fn graft_disconnected_branch_head(runtime: &RelationalRuntime, branch_id: &BranchId) {
     let mut disconnected = persisted_runtime_with_test_schema();
     create_entity(&mut disconnected, "orphan-root");
 

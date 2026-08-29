@@ -224,7 +224,7 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
 }
 
 fn create_entity_with_summary_title(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     client_key: &str,
     summary_title: &str,
 ) -> crate::facade::identity::EntityId {

@@ -16,7 +16,7 @@ mod mismatch;
 use mismatch::strategy_mismatch;
 
 pub(super) fn verify_strategy_reexecution_surface(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     mismatches: &mut Vec<ReplayMismatch>,
     envelope: &CanonicalCommitEnvelope,
     commit_closure: &[CommitId],
@@ -195,7 +195,7 @@ fn rebuild_strategy_basis_runtime(
 }
 
 fn execute_strategy_replay(
-    basis_runtime: &mut RelationalRuntime,
+    basis_runtime: &RelationalRuntime,
     expected_artifacts: &StrategyCommitArtifactBundle,
     mismatches: &mut Vec<ReplayMismatch>,
 ) -> Option<StrategyExecutionDraft> {
@@ -226,7 +226,7 @@ fn execute_strategy_replay(
 }
 
 fn lower_strategy_replay(
-    basis_runtime: &mut RelationalRuntime,
+    basis_runtime: &RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
     expected_artifacts: &StrategyCommitArtifactBundle,
     execution: &StrategyExecutionDraft,
@@ -311,7 +311,7 @@ fn lower_strategy_replay(
 }
 
 fn ensure_strategy_replay_basis_branch(
-    basis_runtime: &mut RelationalRuntime,
+    basis_runtime: &RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
     expected_artifacts: &StrategyCommitArtifactBundle,
 ) -> Result<(), String> {

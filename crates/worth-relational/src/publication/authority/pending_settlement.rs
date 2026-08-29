@@ -71,7 +71,7 @@ impl RelationalRuntime {
     /// repair all enter here, so they share the single per-commit executor gate
     /// and can never repeat a durable or derived effect for the same identity.
     pub(crate) fn execute_pending_settlement(
-        &mut self,
+        &self,
         record: &Arc<PendingRelationalPublicationSettlement>,
         result_owner: RelationalSettlementResultOwner,
     ) -> Result<RelationalSettlementCompletion, RelationalSettlementStop> {
@@ -118,7 +118,7 @@ impl RelationalRuntime {
     }
 
     fn settle_claimed_performed(
-        &mut self,
+        &self,
         record: &Arc<PendingRelationalPublicationSettlement>,
         performed: PerformedRelationalSettlement,
         result_owner: RelationalSettlementResultOwner,
@@ -228,7 +228,7 @@ impl RelationalRuntime {
     }
 
     fn repair_claimed_durability(
-        &mut self,
+        &self,
         record: &Arc<PendingRelationalPublicationSettlement>,
         deferred: Box<DeferredRelationalSettlement>,
         result_owner: RelationalSettlementResultOwner,

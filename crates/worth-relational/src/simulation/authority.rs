@@ -13,22 +13,22 @@ use crate::simulation::data::{
 };
 
 pub struct SimulationAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 impl RelationalRuntime {
-    pub(crate) fn simulation_authority(&mut self) -> SimulationAuthority<'_> {
+    pub(crate) fn simulation_authority(&self) -> SimulationAuthority<'_> {
         SimulationAuthority::new(self)
     }
 }
 
 impl<'runtime> SimulationAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 
     pub fn compile_execution_artifact(
-        &mut self,
+        &self,
         commit_id: CommitId,
         partition_ids: Vec<PartitionId>,
     ) -> Result<CompiledExecutionArtifact, CompiledArtifactError> {
@@ -92,7 +92,7 @@ fn build_compiled_execution_artifact(
 }
 
 fn publish_compiled_execution_artifact(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     artifact: &CompiledExecutionArtifact,
 ) {
     runtime.services.store_compiled_artifact(artifact.clone());

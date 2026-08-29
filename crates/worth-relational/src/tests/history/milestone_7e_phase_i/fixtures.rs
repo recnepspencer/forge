@@ -45,7 +45,7 @@ pub(super) fn merge_request() -> crate::facade::merge::MergeExecutionRequest {
 }
 
 pub(super) fn update_entity_status_on_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     status: &str,
     branch: &str,

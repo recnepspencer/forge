@@ -30,7 +30,7 @@ impl From<RelationalSnapshotAdmissionDenial> for CurrentBranchSnapshotAdmissionD
 
 impl super::authority::VisibilityAuthority<'_> {
     fn open_active_snapshot(
-        &mut self,
+        &self,
         version_id: crate::identity::data::VersionId,
         read_policy: crate::snapshots::data::SnapshotReadPolicy,
     ) -> crate::snapshots::data::SnapshotHandle {
@@ -53,7 +53,7 @@ impl super::authority::VisibilityAuthority<'_> {
     }
 
     fn open_active_snapshot_for_branch(
-        &mut self,
+        &self,
         version_id: crate::identity::data::VersionId,
         branch_id: crate::history::data::BranchId,
         read_policy: crate::snapshots::data::SnapshotReadPolicy,
@@ -71,7 +71,7 @@ impl super::authority::VisibilityAuthority<'_> {
     }
 
     pub(super) fn open_active_snapshot_for_basis(
-        &mut self,
+        &self,
         basis: super::snapshot_states::VisibilitySnapshotBasis,
         read_policy: crate::snapshots::data::SnapshotReadPolicy,
     ) -> Result<crate::snapshots::data::SnapshotHandle, RelationalSnapshotAdmissionDenial> {
@@ -112,7 +112,7 @@ impl super::authority::VisibilityAuthority<'_> {
     }
 
     pub fn snapshot_for_observation(
-        &mut self,
+        &self,
         observation: &crate::mvcc::RelationalBranchObservation,
     ) -> Result<crate::snapshots::data::SnapshotHandle, RelationalSnapshotAdmissionDenial> {
         if observation.identity().runtime_instance_id() != self.runtime.runtime_instance_id() {
@@ -132,7 +132,7 @@ impl super::authority::VisibilityAuthority<'_> {
         Ok(handle)
     }
 
-    pub(crate) fn snapshot(&mut self) -> crate::snapshots::data::SnapshotHandle {
+    pub(crate) fn snapshot(&self) -> crate::snapshots::data::SnapshotHandle {
         self.open_active_snapshot(
             self.runtime.current_version_id(),
             crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,

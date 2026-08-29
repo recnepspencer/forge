@@ -21,7 +21,7 @@ fn durability_contract_recovery_rebuilds_branch_head_root_obligations() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     let retention = recovered.retention().inspect_plan();
     assert_eq!(retention.active_snapshot_count, 0);
@@ -87,7 +87,7 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let actual = capture_inspection_truth_bundle(
         &recovered,
         &BranchId("feature".to_string()),

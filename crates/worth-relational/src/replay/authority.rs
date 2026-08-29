@@ -10,7 +10,7 @@ use crate::runtime::RelationalRuntime;
 use crate::schema::ValidatedSchemaContinuityBundle;
 
 pub struct ReplayAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 struct ValidatedReplayContinuityEnvelope<'a> {
@@ -33,13 +33,13 @@ struct SelectedPublishedLineageAuthority {
 }
 
 impl<'runtime> ReplayAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 }
 
 impl RelationalRuntime {
-    pub fn replay_authority(&mut self) -> ReplayAuthority<'_> {
+    pub fn replay_authority(&self) -> ReplayAuthority<'_> {
         ReplayAuthority::new(self)
     }
 }

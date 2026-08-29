@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn seed_pseudorealistic_rocketship_world(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     node_count: usize,
     query_target_count: usize,
 ) -> RocketshipPseudoRealisticSeedOutcome {
@@ -295,7 +295,7 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
 }
 
 pub(super) fn rebuild_pseudorealistic_entity_order(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     subsystem_ranges: &[(usize, usize, RocketshipSubsystemLayout)],
     node_count: usize,
 ) -> Vec<crate::facade::identity::EntityId> {

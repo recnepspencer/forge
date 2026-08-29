@@ -9,7 +9,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
     /// owner-issued branch basis.
     pub fn commit_boundary_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<InvariantExecutionResult, CommitConflict> {
         let (selected_state, merged_plan) = self.branch_bound_invariant_plan(runtime)?;
         Ok(runtime
@@ -21,7 +21,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
     /// owner-issued branch basis.
     pub fn graph_composition_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<InvariantExecutionResult, CommitConflict> {
         let (selected_state, merged_plan) = self.branch_bound_invariant_plan(runtime)?;
         Ok(runtime
@@ -31,7 +31,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
 
     fn branch_bound_invariant_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<
         (
             SelectedRelationalBranchState,

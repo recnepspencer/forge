@@ -122,7 +122,7 @@ fn assert_owner_history_scale(unrelated_commit_count: usize) {
 }
 
 fn create_entity_on_branch(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     branch: BranchId,
     ordinal: usize,
 ) {

@@ -12,17 +12,17 @@ use crate::visibility::exact_commit_snapshot::{
 };
 
 pub struct VisibilityAuthority<'runtime> {
-    pub(super) runtime: &'runtime mut RelationalRuntime,
+    pub(super) runtime: &'runtime RelationalRuntime,
 }
 
 impl RelationalRuntime {
-    pub(crate) fn visibility_authority(&mut self) -> VisibilityAuthority<'_> {
+    pub(crate) fn visibility_authority(&self) -> VisibilityAuthority<'_> {
         VisibilityAuthority::new(self)
     }
 }
 
 impl<'runtime> VisibilityAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 
@@ -43,7 +43,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
     /// Projects one entity directly from an exact retained canonical commit and reports the
     /// structural work performed by this owner operation.
     pub fn project_retained_entity_for_commit<T>(
-        &mut self,
+        &self,
         expected_runtime_instance_id: u64,
         commit: &crate::history::data::RelationalCommitReceipt,
         retained_basis: &crate::history::retention::RelationalBranchRetentionLease,
@@ -140,7 +140,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
 
     #[cfg(test)]
     pub(crate) fn pin_snapshot(
-        &mut self,
+        &self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<SnapshotGuard> {
         let state = retained_state(self.runtime, version_id)?;

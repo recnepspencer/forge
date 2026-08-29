@@ -13,7 +13,7 @@ use crate::history::data::{BranchId, CommitId};
 use super::{history_recovery_validation, HistorySubsystem};
 
 impl HistorySubsystem {
-    pub(crate) fn rebuild_branch_head_version_index(&mut self) {
+    pub(crate) fn rebuild_branch_head_version_index(&self) {
         let versions = self
             .branch_cells
             .values()
@@ -25,14 +25,11 @@ impl HistorySubsystem {
                 }
             })
             .collect::<Vec<_>>();
-        self.branch_head_versions = Default::default();
-        for version in versions {
-            self.branch_head_versions.move_head(None, Some(version));
-        }
+        self.branch_head_versions.rebuild(versions);
     }
 
     pub(crate) fn transition_empty_branches_to_initial_schema(
-        &mut self,
+        &self,
         registry: &crate::schema::data::RelationalSchemaRegistry,
     ) -> Result<(), RelationalBranchCellDenial> {
         self.record_branch_population_scan();
@@ -101,7 +98,7 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn admit_recovered_branch_cell(
-        &mut self,
+        &self,
         checkpoint: RelationalBranchCellCheckpoint,
         expected_branch_id: &BranchId,
         recovered_root: Option<Arc<crate::branch::RelationalBranchRoot>>,

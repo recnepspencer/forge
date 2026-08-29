@@ -90,7 +90,7 @@ fn checkpoint_reconstruction_does_not_exclude_publication_after_capture() {
     );
     let mut recovered = runtime_with_test_schema();
     let outcome = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("fresh recovery replays the concurrent publication as checkpoint tail");
     assert_eq!(outcome.coverage.replayed_tail_commits, 1);

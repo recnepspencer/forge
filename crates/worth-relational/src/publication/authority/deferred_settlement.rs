@@ -16,7 +16,7 @@ impl RelationalRuntime {
     /// registry before that movement, so this is the witness holder taking its
     /// turn at the one executor gate, not the sole owner of the work.
     pub fn settle_performed_publication(
-        &mut self,
+        &self,
         performed: crate::mvcc::PerformedRelationalCommit,
     ) -> Result<CommitResult, TransactionCommitError> {
         let (positioned, record) = performed.into_settlement_parts();
@@ -46,7 +46,7 @@ impl RelationalRuntime {
     /// Calling this again after success is harmless and returns the same
     /// receipt, because the carrier only names a record the runtime owns.
     pub fn repair_deferred_publication_settlement(
-        &mut self,
+        &self,
         settlement: &DeferredPublicationSettlement,
     ) -> Result<crate::history::data::RelationalCommitReceipt, DeferredPublicationSettlementError>
     {
@@ -74,7 +74,7 @@ impl RelationalRuntime {
     /// Retry a performed publication retained by this runtime even when the
     /// caller that first received the external repair capability was lost.
     pub fn repair_pending_publication_settlement(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> Result<crate::history::data::RelationalCommitReceipt, DeferredPublicationSettlementError>
     {

@@ -229,7 +229,7 @@ fn retained_lineage_fixture() -> RetainedLineageFixture {
 }
 
 fn replace_entity(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     entity: crate::identity::data::EntityId,
     replacement: &str,
 ) -> crate::identity::data::EntityId {

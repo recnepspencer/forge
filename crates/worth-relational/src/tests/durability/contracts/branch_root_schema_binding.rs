@@ -116,7 +116,7 @@ fn recovery_rejects_a_schema_carrier_swapped_between_exact_roots() {
         )
         .build();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("swapped root schema carrier cannot be readmitted");
     assert_eq!(
@@ -204,7 +204,7 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         .schema_registry(v2_registry)
         .build();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("fresh owner readmits both schema-qualified roots");
 
@@ -362,7 +362,7 @@ fn assert_schema_recovery_denial(
 ) {
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("corrupt root schema carrier cannot be readmitted");
 

@@ -7,9 +7,9 @@ use crate::runtime::{RecoveryOutcome as RuntimeRecoveryOutcome, RelationalRuntim
 use super::authority_continuity::record_recovery_verification_counters;
 use super::diagnostics::{recovery_checkpoint_selected, recovery_range_replayed};
 use super::runtime_rebuild::rebuild_runtime_from_plan;
-use super::DurabilityAuthority;
+use super::DurabilityRecoveryAuthority;
 
-impl<'runtime> DurabilityAuthority<'runtime> {
+impl<'runtime> DurabilityRecoveryAuthority<'runtime> {
     pub fn recover(
         &mut self,
         plan: RecoveryPlan,
@@ -27,7 +27,7 @@ struct RecoveredRuntimeMaterial {
 }
 
 fn admit_recovery_or_emit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     plan: RecoveryPlan,
 ) -> Result<admission::AdmittedRecoveryPlan, DurabilityError> {
     admission::admit_recovery(runtime, plan).map_err(|rejection| {
@@ -40,7 +40,7 @@ fn admit_recovery_or_emit(
 }
 
 fn rebuild_admitted_recovery_or_emit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     admitted: admission::AdmittedRecoveryPlan,
 ) -> Result<RecoveredRuntimeMaterial, DurabilityError> {
     let admission = admitted.admission().clone();

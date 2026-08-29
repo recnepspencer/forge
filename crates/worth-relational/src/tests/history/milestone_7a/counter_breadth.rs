@@ -43,7 +43,7 @@ fn merge_ready_history_shape_reports_counter_breadth_explicitly() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_counters = recovered.performance_access().counters();

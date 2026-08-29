@@ -11,7 +11,7 @@ use super::seed_catalog::FintechCaseSeed;
 use super::{FintechWorkflowCase, LEDGER_PARTITION, MARKET_PARTITION, RISK_PARTITION};
 
 pub(super) fn seed_relations(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
     seeded: &SeededEntityState,
     workflow_cases: &[FintechWorkflowCase],
@@ -177,7 +177,7 @@ pub(super) fn seed_relations(
 }
 
 pub(super) fn bulk_create_relations<I>(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     batch_name: &str,
     partition_id: PartitionId,
     specs: I,

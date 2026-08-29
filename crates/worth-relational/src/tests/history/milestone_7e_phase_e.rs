@@ -319,7 +319,7 @@ fn merge_request() -> MergeExecutionRequest {
     )
 }
 
-fn execute_merge(runtime: &mut RelationalRuntime) -> MergeExecutionOutcome {
+fn execute_merge(runtime: &RelationalRuntime) -> MergeExecutionOutcome {
     let prepared = runtime
         .merge()
         .prepare_merge_execution(merge_request())

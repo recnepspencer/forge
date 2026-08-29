@@ -229,12 +229,12 @@ fn exact_relation_join_uses_one_branch_root_after_both_heads_diverge() {
     );
 }
 
-fn register_relation_join(runtime: &mut RelationalRuntime, id: u64) -> DerivedIndexDefinition {
+fn register_relation_join(runtime: &RelationalRuntime, id: u64) -> DerivedIndexDefinition {
     register_relation_join_with_scope(runtime, id, false)
 }
 
 fn register_relation_join_with_scope(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     id: u64,
     branch_scoped: bool,
 ) -> DerivedIndexDefinition {
@@ -250,7 +250,7 @@ fn register_relation_join_with_scope(
     })
 }
 
-fn build_current_generation(runtime: &mut RelationalRuntime, index_id: DerivedIndexId) {
+fn build_current_generation(runtime: &RelationalRuntime, index_id: DerivedIndexId) {
     let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     let build = runtime
         .index_authority()
@@ -263,7 +263,7 @@ fn build_current_generation(runtime: &mut RelationalRuntime, index_id: DerivedIn
 }
 
 fn bind_chain(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     left: crate::facade::identity::EntityId,
     shared: crate::facade::identity::EntityId,
     right: crate::facade::identity::EntityId,

@@ -252,7 +252,7 @@ fn relation_summary_struct_aspect(
 }
 
 fn create_entity_with_summary_fields(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
@@ -295,7 +295,7 @@ fn create_entity_with_summary_fields(
 }
 
 fn create_relation_with_summary_fields(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     source: EntityId,
     target: EntityId,
     client_key: &str,

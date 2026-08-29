@@ -26,7 +26,7 @@ pub(super) struct FinalizationInput<'a> {
 }
 
 pub(super) fn finalize_published_commit(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     input: FinalizationInput<'_>,
 ) {
     let FinalizationInput {
@@ -95,7 +95,7 @@ pub(super) fn finalize_published_commit(
 }
 
 fn publish_storage(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     clone_mode: crate::storage::overlay::PartitionCloneMode,
     committed_partitions: std::collections::BTreeMap<
@@ -115,7 +115,7 @@ fn publish_storage(
 }
 
 fn refresh_indexes(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     basis: &crate::mvcc::PreparedIndexRefreshBasis,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
@@ -130,7 +130,7 @@ fn refresh_indexes(
 }
 
 fn advance_visibility(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     previous_branch_head_version: Option<crate::identity::data::VersionId>,
     version_id: crate::identity::data::VersionId,
@@ -150,7 +150,7 @@ fn advance_visibility(
 }
 
 fn run_retention(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     version_id: crate::identity::data::VersionId,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
@@ -163,7 +163,7 @@ fn run_retention(
 }
 
 fn compact_durability(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
@@ -172,7 +172,7 @@ fn compact_durability(
 }
 
 fn publish_artifacts(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     version_id: crate::identity::data::VersionId,
     artifacts: crate::storage::overlay::PublicationArtifacts,
     patch_position: crate::publication::patch::data::PatchStreamPosition,
@@ -202,7 +202,7 @@ struct PostCommitArtifactInput<'a> {
 }
 
 fn consume_post_commit_artifacts(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     input: PostCommitArtifactInput<'_>,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {

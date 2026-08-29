@@ -14,7 +14,7 @@ fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_la
 
     let mut recovered = persisted_intent_runtime(root_path, false);
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .expect("recovery without strategy executor");
     let branch_head_after_recovery = recovered
@@ -60,7 +60,7 @@ fn replay_commit_reports_strategy_execution_failure_when_recovered_executor_reje
     let mut recovered = persisted_intent_runtime_with_failing_executor(root_path);
     recovery_plan.commit_strategy_executors = recovered.commit_strategy_executor_registry().clone();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .expect("recovery with hostile failing executor");
     let branch_head_before_replay = recovered

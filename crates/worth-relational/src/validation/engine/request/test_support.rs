@@ -81,7 +81,7 @@ pub(super) fn relation_integrity_runtime() -> crate::runtime::RelationalRuntime 
 }
 
 pub(super) fn create_relation_of_kind(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &crate::runtime::RelationalRuntime,
     kind_id: KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
@@ -113,7 +113,7 @@ pub(super) fn create_relation_of_kind(
 }
 
 pub(super) fn create_entity(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);

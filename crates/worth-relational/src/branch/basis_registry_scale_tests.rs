@@ -9,7 +9,7 @@ fn prove_registry_lookup_work_is_population_independent(branch_population: usize
     assert_exact_registry_cleanup(&runtime, after, branch_population);
 }
 
-fn populate_branches(runtime: &mut crate::runtime::RelationalRuntime, branch_population: usize) {
+fn populate_branches(runtime: &crate::runtime::RelationalRuntime, branch_population: usize) {
     for index in 1..branch_population {
         runtime
             .history_authority()

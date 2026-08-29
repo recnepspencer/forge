@@ -17,7 +17,7 @@ pub(crate) fn test_owner_main_basis(
 /// admission path while allowing fixtures to hold the runtime mutably for the
 /// returned transaction.
 pub(crate) fn test_owner_begin_transaction_for_main(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
 ) -> BranchBoundRelationalTransaction {
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime
@@ -30,7 +30,7 @@ pub(crate) fn test_owner_begin_transaction_for_main(
 
 /// Begin a registered branch transaction after observing its admitted basis.
 pub(crate) fn test_owner_begin_transaction_for_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: BranchId,
 ) -> BranchBoundRelationalTransaction {
     let identity = runtime
@@ -46,7 +46,7 @@ pub(crate) fn test_owner_begin_transaction_for_branch(
 
 /// Begin an owner-issued transaction with exact owner-issued merge parents.
 pub(crate) fn test_owner_begin_merge_transaction(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     target_branch: BranchId,
     parent_branches: impl IntoIterator<Item = BranchId>,
 ) -> BranchBoundRelationalTransaction {
@@ -81,7 +81,7 @@ pub(crate) fn test_owner_begin_merge_transaction(
 /// Obtain an owner-issued strategy target and the mutable strategy authority
 /// without overlapping the immutable binding lookup with the authority borrow.
 pub(crate) fn test_owner_strategy_authority(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     target_branch: Option<BranchId>,
 ) -> (
     RelationalTransactionValidationInput,

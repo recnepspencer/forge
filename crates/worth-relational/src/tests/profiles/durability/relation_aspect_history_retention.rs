@@ -66,7 +66,7 @@ struct DeletedAspectRelationEvidence {
 }
 
 fn create_aspect_bearing_relation(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
 ) -> crate::facade::identity::RelationId {
@@ -92,7 +92,7 @@ fn create_aspect_bearing_relation(
 }
 
 fn delete_relation(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     relation: crate::facade::identity::RelationId,
 ) -> DeletedAspectRelationEvidence {
     let created_snapshot = runtime.visibility_authority().snapshot();

@@ -156,7 +156,7 @@ pub(crate) fn prepare_authoritative_commit(
 }
 
 pub(crate) fn publish_prepared_authoritative_commit(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     candidate: crate::mvcc::PreparedRelationalCommitCandidate,
 ) -> Result<CommitResult, TransactionCommitError> {
     runtime
@@ -215,7 +215,7 @@ fn publication_outcome_error(detail: String) -> TransactionCommitError {
 }
 
 pub(crate) fn execute_authoritative_commit(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     context: AuthoritativeCommitContext,
 ) -> Result<CommitResult, TransactionCommitError> {
     let preparation = runtime.preparation_runtime_snapshot();

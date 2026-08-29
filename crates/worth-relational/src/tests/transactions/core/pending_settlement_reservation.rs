@@ -249,7 +249,7 @@ fn the_pending_settlement_record_exists_before_the_moved_head_is_observable() {
 }
 
 fn prepared_main_write(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     name: &str,
 ) -> PreparedRelationalCommitCandidate {
     let basis = test_owner_main_basis(runtime).expect("main basis is admitted");

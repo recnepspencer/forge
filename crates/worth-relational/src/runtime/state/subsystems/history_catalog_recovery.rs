@@ -40,7 +40,7 @@ impl HistorySubsystem {
         })
     }
 
-    pub(crate) fn rebuild_catalog_from_durable_envelopes(&mut self) {
+    pub(crate) fn rebuild_catalog_from_durable_envelopes(&self) {
         let envelopes = self.recorded_commit_envelopes();
         let mut catalog = RelationalCommitCatalog::default();
         for envelope in envelopes {
@@ -52,7 +52,7 @@ impl HistorySubsystem {
     }
 
     pub(super) fn rebuild_catalog_with_live_roots(
-        &mut self,
+        &self,
         symbols: &crate::symbols::data::StringInterner,
     ) -> Result<(), String> {
         self.rebuild_catalog_with_live_roots_and_descriptors(
@@ -63,7 +63,7 @@ impl HistorySubsystem {
     }
 
     pub(super) fn rebuild_catalog_with_checkpoint_targets(
-        &mut self,
+        &self,
         checkpoints: &[crate::branch::RelationalBranchCellCheckpoint],
         symbols: &crate::symbols::data::StringInterner,
     ) -> Result<(), String> {
@@ -101,7 +101,7 @@ impl HistorySubsystem {
     }
 
     fn rebuild_catalog_with_live_roots_and_descriptors(
-        &mut self,
+        &self,
         descriptors: &std::collections::BTreeMap<
             crate::history::data::CommitId,
             crate::branch::RelationalBranchRootDescriptor,
@@ -213,7 +213,7 @@ impl HistorySubsystem {
     }
 
     pub(super) fn readmit_replayed_root_descriptor(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
         descriptor: crate::branch::RelationalBranchRootDescriptor,
         replayed_root: Arc<crate::branch::RelationalBranchRoot>,
@@ -289,7 +289,7 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn record_recovered_commit(
-        &mut self,
+        &self,
         envelope: &CanonicalCommitEnvelope,
         allow_reconstructed_replacement: bool,
         advance_branch_currentness: bool,
@@ -353,7 +353,7 @@ impl HistorySubsystem {
     }
 
     #[cfg(test)]
-    pub(crate) fn replace_catalog_from_legacy_for_test(&mut self) {
+    pub(crate) fn replace_catalog_from_legacy_for_test(&self) {
         let mut catalog = RelationalCommitCatalog::default();
         for envelope in self.recorded_commit_envelopes() {
             catalog

@@ -62,7 +62,7 @@ fn perf_artifact_recoverability_matrix() {
             );
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("geometry recoverability recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();
@@ -248,7 +248,7 @@ fn perf_artifact_recoverability_matrix() {
             );
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("chip recoverability recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

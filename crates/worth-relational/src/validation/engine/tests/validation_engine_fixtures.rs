@@ -191,7 +191,7 @@ pub(super) fn runtime_with_acyclicity_and_connectivity_budget(
 }
 
 pub(super) fn create_entity_of_kind(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     kind_id: KindId,
     client_key: &str,
 ) -> crate::identity::data::EntityId {
@@ -222,7 +222,7 @@ pub(super) fn create_entity_of_kind(
 }
 
 pub(super) fn create_relation_of_kind(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     kind_id: KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
@@ -304,7 +304,7 @@ pub(super) fn runtime_with_summary_title_commit_boundary_uniqueness() -> Relatio
 }
 
 pub(super) fn commit_entity_with_summary(
-    mut runtime: &mut RelationalRuntime,
+    mut runtime: &RelationalRuntime,
     client_key: &str,
     title: &str,
     status: &str,

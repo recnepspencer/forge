@@ -200,7 +200,7 @@ pub(super) fn build_mock_bridge_runtime(
 }
 
 pub(super) fn seed_bridge_region_world(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     label: &str,
     node_count: usize,
     cross_link_stride: usize,
@@ -239,7 +239,7 @@ pub(super) fn seed_bridge_region_world(
 }
 
 pub(super) fn seed_game_engine_frame_world(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     label: &str,
     region_count: usize,
     nodes_per_region: usize,

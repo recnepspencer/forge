@@ -192,7 +192,7 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
             segment_commit_capacity: 2,
         })
         .build();
-    let _ = recovered.durability_authority().recover(plan).unwrap();
+    let _ = recovered.durability_recovery().recover(plan).unwrap();
     let recovered_counters = recovered.performance_access().counters();
 
     assert!(recovered_counters.replay_digest_parity_checks >= 1);

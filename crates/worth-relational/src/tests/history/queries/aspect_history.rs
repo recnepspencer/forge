@@ -246,7 +246,7 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
     let mut recovered =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
     let recovery = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_snapshot = recovered.visibility_authority().snapshot();

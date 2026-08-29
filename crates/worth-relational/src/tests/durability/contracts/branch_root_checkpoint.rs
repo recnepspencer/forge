@@ -19,7 +19,7 @@ fn checkpoint_recovery_rejects_missing_exact_branch_root_artifact() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("global partition images cannot substitute for a branch root");
 
@@ -44,7 +44,7 @@ fn checkpoint_recovery_rejects_root_artifact_without_commit_envelope() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("a root image cannot select an unrelated or missing envelope");
 
@@ -71,7 +71,7 @@ fn tail_recovery_resolves_the_checkpoint_target_root_not_the_fork_source_head() 
 
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("divergent tail commits recover from their exact pre-commit roots");
 
@@ -98,7 +98,7 @@ fn checkpoint_recovery_rejects_duplicate_global_partition_images() {
         .push(checkpoint.partition_images[0].clone());
 
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
     assert!(error.detail.contains("duplicate partition image"));
@@ -117,7 +117,7 @@ fn checkpoint_recovery_rejects_duplicate_branch_root_partition_images() {
     root.partition_images.push(root.partition_images[0].clone());
 
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
     assert!(error.detail.contains("duplicate partition image"));
@@ -152,7 +152,7 @@ fn checkpoint_recovery_rejects_foreign_branch_target_substitution() {
     replace_checkpoint_target(main, foreign_target);
 
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
     assert!(error.detail.contains("foreign branch stream"));
@@ -193,7 +193,7 @@ fn tail_recovery_rejects_foreign_branch_target_substitution() {
     replace_checkpoint_target(tail_cell, foreign_target);
 
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
     assert!(error.detail.contains("foreign branch stream"));
@@ -213,7 +213,7 @@ fn replace_checkpoint_target(
     .unwrap();
 }
 
-fn current_branch_entity_count(runtime: &mut RelationalRuntime, branch_id: &BranchId) -> usize {
+fn current_branch_entity_count(runtime: &RelationalRuntime, branch_id: &BranchId) -> usize {
     let identity = runtime
         .branch_identity(branch_id)
         .expect("recovered branch identity exists");

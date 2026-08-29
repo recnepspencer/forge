@@ -89,7 +89,7 @@ fn perf_replay_recovery_matrix() {
             recovered.performance_access().reset_counters();
             let recovery_started_at = Instant::now();
             let outcome = recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(recovery_plan)
                 .expect("recover plan");
             let recovery_micros = recovery_started_at.elapsed().as_micros();

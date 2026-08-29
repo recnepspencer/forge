@@ -19,7 +19,7 @@ pub(crate) struct MergedPlanPreparationTiming {
 impl crate::mvcc::BranchBoundRelationalTransaction {
     pub fn merged_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<&MergedCommitPlan, CommitConflict> {
         let preparation = runtime.preparation_runtime_snapshot();
         self.merged_plan_for_preparation(&preparation)?;

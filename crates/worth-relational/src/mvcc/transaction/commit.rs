@@ -3,7 +3,7 @@ use crate::transactions::data::{CommitResult, TransactionCommitError};
 
 impl RelationalRuntime {
     pub fn commit_branch_transaction(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
     ) -> Result<CommitResult, TransactionCommitError> {
         let candidate = self.prepare_branch_transaction(transaction)?;
