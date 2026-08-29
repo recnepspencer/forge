@@ -35,3 +35,13 @@ trybuild = "1"
 
 [lints]
 workspace = true
+
+# Declared so `cargo test` executes this example's own `main` as an ordinary
+# part of the existing workspace test lane. dx_laws #18: a public example is a
+# compatibility contract, so it must run against the real facade rather than
+# only compile. `harness = false` runs `main` instead of an empty libtest
+# harness. No separate `cargo run` evidence lane exists or is wanted.
+[[example]]
+name = "branch_local_mvcc"
+test = true
+harness = false
