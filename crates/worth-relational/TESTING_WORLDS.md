@@ -323,6 +323,7 @@ CI step that names it exactly:
 | `mvcc_cancellation_publication_boundaries::` (2 tests) | `test-operation-control` | worth-relational operation-control cancellation lane |
 | `mvcc_owner_phase_locality::…preparation…` | `test-operation-control` | worth-relational operation-control preparation locality lane |
 | `mvcc_owner_phase_locality::…publication…` | `test-operation-control` | worth-relational operation-control publication locality lane |
+| `mvcc_owner_phase_locality::…settlement…` | `test-operation-control` | worth-relational operation-control settlement locality lane |
 | `schema_transition_cancellation::…` | `test-operation-control` | worth-relational operation-control schema transition cancellation lane |
 | `substrate_edition_budgets::allocation_slope::` (4 tests) | `allocation-probes` | worth-relational allocation-slope lane |
 
@@ -344,6 +345,10 @@ bash scripts/ci/run_relational_named_test_selection.sh \
 
 bash scripts/ci/run_relational_named_test_selection.sh \
   --test relational_certification --features test-operation-control --exact \
+  --selection mvcc_owner_phase_locality::paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
   --selection schema_transition_cancellation::cancelled_schema_transition_leaves_no_target_or_branch_residue
 
 bash scripts/ci/check_relational_allocation_probes.sh
@@ -356,7 +361,7 @@ tests it requires and then `exec`s the same selection authority.
 That script is the single selection authority for named Relational lanes. Its
 preflight and its execution share one filter vector, so a lane cannot assert one
 selection and run another, and it fails the lane when the filter reaches zero
-compiled tests or only `#[ignore]`d ones. The two locality selections are
+compiled tests or only `#[ignore]`d ones. The three locality selections are
 `--exact` on purpose: a namespace filter proves only that some court ran, so a
 deleted or renamed court would keep the lane green.
 
@@ -370,21 +375,42 @@ absent, so deleting a driver would leave a selection that still lists tests,
 still executes them, and still measures no slope at all.
 
 The locality courts park one Supply Chain branch inside a real owner phase, at
-the first `CandidatePreparation` observation and at `BeforeCriticalSection`
-respectively, and require an unrelated branch to complete a full ordinary commit
-through the public facade while that park is held. The evidence is exact zero
-coordination contact and wait deltas on the parked branch, an unchanged parked
-branch reference, a maintenance head that advances exactly one canonical commit,
-and an oracle match once both phases finish. A regression to a whole-runtime
-exclusive borrow convicts at compile time rather than here; what these courts
-convict is a runtime gate that serializes independent branches. Their reach is
-bounded accordingly: preparation parks near the top of its phase and cannot
-speak for a gate taken later in it, and **settlement locality is not covered at
-this production boundary**. The independently borrowable settlement port now
-exists, and `owner_service_phase3::phase3_paused_settlement_does_not_block_an_unrelated_branch_commit`
-parks a settlement and requires an unrelated branch to commit through it, but
-that court runs at the focused lib boundary. No court yet carries a paused
-settlement through the public certification facade.
+the first `CandidatePreparation` observation, at `BeforeCriticalSection`, and at
+the `Settlement` observation inside the one settlement executor, and require an
+unrelated branch to complete a full ordinary commit through the public facade
+while that park is held. The evidence is exact zero coordination contact and
+wait deltas on the parked branch, an unchanged parked branch reference, a
+maintenance head that advances exactly one canonical commit, and an oracle match
+once both phases finish. A regression to a whole-runtime exclusive borrow
+convicts at compile time rather than here; what these courts convict is a
+runtime gate that serializes independent branches.
+
+The settlement court is the one that reaches the pending-settlement registry
+every owner phase contacts. Its park holds an installed record in `Executing`,
+that record's per-commit executor gate, a published-snapshot slot, and a moved
+but still unsettled canonical route, so migrating the single-executor gate to
+registry scope, or holding the registry index lock across the settlement effect,
+deadlocks any unrelated branch's ordinary commit and is convicted here. The
+court proves its park position before relying on it, since a branch that has
+already moved and still retains its pending record cannot be parked at an
+earlier boundary, and it proves resumption leaves no residue: the exact commit
+identity settles, the observed head is that canonical commit, and no pending
+record survives.
+
+Their reach is bounded accordingly. Preparation parks near the top of its phase
+and cannot speak for a gate taken later in it. Settlement parks after the
+durable append and derived completion have already returned, so it cannot speak
+for a lock taken and released inside them, and the certified world is
+memory-resident, so no durable-I/O locality is claimed.
+`paused_settlement_locality::phase3_paused_settlement_does_not_block_an_unrelated_branch_commit`
+makes the same settlement claim at the focused lib boundary, against a synthetic
+schema rather than the production Supply Chain world.
+
+Every wait in these courts is bounded and every exit opens the park before it
+returns. That is load-bearing rather than tidy: a parked branch holds an
+admitted runtime operation, and the owner close that dropping the world runs
+waits on exactly that, so a court that panicked with its park still closed would
+hang in drop and print no diagnostic at all.
 
 ## Preservation evidence
 

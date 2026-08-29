@@ -177,6 +177,14 @@ jobs:
           --exact
           --selection mvcc_owner_phase_locality::paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked
 
+      - name: worth-relational operation-control settlement locality lane
+        run: >-
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification
+          --features test-operation-control
+          --exact
+          --selection mvcc_owner_phase_locality::paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked
+
       - name: worth-relational operation-control schema transition cancellation lane
         run: >-
           bash scripts/ci/run_relational_named_test_selection.sh
