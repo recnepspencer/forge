@@ -8,6 +8,10 @@ snapshot posture, and reference generation you observed. Use it when work must
 fork, restore, advance, merge, or retain a particular Signal branch without silently
 falling back to whatever branch is current later.
 
+A **component obligation** (a retention lease) is the second half of that story.
+It lets one component keep an exact past state available while the branch itself
+moves on without it.
+
 ## Why You Use It
 
 - Fork background or preview work from the exact state you inspected.
@@ -15,7 +19,8 @@ falling back to whatever branch is current later.
   moves the branch reference.
 - Carry a descriptive basis through JSON and ask the owning runtime to readmit
   it before it can operate.
-- Keep a component basis resident while another owner still needs it.
+- Keep one exact component state available to a downstream owner after the
+  branch reference has moved past it.
 
 ## Stable Entry Points
 
@@ -29,6 +34,8 @@ methods on `SignalRuntime`:
 - `validate_signal_basis_compatibility`
 - `retain_signal_component_basis`
 - `release_signal_component_basis`
+- `readmit_retained_signal_branch_basis`
+- `signal_component_retention_terminal_counts`
 - `advance_signal_branch`
 - `merge` for guided planning and `merge_branch` for the full-branch shortcut
 - `capture_signal_branch_snapshot`
@@ -91,12 +98,83 @@ retention registry is full, observation reports
 reports `SignalBranchBasisReadmissionDenial::UnavailableRetention`; neither
 misclassifies the branch as unknown.
 
-A **retention lease** keeps the referenced component state live. Leases are
-bounded, runtime-affine, and single-release. Branch retirement is denied while
-external leases remain. Retirement planning consumes the branch's unique
-admitted basis into a linear plan; sibling clones deny planning until only one
-holder remains, and execution releases that final internal obligation before
-reclamation.
+### Residency Is Not Currentness
+
+Retention and readmission ask the runtime two different questions about the
+same state, and the answers are independent:
+
+```text
+readmit_signal_branch_basis(descriptor)
+    "Does this branch still select this state?"
+    -> ReferenceMismatch once any operation moves the reference.
+
+retain_signal_component_basis(&basis)
+    "Is this exact immutable state still available?"
+    -> Ok, and it never consults the branch reference at all.
+```
+
+An obligation over a historical target is therefore ordinary, not exceptional.
+`SignalBranchRetentionAcquisitionDenial` has no stale-basis variant on purpose:
+every refusal it can give is a fact about the owner, the branch lifecycle, the
+Signal definition, or the continued availability of that exact target. How
+current the target is never enters the decision.
+
+A lease is consequently **not** evidence that its branch reference is current,
+and it is not a private copy of the state. It is an obligation the owner
+honors: that exact immutable state stays available, and branch retirement stays
+denied, until the obligation ends.
+
+### An Obligation Names One Exact Target
+
+`SignalBranchRetentionLease` is deliberately not `Clone`. The obligation is the
+value, so it cannot be duplicated and cannot be released twice. It authorizes
+exactly the target it was opened over: `readmit_retained_signal_branch_basis`
+refuses any other descriptor with `DescriptorMismatch`, and refuses a runtime
+that did not issue it with `ForeignRetention`.
+
+The same exact target may carry several independent obligations. Release
+receipts keep them distinct: `remaining_target_leases` counts obligations still
+held over that one exact target, while `remaining_branch_leases` counts
+obligations still held over any target of the same branch.
+
+### Acquire Before You Lose It
+
+`readmit_retained_signal_branch_basis` is the only route back to an admitted
+basis for a state the branch no longer selects, and it requires a live
+obligation. Ordinary readmission answers the currentness question and refuses.
+
+So retain **before** you drop the last admitted basis for a state you will
+need. Once no admitted basis and no obligation remain, that exact target is no
+longer reachable, and branch retirement is free to reclaim it.
+
+### Both Terminal Paths End the Obligation
+
+An obligation reaches a terminal state exactly once, by either path:
+
+- `release_signal_component_basis` consumes it and returns a
+  `SignalBranchRetentionReleaseReceipt`: the released target, the terminal
+  outcome, and both remaining counts.
+- Dropping it takes the same exactly-once terminal path, recorded as a dropped
+  release instead of fabricating a receipt nobody asked for.
+
+Forgetting to release is therefore not a leak. Both paths discharge identical
+accounting and both unblock retirement; only explicit release yields governed
+evidence. `signal_component_retention_terminal_counts` reports the owner's view
+as `explicit_releases`, `dropped_releases`, `owner_loss_releases`, and
+`unknown_lease_defenses`.
+
+An obligation may also outlive the runtime that issued it. Its
+`owner_posture()` becomes `Lost`, releasing it reports
+`SignalBranchRetentionTerminalOutcome::OwnerUnavailable` rather than `Released`,
+and `owner_terminal_counts()` stays readable so the loss remains observable.
+The owner ledger survives the runtime; the retained state does not. A lost
+owner cannot hand the target back, so `readmit_retained_signal_branch_basis`
+reports `UnavailableRetainedTarget`.
+
+Branch retirement is denied while external obligations remain. Retirement
+planning consumes the branch's unique admitted basis into a linear plan;
+sibling clones deny planning until only one holder remains, and execution
+releases that final internal obligation before reclamation.
 
 ## How It Executes
 
@@ -106,10 +184,14 @@ reclamation.
 4. A successful reference-moving operation returns a new admitted basis.
 5. If the basis crosses a transport boundary, send only its descriptor and
    readmit it at the destination owner.
-6. Acquire a lease when another component must keep the basis resident, then
-   release that exact lease when finished.
-7. To retire a branch, pass its sole admitted basis by value. A successful plan
-   owns that basis until retirement executes.
+6. Retain an exact basis when another component must keep that state
+   available. This is legitimate before or after the branch reference moves
+   past it, because retention decides availability rather than currentness.
+7. End the obligation by releasing it for a receipt, or by dropping it for the
+   same terminal accounting without one.
+8. To retire a branch, pass its sole admitted basis by value once no external
+   obligation remains. A successful plan owns that basis until retirement
+   executes.
 
 Owner, definition, lifecycle, snapshot, and generation failures remain
 distinct so callers can choose retry, refresh, or rejection deliberately.
@@ -119,68 +201,157 @@ from failures that occur only after the owner performed the operation.
 
 ## Small Example
 
-```rust
+```no_run
+use worth_signal::facade::branch::SignalBranchBasisReadmissionDenial;
 use worth_signal::facade::{SignalGraph, SignalRuntime};
 
 let mut runtime = SignalRuntime::<(), (), (), (), ()>::builder(SignalGraph::new())
     .with_kernel_defaults()
     .build();
+let main_basis = runtime
+    .observe_signal_branch_basis(runtime.current_branch())
+    .expect("the current branch admits an owner basis");
+let (_preview, forked) = runtime
+    .fork_signal_branch("retained-history", &main_basis)
+    .expect("an exact basis admits a fork")
+    .into_parts();
 
-let main = runtime.current_branch();
-let main_basis = runtime.observe_signal_branch_basis(main)?;
-let fork = runtime.fork_signal_branch("preview", &main_basis)?;
+// Capturing twice moves the branch reference. The first captured state stays
+// stored; the branch now selects the second. `advance_signal_branch` moves the
+// reference the same way when you have real mutations to stage.
+let (_first, superseded) = runtime
+    .capture_signal_branch_snapshot(&forked)
+    .expect("the first capture succeeds")
+    .into_parts();
+let (_second, current) = runtime
+    .capture_signal_branch_snapshot(&superseded)
+    .expect("the second capture succeeds")
+    .into_parts();
 
-let preview = fork.created_branch();
-let preview_basis = fork.created_basis();
-assert_ne!(preview.id, runtime.current_branch().id);
-assert_eq!(preview_basis.observation().generation().get(), 0);
+// The currentness question: refused, because the branch has moved on.
+assert!(matches!(
+    runtime.readmit_signal_branch_basis(superseded.descriptor().clone()),
+    Err(SignalBranchBasisReadmissionDenial::ReferenceMismatch { .. })
+));
+
+// The residency question: granted, because that exact state is still stored.
+let lease = runtime
+    .retain_signal_component_basis(&superseded)
+    .expect("an exact stored target stays retainable after its branch moves");
+assert_ne!(
+    lease.retained_target(),
+    current
+        .observation()
+        .target()
+        .as_basis()
+        .expect("an owner observation carries a basis target"),
+    "an obligation is never a claim about whatever the branch holds now"
+);
+
+// Holding the obligation is what makes the historical target admissible again.
+let readmitted = runtime
+    .readmit_retained_signal_branch_basis(lease.descriptor().clone(), &lease)
+    .expect("a live obligation readmits the exact target it retains");
+assert_eq!(readmitted.descriptor(), lease.descriptor());
 ```
 
-This is the smallest honest fork: the runtime observes the source, validates
-that exact basis, creates the branch, and returns the new branch with its own
-admitted basis.
+Two questions, one runtime, separate answers: the branch reference moved, and
+the exact state it moved off is still there.
 
 ## Real Example
 
-```rust
+```no_run
+use worth_signal::facade::branch::{
+    SignalBranchRetentionOwnerPosture, SignalBranchRetentionReleaseOutcome,
+    SignalBranchRetentionTerminalOutcome,
+};
 use worth_signal::facade::{SignalGraph, SignalRuntime};
 
 let mut runtime = SignalRuntime::<(), (), (), (), ()>::builder(SignalGraph::new())
     .with_kernel_defaults()
     .build();
-let main = runtime.current_branch();
-let main_basis = runtime.observe_signal_branch_basis(main)?;
-let (preview, preview_basis) = runtime
-    .fork_signal_branch("what-if", &main_basis)?
+let main_basis = runtime
+    .observe_signal_branch_basis(runtime.current_branch())
+    .expect("the current branch admits an owner basis");
+let (_preview, forked) = runtime
+    .fork_signal_branch("retained-history", &main_basis)
+    .expect("an exact basis admits a fork")
+    .into_parts();
+let (_first, superseded) = runtime
+    .capture_signal_branch_snapshot(&forked)
+    .expect("the first capture succeeds")
+    .into_parts();
+let (_second, _current) = runtime
+    .capture_signal_branch_snapshot(&superseded)
+    .expect("the second capture succeeds")
     .into_parts();
 
-// Keep this exact component basis alive for a downstream holder.
-let lease = runtime.retain_signal_component_basis(&preview_basis)?;
+// The same exact target may carry more than one independent obligation.
+let first = runtime
+    .retain_signal_component_basis(&superseded)
+    .expect("an exact stored target stays retainable");
+let second = runtime
+    .retain_signal_component_basis(&superseded)
+    .expect("a second obligation over the same exact target is legitimate");
 
-// A no-op transaction is used here only to show the authority flow. Real
-// applications stage their normal Signal mutations in this closure.
-let advanced = runtime.advance_signal_branch(
-    &mut (),
-    &preview_basis,
-    |_transaction| Ok(()),
-)?.into_basis();
-assert!(advanced.observation().generation().get()
-    > preview_basis.observation().generation().get());
+let receipt = match runtime.release_signal_component_basis(first) {
+    SignalBranchRetentionReleaseOutcome::Released(receipt) => receipt,
+    // A denial hands the still-live obligation back rather than dissolving it.
+    // Letting this binding fall out of scope would drop-release the very
+    // obligation you were just told you still hold.
+    SignalBranchRetentionReleaseOutcome::Denied { lease, denial } => {
+        panic!("this runtime issued the obligation: {denial:?} {lease:?}")
+    }
+};
+assert_eq!(
+    receipt.outcome(),
+    SignalBranchRetentionTerminalOutcome::Released
+);
+// One obligation still covers this exact target, and it is the only obligation
+// anywhere on this branch.
+assert_eq!(receipt.remaining_target_leases(), 1);
+assert_eq!(receipt.remaining_branch_leases(), 1);
 
-// Transport carries a weak descriptor. The owner must readmit it.
-let encoded = serde_json::to_vec(advanced.descriptor())?;
-let descriptor = serde_json::from_slice(&encoded)?;
-let readmitted = runtime.readmit_signal_branch_basis(descriptor)?;
+// Dropping the second is the same terminal path; only the receipt is forgone.
+drop(second);
+let counts = runtime.signal_component_retention_terminal_counts();
+assert_eq!(counts.explicit_releases(), 1);
+assert_eq!(counts.dropped_releases(), 1);
+assert_eq!(counts.terminal_releases(), 2);
+assert_eq!(counts.unknown_lease_defenses(), 0);
 
-runtime.validate_signal_basis_compatibility(&advanced, &readmitted)?;
-let _release = runtime.release_signal_component_basis(lease);
-let _ = preview;
+// An obligation may outlive its runtime. The ledger survives; the state does not.
+let orphan = runtime
+    .retain_signal_component_basis(&superseded)
+    .expect("an exact stored target stays retainable");
+let witness = runtime
+    .retain_signal_component_basis(&superseded)
+    .expect("a second obligation over the same exact target is legitimate");
+drop(runtime);
+
+assert_eq!(
+    orphan.owner_posture(),
+    SignalBranchRetentionOwnerPosture::Lost
+);
+let receipt = orphan.release();
+assert_eq!(
+    receipt.outcome(),
+    SignalBranchRetentionTerminalOutcome::OwnerUnavailable,
+    "owner loss is recorded distinctly from an ordinary release"
+);
+assert_eq!(witness.owner_terminal_counts().owner_loss_releases(), 1);
 ```
 
-The runtime is authoritative throughout. The JSON payload never becomes
-authority by deserialization, and retaining the old basis does not pretend it
-is still current after `advance_signal_branch`; it only keeps its component
-state resident.
+The runtime is authoritative throughout. Retaining the superseded basis never
+pretends it is still current; it only keeps that exact state available, and the
+obligation ends exactly once however it ends.
+
+The full runnable owner workflow, including the retained readmission lane, is
+[`examples/branch_bases.rs`](./examples/branch_bases.rs):
+
+```text
+cargo run -p worth-signal --example branch_bases
+```
 
 ## How It Relates To Other Features
 
@@ -197,6 +368,9 @@ state resident.
   then returns the post-restore basis. Portable snapshot data must use the
   separate pristine-runtime reconstruction lane before ordinary restore can
   accept it.
+- Branch retirement is the counterweight to retention. It is denied while any
+  external obligation remains, and it reclaims every exact stored target that
+  no obligation retains.
 - Runtime Bridge may carry and reuse Signal-issued bases, but it does not mint
   them or become Signal authority.
 - Foundational defines the runtime-neutral branch reference grammar. Signal
@@ -211,6 +385,19 @@ branch identity, target basis, and generation show which axes were expected.
 Readmission reports foreign owner, definition drift, retired or unknown branch,
 unavailable snapshot, and reference mismatch separately.
 
+For an obligation, ask it directly:
+
+- `retained_target()` and `descriptor()` give the exact target as of
+  acquisition, never the branch's current one.
+- `owner_posture()` distinguishes `Live` from `Lost`.
+- `owner_terminal_counts()` reads the issuing owner's ledger, and stays
+  readable after that runtime is gone.
+
+For the owner-side view, `signal_component_retention_terminal_counts` separates
+explicit releases, dropped releases, owner-loss releases, and unknown-lease
+defenses. When a release receipt surprises you, read `remaining_target_leases`
+and `remaining_branch_leases` as the different questions they are.
+
 For lifecycle failures, inspect the typed retention or retirement denial.
 Do not infer liveness from graph diagnostic output; ask the runtime owner.
 
@@ -223,8 +410,17 @@ Do not infer liveness from graph diagnostic output; ask the runtime owner.
 - Do not treat `Clone` on an admitted basis as a new observation.
 - Do not pass deserialized `SignalSnapshotV1` data directly to ordinary
   restore; only an owner-issued admitted snapshot opens that door.
-- Do not forget to release component leases; retained leases intentionally
-  block retirement.
+- Do not read a lease as a claim that its branch reference is still current. It
+  says that one exact immutable state is still available.
+- Do not read a lease as durability. Once its owner is gone the ledger stays
+  readable, but the retained state is not recoverable.
+- Do not let a `SignalBranchRetentionReleaseOutcome::Denied { lease, .. }`
+  binding fall out of scope. That denial handed you a live obligation, and
+  dropping it releases the retention you were just told you still hold.
+- Do not drop the last admitted basis for a state you will need before
+  retaining it; ordinary readmission will refuse to give it back.
+- Do not treat an unreleased lease as a leak to be defended against with
+  `std::mem::forget` or a second bookkeeping layer. Drop is terminal.
 - Do not create a second Signal graph for Query-installed operations hosted by
   Runtime Bridge.
 
@@ -276,9 +472,23 @@ a typed denial that says no movement preserves the predecessor. Milestone
 than attempting raw Signal rollback.
 
 The integrating owner must acquire `retain_signal_component_basis` before it
-promises component residency and consume the exact lease through
-`release_signal_component_basis`. A lease keeps an immutable component state
-available but does not claim that its branch reference is still current.
+promises component residency, and it must acquire while it still holds an
+admitted basis for that exact state. Retention is available whether or not the
+branch reference has already moved past the target, and it never claims that
+reference is current. While the obligation is live, the owner may ask for the
+exact retained basis back through `readmit_retained_signal_branch_basis`;
+ordinary `readmit_signal_branch_basis` answers the currentness question and
+will refuse.
+
+The obligation ends exactly once, either through
+`release_signal_component_basis` for a governed receipt or by being dropped for
+the same terminal accounting. An integrating owner is therefore not required to
+build leak defenses around it. A release offered to a runtime that did not
+issue the obligation is denied with the live lease handed back, so the
+integrator must rebind that returned lease rather than discard it. An
+obligation that outlives its Signal runtime reports a `Lost` owner posture and
+an `OwnerUnavailable` terminal outcome; the surviving ledger is observability,
+not a promise that the retained state can still be produced.
 
 All Signal branch catalog state, admitted bases, stored branch snapshots, and
 retention accounting remain memory-resident. Restart durability is deferred to

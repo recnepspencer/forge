@@ -127,6 +127,7 @@
 //! - `crates/worth-signal/examples/easy_task_board.rs`
 //! - `crates/worth-signal/examples/compiler_targeted_rebuild.rs`
 //! - `crates/worth-signal/examples/geometry_partial_recompute.rs`
+//! - `crates/worth-signal/examples/branch_bases.rs`
 
 #![forbid(unsafe_code)]
 
@@ -146,6 +147,15 @@ pub mod schema;
 mod state;
 
 pub mod facade;
+
+/// Compiles the branch-basis guide's examples against the real public facade.
+///
+/// This item exists only while rustdoc collects doctests, so it never enters
+/// the public API. It is here so `BRANCH_BASES.md` cannot drift away from the
+/// facade without breaking `cargo test`.
+#[cfg(doctest)]
+#[doc = include_str!("../BRANCH_BASES.md")]
+pub struct BranchBasesGuide;
 
 #[cfg(test)]
 mod tests;
