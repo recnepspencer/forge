@@ -72,17 +72,22 @@ Obtain them with `preparation_port()`, `fork_port()`, `publication_port()`, and
 `settlement_port()`. The rustdoc on `preparation_port` carries the compiled
 prepare-then-discard progression.
 
-The remaining runtime methods are:
+The remaining ordinary runtime methods take `&self`, so an open transaction,
+candidate, or service clone never excludes another owner:
 
 - `main_branch_identity`, `branch_identity`, and `observe_branch`;
 - `readmit_branch_basis` and `readmit_retained_branch_basis`;
 - `begin_branch_transaction`, `prepare_branch_transaction`, and
-  `commit_branch_transaction`;
-- `retain_component_basis` and `release_component_basis`; and
-- `archive_branch` and `delete_branch`.
+  `commit_branch_transaction`; and
+- `retain_component_basis` and `release_component_basis`.
 
-These take `&self`. An open transaction, candidate, or service clone never
-excludes another owner.
+The shared-borrow guarantee covers those four services and these ordinary
+methods, not the runtime's whole surface. Lifecycle and maintenance keep
+exclusive receivers: `archive_branch`, `delete_branch`, and
+`run_branch_root_reclamation_pass` take `&mut RelationalRuntime` and must be
+sequenced outside concurrent owner work. See
+[Owner services](./OWNER_COMPONENT_PORT.md#owner-services) for the normative
+statement.
 
 ## Exact reads
 
@@ -177,6 +182,9 @@ What is not:
 - Global identity and patch-position reservations. These are bounded,
   nonblocking, and counted separately. They are mechanical reservations, not
   branch coordination, and a contended one is reported rather than waited on.
+- Branch lifecycle and maintenance. `archive_branch`, `delete_branch`, and
+  `run_branch_root_reclamation_pass` take `&mut RelationalRuntime` and must be
+  sequenced outside concurrent owner work.
 
 Wrapping the runtime in `Arc<Mutex<_>>` does not add concurrency and removes
 what exists; the services are already the shared-access mechanism.
