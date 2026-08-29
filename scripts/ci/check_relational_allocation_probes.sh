@@ -46,13 +46,25 @@ if [[ "$selected" -ne "${#EXPECTED_TESTS[@]}" ]]; then
 fi
 
 echo "[relational-allocation-probes] running $selected slope tests"
-report="$(cargo test -p worth-relational --lib --features allocation-probes "$SELECTOR" 2>&1)"
+# `set -e` would kill the lane at this substitution when a probe fails, before
+# the report is ever printed, leaving a bare non-zero exit as the lane's only
+# diagnostic. Capture the status instead, and always emit the run.
+run_status=0
+report="$(cargo test -p worth-relational --lib --features allocation-probes "$SELECTOR" 2>&1)" || run_status=$?
 printf '%s\n' "$report"
 
+if [[ "$run_status" -ne 0 ]]; then
+  echo "FAIL: allocation-slope run for selector '$SELECTOR' exited $run_status"
+  echo "      the probe output above is the failure evidence"
+  exit 1
+fi
+
 # A filter that matched nothing also prints a passing summary, so the lane
-# checks that the tests it selected are the tests that ran.
-if ! printf '%s\n' "$report" | grep -qF "${#EXPECTED_TESTS[@]} passed"; then
+# checks that the tests it selected are the tests that ran. The count is
+# anchored to the summary line so "4 passed" cannot be satisfied by "14 passed".
+if ! printf '%s\n' "$report" | grep -qE "^test result: ok\. ${#EXPECTED_TESTS[@]} passed;"; then
   echo "FAIL: expected ${#EXPECTED_TESTS[@]} allocation-slope tests to execute"
+  echo "      no 'test result: ok. ${#EXPECTED_TESTS[@]} passed;' summary in the run above"
   exit 1
 fi
 
