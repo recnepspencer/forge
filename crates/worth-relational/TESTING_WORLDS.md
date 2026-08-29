@@ -410,7 +410,10 @@ Every wait in these courts is bounded and every exit opens the park before it
 returns. That is load-bearing rather than tidy: a parked branch holds an
 admitted runtime operation, and the owner close that dropping the world runs
 waits on exactly that, so a court that panicked with its park still closed would
-hang in drop and print no diagnostic at all.
+hang in drop and print no diagnostic at all. Each court therefore holds its
+release in a guard it declares after the runtime, so drop order opens the park
+before the close that waits on it, and the two exits that a scope join reaches
+first open it themselves.
 
 ## Preservation evidence
 

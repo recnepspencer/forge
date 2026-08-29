@@ -1,5 +1,3 @@
-use std::sync::{Arc, Barrier};
-
 use crate::history::data::{CommitId, RelationalCommitReceipt};
 use crate::publication::data::{DeferredPublicationSettlement, DeferredPublicationSettlementError};
 use crate::tests::support::*;

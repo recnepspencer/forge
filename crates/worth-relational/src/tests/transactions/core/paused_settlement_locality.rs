@@ -1,12 +1,15 @@
 //! The focused court proving a paused settlement holds no runtime-wide
 //! authority.
 //!
-//! Every wait here is bounded. A branch parked inside its settlement executor
-//! holds an admitted runtime operation, and the owner close waits on exactly
-//! that, so an unbounded wait would replace this court's named diagnostic with
-//! a hung lib suite.
+//! Every wait here is bounded and every exit opens the park. A branch parked
+//! inside its settlement executor holds an admitted runtime operation, and the
+//! owner close waits on exactly that, so a wait without a bound, or an exit
+//! that left the park closed, would replace this court's named diagnostic with
+//! a hung lib suite. The release is therefore held by a guard declared after
+//! the runtime, which drop order runs before the runtime it has to unblock.
 
-use std::sync::mpsc::sync_channel;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{sync_channel, RecvTimeoutError};
 use std::sync::{Arc, Barrier};
 use std::time::{Duration, Instant};
 
@@ -18,14 +21,42 @@ use crate::tests::support::*;
 /// unbounded wait here would hang the lib suite instead of naming the defect.
 const PAUSED_SETTLEMENT_COURT_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Release the settlement pause without ever blocking the court. The barrier
-/// half runs on a proxy, so a branch that never parked cannot strand the
-/// release, and a branch that parks late is still freed.
-fn open_settlement_pause(release: &Arc<Barrier>) {
-    let release = Arc::clone(release);
-    std::thread::spawn(move || {
-        release.wait();
-    });
+/// The sole authority for opening this court's settlement park. The court holds
+/// it in a value declared after the runtime, so every exit, returning or
+/// unwinding, releases the park before the runtime close that waits on it.
+struct SettlementParkRelease {
+    release: Arc<Barrier>,
+    opened: AtomicBool,
+}
+
+impl SettlementParkRelease {
+    fn new(release: Arc<Barrier>) -> Self {
+        Self {
+            release,
+            opened: AtomicBool::new(false),
+        }
+    }
+
+    /// Open the park exactly once, and never block the court doing it. The
+    /// barrier half runs on a proxy that carries no runtime, so a branch that
+    /// never parked cannot strand the release, while the once-only guard keeps
+    /// a repeat call from leaving a second proxy waiting on a partner that has
+    /// already gone.
+    fn open(&self) {
+        if self.opened.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let release = Arc::clone(&self.release);
+        std::thread::spawn(move || {
+            release.wait();
+        });
+    }
+}
+
+impl Drop for SettlementParkRelease {
+    fn drop(&mut self) {
+        self.open();
+    }
 }
 
 /// Settlement holds no runtime-wide authority. A branch paused inside its own
@@ -40,6 +71,7 @@ fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
 
     let reached = Arc::new(Barrier::new(2));
     let release = Arc::new(Barrier::new(2));
+    let park = SettlementParkRelease::new(Arc::clone(&release));
     let control = crate::mvcc::RelationalOperationControl::uninterrupted().with_boundary_pause(
         crate::mvcc::RelationalInterruptionBoundary::Settlement,
         Arc::clone(&reached),
@@ -70,7 +102,6 @@ fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
         .recv_timeout(PAUSED_SETTLEMENT_COURT_TIMEOUT)
         .is_err()
     {
-        open_settlement_pause(&release);
         panic!("branch A never reached its settlement executor pause");
     }
     assert!(
@@ -84,24 +115,34 @@ fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
     progressing
         .push_batch(batch_create("progressing-write"))
         .expect("test staging stays within configured resource budgets");
-    // Branch B commits on a worker so this court can bound it. Only a thread
+    // Branch B commits on a worker so this court can bound it: only a thread
     // outside the commit can hold the completion receiver and convict
-    // serialization by name instead of blocking here forever.
+    // serialization by name instead of blocking here forever. The sender moves
+    // into the worker, so a panicking branch B disconnects the channel at once
+    // and this court reports that panic instead of charging the delay to
+    // serialization.
     let (finished, completion) = sync_channel(1);
+    let committing = &runtime;
     let progressing_result = std::thread::scope(|scope| {
-        let committer = scope.spawn(|| {
-            let committed = runtime
+        let committer = scope.spawn(move || {
+            let committed = committing
                 .commit_branch_transaction(progressing)
                 .expect("branch B commits end to end while branch A settlement is paused");
-            let _ = finished.send(());
+            finished
+                .send(())
+                .expect("the focused court still owns the completion receiver");
             committed
         });
-        if completion
-            .recv_timeout(PAUSED_SETTLEMENT_COURT_TIMEOUT)
-            .is_err()
-        {
-            open_settlement_pause(&release);
-            panic!("branch B serialized behind branch A's paused settlement executor");
+        match completion.recv_timeout(PAUSED_SETTLEMENT_COURT_TIMEOUT) {
+            Ok(()) => {}
+            // Scope teardown joins branch B before an unwind can reach the
+            // guard's drop, and a serialized branch B cannot finish while
+            // branch A is parked, so these two exits open the park themselves.
+            Err(RecvTimeoutError::Timeout) => {
+                park.open();
+                panic!("branch B serialized behind branch A's paused settlement executor");
+            }
+            Err(RecvTimeoutError::Disconnected) => park.open(),
         }
         match committer.join() {
             Ok(committed) => committed,
@@ -122,10 +163,16 @@ fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
         waits_before,
         "branch B never waits on branch A coordination",
     );
-    assert!(settlement.retains_pending_settlement(paused_commit_id));
-    assert!(!settlement.retains_pending_settlement(progressing_result.commit.commit_id));
+    assert!(
+        settlement.retains_pending_settlement(paused_commit_id),
+        "branch A's parked record stays installed for the whole unrelated commit"
+    );
+    assert!(
+        !settlement.retains_pending_settlement(progressing_result.commit.commit_id),
+        "branch B's finished commit leaves no pending settlement record behind"
+    );
 
-    open_settlement_pause(&release);
+    park.open();
     let deadline = Instant::now() + PAUSED_SETTLEMENT_COURT_TIMEOUT;
     while !paused_thread.is_finished() {
         assert!(
@@ -139,7 +186,10 @@ fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
         .expect("paused settlement worker joins")
         .expect("branch A settles after release");
     assert_eq!(paused_result.commit.commit_id, paused_commit_id);
-    assert!(!settlement.retains_pending_settlement(paused_commit_id));
+    assert!(
+        !settlement.retains_pending_settlement(paused_commit_id),
+        "branch A's finished settlement leaves no pending record behind"
+    );
     release_test_commit_snapshot(&runtime, &paused_result);
     release_test_commit_snapshot(&runtime, &progressing_result);
 }
