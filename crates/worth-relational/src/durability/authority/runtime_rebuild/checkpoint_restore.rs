@@ -213,9 +213,7 @@ fn install_checkpoint_state(
 ) {
     restored.services.symbols.replace(prepared.symbols);
     restored.record_identity = prepared.record_identity;
-    restored
-        .partitions
-        .install_owned(prepared.partitions.into_iter());
+    restored.install_rebuilt_partitions(prepared.partitions);
     restored.history = prepared.history;
     restored.lineage.install(prepared.lineage);
     restored.indexes.install(prepared.indexes);
@@ -223,8 +221,8 @@ fn install_checkpoint_state(
 }
 
 pub(super) fn clear_recovery_partition_pins(restored: &mut RelationalRuntime) {
-    for partition in restored.partitions.write().values_mut() {
-        let partition = std::sync::Arc::make_mut(partition);
+    let mut writer = restored.rebuild_partitions();
+    for partition in writer.partitions_mut() {
         partition.entity_arena.clear_all_pins();
         partition.relation_arena.clear_all_pins();
     }

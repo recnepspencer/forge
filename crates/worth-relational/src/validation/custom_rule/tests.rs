@@ -35,7 +35,7 @@ fn custom_scope_planner_preserves_owner_selected_current_version() {
     let runtime = RelationalRuntimeApi::builder()
         .schema_registry(RelationalSchemaRegistry::new())
         .build();
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, None);
     let selected_version = crate::identity::data::VersionId(77);
     let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);
@@ -146,7 +146,7 @@ fn traversal_budget_is_session_wide() {
     let runtime = RelationalRuntimeApi::builder()
         .schema_registry(RelationalSchemaRegistry::new())
         .build();
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, None);
     let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);
     let context = CustomInvariantExecutionContext::new(
@@ -194,7 +194,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,
@@ -255,7 +255,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
         transaction_id: txn.transaction_id,
         merged_intents: vec![create_target, update_relation],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,
@@ -291,7 +291,7 @@ fn touched_scope_tracks_planned_relation_deletes() {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,
@@ -325,7 +325,7 @@ fn touched_scope_tracks_planned_entity_deletes() {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,

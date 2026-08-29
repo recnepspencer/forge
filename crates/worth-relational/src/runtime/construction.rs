@@ -176,7 +176,7 @@ impl RelationalRuntime {
         Ok(Self::from_state(crate::runtime::RelationalRuntimeState {
             configuration: RelationalRuntimeConfiguration::new(config, schema_contract_runtime),
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
-            partitions: RuntimeSubsystem::fork(&self.partitions),
+            partitions: self.fork_partitions(),
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),
             history,

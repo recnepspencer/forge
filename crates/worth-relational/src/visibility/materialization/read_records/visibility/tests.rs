@@ -89,9 +89,9 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
     runtime
         .history
         .with_ledger_mut(|ledger| ledger.next_version_id = 4);
-    runtime.partitions.write().insert(
+    runtime.edit_partitions().insert(
         partition_id,
-        std::sync::Arc::new(PartitionState {
+        PartitionState {
             partition_id,
             adjacency_policy: adjacency_policy.clone(),
             relation_overlay_is_sparse: false,
@@ -99,10 +99,10 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
             relation_arena: crate::storage::substrate::RelationArena::with_capacity(0),
             adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
-        }),
+        },
     );
 
-    let current_state = runtime.storage_access().current_state();
+    let current_state = runtime.storage_access().current_edition();
     assert!(runtime
         .read_truth()
         .authoritative_entity_record_for_id_at_version(
@@ -139,9 +139,9 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
     runtime
         .history
         .with_ledger_mut(|ledger| ledger.next_version_id = 4);
-    runtime.partitions.write().insert(
+    runtime.edit_partitions().insert(
         partition_id,
-        std::sync::Arc::new(PartitionState {
+        PartitionState {
             partition_id,
             adjacency_policy: adjacency_policy.clone(),
             relation_overlay_is_sparse: false,
@@ -149,10 +149,10 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
             relation_arena: crate::storage::substrate::RelationArena::with_capacity(0),
             adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
-        }),
+        },
     );
 
-    let state = runtime.storage_access().current_state();
+    let state = runtime.storage_access().current_edition();
     let historical_records = runtime
         .read_truth()
         .visible_entities_of_kind_in_partition_from_state(
@@ -220,9 +220,9 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
     runtime
         .history
         .with_ledger_mut(|ledger| ledger.next_version_id = 4);
-    runtime.partitions.write().insert(
+    runtime.edit_partitions().insert(
         partition_id,
-        std::sync::Arc::new(PartitionState {
+        PartitionState {
             partition_id,
             adjacency_policy: adjacency_policy.clone(),
             relation_overlay_is_sparse: false,
@@ -230,10 +230,10 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
             relation_arena,
             adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
-        }),
+        },
     );
 
-    let state = runtime.storage_access().current_state();
+    let state = runtime.storage_access().current_edition();
     let historical_records = runtime
         .read_truth()
         .visible_relations_of_kind_in_partition_from_state(

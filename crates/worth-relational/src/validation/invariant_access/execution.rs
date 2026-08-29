@@ -17,7 +17,7 @@ impl<'runtime> InvariantAccess<'runtime> {
     ) -> InvariantExecutionResult {
         self.execute_for_state(
             profile,
-            InvariantObservation::committed(self.runtime.storage_access().current_state()),
+            InvariantObservation::committed(self.runtime.storage_access().current_edition()),
             self.runtime.current_version_id(),
             None,
         )

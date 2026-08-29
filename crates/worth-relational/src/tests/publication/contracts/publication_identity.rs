@@ -118,12 +118,11 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
     );
 
     let before_storage = runtime
-        .partitions
-        .read()
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
                     .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("installed storage symbols resolve"),
@@ -157,12 +156,11 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
         .expect("the unresolved owner symbol sabotages root capture");
     assert!(error.contains("UnresolvedContentSymbol"));
     let after_storage = runtime
-        .partitions
-        .read()
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
                     .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("failed preparation cannot corrupt installed storage"),
@@ -192,12 +190,11 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
     let mut runtime = runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "root-capture-production-anchor");
     let before_storage = runtime
-        .partitions
-        .read()
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
                     .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("installed storage symbols resolve"),
@@ -223,12 +220,11 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
     assert!(format!("{error:?}").contains("UnresolvedContentSymbol"));
 
     let after_storage = runtime
-        .partitions
-        .read()
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
                     .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("failed publication cannot corrupt installed storage"),

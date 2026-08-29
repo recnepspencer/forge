@@ -5,7 +5,7 @@ pub(super) fn current_entity_snapshot(
     runtime: &crate::runtime::RelationalRuntime,
     entity_id: crate::identity::data::EntityId,
 ) -> Option<EntityReadRecord> {
-    let current_state = runtime.storage_access().current_state();
+    let current_state = runtime.storage_access().current_edition();
     let partition = current_state.get_partition(entity_id.partition_id)?;
     let slot = partition.entity_arena.get(&entity_id)?;
     let kind_id = slot.kind_id()?;

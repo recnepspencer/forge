@@ -150,11 +150,14 @@ impl<'runtime> InspectionAccess<'runtime> {
         let mut entity_slot_scans = 0_u64;
         let mut relation_slot_scans = 0_u64;
         let mut work_units = 0_u64;
+        // One edition for the whole retention sweep. This inspection only
+        // reads, so pinning is safe here and keeps a scan of S slots at one
+        // substrate acquisition instead of one per slot surface.
+        let edition = self.runtime.acquire_partition_edition();
         for partition_id in self.current_partition_ids() {
-            for slot in self
-                .runtime
-                .storage_access()
-                .record_slots::<crate::storage::substrate::EntityRecordKind>(partition_id)
+            for slot in crate::storage::access::record_slots_in::<
+                crate::storage::substrate::EntityRecordKind,
+            >(&edition, partition_id)
             {
                 entity_slot_scans += 1;
                 work_units += 1;
@@ -176,13 +179,10 @@ impl<'runtime> InspectionAccess<'runtime> {
                         vec![InspectionDegradation::EntitySlotBudgetExceeded],
                     );
                 }
-                if let Some(surface) = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::substrate::EntityRecordKind>(
-                    partition_id,
-                    slot,
-                ) {
+                if let Some(surface) = crate::storage::access::record_slot_surface_in::<
+                    crate::storage::substrate::EntityRecordKind,
+                >(&edition, partition_id, slot)
+                {
                     if surface.branch_pins > 0 {
                         branch_pinned_entities += 1;
                     }
@@ -197,10 +197,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                     }
                 }
             }
-            for slot in self
-                .runtime
-                .storage_access()
-                .record_slots::<crate::storage::substrate::RelationRecordKind>(partition_id)
+            for slot in crate::storage::access::record_slots_in::<
+                crate::storage::substrate::RelationRecordKind,
+            >(&edition, partition_id)
             {
                 relation_slot_scans += 1;
                 work_units += 1;
@@ -222,13 +221,10 @@ impl<'runtime> InspectionAccess<'runtime> {
                         vec![InspectionDegradation::RelationSlotBudgetExceeded],
                     );
                 }
-                if let Some(surface) = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::substrate::RelationRecordKind>(
-                    partition_id,
-                    slot,
-                ) {
+                if let Some(surface) = crate::storage::access::record_slot_surface_in::<
+                    crate::storage::substrate::RelationRecordKind,
+                >(&edition, partition_id, slot)
+                {
                     if surface.branch_pins > 0 {
                         branch_pinned_relations += 1;
                     }

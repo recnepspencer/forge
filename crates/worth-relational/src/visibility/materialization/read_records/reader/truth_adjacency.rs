@@ -1,5 +1,7 @@
+use super::adjacency_work_ledger::AdjacencyLeaseLedger;
 use super::truth_record_access::sort_authoritative_relation_records;
 use super::*;
+use crate::storage::partition::{AdjacencyDirection, AdjacencyKindBasis};
 
 #[derive(Debug)]
 pub struct BoundedAdjacencyTruthRead {
@@ -89,28 +91,29 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         maximum_work_units: usize,
     ) -> Result<BoundedAdjacencyTruthRead, AdjacencyTruthReadLimitExceeded> {
         let slot = entity_id.slot_index();
-        let current_version = version_id == self.runtime.current_version_id();
-        let relation_ids = self
-            .runtime
-            .partitions
-            .partition(entity_id.partition_id)
-            .and_then(|partition| {
-                let adjacency = match direction {
-                    AdjacencyDirection::Outgoing => partition.adjacency.get(slot),
-                    AdjacencyDirection::Incoming => partition.reverse_adjacency.get(slot),
-                }?;
-                Some(if current_version {
-                    adjacency.current_kind_slice(kind_id).to_vec()
-                } else {
-                    adjacency.historical_kind_slice(kind_id).to_vec()
-                })
-            })
-            .unwrap_or_default();
+        let basis =
+            AdjacencyKindBasis::of_current_version(version_id == self.runtime.current_version_id());
+        // One edition, pinned for the whole traversal. Every record below is
+        // resolved against it, so a fanout of degree D costs one substrate
+        // acquisition rather than D of them, and the answer describes a single
+        // consistent substrate rather than however many editions raced past.
+        let edition = self.runtime.acquire_partition_edition();
+        let mut ledger = AdjacencyLeaseLedger::default();
+        // Leased, never copied: the bound must be applied to the fanout, not
+        // after materializing it.
+        let relation_ids = ledger.lease(
+            edition
+                .partition(entity_id.partition_id)
+                .and_then(|partition| direction.table(partition).get(slot)),
+            basis,
+            kind_id,
+        );
         let mut records = Vec::new();
         let mut work_units = 0_usize;
         let mut relation_records_examined = 0_usize;
         for relation_id in relation_ids.iter().copied() {
             if work_units == maximum_work_units {
+                ledger.settle(self.runtime);
                 return Err(AdjacencyTruthReadLimitExceeded::new(
                     relation_records_examined,
                     records.len(),
@@ -118,9 +121,11 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             }
             work_units += 1;
             relation_records_examined += 1;
-            let Some(record) =
-                self.authoritative_relation_record_at_version(relation_id, version_id)
-            else {
+            let Some(record) = self.authoritative_relation_record_for_id_at_version(
+                &edition,
+                relation_id,
+                version_id,
+            ) else {
                 continue;
             };
             if record.kind.kind_id != kind_id
@@ -130,6 +135,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 continue;
             }
             if work_units == maximum_work_units {
+                ledger.settle(self.runtime);
                 return Err(AdjacencyTruthReadLimitExceeded::new(
                     relation_records_examined,
                     records.len(),
@@ -138,6 +144,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             work_units += 1;
             records.push(record);
         }
+        ledger.settle(self.runtime);
         sort_authoritative_relation_records(&mut records);
         Ok(BoundedAdjacencyTruthRead {
             records,
@@ -182,24 +189,5 @@ impl AdjacencyTruthReadLimitExceeded {
 
     pub const fn consumed_work_units(self) -> usize {
         self.relation_records_examined + self.endpoint_records_reserved
-    }
-}
-
-#[derive(Clone, Copy)]
-enum AdjacencyDirection {
-    Outgoing,
-    Incoming,
-}
-
-impl AdjacencyDirection {
-    fn matches_endpoint(
-        self,
-        record: &RelationReadRecord,
-        entity_id: crate::identity::data::EntityId,
-    ) -> bool {
-        match self {
-            Self::Outgoing => record.source == entity_id,
-            Self::Incoming => record.target == entity_id,
-        }
     }
 }

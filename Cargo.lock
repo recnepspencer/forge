@@ -2323,6 +2323,7 @@ dependencies = [
  "serde",
  "sha2",
  "smallvec",
+ "stats_alloc",
  "trybuild",
  "worth-foundational",
  "worth-harness",

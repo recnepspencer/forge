@@ -20,29 +20,26 @@ fn execute_partition(
     authority: &StorageAuthority<'_>,
     mut publication: PlannedPartitionPublication,
 ) {
-    let mut partitions = authority.runtime.partitions.write();
+    let mut writer = authority.runtime.edit_partitions();
     match publication.strategy {
         PartitionPublicationStrategy::MissingPartition { entity_layout } => {
             if let Some(layout) = entity_layout {
                 record_entity_replacement(authority.runtime, &publication, layout);
             }
             publication.partition_state.clear_runtime_pin_counters();
-            partitions.insert(
-                publication.partition_id,
-                std::sync::Arc::new(publication.partition_state),
-            );
+            writer.insert(publication.partition_id, publication.partition_state);
         }
         PartitionPublicationStrategy::ExistingEntityOnly(layout) => {
-            let base =
-                crate::runtime::partition_entry_mut(&mut partitions, publication.partition_id)
-                    .expect("planned existing entity partition must remain present");
+            let base = writer
+                .partition_mut(publication.partition_id)
+                .expect("planned existing entity partition must remain present");
             let published_chunks = merge_entity_slots(base, &mut publication, layout);
-            drop(partitions);
+            drop(writer);
             count_published_chunks(authority.runtime, published_chunks);
         }
         PartitionPublicationStrategy::ExistingHybridGraph { entity_layout } => {
-            let base = partitions
-                .remove(&publication.partition_id)
+            let base = writer
+                .remove(publication.partition_id)
                 .expect("planned existing hybrid partition must remain present");
             let published = publish_hybrid_partition(
                 authority.runtime,
@@ -50,14 +47,14 @@ fn execute_partition(
                 unwrap_partition(base),
                 entity_layout,
             );
-            partitions.insert(published.0, std::sync::Arc::new(published.1));
+            writer.insert(published.0, published.1);
         }
         PartitionPublicationStrategy::ExistingWholePartition => {
-            let base = partitions
-                .remove(&publication.partition_id)
+            let base = writer
+                .remove(publication.partition_id)
                 .expect("planned existing whole partition must remain present");
             let published = publish_whole_partition(publication, unwrap_partition(base));
-            partitions.insert(published.0, std::sync::Arc::new(published.1));
+            writer.insert(published.0, published.1);
         }
     }
 }

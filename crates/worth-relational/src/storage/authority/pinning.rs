@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
 
 use crate::identity::data::{PartitionId, RecordId, VersionId};
-use crate::runtime::partition_entry_mut;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::substrate::{PinClass, RecordKind};
 
@@ -10,8 +8,8 @@ use super::{partition_of, slot_of, StorageAuthority};
 
 impl StorageAuthority<'_> {
     pub(crate) fn clear_named_pins(&self, class: PinClass) {
-        for partition in self.runtime.partitions.write().values_mut() {
-            let partition = Arc::make_mut(partition);
+        let mut writer = self.runtime.edit_partitions();
+        for partition in writer.partitions_mut() {
             partition.entity_arena.clear_named_pins(class);
             partition.relation_arena.clear_named_pins(class);
         }
@@ -19,9 +17,8 @@ impl StorageAuthority<'_> {
 
     pub(crate) fn pin_snapshot_record<K: RecordKind>(&self, record_id: RecordId<K::Domain>) {
         let slot = slot_of::<K>(&record_id);
-        let mut partitions = self.runtime.partitions.write();
-        let Some(partition) = partition_entry_mut(&mut partitions, partition_of::<K>(&record_id))
-        else {
+        let mut writer = self.runtime.edit_partitions();
+        let Some(partition) = writer.partition_mut(partition_of::<K>(&record_id)) else {
             return;
         };
         let arena = K::arena_mut(partition);
@@ -46,8 +43,8 @@ impl StorageAuthority<'_> {
         let slot = slot_of::<K>(&record_id);
         let partition_id = partition_of::<K>(&record_id);
         let retired_at = {
-            let mut partitions = self.runtime.partitions.write();
-            let Some(partition) = partition_entry_mut(&mut partitions, partition_id) else {
+            let mut writer = self.runtime.edit_partitions();
+            let Some(partition) = writer.partition_mut(partition_id) else {
                 return;
             };
             let arena = K::arena_mut(partition);
@@ -74,8 +71,8 @@ impl StorageAuthority<'_> {
         let slot = slot_of::<K>(&record_id);
         let partition_id = partition_of::<K>(&record_id);
         let retired_at = {
-            let mut partitions = self.runtime.partitions.write();
-            let Some(partition) = partition_entry_mut(&mut partitions, partition_id) else {
+            let mut writer = self.runtime.edit_partitions();
+            let Some(partition) = writer.partition_mut(partition_id) else {
                 return;
             };
             let arena = K::arena_mut(partition);
@@ -97,8 +94,8 @@ impl StorageAuthority<'_> {
     ) {
         for (partition_id, slots) in slots_by_partition {
             let retired_slots = {
-                let mut partitions = self.runtime.partitions.write();
-                let Some(partition) = partition_entry_mut(&mut partitions, *partition_id) else {
+                let mut writer = self.runtime.edit_partitions();
+                let Some(partition) = writer.partition_mut(*partition_id) else {
                     continue;
                 };
                 let arena = K::arena_mut(partition);

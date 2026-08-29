@@ -37,10 +37,8 @@ impl RelationalRuntime {
         structural_fingerprint: Option<crate::identity::data::StructuralFingerprint>,
         lineage_id: Option<crate::identity::data::LineageId>,
     ) -> bool {
-        let mut partitions = self.partitions.write();
-        let Some(partition) =
-            crate::runtime::partition_entry_mut(&mut partitions, entity_id.partition_id)
-        else {
+        let mut writer = self.edit_partitions();
+        let Some(partition) = writer.partition_mut(entity_id.partition_id) else {
             return false;
         };
         if partition.entity_arena.get(&entity_id).is_none() {
@@ -62,9 +60,8 @@ impl RelationalRuntime {
         lineage_id: Option<crate::identity::data::LineageId>,
     ) -> Option<crate::identity::data::EntityId> {
         let replacement_version = crate::identity::data::VersionId(self.current_version_id().0 + 1);
-        let mut partitions = self.partitions.write();
-        let partition =
-            crate::runtime::partition_entry_mut(&mut partitions, entity_id.partition_id)?;
+        let mut writer = self.edit_partitions();
+        let partition = writer.partition_mut(entity_id.partition_id)?;
         let arena = &mut partition.entity_arena;
         arena.get(&entity_id)?;
         let slot = entity_id.local_slot.0 as usize;

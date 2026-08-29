@@ -77,7 +77,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                 .runtime
                 .read_truth()
                 .authoritative_entity_record_for_id_at_version(
-                    &self.runtime.storage_access().current_state(),
+                    &self.runtime.storage_access().current_edition(),
                     entity_id,
                     self.runtime.current_version_id(),
                 ),
@@ -98,7 +98,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                 .runtime
                 .read_truth()
                 .authoritative_relation_record_for_id_at_version(
-                    &self.runtime.storage_access().current_state(),
+                    &self.runtime.storage_access().current_edition(),
                     relation_id,
                     self.runtime.current_version_id(),
                 ),

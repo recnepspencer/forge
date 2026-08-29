@@ -57,6 +57,11 @@ fn clear_commit_gauges(counters: &mut RuntimeComplexityCounters) {
 
 complexity_operations!(
     full_state_clones,
+    reconstructive_state_clones,
+    reconstructive_partitions_materialized,
+    partition_editions_acquired,
+    adjacency_kind_slices_leased,
+    adjacency_relation_ids_copied,
     partitions_cloned,
     entity_slots_cloned,
     relation_slots_cloned,

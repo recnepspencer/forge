@@ -23,7 +23,7 @@ fn engine_rejects_cross_partition_relations_under_partition_isolation_contracts(
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             Some(&plan),
             Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
@@ -84,7 +84,7 @@ fn engine_rejects_planned_cycles_under_acyclicity_contracts() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             Some(&plan),
             Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
@@ -224,7 +224,7 @@ fn minimum_cardinality_current_version_scans_only_live_slots() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CertificationBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             None,
             None,

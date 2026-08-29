@@ -98,9 +98,8 @@ fn summarize_entity_chunks(
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
     runtime
-        .partitions
-        .read()
-        .values()
+        .acquire_partition_edition()
+        .partitions()
         .flat_map(|partition| {
             summarize_arena_chunks(
                 &partition.entity_arena,
@@ -117,9 +116,8 @@ fn summarize_relation_chunks(
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
     runtime
-        .partitions
-        .read()
-        .values()
+        .acquire_partition_edition()
+        .partitions()
         .flat_map(|partition| {
             summarize_arena_chunks(
                 &partition.relation_arena,

@@ -88,7 +88,7 @@ fn request_for_plan<'runtime>(
     InvariantExecutionRequest::from_profile_with_contract(
         InvariantRequestProfile::CommitBoundary,
         runtime,
-        InvariantObservation::committed(runtime.storage_access().current_state()),
+        InvariantObservation::committed(runtime.storage_access().current_edition()),
         runtime.current_version_id(),
         Some(plan),
         Some(InvariantPlanContract::from_merged_plan(plan)),
@@ -203,7 +203,7 @@ fn planner_proof_boundary_reports_broader_scope_when_no_merged_plan_is_available
     let request = InvariantExecutionRequest::from_profile_with_contract(
         InvariantRequestProfile::CommitBoundary,
         &runtime,
-        InvariantObservation::committed(runtime.storage_access().current_state()),
+        InvariantObservation::committed(runtime.storage_access().current_edition()),
         runtime.current_version_id(),
         None,
         None,

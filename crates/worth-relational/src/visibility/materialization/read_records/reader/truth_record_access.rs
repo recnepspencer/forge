@@ -43,7 +43,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         entity_id: crate::identity::data::EntityId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<EntityReadRecord> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         self.authoritative_entity_record_for_id_at_version(&state, entity_id, version_id)
     }
 
@@ -52,7 +52,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         relation_id: crate::identity::data::RelationId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<RelationReadRecord> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         self.authoritative_relation_record_for_id_at_version(&state, relation_id, version_id)
     }
 
@@ -366,18 +366,19 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         )
     }
 
-    pub(crate) fn relation_visible_at_version(
+    /// Whether a relation is visible, resolved against a pinned edition.
+    ///
+    /// There is deliberately no acquiring twin of this: a per-candidate
+    /// visibility test that acquires its own substrate turns an answer of size
+    /// R into R substrate acquisitions against a moving substrate.
+    pub(crate) fn relation_visible_in_edition(
         &self,
+        state: &(impl PartitionAccess + ?Sized),
         relation_id: crate::identity::data::RelationId,
         version_id: crate::identity::data::VersionId,
     ) -> bool {
-        let current_state = self.runtime.storage_access().current_state();
-        self.authoritative_relation_record_for_id_at_version(
-            &current_state,
-            relation_id,
-            version_id,
-        )
-        .is_some()
+        self.authoritative_relation_record_for_id_at_version(state, relation_id, version_id)
+            .is_some()
     }
 }
 

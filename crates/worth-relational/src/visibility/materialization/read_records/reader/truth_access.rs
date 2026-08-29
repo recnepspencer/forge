@@ -25,7 +25,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         let mut records = Vec::new();
         for partition_id in state.partition_ids() {
             records.extend(self.visible_entities_of_kind_in_partition_from_state(
@@ -45,7 +45,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         let records = self.visible_entities_of_kind_in_partition_from_state(
             &state,
             partition_id,
@@ -61,7 +61,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<RelationReadRecord> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         let mut records = Vec::new();
         for partition_id in state.partition_ids() {
             records.extend(self.visible_relations_of_kind_in_partition_from_state(
@@ -81,7 +81,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<RelationReadRecord> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         let mut records = self.visible_relations_of_kind_in_partition_from_state(
             &state,
             partition_id,
@@ -96,7 +96,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         entity_id: crate::identity::data::EntityId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<Vec<AspectKey>> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         let record =
             self.authoritative_entity_record_for_id_at_version(&state, entity_id, version_id)?;
         Some(super::aspect_catalog::declared_aspects_for_entity_kind(
@@ -110,7 +110,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         relation_id: crate::identity::data::RelationId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<Vec<AspectKey>> {
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         let record =
             self.authoritative_relation_record_for_id_at_version(&state, relation_id, version_id)?;
         Some(super::aspect_catalog::declared_aspects_for_relation_kind(

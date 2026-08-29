@@ -80,10 +80,10 @@ mod tests {
             runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
         let entity = create_entity(&mut runtime, "alpha");
         {
-            let mut partitions = runtime.partitions.write();
-            let partition =
-                crate::runtime::partition_entry_mut(&mut partitions, PartitionId::main())
-                    .expect("main partition");
+            let mut writer = runtime.edit_partitions();
+            let partition = writer
+                .partition_mut(PartitionId::main())
+                .expect("main partition");
             let versions = partition
                 .entity_arena
                 .aspect_versions_at_mut(entity.slot_index())

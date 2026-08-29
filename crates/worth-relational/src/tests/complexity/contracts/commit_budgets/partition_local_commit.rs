@@ -118,7 +118,7 @@ fn complexity_budget_relation_structural_invariants_are_touched_slot_bounded() {
 }
 
 #[test]
-fn complexity_contract_current_state_clone_is_declared_and_measured() {
+fn complexity_contract_partition_edition_acquisition_is_declared_and_measured() {
     let mut runtime = runtime_with_test_schema();
     for index in 0..8 {
         let _ = create_entity(&mut runtime, &format!("e{index}"));
@@ -134,4 +134,8 @@ fn complexity_contract_current_state_clone_is_declared_and_measured() {
     assert_eq!(counters.partitions_cloned, 0);
     assert_eq!(counters.entity_slots_cloned, 0);
     assert_eq!(counters.relation_slots_cloned, 0);
+    // Neither copy lane fires: an ordinary write owns the spine outright, so
+    // there is no edition to fork away from and nothing to reconstruct.
+    assert_eq!(counters.reconstructive_state_clones, 0);
+    assert_eq!(counters.reconstructive_partitions_materialized, 0);
 }

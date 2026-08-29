@@ -146,7 +146,7 @@ pub(super) fn request_for_plan<'runtime>(
     InvariantExecutionRequest::from_profile_with_contract(
         InvariantRequestProfile::CommitBoundary,
         runtime,
-        InvariantObservation::committed(runtime.storage_access().current_state()),
+        InvariantObservation::committed(runtime.storage_access().current_edition()),
         runtime.current_version_id(),
         Some(plan),
         Some(InvariantPlanContract::from_merged_plan(plan)),

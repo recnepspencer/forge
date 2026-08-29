@@ -1,6 +1,11 @@
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RuntimeComplexityCounters {
     pub full_state_clones: usize,
+    pub reconstructive_state_clones: usize,
+    pub reconstructive_partitions_materialized: usize,
+    pub partition_editions_acquired: usize,
+    pub adjacency_kind_slices_leased: usize,
+    pub adjacency_relation_ids_copied: usize,
     pub partitions_cloned: usize,
     pub entity_slots_cloned: usize,
     pub relation_slots_cloned: usize,

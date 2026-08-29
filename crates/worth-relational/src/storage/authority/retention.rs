@@ -17,8 +17,9 @@ impl StorageAuthority<'_> {
         let Some(_retired_at) = retired_at else {
             return;
         };
-        let mut partitions = self.runtime.partitions.write();
-        let partition = crate::runtime::partition_entry_mut(&mut partitions, partition_id)
+        let mut writer = self.runtime.edit_partitions();
+        let partition = writer
+            .partition_mut(partition_id)
             .expect("retention partition present");
         let arena = K::arena_mut(partition);
         let lifecycle = match self.runtime.config.storage.retention.backend {
@@ -57,10 +58,8 @@ impl StorageAuthority<'_> {
         slot: usize,
     ) -> bool {
         {
-            let mut partitions = self.runtime.partitions.write();
-            let Some(partition) =
-                crate::runtime::partition_entry_mut(&mut partitions, partition_id)
-            else {
+            let mut writer = self.runtime.edit_partitions();
+            let Some(partition) = writer.partition_mut(partition_id) else {
                 return false;
             };
             let arena = K::arena_mut(partition);
@@ -87,11 +86,9 @@ impl StorageAuthority<'_> {
         K::Meta: HistoricalMetadata,
     {
         let mut total_trimmed = 0usize;
-        let mut partitions = self.runtime.partitions.write();
+        let mut writer = self.runtime.edit_partitions();
         for (partition_id, slots) in slots_by_partition {
-            let Some(partition) =
-                crate::runtime::partition_entry_mut(&mut partitions, partition_id)
-            else {
+            let Some(partition) = writer.partition_mut(partition_id) else {
                 continue;
             };
             let arena = K::arena_mut(partition);
