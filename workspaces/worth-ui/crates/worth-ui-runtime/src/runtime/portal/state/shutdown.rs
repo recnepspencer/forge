@@ -15,14 +15,17 @@ impl super::UiPortalRuntimeState {
             closed_records = closed_records.saturating_add(1);
             terminalize(record);
         }
+        self.last_closed = None;
         if closed_records > 0 {
             self.revision = self.revision.saturating_add(1);
         }
-        UiPortalShutdownReport {
+        let report = UiPortalShutdownReport {
             closed_records,
             abandoned_indeterminate_records: 0,
             final_active_records: self.active_count(),
-        }
+        };
+        self.records.clear();
+        report
     }
 }
 

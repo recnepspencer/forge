@@ -78,7 +78,7 @@ impl OperabilityWorld {
         &mut self,
         interaction: UiSemanticInteraction,
     ) -> UiPreparedIntentPayload {
-        let route = product_route(&self.interaction, interaction);
+        let route = product_route(&mut self.interaction, interaction);
         self.interaction
             .session
             .prepare_intent_payload(route)
@@ -115,7 +115,7 @@ fn activation(
 }
 
 fn product_route(
-    world: &InteractionWorld,
+    world: &mut InteractionWorld,
     interaction: UiSemanticInteraction,
 ) -> worth_ui::facade::intent::UiResolvedProductIntentRoute {
     match world

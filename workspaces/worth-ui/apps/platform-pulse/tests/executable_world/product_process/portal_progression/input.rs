@@ -17,13 +17,24 @@ pub(super) fn activate(
         .platform
         .deliver_pointer_activation(&world.native_client, point)
         .map_err(PlatformPulsePortalJourneyFailure::Native)?;
-    require_delivery(delivery, NativeInputProbeKind::Pointer)
+    require_delivery(
+        delivery,
+        NativeInputProbeKind::Pointer,
+        2,
+        world.process.id(),
+    )
 }
 
 pub(super) fn escape(
     world: &mut NativeBoundExecutableWorld,
 ) -> Result<(), PlatformPulsePortalJourneyFailure> {
     keyboard(world, NativeKeyboardCommand::Escape)
+}
+
+pub(super) fn run_platform_command(
+    world: &mut NativeBoundExecutableWorld,
+) -> Result<(), PlatformPulsePortalJourneyFailure> {
+    keyboard(world, NativeKeyboardCommand::PrimaryShiftP)
 }
 
 pub(super) fn require_intent_quiet_after_occupancy_click(
@@ -52,18 +63,32 @@ fn keyboard(
         .platform
         .deliver_keyboard_command(&world.native_client, command)
         .map_err(PlatformPulsePortalJourneyFailure::Native)?;
-    require_delivery(delivery, NativeInputProbeKind::Keyboard)
+    let expected_event_count = match command {
+        NativeKeyboardCommand::Escape | NativeKeyboardCommand::Submit => 2,
+        NativeKeyboardCommand::PrimaryShiftP => 6,
+    };
+    require_delivery(
+        delivery,
+        NativeInputProbeKind::Keyboard,
+        expected_event_count,
+        world.process.id(),
+    )
 }
 
 fn require_delivery(
     delivery: crate::external_observation::NativeInputDeliveryObservation,
     expected: NativeInputProbeKind,
+    expected_event_count: u32,
+    expected_process_id: u32,
 ) -> Result<(), PlatformPulsePortalJourneyFailure> {
-    if delivery.kind() == expected && delivery.delivered_event_count() == 2 {
+    if delivery.kind() == expected
+        && delivery.delivered_event_count() == expected_event_count
+        && delivery.process_id() == expected_process_id
+    {
         Ok(())
     } else {
         Err(PlatformPulsePortalJourneyFailure::InputDelivery(
-            "native command did not remain one exact two-event delivery",
+            "native command did not preserve its exact OS event sequence",
         ))
     }
 }

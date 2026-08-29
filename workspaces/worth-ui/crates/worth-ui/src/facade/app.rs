@@ -70,8 +70,8 @@ pub use worth_ui_runtime::facade::{
     WorthUiNativeManagedRebindStop, WorthUiNativeManagedSourceRebindOutcome,
     WorthUiNativePhysicalPresentationRecovery, WorthUiNativePortalDismissalStop,
     WorthUiNativePredecessorRecovery, WorthUiNativePresentationRecoveryDenial,
-    WorthUiNativeProjectionRebindDenial, WorthUiNativeSourceRebindDenial,
-    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
-    WorthUiPreparedMountedApplicationReplacement, WorthUiReplacementCandidateSummary,
-    WorthUiReplacementPlannedCostEnvelope,
+    WorthUiNativeProjectionRebindDenial, WorthUiNativeReducedMotionPosture,
+    WorthUiNativeSourceRebindDenial, WorthUiPendingApplicationCutover,
+    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
+    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
 };

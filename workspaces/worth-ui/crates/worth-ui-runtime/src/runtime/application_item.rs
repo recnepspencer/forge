@@ -42,6 +42,15 @@ impl UiApplicationItemKeyFamily {
             UiApplicationItemKeyFamilyBasis::Recorded(_) => None,
         }
     }
+
+    pub(crate) const fn diagnostic_value(self) -> u64 {
+        match self.0 {
+            UiApplicationItemKeyFamilyBasis::ProjectionInput(slot) => {
+                (slot.index() as u64) | (1_u64 << 63)
+            }
+            UiApplicationItemKeyFamilyBasis::Recorded(value) => value.get(),
+        }
+    }
 }
 
 impl UiApplicationItemKey {

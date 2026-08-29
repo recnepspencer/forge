@@ -40,6 +40,7 @@ pub struct PlatformPulseIntentInputRecord {
     pub(super) revision: u64,
     pub(super) operability: PlatformPulseIntentInputOperability,
     pub(super) executor_gate: PlatformPulseExecutorGatePosture,
+    pub(super) query_denial_requested: bool,
 }
 
 pub enum PlatformPulseIntentInputEvent {
@@ -179,6 +180,10 @@ impl PlatformPulseIntentInputRecord {
 
     pub const fn executor_held(&self) -> bool {
         matches!(self.executor_gate, PlatformPulseExecutorGatePosture::Held)
+    }
+
+    pub const fn query_denial_requested(&self) -> bool {
+        self.query_denial_requested
     }
 }
 

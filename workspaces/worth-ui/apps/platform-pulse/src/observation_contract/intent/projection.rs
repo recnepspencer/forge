@@ -1,7 +1,8 @@
 use super::{
     PlatformPulseIntentCausalTraceObservation, PlatformPulseIntentExecutorStartedObservation,
     PlatformPulseIntentInputObservation, PlatformPulseIntentPostureObservation,
-    PlatformPulseIntentPosturePublished, PlatformPulseQueryActionObservation,
+    PlatformPulseIntentPosturePublished, PlatformPulseIntentRoutingStoppedObservation,
+    PlatformPulseQueryActionObservation,
 };
 use crate::observation_contract::{
     PlatformPulseLifecycleObservation, PlatformPulseLifecycleObservationEnvelope,
@@ -9,6 +10,19 @@ use crate::observation_contract::{
 };
 
 impl PlatformPulseLifecycleObservationStream {
+    pub fn project_intent_routing_stopped(
+        &mut self,
+        observation: PlatformPulseIntentRoutingStoppedObservation,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.published_predecessor()?;
+        self.next_envelope(PlatformPulseLifecycleObservation::IntentRoutingStopped(
+            observation,
+        ))
+    }
+
     pub fn project_portal_dismissed(
         &mut self,
         publication: &worth_ui::facade::app::UiMountedFramePublicationReceipt,

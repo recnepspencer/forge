@@ -1,12 +1,20 @@
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseIntentCausalTraceObservation, PlatformPulseIntentExecutorStartedObservation,
     PlatformPulseIntentInputObservation, PlatformPulseIntentPostureObservation,
-    PlatformPulseLifecycleObservationStream, PlatformPulseQueryActionObservation,
+    PlatformPulseIntentRoutingStoppedObservation, PlatformPulseLifecycleObservationStream,
+    PlatformPulseQueryActionObservation,
 };
 
 use super::{PlatformPulseObservationPublicationDenial, PlatformPulseObservationPublisher};
 
 impl PlatformPulseObservationPublisher {
+    pub(crate) fn intent_routing_stopped(
+        &self,
+        observation: PlatformPulseIntentRoutingStoppedObservation,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.project_observation(|stream| stream.project_intent_routing_stopped(observation))
+    }
+
     pub(crate) fn intent_causal_trace(
         &self,
         observation: PlatformPulseIntentCausalTraceObservation,

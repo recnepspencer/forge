@@ -21,7 +21,9 @@ pub struct PlatformPulseActionPortOwner {
 pub struct PlatformPulseActionPortRequest {
     reference: PlatformPulseActionAttemptReference,
     action_input_revision: PlatformPulseActionInputRevision,
+    query_denial_requested: bool,
     cancellation: Arc<AtomicBool>,
+    effect_started: Arc<AtomicBool>,
     completion: Option<mpsc::SyncSender<PlatformPulseProductSettlement>>,
     census: Arc<PlatformPulseActionPortCensusState>,
 }
@@ -59,7 +61,10 @@ pub(super) enum PlatformPulseProductSettlement {
 }
 
 pub(super) enum PlatformPulseActionPortSubmission {
-    Accepted(mpsc::Receiver<PlatformPulseProductSettlement>),
+    Accepted {
+        receiver: mpsc::Receiver<PlatformPulseProductSettlement>,
+        effect_started: Arc<AtomicBool>,
+    },
     Full,
     Closed,
 }
@@ -85,13 +90,17 @@ impl PlatformPulseActionPort {
         &self,
         reference: PlatformPulseActionAttemptReference,
         action_input_revision: PlatformPulseActionInputRevision,
+        query_denial_requested: bool,
         cancellation: Arc<AtomicBool>,
     ) -> PlatformPulseActionPortSubmission {
         let (completion, receiver) = mpsc::sync_channel(1);
+        let effect_started = Arc::new(AtomicBool::new(false));
         let request = PlatformPulseActionPortRequest {
             reference,
             action_input_revision,
+            query_denial_requested,
             cancellation,
+            effect_started: Arc::clone(&effect_started),
             completion: Some(completion),
             census: Arc::clone(&self.census),
         };
@@ -99,7 +108,10 @@ impl PlatformPulseActionPort {
         match self.sender.try_send(request) {
             Ok(()) => {
                 self.census.submitted.fetch_add(1, Ordering::Relaxed);
-                PlatformPulseActionPortSubmission::Accepted(receiver)
+                PlatformPulseActionPortSubmission::Accepted {
+                    receiver,
+                    effect_started,
+                }
             }
             Err(mpsc::TrySendError::Full(_)) => PlatformPulseActionPortSubmission::Full,
             Err(mpsc::TrySendError::Disconnected(_)) => PlatformPulseActionPortSubmission::Closed,
@@ -128,30 +140,54 @@ impl PlatformPulseActionPortRequest {
         self.action_input_revision
     }
 
+    pub const fn query_denial_requested(&self) -> bool {
+        self.query_denial_requested
+    }
+
     pub fn cancellation_requested(&self) -> bool {
         self.cancellation.load(Ordering::Acquire)
     }
 
+    pub fn begin_effect(&self) -> bool {
+        !self.cancellation_requested()
+            && self
+                .effect_started
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                .is_ok()
+    }
+
     pub fn complete(self, consequence: UiProjectionObservation) -> bool {
+        if !self.effect_started.load(Ordering::Acquire) {
+            let _ = self.settle(PlatformPulseProductSettlement::Indeterminate);
+            return false;
+        }
         self.settle(PlatformPulseProductSettlement::Completed(
             PlatformPulseActionOutcome::query(consequence),
         ))
     }
 
     pub fn reject_before_effect(self) -> bool {
-        self.settle(PlatformPulseProductSettlement::Rejected)
+        self.settle_before_effect(PlatformPulseProductSettlement::Rejected)
     }
 
     pub fn fail_before_effect(self) -> bool {
-        self.settle(PlatformPulseProductSettlement::Failed)
+        self.settle_before_effect(PlatformPulseProductSettlement::Failed)
     }
 
     pub fn cancel_before_effect(self) -> bool {
-        self.settle(PlatformPulseProductSettlement::Cancelled)
+        self.settle_before_effect(PlatformPulseProductSettlement::Cancelled)
     }
 
     pub fn settle_indeterminate(self) -> bool {
         self.settle(PlatformPulseProductSettlement::Indeterminate)
+    }
+
+    fn settle_before_effect(self, settlement: PlatformPulseProductSettlement) -> bool {
+        if self.effect_started.load(Ordering::Acquire) {
+            let _ = self.settle(PlatformPulseProductSettlement::Indeterminate);
+            return false;
+        }
+        self.settle(settlement)
     }
 
     fn settle(mut self, settlement: PlatformPulseProductSettlement) -> bool {

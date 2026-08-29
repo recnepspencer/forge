@@ -67,6 +67,12 @@ fn active_portal_scope_precedes_application_scope_without_registration_order_aut
         panic!("active portal route should win");
     };
     assert_eq!(receipt.command().as_str(), "command.portal");
+    let inspection = state
+        .last_winner()
+        .expect("the owner retains the latest winning command cause");
+    assert_eq!(inspection.command(), "command.portal");
+    assert_eq!(inspection.scope(), UiCommandRouteScope::ActivePortal);
+    assert_eq!(inspection.losers().len(), 1);
 }
 
 #[test]
@@ -335,7 +341,7 @@ pub(super) fn context_at(millis: u64) -> super::UiCommandRoutingContext {
 }
 
 pub(super) fn scope_identity() -> crate::capability::UiCommandRouteScopeIdentity {
-    crate::capability::UiCommandRouteScopeIdentity::for_authored_semantic_name("fixture.scope")
+    crate::capability::UiCommandRouteScopeIdentity::for_authored_component("fixture.scope")
 }
 
 pub(super) fn generation(

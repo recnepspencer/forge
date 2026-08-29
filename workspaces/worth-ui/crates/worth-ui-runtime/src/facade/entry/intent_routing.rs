@@ -14,21 +14,22 @@ impl WorthUiActiveApplicationSession {
         crate::facade::intent::UiIntentRouteResolution,
         crate::facade::intent::UiIntentRouteResolutionStop,
     > {
-        let evidence_reference = self
-            .intent_evidence
-            .reference_for_optional_input(source.evidence_input());
+        let mounted_evidence_input = source.evidence_input();
         let generation = self.active_generation_identity();
-        crate::runtime::intent::resolve_intent_route(
-            self.application.prepared_authority().intent_catalog(),
-            self.application
-                .prepared_authority()
-                .capabilities()
-                .intent_definitions(),
-            &generation,
-            &self.mounted,
-            source,
-        )
-        .map(|resolution| resolution.with_evidence_reference(evidence_reference))
+        let resolution = {
+            let prepared = self.application.prepared_authority();
+            crate::runtime::intent::resolve_intent_route(
+                prepared.intent_catalog(),
+                prepared.capabilities().intent_definitions(),
+                &generation,
+                &self.mounted,
+                source,
+            )
+        }?;
+        let evidence_reference = mounted_evidence_input
+            .and_then(|input| self.intent_evidence.reference_for_input(input))
+            .or_else(|| resolution.command_evidence_reference());
+        Ok(resolution.with_evidence_reference(evidence_reference))
     }
 
     pub fn update_intent_text_fact(

@@ -32,6 +32,8 @@ mod runtime_access;
 mod scroll_observation;
 #[path = "active_application_session/semantic_text_registration.rs"]
 mod semantic_text_registration;
+#[path = "active_application_session/service_inspection.rs"]
+mod service_inspection;
 #[path = "active_application_session/service_installation_observation.rs"]
 mod service_installation_observation;
 #[path = "active_application_session/service_proposal_observation.rs"]

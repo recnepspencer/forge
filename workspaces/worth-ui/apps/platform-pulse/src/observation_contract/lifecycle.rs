@@ -11,6 +11,7 @@ pub enum PlatformPulseLifecycleObservation {
     IntentInputAdmitted(super::intent::PlatformPulseIntentInputObservation),
     IntentExecutorStarted(super::intent::PlatformPulseIntentExecutorStartedObservation),
     IntentPosturePublished(super::intent::PlatformPulseIntentPosturePublished),
+    IntentRoutingStopped(super::intent::PlatformPulseIntentRoutingStoppedObservation),
     SemanticFocusPublished(super::focus::PlatformPulseSemanticFocusPublished),
     PortalDismissed(PlatformPulsePortalDismissed),
     IntentCausalTrace(super::intent::PlatformPulseIntentCausalTraceObservation),

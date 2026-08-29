@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+mod inspection;
 mod lifecycle;
 mod record;
 
@@ -43,6 +44,7 @@ pub(crate) struct UiSelectionRuntimeState {
         crate::runtime::UiApplicationItemKeyFamily,
         BTreeSet<super::UiSelectionOwnerIdentity>,
     >,
+    last_drop: Option<super::UiSelectionDropInspectionRecord>,
 }
 
 impl UiSelectionRuntimeState {
@@ -65,6 +67,7 @@ impl UiSelectionRuntimeState {
             catalog_keys_reconciled: 0,
             mounted_owners: BTreeMap::new(),
             family_owners: BTreeMap::new(),
+            last_drop: None,
         }
     }
 
@@ -173,7 +176,7 @@ impl UiSelectionRuntimeState {
         }
         self.revision = revision;
         self.catalog_keys_reconciled = catalog_keys_reconciled;
-        Ok(super::UiSelectionReconciliationReceipt::new(
+        let receipt = super::UiSelectionReconciliationReceipt::new(
             super::UiSelectionDelta::new(
                 Vec::new(),
                 removed,
@@ -183,7 +186,13 @@ impl UiSelectionRuntimeState {
             ),
             order_changed,
             missing_count,
-        ))
+        );
+        self.record_drop(
+            owner,
+            super::UiSelectionDropInspectionReason::CatalogReconciliation,
+            receipt.delta(),
+        );
+        Ok(receipt)
     }
 
     pub(crate) fn synchronize_and_apply(
@@ -214,6 +223,7 @@ impl UiSelectionRuntimeState {
             catalog_keys_reconciled: self.catalog_keys_reconciled,
             mounted_owners: BTreeMap::new(),
             family_owners: BTreeMap::new(),
+            last_drop: self.last_drop,
         };
         let reconciliation = staged.synchronize(registration)?;
         let delta = staged.apply(owner, incarnation, request)?;
@@ -233,6 +243,7 @@ impl UiSelectionRuntimeState {
         self.requests = staged.requests;
         self.candidates_visited = staged.candidates_visited;
         self.catalog_keys_reconciled = staged.catalog_keys_reconciled;
+        self.last_drop = staged.last_drop;
         Ok((reconciliation, delta))
     }
 
@@ -269,13 +280,19 @@ impl UiSelectionRuntimeState {
         self.revision = revision;
         self.requests = requests;
         self.candidates_visited = candidates_visited;
-        Ok(super::UiSelectionDelta::new(
+        let delta = super::UiSelectionDelta::new(
             mutation.added,
             mutation.removed,
             record.selected.len(),
             visited,
             revision,
-        ))
+        );
+        self.record_drop(
+            owner,
+            super::UiSelectionDropInspectionReason::Interaction,
+            &delta,
+        );
+        Ok(delta)
     }
 
     pub(crate) fn selected(
@@ -335,14 +352,6 @@ impl UiSelectionRuntimeState {
                 .map(super::UiSelectionStableKey::application_value)
                 .collect(),
         )
-    }
-
-    pub(crate) fn shutdown(&mut self) -> usize {
-        let released = self.owners.len();
-        self.owners.clear();
-        self.mounted_owners.clear();
-        self.family_owners.clear();
-        released
     }
 
     fn index_owner(

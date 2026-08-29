@@ -33,6 +33,7 @@ mod native_duplicate_dismissal;
 mod native_recovery;
 #[path = "portal_service/support.rs"]
 mod support;
+pub(crate) use native_duplicate_dismissal::run_native_runtime_service_scenario;
 use support::only_transition;
 
 #[test]

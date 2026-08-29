@@ -98,27 +98,15 @@ fn resolve_command(
             })
         }
     };
-    let target = if let Some(focused) = receipt
-        .focused_target()
-        .or_else(|| receipt.invocation_target())
-    {
-        let target = crate::runtime::interaction::targeting::resolve_presented_focus_target(
-            mounted,
-            presentation,
-            focused,
-        )
-        .map_err(UiIntentRouteResolutionStop::Targeting)?
-        .ok_or(UiIntentRouteResolutionStop::Targeting(
-            crate::runtime::interaction::UiInteractionTargetingDenial::GraphTargetNotPresented,
-        ))?;
-        target
-    } else {
-        crate::runtime::interaction::targeting::resolve_presented_surface_target(
-            mounted,
-            presentation,
-        )
-        .map_err(UiIntentRouteResolutionStop::Targeting)?
-    };
+    let target = crate::runtime::interaction::targeting::resolve_presented_command_target(
+        mounted,
+        presentation,
+        &receipt,
+    )
+    .map_err(UiIntentRouteResolutionStop::Targeting)?;
+    if receipt.evidence_reference().is_none() {
+        return Err(UiIntentRouteResolutionStop::CommandEvidenceMissing);
+    }
     let graph_node = crate::runtime::interaction::targeting::admit_current_target(mounted, target)
         .map_err(UiIntentRouteResolutionStop::Targeting)?
         .graph_node();

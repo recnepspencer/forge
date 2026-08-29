@@ -16,6 +16,8 @@ pub(crate) enum PulseSourceDeltaIdentity {
     RevisionSchema,
     StatusSchemaRecovery,
     IntentReadyReleased,
+    IntentQueryDenialRequested,
+    PortalFocusFallback,
     IntentConfirmationHeld,
     IntentConfirmationReleased,
     IntentDisabled,

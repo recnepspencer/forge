@@ -9,6 +9,7 @@ pub(crate) struct UiCommandRoutingRuntimeState {
     candidates_visited: u64,
     platform: crate::capability::UiCommandShortcutPlatform,
     policy: crate::declaration::UiCommandRoutingPolicy,
+    last_winner: Option<super::UiCommandWonInspectionRecord>,
 }
 
 impl UiCommandRoutingRuntimeState {
@@ -26,6 +27,7 @@ impl UiCommandRoutingRuntimeState {
             candidates_visited: 0,
             platform: crate::capability::UiCommandShortcutPlatform::current_target(),
             policy,
+            last_winner: None,
         }
     }
 
@@ -49,6 +51,18 @@ impl UiCommandRoutingRuntimeState {
     }
 
     pub(crate) fn route_input_stroke(
+        &mut self,
+        stroke: super::input_stroke::UiCommandInputStroke,
+        repeat: bool,
+        context: super::UiCommandRoutingContext,
+        application: &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
+    ) -> super::UiCommandRoutingOutcome {
+        let outcome = self.route_input_stroke_unrecorded(stroke, repeat, context, application);
+        self.record_outcome(&outcome);
+        outcome
+    }
+
+    fn route_input_stroke_unrecorded(
         &mut self,
         stroke: super::input_stroke::UiCommandInputStroke,
         repeat: bool,
@@ -94,6 +108,18 @@ impl UiCommandRoutingRuntimeState {
     }
 
     pub(crate) fn route_command(
+        &mut self,
+        command: &crate::capability::CommandId,
+        context: super::UiCommandRoutingContext,
+        application: &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
+        origin: super::UiCommandInvocationOrigin,
+    ) -> super::UiCommandRoutingOutcome {
+        let outcome = self.route_command_unrecorded(command, context, application, origin);
+        self.record_outcome(&outcome);
+        outcome
+    }
+
+    fn route_command_unrecorded(
         &mut self,
         command: &crate::capability::CommandId,
         context: super::UiCommandRoutingContext,
@@ -150,7 +176,16 @@ impl UiCommandRoutingRuntimeState {
         self.cancel_prefix();
         let released = self.plan.len();
         self.plan = super::plan::UiCommandRoutingPlan::default();
+        self.last_winner = None;
         released
+    }
+
+    pub(crate) fn last_winner(&self) -> Option<&super::UiCommandWonInspectionRecord> {
+        self.last_winner.as_ref()
+    }
+
+    pub(crate) fn resource_counts(&self) -> (usize, usize) {
+        (self.plan.len(), usize::from(self.prefix.is_some()))
     }
 
     #[cfg(any(test, feature = "certification-support"))]
@@ -281,6 +316,15 @@ impl UiCommandRoutingRuntimeState {
             self.occupancy_revision,
         ))
     }
+
+    fn record_outcome(&mut self, outcome: &super::UiCommandRoutingOutcome) {
+        if let super::UiCommandRoutingOutcome::Routed(receipt) = outcome {
+            self.last_winner = Some(super::UiCommandWonInspectionRecord::from_receipt(
+                receipt,
+                self.invocations,
+            ));
+        }
+    }
 }
 
 #[cfg(test)]
@@ -306,6 +350,7 @@ impl UiCommandRoutingRuntimeState {
             candidates_visited: 0,
             platform,
             policy,
+            last_winner: None,
         }
     }
 }

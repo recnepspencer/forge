@@ -61,7 +61,7 @@ const fn family_bit(family: crate::capability::UiRuntimeServiceFamily) -> u8 {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-support"))]
 pub(super) fn fixture_service_family_participation(count: usize) -> UiServiceFamilyParticipation {
     UiServiceFamilyParticipation::from_families(
         &crate::capability::UiRuntimeServiceFamily::ALL[..count],

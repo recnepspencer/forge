@@ -60,7 +60,7 @@ impl UiNativeInputObservationState {
                     payload,
                 );
                 if report_requires_input_affinity(report.payload()) {
-                    let Some(binding) = self.input_recipient else {
+                    let Some(binding) = self.current_input_recipient() else {
                         return report;
                     };
                     report.with_input_affinity(

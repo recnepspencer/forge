@@ -6,6 +6,8 @@ pub(super) use super::production_world::{
 use super::schedule_inventory::{Schedule, SCHEDULES};
 use worth_ui_host_native::UiNativeInputObservationStop;
 
+use super::NativeFaultContractEvidence;
+
 #[test]
 fn native_lifecycle_protocol_world_matches_independent_oracle_for_all_schedules() {
     for state in STATES.iter().copied() {
@@ -15,6 +17,56 @@ fn native_lifecycle_protocol_world_matches_independent_oracle_for_all_schedules(
     }
     for schedule in SCHEDULES {
         run_inventory_schedule(schedule);
+    }
+}
+
+pub(super) fn verify_native_fault_contract() -> NativeFaultContractEvidence {
+    for state in STATES.iter().copied() {
+        for event in EVENTS.iter().copied() {
+            run_schedule("phase7-state-event", state, std::slice::from_ref(&event));
+        }
+    }
+    for schedule in SCHEDULES {
+        run_inventory_schedule(schedule);
+    }
+
+    let mut capacity = UiNativeLifecycleWorld::new(UiNativeLifecycleState::Presented);
+    assert_eq!(
+        capacity
+            .apply(UiNativeLifecycleEvent::ExactCapacityText)
+            .effect,
+        UiNativeLifecycleEffect::Retained
+    );
+    let exact = capacity.report();
+    let over_capacity_stopped_before_retention = matches!(
+        capacity
+            .apply(UiNativeLifecycleEvent::OverCapacityText)
+            .effect,
+        UiNativeLifecycleEffect::Denied(UiNativeInputObservationStop::OverCapacityText)
+    ) && capacity.report().retained_event_count()
+        == exact.retained_event_count();
+    let exact_capacity_preserved_sequence =
+        capacity.report().last_retained_sequence() == exact.last_retained_sequence();
+
+    let mut ime = UiNativeLifecycleWorld::new(UiNativeLifecycleState::Presented);
+    assert_eq!(
+        ime.apply(UiNativeLifecycleEvent::ValidImeRange).effect,
+        UiNativeLifecycleEffect::Retained
+    );
+    let valid = ime.report();
+    let invalid_ime_range_stopped_before_retention = matches!(
+        ime.apply(UiNativeLifecycleEvent::UnprovableImeRange).effect,
+        UiNativeLifecycleEffect::Denied(UiNativeInputObservationStop::ImeRangeNotScalarBoundary)
+    ) && ime.report().retained_event_count()
+        == valid.retained_event_count()
+        && ime.report().last_retained_sequence() == valid.last_retained_sequence();
+
+    NativeFaultContractEvidence {
+        qualified_schedules: SCHEDULES.len(),
+        state_event_pairs: STATES.len() * EVENTS.len(),
+        exact_capacity_preserved_sequence,
+        over_capacity_stopped_before_retention,
+        invalid_ime_range_stopped_before_retention,
     }
 }
 

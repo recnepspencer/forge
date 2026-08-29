@@ -119,7 +119,7 @@ impl PlatformPulseProductTargetContract {
     pub const CONFIRM_LIVE_ACTION: Self = Self {
         authored_identity: "platform.pulse.target.confirm_live_action",
         admitted_action_identity: "intent:platform.pulse.action.route:confirm",
-        reference_bounds: PlatformPulseLogicalRect::new(680, 176, 232, 72),
+        reference_bounds: PlatformPulseLogicalRect::new(680, 176, 232, 104),
         visibility: PlatformPulseServiceStoryGate::RealServiceProviderInstalled,
     };
 

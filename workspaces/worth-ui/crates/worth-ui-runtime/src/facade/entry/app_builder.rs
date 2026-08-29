@@ -119,7 +119,7 @@ impl<ChangeProfileState, IntentWiringState>
         self
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn with_rust_authored_declaration_fixture(
         self,
         fixture: crate::facade::WorthUiRustAuthoredDeclarationFixture,

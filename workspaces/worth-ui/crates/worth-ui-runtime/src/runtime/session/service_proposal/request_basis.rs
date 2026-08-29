@@ -15,7 +15,7 @@ pub(in crate::runtime) use portal_exit_terminal::UiPortalExitTerminalServiceRequ
 pub(in crate::runtime) struct UiServiceRequestIdentity(NonZeroU64);
 
 impl UiServiceRequestIdentity {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(in crate::runtime) fn for_test(value: u64) -> Self {
         Self(NonZeroU64::new(value).expect("test request identity must be non-zero"))
     }
@@ -275,6 +275,12 @@ fn validate_presentation_binding(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "certification-support")]
+mod certification_fixture;
+
+#[cfg(all(feature = "certification-support", not(test)))]
+pub(super) use certification_fixture::fixture_service_request_coherence;
 
 #[cfg(test)]
 pub(super) use tests::{

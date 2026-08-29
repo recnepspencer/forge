@@ -26,6 +26,9 @@ pub use presentation_recovery::{
 #[path = "native_application_shell/query_close.rs"]
 mod query_close;
 pub(crate) use query_close::UiNativeApplicationQueryCloseObservation;
+#[path = "native_application_shell/service_inspection.rs"]
+mod service_inspection;
+pub use service_inspection::WorthUiNativeReducedMotionPosture;
 #[path = "native_application_shell/shutdown.rs"]
 mod shutdown;
 #[path = "native_application_shell/viewport_measurement.rs"]
@@ -50,6 +53,7 @@ pub struct WorthUiNativeApplicationShell {
     pub(super) retained_portal_dismissal:
         Option<super::native_managed_rebind::UiRetainedPortalDismissalRequest>,
     pub(super) managed_rebind_completion_tick: u64,
+    reduced_motion_posture: WorthUiNativeReducedMotionPosture,
 }
 
 struct NativeMountedRow {

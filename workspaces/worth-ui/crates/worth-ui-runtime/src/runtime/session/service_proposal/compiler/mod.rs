@@ -10,6 +10,8 @@ mod preflight;
 mod proposal;
 mod receipt;
 mod reservation;
+#[cfg(feature = "certification-support")]
+mod scale_certification;
 mod settlement;
 mod settlement_compiler;
 #[cfg(test)]
@@ -45,6 +47,8 @@ pub(in crate::runtime) use reservation::{
     UiReservedServiceProposal, UiServiceProposalBeforeEffectCancellationReceipt,
     UiServiceProposalReservationDenial, UiServiceProposalReservationOutcome,
 };
+#[cfg(feature = "certification-support")]
+pub(crate) use scale_certification::proposal_scale_evidence;
 pub(in crate::runtime) use settlement::{
     UiServiceProposalPublicationDenial, UiServiceProposalSettlement,
     UiServiceProposalSettlementDenial,

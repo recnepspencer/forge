@@ -78,6 +78,12 @@ fn nested_route_consumes_at_inner_bound_then_bubbles_exact_remainder() {
         .unwrap();
 
     assert_eq!(receipt.owners_visited(), 2);
+    let inspection = state
+        .last_owner()
+        .expect("the owner retains the latest routed scroll cause");
+    assert_eq!(inspection.owner(), inner);
+    assert_eq!(inspection.owners_visited(), 2);
+    assert_eq!(inspection.owners_changed(), 2);
     assert_eq!(receipt.remainder(), UiScrollDelta::new(0, 0));
     assert_eq!(
         state

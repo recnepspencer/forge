@@ -148,6 +148,10 @@ impl UiPortalExitRetentionCoordinator {
         self.retentions.len()
     }
 
+    pub(super) fn resource_counts(&self) -> (usize, usize) {
+        (self.retentions.len(), usize::from(self.pending.is_some()))
+    }
+
     pub(super) fn has_terminal_work(&self) -> bool {
         self.pending.is_some() || self.next_terminal().is_some()
     }

@@ -1,4 +1,13 @@
 impl super::UiSelectionRuntimeState {
+    pub(crate) fn shutdown(&mut self) -> usize {
+        let released = self.owners.len();
+        self.owners.clear();
+        self.mounted_owners.clear();
+        self.family_owners.clear();
+        self.last_drop = None;
+        released
+    }
+
     pub(crate) fn has_projection_catalog_owners(&self) -> bool {
         !self.family_owners.is_empty()
     }

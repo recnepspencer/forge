@@ -10,6 +10,7 @@ pub enum WorthUiServiceDeclarationAdmissionCause {
     CommandShortcutMismatch,
     CommandRouteMissing,
     CommandScopeMismatch,
+    CommandScopeBindingUndeclared,
     CommandScopeBindingMismatch,
 }
 

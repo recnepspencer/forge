@@ -340,6 +340,7 @@ impl LifecycleTraceEntry {
             PlatformPulseLifecycleObservation::IntentPosturePublished(_) => {
                 "intent_posture_published"
             }
+            PlatformPulseLifecycleObservation::IntentRoutingStopped(_) => "intent_routing_stopped",
             PlatformPulseLifecycleObservation::SemanticFocusPublished(_) => {
                 "semantic_focus_published"
             }

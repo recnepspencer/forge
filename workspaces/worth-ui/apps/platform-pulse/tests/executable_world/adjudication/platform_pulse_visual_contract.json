@@ -17,26 +17,30 @@
         { "identity": "platform.pulse.region.truthful_status_band", "rect": [24, 552, 912, 24], "hit_test": false }
       ],
       "text_bounds": [
-        { "identity": "platform.pulse.text.brand", "region": "platform.pulse.region.identity_masthead", "role": "masthead", "rect": [40, 42, 200, 20] },
-        { "identity": "platform.pulse.text.runtime_badge", "region": "platform.pulse.region.identity_masthead", "role": "meta", "rect": [704, 44, 216, 16] },
-        { "identity": "platform.pulse.text.evidence_title", "region": "platform.pulse.region.evidence_rail", "role": "section", "rect": [48, 136, 168, 16] },
-        { "identity": "platform.pulse.text.evidence_body", "region": "platform.pulse.region.evidence_rail", "role": "masthead", "rect": [48, 176, 168, 28] },
-        { "identity": "platform.pulse.text.source_query", "region": "platform.pulse.region.evidence_rail", "role": "body", "rect": [48, 224, 160, 40] },
-        { "identity": "platform.pulse.text.service_eyebrow", "region": "platform.pulse.region.service_stage", "role": "section", "rect": [296, 136, 240, 16] },
-        { "identity": "platform.pulse.text.service_title", "region": "platform.pulse.region.service_stage", "role": "display", "rect": [296, 184, 320, 112] },
-        { "identity": "platform.pulse.text.service_body", "region": "platform.pulse.region.service_stage", "role": "body", "rect": [296, 328, 320, 60] },
-        { "identity": "platform.pulse.text.action_label", "region": "platform.pulse.region.service_stage", "role": "action", "rect": [320, 430, 168, 20] },
-        { "identity": "platform.pulse.text.portal_label", "region": "platform.pulse.region.service_stage", "role": "action", "rect": [548, 430, 72, 20] },
-        { "identity": "platform.pulse.text.query_label", "region": "platform.pulse.region.service_stage", "role": "section", "rect": [680, 136, 232, 16] },
-        { "identity": "platform.pulse.text.projected_status", "region": "platform.pulse.region.service_stage", "role": "masthead", "rect": [704, 194, 184, 28] },
-        { "identity": "platform.pulse.text.native_label", "region": "platform.pulse.region.service_stage", "role": "section", "rect": [680, 360, 232, 16] },
-        { "identity": "platform.pulse.text.native_body", "region": "platform.pulse.region.service_stage", "role": "body", "rect": [680, 400, 232, 48] },
-        { "identity": "platform.pulse.text.status", "region": "platform.pulse.region.truthful_status_band", "role": "meta", "rect": [40, 556, 280, 16] }
+        { "identity": "platform.pulse.text.brand", "region": "platform.pulse.region.identity_masthead", "role": "masthead", "maximum_lines": 1, "rect": [40, 42, 200, 20] },
+        { "identity": "platform.pulse.text.runtime_badge", "region": "platform.pulse.region.identity_masthead", "role": "meta", "maximum_lines": 1, "rect": [704, 44, 216, 16] },
+        { "identity": "platform.pulse.text.evidence_title", "region": "platform.pulse.region.evidence_rail", "role": "section", "maximum_lines": 1, "rect": [48, 136, 168, 16] },
+        { "identity": "platform.pulse.text.evidence_body", "region": "platform.pulse.region.evidence_rail", "role": "masthead", "maximum_lines": 2, "rect": [48, 176, 168, 64] },
+        { "identity": "platform.pulse.text.source_query", "region": "platform.pulse.region.evidence_rail", "role": "body", "maximum_lines": 2, "rect": [48, 256, 160, 48] },
+        { "identity": "platform.pulse.text.evidence_service_label", "region": "platform.pulse.region.evidence_rail", "role": "section", "maximum_lines": 1, "rect": [48, 328, 168, 16] },
+        { "identity": "platform.pulse.text.evidence_service_body", "region": "platform.pulse.region.evidence_rail", "role": "body", "maximum_lines": 3, "rect": [48, 360, 168, 64] },
+        { "identity": "platform.pulse.text.service_eyebrow", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [296, 136, 240, 16] },
+        { "identity": "platform.pulse.text.service_title", "region": "platform.pulse.region.service_stage", "role": "display", "maximum_lines": 2, "rect": [296, 184, 320, 112] },
+        { "identity": "platform.pulse.text.service_body", "region": "platform.pulse.region.service_stage", "role": "body", "maximum_lines": 3, "rect": [296, 328, 320, 64] },
+        { "identity": "platform.pulse.text.action_label", "region": "platform.pulse.region.service_stage", "role": "action", "maximum_lines": 1, "rect": [320, 430, 168, 20] },
+        { "identity": "platform.pulse.text.portal_label", "region": "platform.pulse.region.service_stage", "role": "action", "maximum_lines": 1, "rect": [548, 430, 72, 20] },
+        { "identity": "platform.pulse.text.query_label", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [680, 136, 232, 16] },
+        { "identity": "platform.pulse.text.projected_status", "region": "platform.pulse.region.service_stage", "role": "masthead", "maximum_lines": 2, "rect": [704, 220, 184, 48] },
+        { "identity": "platform.pulse.text.native_label", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [680, 360, 232, 16] },
+        { "identity": "platform.pulse.text.native_body", "region": "platform.pulse.region.service_stage", "role": "body", "maximum_lines": 2, "rect": [680, 392, 232, 48] },
+        { "identity": "platform.pulse.text.query_denial_label", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [680, 448, 232, 16] },
+        { "identity": "platform.pulse.text.query_denial_body", "region": "platform.pulse.region.service_stage", "role": "body", "maximum_lines": 2, "rect": [680, 476, 232, 48] },
+        { "identity": "platform.pulse.text.status", "region": "platform.pulse.region.truthful_status_band", "role": "meta", "maximum_lines": 1, "rect": [40, 556, 880, 16] }
       ],
       "minimum_targets": [
         { "identity": "platform.pulse.target.run_live_action", "action_identity": "intent:platform.pulse.action.route:activate", "label_identity": "platform.pulse.text.action_label", "token_role": "principal-accent", "rect": [296, 416, 216, 48], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" },
         { "identity": "platform.pulse.target.open_portal", "action_identity": "intent:platform.pulse.portal.open.route:activate", "label_identity": "platform.pulse.text.portal_label", "token_role": "raised-surface", "rect": [528, 416, 112, 48], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" },
-        { "identity": "platform.pulse.target.confirm_live_action", "action_identity": "intent:platform.pulse.action.route:confirm", "label_identity": "platform.pulse.text.projected_status", "token_role": "elevated-surface", "rect": [680, 176, 232, 72], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" }
+        { "identity": "platform.pulse.target.confirm_live_action", "action_identity": "intent:platform.pulse.action.route:confirm", "label_identity": "platform.pulse.text.projected_status", "token_role": "elevated-surface", "rect": [680, 176, 232, 104], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" }
       ],
       "control_points": [
         { "identity": "canvas", "logical_point": [8, 8], "token_role": "canvas" },
@@ -61,26 +65,30 @@
         { "identity": "platform.pulse.region.truthful_status_band", "rect": [24, 652, 1072, 24], "hit_test": false }
       ],
       "text_bounds": [
-        { "identity": "platform.pulse.text.brand", "region": "platform.pulse.region.identity_masthead", "role": "masthead", "rect": [40, 42, 200, 20] },
-        { "identity": "platform.pulse.text.runtime_badge", "region": "platform.pulse.region.identity_masthead", "role": "meta", "rect": [864, 44, 216, 16] },
-        { "identity": "platform.pulse.text.evidence_title", "region": "platform.pulse.region.evidence_rail", "role": "section", "rect": [48, 136, 168, 16] },
-        { "identity": "platform.pulse.text.evidence_body", "region": "platform.pulse.region.evidence_rail", "role": "masthead", "rect": [48, 176, 168, 28] },
-        { "identity": "platform.pulse.text.source_query", "region": "platform.pulse.region.evidence_rail", "role": "body", "rect": [48, 224, 160, 40] },
-        { "identity": "platform.pulse.text.service_eyebrow", "region": "platform.pulse.region.service_stage", "role": "section", "rect": [296, 136, 240, 16] },
-        { "identity": "platform.pulse.text.service_title", "region": "platform.pulse.region.service_stage", "role": "display", "rect": [296, 184, 480, 112] },
-        { "identity": "platform.pulse.text.service_body", "region": "platform.pulse.region.service_stage", "role": "body", "rect": [296, 328, 480, 60] },
-        { "identity": "platform.pulse.text.action_label", "region": "platform.pulse.region.service_stage", "role": "action", "rect": [320, 430, 168, 20] },
-        { "identity": "platform.pulse.text.portal_label", "region": "platform.pulse.region.service_stage", "role": "action", "rect": [548, 430, 72, 20] },
-        { "identity": "platform.pulse.text.query_label", "region": "platform.pulse.region.service_stage", "role": "section", "rect": [840, 136, 232, 16] },
-        { "identity": "platform.pulse.text.projected_status", "region": "platform.pulse.region.service_stage", "role": "masthead", "rect": [864, 194, 184, 28] },
-        { "identity": "platform.pulse.text.native_label", "region": "platform.pulse.region.service_stage", "role": "section", "rect": [840, 360, 232, 16] },
-        { "identity": "platform.pulse.text.native_body", "region": "platform.pulse.region.service_stage", "role": "body", "rect": [840, 400, 232, 48] },
-        { "identity": "platform.pulse.text.status", "region": "platform.pulse.region.truthful_status_band", "role": "meta", "rect": [40, 656, 280, 16] }
+        { "identity": "platform.pulse.text.brand", "region": "platform.pulse.region.identity_masthead", "role": "masthead", "maximum_lines": 1, "rect": [40, 42, 200, 20] },
+        { "identity": "platform.pulse.text.runtime_badge", "region": "platform.pulse.region.identity_masthead", "role": "meta", "maximum_lines": 1, "rect": [864, 44, 216, 16] },
+        { "identity": "platform.pulse.text.evidence_title", "region": "platform.pulse.region.evidence_rail", "role": "section", "maximum_lines": 1, "rect": [48, 136, 168, 16] },
+        { "identity": "platform.pulse.text.evidence_body", "region": "platform.pulse.region.evidence_rail", "role": "masthead", "maximum_lines": 2, "rect": [48, 176, 168, 64] },
+        { "identity": "platform.pulse.text.source_query", "region": "platform.pulse.region.evidence_rail", "role": "body", "maximum_lines": 2, "rect": [48, 256, 160, 48] },
+        { "identity": "platform.pulse.text.evidence_service_label", "region": "platform.pulse.region.evidence_rail", "role": "section", "maximum_lines": 1, "rect": [48, 328, 168, 16] },
+        { "identity": "platform.pulse.text.evidence_service_body", "region": "platform.pulse.region.evidence_rail", "role": "body", "maximum_lines": 3, "rect": [48, 360, 168, 64] },
+        { "identity": "platform.pulse.text.service_eyebrow", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [296, 136, 240, 16] },
+        { "identity": "platform.pulse.text.service_title", "region": "platform.pulse.region.service_stage", "role": "display", "maximum_lines": 2, "rect": [296, 184, 480, 112] },
+        { "identity": "platform.pulse.text.service_body", "region": "platform.pulse.region.service_stage", "role": "body", "maximum_lines": 3, "rect": [296, 328, 480, 64] },
+        { "identity": "platform.pulse.text.action_label", "region": "platform.pulse.region.service_stage", "role": "action", "maximum_lines": 1, "rect": [320, 430, 168, 20] },
+        { "identity": "platform.pulse.text.portal_label", "region": "platform.pulse.region.service_stage", "role": "action", "maximum_lines": 1, "rect": [548, 430, 72, 20] },
+        { "identity": "platform.pulse.text.query_label", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [840, 136, 232, 16] },
+        { "identity": "platform.pulse.text.projected_status", "region": "platform.pulse.region.service_stage", "role": "masthead", "maximum_lines": 2, "rect": [864, 220, 184, 48] },
+        { "identity": "platform.pulse.text.native_label", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [840, 360, 232, 16] },
+        { "identity": "platform.pulse.text.native_body", "region": "platform.pulse.region.service_stage", "role": "body", "maximum_lines": 2, "rect": [840, 392, 232, 48] },
+        { "identity": "platform.pulse.text.query_denial_label", "region": "platform.pulse.region.service_stage", "role": "section", "maximum_lines": 1, "rect": [840, 448, 232, 16] },
+        { "identity": "platform.pulse.text.query_denial_body", "region": "platform.pulse.region.service_stage", "role": "body", "maximum_lines": 2, "rect": [840, 476, 232, 48] },
+        { "identity": "platform.pulse.text.status", "region": "platform.pulse.region.truthful_status_band", "role": "meta", "maximum_lines": 1, "rect": [40, 656, 1040, 16] }
       ],
       "minimum_targets": [
         { "identity": "platform.pulse.target.run_live_action", "action_identity": "intent:platform.pulse.action.route:activate", "label_identity": "platform.pulse.text.action_label", "token_role": "principal-accent", "rect": [296, 416, 216, 48], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" },
         { "identity": "platform.pulse.target.open_portal", "action_identity": "intent:platform.pulse.portal.open.route:activate", "label_identity": "platform.pulse.text.portal_label", "token_role": "raised-surface", "rect": [528, 416, 112, 48], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" },
-        { "identity": "platform.pulse.target.confirm_live_action", "action_identity": "intent:platform.pulse.action.route:confirm", "label_identity": "platform.pulse.text.projected_status", "token_role": "elevated-surface", "rect": [840, 176, 232, 72], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" }
+        { "identity": "platform.pulse.target.confirm_live_action", "action_identity": "intent:platform.pulse.action.route:confirm", "label_identity": "platform.pulse.text.projected_status", "token_role": "elevated-surface", "rect": [840, 176, 232, 104], "minimum_extent": [32, 32], "visibility_gate": "real-service-provider-installed" }
       ],
       "control_points": [
         { "identity": "canvas", "logical_point": [8, 8], "token_role": "canvas" },

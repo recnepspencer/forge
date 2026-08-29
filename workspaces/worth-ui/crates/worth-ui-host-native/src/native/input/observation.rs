@@ -6,6 +6,7 @@ use worth_ui_host_contract::{
 };
 
 mod admission;
+mod recipient;
 mod retention;
 
 const INPUT_OBSERVATION_HISTORY_CAPACITY: usize = 64;
@@ -246,28 +247,6 @@ impl UiNativeInputObservationState {
         host_session_identity: u64,
     ) -> worth_ui_host_contract::UiHostObservationDrain {
         self.retention.drain(host_session_identity)
-    }
-
-    pub(crate) fn install_input_recipient(
-        &mut self,
-        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
-    ) -> bool {
-        if self.active_host_session != Some(binding.host_session()) {
-            return false;
-        }
-        self.input_recipient = Some(binding);
-        true
-    }
-
-    pub(crate) fn clear_input_recipient(
-        &mut self,
-        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
-    ) -> bool {
-        if self.input_recipient != Some(binding) {
-            return false;
-        }
-        self.input_recipient = None;
-        true
     }
 
     pub(crate) fn has_retained_observations(&self) -> bool {

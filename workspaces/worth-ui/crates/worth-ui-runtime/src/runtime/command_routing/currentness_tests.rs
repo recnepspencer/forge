@@ -12,10 +12,9 @@ use super::tests::{
 fn focused_control_index_selects_only_the_exact_bound_control() {
     let shortcut = single(UiCommandKeyCode::P);
     let first_scope =
-        crate::capability::UiCommandRouteScopeIdentity::for_authored_semantic_name("control.first");
-    let second_scope = crate::capability::UiCommandRouteScopeIdentity::for_authored_semantic_name(
-        "control.second",
-    );
+        crate::capability::UiCommandRouteScopeIdentity::for_authored_component("control.first");
+    let second_scope =
+        crate::capability::UiCommandRouteScopeIdentity::for_authored_component("control.second");
     let destination = UiCommandRouteDestination::for_intent::<FixtureIntent>();
     let first = super::candidate::UiCommandRouteCandidate::new(
         command_id("command.first.control"),

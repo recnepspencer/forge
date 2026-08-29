@@ -65,7 +65,9 @@ pub(super) fn observe_components(
         }
     };
     let next_revision = state.next_revision;
-    let text = (!state.ime_enabled).then_some(text).flatten();
+    let text = (!state.ime_enabled && state.current_input_recipient().is_some())
+        .then_some(text)
+        .flatten();
     let mut payloads = vec![keyboard];
     if let Some(text) = text {
         let Some(revision) = state.take_revision() else {

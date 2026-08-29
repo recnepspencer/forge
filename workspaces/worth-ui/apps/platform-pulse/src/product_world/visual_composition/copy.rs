@@ -7,7 +7,7 @@ pub struct PlatformPulseStaticCopy {
 }
 
 impl PlatformPulseStaticCopy {
-    pub const ALL: [Self; 19] = [
+    pub const ALL: [Self; 23] = [
         Self::new(PlatformPulseProductComponent::Brand, "W  O  R  T  H"),
         Self::new(
             PlatformPulseProductComponent::RuntimeBadge,
@@ -15,12 +15,23 @@ impl PlatformPulseStaticCopy {
         ),
         Self::new(
             PlatformPulseProductComponent::EvidenceTitle,
-            "SOURCE SIGNAL",
+            "LIVE EVIDENCE",
         ),
-        Self::new(PlatformPulseProductComponent::EvidenceBody, "Continuous"),
+        Self::new(
+            PlatformPulseProductComponent::EvidenceBody,
+            "Source 1 ·\napplication current",
+        ),
         Self::new(
             PlatformPulseProductComponent::SourceSignalTitle,
-            "Bound Query · intent · paint",
+            "Query live\nAction ready",
+        ),
+        Self::new(
+            PlatformPulseProductComponent::EvidenceServiceLabel,
+            "LATEST SERVICE",
+        ),
+        Self::new(
+            PlatformPulseProductComponent::EvidenceServiceBody,
+            "Portal ready · bounded evidence",
         ),
         Self::new(
             PlatformPulseProductComponent::ServiceEyebrow,
@@ -35,10 +46,21 @@ impl PlatformPulseStaticCopy {
             "Bound Query, intent admission, and native publication — only as they happen.",
         ),
         Self::new(PlatformPulseProductComponent::QueryLabel, "QUERY POSTURE"),
-        Self::new(PlatformPulseProductComponent::NativeLabel, "NATIVE HOST"),
+        Self::new(
+            PlatformPulseProductComponent::NativeLabel,
+            "COMMAND CONTEXT",
+        ),
         Self::new(
             PlatformPulseProductComponent::NativeBody,
-            "Window · Query · Paint",
+            "Primary+Shift+P · awaiting route",
+        ),
+        Self::new(
+            PlatformPulseProductComponent::QueryDenialLabel,
+            "QUERY ADMISSION",
+        ),
+        Self::new(
+            PlatformPulseProductComponent::QueryDenialBody,
+            "Separate boundary · not exercised",
         ),
         Self::new(
             PlatformPulseProductComponent::ActionLabel,
@@ -61,7 +83,7 @@ impl PlatformPulseStaticCopy {
         ),
         Self::new(
             PlatformPulseProductComponent::StatusText,
-            "✓   Native frame published",
+            "Awaiting runtime service posture",
         ),
     ];
 

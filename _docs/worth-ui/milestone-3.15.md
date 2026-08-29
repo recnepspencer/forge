@@ -211,6 +211,17 @@ focus, portal, motion, and reduced-motion posture. A region with no admitted
 action is absent from the hit-test map; every visible interactive region must
 route through a shipped 3.14/3.15 contract.
 
+Pulse product progression is independent from its optional visual-comparison
+diagnostic. Each product turn drains native input, newly admitted attempts,
+executor transitions, consequence publication, and product-port replies to a
+typed quiescent outcome through at most eight local rounds. An interrupted or
+saturated cycle is explicit; three guessed advancement calls are not a
+contract. Visual comparison may follow a product turn when its own state asks
+for comparison, but visual readiness cannot gate product execution. A routed
+attempt that stops as `Unrouted` publishes a bounded stopped observation with
+the graph node and interaction; it does not disappear and does not manufacture
+a posture or frame.
+
 The Pulse uses a restrained, Pulse-private authored palette and qualified text
 styles. Canvas, raised surface, rule, primary text, secondary text, accent,
 positive, and caution roles are declared as real application theme tokens and
@@ -273,6 +284,16 @@ and 1.5 device scale; the native runner records and projects through the
 machine's real scale rather than assuming one. A single full-frame golden image
 cannot close the claim, and anti-aliasing differences are excluded from the
 stable masks instead of weakening structural assertions.
+
+Every text-bound manifest entry declares its maximum admitted line count and
+enough height for that line count plus an ink-free safety inset. At both Pulse
+sizes, the real native journey drives the Source Signal detail and Query
+Posture value through truthful content that actually occupies their declared
+second line, then proves from the final client-area raster that neither region
+paints into its bottom or right safety inset. Rectangle containment, repeated
+line-height arithmetic, a synthetic raster, or non-wrapping copy may support
+this proof but cannot substitute for the stateful native observation. A mutant
+that restores either former one-line-height allocation must fail.
 
 Pixels, public observation, product facts, bounded inspection, the independent
 visual contract, and resource census must agree. Adapter-local popup/focus/
@@ -990,6 +1011,15 @@ active region or document scope, surface scope, then application scope.
 Within one level, declared priority and specificity apply. Equal lawful
 candidates yield typed ambiguity rather than first-registration wins.
 
+An authored component scope has one identity derivation shared by DSL
+admission, Rust registration, and runtime context construction. A DSL binding
+that does not name a declared component is rejected during semantic handoff.
+For an active-portal command, the authored component binding identifies the
+Portal owner/anchor graph node: the Portal overlay descendants do not silently
+become additional command scopes. This owner/anchor interpretation is the
+3.15 insertion point for richer Portal composition and may not be replaced by
+an app-local string convention.
+
 The route result names winner, losing candidates with bounded reasons,
 consumed context revisions, and destination. Invocation then enters the 3.14
 admission/execution lane or another explicitly governed destination. A
@@ -1005,6 +1035,12 @@ operability, UI admission, and managed execution. `InvokeCommand` consumes the
 route receipt as an intent destination; it does not resolve shortcuts or skip
 admission. Native menus later add another route-source sibling rather than
 reinterpreting command routes.
+
+Command-route causal evidence is retained when the host observation is
+received and attached to the route receipt before intent admission. Intent
+resolution is therefore a read-only consumer of a concrete retained reference;
+it neither reconstructs evidence from later mounted state nor mutates the
+evidence registry. Missing retained command evidence is a typed route stop.
 
 Future plugin ownership is carried as an optional typed registration owner and
 generation, not a string namespace. Unload removes registrations and pending
@@ -1691,7 +1727,9 @@ Milestone 3.15 closes only when:
   claim without substituting one proof world for another;
 - the Pulse launches at a 960-by-600 logical client area, remains coherent at
   1120 by 700, and satisfies its region, rhythm, target-size, contrast, text-
-  containment, hit-test-honesty, node-count, and capture-budget contracts;
+  containment, wrapping-safety-inset, hit-test-honesty, node-count, and
+  capture-budget contracts, including stateful two-line native raster evidence
+  for Source Signal detail and Query Posture at both sizes;
 - a designated product/design reviewer inspects real-runtime screenshots at
   both sizes and gives a defensible yes to “Would this look like it belongs
   alongside Linear or Notion as a contemporary desktop product?”, judging the

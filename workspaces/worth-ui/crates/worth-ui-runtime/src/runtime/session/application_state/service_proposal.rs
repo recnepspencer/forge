@@ -23,13 +23,17 @@ pub(crate) use portal_types::{
 };
 
 impl WorthUiApplicationSessionState {
+    pub(crate) fn service_proposal_resource_counts(&self) -> [u16; 4] {
+        let entries = self.runtime.service_proposals.census().entries();
+        [entries[0].1, entries[1].1, entries[2].1, entries[3].1]
+    }
+
     #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_service_proposal_resources_for_certification(
         &self,
     ) -> ([u16; 4], usize, usize) {
-        let entries = self.runtime.service_proposals.census().entries();
         (
-            [entries[0].1, entries[1].1, entries[2].1, entries[3].1],
+            self.service_proposal_resource_counts(),
             self.runtime.service_proposals.live_occupancy_count(),
             self.runtime.service_proposals.live_cancellation_count(),
         )

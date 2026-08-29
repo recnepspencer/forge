@@ -17,7 +17,8 @@ use super::{
 };
 
 mod consequence_publication;
-use consequence_publication::{consequence_kind, PlatformPulseIntentConsequenceKind};
+use consequence_publication::consequence_kind;
+pub(in crate::native_application) use consequence_publication::PlatformPulsePendingIntentConsequence;
 
 enum PlatformPulseIntentTransitionContinuation {
     ContinueToConsequence,
@@ -26,28 +27,25 @@ enum PlatformPulseIntentTransitionContinuation {
 
 const MAX_PENDING_INTENT_EXECUTION_TRANSITIONS: usize = 64;
 
-pub(in crate::native_application) struct PlatformPulsePendingIntentConsequence {
-    attempt: worth_ui::facade::intent::UiIntentExecutionAttemptIdentity,
-    idempotency: worth_ui::facade::intent::UiIntentExecutionIdempotencyIdentity,
-    kind: PlatformPulseIntentConsequenceKind,
-}
-
 impl PlatformPulseApplicationRuntime {
-    pub(in crate::native_application) fn advance_intent_execution(&mut self) {
+    pub(in crate::native_application) fn advance_intent_execution(&mut self) -> usize {
         let Some(mut shell) = self.shell.take() else {
-            return;
+            return 0;
         };
+        let pending_before = self.pending_intent_execution_transitions.len();
         self.drain_pending_intent_execution_transitions(&mut shell);
+        let mut progress =
+            pending_before.saturating_sub(self.pending_intent_execution_transitions.len());
         if self.terminal_error.is_some() || self.pending_managed_rebind.is_some() {
             self.shell = Some(shell);
-            return;
+            return progress;
         }
         let reading = match self.intent_clock.read() {
             Ok(reading) => reading,
             Err(denial) => {
                 self.fail_intent_clock(denial);
                 self.shell = Some(shell);
-                return;
+                return progress;
             }
         };
         match shell.advance_native_intent_executions(reading) {
@@ -62,9 +60,10 @@ impl PlatformPulseApplicationRuntime {
             UiIntentExecutionAdvanceOutcome::Advanced(report) => {
                 if !self.publish_intent_executor_starts(&report) {
                     self.shell = Some(shell);
-                    return;
+                    return progress;
                 }
                 let transitions = report.into_transitions();
+                progress = progress.saturating_add(transitions.len());
                 if self.pending_intent_execution_transitions.len() + transitions.len()
                     > MAX_PENDING_INTENT_EXECUTION_TRANSITIONS
                 {
@@ -79,6 +78,7 @@ impl PlatformPulseApplicationRuntime {
             }
         }
         self.shell = Some(shell);
+        progress
     }
 
     fn drain_pending_intent_execution_transitions(
@@ -267,7 +267,7 @@ impl PlatformPulseApplicationRuntime {
             self.fail_visual_identity(denial);
             return false;
         }
-        self.admit_query_predecessor(receipt)
+        self.admit_query_predecessor(receipt) && self.refresh_product_story(shell)
     }
 
     pub(in crate::native_application) fn settle_pending_intent_consequence(

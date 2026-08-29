@@ -39,7 +39,7 @@ pub mod service;
 pub mod source_ingress;
 pub mod text;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-support"))]
 pub(crate) use crate::declaration::WorthUiRustAuthoredDeclarationFixture;
 pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 
@@ -88,11 +88,12 @@ pub use entry::{
     WorthUiNativeManagedRebindStop, WorthUiNativeManagedSourceRebindOutcome,
     WorthUiNativePhysicalPresentationRecovery, WorthUiNativePortalDismissalStop,
     WorthUiNativePredecessorRecovery, WorthUiNativePresentationRecoveryDenial,
-    WorthUiNativeProjectionRebindDenial, WorthUiNativeSourceRebindDenial,
-    WorthUiPendingApplicationCutover, WorthUiPendingMountedPreview,
-    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
-    WorthUiPreparedMountedPreview, WorthUiReplacementCandidateSummary,
-    WorthUiReplacementPlannedCostEnvelope, WorthUiResolvedMountedPreview,
+    WorthUiNativeProjectionRebindDenial, WorthUiNativeReducedMotionPosture,
+    WorthUiNativeSourceRebindDenial, WorthUiPendingApplicationCutover,
+    WorthUiPendingMountedPreview, WorthUiPreparedApplicationReplacement,
+    WorthUiPreparedMountedApplicationReplacement, WorthUiPreparedMountedPreview,
+    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
+    WorthUiResolvedMountedPreview,
 };
 pub(crate) use entry::{
     WorthUiDetachedMountedApplicationReplacementInFlight,

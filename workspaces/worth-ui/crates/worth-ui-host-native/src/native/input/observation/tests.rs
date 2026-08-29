@@ -9,6 +9,7 @@ use worth_ui_host_contract::{
     UiSurfaceBindingGeneration,
 };
 
+mod recipient_absence;
 mod scroll;
 
 const HOST_SESSION: u64 = 73;
@@ -330,12 +331,21 @@ fn ime_disable_cancels_active_preedit_without_text_payload() {
 }
 
 fn presented_state() -> UiNativeInputObservationState {
+    let mut state = presented_state_without_recipient();
+    let presentation = state
+        .report()
+        .last_completed_presentation()
+        .expect("completed presentation");
+    assert!(state.install_input_recipient(draft_binding(presentation)));
+    state
+}
+
+fn presented_state_without_recipient() -> UiNativeInputObservationState {
     let mut state = UiNativeInputObservationState::new();
     state.install_initial_profile(1.0, [800, 600]);
     state.register_session(HOST_SESSION).unwrap();
     let presentation = basis(1);
     state.record_completed_presentation(protocol(), HOST_SESSION, presentation);
-    assert!(state.install_input_recipient(draft_binding(presentation)));
     state
 }
 

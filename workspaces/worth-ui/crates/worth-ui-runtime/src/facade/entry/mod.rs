@@ -176,6 +176,7 @@ pub use native_application_shell::{
     WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
     WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
     WorthUiNativePhysicalPresentationRecovery, WorthUiNativePresentationRecoveryDenial,
+    WorthUiNativeReducedMotionPosture,
 };
 pub use native_intent::{
     WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,

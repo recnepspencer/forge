@@ -23,7 +23,7 @@ impl WorthUiActiveApplicationSession {
             .portal
             .as_ref()
             .into_iter()
-            .flat_map(|owner| owner.active_graph_nodes())
+            .flat_map(|owner| owner.active_portal_owner_graph_nodes())
             .filter_map(|graph_node| self.command_scope_for(graph_node))
             .collect::<Vec<_>>();
         portal_scopes.sort_unstable();
@@ -61,13 +61,8 @@ impl WorthUiActiveApplicationSession {
         graph_node: crate::graph::UiGraphNodeIdentity,
     ) -> Option<crate::capability::UiCommandRouteScopeIdentity> {
         let lookup = self.graph().lookup().graph_node(graph_node)?;
-        Some(
-            crate::capability::UiCommandRouteScopeIdentity::for_authored_semantic_name(
-                lookup
-                    .value()
-                    .declaration_identity()
-                    .authored_semantic_name(),
-            ),
+        crate::capability::UiCommandRouteScopeIdentity::from_component_declaration(
+            lookup.value_ref().declaration_identity(),
         )
     }
 }

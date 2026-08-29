@@ -10,6 +10,12 @@ pub(super) enum PlatformPulseIntentConsequenceKind {
     Portal,
 }
 
+pub(in crate::native_application) struct PlatformPulsePendingIntentConsequence {
+    pub(super) attempt: worth_ui::facade::intent::UiIntentExecutionAttemptIdentity,
+    pub(super) idempotency: worth_ui::facade::intent::UiIntentExecutionIdempotencyIdentity,
+    pub(super) kind: PlatformPulseIntentConsequenceKind,
+}
+
 impl PlatformPulseApplicationRuntime {
     pub(super) fn finish_intent_consequence_publication(
         &mut self,
@@ -86,7 +92,7 @@ impl PlatformPulseApplicationRuntime {
             self.fail_visual_identity(denial);
             return false;
         }
-        true
+        self.refresh_product_story(shell)
     }
 }
 

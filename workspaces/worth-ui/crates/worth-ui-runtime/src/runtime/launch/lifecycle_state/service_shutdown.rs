@@ -95,4 +95,21 @@ impl super::WorthUiRuntimeShutdownReceipt {
         self.command_routes_released = released;
         self
     }
+
+    pub(crate) fn bind_terminal_runtime_service_census(
+        mut self,
+        owner_census: worth_ui_inspection::UiRuntimeServiceResourceCensus,
+    ) -> Self {
+        assert!(
+            owner_census.non_proposal_resources_are_empty(),
+            "service-owner shutdown must release every non-proposal resource"
+        );
+        assert!(
+            self.service_proposals.is_complete(),
+            "proposal-compiler shutdown must prove an exact zero census"
+        );
+        self.runtime_service_resource_census =
+            worth_ui_inspection::UiRuntimeServiceResourceCensus::EMPTY;
+        self
+    }
 }

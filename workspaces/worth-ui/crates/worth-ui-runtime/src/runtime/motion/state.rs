@@ -25,6 +25,7 @@ pub(crate) struct UiMotionRuntimeState {
     census: super::UiMotionResourceCensus,
     publication_sequence: u64,
     last_fact: Option<super::UiMotionProducedFact>,
+    last_interruption: Option<super::UiMotionProducedFact>,
 }
 
 impl UiMotionRuntimeState {
@@ -48,6 +49,7 @@ impl UiMotionRuntimeState {
             census: super::UiMotionResourceCensus::zero(),
             publication_sequence: 0,
             last_fact: None,
+            last_interruption: None,
         }
     }
 
@@ -269,6 +271,9 @@ impl UiMotionRuntimeState {
             .expect("bounded Motion fact sequence exhausted");
         let fact =
             super::UiMotionProducedFact::new(self.publication_sequence, track, request, kind);
+        if matches!(kind, super::UiMotionProducedFactKind::Retargeted(_)) {
+            self.last_interruption = Some(fact);
+        }
         self.last_fact = Some(fact);
         fact
     }
@@ -279,7 +284,7 @@ impl UiMotionRuntimeState {
             .expect("discarded Motion proposal retains one census entry");
     }
 
-    pub(in crate::runtime) const fn census(&self) -> super::UiMotionResourceCensus {
+    pub(crate) const fn census(&self) -> super::UiMotionResourceCensus {
         self.census
     }
 
@@ -287,8 +292,12 @@ impl UiMotionRuntimeState {
         self.publication_sequence
     }
 
-    pub(in crate::runtime) const fn last_fact(&self) -> Option<super::UiMotionProducedFact> {
+    pub(crate) const fn last_fact(&self) -> Option<super::UiMotionProducedFact> {
         self.last_fact
+    }
+
+    pub(crate) const fn last_interruption(&self) -> Option<super::UiMotionProducedFact> {
+        self.last_interruption
     }
 
     pub(crate) fn shutdown(&mut self) -> super::UiMotionShutdownReport {
@@ -300,6 +309,7 @@ impl UiMotionRuntimeState {
         }
         let report = super::UiMotionShutdownReport::from_census(census_before_shutdown);
         self.exit_retentions.clear();
+        self.last_interruption = None;
         self.census = report.final_census();
         report
     }

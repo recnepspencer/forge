@@ -20,9 +20,11 @@ pub(crate) struct UiFocusRuntimeState {
         crate::runtime::session::service_proposal::UiServiceProposalIdentity,
         super::portal_transition::UiPreparedPortalFocusTransition,
     >,
-    portal_restorations:
+    pub(super) portal_restorations:
         BTreeMap<super::UiPortalFocusBoundaryIdentity, Option<super::UiFocusRestorationToken>>,
     pub(super) revision: u64,
+    pub(super) last_transition: Option<super::UiFocusTransitionReceipt>,
+    pub(super) last_restoration_failure: Option<super::UiFocusTransitionReceipt>,
 }
 
 impl UiFocusRuntimeState {
@@ -64,6 +66,8 @@ impl UiFocusRuntimeState {
             pending_portal: BTreeMap::new(),
             portal_restorations: BTreeMap::new(),
             revision: 0,
+            last_transition: None,
+            last_restoration_failure: None,
         }
     }
 
@@ -83,6 +87,8 @@ impl UiFocusRuntimeState {
         self.active_descendant = None;
         self.pending_portal.clear();
         self.portal_restorations.clear();
+        self.last_transition = None;
+        self.last_restoration_failure = None;
         released
     }
 
@@ -154,13 +160,20 @@ impl UiFocusRuntimeState {
         if cause == super::UiFocusCause::KeyboardTraversal {
             self.modality = super::UiFocusVisibleModality::Keyboard;
         }
-        Ok(super::UiFocusTransitionReceipt::new(
+        let receipt = super::UiFocusTransitionReceipt::new(
             previous,
             next,
             cause,
             outcome,
             participants_visited,
             self.revision,
-        ))
+        );
+        self.last_transition = Some(receipt);
+        if cause == super::UiFocusCause::PortalRestoration
+            && outcome == super::UiFocusOutcome::NoEligibleParticipant
+        {
+            self.last_restoration_failure = Some(receipt);
+        }
+        Ok(receipt)
     }
 }

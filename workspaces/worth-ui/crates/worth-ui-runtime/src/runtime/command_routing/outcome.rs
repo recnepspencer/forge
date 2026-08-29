@@ -41,6 +41,7 @@ pub struct UiCommandRouteReceipt {
     portal_revision: Option<u64>,
     portal_scopes: Box<[crate::capability::UiCommandRouteScopeIdentity]>,
     losers: Box<[UiCommandRouteLoss]>,
+    evidence_reference: Option<worth_ui_inspection::UiIntentEvidenceReference>,
 }
 
 #[derive(Clone)]
@@ -158,6 +159,7 @@ impl UiCommandRouteReceipt {
                 Box::new([])
             },
             losers,
+            evidence_reference: None,
         }
     }
 
@@ -181,6 +183,10 @@ impl UiCommandRouteReceipt {
 
     pub fn losers(&self) -> &[UiCommandRouteLoss] {
         &self.losers
+    }
+
+    pub(in crate::runtime) const fn scope(&self) -> crate::capability::UiCommandRouteScope {
+        self.scope
     }
 
     pub const fn focus_revision(&self) -> Option<u64> {
@@ -265,6 +271,19 @@ impl UiCommandRouteReceipt {
         &self,
     ) -> Option<worth_ui_host_contract::UiHostFocusPlacementTarget> {
         self.invocation_target
+    }
+
+    pub(crate) const fn evidence_reference(
+        &self,
+    ) -> Option<worth_ui_inspection::UiIntentEvidenceReference> {
+        self.evidence_reference
+    }
+
+    pub(crate) fn retain_evidence_reference(
+        &mut self,
+        reference: worth_ui_inspection::UiIntentEvidenceReference,
+    ) {
+        self.evidence_reference = Some(reference);
     }
 }
 

@@ -41,7 +41,10 @@ pub struct PlatformPulseActionProvider {
 
 enum PlatformPulseActionAttemptState {
     AwaitingGate(PlatformPulseActionPayload),
-    AwaitingProduct(mpsc::Receiver<PlatformPulseProductSettlement>),
+    AwaitingProduct {
+        receiver: mpsc::Receiver<PlatformPulseProductSettlement>,
+        effect_started: Arc<AtomicBool>,
+    },
     Terminal,
 }
 
@@ -92,21 +95,23 @@ impl UiIntentExecutionAttempt<PlatformPulseAction> for PlatformPulseActionAttemp
                 UiIntentProviderPoll::PendingBeforeEffect
             }
             PlatformPulseActionAttemptState::AwaitingGate(_) => self.submit(),
-            PlatformPulseActionAttemptState::AwaitingProduct(receiver) => {
-                match receiver.try_recv() {
-                    Ok(settlement) => {
-                        self.state = PlatformPulseActionAttemptState::Terminal;
-                        settled_poll(settlement)
-                    }
-                    Err(mpsc::TryRecvError::Empty) => {
-                        UiIntentProviderPoll::PendingEffectMayHaveBegun
-                    }
-                    Err(mpsc::TryRecvError::Disconnected) => {
-                        self.state = PlatformPulseActionAttemptState::Terminal;
-                        failed_poll(PORT_CLOSED)
-                    }
+            PlatformPulseActionAttemptState::AwaitingProduct {
+                receiver,
+                effect_started,
+            } => match receiver.try_recv() {
+                Ok(settlement) => {
+                    self.state = PlatformPulseActionAttemptState::Terminal;
+                    settled_poll(settlement)
                 }
-            }
+                Err(mpsc::TryRecvError::Empty) if effect_started.load(Ordering::Acquire) => {
+                    UiIntentProviderPoll::PendingEffectMayHaveBegun
+                }
+                Err(mpsc::TryRecvError::Empty) => UiIntentProviderPoll::PendingBeforeEffect,
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    self.state = PlatformPulseActionAttemptState::Terminal;
+                    failed_poll(PORT_CLOSED)
+                }
+            },
             PlatformPulseActionAttemptState::Terminal => failed_poll(PORT_CLOSED),
         }
     }
@@ -121,7 +126,9 @@ impl UiIntentExecutionAttempt<PlatformPulseAction> for PlatformPulseActionAttemp
                 self.state = PlatformPulseActionAttemptState::Terminal;
                 cancelled_poll(CANCELLED)
             }
-            PlatformPulseActionAttemptState::AwaitingProduct(_) => self.poll_product_after_cancel(),
+            PlatformPulseActionAttemptState::AwaitingProduct { .. } => {
+                self.poll_product_after_cancel()
+            }
             PlatformPulseActionAttemptState::Terminal => cancelled_poll(CANCELLED),
         }
     }
@@ -137,11 +144,18 @@ impl PlatformPulseActionAttempt {
         match self.port.try_submit(
             self.reference,
             payload.action_input_revision(),
+            payload.query_denial_requested(),
             Arc::clone(&self.cancellation),
         ) {
-            PlatformPulseActionPortSubmission::Accepted(receiver) => {
-                self.state = PlatformPulseActionAttemptState::AwaitingProduct(receiver);
-                UiIntentProviderPoll::PendingEffectMayHaveBegun
+            PlatformPulseActionPortSubmission::Accepted {
+                receiver,
+                effect_started,
+            } => {
+                self.state = PlatformPulseActionAttemptState::AwaitingProduct {
+                    receiver,
+                    effect_started,
+                };
+                UiIntentProviderPoll::PendingBeforeEffect
             }
             PlatformPulseActionPortSubmission::Full => failed_poll(PORT_FULL),
             PlatformPulseActionPortSubmission::Closed => failed_poll(PORT_CLOSED),
@@ -149,7 +163,11 @@ impl PlatformPulseActionAttempt {
     }
 
     fn poll_product_after_cancel(&mut self) -> UiIntentProviderPoll<PlatformPulseAction> {
-        let PlatformPulseActionAttemptState::AwaitingProduct(receiver) = &mut self.state else {
+        let PlatformPulseActionAttemptState::AwaitingProduct {
+            receiver,
+            effect_started,
+        } = &mut self.state
+        else {
             return cancelled_poll(CANCELLED);
         };
         match receiver.try_recv() {
@@ -157,7 +175,10 @@ impl PlatformPulseActionAttempt {
                 self.state = PlatformPulseActionAttemptState::Terminal;
                 settled_poll(settlement)
             }
-            Err(mpsc::TryRecvError::Empty) => UiIntentProviderPoll::PendingEffectMayHaveBegun,
+            Err(mpsc::TryRecvError::Empty) if effect_started.load(Ordering::Acquire) => {
+                UiIntentProviderPoll::PendingEffectMayHaveBegun
+            }
+            Err(mpsc::TryRecvError::Empty) => UiIntentProviderPoll::PendingBeforeEffect,
             Err(mpsc::TryRecvError::Disconnected) => {
                 self.state = PlatformPulseActionAttemptState::Terminal;
                 failed_poll(PORT_CLOSED)

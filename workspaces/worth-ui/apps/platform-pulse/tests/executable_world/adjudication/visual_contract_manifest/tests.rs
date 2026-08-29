@@ -142,6 +142,35 @@ fn visual_contract_rejects_text_escape_and_unbounded_capture_math() {
 }
 
 #[test]
+fn visual_contract_rejects_wrapping_boxes_that_only_repeat_line_height() {
+    let mut clipped =
+        serde_json::from_str::<super::model::PlatformPulseVisualContractManifest>(SOURCE).unwrap();
+    let source_posture = clipped.layouts[0]
+        .text_bounds
+        .iter_mut()
+        .find(|text| text.identity == "platform.pulse.text.source_query")
+        .unwrap();
+    source_posture.rect[3] = 40;
+    assert_eq!(
+        validation::validate(&clipped),
+        Err(validation::PlatformPulseVisualContractFailure::TextContainment),
+    );
+
+    let mut clipped =
+        serde_json::from_str::<super::model::PlatformPulseVisualContractManifest>(SOURCE).unwrap();
+    let query_posture = clipped.layouts[0]
+        .text_bounds
+        .iter_mut()
+        .find(|text| text.identity == "platform.pulse.text.projected_status")
+        .unwrap();
+    query_posture.rect[3] = 40;
+    assert_eq!(
+        validation::validate(&clipped),
+        Err(validation::PlatformPulseVisualContractFailure::TextContainment),
+    );
+}
+
+#[test]
 fn visual_contract_rejects_overflow_and_substituted_design_roles() {
     let mut overflow =
         serde_json::from_str::<super::model::PlatformPulseVisualContractManifest>(SOURCE).unwrap();

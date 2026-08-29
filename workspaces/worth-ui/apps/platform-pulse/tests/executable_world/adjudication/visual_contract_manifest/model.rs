@@ -69,6 +69,7 @@ pub(super) struct TextBoundsContract {
     pub(super) identity: String,
     pub(super) region: String,
     pub(super) role: String,
+    pub(super) maximum_lines: u32,
     pub(super) rect: [u32; 4],
 }
 

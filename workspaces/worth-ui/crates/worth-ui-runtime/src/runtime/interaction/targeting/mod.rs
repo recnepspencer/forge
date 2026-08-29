@@ -1,9 +1,11 @@
+mod command_target;
 mod continuity;
 mod execution_affinity;
 mod presented_frame;
 mod presented_geometry;
 mod presented_target;
 
+pub(crate) use command_target::resolve_presented_command_target;
 pub use continuity::UiPointerGestureContinuityKind;
 pub use presented_frame::UiInteractionTargetingDenial;
 pub(crate) use presented_frame::{

@@ -156,6 +156,8 @@ mod query_settlement_allocation_cost;
 mod realtime_overlay_execution;
 #[path = "../application_contracts/realtime_overlay_replacement.rs"]
 mod realtime_overlay_replacement;
+#[path = "../application_contracts/runtime_services/mod.rs"]
+mod runtime_services;
 #[path = "../application_contracts/source_event_ingress_journey.rs"]
 mod source_event_ingress_journey;
 #[path = "../application_contracts/source_transport_diagnostic_parity.rs"]

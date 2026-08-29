@@ -21,6 +21,8 @@ impl WorthUiNativeApplicationShell {
     ) -> Result<UiNativeMotionTickDisposition, ()> {
         use super::super::active_application_session::UiPortalExitTerminalProgress;
 
+        self.reduced_motion_posture = map_reduced_motion_inspection(reduced_motion);
+
         match self.session.progress_portal_exit_terminal(tick) {
             UiPortalExitTerminalProgress::Retry => {
                 return Ok(UiNativeMotionTickDisposition::Active)
@@ -194,6 +196,22 @@ const fn map_reduced_motion(
         worth_ui_host_native::UiNativeReducedMotionPosture::NoPreference
         | worth_ui_host_native::UiNativeReducedMotionPosture::Unavailable => {
             crate::mounting::presentation::motion_sampling::UiPresentationReducedMotionPosture::NoPreference
+        }
+    }
+}
+
+const fn map_reduced_motion_inspection(
+    posture: worth_ui_host_native::UiNativeReducedMotionPosture,
+) -> super::WorthUiNativeReducedMotionPosture {
+    match posture {
+        worth_ui_host_native::UiNativeReducedMotionPosture::NoPreference => {
+            super::WorthUiNativeReducedMotionPosture::NoPreference
+        }
+        worth_ui_host_native::UiNativeReducedMotionPosture::Reduce => {
+            super::WorthUiNativeReducedMotionPosture::Reduce
+        }
+        worth_ui_host_native::UiNativeReducedMotionPosture::Unavailable => {
+            super::WorthUiNativeReducedMotionPosture::Unavailable
         }
     }
 }

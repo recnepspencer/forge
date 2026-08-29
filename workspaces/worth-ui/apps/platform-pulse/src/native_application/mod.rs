@@ -19,6 +19,7 @@ mod input;
 mod intent;
 mod lifecycle;
 mod product_copy;
+mod product_story;
 mod projection;
 mod query;
 mod readiness;
@@ -50,6 +51,8 @@ pub(crate) struct PlatformPulseApplicationRuntime {
     intent_gate: Option<worth_ui_platform_pulse::intent::PlatformPulseExecutorGate>,
     intent_action_owner: Option<worth_ui_platform_pulse::intent::PlatformPulseActionPortOwner>,
     pending_query_actions: Vec<PlatformPulsePendingQueryAction>,
+    pending_query_denial_story:
+        Option<worth_ui_platform_pulse::observation_contract::PlatformPulseQueryAdmissionDenial>,
     pending_frame_presentation: Option<PlatformPulsePendingFramePresentation>,
     pending_managed_rebind: Option<PlatformPulsePendingManagedRebind>,
     pending_intent_postures: std::collections::VecDeque<intent::PlatformPulsePreparedIntentPosture>,
@@ -64,6 +67,7 @@ pub(crate) struct PlatformPulseApplicationRuntime {
     visual_identity: PlatformPulseVisualIdentityExecution,
     intent_clock: intent::PlatformPulseIntentClock,
     presentation_tick: u64,
+    product_story: product_story::PlatformPulseProductStory,
 }
 
 struct PlatformPulsePendingQueryAction {
@@ -73,6 +77,44 @@ struct PlatformPulsePendingQueryAction {
 }
 
 impl PlatformPulseApplicationRuntime {
+    fn refresh_product_story(&mut self, shell: &mut WorthUiNativeApplicationShell) -> bool {
+        match self.product_story.refresh_runtime(shell) {
+            Ok(()) => true,
+            Err(denial) => {
+                self.fail(PlatformPulseTerminalError::ProductCopy(denial), Ok(()));
+                false
+            }
+        }
+    }
+
+    fn publish_source_story(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        sequence: u64,
+    ) -> bool {
+        match self.product_story.publish_source(shell, sequence) {
+            Ok(()) => true,
+            Err(denial) => {
+                self.fail(PlatformPulseTerminalError::ProductCopy(denial), Ok(()));
+                false
+            }
+        }
+    }
+
+    fn publish_query_denial_story(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        denial: worth_ui_platform_pulse::observation_contract::PlatformPulseQueryAdmissionDenial,
+    ) -> bool {
+        match self.product_story.publish_query_denial(shell, denial) {
+            Ok(()) => true,
+            Err(error) => {
+                self.fail(PlatformPulseTerminalError::ProductCopy(error), Ok(()));
+                false
+            }
+        }
+    }
+
     fn fail(
         &mut self,
         error: PlatformPulseTerminalError,
@@ -105,7 +147,7 @@ impl PlatformPulseApplicationRuntime {
         }
         self.terminal_error.is_none()
             && self.visual_identity.content_mutation_readiness()
-                == PlatformPulseContentMutationReadiness::Ready
+                != PlatformPulseContentMutationReadiness::DeferredForVisualComparison
     }
 
     fn fail_visual_identity(&mut self, denial: PlatformPulseVisualExecutionDenial) {

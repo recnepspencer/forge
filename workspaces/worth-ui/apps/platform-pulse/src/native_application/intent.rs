@@ -6,6 +6,7 @@ mod execution;
 mod native_ingress;
 mod portal_dismissal;
 mod product_action;
+mod product_cycle;
 mod product_input;
 
 pub(super) use clock::{PlatformPulseIntentClock, PlatformPulseIntentClockDenial};
@@ -15,6 +16,7 @@ pub(super) use native_ingress::{
     PlatformPulseIntentPosturePublicationDisposition, PlatformPulseIntentPostureSettlement,
     PlatformPulsePendingIntentPosture, PlatformPulsePreparedIntentPosture,
 };
+pub(super) use product_cycle::PlatformPulseIntentProductCycleOutcome;
 
 pub(super) enum PlatformPulseIntentPosturePublicationDenial {
     Managed(worth_ui::facade::app::WorthUiNativeManagedIntentPosturePublicationDenial),

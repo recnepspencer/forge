@@ -115,6 +115,7 @@ impl WorthUiApp {
             pending_managed_rebind: None,
             retained_portal_dismissal: None,
             managed_rebind_completion_tick: 0,
+            reduced_motion_posture: super::WorthUiNativeReducedMotionPosture::Unavailable,
         })
     }
 }

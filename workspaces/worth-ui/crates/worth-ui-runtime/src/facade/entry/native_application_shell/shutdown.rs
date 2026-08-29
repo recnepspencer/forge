@@ -5,6 +5,7 @@ use sha2::{Digest, Sha256};
 pub struct WorthUiNativeApplicationShutdownReceipt {
     mounted_shutdown_attempts: Box<[crate::mounting::UiMountedPresentationShutdownAttempt]>,
     intent_resources_empty: bool,
+    runtime_service_resources_empty: bool,
     portal_closed_records: usize,
     portal_abandoned_indeterminate_records: usize,
     portal_final_active_records: usize,
@@ -71,6 +72,7 @@ impl WorthUiNativeApplicationShell {
         let authored_mounted_instances = authored_mounted_instances(&self);
         let mut runtime = self.session.shutdown();
         let intent_resources_empty = runtime.intent_resource_census().is_empty();
+        let runtime_service_resources_empty = runtime.runtime_service_resource_census().is_empty();
         let portal_closed_records = runtime.portal_closed_records();
         let portal_abandoned_indeterminate_records =
             runtime.portal_abandoned_indeterminate_records();
@@ -98,6 +100,7 @@ impl WorthUiNativeApplicationShell {
                 .to_vec()
                 .into_boxed_slice(),
             intent_resources_empty,
+            runtime_service_resources_empty,
             portal_closed_records,
             portal_abandoned_indeterminate_records,
             portal_final_active_records,
@@ -160,6 +163,10 @@ impl WorthUiNativeApplicationShutdownReceipt {
 
     pub const fn intent_resources_empty(&self) -> bool {
         self.intent_resources_empty
+    }
+
+    pub const fn runtime_service_resources_empty(&self) -> bool {
+        self.runtime_service_resources_empty
     }
 
     pub const fn portal_closed_records(&self) -> usize {

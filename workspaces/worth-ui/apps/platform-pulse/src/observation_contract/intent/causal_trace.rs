@@ -36,6 +36,7 @@ pub struct PlatformPulseIntentEvidenceReferenceObservation {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum PlatformPulseIntentInteractionFamily {
     Activate,
+    CommandRoute,
     EditCommit,
     SelectionCommit,
     Submit,
@@ -285,6 +286,9 @@ impl PlatformPulseIntentSourceTrace {
         let interaction_family = match input.family() {
             worth_ui::facade::inspection::UiIntentInteractionEvidenceFamily::Activate => {
                 PlatformPulseIntentInteractionFamily::Activate
+            }
+            worth_ui::facade::inspection::UiIntentInteractionEvidenceFamily::CommandRoute => {
+                PlatformPulseIntentInteractionFamily::CommandRoute
             }
             worth_ui::facade::inspection::UiIntentInteractionEvidenceFamily::EditCommit => {
                 PlatformPulseIntentInteractionFamily::EditCommit

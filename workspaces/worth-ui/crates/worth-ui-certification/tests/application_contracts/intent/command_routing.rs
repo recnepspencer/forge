@@ -62,10 +62,28 @@ fn validated_host_shortcut_reaches_the_existing_managed_intent_lifecycle() {
         shortcut_drain(shell.host_session_identity().as_u64(), presentation, false),
         crate::intent::execution::execution_deadline(20),
     );
+    let reference = match ingress.transitions() {
+        [WorthUiNativeIntentTransition::AttemptPrepared(prepared)] => prepared
+            .dispatch()
+            .evidence_reference()
+            .expect("a command route retains its own causal evidence reference"),
+        transitions => panic!(
+            "expected one prepared command attempt, got {} transition(s)",
+            transitions.len()
+        ),
+    };
     assert!(matches!(
         ingress.transitions(),
         [WorthUiNativeIntentTransition::AttemptPrepared(_)]
     ));
+    let trace = match shell.lookup_intent_causal_trace(reference) {
+        worth_ui::facade::inspection::UiIntentEvidenceLookup::Found(trace) => trace,
+        lookup => panic!("command causal evidence must remain inspectable: {lookup:?}"),
+    };
+    assert_eq!(
+        trace.interaction().family(),
+        worth_ui::facade::inspection::UiIntentInteractionEvidenceFamily::CommandRoute
+    );
     let report = match shell
         .advance_native_intent_executions(crate::intent::execution::execution_reading(1))
     {

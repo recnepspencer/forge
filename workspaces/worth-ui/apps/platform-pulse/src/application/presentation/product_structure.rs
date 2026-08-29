@@ -31,8 +31,8 @@ pub(in crate::application) fn register_structure(
     let action_text = PlatformPulseLogicalRect::new(320, 430, 168, 20).allocation();
     let portal_action = PlatformPulseLogicalRect::new(528, 416, 112, 48).allocation();
     let portal_action_text = PlatformPulseLogicalRect::new(548, 430, 72, 20).allocation();
-    let query_action = viewport_rect(fixed_end(48, 232), fixed_start(176, 72));
-    let query_action_text = viewport_rect(fixed_end(72, 184), fixed_start(194, 28));
+    let query_action = viewport_rect(fixed_end(48, 232), fixed_start(176, 104));
+    let query_action_text = viewport_rect(fixed_end(72, 184), fixed_start(220, 48));
     let root_allocation = ComponentAllocationMeasurementContract::fill_viewport();
     builder
         .register_component(
@@ -99,14 +99,14 @@ pub(in crate::application) fn register_structure(
             PlatformPulseProductComponent::EvidenceBody,
             PlatformPulseTextRole::Masthead,
             PlatformPulsePaletteRole::PrimaryText,
-            PlatformPulseLogicalRect::new(48, 176, 168, 28).allocation(),
+            PlatformPulseLogicalRect::new(48, 176, 168, 64).allocation(),
             6,
         ))
         .register_component(text(
             PlatformPulseProductComponent::SourceSignalTitle,
             PlatformPulseTextRole::Body,
             PlatformPulsePaletteRole::SecondaryText,
-            PlatformPulseLogicalRect::new(48, 224, 160, 40).allocation(),
+            PlatformPulseLogicalRect::new(48, 256, 160, 48).allocation(),
             6,
         ))
         .register_component(region(
@@ -114,6 +114,20 @@ pub(in crate::application) fn register_structure(
             token_id("theme.platform_pulse.fill"),
             viewport_rect(fixed_start(48, 144), fixed_end(112, 4)),
             4,
+        ))
+        .register_component(text(
+            PlatformPulseProductComponent::EvidenceServiceLabel,
+            PlatformPulseTextRole::Section,
+            PlatformPulsePaletteRole::SecondaryText,
+            PlatformPulseLogicalRect::new(48, 328, 168, 16).allocation(),
+            6,
+        ))
+        .register_component(text(
+            PlatformPulseProductComponent::EvidenceServiceBody,
+            PlatformPulseTextRole::Body,
+            PlatformPulsePaletteRole::PrimaryText,
+            PlatformPulseLogicalRect::new(48, 360, 168, 64).allocation(),
+            6,
         ))
         .register_component(region(
             PlatformPulseProductComponent::ServiceStageBorder,
@@ -151,7 +165,7 @@ pub(in crate::application) fn register_structure(
             PlatformPulseProductComponent::ServiceBody,
             PlatformPulseTextRole::Body,
             PlatformPulsePaletteRole::SecondaryText,
-            viewport_rect(stretch(296, 344), fixed_start(328, 60)),
+            viewport_rect(stretch(296, 344), fixed_start(328, 64)),
             6,
         ))
         .register_component(interactive_region(
@@ -307,7 +321,21 @@ pub(in crate::application) fn register_structure(
             PlatformPulseProductComponent::NativeBody,
             PlatformPulseTextRole::Body,
             PlatformPulsePaletteRole::PrimaryText,
-            viewport_rect(fixed_end(48, 232), fixed_start(400, 48)),
+            viewport_rect(fixed_end(48, 232), fixed_start(392, 48)),
+            6,
+        ))
+        .register_component(text(
+            PlatformPulseProductComponent::QueryDenialLabel,
+            PlatformPulseTextRole::Section,
+            PlatformPulsePaletteRole::Caution,
+            viewport_rect(fixed_end(48, 232), fixed_start(448, 16)),
+            6,
+        ))
+        .register_component(text(
+            PlatformPulseProductComponent::QueryDenialBody,
+            PlatformPulseTextRole::Body,
+            PlatformPulsePaletteRole::PrimaryText,
+            viewport_rect(fixed_end(48, 232), fixed_start(476, 48)),
             6,
         ))
         .register_component(component(PlatformPulseProductComponent::StatusBand))
@@ -315,7 +343,7 @@ pub(in crate::application) fn register_structure(
             PlatformPulseProductComponent::StatusText,
             PlatformPulseTextRole::Meta,
             PlatformPulsePaletteRole::PrimaryText,
-            viewport_rect(fixed_start(40, 280), fixed_end(28, 16)),
+            viewport_rect(stretch(40, 40), fixed_end(28, 16)),
             6,
         ))
         .register_surface(surface(

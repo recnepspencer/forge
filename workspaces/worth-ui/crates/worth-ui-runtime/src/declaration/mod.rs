@@ -7,7 +7,7 @@ mod family;
 mod inspection;
 mod intent;
 mod measurement_dependency;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-support"))]
 mod rust_authored_declaration_fixture;
 mod service;
 mod structural_semantics;
@@ -86,7 +86,7 @@ pub(crate) use measurement_dependency::declared_query_measurement_dependencies;
 pub use measurement_dependency::{
     UiDeclaredMeasurementBasisRequirementSet, UiDeclaredMeasurementQueryDependencySet,
 };
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-support"))]
 pub(crate) use rust_authored_declaration_fixture::WorthUiRustAuthoredDeclarationFixture;
 pub(crate) use service::UiDeclaredPortalPlacementGeometry;
 pub(crate) use service::UiServicePolicyDefaults;

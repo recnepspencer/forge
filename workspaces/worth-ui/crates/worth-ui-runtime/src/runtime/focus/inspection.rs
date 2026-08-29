@@ -66,3 +66,21 @@ impl UiFocusInspectionSnapshot {
         self.revision
     }
 }
+
+impl super::UiFocusRuntimeState {
+    pub(crate) const fn last_transition(&self) -> Option<super::UiFocusTransitionReceipt> {
+        self.last_transition
+    }
+
+    pub(crate) const fn last_restoration_failure(&self) -> Option<super::UiFocusTransitionReceipt> {
+        self.last_restoration_failure
+    }
+
+    pub(crate) fn resource_counts(&self) -> (usize, usize, usize) {
+        (
+            self.participant_index.len(),
+            self.pending_portal.len(),
+            self.portal_restorations.len(),
+        )
+    }
+}

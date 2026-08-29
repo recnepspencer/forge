@@ -35,11 +35,23 @@ impl PlatformPulseApplicationRuntime {
         if !self.prepare_content_mutations() {
             return;
         }
+        let mut shell = self.take_runtime_shell();
+        self.advance_pending_intent_postures(&mut shell);
+        self.shell = Some(shell);
+        if self.terminal_error.is_some()
+            || self.pending_managed_rebind.is_some()
+            || self.pending_frame_presentation.is_some()
+        {
+            return;
+        }
         self.poll_query();
         self.poll_intent_input();
-        self.advance_intent_execution();
-        self.poll_intent_action_port();
-        self.advance_intent_execution();
+        if !matches!(
+            self.drain_intent_product_cycle(),
+            intent::PlatformPulseIntentProductCycleOutcome::Quiescent { .. }
+        ) {
+            return;
+        }
         self.poll_source();
         self.present();
         self.advance_visual_identity();
@@ -133,6 +145,20 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
                         Ok(()),
                     );
                 } else {
+                    if let Some(sequence) = self
+                        .initial_source
+                        .as_ref()
+                        .map(worth_ui::facade::source::WorthUiSourcePackageRevision::sequence)
+                    {
+                        let mut shell = self.take_runtime_shell();
+                        let published = self.publish_source_story(&mut shell, sequence)
+                            && self.refresh_product_story(&mut shell);
+                        self.shell = Some(shell);
+                        if !published {
+                            let directive = self.native_runtime_directive();
+                            return Ok((self.take_runtime_shell(), directive));
+                        }
+                    }
                     self.publish_initial_projection();
                     self.advance_visual_identity();
                 }

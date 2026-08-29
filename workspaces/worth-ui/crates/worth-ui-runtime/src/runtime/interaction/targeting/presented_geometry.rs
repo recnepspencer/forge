@@ -41,7 +41,7 @@ impl UiPresentedInteractionGeometry {
         self.presentation
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn for_test(
         presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
     ) -> Self {
@@ -52,7 +52,7 @@ impl UiPresentedInteractionGeometry {
         )
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn for_test_with_components(
         presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
         bounds: [f32; 4],
@@ -101,7 +101,7 @@ impl UiPresentedViewportGeometry {
         self.presentation
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) const fn for_test(
         bounds: worth_ui_host_contract::UiMountedCanonicalBox,
         presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,

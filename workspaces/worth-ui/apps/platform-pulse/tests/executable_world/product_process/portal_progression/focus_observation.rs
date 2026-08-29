@@ -56,18 +56,15 @@ pub(super) fn require_open_focus(
     Ok(())
 }
 
-pub(super) fn require_restoration(
+pub(super) fn require_restoration_after_rebind(
     opened: PlatformPulseSemanticFocusPublished,
     restored: PlatformPulseSemanticFocusPublished,
 ) -> Result<(), PlatformPulsePortalJourneyFailure> {
-    if restored.cause() != PlatformPulseSemanticFocusCause::PortalRestoration {
+    if restored.cause() != PlatformPulseSemanticFocusCause::PortalRestoration
+        || restored.current() != opened.previous()
+    {
         return Err(focus_failure(
-            "portal close did not publish PortalRestoration Focus cause",
-        ));
-    }
-    if restored.previous() != opened.current() || restored.current() != opened.previous() {
-        return Err(focus_failure(
-            "portal close did not restore the exact pre-open participant",
+            "portal close after fallback did not restore the exact pre-open participant",
         ));
     }
     let expected_physical = if restored.current().is_some() {
@@ -77,7 +74,7 @@ pub(super) fn require_restoration(
     };
     if restored.physical_outcome() != expected_physical {
         return Err(focus_failure(
-            "portal close physical Focus outcome disagreed with restoration",
+            "portal close after fallback carried the wrong physical Focus outcome",
         ));
     }
     Ok(())

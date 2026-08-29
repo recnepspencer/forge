@@ -23,12 +23,16 @@ mod query_to_pixel;
 #[cfg(target_os = "windows")]
 mod replacement_to_pixel;
 #[cfg(target_os = "windows")]
+mod runtime_service_story_pixels;
+#[cfg(target_os = "windows")]
 mod schema_transition;
 #[cfg(target_os = "windows")]
 mod source_to_pixel;
 mod visual_contract_manifest;
 #[cfg(target_os = "windows")]
 mod visual_overlay_pixels;
+#[cfg(target_os = "windows")]
+mod wrapping_text_pixels;
 
 #[cfg(target_os = "windows")]
 pub(crate) use content_fingerprint::content_fingerprint;
@@ -67,8 +71,9 @@ pub(crate) use native_input_reachability::{
 #[cfg(target_os = "windows")]
 pub(crate) use portal_pixels::{
     adjudicate_authored_portal_pixels, adjudicate_closed_portal_pixels,
-    adjudicate_open_portal_pixels, portal_action_points, portal_occupancy_point,
-    PlatformPulseAuthoredPortalPixelEvidence, PlatformPulsePortalPixelEvidence,
+    adjudicate_focus_fallback_portal_pixels, adjudicate_open_portal_pixels, portal_action_points,
+    portal_occupancy_point, PlatformPulseAuthoredPortalPixelEvidence,
+    PlatformPulsePortalFocusFallbackPixelEvidence, PlatformPulsePortalPixelEvidence,
     PlatformPulsePortalPixelFailure,
 };
 #[cfg(target_os = "windows")]
@@ -88,6 +93,11 @@ pub(crate) use replacement_to_pixel::{
     ExecutableReplacementEvidence, ExecutableReplacementFailure, ReplacementExpectation,
 };
 #[cfg(target_os = "windows")]
+pub(crate) use runtime_service_story_pixels::{
+    adjudicate_runtime_service_story_pixels, PlatformPulseRuntimeServicePixelEvidence,
+    PlatformPulseRuntimeServicePixelFailure,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use schema_transition::{
     adjudicate_schema_transition, ExecutableSchemaTransitionEvidence,
     ExecutableSchemaTransitionFailure, ExpectedSchemaTransition,
@@ -101,4 +111,9 @@ pub(crate) use source_to_pixel::{
 pub(crate) use visual_overlay_pixels::{
     adjudicate_overlay_pixels, adjudicate_restored_pixels, ExecutableVisualClearEvidence,
     ExecutableVisualOverlayEvidence,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use wrapping_text_pixels::{
+    adjudicate_default_wrapping_text, adjudicate_resized_wrapping_text,
+    PlatformPulseWrappingTextFailure,
 };

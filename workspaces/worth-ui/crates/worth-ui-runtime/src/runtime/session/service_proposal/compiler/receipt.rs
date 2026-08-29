@@ -63,7 +63,7 @@ impl UiServiceProposalPublicationReceipt {
         self.disposition
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(in crate::runtime) fn recorded_foreign_fixture(
         proposal: super::UiServiceProposalIdentity,
         batch_digest: u64,

@@ -40,6 +40,11 @@ fn escape_and_anchor_loss_dismiss_nested_portals_in_topmost_order() {
     state
         .commit_published(dismiss_child.into_transition())
         .unwrap();
+    let closed = state
+        .last_closed()
+        .expect("the owner retains its latest close cause");
+    assert_eq!(closed.portal(), child);
+    assert_eq!(closed.cause(), UiPortalDismissalCause::Escape);
 
     let UiPortalDismissalPreparation::Prepared(dismiss_parent) = state
         .prepare_dismissal(

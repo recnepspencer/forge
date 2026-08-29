@@ -18,11 +18,12 @@ mod projection_shutdown;
 mod revalidation;
 
 pub use product_action::{
-    WorthUiScalarProjectionActionAdvance, WorthUiScalarProjectionActionDenied,
-    WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionExecution,
-    WorthUiScalarProjectionActionIndeterminate, WorthUiScalarProjectionActionInstallation,
-    WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
-    WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
+    WorthUiScalarProjectionActionAdvance, WorthUiScalarProjectionActionDenial,
+    WorthUiScalarProjectionActionDenied, WorthUiScalarProjectionActionEvidence,
+    WorthUiScalarProjectionActionExecution, WorthUiScalarProjectionActionIndeterminate,
+    WorthUiScalarProjectionActionInstallation, WorthUiScalarProjectionActionLiveOwner,
+    WorthUiScalarProjectionActionOutcome, WorthUiScalarProjectionActionPublicationCompletion,
+    WorthUiScalarProjectionActionRequest,
 };
 
 use declaration::{admitted_completion, async_request, declare_scalar_view, scalar_binding};

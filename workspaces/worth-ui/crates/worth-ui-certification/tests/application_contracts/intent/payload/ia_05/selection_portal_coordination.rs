@@ -99,7 +99,7 @@ fn declared_selection_portal_rejects_atomically_then_commits_selection_and_focus
         .commit_selection_interaction(activation, option)
         .expect("the current option becomes a selection interaction");
     let route = super::product_route(
-        &world.interaction,
+        &mut world.interaction,
         UiSemanticInteraction::SelectionCommit(selection),
     );
     let payload = world

@@ -39,6 +39,7 @@ pub(crate) struct UiScrollRuntimeState {
     ownership_graph_nodes_visited: u64,
     ownership_plan_nodes_visited: u64,
     revision: u64,
+    last_owner: Option<super::UiScrollOwnerInspectionRecord>,
 }
 
 impl UiScrollRuntimeState {
@@ -81,6 +82,7 @@ impl UiScrollRuntimeState {
             ownership_graph_nodes_visited: 0,
             ownership_plan_nodes_visited: 0,
             revision: 0,
+            last_owner: None,
         }
     }
 
@@ -283,13 +285,15 @@ impl UiScrollRuntimeState {
         }
         self.counters = next_counters;
         self.revision = next_revision;
-        Ok(super::UiScrollRouteReceipt::new(
+        let receipt = super::UiScrollRouteReceipt::new(
             request.cause(),
             transitions,
             remainder,
             owners_visited,
             self.revision,
-        ))
+        );
+        self.last_owner = super::UiScrollOwnerInspectionRecord::from_receipt(&receipt);
+        Ok(receipt)
     }
 
     pub(in crate::runtime) const fn counters(&self) -> super::UiScrollCounters {
@@ -301,7 +305,16 @@ impl UiScrollRuntimeState {
         self.owners.clear();
         self.ownership_catalog.clear();
         self.ownership_references.clear();
+        self.last_owner = None;
         released
+    }
+
+    pub(crate) const fn last_owner(&self) -> Option<super::UiScrollOwnerInspectionRecord> {
+        self.last_owner
+    }
+
+    pub(crate) fn owner_count(&self) -> usize {
+        self.owners.len()
     }
 
     fn exact_owner(

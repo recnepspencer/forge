@@ -38,7 +38,7 @@ pub(super) fn admit_service_declarations(
         if let worth_ui_dsl::WorthUiServiceDeclarationMeaning::Command(command) =
             declaration.meaning()
         {
-            admit_command(declaration_index, command, snapshot)?;
+            admit_command(declaration_index, command, handoff, snapshot)?;
         }
     }
     Ok(())
@@ -47,6 +47,7 @@ pub(super) fn admit_service_declarations(
 fn admit_command(
     declaration_index: usize,
     command: &worth_ui_dsl::WorthUiCommandDeclaration,
+    handoff: &WorthUiSemanticHandoffEvidence,
     snapshot: &CapabilitySnapshot,
 ) -> Result<(), WorthUiSemanticHandoffPreparationStop> {
     let command_id = CommandId::new(command.identity()).map_err(|_| {
@@ -87,7 +88,13 @@ fn admit_command(
     }
     let authored_binding = command
         .scope_identity()
-        .map(crate::capability::UiCommandRouteScopeIdentity::for_authored_semantic_name);
+        .map(crate::capability::UiCommandRouteScopeIdentity::for_authored_component);
+    if authored_binding.is_some_and(|binding| !handoff.declares_command_scope(binding)) {
+        return Err(service_stop(
+            declaration_index,
+            WorthUiServiceDeclarationAdmissionCause::CommandScopeBindingUndeclared,
+        ));
+    }
     if route.scope_identity() != authored_binding {
         return Err(service_stop(
             declaration_index,

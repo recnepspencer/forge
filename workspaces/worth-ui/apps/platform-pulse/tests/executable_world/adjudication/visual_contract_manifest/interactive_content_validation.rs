@@ -27,7 +27,7 @@ fn validate_text(
         let Some(regions) = layouts.get(&layout.name) else {
             return Err(PlatformPulseVisualContractFailure::TextContainment);
         };
-        if layout.text_bounds.len() != 15 {
+        if layout.text_bounds.len() != 19 {
             return Err(PlatformPulseVisualContractFailure::TextContainment);
         }
         let mut identities = BTreeSet::new();
@@ -37,6 +37,7 @@ fn validate_text(
             };
             if !identities.insert(text.identity.as_str())
                 || !typography.contains(&text.role)
+                || !line_capacity_is_honest(text.role.as_str(), text.maximum_lines, text.rect[3])
                 || !contains(*region, text.rect)
                 || layout.text_bounds[index + 1..]
                     .iter()
@@ -47,6 +48,23 @@ fn validate_text(
         }
     }
     Ok(())
+}
+
+fn line_capacity_is_honest(role: &str, maximum_lines: u32, height: u32) -> bool {
+    let line_height: u32 = match role {
+        "display" => 52,
+        "masthead" | "body" | "action" => 20,
+        "section" | "meta" => 16,
+        _ => return false,
+    };
+    if maximum_lines == 0 {
+        return false;
+    }
+    let safety: u32 = if maximum_lines > 1 { 4 } else { 0 };
+    line_height
+        .checked_mul(maximum_lines)
+        .and_then(|needed| needed.checked_add(safety))
+        .is_some_and(|needed| height >= needed)
 }
 
 fn validate_targets(
@@ -110,8 +128,8 @@ fn expected_targets(
     PlatformPulseVisualContractFailure,
 > {
     let confirmation = match extent {
-        DEFAULT_EXTENT => [680, 176, 232, 72],
-        RESIZED_EXTENT => [840, 176, 232, 72],
+        DEFAULT_EXTENT => [680, 176, 232, 104],
+        RESIZED_EXTENT => [840, 176, 232, 104],
         _ => return Err(PlatformPulseVisualContractFailure::Target),
     };
     Ok(BTreeSet::from([

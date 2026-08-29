@@ -23,10 +23,24 @@ use worth_ui_runtime::facade::mounted::{
 
 use super::super::{execution_deadline, execution_reading};
 use super::native_recovery::native_activation_drain;
-use crate::intent::operability::{build_open_portal_application_with_host, PrimaryIntent};
+use crate::intent::{
+    operability::{build_open_portal_application_with_host, PrimaryIntent},
+    runtime_services_kit::RuntimeServiceSemanticOutcome,
+};
 
 #[test]
 fn duplicate_escape_survives_indeterminate_portal_dismissal_recovery() {
+    let evidence = run_native_runtime_service_scenario();
+    assert!(evidence.portal_was_visible);
+    assert!(evidence.focus_was_placed);
+    assert!(evidence.dismissal_closed_only_top);
+    assert!(evidence.focus_restored_to_previous);
+    assert!(evidence.duplicate_was_idempotent);
+    assert!(evidence.proposals_are_zero);
+    assert!(evidence.terminal_resources_are_zero);
+}
+
+pub(crate) fn run_native_runtime_service_scenario() -> RuntimeServiceSemanticOutcome {
     let host = worth_ui_runtime::certification_support::ScriptedPresentationHost::default();
     host.set_capabilities(
         worth_ui_host_contract::WorthUiHostCapabilityReport::available(vec![
@@ -96,6 +110,14 @@ fn duplicate_escape_survives_indeterminate_portal_dismissal_recovery() {
         .inspect_focus_runtime_for_certification()
         .current_participant()
         .is_some());
+    let portal_was_visible = shell
+        .inspect_portal_runtime_for_certification()
+        .visible_portals()
+        == 1;
+    let focus_was_placed = shell
+        .inspect_focus_runtime_for_certification()
+        .current_participant()
+        .is_some();
 
     let first = escape_dismissal(&mut shell, definition, open_presentation, 5);
     let duplicate = escape_dismissal(&mut shell, definition, open_presentation, 7);
@@ -149,12 +171,30 @@ fn duplicate_escape_survives_indeterminate_portal_dismissal_recovery() {
     assert!(shell
         .inspect_service_proposals_for_certification()
         .is_zero());
+    let duplicate_was_idempotent = portal.committed_requests() == 2
+        && portal.active_portals() == 1
+        && portal.closing_portals() == 1;
+    let proposals_are_zero = shell
+        .inspect_service_proposals_for_certification()
+        .is_zero();
     let shutdown = shell.shutdown();
     assert!(shutdown.intent_resources_empty());
     assert_eq!(shutdown.portal_final_active_records(), 0);
     assert_eq!(shutdown.portal_abandoned_indeterminate_records(), 0);
     assert_eq!(shutdown.focus_abandoned_indeterminate_request(), None);
     assert!(shutdown.host_session_released());
+    RuntimeServiceSemanticOutcome {
+        portal_was_visible,
+        focus_was_placed,
+        dismissal_closed_only_top: portal.active_portals() == 1
+            && portal.open_portals() == 0
+            && portal.closing_portals() == 1,
+        focus_restored_to_previous: restored_focus.current_participant()
+            == pre_portal_focus.current_participant(),
+        duplicate_was_idempotent,
+        proposals_are_zero,
+        terminal_resources_are_zero: shutdown.runtime_service_resources_empty(),
+    }
 }
 
 pub(super) fn current_presentation(

@@ -1,12 +1,12 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiMotionProducedFactKind {
+pub(crate) enum UiMotionProducedFactKind {
     Started,
     Retargeted(super::UiMotionRetargetDisposition),
     Terminal(super::UiMotionTerminalCause),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) struct UiMotionProducedFact {
+pub(crate) struct UiMotionProducedFact {
     publication_sequence: u64,
     track: super::UiMotionTrackIdentity,
     target: super::UiMotionTargetIdentity,
@@ -34,31 +34,31 @@ impl UiMotionProducedFact {
         }
     }
 
-    pub(in crate::runtime) const fn publication_sequence(self) -> u64 {
+    pub(crate) const fn publication_sequence(self) -> u64 {
         self.publication_sequence
     }
 
-    pub(in crate::runtime) const fn track(self) -> super::UiMotionTrackIdentity {
+    pub(crate) const fn track(self) -> super::UiMotionTrackIdentity {
         self.track
     }
 
-    pub(in crate::runtime) const fn target(self) -> super::UiMotionTargetIdentity {
+    pub(crate) const fn target(self) -> super::UiMotionTargetIdentity {
         self.target
     }
 
-    pub(in crate::runtime) const fn predecessor_revision(self) -> u64 {
+    pub(crate) const fn predecessor_revision(self) -> u64 {
         self.predecessor_revision
     }
 
-    pub(in crate::runtime) const fn successor_revision(self) -> u64 {
+    pub(crate) const fn successor_revision(self) -> u64 {
         self.successor_revision
     }
 
-    pub(in crate::runtime) const fn channels(self) -> super::UiMotionPropertyChannels {
+    pub(crate) const fn channels(self) -> super::UiMotionPropertyChannels {
         self.channels
     }
 
-    pub(in crate::runtime) const fn kind(self) -> UiMotionProducedFactKind {
+    pub(crate) const fn kind(self) -> UiMotionProducedFactKind {
         self.kind
     }
 }

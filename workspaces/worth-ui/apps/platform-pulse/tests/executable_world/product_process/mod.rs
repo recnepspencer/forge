@@ -67,7 +67,7 @@ pub(crate) use progression::{
     AwaitingReplacement, AwaitingSchemaStop, AwaitingStatusRecovery, Closed,
     ComparisonBasisRefreshed, FinalRecovered, FirstCurrent, GreenSuccessor, IdentityTraced,
     InitialBlue, Installed, NativeBoundExecutableWorld, NativeInputReached, OverlayCleared,
-    OverlayPublished, PreservedPredecessor, PreservedPredecessorEvidence, Published,
+    OverlayPublished, PortalReady, PreservedPredecessor, PreservedPredecessorEvidence, Published,
     PulseExecutableWorld, QueryCurrent, RecoveredBlue, SchemaStopped, SecondCurrent,
     SecondQueryCurrent, SnapshotCaptured,
 };

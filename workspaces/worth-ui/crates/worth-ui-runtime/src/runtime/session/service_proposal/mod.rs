@@ -6,13 +6,17 @@ mod occupancy;
 mod participation;
 mod request_basis;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-support"))]
 use participation::fixture_service_family_participation;
+#[cfg(all(feature = "certification-support", not(test)))]
+use request_basis::fixture_service_request_coherence;
 #[cfg(test)]
 use request_basis::{fixture_application_generation_in_session, fixture_service_request_coherence};
 
 pub(in crate::runtime) use cancellation::UiServiceProposalCancellationDenial;
 pub(in crate::runtime) use census::{UiServiceProposalCensus, UiServiceProposalCensusDenial};
+#[cfg(feature = "certification-support")]
+pub(crate) use compiler::proposal_scale_evidence;
 pub(in crate::runtime) use compiler::{
     UiPreflightedServiceProposal, UiReservedServiceProposal, UiServiceFamilyProposal,
     UiServiceMountedWorkReference, UiServiceProducedFactReference,

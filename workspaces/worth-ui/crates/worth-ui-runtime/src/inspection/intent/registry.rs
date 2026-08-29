@@ -77,6 +77,23 @@ impl UiIntentEvidenceRegistry {
         ))
     }
 
+    pub(crate) fn retain_command_route(
+        &mut self,
+        input: UiIntentInteractionEvidenceInput,
+    ) -> Option<UiIntentEvidenceReference> {
+        if input.family() != worth_ui_inspection::UiIntentInteractionEvidenceFamily::CommandRoute {
+            return None;
+        }
+        match self.retain(input) {
+            UiIntentEvidenceRetentionOutcome::Retained(reference)
+            | UiIntentEvidenceRetentionOutcome::Replaced {
+                retained: reference,
+                ..
+            } => Some(reference),
+            UiIntentEvidenceRetentionOutcome::Omitted(_) => None,
+        }
+    }
+
     pub(crate) fn snapshot(&self) -> UiIntentEvidenceResourceSnapshot {
         UiIntentEvidenceResourceSnapshot::new(
             self.retained,

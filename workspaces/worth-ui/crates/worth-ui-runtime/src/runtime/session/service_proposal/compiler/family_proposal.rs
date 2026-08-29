@@ -74,7 +74,7 @@ impl UiServiceFamilyProposal {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(in crate::runtime) fn recorded_fixture(
         family: crate::capability::UiRuntimeServiceFamily,
         scope: u64,

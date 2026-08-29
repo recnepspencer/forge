@@ -39,9 +39,10 @@ pub use intent::{
     PlatformPulseIntentOperabilityObservation, PlatformPulseIntentOperabilityTrace,
     PlatformPulseIntentOutcomeTrace, PlatformPulseIntentPayloadTrace,
     PlatformPulseIntentPostureObservation, PlatformPulseIntentPosturePublished,
-    PlatformPulseIntentRouteTrace, PlatformPulseIntentSourceTrace,
-    PlatformPulseIntentTraceProjectionDenial, PlatformPulseIntentWatcherShutdownEvidence,
-    PlatformPulseQueryActionObservation,
+    PlatformPulseIntentRouteTrace, PlatformPulseIntentRoutingStoppedObservation,
+    PlatformPulseIntentSourceTrace, PlatformPulseIntentTraceProjectionDenial,
+    PlatformPulseIntentWatcherShutdownEvidence, PlatformPulseQueryActionObservation,
+    PlatformPulseQueryAdmissionDenial,
 };
 pub use launch::{
     PlatformPulseLaunchConfigurationDenial, PlatformPulseLaunchConfigurationDenialKind,

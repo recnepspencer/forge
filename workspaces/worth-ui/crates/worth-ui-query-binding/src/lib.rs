@@ -181,16 +181,17 @@ pub use presentation_async::{
 };
 pub use product_projection::{
     WorthUiQueryHostInstallationRequest, WorthUiScalarProjectionActionAdvance,
-    WorthUiScalarProjectionActionDenied, WorthUiScalarProjectionActionEvidence,
-    WorthUiScalarProjectionActionExecution, WorthUiScalarProjectionActionIndeterminate,
-    WorthUiScalarProjectionActionInstallation, WorthUiScalarProjectionActionLiveOwner,
-    WorthUiScalarProjectionActionOutcome, WorthUiScalarProjectionActionPublicationCompletion,
-    WorthUiScalarProjectionActionRequest, WorthUiScalarProjectionAdvance,
-    WorthUiScalarProjectionAdvanceError, WorthUiScalarProjectionHostCompletion,
-    WorthUiScalarProjectionHostPlan, WorthUiScalarProjectionInstallation,
-    WorthUiScalarProjectionInstallationError, WorthUiScalarProjectionLiveOwner,
-    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseError,
-    WorthUiScalarProjectionSourceCloseReceipt, WorthUiScalarProjectionSourceRecord,
+    WorthUiScalarProjectionActionDenial, WorthUiScalarProjectionActionDenied,
+    WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionExecution,
+    WorthUiScalarProjectionActionIndeterminate, WorthUiScalarProjectionActionInstallation,
+    WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
+    WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
+    WorthUiScalarProjectionAdvance, WorthUiScalarProjectionAdvanceError,
+    WorthUiScalarProjectionHostCompletion, WorthUiScalarProjectionHostPlan,
+    WorthUiScalarProjectionInstallation, WorthUiScalarProjectionInstallationError,
+    WorthUiScalarProjectionLiveOwner, WorthUiScalarProjectionPublicationCompletion,
+    WorthUiScalarProjectionSourceCloseError, WorthUiScalarProjectionSourceCloseReceipt,
+    WorthUiScalarProjectionSourceRecord,
 };
 pub use projection_binding::{
     UiCollectionProjectionBinding, UiCollectionProjectionBindingAdmission,

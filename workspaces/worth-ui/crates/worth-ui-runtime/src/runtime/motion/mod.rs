@@ -4,6 +4,8 @@ mod produced_fact;
 mod rebind;
 mod receipt;
 mod retarget;
+#[cfg(feature = "certification-support")]
+mod scale_certification;
 mod state;
 #[cfg(test)]
 mod state_tests;
@@ -14,12 +16,14 @@ pub(crate) use declaration::{
     UiMotionDeclaration, UiMotionEasing, UiMotionFillPolicy, UiMotionInterruptionPolicy,
     UiMotionPropertyChannel, UiMotionPropertyChannels, UiMotionReducedMotionPolicy,
 };
-pub(in crate::runtime) use produced_fact::{UiMotionProducedFact, UiMotionProducedFactKind};
+pub(crate) use produced_fact::{UiMotionProducedFact, UiMotionProducedFactKind};
 pub(crate) use receipt::{
     UiMotionGeometryDenial, UiMotionSemanticGeometry, UiMotionTargetIdentity,
     UiMotionTransitionRequest, UiMotionTransitionRequestDenial,
 };
 pub(crate) use retarget::{UiMotionRetargetDisposition, UiMotionRetargetPredecessor};
+#[cfg(feature = "certification-support")]
+pub(crate) use scale_certification::motion_scale_evidence;
 pub(crate) use state::UiMotionRuntimeState;
 pub(in crate::runtime) use state::{UiMotionCommitDenial, UiMotionStagingDenial};
 pub(crate) use track::{

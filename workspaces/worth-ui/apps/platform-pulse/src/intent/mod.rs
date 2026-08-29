@@ -7,10 +7,11 @@ mod provider;
 pub use definition::{
     platform_pulse_action_confirmation_fact, platform_pulse_action_definition,
     platform_pulse_action_mutability_fact, platform_pulse_action_policy_fact,
-    platform_pulse_action_readiness_fact, platform_pulse_action_revision_fact, PlatformPulseAction,
-    PlatformPulseActionInputRevision, PlatformPulseActionOutcome, PlatformPulseActionPayload,
-    PLATFORM_PULSE_ACTION_CONFIRMATION, PLATFORM_PULSE_ACTION_DECLARATION,
-    PLATFORM_PULSE_ACTION_DEFINITION, PLATFORM_PULSE_ACTION_QUERY_VIEW,
+    platform_pulse_action_readiness_fact, platform_pulse_action_revision_fact,
+    platform_pulse_query_denial_fact, PlatformPulseAction, PlatformPulseActionInputRevision,
+    PlatformPulseActionOutcome, PlatformPulseActionPayload, PLATFORM_PULSE_ACTION_CONFIRMATION,
+    PLATFORM_PULSE_ACTION_DECLARATION, PLATFORM_PULSE_ACTION_DEFINITION,
+    PLATFORM_PULSE_ACTION_QUERY_VIEW,
 };
 pub use portal::{
     platform_pulse_open_portal_definition, PlatformPulseOpenPortal, PlatformPulseOpenPortalOutcome,

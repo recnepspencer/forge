@@ -15,7 +15,8 @@ pub use mosaic::{
 };
 #[doc(hidden)]
 pub use runtime_services::{
-    platform_pulse_portal_story_transition, PlatformPulsePortalStoryTransition,
+    platform_pulse_portal_story_transition, PlatformPulseCommandStory,
+    PlatformPulsePortalStoryTransition, PlatformPulseQueryDenialStory,
 };
 #[doc(hidden)]
 pub use visual_composition::{

@@ -14,6 +14,7 @@ pub struct WorthUiSemanticHandoffEvidence {
     projection_contents: Box<[WorthUiProjectionContentEdge]>,
     intent_material: crate::declaration::WorthUiAuthoredIntentMaterial,
     service_declarations: Box<[WorthUiAuthoredServiceDeclaration]>,
+    authored_component_command_scopes: Box<[crate::capability::UiCommandRouteScopeIdentity]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -61,6 +62,7 @@ impl WorthUiSemanticHandoffEvidence {
                     provenance: provenance.clone(),
                 })
                 .collect(),
+            authored_component_command_scopes: authored_component_command_scopes(package),
         }
     }
 
@@ -99,6 +101,15 @@ impl WorthUiSemanticHandoffEvidence {
         &self.service_declarations
     }
 
+    pub(crate) fn declares_command_scope(
+        &self,
+        scope: crate::capability::UiCommandRouteScopeIdentity,
+    ) -> bool {
+        self.authored_component_command_scopes
+            .binary_search(&scope)
+            .is_ok()
+    }
+
     pub(crate) fn runtime_service_support(&self) -> crate::capability::UiRuntimeServiceSupport {
         self.service_declarations.iter().fold(
             self.intent_material.runtime_service_support(),
@@ -114,6 +125,33 @@ impl WorthUiSemanticHandoffEvidence {
             .iter()
             .find(|requirement| requirement.view_identity() == identity)
     }
+}
+
+fn authored_component_command_scopes(
+    package: &WorthUiSealedSemanticPackage,
+) -> Box<[crate::capability::UiCommandRouteScopeIdentity]> {
+    let mut scopes = package
+        .module_ids()
+        .iter()
+        .flat_map(|module_id| {
+            package
+                .module(module_id)
+                .expect("sealed package contains every canonical module")
+                .declarations()
+                .iter()
+        })
+        .filter_map(|declaration| match declaration {
+            worth_ui_dsl::WorthUiSemanticDeclaration::Component(component) => Some(
+                crate::capability::UiCommandRouteScopeIdentity::for_authored_component(
+                    component.name_text(),
+                ),
+            ),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    scopes.sort_unstable();
+    scopes.dedup();
+    scopes.into_boxed_slice()
 }
 
 impl WorthUiAuthoredServiceDeclaration {

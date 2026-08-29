@@ -96,6 +96,10 @@ fn observe_native_input(
         .deliver_input_reachability_probe(&world.native_client, NativeInputProbeKind::Keyboard)
         .map_err(PulseExecutableWorldFailure::Native)?;
     observe_step(NativeInputCausalStep::KeyboardDelivered);
+    let keyboard_routing_stop = world
+        .lifecycle
+        .next(deadline)
+        .map_err(PulseExecutableWorldFailure::Lifecycle)?;
     let keyboard = NativeInputFamilyObservation::new(
         keyboard,
         world
@@ -107,6 +111,7 @@ fn observe_native_input(
     let observed = observe_watched_native(world)?;
     Ok(NativeInputReachabilityObservationSet::new(
         pointer,
+        keyboard_routing_stop,
         keyboard,
         observed.pixels,
     ))

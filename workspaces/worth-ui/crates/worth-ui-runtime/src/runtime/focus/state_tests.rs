@@ -27,6 +27,7 @@ fn scoped_traversal_wraps_in_mounted_order_with_constant_route_visits() {
         first.current().unwrap().participant(),
         world.identities[0].0
     );
+    assert_eq!(state.last_transition(), Some(first));
     let stale = state.plan(first_request(world.scope)).unwrap();
 
     let forward = state

@@ -4,7 +4,7 @@ use worth_ui_platform_pulse::observation_contract::PlatformPulseLifecycleObserva
 
 use crate::adjudication::{
     adjudicate_authored_portal_pixels, adjudicate_open_portal_pixels,
-    PlatformPulseAuthoredPortalPixelEvidence,
+    adjudicate_resized_wrapping_text, PlatformPulseAuthoredPortalPixelEvidence,
 };
 use crate::native_platform::NativePlatformContract;
 
@@ -77,12 +77,17 @@ fn await_authored(
         let current = capture(world)?;
         if [current.width(), current.height()] == physical_extent {
             if let Ok(evidence) = adjudicate_authored_portal_pixels(&current, logical_extent) {
-                return Ok(evidence);
+                if adjudicate_resized_wrapping_text(&current).is_ok() {
+                    return Ok(evidence);
+                }
             }
         }
         if Instant::now() >= deadline {
-            return adjudicate_authored_portal_pixels(&current, logical_extent)
-                .map_err(PlatformPulsePortalJourneyFailure::Pixels);
+            let evidence = adjudicate_authored_portal_pixels(&current, logical_extent)
+                .map_err(PlatformPulsePortalJourneyFailure::Pixels)?;
+            adjudicate_resized_wrapping_text(&current)
+                .map_err(PlatformPulsePortalJourneyFailure::TextClipping)?;
+            return Ok(evidence);
         }
         std::thread::sleep(PIXEL_POLL_SLICE);
     }

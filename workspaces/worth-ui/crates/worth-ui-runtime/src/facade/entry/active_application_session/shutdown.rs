@@ -35,6 +35,7 @@ impl WorthUiActiveApplicationSession {
             0,
             crate::runtime::command_routing::UiCommandRoutingRuntimeState::shutdown,
         );
+        let terminal_service_owner_census = self.runtime_service_resource_census();
         self.clear_displaced_input_recipient(previous_input);
         let confirmation = self.intent_confirmation.shutdown();
         let (admission, execution) = self.intent_admission.shutdown(&mut self.intent_execution);
@@ -80,6 +81,7 @@ impl WorthUiActiveApplicationSession {
             .bind_observation_resources(observation_resources)
             .bind_intent_evidence(intent_evidence)
             .bind_intent_resource_census(final_intent_resource_census)
+            .bind_terminal_runtime_service_census(terminal_service_owner_census)
             .bind_rebind(rebind)
     }
 }

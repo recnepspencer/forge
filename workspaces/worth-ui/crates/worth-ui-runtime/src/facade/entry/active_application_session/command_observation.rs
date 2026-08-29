@@ -35,12 +35,36 @@ impl WorthUiActiveApplicationSession {
             .with_host_observation(presentation, report.sequence(), report.time_basis())
             .with_text_input(self.ime_composing, text_entry_active);
         let generation = self.active_generation_identity();
-        Some(
-            self.command_routing
-                .as_mut()
-                .expect("Command installation was checked above")
-                .route_input_stroke(stroke, repeat, context, &generation),
-        )
+        let mut outcome = self
+            .command_routing
+            .as_mut()
+            .expect("Command installation was checked above")
+            .route_input_stroke(stroke, repeat, context, &generation);
+        if let crate::runtime::UiCommandRoutingOutcome::Routed(receipt) = &mut outcome {
+            self.retain_command_route_evidence(presentation, receipt);
+        }
+        Some(outcome)
+    }
+
+    fn retain_command_route_evidence(
+        &mut self,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+        receipt: &mut crate::runtime::command_routing::UiCommandRouteReceipt,
+    ) {
+        let Ok(target) = crate::runtime::interaction::targeting::resolve_presented_command_target(
+            &self.mounted,
+            presentation,
+            receipt,
+        ) else {
+            return;
+        };
+        let Some(input) = crate::runtime::interaction::command_evidence_input(receipt, target)
+        else {
+            return;
+        };
+        if let Some(reference) = self.intent_evidence.retain_command_route(input) {
+            receipt.retain_evidence_reference(reference);
+        }
     }
 
     fn observe_ime_composition(

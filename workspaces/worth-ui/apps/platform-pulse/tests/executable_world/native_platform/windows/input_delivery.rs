@@ -30,7 +30,7 @@ pub(super) fn deliver(
         kind,
         (screen_x, screen_y),
         None,
-        co::VK::CHAR_A,
+        NativeKeyboardInput::Single(co::VK::CHAR_A),
     )
 }
 
@@ -44,9 +44,10 @@ pub(super) fn deliver_keyboard_command(
         bounds.left().saturating_add_unsigned(bounds.width() / 2),
         bounds.top().saturating_add_unsigned(bounds.height() / 2),
     );
-    let key = match command {
-        NativeKeyboardCommand::Escape => co::VK::ESCAPE,
-        NativeKeyboardCommand::Submit => co::VK::RETURN,
+    let input = match command {
+        NativeKeyboardCommand::Escape => NativeKeyboardInput::Single(co::VK::ESCAPE),
+        NativeKeyboardCommand::Submit => NativeKeyboardInput::Single(co::VK::RETURN),
+        NativeKeyboardCommand::PrimaryShiftP => NativeKeyboardInput::PrimaryShiftP,
     };
     deliver_at(
         window,
@@ -54,7 +55,7 @@ pub(super) fn deliver_keyboard_command(
         NativeInputProbeKind::Keyboard,
         point,
         None,
-        key,
+        input,
     )
 }
 
@@ -84,7 +85,7 @@ pub(super) fn deliver_pointer(
         NativeInputProbeKind::Pointer,
         (screen_x, screen_y),
         Some(point.landing_tolerance()),
-        co::VK::CHAR_A,
+        NativeKeyboardInput::Single(co::VK::CHAR_A),
     )
 }
 
@@ -143,7 +144,7 @@ fn deliver_at(
     kind: NativeInputProbeKind,
     screen_point: (i32, i32),
     pointer_tolerance: Option<u32>,
-    keyboard_key: co::VK,
+    keyboard_input: NativeKeyboardInput,
 ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
     let bounds = observed.bounds();
     let (screen_x, screen_y) = screen_point;
@@ -179,7 +180,7 @@ fn deliver_at(
                 }),
             ])
             .map_err(|error| post_effect_failure(kind, 0, error.to_string()))?;
-            require_complete_delivery(kind, delivered, "pointer")?;
+            require_complete_delivery(kind, delivered, 2, "pointer")?;
             delivered
         }
         NativeInputProbeKind::Keyboard => {
@@ -193,19 +194,9 @@ fn deliver_at(
                         },
                 ));
             }
-            let delivered = winsafe::SendInput(&[
-                HwKbMouse::Kb(KEYBDINPUT {
-                    wVk: keyboard_key,
-                    ..Default::default()
-                }),
-                HwKbMouse::Kb(KEYBDINPUT {
-                    wVk: keyboard_key,
-                    dwFlags: co::KEYEVENTF::KEYUP,
-                    ..Default::default()
-                }),
-            ])
-            .map_err(|error| post_effect_failure(kind, 0, error.to_string()))?;
-            require_complete_delivery(kind, delivered, "keyboard")?;
+            let expected = keyboard_input.expected_event_count();
+            let delivered = deliver_keyboard_events(keyboard_input, kind)?;
+            require_complete_delivery(kind, delivered, expected, "keyboard")?;
             let retained_focus = element.has_keyboard_focus().map_err(|error| {
                 post_effect_failure(
                     kind,
@@ -278,16 +269,78 @@ fn deliver_at(
 fn require_complete_delivery(
     kind: NativeInputProbeKind,
     delivered_event_count: u32,
+    expected_event_count: u32,
     family: &'static str,
 ) -> Result<(), NativePlatformFailure> {
-    if delivered_event_count != 2 {
+    if delivered_event_count != expected_event_count {
         return Err(post_effect_failure(
             kind,
             delivered_event_count,
-            format!("SendInput delivered {delivered_event_count} of 2 {family} events"),
+            format!(
+                "SendInput delivered {delivered_event_count} of {expected_event_count} {family} events"
+            ),
         ));
     }
     Ok(())
+}
+
+#[derive(Clone, Copy)]
+enum NativeKeyboardInput {
+    Single(co::VK),
+    PrimaryShiftP,
+}
+
+impl NativeKeyboardInput {
+    const fn expected_event_count(self) -> u32 {
+        match self {
+            Self::Single(_) => 2,
+            Self::PrimaryShiftP => 6,
+        }
+    }
+}
+
+fn deliver_keyboard_events(
+    input: NativeKeyboardInput,
+    kind: NativeInputProbeKind,
+) -> Result<u32, NativePlatformFailure> {
+    match input {
+        NativeKeyboardInput::Single(key) => {
+            send_keyboard_batch(kind, &[key_down(key), key_up(key)])
+        }
+        NativeKeyboardInput::PrimaryShiftP => {
+            let pressed =
+                send_keyboard_batch(kind, &[key_down(co::VK::CONTROL), key_down(co::VK::SHIFT)])?;
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            let invoked =
+                send_keyboard_batch(kind, &[key_down(co::VK::CHAR_P), key_up(co::VK::CHAR_P)])?;
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            let released =
+                send_keyboard_batch(kind, &[key_up(co::VK::SHIFT), key_up(co::VK::CONTROL)])?;
+            Ok(pressed + invoked + released)
+        }
+    }
+}
+
+fn send_keyboard_batch(
+    kind: NativeInputProbeKind,
+    events: &[HwKbMouse],
+) -> Result<u32, NativePlatformFailure> {
+    winsafe::SendInput(events).map_err(|error| post_effect_failure(kind, 0, error.to_string()))
+}
+
+fn key_down(key: co::VK) -> HwKbMouse {
+    HwKbMouse::Kb(KEYBDINPUT {
+        wVk: key,
+        ..Default::default()
+    })
+}
+
+fn key_up(key: co::VK) -> HwKbMouse {
+    HwKbMouse::Kb(KEYBDINPUT {
+        wVk: key,
+        dwFlags: co::KEYEVENTF::KEYUP,
+        ..Default::default()
+    })
 }
 
 pub(super) fn post_effect_failure(

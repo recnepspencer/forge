@@ -10,6 +10,8 @@ pub enum PlatformPulseProductComponent {
     EvidenceBody,
     SourceSignalTitle,
     SourceSignalActive,
+    EvidenceServiceLabel,
+    EvidenceServiceBody,
     ServiceStage,
     ServiceStageBorder,
     QueryAccent,
@@ -24,6 +26,8 @@ pub enum PlatformPulseProductComponent {
     NativeCardBorder,
     NativeLabel,
     NativeBody,
+    QueryDenialLabel,
+    QueryDenialBody,
     ActionTarget,
     ActionLabel,
     PortalTarget,
@@ -45,7 +49,7 @@ pub enum PlatformPulseProductComponent {
 }
 
 impl PlatformPulseProductComponent {
-    pub const ALL: [Self; 42] = [
+    pub const ALL: [Self; 46] = [
         Self::Root,
         Self::MastheadBorder,
         Self::Brand,
@@ -56,6 +60,8 @@ impl PlatformPulseProductComponent {
         Self::EvidenceBody,
         Self::SourceSignalTitle,
         Self::SourceSignalActive,
+        Self::EvidenceServiceLabel,
+        Self::EvidenceServiceBody,
         Self::ServiceStage,
         Self::ServiceStageBorder,
         Self::QueryAccent,
@@ -70,6 +76,8 @@ impl PlatformPulseProductComponent {
         Self::NativeCardBorder,
         Self::NativeLabel,
         Self::NativeBody,
+        Self::QueryDenialLabel,
+        Self::QueryDenialBody,
         Self::ActionTarget,
         Self::ActionLabel,
         Self::PortalTarget,
@@ -102,6 +110,8 @@ impl PlatformPulseProductComponent {
             Self::EvidenceBody => "platform.pulse.component.evidence_body",
             Self::SourceSignalTitle => "platform.pulse.component.source_signal_title",
             Self::SourceSignalActive => "platform.pulse.component.source_signal_active",
+            Self::EvidenceServiceLabel => "platform.pulse.component.evidence_service_label",
+            Self::EvidenceServiceBody => "platform.pulse.component.evidence_service_body",
             Self::ServiceStage => "platform.pulse.component.service_stage",
             Self::ServiceStageBorder => "platform.pulse.component.service_stage_border",
             Self::QueryAccent => "platform.pulse.component.query_accent",
@@ -116,6 +126,8 @@ impl PlatformPulseProductComponent {
             Self::NativeCardBorder => "platform.pulse.component.native_card_border",
             Self::NativeLabel => "platform.pulse.component.native_label",
             Self::NativeBody => "platform.pulse.component.native_body",
+            Self::QueryDenialLabel => "platform.pulse.component.query_denial_label",
+            Self::QueryDenialBody => "platform.pulse.component.query_denial_body",
             Self::ActionTarget => "platform.pulse.component.identity_target",
             Self::ActionLabel => "platform.pulse.component.action_label",
             Self::PortalTarget => "platform.pulse.component.portal_target",

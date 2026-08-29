@@ -1,7 +1,8 @@
 use std::time::Instant;
 
 use crate::adjudication::{
-    adjudicate_query_current, adjudicate_visual_retirement, adjudicate_visual_snapshot,
+    adjudicate_default_wrapping_text, adjudicate_query_current, adjudicate_visual_retirement,
+    adjudicate_visual_snapshot,
 };
 use crate::failure_teardown::{
     teardown_native_bound_world, PulseExecutableWorldFailure, PulseExecutableWorldFailureReport,
@@ -18,6 +19,7 @@ use super::{
 struct QueryExpectation<'value> {
     value: &'value str,
     owner_order: u64,
+    requires_wrapping_text: bool,
     deadline: Instant,
 }
 
@@ -56,6 +58,7 @@ impl PulseExecutableWorld<AwaitingQueryCurrent<NativeInputReached<InitialBlue>, 
             QueryExpectation {
                 value: QueryStatusV1::VALUE,
                 owner_order: 2,
+                requires_wrapping_text: false,
                 deadline,
             },
             |prior| prior.prior.evidence.pixels().rgba(),
@@ -74,6 +77,7 @@ impl PulseExecutableWorld<AwaitingQueryCurrent<OverlayCleared<FirstCurrent>, Que
             QueryExpectation {
                 value: QueryStatusV2::VALUE,
                 owner_order: 5,
+                requires_wrapping_text: true,
                 deadline,
             },
             |prior| prior.overlay.trace.snapshot.prior.evidence.pixels().rgba(),
@@ -202,7 +206,7 @@ fn await_query<Stage, Kind>(
         )
         .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
         let native = observe_watched_native(&mut world)?;
-        adjudicate_query_current(
+        let evidence = adjudicate_query_current(
             issued,
             published,
             expectation.value,
@@ -211,7 +215,13 @@ fn await_query<Stage, Kind>(
             native.pixels,
             predecessor(&prior),
         )
-        .map_err(PulseExecutableWorldFailure::QueryCurrent)
+        .map_err(PulseExecutableWorldFailure::QueryCurrent)?;
+        if expectation.requires_wrapping_text {
+            adjudicate_default_wrapping_text(evidence.pixels())
+                .map_err(crate::adjudication::ExecutableQueryCurrentFailure::WrappingText)
+                .map_err(PulseExecutableWorldFailure::QueryCurrent)?;
+        }
+        Ok(evidence)
     })();
     match result {
         Ok(evidence) => Ok(PulseExecutableWorld {

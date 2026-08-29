@@ -11,7 +11,7 @@ pub(crate) struct UiPortalIdentity {
 }
 
 impl UiPortalOwnerIdentity {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(super) fn for_test(graph_node: u64, _mounted_instance: u64) -> Self {
         Self {
             graph_node: crate::graph::UiGraphNodeIdentity::new(graph_node),

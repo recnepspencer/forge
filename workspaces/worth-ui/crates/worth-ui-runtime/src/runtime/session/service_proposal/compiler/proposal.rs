@@ -22,7 +22,7 @@ impl UiServiceProposalIdentity {
         Self(request)
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(in crate::runtime) fn for_test(value: u64) -> Self {
         Self(super::super::UiServiceRequestIdentity::for_test(value))
     }
@@ -33,7 +33,7 @@ impl UiServiceProposalIdentity {
 }
 
 impl UiServiceProposalDemand {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(in crate::runtime) const fn recorded_fixture(
         participating_families: super::super::UiServiceFamilyParticipation,
         requirements: u8,
@@ -106,7 +106,7 @@ pub(in crate::runtime) enum UiServiceProposalDemandConstructionDenial {
 }
 
 impl UiServiceProposalCandidate {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(super) fn for_test(
         identity: u64,
         demand: UiServiceProposalDemand,

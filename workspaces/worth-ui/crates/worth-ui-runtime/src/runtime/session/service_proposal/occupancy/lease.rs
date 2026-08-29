@@ -9,7 +9,7 @@ pub(in crate::runtime) struct UiServiceProposalOccupancyLease {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(in crate::runtime) enum UiServiceProposalOccupancyScopeIdentity {
     MountedOwner(worth_ui_host_contract::UiMountedInstanceIdentity),
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     Test(core::num::NonZeroU64),
 }
 
@@ -28,7 +28,7 @@ impl UiServiceProposalOccupancyScopeIdentity {
         Self::MountedOwner(value)
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(in crate::runtime) fn for_test(value: u64) -> Self {
         Self::Test(
             core::num::NonZeroU64::new(value).expect("test occupancy scope must be non-zero"),

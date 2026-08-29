@@ -6,7 +6,9 @@ use worth_ui_dsl::{
 };
 
 use crate::capability::{
-    CommandDescriptor, CommandId, UiCommandKeyCode, UiCommandModifierSet,
+    CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor, ComponentId,
+    ComponentPropSchema, ComponentStateOwnership, UiCommandKeyCode, UiCommandModifierSet,
+    UiCommandRouteDeclaration, UiCommandRouteDestination, UiCommandRouteScopeIdentity,
     UiCommandShortcutSequence, UiCommandShortcutStroke, UiIntent, UiIntentAcceptedInteractions,
     UiIntentDefinition, UiIntentId, UiIntentPayload, UiIntentPayloadFieldSet,
     UiIntentPayloadProjection, UiIntentPayloadProjectionViolation,
@@ -146,6 +148,35 @@ fn command_dsl_preserves_the_rust_authored_routing_policy() {
 }
 
 #[test]
+fn authored_component_scope_converges_across_dsl_admission_and_registered_route() {
+    let app = scoped_command_capability_app("editor_control");
+    let package = scoped_command_package("editor_control", true);
+
+    prepare_semantic_handoff(package, app.capabilities())
+        .expect("one authored component scope identity admits at the boundary");
+}
+
+#[test]
+fn command_binding_cannot_name_an_undeclared_component_scope() {
+    let app = scoped_command_capability_app("missing_control");
+    let denial = match prepare_semantic_handoff(
+        scoped_command_package("missing_control", false),
+        app.capabilities(),
+    ) {
+        Ok(_) => panic!("a matching Rust string cannot counterfeit an absent authored component"),
+        Err(denial) => denial,
+    };
+
+    assert_eq!(
+        denial.stop(),
+        WorthUiSemanticHandoffPreparationStop::ServiceDeclaration {
+            declaration_index: 0,
+            cause: WorthUiServiceDeclarationAdmissionCause::CommandScopeBindingUndeclared,
+        }
+    );
+}
+
+#[test]
 fn service_dsl_demands_only_its_declared_owner_closure() {
     let app = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
@@ -253,4 +284,61 @@ fn command_package(shortcut: &str) -> worth_ui_dsl::WorthUiSealedSemanticPackage
         ),
     )
     .expect("command source seals")
+}
+
+fn scoped_command_capability_app(component: &str) -> crate::facade::entry::WorthUiHostNeutralApp {
+    WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
+        .register_component(ComponentDescriptor::new(
+            ComponentId::new(component).expect("valid component id"),
+            ComponentPropSchema::named("command.scope.fixture.props"),
+            ComponentChildPolicy::no_children(),
+            ComponentStateOwnership::runtime_owned(),
+        ))
+        .register_command(
+            CommandDescriptor::new(
+                CommandId::new("show_palette").expect("valid command id"),
+                "Show palette",
+            )
+            .with_default_shortcut(UiCommandShortcutSequence::single(
+                UiCommandShortcutStroke::logical(
+                    UiCommandKeyCode::P,
+                    UiCommandModifierSet::none().with_primary().with_shift(),
+                ),
+            ))
+            .with_route(
+                UiCommandRouteDeclaration::new(UiCommandRouteDestination::for_intent::<
+                    CommandIntent,
+                >())
+                .for_focused_control(
+                    UiCommandRouteScopeIdentity::for_authored_component(component),
+                ),
+            ),
+        )
+        .register_runtime_service_intent_definition(
+            UiIntentDefinition::<CommandIntent>::runtime_service(
+                UiIntentRuntimeServiceDestination::InvokeCommand,
+            ),
+        )
+        .expect("command destination registers")
+        .freeze()
+        .expect("command capability app freezes")
+}
+
+fn scoped_command_package(
+    binding: &str,
+    declare_component: bool,
+) -> worth_ui_dsl::WorthUiSealedSemanticPackage {
+    let component = declare_component
+        .then(|| format!("component {binding} {{}}"))
+        .unwrap_or_default();
+    WorthUiDslCompiler::compile_source(
+        WorthUiAuthoredSourceInput::rooted_at(PathBuf::from("workspace")).with_module(
+            "app/main.wui",
+            format!(
+                "command show_palette {{ shortcut Primary+Shift+P; scope focused_control; binding {binding}; }} {component}"
+            ),
+        ),
+    )
+    .expect("scoped command source seals")
 }

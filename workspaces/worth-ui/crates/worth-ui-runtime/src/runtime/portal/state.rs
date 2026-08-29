@@ -14,6 +14,7 @@ pub(crate) struct UiPortalRuntimeState {
     admitted_requests: u64,
     idempotent_requests: u64,
     revision: u64,
+    last_closed: Option<super::UiPortalClosedInspectionRecord>,
 }
 
 pub(super) struct UiPortalRecord {
@@ -41,6 +42,7 @@ impl UiPortalRuntimeState {
             admitted_requests: 0,
             idempotent_requests: 0,
             revision: 0,
+            last_closed: None,
         }
     }
 
@@ -274,6 +276,14 @@ impl UiPortalRuntimeState {
             self.idempotent_requests = self.idempotent_requests.saturating_add(1);
         }
         self.revision = transition.committed_revision();
+        if let super::request::UiPortalServiceOperation::Close(cause) = request.operation() {
+            self.last_closed = Some(super::UiPortalClosedInspectionRecord::new(
+                request.portal(),
+                cause,
+                transition.closed_descendants().len(),
+                self.revision,
+            ));
+        }
         Ok(super::UiPortalServiceReceipt::new(
             request.portal(),
             posture,
@@ -310,7 +320,9 @@ impl UiPortalRuntimeState {
             .count()
     }
 
-    pub(crate) fn active_graph_nodes(
+    /// Graph nodes exposed by active Portal scopes are the Portal owner/anchor
+    /// nodes in 3.15, not child content mounted inside the Portal.
+    pub(crate) fn active_portal_owner_graph_nodes(
         &self,
     ) -> impl Iterator<Item = crate::graph::UiGraphNodeIdentity> + '_ {
         self.records.iter().filter_map(|(identity, record)| {
@@ -336,5 +348,13 @@ impl UiPortalRuntimeState {
 
     pub(crate) const fn revision(&self) -> u64 {
         self.revision
+    }
+
+    pub(crate) const fn last_closed(&self) -> Option<super::UiPortalClosedInspectionRecord> {
+        self.last_closed
+    }
+
+    pub(crate) fn record_count(&self) -> usize {
+        self.records.len()
     }
 }

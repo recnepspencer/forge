@@ -5,7 +5,18 @@ use super::super::{
 };
 
 impl PlatformPulseApplicationRuntime {
-    pub(in crate::native_application) fn poll_intent_action_port(&mut self) {
+    pub(in crate::native_application) fn poll_intent_action_port(&mut self) -> usize {
+        let received_before = self
+            .intent_action_owner
+            .as_ref()
+            .map_or(0, |owner| owner.census().received());
+        self.poll_intent_action_port_requests();
+        self.intent_action_owner.as_ref().map_or(0, |owner| {
+            owner.census().received().saturating_sub(received_before)
+        })
+    }
+
+    fn poll_intent_action_port_requests(&mut self) {
         loop {
             let request = self
                 .intent_action_owner
@@ -25,6 +36,7 @@ impl PlatformPulseApplicationRuntime {
                 return;
             };
             let action_input_revision = request.action_input_revision();
+            let query_denial_requested = request.query_denial_requested();
             if request.cancellation_requested() {
                 let report = PlatformPulseQueryActionObservation::cancelled_before_effect(
                     reference,
@@ -39,11 +51,23 @@ impl PlatformPulseApplicationRuntime {
                 }
                 continue;
             }
-            let action = self
+            let query = self
                 .query_lifecycle
                 .as_mut()
-                .expect("prepared Pulse retains its Query lifecycle")
-                .execute_current_action(format!("ACTION {}", action_input_revision.value()));
+                .expect("prepared Pulse retains its Query lifecycle");
+            let status = format!("ACTION {}", action_input_revision.value());
+            let action = if query_denial_requested {
+                query.execute_denied_action(status)
+            } else {
+                if !request.begin_effect() {
+                    let _ = request.settle_indeterminate();
+                    self.fail_intent_settlement(
+                        "product request could not begin its declared effect phase",
+                    );
+                    return;
+                }
+                query.execute_current_action(status)
+            };
             match action {
                 Ok(crate::query_source::PlatformPulseQueryActionOutcome::Executed {
                     evidence,
@@ -57,16 +81,32 @@ impl PlatformPulseApplicationRuntime {
                     observation,
                 ),
                 Ok(crate::query_source::PlatformPulseQueryActionOutcome::Denied {
+                    denial,
                     active_query_source_revision,
                     submitted_query_source_revision,
                 }) => {
+                    let audience_denial = worth_ui_platform_pulse::observation_contract::
+                        PlatformPulseQueryAdmissionDenial::from_query(denial);
+                    if self
+                        .pending_query_denial_story
+                        .replace(audience_denial)
+                        .is_some()
+                    {
+                        let _ = request.fail_before_effect();
+                        self.fail_intent_settlement(
+                            "query-denial story already awaited its terminal posture",
+                        );
+                        return;
+                    }
                     let report = PlatformPulseQueryActionObservation::denied(
                         reference,
                         action_input_revision,
+                        denial,
                         active_query_source_revision,
                         submitted_query_source_revision,
                     );
                     if !request.reject_before_effect() {
+                        self.pending_query_denial_story = None;
                         self.fail_intent_settlement("denied product request lost its receiver");
                         return;
                     }

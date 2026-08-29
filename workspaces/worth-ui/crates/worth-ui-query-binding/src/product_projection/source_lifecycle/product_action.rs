@@ -50,8 +50,15 @@ pub enum WorthUiScalarProjectionActionOutcome {
     Indeterminate(WorthUiScalarProjectionActionIndeterminate),
 }
 
+/// Exact Query-side admission reason for a product projection action.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiScalarProjectionActionDenial {
+    SourceRevisionMismatch,
+}
+
 pub struct WorthUiScalarProjectionActionDenied {
     owner: WorthUiScalarProjectionActionLiveOwner,
+    denial: WorthUiScalarProjectionActionDenial,
     active_revision: u64,
     submitted_revision: u64,
 }
@@ -182,6 +189,7 @@ impl WorthUiScalarProjectionActionLiveOwner {
                 WorthUiScalarProjectionActionDenied {
                     active_revision: self.inner.revision,
                     submitted_revision: request.source_revision,
+                    denial: WorthUiScalarProjectionActionDenial::SourceRevisionMismatch,
                     owner: self,
                 },
             );
@@ -239,6 +247,10 @@ impl WorthUiScalarProjectionActionEvidence {
 }
 
 impl WorthUiScalarProjectionActionDenied {
+    pub const fn denial(&self) -> WorthUiScalarProjectionActionDenial {
+        self.denial
+    }
+
     pub fn active_revision(&self) -> u64 {
         self.active_revision
     }

@@ -160,7 +160,7 @@ fn assert_selection_payload(
         .expect("the exact current option becomes a selection interaction");
     assert_eq!(selection.option(), &expected_option);
     let route = super::product_route(
-        &world.interaction,
+        &mut world.interaction,
         UiSemanticInteraction::SelectionCommit(selection),
     );
     let prepared = world

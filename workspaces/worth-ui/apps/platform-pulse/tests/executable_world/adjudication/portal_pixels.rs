@@ -2,8 +2,12 @@ use super::platform_pulse_control_points::{checked_in, PlatformPulseControlPoint
 use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoint};
 
 mod authored_surface;
+mod focus_fallback;
 pub(crate) use authored_surface::{
     adjudicate_authored_portal_pixels, PlatformPulseAuthoredPortalPixelEvidence,
+};
+pub(crate) use focus_fallback::{
+    adjudicate_focus_fallback_portal_pixels, PlatformPulsePortalFocusFallbackPixelEvidence,
 };
 
 const MINIMUM_OVERLAY_MATCH_RATIO: usize = 4;
@@ -38,6 +42,15 @@ pub(crate) enum PlatformPulsePortalPixelFailure {
         matching: usize,
     },
     RestorationMissing {
+        differing: usize,
+        sampled: usize,
+    },
+    PreferredFocusParticipantRetained {
+        changed: usize,
+        background_matching: usize,
+        sampled: usize,
+    },
+    FallbackActionChanged {
         differing: usize,
         sampled: usize,
     },

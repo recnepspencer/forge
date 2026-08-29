@@ -48,6 +48,15 @@ fn retarget_replaces_one_track_and_emits_one_retarget_fact() {
             predecessor: UiMotionRetargetPredecessor::CurrentPresentationSample,
         })
     );
+    let interrupted = state
+        .last_interruption()
+        .expect("the owner retains its latest interruption cause");
+    assert_eq!(interrupted, second.fact());
+
+    state
+        .terminalize(second.track().identity(), UiMotionTerminalCause::Completed)
+        .expect("the retargeted track remains terminalizable");
+    assert_eq!(state.last_interruption(), Some(interrupted));
 }
 
 #[test]

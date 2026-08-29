@@ -29,6 +29,7 @@ pub(crate) enum PlatformPulseQueryActionOutcome {
         observation: UiProjectionObservation,
     },
     Denied {
+        denial: worth_ui::facade::query_binding::WorthUiScalarProjectionActionDenial,
         active_query_source_revision: u64,
         submitted_query_source_revision: u64,
     },
@@ -117,7 +118,28 @@ impl PlatformPulseQueryLifecycle {
         let request = WorthUiScalarProjectionActionRequest::new(source_revision.value(), status)
             .map_err(PlatformPulseQueryLifecycleDenial::ActionRequest)?;
         let owner = self.take_live_owner()?;
-        Ok(match owner.execute_action(request) {
+        Ok(self.retain_action_outcome(owner.execute_action(request)))
+    }
+
+    /// Exercises the real Query action boundary with a deliberately foreign
+    /// revision. This is a Pulse product scenario, not a synthetic denial.
+    pub(crate) fn execute_denied_action(
+        &mut self,
+        status: impl Into<String>,
+    ) -> Result<PlatformPulseQueryActionOutcome, PlatformPulseQueryLifecycleDenial> {
+        let source_revision = self.current_source_revision()?;
+        let submitted = source_revision.value().saturating_add(1);
+        let request = WorthUiScalarProjectionActionRequest::new(submitted, status)
+            .map_err(PlatformPulseQueryLifecycleDenial::ActionRequest)?;
+        let owner = self.take_live_owner()?;
+        Ok(self.retain_action_outcome(owner.execute_action(request)))
+    }
+
+    fn retain_action_outcome(
+        &mut self,
+        outcome: WorthUiScalarProjectionActionOutcome,
+    ) -> PlatformPulseQueryActionOutcome {
+        match outcome {
             WorthUiScalarProjectionActionOutcome::Executed(execution) => {
                 let (evidence, advance) = execution.into_parts();
                 let observation = self.retain_advance(advance);
@@ -127,10 +149,12 @@ impl PlatformPulseQueryLifecycle {
                 }
             }
             WorthUiScalarProjectionActionOutcome::Denied(denied) => {
+                let denial = denied.denial();
                 let active_query_source_revision = denied.active_revision();
                 let submitted_query_source_revision = denied.submitted_revision();
                 self.state = PlatformPulseQueryOwnerState::Live(denied.into_owner());
                 PlatformPulseQueryActionOutcome::Denied {
+                    denial,
                     active_query_source_revision,
                     submitted_query_source_revision,
                 }
@@ -140,7 +164,7 @@ impl PlatformPulseQueryLifecycle {
                 self.state = PlatformPulseQueryOwnerState::Indeterminate(indeterminate);
                 PlatformPulseQueryActionOutcome::Indeterminate { detail }
             }
-        })
+        }
     }
 
     fn current_source_revision(

@@ -105,6 +105,14 @@ impl UiResolvedProductIntentRoute {
         self.evidence_reference
     }
 
+    pub(crate) fn command_evidence_reference(
+        &self,
+    ) -> Option<worth_ui_inspection::UiIntentEvidenceReference> {
+        self.source
+            .command_receipt()
+            .and_then(crate::runtime::command_routing::UiCommandRouteReceipt::evidence_reference)
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -240,6 +248,15 @@ impl UiResolvedConfirmationIntentRoute {
 }
 
 impl UiIntentRouteResolution {
+    pub(crate) fn command_evidence_reference(
+        &self,
+    ) -> Option<worth_ui_inspection::UiIntentEvidenceReference> {
+        match self {
+            Self::Product(route) => route.command_evidence_reference(),
+            Self::Confirmation(_) => None,
+        }
+    }
+
     pub(crate) fn with_evidence_reference(
         mut self,
         reference: Option<worth_ui_inspection::UiIntentEvidenceReference>,

@@ -28,6 +28,8 @@ component platform.pulse.component.evidence_title {}
 component platform.pulse.component.evidence_body {}
 component platform.pulse.component.source_signal_title {}
 component platform.pulse.component.source_signal_active {}
+component platform.pulse.component.evidence_service_label {}
+component platform.pulse.component.evidence_service_body {}
 component platform.pulse.component.service_stage {}
 component platform.pulse.component.service_stage_border {}
 component platform.pulse.component.query_accent {}
@@ -42,6 +44,8 @@ component platform.pulse.component.native_card {}
 component platform.pulse.component.native_card_border {}
 component platform.pulse.component.native_label {}
 component platform.pulse.component.native_body {}
+component platform.pulse.component.query_denial_label {}
+component platform.pulse.component.query_denial_body {}
 component platform.pulse.component.status_band {}
 component platform.pulse.component.status_text {}
 component platform.pulse.component.identity_target {
@@ -87,6 +91,7 @@ intent platform.pulse.action.route {
   definition platform.pulse.action;
   interaction activate;
   payload action_input_revision application-unsigned64 platform.pulse.action.input-revision;
+  payload query_denial_requested application-boolean platform.pulse.action.query-denial-requested;
   operability platform.pulse.action.operability
     mutability-application-boolean platform.pulse.action.mutable
     readiness-application-boolean platform.pulse.action.ready
@@ -131,6 +136,15 @@ intent platform.pulse.portal.cancel.route {
     application-boolean platform.pulse.portal.dismiss.confirmation-required;
   concurrency target-route-single-flight;
   consequences mounted-posture;
+}
+command platform.pulse.command.run.application {
+  shortcut Primary+Shift+P;
+  scope application;
+}
+command platform.pulse.command.run.portal {
+  shortcut Primary+Shift+P;
+  scope active_portal;
+  binding platform.pulse.component.portal_target;
 }
 token theme.platform_pulse.fill = "theme.platform_pulse.blue";
 token theme.platform_pulse.canvas = "theme.platform_pulse.palette.canvas";

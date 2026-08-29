@@ -2,6 +2,7 @@
 pub enum UiIntentRouteResolutionStop {
     ApplicationGenerationChanged,
     CommandInvocationBasisMissing,
+    CommandEvidenceMissing,
     CommandDestinationUnrouted {
         intent: crate::capability::UiIntentId,
     },

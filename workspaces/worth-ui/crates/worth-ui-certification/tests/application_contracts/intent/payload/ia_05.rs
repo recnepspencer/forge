@@ -95,7 +95,7 @@ fn ia_05_application_facts_seal_exact_owner_revisions() {
         assert_eq!(receipt.revision(), 2);
     }
     let interaction = activation(&mut world, [10, 20]);
-    let route = product_route(&world.interaction, interaction);
+    let route = product_route(&mut world.interaction, interaction);
     let prepared = world
         .interaction
         .session
@@ -129,7 +129,7 @@ fn ia_05_application_facts_seal_exact_owner_revisions() {
 fn assert_zero_field_file_world() {
     let mut world = super::super::declaration::support::file_world();
     let interaction = activation_interaction(&mut world, [20, 20]);
-    let route = product_route(&world, interaction);
+    let route = product_route(&mut world, interaction);
     let prepared = world
         .session
         .prepare_intent_payload(route)
@@ -170,7 +170,7 @@ fn assert_one_query_field() {
     world.interaction.publish_successor();
 
     let interaction = activation(&mut world, [10, 20]);
-    let route = product_route(&world.interaction, interaction);
+    let route = product_route(&mut world.interaction, interaction);
     let prepared = world
         .interaction
         .session
@@ -206,7 +206,7 @@ fn assert_sixty_four_constant_fields() {
         PayloadApplicationFacts::default(),
     );
     let interaction = activation(&mut world, [10, 20]);
-    let route = product_route(&world.interaction, interaction);
+    let route = product_route(&mut world.interaction, interaction);
     let prepared = world
         .interaction
         .session
@@ -313,7 +313,7 @@ fn activation_interaction(
 }
 
 fn product_route(
-    world: &super::super::interaction_world::InteractionWorld,
+    world: &mut super::super::interaction_world::InteractionWorld,
     interaction: UiSemanticInteraction,
 ) -> worth_ui::facade::intent::UiResolvedProductIntentRoute {
     match world

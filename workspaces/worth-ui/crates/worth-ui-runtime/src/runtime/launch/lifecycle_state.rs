@@ -144,6 +144,7 @@ pub struct WorthUiRuntimeShutdownReceipt {
     observation_resources: crate::runtime::observation::UiObservationResourceRetirementReport,
     intent_evidence: worth_ui_inspection::UiIntentEvidenceRetirementReport,
     intent_resource_census: crate::runtime::session::UiIntentResourceCensus,
+    runtime_service_resource_census: worth_ui_inspection::UiRuntimeServiceResourceCensus,
     rebind: crate::runtime::rebind::UiRebindShutdownReport,
     host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
     host_session_recovery: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
@@ -178,6 +179,8 @@ impl WorthUiRuntimeShutdownReceipt {
             observation_resources: Default::default(),
             intent_evidence: Default::default(),
             intent_resource_census: crate::runtime::session::UiIntentResourceCensus::EMPTY,
+            runtime_service_resource_census:
+                worth_ui_inspection::UiRuntimeServiceResourceCensus::EMPTY,
             rebind: Default::default(),
             host_session_release: None,
             host_session_recovery: None,
@@ -252,6 +255,12 @@ impl WorthUiRuntimeShutdownReceipt {
 
     pub const fn intent_resource_census(&self) -> crate::runtime::session::UiIntentResourceCensus {
         self.intent_resource_census
+    }
+
+    pub const fn runtime_service_resource_census(
+        &self,
+    ) -> worth_ui_inspection::UiRuntimeServiceResourceCensus {
+        self.runtime_service_resource_census
     }
 
     pub fn host_session_release(

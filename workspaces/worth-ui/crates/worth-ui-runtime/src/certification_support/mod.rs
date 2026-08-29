@@ -29,6 +29,8 @@ mod presentation_async_installation;
 mod presentation_mechanics;
 mod rebind_identity_lifecycle;
 mod runtime_launch;
+#[cfg(feature = "certification-support")]
+mod runtime_service_scale;
 mod scripted_presentation_host;
 mod scroll_observation;
 mod semantic_text_projection;
@@ -119,6 +121,8 @@ pub use rebind_identity_lifecycle::{
     WorthUiNodeLifecycleTransition,
 };
 pub use runtime_launch::launch_empty_runtime_for_certification;
+#[cfg(feature = "certification-support")]
+pub use runtime_service_scale::{runtime_service_scale_evidence, UiRuntimeServiceScaleEvidence};
 pub use scripted_presentation_host::{
     presented_completion, recorded_effects, scripted_presentation_epoch, ScriptedPresentationHost,
     ScriptedSurfaceCompletion,

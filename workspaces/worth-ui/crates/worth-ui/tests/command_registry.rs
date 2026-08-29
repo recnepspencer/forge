@@ -265,7 +265,7 @@ fn focused_and_portal_routes_require_an_exact_authored_scope_identity() {
         );
     }
 
-    let identity = UiCommandRouteScopeIdentity::for_authored_semantic_name("editor.control");
+    let identity = UiCommandRouteScopeIdentity::for_authored_component("editor.control");
     let app = WorthUi::app()
         .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(

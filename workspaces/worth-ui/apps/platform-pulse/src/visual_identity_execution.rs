@@ -109,8 +109,14 @@ impl PlatformPulseVisualIdentityExecution {
             | Some(PlatformPulseVisualIdentityState::Comparing(_)) => {
                 PlatformPulseContentMutationReadiness::DeferredForVisualComparison
             }
-            Some(PlatformPulseVisualIdentityState::AwaitingRebase { .. })
+            Some(PlatformPulseVisualIdentityState::Settling { .. })
+            | Some(PlatformPulseVisualIdentityState::Capturing(_))
+            | Some(PlatformPulseVisualIdentityState::AwaitingCapture { .. })
+            | Some(PlatformPulseVisualIdentityState::OverlayVisible(_))
+            | Some(PlatformPulseVisualIdentityState::AwaitingRebase { .. })
+            | Some(PlatformPulseVisualIdentityState::Rebasing(_))
             | Some(PlatformPulseVisualIdentityState::AwaitingRefresh { .. })
+            | Some(PlatformPulseVisualIdentityState::Refreshing(_))
             | Some(PlatformPulseVisualIdentityState::Transitioning)
             | None => PlatformPulseContentMutationReadiness::TransitionInProgress,
             Some(_) => PlatformPulseContentMutationReadiness::Ready,

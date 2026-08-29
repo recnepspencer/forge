@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 mod causal_trace;
 mod projection;
+mod query_action;
 mod watcher_shutdown;
 
 pub use causal_trace::{
@@ -11,6 +12,7 @@ pub use causal_trace::{
     PlatformPulseIntentPayloadTrace, PlatformPulseIntentRouteTrace, PlatformPulseIntentSourceTrace,
     PlatformPulseIntentTraceProjectionDenial,
 };
+pub use query_action::{PlatformPulseQueryActionObservation, PlatformPulseQueryAdmissionDenial};
 pub use watcher_shutdown::PlatformPulseIntentWatcherShutdownEvidence;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -32,6 +34,7 @@ pub struct PlatformPulseIntentInputObservation {
     revision: u64,
     operability: PlatformPulseIntentOperabilityObservation,
     executor_gate: PlatformPulseIntentExecutorGateObservation,
+    query_denial_requested: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -51,34 +54,6 @@ pub struct PlatformPulseIntentExecutorStartedObservation {
     provider_polls: u64,
     cancellation_calls: u64,
     settlements: u64,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(tag = "posture", content = "evidence")]
-pub enum PlatformPulseQueryActionObservation {
-    Executed {
-        reference: PlatformPulseIntentAttemptObservationReference,
-        action_input_revision: u64,
-        query_source_revision: u64,
-        status: String,
-        query_receipt_digest: String,
-        affected_live_view_ids: Vec<String>,
-    },
-    Denied {
-        reference: PlatformPulseIntentAttemptObservationReference,
-        action_input_revision: u64,
-        active_query_source_revision: u64,
-        submitted_query_source_revision: u64,
-    },
-    Indeterminate {
-        reference: PlatformPulseIntentAttemptObservationReference,
-        action_input_revision: u64,
-        detail: String,
-    },
-    CancelledBeforeEffect {
-        reference: PlatformPulseIntentAttemptObservationReference,
-        action_input_revision: u64,
-    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -103,6 +78,15 @@ pub enum PlatformPulseIntentPostureObservation {
     },
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(tag = "posture", content = "evidence")]
+pub enum PlatformPulseIntentRoutingStoppedObservation {
+    Unrouted {
+        graph_node: u64,
+        interaction: PlatformPulseIntentInteractionFamily,
+    },
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlatformPulseIntentPosturePublished {
     posture: PlatformPulseIntentPostureObservation,
@@ -120,6 +104,10 @@ impl PlatformPulseIntentInputObservation {
 
     pub fn executor_gate(self) -> PlatformPulseIntentExecutorGateObservation {
         self.executor_gate
+    }
+
+    pub fn query_denial_requested(self) -> bool {
+        self.query_denial_requested
     }
 
     pub fn from_record(record: &crate::intent::PlatformPulseIntentInputRecord) -> Self {
@@ -143,6 +131,7 @@ impl PlatformPulseIntentInputObservation {
             revision: record.revision(),
             operability,
             executor_gate,
+            query_denial_requested: record.query_denial_requested(),
         }
     }
 }
@@ -298,6 +287,31 @@ impl PlatformPulseIntentPostureObservation {
     }
 }
 
+impl PlatformPulseIntentRoutingStoppedObservation {
+    pub fn unrouted(
+        graph_node: worth_ui::facade::graph::UiGraphNodeIdentity,
+        interaction: worth_ui::facade::intent::UiSemanticInteractionFamily,
+    ) -> Self {
+        Self::Unrouted {
+            graph_node: graph_node.digest(),
+            interaction: match interaction {
+                worth_ui::facade::intent::UiSemanticInteractionFamily::Activate => {
+                    PlatformPulseIntentInteractionFamily::Activate
+                }
+                worth_ui::facade::intent::UiSemanticInteractionFamily::EditCommit => {
+                    PlatformPulseIntentInteractionFamily::EditCommit
+                }
+                worth_ui::facade::intent::UiSemanticInteractionFamily::SelectionCommit => {
+                    PlatformPulseIntentInteractionFamily::SelectionCommit
+                }
+                worth_ui::facade::intent::UiSemanticInteractionFamily::Submit => {
+                    PlatformPulseIntentInteractionFamily::Submit
+                }
+            },
+        }
+    }
+}
+
 impl PlatformPulseIntentPosturePublished {
     pub(super) fn new(
         posture: PlatformPulseIntentPostureObservation,
@@ -320,59 +334,6 @@ impl PlatformPulseIntentPosturePublished {
     }
 }
 
-impl PlatformPulseQueryActionObservation {
-    pub fn executed(
-        reference: crate::intent::PlatformPulseActionAttemptReference,
-        action_input_revision: crate::intent::PlatformPulseActionInputRevision,
-        evidence: &worth_ui::facade::query_binding::WorthUiScalarProjectionActionEvidence,
-    ) -> Self {
-        Self::Executed {
-            reference: PlatformPulseIntentAttemptObservationReference::from_product(reference),
-            action_input_revision: action_input_revision.value(),
-            query_source_revision: evidence.source_revision(),
-            status: evidence.status().to_owned(),
-            query_receipt_digest: evidence.query_receipt_digest().to_owned(),
-            affected_live_view_ids: evidence.affected_live_view_ids().to_vec(),
-        }
-    }
-
-    pub fn denied(
-        reference: crate::intent::PlatformPulseActionAttemptReference,
-        action_input_revision: crate::intent::PlatformPulseActionInputRevision,
-        active_query_source_revision: u64,
-        submitted_query_source_revision: u64,
-    ) -> Self {
-        Self::Denied {
-            reference: PlatformPulseIntentAttemptObservationReference::from_product(reference),
-            action_input_revision: action_input_revision.value(),
-            active_query_source_revision,
-            submitted_query_source_revision,
-        }
-    }
-
-    pub fn indeterminate(
-        reference: crate::intent::PlatformPulseActionAttemptReference,
-        action_input_revision: crate::intent::PlatformPulseActionInputRevision,
-        detail: String,
-    ) -> Self {
-        Self::Indeterminate {
-            reference: PlatformPulseIntentAttemptObservationReference::from_product(reference),
-            action_input_revision: action_input_revision.value(),
-            detail,
-        }
-    }
-
-    pub fn cancelled_before_effect(
-        reference: crate::intent::PlatformPulseActionAttemptReference,
-        action_input_revision: crate::intent::PlatformPulseActionInputRevision,
-    ) -> Self {
-        Self::CancelledBeforeEffect {
-            reference: PlatformPulseIntentAttemptObservationReference::from_product(reference),
-            action_input_revision: action_input_revision.value(),
-        }
-    }
-}
-
 fn count(value: usize) -> u64 {
     u64::try_from(value).unwrap_or(u64::MAX)
 }
@@ -390,6 +351,10 @@ mod tests {
         let (record, watch) = installation.into_parts();
         let observation = PlatformPulseIntentInputObservation::from_record(&record);
         assert_eq!(observation.revision(), record.revision());
+        assert_eq!(
+            observation.query_denial_requested(),
+            record.query_denial_requested()
+        );
         watch.shutdown().expect("intent watch closes");
     }
 }

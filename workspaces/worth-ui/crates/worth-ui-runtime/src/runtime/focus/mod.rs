@@ -11,6 +11,8 @@ mod receipt;
 mod request;
 mod restoration;
 mod routing;
+#[cfg(feature = "certification-support")]
+mod scale_certification;
 mod semantic_focus;
 mod state;
 #[cfg(test)]
@@ -40,5 +42,7 @@ pub(in crate::runtime) use request::{UiFocusRequest, UiFocusTraversalDirection};
 pub(in crate::runtime) use restoration::UiFocusRestorationToken;
 pub(in crate::runtime) use routing::UiFocusPlan;
 pub(crate) use routing::UiFocusRoutingDenial;
+#[cfg(feature = "certification-support")]
+pub(crate) use scale_certification::focus_scale_evidence;
 pub(crate) use semantic_focus::UiSemanticKeyboardFocus;
 pub(crate) use state::UiFocusRuntimeState;

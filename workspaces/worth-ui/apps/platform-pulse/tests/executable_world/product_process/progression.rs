@@ -88,6 +88,7 @@ pub(crate) struct ComparisonBasisRefreshed<Stage> {
 }
 
 pub(crate) type SecondCurrent = ComparisonBasisRefreshed<SecondQueryCurrent>;
+pub(crate) type PortalReady = SecondCurrent;
 
 pub(crate) struct SnapshotCaptured<Stage> {
     pub(super) prior: Stage,
