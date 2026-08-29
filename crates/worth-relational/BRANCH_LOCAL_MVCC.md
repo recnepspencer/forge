@@ -70,7 +70,7 @@ an `AdmittedRelationalBranchBasis`. Use the admitted basis's
 ```rust,no_run
 use worth_relational::facade::runtime::RelationalRuntime;
 
-fn open_exact_read(runtime: &mut RelationalRuntime) {
+fn open_exact_read(runtime: &RelationalRuntime) {
     let identity = runtime.main_branch_identity();
     let (_descriptor, basis) = runtime
         .observe_branch(&identity)
@@ -94,8 +94,9 @@ must pass `readmit_branch_basis`; deserialization cannot restore authority.
 `begin_branch_transaction` validates runtime identity, branch identity,
 lifecycle, exact currentness, and retention before returning a detached
 `BranchBoundRelationalTransaction`. The transaction owns its overlay, declared
-read/write footprint, and retained basis. It does not borrow
-`&mut RelationalRuntime` for its lifetime.
+read/write footprint, and retained basis. It holds no borrow of the runtime for
+its lifetime; the owner operations that consume it take `&RelationalRuntime`,
+so an open transaction never excludes another owner.
 
 Preparation performs the fallible work before effects: schema and invariant
 validation, footprint validation, canonical commit assembly, immutable-root
@@ -104,7 +105,7 @@ materialization, and resource checks. A
 single-use, and retained. Preparing, discarding, expiring, or losing a
 candidate does not move a public reference.
 
-The convenience `transaction.commit(&mut runtime)` follows the same
+The convenience `transaction.commit(&runtime)` follows the same
 prepare/publish/settle path. Integration owners that need the explicit
 linearization result use the publication port described in
 [`OWNER_COMPONENT_PORT.md`](./OWNER_COMPONENT_PORT.md).

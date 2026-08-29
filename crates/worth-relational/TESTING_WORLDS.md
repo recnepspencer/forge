@@ -355,8 +355,12 @@ and an oracle match once both phases finish. A regression to a whole-runtime
 exclusive borrow convicts at compile time rather than here; what these courts
 convict is a runtime gate that serializes independent branches. Their reach is
 bounded accordingly: preparation parks near the top of its phase and cannot
-speak for a gate taken later in it, and **settlement locality is not yet
-covered** because the independently borrowable settlement port is later work.
+speak for a gate taken later in it, and **settlement locality is not covered at
+this production boundary**. The independently borrowable settlement port now
+exists, and `owner_service_phase3::phase3_paused_settlement_does_not_block_an_unrelated_branch_commit`
+parks a settlement and requires an unrelated branch to commit through it, but
+that court runs at the focused lib boundary. No court yet carries a paused
+settlement through the public certification facade.
 
 ## Preservation evidence
 
