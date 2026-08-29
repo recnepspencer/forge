@@ -1,8 +1,7 @@
 use worth_ui_host_contract::{
     UiHostSurfaceCancellationOutcome, UiHostSurfaceInFlightCompletion,
-    UiHostSurfacePresentationDenial, UiHostSurfacePresentationOutcome,
-    UiMountedPresentationAttemptIdentity, UiMountedSurfaceBindingRequirement,
-    UiPresentationDeadline,
+    UiHostSurfacePresentationOutcome, UiMountedPresentationAttemptIdentity,
+    UiMountedSurfaceBindingRequirement, UiPresentationDeadline,
 };
 
 use super::super::consumption_view::{
@@ -27,8 +26,8 @@ pub(crate) enum UiMotionSamplePresentationOutcome {
         prepared: super::super::motion_sampling::UiPreparedMotionSampling,
         presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
     },
-    RejectedBeforeEffects(UiHostSurfacePresentationDenial),
-    InFlight(UiMountedPresentationAttemptIdentity),
+    RejectedBeforeEffects,
+    InFlight,
     Superseded,
     PresentationIndeterminate,
 }
@@ -66,9 +65,7 @@ impl UiMountedPresentationCoordinator {
         authority: UiMountedHostPresentationAuthority<'_>,
     ) -> UiMotionSamplePresentationOutcome {
         let Some(state) = self.presentation_states.get(&presentation.binding()) else {
-            return UiMotionSamplePresentationOutcome::RejectedBeforeEffects(
-                UiHostSurfacePresentationDenial::StalePredecessor,
-            );
+            return UiMotionSamplePresentationOutcome::RejectedBeforeEffects;
         };
         let requirement = state.motion_sample_requirement();
         if self.shutting_down
@@ -85,9 +82,7 @@ impl UiMountedPresentationCoordinator {
                 .host_truth
                 .surface_requires_reconciliation(requirement.semantic_surface())
         {
-            return UiMotionSamplePresentationOutcome::RejectedBeforeEffects(
-                UiHostSurfacePresentationDenial::AdapterDeclined,
-            );
+            return UiMotionSamplePresentationOutcome::RejectedBeforeEffects;
         }
         let work = match state.issue_motion_sample(
             prepared.receipt(),
@@ -95,19 +90,13 @@ impl UiMountedPresentationCoordinator {
             authority.presentation(),
         ) {
             Ok(work) => work,
-            Err(_) => {
-                return UiMotionSamplePresentationOutcome::RejectedBeforeEffects(
-                    UiHostSurfacePresentationDenial::MalformedProjection,
-                )
-            }
+            Err(_) => return UiMotionSamplePresentationOutcome::RejectedBeforeEffects,
         };
         let expected_effects = state
             .expected_completion_effects(Some(state), &work, requirement.presentation_mode())
             .into_boxed_slice();
         let Ok(attempt) = UiMountedPresentationAttemptIdentity::mint_unbound() else {
-            return UiMotionSamplePresentationOutcome::RejectedBeforeEffects(
-                UiHostSurfacePresentationDenial::CapacityExceeded,
-            );
+            return UiMotionSamplePresentationOutcome::RejectedBeforeEffects;
         };
         self.active.borrow_mut().insert(attempt);
         let deadline = UiPresentationDeadline::at_tick(
@@ -185,9 +174,9 @@ impl UiMountedPresentationCoordinator {
         outcome: UiHostSurfacePresentationOutcome,
     ) -> UiMotionSamplePresentationOutcome {
         match outcome {
-            UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial) => {
+            UiHostSurfacePresentationOutcome::RejectedBeforeEffects(_) => {
                 self.active.borrow_mut().remove(&attempt);
-                UiMotionSamplePresentationOutcome::RejectedBeforeEffects(denial)
+                UiMotionSamplePresentationOutcome::RejectedBeforeEffects
             }
             UiHostSurfacePresentationOutcome::Presented(completion) => {
                 self.active.borrow_mut().remove(&attempt);
@@ -215,7 +204,7 @@ impl UiMountedPresentationCoordinator {
                     presentation,
                     expected_effects,
                 });
-                UiMotionSamplePresentationOutcome::InFlight(attempt)
+                UiMotionSamplePresentationOutcome::InFlight
             }
             UiHostSurfacePresentationOutcome::PresentationIndeterminate => {
                 self.active.borrow_mut().remove(&attempt);
@@ -233,13 +222,12 @@ impl UiMountedPresentationCoordinator {
         match completion {
             UiHostSurfaceInFlightCompletion::Pending(token) => {
                 pending.token = Some(token);
-                let attempt = pending.attempt;
                 self.motion_sample_in_flight = Some(pending);
-                UiMotionSamplePresentationOutcome::InFlight(attempt)
+                UiMotionSamplePresentationOutcome::InFlight
             }
-            UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(denial) => {
+            UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(_) => {
                 self.active.borrow_mut().remove(&pending.attempt);
-                UiMotionSamplePresentationOutcome::RejectedBeforeEffects(denial)
+                UiMotionSamplePresentationOutcome::RejectedBeforeEffects
             }
             UiHostSurfaceInFlightCompletion::Presented(completion) => {
                 self.active.borrow_mut().remove(&pending.attempt);

@@ -132,6 +132,9 @@ impl UiMountedFrameRetentionCoordinator {
     ) -> Result<UiMountedObservationBasisLease, UiMountedObservationBasisRetentionDenial> {
         let structural_bytes = {
             let authority = self.authority.borrow();
+            if !authority.reservations.is_empty() {
+                return Err(UiMountedObservationBasisRetentionDenial::FrameTransitionInFlight);
+            }
             match authority.frame(frame) {
                 UiMountedRetainedFrameLookup::Found { evidence, .. } => evidence.structural_bytes(),
                 UiMountedRetainedFrameLookup::Expired { .. } => {

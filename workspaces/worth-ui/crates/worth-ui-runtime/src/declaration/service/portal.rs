@@ -12,6 +12,7 @@ pub(crate) struct UiDeclaredPortalPlacementGeometry {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) enum UiDeclaredPortalPlacementGeometryDenial {
     EmptyExtent,
     MarginConsumesExtent,
@@ -33,6 +34,7 @@ impl UiDeclaredPortalPlacementGeometry {
         }
     }
 
+    #[cfg(test)]
     pub(crate) const fn checked(
         preferred_width: u16,
         maximum_height: u16,

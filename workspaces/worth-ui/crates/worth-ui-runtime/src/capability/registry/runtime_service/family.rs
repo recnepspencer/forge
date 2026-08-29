@@ -18,6 +18,7 @@ impl UiRuntimeServiceFamily {
         Self::Selection,
     ];
 
+    #[cfg(test)]
     pub(crate) const fn stable_name(self) -> &'static str {
         match self {
             Self::Portal => "portal",

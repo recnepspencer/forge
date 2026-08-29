@@ -33,16 +33,6 @@ impl DiagnosticsState {
         self.profile()
     }
 
-    pub fn set_profile(&mut self, profile: DiagnosticsTier) {
-        self.request_mirror = SignalRuntimePolicy::for_tier(profile);
-    }
-
-    /// The caller-authored request mirror.  Runtime decisions must use the
-    /// installed policy projection instead.
-    pub fn request_mirror(&self) -> SignalRuntimePolicy {
-        self.request_mirror
-    }
-
     pub fn set_request_mirror(&mut self, policy: SignalRuntimePolicy) {
         self.request_mirror = policy;
     }
@@ -96,6 +86,7 @@ impl DiagnosticsState {
         self.pending_graph_summary.as_ref()
     }
 
+    #[cfg(test)]
     pub fn latest_frontier_execution(&self) -> Option<&FrontierDiagnosticsSidecar> {
         self.latest_frontier_execution.as_ref()
     }

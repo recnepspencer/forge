@@ -12,12 +12,12 @@ mod demand_join;
 #[path = "preparation/mounted_work.rs"]
 mod mounted_work;
 
+#[cfg(test)]
+use super::rasterization::UiNativeTextRasterWorkReport;
 use demand_join::{prepare_demands, MountedTextDemandJoin, PreparedDemand};
 pub(super) use mounted_work::mounted_semantic_text;
 use mounted_work::{logical_damage, MountedSemanticTextCommand, MountedSemanticTextWork};
 use worth_ui_text::{UiGlyphRasterDemandBatch, UiGlyphRasterDemandDenial, UiGlyphRasterLane};
-
-use super::rasterization::UiNativeTextRasterWorkReport;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiNativeTextPresentationReadiness {
@@ -76,13 +76,10 @@ pub(crate) struct UiNativeTextPresentationPrepared {
     pin_removals: Box<[UiMountedPaintCommandIdentity]>,
     pin_set_complete: bool,
     planning: Option<UiNativeTextDemandInspection>,
-    raster_work: UiNativeTextRasterWorkReport,
     performed_layout_work: [u64; 17],
 }
 
 pub(crate) struct UiNativeTextPresentationDenial {
-    layout_count: usize,
-    paint_span_count: usize,
     readiness: UiNativeTextPresentationReadiness,
 }
 
@@ -117,7 +114,7 @@ pub(crate) fn prepare_mounted_semantic_text<'work>(
     };
     Some(match prepare_demands(&pin_work.mechanics, &join) {
         Ok(demands) => inspect_demand_boundary(&pin_work, demands),
-        Err(readiness) => denied_preparation(&pin_work.mechanics, readiness),
+        Err(readiness) => denied_preparation(readiness),
     })
 }
 
@@ -173,7 +170,6 @@ fn inspect_demand_boundary(
         pin_removals: pin_work.removals.clone().into_boxed_slice(),
         pin_set_complete: pin_work.complete,
         planning: Some(inspection),
-        raster_work: UiNativeTextRasterWorkReport::not_admitted(),
         performed_layout_work: layout_work_counts(&pin_work.mechanics),
     })
 }
@@ -211,8 +207,9 @@ impl UiNativeTextPresentationPrepared {
         self.planning
     }
 
+    #[cfg(test)]
     pub(crate) const fn raster_work(&self) -> UiNativeTextRasterWorkReport {
-        self.raster_work
+        UiNativeTextRasterWorkReport::not_admitted()
     }
 
     pub(crate) const fn performed_layout_work(&self) -> [u64; 17] {
@@ -227,14 +224,9 @@ impl UiNativeTextPresentationDenial {
 }
 
 fn denied_preparation(
-    mechanics: &[MountedSemanticTextCommand<'_>],
     readiness: UiNativeTextPresentationReadiness,
 ) -> UiNativeTextPresentationPreparation {
-    UiNativeTextPresentationPreparation::Denied(UiNativeTextPresentationDenial {
-        layout_count: 0,
-        paint_span_count: paint_span_count(mechanics),
-        readiness,
-    })
+    UiNativeTextPresentationPreparation::Denied(UiNativeTextPresentationDenial { readiness })
 }
 
 fn paint_span_count(mechanics: &[MountedSemanticTextCommand<'_>]) -> usize {

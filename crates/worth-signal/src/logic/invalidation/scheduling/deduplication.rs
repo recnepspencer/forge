@@ -1,8 +1,10 @@
 use crate::data::proof::invalidation::progression::{
     InvalidationProgressionOwner, InvalidationWorkBindingAxes, ReadyInvalidationBatch,
 };
+#[cfg(test)]
 use crate::data::proof::invalidation::revalidation::NodeInvalidationInput;
 
+#[cfg(test)]
 pub(crate) fn merge_repeated_current_admission(
     graph: &mut crate::data::graph::SignalGraph,
     target: crate::data::handle::NodeId,

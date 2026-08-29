@@ -41,6 +41,7 @@ impl UiPortalOwnerIdentity {
         self.graph_node
     }
 
+    #[cfg(test)]
     pub(crate) const fn mounted_instance(self) -> u64 {
         self.mounted_instance.diagnostic_value()
     }

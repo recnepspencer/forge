@@ -14,7 +14,7 @@ pub(in crate::runtime) enum UiServiceProposalReservationOutcome {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalReservationDenial {
+pub(crate) enum UiServiceProposalReservationDenial {
     Occupancy(super::super::UiServiceProposalOccupancyDenial),
     Cancellation(super::super::UiServiceProposalCancellationDenial),
     Census(super::super::UiServiceProposalCensusDenial),
@@ -35,6 +35,7 @@ impl UiReservedServiceProposal {
         &self.leases
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn displacement(
         &self,
     ) -> Option<super::super::UiServiceProposalDisplacement> {
@@ -69,10 +70,12 @@ impl UiReservedServiceProposal {
 }
 
 impl UiServiceProposalBeforeEffectCancellationReceipt {
+    #[cfg(test)]
     pub(in crate::runtime) const fn proposal(self) -> super::UiServiceProposalIdentity {
         self.proposal
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn released_leases(self) -> u16 {
         self.released_leases
     }

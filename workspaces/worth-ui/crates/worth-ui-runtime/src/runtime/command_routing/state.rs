@@ -70,12 +70,6 @@ impl UiCommandRoutingRuntimeState {
         application: &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
     ) -> super::UiCommandRoutingOutcome {
         self.invocations = self.invocations.saturating_add(1);
-        if !context.declaration_ready() {
-            self.cancel_prefix();
-            return super::UiCommandRoutingOutcome::Suppressed(
-                super::UiCommandRoutingSuppression::DeclarationNotReady,
-            );
-        }
         if let Some(prefix) = self.prefix.take() {
             self.occupancy_revision = self.occupancy_revision.saturating_add(1);
             let first = prefix.first();
@@ -104,69 +98,12 @@ impl UiCommandRoutingRuntimeState {
         self.resolve_first(stroke, repeat, context, application)
     }
 
-    pub(crate) fn route_command(
-        &mut self,
-        command: &crate::capability::CommandId,
-        context: super::UiCommandRoutingContext,
-        application: &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
-        origin: super::UiCommandInvocationOrigin,
-    ) -> super::UiCommandRoutingOutcome {
-        let outcome = self.route_command_unrecorded(command, context, application, origin);
-        self.record_outcome(&outcome);
-        outcome
-    }
-
-    fn route_command_unrecorded(
-        &mut self,
-        command: &crate::capability::CommandId,
-        context: super::UiCommandRoutingContext,
-        application: &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
-        origin: super::UiCommandInvocationOrigin,
-    ) -> super::UiCommandRoutingOutcome {
-        self.invocations = self.invocations.saturating_add(1);
-        if !context.declaration_ready() {
-            return super::UiCommandRoutingOutcome::Suppressed(
-                super::UiCommandRoutingSuppression::DeclarationNotReady,
-            );
-        }
-        let Some(candidate) = self.plan.command_candidate(command) else {
-            return super::UiCommandRoutingOutcome::Unmatched;
-        };
-        self.candidates_visited = self.candidates_visited.saturating_add(1);
-        if !context.scope_is_active(candidate.route())
-            || !context.supports_consumption(candidate.route().context())
-        {
-            return super::UiCommandRoutingOutcome::Unmatched;
-        }
-        super::UiCommandRoutingOutcome::Routed(super::UiCommandRouteReceipt::new(
-            candidate,
-            application,
-            &context,
-            origin,
-            Box::default(),
-        ))
-    }
-
     pub(crate) fn cancel_prefix(&mut self) -> bool {
         let cancelled = self.prefix.take().is_some();
         if cancelled {
             self.occupancy_revision = self.occupancy_revision.saturating_add(1);
         }
         cancelled
-    }
-
-    pub(crate) fn unload_registration_owner(
-        &mut self,
-        owner: crate::capability::UiCommandRegistrationOwner,
-    ) -> usize {
-        if self
-            .prefix
-            .as_ref()
-            .is_some_and(|prefix| prefix.belongs_to(owner))
-        {
-            self.cancel_prefix();
-        }
-        self.plan.unload(owner)
     }
 
     pub(crate) fn shutdown(&mut self) -> usize {
@@ -225,9 +162,8 @@ impl UiCommandRoutingRuntimeState {
             (false, true) => super::resolution::resolve_complete(single, application, &context),
             (true, false) => {
                 let count = prefix.len();
-                let owners = super::resolution::prefix_owners(&prefix);
                 drop(prefix);
-                self.await_prefix(stroke, count, owners, context, application)
+                self.await_prefix(stroke, count, context, application)
             }
             (false, false) => {
                 let single_rank = super::resolution::maximum_rank(&single);
@@ -238,9 +174,8 @@ impl UiCommandRoutingRuntimeState {
                     }
                     core::cmp::Ordering::Less => {
                         let count = prefix.len();
-                        let owners = super::resolution::prefix_owners(&prefix);
                         drop(prefix);
-                        self.await_prefix(stroke, count, owners, context, application)
+                        self.await_prefix(stroke, count, context, application)
                     }
                     core::cmp::Ordering::Equal => super::UiCommandRoutingOutcome::Suppressed(
                         super::UiCommandRoutingSuppression::PrefixConflict,
@@ -289,7 +224,6 @@ impl UiCommandRoutingRuntimeState {
         &mut self,
         first: super::input_stroke::UiCommandInputStroke,
         candidate_count: usize,
-        owners: Box<[Option<crate::capability::UiCommandRegistrationOwner>]>,
         context: super::UiCommandRoutingContext,
         application: &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
     ) -> super::UiCommandRoutingOutcome {
@@ -301,7 +235,6 @@ impl UiCommandRoutingRuntimeState {
         self.occupancy_revision = self.occupancy_revision.saturating_add(1);
         self.prefix = Some(super::prefix::UiCommandPrefixOccupancy::new(
             first,
-            owners,
             self.occupancy_revision,
             application.clone(),
             context,

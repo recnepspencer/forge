@@ -1,10 +1,7 @@
 use core::num::NonZeroU64;
 
 #[derive(Debug)]
-pub(in crate::runtime) struct UiAdmittedIntentServiceRequestAuthority {
-    attempt: crate::runtime::intent_execution::UiIntentExecutionAttemptIdentity,
-    idempotency: crate::runtime::intent_execution::UiIntentExecutionIdempotencyIdentity,
-}
+pub(in crate::runtime) struct UiAdmittedIntentServiceRequestAuthority;
 
 impl super::sealed::Sealed for UiAdmittedIntentServiceRequestAuthority {}
 
@@ -39,24 +36,7 @@ impl super::UiServiceRequestBasis<UiAdmittedIntentServiceRequestAuthority> {
             source_order: super::UiServiceSourceOrder(issued),
             cancellation: super::UiServiceCancellationIdentity(issued),
             resource_budget: super::UiServiceResourceBudgetIdentity(issued),
-            authority: UiAdmittedIntentServiceRequestAuthority {
-                attempt: handoff.attempt(),
-                idempotency,
-            },
+            authority: UiAdmittedIntentServiceRequestAuthority,
         })
-    }
-}
-
-impl UiAdmittedIntentServiceRequestAuthority {
-    pub(in crate::runtime) const fn attempt(
-        &self,
-    ) -> crate::runtime::intent_execution::UiIntentExecutionAttemptIdentity {
-        self.attempt
-    }
-
-    pub(in crate::runtime) const fn idempotency(
-        &self,
-    ) -> crate::runtime::intent_execution::UiIntentExecutionIdempotencyIdentity {
-        self.idempotency
     }
 }

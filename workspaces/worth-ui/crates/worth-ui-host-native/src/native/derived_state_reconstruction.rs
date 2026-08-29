@@ -17,6 +17,7 @@ pub struct UiNativeDerivedStateReconstructionObservation {
 }
 
 impl UiNativeDerivedStateReconstructionObservation {
+    #[cfg(feature = "certification-support")]
     pub(crate) const fn observed(
         class: UiNativeDerivedStateLossClass,
         loss_count: u64,

@@ -1,35 +1,32 @@
 use crate::data::error::SignalError;
 
-use super::FinancialCanonicalCaseIdentity;
 #[cfg(feature = "parallel")]
-use super::{verify_locality_case, FinancialLocalityCaseEvidence};
+use super::{verify_locality_case, FinancialCanonicalCaseIdentity, FinancialLocalityCaseEvidence};
 #[cfg(feature = "parallel")]
 use crate::tests::domains::fintech::world::strategy_work_projection;
 #[cfg(feature = "parallel")]
 use crate::tests::domains::fintech::world::{FinancialLocalityScenario, FinancialWorldDefinition};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct OptimizationEvidence {
-    equivalent_work_items: u64,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct MeasurementGap {
-    required_feature: &'static str,
-}
+#[cfg(not(feature = "parallel"))]
+pub(in crate::tests::domains::fintech) struct MeasurementGap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::tests::domains::fintech) enum TraversalStrategyDecision {
+    #[cfg(feature = "parallel")]
     CurrentStrategyCertified,
-    OrderedReadyWorkCandidate(OptimizationEvidence),
+    #[cfg(not(feature = "parallel"))]
     InsufficientEvidence(MeasurementGap),
 }
 
 #[derive(Debug)]
 pub(in crate::tests::domains::fintech) struct InvalidationStrategyReport {
     decision: TraversalStrategyDecision,
+    #[cfg(feature = "parallel")]
     deterministic_case: Option<FinancialCanonicalCaseIdentity>,
+    #[cfg(feature = "parallel")]
     optimized_case: Option<FinancialCanonicalCaseIdentity>,
+    #[cfg(feature = "parallel")]
     canonical_work_items: u64,
 }
 
@@ -38,10 +35,12 @@ impl InvalidationStrategyReport {
         self.decision
     }
 
+    #[cfg(feature = "parallel")]
     pub(in crate::tests::domains::fintech) const fn canonical_work_items(&self) -> u64 {
         self.canonical_work_items
     }
 
+    #[cfg(feature = "parallel")]
     pub(in crate::tests::domains::fintech) fn case_identities(
         &self,
     ) -> Option<(
@@ -59,12 +58,7 @@ pub(in crate::tests::domains::fintech) fn certify_current_strategy(
     _seed: u64,
 ) -> Result<InvalidationStrategyReport, SignalError> {
     Ok(InvalidationStrategyReport {
-        decision: TraversalStrategyDecision::InsufficientEvidence(MeasurementGap {
-            required_feature: "parallel",
-        }),
-        deterministic_case: None,
-        optimized_case: None,
-        canonical_work_items: 0,
+        decision: TraversalStrategyDecision::InsufficientEvidence(MeasurementGap),
     })
 }
 

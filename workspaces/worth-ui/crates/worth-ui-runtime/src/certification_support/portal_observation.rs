@@ -108,7 +108,9 @@ fn map_dismissal_outcome(
 ) -> UiPortalDismissalCertificationOutcome {
     use crate::facade::entry::portal_dismissal::UiPortalDismissalPublicationOutcome as Outcome;
     match outcome {
-        Outcome::Ignored => UiPortalDismissalCertificationOutcome::Ignored,
+        Outcome::IgnoredNoMatchingPortal | Outcome::IgnoredInsideTopmostPortal => {
+            UiPortalDismissalCertificationOutcome::Ignored
+        }
         Outcome::Published(_) => UiPortalDismissalCertificationOutcome::Published,
         Outcome::InFlight(_) => UiPortalDismissalCertificationOutcome::InFlight,
         Outcome::Indeterminate(_) => UiPortalDismissalCertificationOutcome::Indeterminate,

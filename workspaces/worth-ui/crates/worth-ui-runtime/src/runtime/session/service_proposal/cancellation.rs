@@ -12,7 +12,7 @@ struct UiServiceProposalCancellationRecord {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalCancellationDenial {
+pub(crate) enum UiServiceProposalCancellationDenial {
     CapacityExceeded,
     DuplicateProposal,
     ForeignProposal,

@@ -8,7 +8,8 @@ mod handles;
 mod receipt;
 pub use receipt::UiPortalDismissalPublicationReceipt;
 pub(crate) enum UiPortalDismissalPublicationOutcome<'session> {
-    Ignored,
+    IgnoredNoMatchingPortal,
+    IgnoredInsideTopmostPortal,
     Published(UiPortalDismissalPublicationReceipt),
     InFlight(UiPortalDismissalPublicationCompletion<'session>),
     Indeterminate(UiPortalDismissalPublicationRecovery<'session>),
@@ -81,7 +82,7 @@ impl WorthUiActiveApplicationSession {
         now_tick: u64,
     ) -> UiPortalDismissalPublicationOutcome<'_> {
         if !self.portal.is_installed() {
-            return UiPortalDismissalPublicationOutcome::Ignored;
+            return UiPortalDismissalPublicationOutcome::IgnoredNoMatchingPortal;
         }
         if !self.focus.is_installed() || !self.motion.is_installed() {
             return UiPortalDismissalPublicationOutcome::Stopped(
@@ -152,8 +153,15 @@ impl WorthUiActiveApplicationSession {
             .expect("Portal installation was checked above")
             .prepare_dismissal(trigger, sampled_bounds, idempotency)
         {
-            Ok(crate::runtime::portal::UiPortalDismissalPreparation::Ignored(_)) => {
-                return UiPortalDismissalPublicationOutcome::Ignored
+            Ok(crate::runtime::portal::UiPortalDismissalPreparation::Ignored(reason)) => {
+                return match reason {
+                    crate::runtime::portal::UiPortalDismissalIgnoreReason::NoMatchingPortal => {
+                        UiPortalDismissalPublicationOutcome::IgnoredNoMatchingPortal
+                    }
+                    crate::runtime::portal::UiPortalDismissalIgnoreReason::InsideTopmostPortal => {
+                        UiPortalDismissalPublicationOutcome::IgnoredInsideTopmostPortal
+                    }
+                }
             }
             Ok(crate::runtime::portal::UiPortalDismissalPreparation::Prepared(dismissal)) => {
                 dismissal

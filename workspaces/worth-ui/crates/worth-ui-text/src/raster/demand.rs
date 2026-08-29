@@ -13,6 +13,7 @@ use worth_ui_host_contract::{
 };
 
 use super::cost::UiGlyphRasterLaneCost;
+#[cfg(test)]
 use super::demand_identity::demand_identity;
 use super::key::UiGlyphRasterKeyDenial;
 use super::placement::UiGlyphRasterPlacement;
@@ -108,6 +109,7 @@ impl UiGlyphRasterScale {
 }
 
 impl UiGlyphRasterDemandBatch {
+    #[cfg(test)]
     pub(crate) fn from_text_mechanics(
         identity: UiGlyphRasterDemandIdentity,
         layout: UiQualifiedTextLayoutIdentity,

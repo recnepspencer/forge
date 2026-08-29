@@ -55,6 +55,7 @@ impl UiNativePhysicalSignalPerformed {
         self.locality.work()
     }
 
+    #[cfg(test)]
     pub(super) const fn locality(self) -> UiNativePhysicalSignalLocality {
         self.locality
     }

@@ -154,7 +154,6 @@ pub(super) fn run_churn_trace(
     }
     Ok(LocalityExecutionSettlement {
         evaluated_outputs: program.evaluated_outputs(),
-        evaluated_sequence: program.evaluated_outputs().into_iter().collect(),
         stage_outcomes,
         stage_records: Vec::new(),
     })

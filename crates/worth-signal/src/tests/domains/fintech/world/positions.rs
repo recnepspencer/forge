@@ -3,9 +3,7 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) struct InstrumentId(
-    pub(in crate::tests::domains::fintech) &'static str,
-);
+pub(crate) struct InstrumentId(pub(crate) &'static str);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(in crate::tests::domains::fintech) struct BookId(

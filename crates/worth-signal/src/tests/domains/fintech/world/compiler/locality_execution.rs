@@ -26,8 +26,10 @@ pub(crate) use compilation::{
 };
 pub(crate) use optional_inventory::LocalityOptionalObservationInventory;
 pub(crate) use performance::FinancialPerformanceBatchReport;
+#[cfg(feature = "parallel")]
+pub(in crate::tests::domains::fintech) use performed_work::strategy_work_projection;
 pub(in crate::tests::domains::fintech) use performed_work::{
-    strategy_work_projection, FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
+    FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
 };
 pub(in crate::tests::domains::fintech) use red_observation::FinancialLocalityRedObservation;
 use red_observation::{lineage_delta, RedObservationInput};
@@ -54,26 +56,8 @@ pub(in crate::tests::domains::fintech) struct CompiledFinancialLocalityWorld {
 }
 
 impl CompiledFinancialLocalityWorld {
-    pub(in crate::tests::domains::fintech) fn set_runtime_policy(
-        &mut self,
-        policy: SignalRuntimePolicy,
-    ) {
-        self.runtime.set_runtime_policy(policy);
-    }
-
     pub(in crate::tests::domains::fintech) fn runtime_policy(&self) -> SignalRuntimePolicy {
         self.runtime.graph().runtime_policy()
-    }
-
-    pub(in crate::tests::domains::fintech) fn reset_performed_observation(&mut self) {
-        self.runtime
-            .graph_mut()
-            .reset_invalidation_performed_counters();
-    }
-
-    pub(in crate::tests::domains::fintech) fn reset_optional_observation(&mut self) {
-        self.runtime.graph_mut().reset_telemetry();
-        self.reset_performed_observation();
     }
 
     fn graph_instance(&self) -> u64 {

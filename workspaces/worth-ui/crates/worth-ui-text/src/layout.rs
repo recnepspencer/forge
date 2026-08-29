@@ -76,6 +76,7 @@ pub struct UiQualifiedTextLayout {
 }
 
 impl UiQualifiedTextLayout {
+    #[cfg(test)]
     pub(crate) fn layout(shaped: UiShapedTextParagraph) -> Result<Self, UiTextLayoutDenial> {
         Self::layout_with_posture(shaped, crate::qualification::QualificationPosture::Fresh)
     }

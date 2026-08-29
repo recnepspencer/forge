@@ -21,10 +21,6 @@ impl RegionScopedExecutionReport {
         &self.query_digest
     }
 
-    pub fn locality_digest(&self) -> &str {
-        &self.locality_digest
-    }
-
     pub fn locality_outcome(&self) -> &DeliveryLocalityOutcome {
         &self.locality_outcome
     }
@@ -35,10 +31,6 @@ impl RegionScopedExecutionReport {
 
     pub fn widening_decision(&self) -> Option<&LocalityWideningDecision> {
         self.widening_decision.as_ref()
-    }
-
-    pub fn result_digest(&self) -> &str {
-        &self.result_digest
     }
 
     pub fn delivery_digest(&self) -> &str {
@@ -77,10 +69,6 @@ impl RegionScopedLiveExecutionEnvelope {
 
     pub fn counters(&self) -> &LivePolicyCounters {
         self.counters.snapshot()
-    }
-
-    pub fn region_scoped_counters(&self) -> &RegionScopedLiveCounters {
-        &self.counters
     }
 }
 

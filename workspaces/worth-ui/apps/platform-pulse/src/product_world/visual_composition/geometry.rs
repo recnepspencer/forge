@@ -1,3 +1,7 @@
+use worth_ui::facade::declaration::{
+    ComponentAllocationMeasurementContract, ComponentViewportAxisPlacement, ComponentViewportRegion,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlatformPulseCompositionExtent {
     width: u32,
@@ -320,6 +324,3 @@ mod tests {
         ));
     }
 }
-use worth_ui::facade::declaration::{
-    ComponentAllocationMeasurementContract, ComponentViewportAxisPlacement, ComponentViewportRegion,
-};

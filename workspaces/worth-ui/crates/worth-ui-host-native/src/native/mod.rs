@@ -114,11 +114,13 @@ pub use presentation::{
 pub(crate) use presentation::{
     UiNativeOwnedPresentationSurface, UiNativePendingPresentation, UiNativeRetainedDrawList,
 };
+#[cfg(feature = "certification-support")]
+pub(crate) use readiness::UiNativeReadyWork;
 pub use readiness::{
     UiNativeApplicationReadinessPort, UiNativeApplicationReadinessSignalDenial,
     UiNativeApplicationReadinessSignalDisposition,
 };
-pub(crate) use readiness::{UiNativeReadinessRegistry, UiNativeReadyOwner, UiNativeReadyWork};
+pub(crate) use readiness::{UiNativeReadinessRegistry, UiNativeReadyOwner};
 #[cfg(feature = "certification-support")]
 pub use readiness_certification::{
     UiNativeReadinessContract, UiNativeReadinessContractOutcome, UiNativeReadinessContractWork,

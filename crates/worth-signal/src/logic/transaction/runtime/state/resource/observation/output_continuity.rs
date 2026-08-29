@@ -10,15 +10,6 @@ pub(in crate::logic::transaction::runtime::state::resource) enum ResourceTermina
     Supersession,
 }
 impl ResourceRuntimeState {
-    pub(in crate::logic::transaction::runtime::state::resource) fn pending_output_continuity_for_node(
-        &self,
-        node: ResourceNodeId,
-        descriptor_id: ResourceDescriptorId,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceOutputContinuity {
-        self.pending_output_continuity_for_node_optional(node, descriptor_id, Some(telemetry))
-    }
-
     pub(in crate::logic::transaction::runtime::state::resource) fn pending_output_continuity_for_node_optional(
         &self,
         node: ResourceNodeId,
@@ -45,21 +36,6 @@ impl ResourceRuntimeState {
         };
         self.record_output_continuity_decision_optional(continuity, telemetry.as_deref_mut());
         continuity
-    }
-
-    pub(in crate::logic::transaction::runtime::state::resource) fn classify_terminal_output_continuity_for_node(
-        &self,
-        node: ResourceNodeId,
-        descriptor_id: ResourceDescriptorId,
-        cause: ResourceTerminalVisibilityCause,
-        telemetry: &mut ResourceTelemetry,
-    ) -> (ResourceOutputContinuity, bool) {
-        self.classify_terminal_output_continuity_for_node_optional(
-            node,
-            descriptor_id,
-            cause,
-            Some(telemetry),
-        )
     }
 
     pub(in crate::logic::transaction::runtime::state::resource) fn classify_terminal_output_continuity_for_node_optional(
@@ -102,14 +78,6 @@ impl ResourceRuntimeState {
         };
         self.record_output_continuity_decision_optional(continuity, telemetry.as_deref_mut());
         (continuity, true)
-    }
-
-    pub(in crate::logic::transaction::runtime::state::resource) fn record_output_continuity_decision(
-        &self,
-        continuity: ResourceOutputContinuity,
-        telemetry: &mut ResourceTelemetry,
-    ) {
-        self.record_output_continuity_decision_optional(continuity, Some(telemetry));
     }
 
     pub(in crate::logic::transaction::runtime::state::resource) fn record_output_continuity_decision_optional(

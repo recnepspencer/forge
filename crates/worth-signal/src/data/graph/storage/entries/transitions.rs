@@ -192,13 +192,6 @@ impl SignalGraph {
         Ok(())
     }
 
-    pub(crate) fn transition_node_pending_revalidation(
-        &mut self,
-        node: NodeId,
-    ) -> Result<(), SignalError> {
-        self.transition_node_revalidation(node, false)
-    }
-
     pub(crate) fn transition_node_structural_revalidation(
         &mut self,
         node: NodeId,

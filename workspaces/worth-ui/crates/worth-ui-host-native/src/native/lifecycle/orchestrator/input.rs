@@ -1,3 +1,4 @@
+#[cfg(test)]
 use winit::dpi::PhysicalPosition;
 use winit::event::WindowEvent;
 use worth_ui_host_contract::{
@@ -25,6 +26,7 @@ impl super::UiNativeLifecycleOrchestrator {
             .observe_profile_transition_at(scale_factor, size, event_tick)
     }
 
+    #[cfg(test)]
     pub(crate) fn observe_window_event_at(
         &mut self,
         event: &WindowEvent,

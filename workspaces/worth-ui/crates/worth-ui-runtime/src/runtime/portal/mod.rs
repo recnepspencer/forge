@@ -23,10 +23,8 @@ mod state_retention_tests;
 #[cfg(test)]
 mod state_tests;
 
-pub(crate) use dismissal::{
-    UiPortalDismissalIgnoreReason, UiPortalDismissalPreparation, UiPortalDismissalTrigger,
-    UiPreparedPortalDismissal,
-};
+pub(crate) use dismissal::UiPortalDismissalIgnoreReason;
+pub(crate) use dismissal::{UiPortalDismissalPreparation, UiPortalDismissalTrigger};
 pub(crate) use identity::{UiPortalIdentity, UiPortalOwnerIdentity};
 pub(crate) use inspection::UiPortalClosedInspectionRecord;
 pub(crate) use lifecycle::{

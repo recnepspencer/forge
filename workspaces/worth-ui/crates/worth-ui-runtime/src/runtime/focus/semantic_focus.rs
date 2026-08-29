@@ -8,7 +8,7 @@ impl UiSemanticKeyboardFocus {
         Self { participant }
     }
 
-    pub(crate) const fn participant(self) -> super::UiFocusParticipantIdentity {
+    pub(in crate::runtime) const fn participant(self) -> super::UiFocusParticipantIdentity {
         self.participant.identity()
     }
 

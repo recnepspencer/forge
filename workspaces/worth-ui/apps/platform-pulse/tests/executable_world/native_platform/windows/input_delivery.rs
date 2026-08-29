@@ -46,7 +46,6 @@ pub(super) fn deliver_keyboard_command(
     );
     let input = match command {
         NativeKeyboardCommand::Escape => NativeKeyboardInput::Single(co::VK::ESCAPE),
-        NativeKeyboardCommand::Submit => NativeKeyboardInput::Single(co::VK::RETURN),
         NativeKeyboardCommand::PrimaryShiftP => NativeKeyboardInput::PrimaryShiftP,
     };
     deliver_at(

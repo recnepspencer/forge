@@ -30,7 +30,6 @@ mod denial_taxonomy;
 mod durable_semantic_state;
 #[path = "committed_truth/equivalence_basis.rs"]
 mod equivalence_basis;
-mod geometry_admission;
 #[path = "committed_truth/geometry_evidence.rs"]
 mod geometry_evidence;
 #[path = "ledger_lifecycle/ledger_denial.rs"]
@@ -82,8 +81,6 @@ mod replan_commit_mode;
 mod replan_transaction;
 #[path = "reuse/reuse_verdict.rs"]
 mod reuse_verdict;
-#[path = "committed_truth/successor_layout_geometry.rs"]
-mod successor_layout_geometry;
 #[path = "transaction/transaction_outcome.rs"]
 mod transaction_outcome;
 #[path = "committed_truth/truth_revision.rs"]
@@ -112,10 +109,6 @@ pub use denial_report::UiAllocationReceiptDenialReport;
 pub use denial_taxonomy::UiAllocationDenialFamily;
 pub use durable_semantic_state::UiAllocationDurableSemanticState;
 pub use equivalence_basis::UiAllocationReceiptEquivalenceBasis;
-pub(crate) use geometry_admission::UiAllocationGeometrySurface;
-pub(in crate::runtime) use geometry_admission::{
-    UiAdmittedAllocationGeometry, UiAllocationGeometryAdmissionDenial,
-};
 pub use geometry_evidence::{
     UiAllocationAnchorPosture, UiAllocationAxis, UiAllocationAxisAlignedBounds,
     UiAllocationEdgeReference, UiAllocationGeometryKnowledge,
@@ -137,7 +130,6 @@ pub use replan_transaction::UiAllocationReplanTransaction;
 pub use reuse_verdict::{
     UiAllocationLeafRemeasureWitness, UiAllocationReuseDenial, UiAllocationReuseVerdict,
 };
-pub(crate) use successor_layout_geometry::UiCommittedSuccessorLayoutGeometry;
 pub use transaction_outcome::{
     UiAllocationAuthoritySuccessionDenial, UiAllocationReplanTransactionCommitDenial,
     UiAllocationReplanTransactionCounters, UiAllocationReplanTransactionOutcome,

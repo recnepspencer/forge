@@ -7,7 +7,7 @@ pub(in crate::runtime) struct UiStagedDeclaredSelectionTransition {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiDeclaredSelectionStagingDenial {
+pub(crate) enum UiDeclaredSelectionStagingDenial {
     OwnerMismatch,
     IncarnationMismatch,
     Selection(super::UiSelectionRequestDenial),

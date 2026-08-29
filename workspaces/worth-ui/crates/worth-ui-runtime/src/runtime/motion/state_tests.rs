@@ -269,6 +269,40 @@ fn shutdown_counts_and_cancels_terminal_exit_retention() {
     assert!(report.final_census().is_zero());
 }
 
+#[test]
+fn mounted_rebind_terminalizes_only_targets_absent_from_the_successor() {
+    let mut state = runtime_state();
+    let frame = frame();
+    let surviving_target = target(401);
+    let removed_target = target(402);
+    let surviving = commit(
+        &mut state,
+        proposal(401),
+        request_for_target(surviving_target, 1, 2, frame),
+        frame,
+    );
+    let removed = commit(
+        &mut state,
+        proposal(402),
+        request_for_target(removed_target, 1, 2, frame),
+        frame,
+    );
+
+    let prepared = state.prepare_rebind_for_test(|target| target == surviving_target);
+    let terminals = state.commit_mounted_rebind(prepared);
+
+    assert_eq!(terminals.len(), 1);
+    assert_eq!(terminals[0].track(), removed.track().identity());
+    assert_eq!(terminals[0].cause(), UiMotionTerminalCause::ReboundAway);
+    assert_eq!(state.census().active_tracks(), 1);
+    assert!(state
+        .terminalize(
+            surviving.track().identity(),
+            UiMotionTerminalCause::Completed
+        )
+        .is_some());
+}
+
 fn runtime_state() -> UiMotionRuntimeState {
     UiMotionRuntimeState::new(crate::runtime::UiServiceStatePersistencePosture::Ephemeral)
 }

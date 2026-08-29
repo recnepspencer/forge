@@ -186,7 +186,9 @@ fn normalize(
 ) -> NormalizedPortalDismissal {
     use super::super::portal_dismissal::UiPortalDismissalPublicationOutcome as Outcome;
     match outcome {
-        Outcome::Ignored => NormalizedPortalDismissal::Ignored,
+        Outcome::IgnoredNoMatchingPortal | Outcome::IgnoredInsideTopmostPortal => {
+            NormalizedPortalDismissal::Ignored
+        }
         Outcome::Published(receipt) => NormalizedPortalDismissal::Published(receipt),
         Outcome::InFlight(completion) => {
             NormalizedPortalDismissal::Pending(completion.detach_for_native())

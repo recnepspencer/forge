@@ -3,7 +3,7 @@ pub(in crate::runtime) struct UiPreflightedServiceProposal {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalPreflightDenial {
+pub(crate) enum UiServiceProposalPreflightDenial {
     EmptyParticipation,
     DuplicateFamily,
     FamilySetMismatch,
@@ -16,6 +16,7 @@ pub(in crate::runtime) enum UiServiceProposalPreflightDenial {
     Coherence(super::super::UiServiceRequestCoherenceDrift),
 }
 
+#[cfg(test)]
 const PARTICIPATING_FAMILY_LIMIT: u8 = 6;
 const REQUIREMENT_LIMIT: u8 = 12;
 const FACT_REFERENCE_LIMIT: u16 = 64;
@@ -87,6 +88,7 @@ fn validate_family_support(
 }
 
 impl UiPreflightedServiceProposal {
+    #[cfg(test)]
     pub(in crate::runtime) const fn identity(&self) -> super::UiServiceProposalIdentity {
         self.candidate.identity()
     }

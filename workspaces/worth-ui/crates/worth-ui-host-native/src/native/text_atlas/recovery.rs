@@ -2,7 +2,7 @@
 
 use worth_ui_host_contract::UiGlyphRasterDemandIdentity;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UiNativeTextAtlasGeneration(u64);
 
 /// Stable identity for the atlas owner that issued a recovery authority.
@@ -22,10 +22,8 @@ pub enum UiNativeTextAtlasDenial {
     PageCapacityExceeded,
     TexelCapacityExceeded,
     StagingCapacityExceeded,
-    LivePinConflict,
     StalePlan,
     StalePin,
-    StaleAffinity,
     ReconstructionRequired,
     ReservationConflict,
     GenerationExhausted,
@@ -66,13 +64,13 @@ impl UiNativeTextAtlasLineageIdentity {
         }
     }
 
+    #[cfg(test)]
     pub const fn get(self) -> u64 {
         self.0
     }
 }
 
 impl UiNativeTextAtlasRecovery {
-    #[allow(dead_code, reason = "reserved for native atlas effect ownership")]
     pub(crate) const fn from_native_host(
         demand: UiGlyphRasterDemandIdentity,
         generation: UiNativeTextAtlasGeneration,
@@ -97,6 +95,7 @@ impl UiNativeTextAtlasRecovery {
         self.lineage
     }
 
+    #[cfg(test)]
     pub fn snapshot(&self) -> UiNativeTextAtlasRecoverySnapshot {
         UiNativeTextAtlasRecoverySnapshot {
             demand: self.demand,
@@ -106,6 +105,7 @@ impl UiNativeTextAtlasRecovery {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiNativeTextAtlasRecoverySnapshot {
     demand: UiGlyphRasterDemandIdentity,
@@ -113,6 +113,7 @@ pub struct UiNativeTextAtlasRecoverySnapshot {
     lineage: UiNativeTextAtlasLineageIdentity,
 }
 
+#[cfg(test)]
 impl UiNativeTextAtlasRecoverySnapshot {
     pub const fn demand_identity(self) -> UiGlyphRasterDemandIdentity {
         self.demand
@@ -141,6 +142,8 @@ mod tests {
         let snapshot = recovery.snapshot();
         let copied = snapshot;
         assert_eq!(copied.generation().get(), 2);
+        assert_eq!(copied.demand_identity().digest(), [4; 32]);
+        assert_eq!(copied.lineage_identity().get(), 1);
         assert_eq!(
             UiNativeTextAtlasDenial::StalePlan,
             UiNativeTextAtlasDenial::StalePlan

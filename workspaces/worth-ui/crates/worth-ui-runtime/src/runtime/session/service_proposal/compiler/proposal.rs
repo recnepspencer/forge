@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub(in crate::runtime) struct UiServiceProposalIdentity(super::super::UiServiceRequestIdentity);
+pub(crate) struct UiServiceProposalIdentity(super::super::UiServiceRequestIdentity);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct UiServiceProposalDemand {
@@ -100,7 +100,7 @@ impl UiServiceProposalDemand {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalDemandConstructionDenial {
+pub(crate) enum UiServiceProposalDemandConstructionDenial {
     Participation(super::super::UiServiceFamilyParticipationDenial),
     ArithmeticOverflow,
 }

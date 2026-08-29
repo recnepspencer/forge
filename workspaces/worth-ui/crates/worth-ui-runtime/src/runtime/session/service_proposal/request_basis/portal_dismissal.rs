@@ -1,9 +1,7 @@
 use core::num::NonZeroU64;
 
 #[derive(Debug)]
-pub(in crate::runtime) struct UiPortalDismissalServiceRequestAuthority {
-    portal: crate::runtime::portal::UiPortalIdentity,
-}
+pub(in crate::runtime) struct UiPortalDismissalServiceRequestAuthority;
 
 impl super::sealed::Sealed for UiPortalDismissalServiceRequestAuthority {}
 
@@ -37,15 +35,7 @@ impl super::UiServiceRequestBasis<UiPortalDismissalServiceRequestAuthority> {
             source_order: super::UiServiceSourceOrder(issued),
             cancellation: super::UiServiceCancellationIdentity(issued),
             resource_budget: super::UiServiceResourceBudgetIdentity(issued),
-            authority: UiPortalDismissalServiceRequestAuthority {
-                portal: transition.portal(),
-            },
+            authority: UiPortalDismissalServiceRequestAuthority,
         })
-    }
-}
-
-impl UiPortalDismissalServiceRequestAuthority {
-    pub(in crate::runtime) const fn portal(&self) -> crate::runtime::portal::UiPortalIdentity {
-        self.portal
     }
 }

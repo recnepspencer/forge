@@ -18,7 +18,6 @@ pub(crate) struct PlatformPulseActionControlPoint {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct PlatformPulsePortalControlPoint {
     point: NativeClientPixelPoint,
-    region: NativeControlPixelRegion,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -71,8 +70,8 @@ pub(crate) fn adjudicate_portal_control_point(
     capture: &NativeClientPixelCapture,
 ) -> Result<PlatformPulsePortalControlPoint, IntentControlPointFailure> {
     let contract = portal_control().map_err(IntentControlPointFailure::VisualContract)?;
-    let (point, region) = select_interior_pixel(capture, "portal", contract)?;
-    Ok(PlatformPulsePortalControlPoint { point, region })
+    let (point, _) = select_interior_pixel(capture, "portal", contract)?;
+    Ok(PlatformPulsePortalControlPoint { point })
 }
 
 pub(crate) fn adjudicate_confirmation_control_point(
@@ -319,10 +318,6 @@ impl PlatformPulseActionControlPoint {
 impl PlatformPulsePortalControlPoint {
     pub(crate) fn point(self) -> NativeClientPixelPoint {
         self.point
-    }
-
-    pub(crate) fn region(self) -> NativeControlPixelRegion {
-        self.region
     }
 }
 

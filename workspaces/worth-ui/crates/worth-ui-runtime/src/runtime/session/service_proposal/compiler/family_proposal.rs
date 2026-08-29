@@ -5,6 +5,7 @@ pub(in crate::runtime) struct UiServiceFamilyProposal {
     requirements: u8,
     fact_references: u16,
     mounted_work_references: u16,
+    #[cfg(test)]
     conflict_policy: super::super::UiServiceProposalConflictPolicy,
 }
 
@@ -18,6 +19,7 @@ impl UiServiceFamilyProposal {
             requirements: 1,
             fact_references: 0,
             mounted_work_references: 1,
+            #[cfg(test)]
             conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
         }
     }
@@ -31,6 +33,7 @@ impl UiServiceFamilyProposal {
             requirements: 1,
             fact_references: 1,
             mounted_work_references: 0,
+            #[cfg(test)]
             conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
         }
     }
@@ -44,6 +47,7 @@ impl UiServiceFamilyProposal {
             requirements: 1,
             fact_references: 1,
             mounted_work_references: 0,
+            #[cfg(test)]
             conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
         }
     }
@@ -57,6 +61,7 @@ impl UiServiceFamilyProposal {
             requirements: 1,
             fact_references: 1,
             mounted_work_references: 0,
+            #[cfg(test)]
             conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
         }
     }
@@ -70,6 +75,7 @@ impl UiServiceFamilyProposal {
             requirements: 1,
             fact_references: 1,
             mounted_work_references: 0,
+            #[cfg(test)]
             conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
         }
     }
@@ -88,6 +94,7 @@ impl UiServiceFamilyProposal {
             requirements,
             fact_references,
             mounted_work_references,
+            #[cfg(test)]
             conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
         }
     }
@@ -123,6 +130,7 @@ impl UiServiceFamilyProposal {
         self.mounted_work_references
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn conflict_policy(
         self,
     ) -> super::super::UiServiceProposalConflictPolicy {

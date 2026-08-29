@@ -27,12 +27,14 @@ pub(crate) fn why_portal_closed(
             crate::runtime::portal::UiPortalDismissalCause::ParentClosed => {
                 worth_ui_inspection::UiPortalClosedInspectionReason::ParentClosed
             }
+            #[cfg(test)]
             crate::runtime::portal::UiPortalDismissalCause::OwnerLoss => {
                 worth_ui_inspection::UiPortalClosedInspectionReason::OwnerLoss
             }
             crate::runtime::portal::UiPortalDismissalCause::ApplicationShutdown => {
                 worth_ui_inspection::UiPortalClosedInspectionReason::ApplicationShutdown
             }
+            #[cfg(test)]
             crate::runtime::portal::UiPortalDismissalCause::WindowFocusPolicy => {
                 worth_ui_inspection::UiPortalClosedInspectionReason::WindowFocusPolicy
             }

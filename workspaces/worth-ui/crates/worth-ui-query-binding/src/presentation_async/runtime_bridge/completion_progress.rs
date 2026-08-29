@@ -69,11 +69,6 @@ impl WorthUiPresentationRuntimeAdmission {
             );
         }
         Ok(WorthUiPresentationCompletionAdvance {
-            report: progress.report.clone(),
-            batch: progress
-                .batch
-                .clone()
-                .expect("completion transition batch is retained before completion"),
             observation: progress
                 .observation
                 .expect("completion observation is retained before completion"),
@@ -97,6 +92,12 @@ impl WorthUiPresentationRuntimeAdmission {
             descriptor.payload_contract_digest().clone(),
             payload_byte_len,
         )
+    }
+}
+
+impl WorthUiPresentationCompletionAdvance {
+    pub const fn observation(&self) -> WorthUiPresentationAsyncObservation {
+        self.observation
     }
 }
 

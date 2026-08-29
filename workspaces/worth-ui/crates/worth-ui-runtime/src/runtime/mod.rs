@@ -63,7 +63,6 @@ pub(crate) use service_state_persistence::UiServiceStatePersistencePosture;
 pub(crate) mod session;
 mod source_ingress;
 pub(crate) use source_ingress::WorthUiAuthoredSourceBasis;
-pub(crate) use source_ingress::WorthUiProjectionContentEdge;
 pub use source_ingress::{
     UiSourceCompilationDenialReceipt, UiSourceRebindAttemptBasis, UiSourceRebindAttemptDenial,
     UiSourceRebindAttemptDenialReceipt, UiSourceRebindAttemptFailure, UiSourceRebindAttemptOutcome,
@@ -77,18 +76,14 @@ pub use scroll::allocation::{
     UiScrollOffsetAllocationPosture, UiScrollReceiptActivationKey, UiScrollVirtualizationPosture,
 };
 pub(crate) use scroll::allocation::{
-    UiAdmittedScrollExtentSource, UiAdmittedScrollOwnedContract, UiAdmittedScrollPlanningAuthority,
-    UiAdmittedScrollQuerySource, UiScrollProjectionOwnerIdentity,
+    UiAdmittedScrollExtentSource, UiAdmittedScrollOwnedContract, UiScrollProjectionOwnerIdentity,
 };
 
 pub(crate) use allocation_frame_dispatch::UiPendingMountedPreviewTransition;
 pub(crate) use allocation_receipt::project_allocation_preview;
-#[cfg(test)]
-pub(crate) use allocation_receipt::UiAllocationGeometrySurface;
 pub(crate) use allocation_receipt::UiAllocationTruthRevision;
 pub(crate) use allocation_receipt::UiCommittedAllocationCatalogActivationRow;
 pub(crate) use allocation_receipt::UiCommittedScrollActivationSource;
-pub(crate) use allocation_receipt::UiCommittedSuccessorLayoutGeometry;
 pub(crate) use allocation_receipt::UiCommittedViewportGeometry;
 pub(crate) use allocation_receipt::UiMountedAllocationExactDelta;
 pub(crate) use allocation_receipt::UiMountedAllocationProjectionCatalog;

@@ -9,7 +9,6 @@ pub(crate) enum NativeInputProbeKind {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeKeyboardCommand {
     Escape,
-    Submit,
     PrimaryShiftP,
 }
 

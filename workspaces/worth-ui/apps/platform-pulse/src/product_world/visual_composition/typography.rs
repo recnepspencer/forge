@@ -1,3 +1,12 @@
+use std::sync::Arc;
+
+use worth_ui::facade::app::{
+    UiFontFamilyStack, UiFontSlant, UiTextFaceRequest, UiTextStyle, UiTextStyleInput,
+};
+use worth_ui::facade::declaration::{
+    ComponentSemanticTextContract, ComponentSemanticTextContractDenial, ThemeTokenId,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlatformPulseTextRole {
     Display,
@@ -111,11 +120,3 @@ mod tests {
         }
     }
 }
-use std::sync::Arc;
-
-use worth_ui::facade::app::{
-    UiFontFamilyStack, UiFontSlant, UiTextFaceRequest, UiTextStyle, UiTextStyleInput,
-};
-use worth_ui::facade::declaration::{
-    ComponentSemanticTextContract, ComponentSemanticTextContractDenial, ThemeTokenId,
-};

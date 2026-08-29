@@ -28,7 +28,7 @@ mod lifecycle {
     mod tests;
 }
 
-pub(in crate::runtime) use dependency::{UiServiceProposalDependencyEdge, UiServiceProposalStage};
+pub(in crate::runtime) use dependency::UiServiceProposalStage;
 pub(in crate::runtime) use family_proposal::UiServiceFamilyProposal;
 pub(in crate::runtime) use preflight::{
     UiPreflightedServiceProposal, UiServiceProposalPreflightDenial,
@@ -50,7 +50,7 @@ pub(in crate::runtime) use reservation::{
     UiServiceProposalReservationDenial, UiServiceProposalReservationOutcome,
 };
 #[cfg(feature = "certification-support")]
-pub(crate) use scale_certification::{proposal_scale_evidence, UiServiceProposalScaleEvidence};
+pub(crate) use scale_certification::proposal_scale_evidence;
 pub(in crate::runtime) use settlement::{
     UiServiceProposalPublicationDenial, UiServiceProposalSettlement,
     UiServiceProposalSettlementDenial,
@@ -58,9 +58,11 @@ pub(in crate::runtime) use settlement::{
 pub(in crate::runtime) use staged_reference::{
     UiServiceMountedWorkReference, UiServiceProducedFactReference,
 };
+#[cfg(test)]
+pub(in crate::runtime) use staging::UiServiceProposalStageIssuer;
 pub(in crate::runtime) use staging::{
-    UiServiceProposalStageIssuer, UiServiceProposalStageReceipt, UiServiceProposalStagedBatch,
-    UiServiceProposalStaging, UiServiceProposalStagingDenial,
+    UiServiceProposalStageReceipt, UiServiceProposalStagedBatch, UiServiceProposalStaging,
+    UiServiceProposalStagingDenial,
 };
 pub(in crate::runtime) use terminal::{
     UiServiceProposalCompilerShutdownReceipt, UiServiceProposalTeardown,

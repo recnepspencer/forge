@@ -3,13 +3,6 @@ use crate::data::resource::*;
 use crate::data::telemetry::ResourceTelemetry;
 
 impl ResourceRuntimeState {
-    pub fn summary_read_report(
-        &self,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRuntimeSummaryReadReport {
-        self.summary_read_report_optional(Some(telemetry))
-    }
-
     pub fn summary_read_report_optional(
         &self,
         mut telemetry: Option<&mut ResourceTelemetry>,

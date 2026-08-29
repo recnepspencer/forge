@@ -1,3 +1,8 @@
+use worth_ui::facade::declaration::{
+    ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
+    ThemeTokenSource, ThemeTokenValue,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlatformPulseRgba([u8; 4]);
 
@@ -179,7 +184,3 @@ mod tests {
             .all(|descriptor| descriptor.value().is_some()));
     }
 }
-use worth_ui::facade::declaration::{
-    ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
-    ThemeTokenSource, ThemeTokenValue,
-};

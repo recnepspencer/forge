@@ -93,6 +93,7 @@ impl ResolvedDependencyCause {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn binding(&self) -> worth_proof::Binding<DependencyCauseBindingAxes> {
         worth_proof::Binding::new(self.binding_axes.clone())
     }

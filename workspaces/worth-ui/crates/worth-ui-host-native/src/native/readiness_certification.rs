@@ -27,7 +27,7 @@ pub struct UiNativeReadinessContract {
 
 impl UiNativeReadinessContract {
     pub fn new() -> Result<Self, ()> {
-        let mut registry = UiNativeReadinessRegistry::new();
+        let registry = UiNativeReadinessRegistry::new();
         let committed_owner = registry.register()?;
         let level_owner = registry.register_level()?;
         Ok(Self {

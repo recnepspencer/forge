@@ -87,6 +87,7 @@ impl UiPreparedPortalPlacement {
     pub(crate) const fn clip_bounds(self) -> worth_ui_host_contract::UiMountedCanonicalBox {
         self.clip_bounds
     }
+    #[cfg(test)]
     pub(crate) const fn side(self) -> UiPortalPlacementSide {
         self.side
     }
@@ -154,6 +155,7 @@ impl UiPortalLayerIdentity {
             depth,
         }
     }
+    #[cfg(test)]
     pub(crate) const fn portal(self) -> super::UiPortalIdentity {
         self.portal
     }

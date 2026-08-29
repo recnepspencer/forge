@@ -2,72 +2,53 @@
 
 use std::collections::HashSet;
 
-use worth_ui_host_contract::UiGlyphRasterKey;
-use worth_ui_host_contract::UiQualifiedTextLayoutIdentity;
+use worth_ui_host_contract::{UiGlyphRasterKey, UiQualifiedTextLayoutIdentity};
 
 use super::key::UiAtlasEntryIdentity;
 use super::ownership::{AtlasCore, PinIdentity};
-use super::recovery::UiNativeTextAtlasDenial;
-use super::recovery::UiNativeTextAtlasGeneration;
+use super::recovery::{UiNativeTextAtlasDenial, UiNativeTextAtlasGeneration};
 use super::transaction::UiNativeTextAtlasPinTransition;
 use super::UiNativeTextAtlasDemand;
 
-pub struct UiNativeTextAtlasPin {
+pub(crate) struct UiNativeTextAtlasPin {
     layout: UiQualifiedTextLayoutIdentity,
-    entry: UiAtlasEntryIdentity,
-    generation: UiNativeTextAtlasGeneration,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct UiNativeTextAtlasPinSnapshot {
-    layout: UiQualifiedTextLayoutIdentity,
+    key: UiGlyphRasterKey,
     entry: UiAtlasEntryIdentity,
     generation: UiNativeTextAtlasGeneration,
 }
 
 impl UiNativeTextAtlasPin {
-    #[allow(dead_code, reason = "reserved for native atlas effect ownership")]
     pub(crate) const fn from_native_host(
         layout: UiQualifiedTextLayoutIdentity,
+        key: UiGlyphRasterKey,
         entry: UiAtlasEntryIdentity,
         generation: UiNativeTextAtlasGeneration,
     ) -> Self {
         Self {
             layout,
+            key,
             entry,
             generation,
         }
     }
 
-    pub const fn layout(&self) -> UiQualifiedTextLayoutIdentity {
+    pub(crate) fn identity(&self) -> PinIdentity {
+        PinIdentity::new(self.layout, self.key)
+    }
+
+    pub(crate) const fn layout(&self) -> UiQualifiedTextLayoutIdentity {
         self.layout
     }
 
-    pub const fn entry(&self) -> UiAtlasEntryIdentity {
+    pub(crate) const fn key(&self) -> UiGlyphRasterKey {
+        self.key
+    }
+
+    pub(crate) const fn entry(&self) -> UiAtlasEntryIdentity {
         self.entry
     }
 
-    pub const fn generation(&self) -> UiNativeTextAtlasGeneration {
-        self.generation
-    }
-
-    pub fn snapshot(&self) -> UiNativeTextAtlasPinSnapshot {
-        UiNativeTextAtlasPinSnapshot {
-            layout: self.layout,
-            entry: self.entry,
-            generation: self.generation,
-        }
-    }
-}
-
-impl UiNativeTextAtlasPinSnapshot {
-    pub const fn layout(self) -> UiQualifiedTextLayoutIdentity {
-        self.layout
-    }
-    pub const fn entry(self) -> UiAtlasEntryIdentity {
-        self.entry
-    }
-    pub const fn generation(self) -> UiNativeTextAtlasGeneration {
+    pub(crate) const fn generation(&self) -> UiNativeTextAtlasGeneration {
         self.generation
     }
 }
@@ -86,17 +67,12 @@ pub(crate) fn protected_keys(
         .iter()
         .map(|release| PinIdentity::new(release.layout(), release.key()))
         .collect::<HashSet<_>>();
-    for pin in core.pins.iter().filter(|pin| !released.contains(pin)) {
-        if let Some(key) = core
-            .alpha
-            .entries
-            .keys()
-            .chain(core.color.entries.keys())
-            .copied()
-            .find(|key| pin.key_matches(*key))
-        {
-            keys.insert(key);
-        }
+    for pin in core
+        .pins
+        .values()
+        .filter(|pin| !released.contains(&pin.identity()))
+    {
+        keys.insert(pin.key());
     }
     for addition in transition.additions() {
         keys.insert(addition.key());
@@ -113,7 +89,7 @@ pub(crate) fn validate_pin_transition(
         if !seen.insert(PinIdentity::new(release.layout(), release.key()))
             || !core
                 .pins
-                .contains(&PinIdentity::new(release.layout(), release.key()))
+                .contains_key(&PinIdentity::new(release.layout(), release.key()))
         {
             return Err(UiNativeTextAtlasDenial::StalePin);
         }
@@ -122,29 +98,10 @@ pub(crate) fn validate_pin_transition(
         if !seen.insert(PinIdentity::new(add.layout(), add.key()))
             || core
                 .pins
-                .contains(&PinIdentity::new(add.layout(), add.key()))
+                .contains_key(&PinIdentity::new(add.layout(), add.key()))
         {
             return Err(UiNativeTextAtlasDenial::PinConflict);
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pin_authority_is_not_copy_and_snapshot_is() {
-        let pin = UiNativeTextAtlasPin::from_native_host(
-            UiQualifiedTextLayoutIdentity::from_text_mechanics([1; 32]),
-            UiAtlasEntryIdentity::from_native_host(3).unwrap(),
-            UiNativeTextAtlasGeneration::new(1).unwrap(),
-        );
-        let snapshot = pin.snapshot();
-        let copied = snapshot;
-        assert_eq!(copied.entry().get(), 3);
-        assert_eq!(pin.layout().digest(), [1; 32]);
-        let _moved = pin;
-    }
 }

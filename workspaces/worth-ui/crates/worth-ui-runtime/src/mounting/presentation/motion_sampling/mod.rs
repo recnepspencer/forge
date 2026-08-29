@@ -8,14 +8,13 @@ mod sampling;
 mod tests;
 mod track_sampling;
 
-pub(crate) use damage::{
-    UiPresentationMotionDamage, UiPresentationMotionDamageRegion, UiPresentationSampledClipGeometry,
-};
+pub(crate) use damage::{UiPresentationMotionDamage, UiPresentationSampledClipGeometry};
+#[cfg(test)]
+pub(crate) use receipt::UiPresentationMotionSamplingCost;
 pub(crate) use receipt::{
     UiPresentationMotionInstallationReceipt, UiPresentationMotionSamplePosture,
-    UiPresentationMotionSampleReceipt, UiPresentationMotionSamplingCost,
-    UiPresentationMotionSamplingReceipt, UiPresentationMotionTerminalRequest,
-    UiPresentationReducedMotionPosture,
+    UiPresentationMotionSampleReceipt, UiPresentationMotionSamplingReceipt,
+    UiPresentationMotionTerminalRequest, UiPresentationReducedMotionPosture,
 };
 pub(crate) use sampled_geometry::{
     UiPresentationGeometrySamplingDenial, UiPresentationSampledGeometry,

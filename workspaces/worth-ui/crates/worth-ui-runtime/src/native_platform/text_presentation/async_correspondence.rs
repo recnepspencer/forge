@@ -14,8 +14,8 @@ struct UiDeferredPresentedCompletion {
 }
 
 pub(crate) enum UiPresentationAsyncPresentedAdmission {
-    Current(worth_ui_query_binding::WorthUiPresentationPresentedReceipt),
-    Superseded(worth_ui_query_binding::WorthUiPresentationPresentedReceipt),
+    Current,
+    Superseded,
 }
 
 pub(crate) struct UiPresentationAsyncTerminalCleanup {
@@ -37,7 +37,7 @@ impl std::fmt::Debug for UiPresentationAsyncTerminalCleanup {
 
 #[derive(Debug)]
 pub(crate) enum UiPresentationAsyncPendingDenial {
-    Issuance(worth_ui_query_binding::WorthUiPresentationCorrespondenceIssuanceDenial),
+    Issuance,
     Admission(worth_ui_query_binding::WorthUiPresentationPendingAdmissionDenial),
 }
 
@@ -47,7 +47,7 @@ impl UiPresentationAsyncPendingDenial {
     ) -> Option<worth_ui_query_binding::WorthUiPresentationAdmissionRecovery> {
         match self {
             Self::Admission(denial) => denial.into_recovery_receipt(),
-            Self::Issuance(_) => None,
+            Self::Issuance => None,
         }
     }
 }
@@ -76,7 +76,7 @@ impl UiPresentationAsyncRuntime {
         let correspondence = self
             .correspondence
             .issue(basis)
-            .map_err(UiPresentationAsyncPendingDenial::Issuance)?;
+            .map_err(|_| UiPresentationAsyncPendingDenial::Issuance)?;
         self.owner
             .admit_pending(correspondence)
             .map_err(UiPresentationAsyncPendingDenial::Admission)
@@ -138,10 +138,10 @@ impl UiPresentationAsyncRuntime {
                 match receipt.observation().posture() {
                     worth_ui_query_binding::WorthUiPresentationAsyncPosture::Current => {
                         self.last_current_presented = Some(presented);
-                        Ok(UiPresentationAsyncPresentedAdmission::Current(receipt))
+                        Ok(UiPresentationAsyncPresentedAdmission::Current)
                     }
                     worth_ui_query_binding::WorthUiPresentationAsyncPosture::Superseded => {
-                        Ok(UiPresentationAsyncPresentedAdmission::Superseded(receipt))
+                        Ok(UiPresentationAsyncPresentedAdmission::Superseded)
                     }
                     posture => {
                         unreachable!("presented completion cannot settle into {posture:?} posture")
@@ -203,13 +203,6 @@ impl UiPresentationAsyncRuntime {
             .certify_effects_indeterminate(receipt, observed_payload_byte_len);
         self.owner
             .admit_effects_indeterminate_requiring_reconstruction(receipt, observation)
-    }
-
-    pub(crate) fn reject_before_effects(
-        &mut self,
-        receipt: &worth_ui_query_binding::WorthUiPresentationPendingReceipt,
-    ) -> Result<(), worth_ui_query_binding::WorthUiPresentationSettlementDenial> {
-        self.owner.reject_before_effects(receipt)
     }
 
     pub(crate) fn reject_recovery_before_effects(

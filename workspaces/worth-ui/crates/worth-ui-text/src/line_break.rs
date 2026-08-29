@@ -24,6 +24,7 @@ pub(super) fn opportunities(source: &str) -> Box<[u32]> {
     boundaries.into_boxed_slice()
 }
 
+#[cfg(test)]
 pub(super) fn unicode_opportunities(source: &str) -> Box<[u32]> {
     let units = units(source);
     unicode_opportunities_for_units(source, &units)

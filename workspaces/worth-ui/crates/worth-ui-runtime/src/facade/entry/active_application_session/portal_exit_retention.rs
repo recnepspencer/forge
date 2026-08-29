@@ -312,6 +312,7 @@ impl UiPortalMotionExitRetention {
         self.motion
     }
 
+    #[cfg(test)]
     pub(super) const fn terminal(&self) -> crate::runtime::motion::UiMotionTerminalReceipt {
         self.terminal
             .expect("terminal exit-retention selection requires terminal Motion evidence")

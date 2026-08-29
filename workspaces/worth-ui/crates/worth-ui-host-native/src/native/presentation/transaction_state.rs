@@ -41,6 +41,7 @@ pub(crate) trait UiNativePendingExternalObligation {
         None
     }
 
+    #[cfg(feature = "certification-support")]
     fn take_duplicate_completed_observation(
         &mut self,
         _basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,

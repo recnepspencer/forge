@@ -10,8 +10,6 @@ type PresentationLiveView = runtime::WorthQueryLiveView<runtime::WorthQueryUnref
 #[path = "runtime_bridge/schema.rs"]
 mod schema;
 use schema::{presentation_live_request, presentation_schema_view, presentation_view_name};
-#[path = "runtime_bridge/completion_access.rs"]
-mod completion_access;
 #[path = "runtime_bridge/completion_progress.rs"]
 mod completion_progress;
 pub(super) use completion_progress::WorthUiPresentationCompletionProgress;
@@ -27,8 +25,6 @@ pub struct WorthUiPresentationRuntimeAdmission {
 }
 
 pub struct WorthUiPresentationCompletionAdvance {
-    report: worth_runtime_bridge::facade::BridgeAsyncCompletionAdmissionReport,
-    batch: runtime::WorthQueryAsyncResultTransitionBatch,
     observation: WorthUiPresentationAsyncObservation,
 }
 
@@ -47,8 +43,6 @@ pub(crate) enum WorthUiPresentationRuntimeAdmissionDenial {
     MissingSemanticRuntime,
     QueryDeclarationMismatch,
     SemanticInstallation(runtime::WorthQueryOwnedConditionalInstanceDenial),
-    SemanticCleanup(runtime::WorthQueryOwnedConditionalInstanceDenial),
-    QueryCleanup(runtime::WorthQueryOwnedAsyncRuntimeDenial),
     CleanupRequired {
         cause: Box<WorthUiPresentationRuntimeAdmissionDenial>,
         recovery: Box<WorthUiPresentationRuntimeCleanup>,
@@ -174,28 +168,14 @@ impl WorthUiPresentationRuntimeAdmission {
         })
     }
 
-    pub fn declaration(&self) -> &WorthUiPresentationAsyncDeclaration {
-        &self.declaration
-    }
-
     pub fn basis(&self) -> &WorthUiPresentationRequestBasis {
         self.declaration.basis()
-    }
-
-    pub fn query_declaration(&self) -> &runtime::WorthQueryInstalledOwnedAsyncDeclaration {
-        &self.query_declaration
     }
 
     pub(super) fn semantic_instances(
         &self,
     ) -> &[runtime::WorthQueryInstalledOwnedConditionalInstance] {
         &self.semantic_instances
-    }
-
-    pub(crate) fn request(
-        &self,
-    ) -> &worth_runtime_bridge::facade::AdmittedBridgeAsyncRequestIdentity {
-        &self.request
     }
 
     pub(crate) fn admit_transitions(
@@ -354,6 +334,52 @@ impl WorthUiPresentationRuntimeAdmissionDenial {
                 last_denial,
             } => Ok((*recovery, *cause, last_denial)),
             denial => Err(denial),
+        }
+    }
+}
+
+impl std::fmt::Display for WorthUiPresentationCompletionDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::QueryOwned(denial) => write!(formatter, "Query-owned completion: {denial:?}"),
+            Self::QueryTransition(denial) => {
+                write!(formatter, "Query completion transition: {denial:?}")
+            }
+            Self::Observation(denial) => write!(formatter, "completion observation: {denial}"),
+        }
+    }
+}
+
+impl std::fmt::Display for WorthUiPresentationRuntimeAdmissionDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::QueryOwned(denial) => write!(formatter, "Query-owned admission: {denial:?}"),
+            Self::QueryLive(denial) => write!(formatter, "Query live-view admission: {denial:?}"),
+            Self::MissingAsyncResultState => formatter.write_str("missing async result state"),
+            Self::MissingSemanticRuntime => formatter.write_str("missing semantic runtime"),
+            Self::QueryDeclarationMismatch => formatter.write_str("Query declaration mismatch"),
+            Self::SemanticInstallation(denial) => {
+                write!(formatter, "semantic installation: {denial:?}")
+            }
+            Self::CleanupRequired {
+                cause,
+                recovery,
+                last_denial,
+            } => write!(
+                formatter,
+                "admission cleanup required after {cause}; next semantic retirement {}, request retained: {}, last denial: {last_denial}",
+                recovery.next_semantic_retirement,
+                recovery.request.is_some(),
+            ),
+        }
+    }
+}
+
+impl std::fmt::Display for WorthUiPresentationRuntimeCleanupDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Query(denial) => write!(formatter, "Query cleanup: {denial:?}"),
+            Self::Semantic(denial) => write!(formatter, "semantic cleanup: {denial:?}"),
         }
     }
 }

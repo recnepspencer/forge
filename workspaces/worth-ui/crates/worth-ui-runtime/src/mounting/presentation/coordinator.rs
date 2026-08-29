@@ -38,9 +38,7 @@ mod surface_uncertainty;
 mod text_pins;
 mod work_preparation;
 
-pub(crate) use motion_sample::{
-    UiMotionSampleCancellationOutcome, UiMotionSamplePresentationOutcome,
-};
+pub(crate) use motion_sample::UiMotionSamplePresentationOutcome;
 use presentation_attempt::{
     present_one_surface, UiMountedPresentationProgress, UiMountedPresentationStart,
 };

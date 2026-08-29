@@ -8,7 +8,9 @@ pub(in crate::runtime) struct UiFocusRevealRequirement {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) enum UiSelectionInvocationCause {
+    #[cfg(test)]
     DeclaredPointerActivation,
+    #[cfg(test)]
     DeclaredKeyboardActivation,
     DeclaredIntentActivation,
 }
@@ -84,6 +86,7 @@ impl UiDeclaredFocusSelectionAction {
         self.request
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn cause(self) -> UiSelectionInvocationCause {
         self.cause
     }

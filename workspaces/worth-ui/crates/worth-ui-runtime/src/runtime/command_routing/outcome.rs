@@ -63,7 +63,6 @@ pub struct UiCommandAmbiguity {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiCommandRoutingSuppression {
-    DeclarationNotReady,
     RepeatSuppressed,
     ImeComposition,
     TextEntry,

@@ -28,6 +28,7 @@ pub(in crate::runtime) struct UiServiceProposalStageReceipt {
 pub(in crate::runtime) struct UiServiceProposalStaging {
     candidate: super::UiServiceProposalCandidate,
     leases: Box<[super::super::UiServiceProposalOccupancyLease]>,
+    #[cfg(test)]
     displacement: Option<super::super::UiServiceProposalDisplacement>,
     next_stage: usize,
     staged_families: super::super::UiServiceFamilyParticipation,
@@ -42,8 +43,11 @@ pub(in crate::runtime) struct UiServiceProposalStaging {
 pub(in crate::runtime) struct UiServiceProposalStagedBatch {
     candidate: super::UiServiceProposalCandidate,
     leases: Box<[super::super::UiServiceProposalOccupancyLease]>,
+    #[cfg(test)]
     displacement: Option<super::super::UiServiceProposalDisplacement>,
+    #[cfg(test)]
     fact_references: Box<[super::UiServiceProducedFactReference]>,
+    #[cfg(test)]
     mounted_work_references: Box<[super::UiServiceMountedWorkReference]>,
     digest: u64,
     retained_receipts: u16,
@@ -51,7 +55,7 @@ pub(in crate::runtime) struct UiServiceProposalStagedBatch {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalStagingDenial {
+pub(crate) enum UiServiceProposalStagingDenial {
     ForeignProposal,
     OutOfOrder {
         expected: super::UiServiceProposalStage,
@@ -79,11 +83,12 @@ pub(in crate::runtime) enum UiServiceProposalStagingDenial {
 
 impl UiServiceProposalStaging {
     pub(super) fn new(reserved: super::UiReservedServiceProposal) -> Self {
-        let (candidate, leases, displacement) = reserved.into_parts();
+        let (candidate, leases, _displacement) = reserved.into_parts();
         Self {
             candidate,
             leases,
-            displacement,
+            #[cfg(test)]
+            displacement: _displacement,
             next_stage: super::UiServiceProposalStage::FamilyOwnedStaging.ordinal(),
             staged_families: super::super::UiServiceFamilyParticipation::EMPTY,
             fact_references: Vec::new(),
@@ -263,8 +268,11 @@ impl UiServiceProposalStaging {
         Ok(UiServiceProposalStagedBatch {
             candidate: self.candidate,
             leases: self.leases,
+            #[cfg(test)]
             displacement: self.displacement,
+            #[cfg(test)]
             fact_references: self.fact_references.into_boxed_slice(),
+            #[cfg(test)]
             mounted_work_references: self.mounted_work_references.into_boxed_slice(),
             digest,
             retained_receipts: self.retained_receipts,
@@ -287,10 +295,12 @@ impl UiServiceProposalStagedBatch {
         self.candidate.identity()
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn fact_references(&self) -> &[super::UiServiceProducedFactReference] {
         &self.fact_references
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn mounted_work_references(
         &self,
     ) -> &[super::UiServiceMountedWorkReference] {
@@ -321,6 +331,7 @@ impl UiServiceProposalStagedBatch {
         &self.candidate
     }
 
+    #[cfg(test)]
     pub(super) const fn displacement(&self) -> Option<super::super::UiServiceProposalDisplacement> {
         self.displacement
     }

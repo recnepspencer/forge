@@ -171,6 +171,7 @@ impl super::UiServiceProposalCompiler {
         )
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn shutdown_staging(
         &mut self,
         staging: super::UiServiceProposalStaging,
@@ -271,6 +272,7 @@ impl super::UiServiceProposalCompiler {
             })
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn shutdown_awaiting_settlement(
         &mut self,
         settlement: super::UiServiceProposalSettlement,
@@ -336,32 +338,39 @@ impl UiServiceProposalTerminalReceipt {
         }
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn proposal(self) -> super::UiServiceProposalIdentity {
         self.proposal
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn reason(self) -> UiServiceProposalTerminalReason {
         self.reason
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn released_leases(self) -> u16 {
         self.released_leases
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn released_receipts(self) -> u16 {
         self.released_receipts
     }
 }
 
 impl UiServiceProposalCompilerShutdownReceipt {
+    #[cfg(test)]
     pub(in crate::runtime) const fn abandoned_proposals(self) -> u16 {
         self.abandoned_proposals
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn abandoned_leases(self) -> u16 {
         self.abandoned_leases
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn final_census(self) -> super::super::UiServiceProposalCensus {
         self.final_census
     }

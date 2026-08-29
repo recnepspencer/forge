@@ -83,17 +83,7 @@ fn ia_04_payload_and_operability_retain_one_exact_predecessor_basis() {
 }
 
 #[test]
-fn ia_04_affinity_and_unsupported_destination_are_distinct_closed_axes() {
-    let mut unsupported = OperabilityWorld::unsupported();
-    let outcome = unsupported.evaluate(PRIMARY_POINT);
-    let decision = inoperable(outcome);
-    assert_eq!(decision.support(), UiIntentSupportPosture::Unsupported);
-    assert_eq!(
-        decision.primary_cause(),
-        Some(UiIntentInoperableCause::Unsupported)
-    );
-    let _ = unsupported.interaction.session.shutdown();
-
+fn ia_04_affinity_postures_are_distinct_closed_axes() {
     let mut source = OperabilityWorld::scoped(OccupancyLayout::TargetRoute);
     let candidate = source.prepare(PRIMARY_POINT);
     let foreign = OperabilityWorld::scoped(OccupancyLayout::TargetRoute);

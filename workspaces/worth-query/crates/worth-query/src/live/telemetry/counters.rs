@@ -383,11 +383,13 @@ impl LivePolicyCounters {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RegionScopedLiveCounters {
     pub(in crate::live) snapshot: LivePolicyCounters,
 }
 
+#[cfg(test)]
 impl RegionScopedLiveCounters {
     pub fn snapshot(&self) -> &LivePolicyCounters {
         &self.snapshot

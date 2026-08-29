@@ -69,14 +69,6 @@ impl UiCommandRouteDeclaration {
         self
     }
 
-    pub(crate) const fn with_registration_owner(
-        mut self,
-        registration_owner: UiCommandRegistrationOwner,
-    ) -> Self {
-        self.registration_owner = Some(registration_owner);
-        self
-    }
-
     pub const fn destination(self) -> UiCommandRouteDestination {
         self.destination
     }

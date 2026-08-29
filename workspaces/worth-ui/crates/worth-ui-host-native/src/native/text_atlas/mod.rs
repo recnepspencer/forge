@@ -59,22 +59,20 @@ mod placement_model_tests;
 #[cfg(test)]
 mod recovery_identity_tests;
 
-pub use capacity::{UiNativeTextAtlasCapacityPosture, UiNativeTextAtlasQualifiedCapacity};
-pub(crate) use census::UiNativeTextAtlasPhysicalPosture;
-pub use census::{UiNativeTextAtlasCensus, UiNativeTextAtlasResourceClass};
+pub use capacity::UiNativeTextAtlasQualifiedCapacity;
+pub use census::UiNativeTextAtlasCensus;
+pub(crate) use census::{UiNativeTextAtlasPhysicalPosture, UiNativeTextAtlasResourceClass};
 pub(crate) use demand::UiNativeTextAtlasDemand;
 pub(crate) use in_flight::UiNativeTextAtlasInFlight;
 pub(crate) use key::canonical_raster_key_bytes;
-pub use key::{UiAtlasEntryIdentity, UiNativeValidatedRasterKey};
+pub use key::UiAtlasEntryIdentity;
 pub use ownership::UiNativeTextPinObservation;
 pub(crate) use ownership::{UiNativeTextAtlas, UiNativeTextAtlasEntryView};
-pub use pinning::{UiNativeTextAtlasPin, UiNativeTextAtlasPinSnapshot};
 pub use plan_observation::UiNativeTextAtlasPlanObservation;
 pub(crate) use raster_upload::UiNativeTextAtlasUpload;
-pub use recovery::{
-    UiNativeTextAtlasDenial, UiNativeTextAtlasGeneration, UiNativeTextAtlasLineageIdentity,
-    UiNativeTextAtlasRecovery, UiNativeTextAtlasRecoverySnapshot,
-};
+#[cfg(test)]
+pub(crate) use recovery::UiNativeTextAtlasGeneration;
+pub use recovery::{UiNativeTextAtlasDenial, UiNativeTextAtlasRecovery};
 pub(crate) use settlement::UiNativeTextAtlasCommitOutcome;
 #[cfg(test)]
 pub(crate) use test_device_tests::qualified_test_device;
@@ -85,7 +83,6 @@ pub(crate) use transaction::{
 #[cfg(test)]
 pub(crate) use transaction_model_assertion::assert_independent_committed_transaction;
 pub(crate) use upload::UiNativeGpuAtlasKind;
-pub(crate) use upload::{
-    UiNativeTextAtlasGpuBatchUpload, UiNativeTextAtlasGpuPages, UiNativeTextAtlasGpuUploadRequest,
-    UiNativeTextAtlasPhysicalPoll,
-};
+#[cfg(test)]
+pub(crate) use upload::UiNativeTextAtlasGpuUploadRequest;
+pub(crate) use upload::{UiNativeTextAtlasGpuBatchUpload, UiNativeTextAtlasGpuPages};

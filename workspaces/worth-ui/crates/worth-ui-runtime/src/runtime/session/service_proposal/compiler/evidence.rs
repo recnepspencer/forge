@@ -11,7 +11,10 @@ fn same_session_generations_occupy_exact_independent_neighborhoods() {
         host_surface: axes.host_surface,
         binding: axes.binding,
         presentation: axes.presentation,
+        origin: axes.origin,
+        causal_parent: axes.causal_parent,
         causal_root: axes.causal_root,
+        source_order: axes.source_order,
         cancellation: axes.cancellation,
         resource_budget: axes.resource_budget,
     });
@@ -171,7 +174,10 @@ fn coherence_in_fresh_surface(
         host_surface: axes.host_surface,
         binding: axes.binding,
         presentation: axes.presentation,
+        origin: axes.origin,
+        causal_parent: axes.causal_parent,
         causal_root: axes.causal_root,
+        source_order: axes.source_order,
         cancellation: axes.cancellation,
         resource_budget: axes.resource_budget,
     })

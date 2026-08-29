@@ -86,19 +86,6 @@ impl WorthUiMountedSessionState {
         self.presentation.shutdown_focus_placement()
     }
 
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) const fn focus_placement_settlement_count_for_certification(&self) -> u64 {
-        self.presentation
-            .focus_placement_settlement_count_for_certification()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) const fn last_focus_placement_for_certification(
-        &self,
-    ) -> Option<worth_ui_host_contract::UiHostFocusPlacementAcknowledgement> {
-        self.presentation.last_focus_placement_for_certification()
-    }
-
     pub(crate) fn shutdown_presentation(
         &mut self,
         host: &crate::facade::WorthUiHostSessionAuthority,

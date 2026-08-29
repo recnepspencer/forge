@@ -14,6 +14,7 @@ impl PendingCauseSetId {
         generation: 0,
     };
 
+    #[cfg(test)]
     pub(crate) const fn generation(self) -> u32 {
         self.generation
     }

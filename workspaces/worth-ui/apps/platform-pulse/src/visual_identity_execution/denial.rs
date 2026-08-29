@@ -53,10 +53,25 @@ pub(crate) enum PlatformPulseVisualCapturePhase {
 impl std::fmt::Display for PlatformPulseVisualExecutionDenial {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::ComparisonMountedFrameUnavailable(omission) => {
+                write!(
+                    formatter,
+                    "comparison mounted frame unavailable: {omission:?}"
+                )
+            }
+            Self::MountedFrameReadinessUnavailable(omission) => {
+                write!(
+                    formatter,
+                    "mounted-frame readiness unavailable: {omission:?}"
+                )
+            }
             Self::SnapshotAdmission(denial) => {
                 write!(formatter, "snapshot admission: {denial:?}")
             }
             Self::SnapshotDenied(denial) => write!(formatter, "snapshot denied: {denial:?}"),
+            Self::SnapshotDeadline(phase) => {
+                write!(formatter, "snapshot deadline during {phase:?}")
+            }
             Self::ComparisonOmitted(omission) => {
                 write!(formatter, "comparison omitted: {omission:?}")
             }

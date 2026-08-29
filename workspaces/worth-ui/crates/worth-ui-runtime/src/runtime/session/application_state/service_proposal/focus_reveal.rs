@@ -15,7 +15,7 @@ pub(crate) enum UiFocusRevealStagingDenial {
 }
 
 impl super::super::WorthUiApplicationSessionState {
-    pub(crate) fn stage_focus_reveal(
+    pub(in crate::runtime) fn stage_focus_reveal(
         &self,
         requirement: crate::runtime::session::service_proposal::UiFocusRevealRequirement,
         mounted: &crate::mounting::WorthUiMountedSessionState,
@@ -130,10 +130,6 @@ impl super::super::WorthUiApplicationSessionState {
 }
 
 impl UiStagedFocusReveal {
-    pub(crate) const fn receipt(&self) -> &crate::runtime::scroll::UiScrollRouteReceipt {
-        &self.receipt
-    }
-
     pub(crate) fn commit(self, state: &mut crate::runtime::scroll::UiScrollRuntimeState) {
         for registration in self.registrations {
             state
@@ -144,9 +140,13 @@ impl UiStagedFocusReveal {
                 ))
                 .expect("staged focus reveal retains its exact current Scroll owner");
         }
-        state
+        let committed = state
             .reveal(self.request)
             .expect("staged focus reveal rebases against current Scroll truth");
+        assert_eq!(
+            committed, self.receipt,
+            "staged focus reveal must commit the exact prevalidated Scroll transition"
+        );
     }
 }
 

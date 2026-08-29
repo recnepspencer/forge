@@ -21,7 +21,6 @@ pub(crate) struct UiCommandRoutingContext {
     selection_revision: u64,
     active_portal_scopes: Box<[crate::capability::UiCommandRouteScopeIdentity]>,
     portal_revision: u64,
-    declaration_ready: bool,
     ime_composing: bool,
     text_entry_active: bool,
     presentation: Option<worth_ui_host_contract::UiHostObservationPresentationBasis>,
@@ -43,7 +42,6 @@ impl UiCommandRoutingContext {
             selection_revision: 0,
             active_portal_scopes: Box::new([]),
             portal_revision: 0,
-            declaration_ready: true,
             ime_composing: false,
             text_entry_active: false,
             presentation: None,
@@ -98,11 +96,6 @@ impl UiCommandRoutingContext {
     ) -> Self {
         self.active_portal_scopes = active_scopes;
         self.portal_revision = revision;
-        self
-    }
-
-    pub(crate) fn with_declaration_readiness(mut self, ready: bool) -> Self {
-        self.declaration_ready = ready;
         self
     }
 
@@ -169,7 +162,6 @@ impl UiCommandRoutingContext {
             && self.selection_revision == other.selection_revision
             && self.active_portal_scopes == other.active_portal_scopes
             && self.portal_revision == other.portal_revision
-            && self.declaration_ready == other.declaration_ready
             && self.ime_composing == other.ime_composing
             && self.text_entry_active == other.text_entry_active
     }
@@ -232,10 +224,6 @@ impl UiCommandRoutingContext {
 
     pub(super) const fn portal_revision(&self) -> u64 {
         self.portal_revision
-    }
-
-    pub(super) const fn declaration_ready(&self) -> bool {
-        self.declaration_ready
     }
 
     pub(super) const fn ime_composing(&self) -> bool {

@@ -29,6 +29,7 @@ pub(crate) use qualification::UiNativeQualificationState;
 mod temporal_retry_tests;
 mod text_atlas_commit;
 mod text_atlas_lifecycle;
+#[cfg(test)]
 pub(crate) use text_atlas_lifecycle::UiNativeTextAtlasPhysicalProgress;
 
 pub(crate) struct UiNativeHostState {

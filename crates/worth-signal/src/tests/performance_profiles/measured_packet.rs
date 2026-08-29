@@ -39,7 +39,7 @@ fn measured_idle_versus_balanced_records_named_benefit() {
     let ten_percent = idle_report.completed_batches_per_second_milli
         >= balanced_report.completed_batches_per_second_milli * 11 / 10;
     println!(
-        "measured packet context={:?} idle={:?} balanced={:?} ten_percent_benefit={ten_percent} governed_nodes={}",
+        "measured packet context={} idle={:?} balanced={:?} ten_percent_benefit={ten_percent} governed_nodes={}",
         PerformancePacketContext::recorded(),
         idle_report,
         balanced_report,

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiMotionStagingDenial {
+pub(crate) enum UiMotionStagingDenial {
     CapacityExceeded,
     TrackIdentityExhausted,
 }
@@ -20,7 +20,7 @@ pub(crate) struct UiMotionRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
     policy: crate::declaration::UiMotionPolicy,
     next_track_identity: u64,
-    tracks: BTreeMap<super::UiMotionTargetIdentity, super::UiCommittedMotionTrack>,
+    pub(super) tracks: BTreeMap<super::UiMotionTargetIdentity, super::UiCommittedMotionTrack>,
     exit_retentions: BTreeMap<super::UiMotionTrackIdentity, super::UiMotionExitRetentionReceipt>,
     census: super::UiMotionResourceCensus,
     publication_sequence: u64,

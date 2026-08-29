@@ -145,13 +145,10 @@ impl WorthUiPresentationAsyncOwner {
             .filter(|pending| pending.nonce == receipt.nonce)
             .expect("owner-issued unresolved receipt remains retained until reconstruction");
         pending.recovery_required = true;
-        let nonce = pending.nonce;
         self.record_transition(WorthUiPresentationTransitionKind::RecoveryRequired, key);
         WorthUiPresentationRecoveryRequiredReceipt {
-            authority: std::sync::Arc::clone(&self.correspondence_authority),
             attempt: key.attempt,
             binding: key.binding,
-            nonce,
             observation: receipt.observation,
         }
     }

@@ -20,6 +20,7 @@ pub(super) const fn duplicate_request_capacity_for_test() -> usize {
 /// routing work stays proportional to the currently active portals rather than
 /// to every portal the session ever opened.
 pub(crate) struct UiPortalRuntimeState {
+    #[cfg(test)]
     persistence: crate::runtime::UiServiceStatePersistencePosture,
     pub(super) policy: crate::declaration::UiPortalPolicy,
     pub(super) records: BTreeMap<super::UiPortalIdentity, UiPortalRecord>,
@@ -45,11 +46,12 @@ impl UiPortalRuntimeState {
     }
 
     pub(crate) fn new_with_policy(
-        persistence: crate::runtime::UiServiceStatePersistencePosture,
+        _persistence: crate::runtime::UiServiceStatePersistencePosture,
         policy: crate::declaration::UiPortalPolicy,
     ) -> Self {
         Self {
-            persistence,
+            #[cfg(test)]
+            persistence: _persistence,
             policy,
             records: BTreeMap::new(),
             closed_requests: duplicate_request::UiPortalClosedRequestWindow::new(),
@@ -64,6 +66,7 @@ impl UiPortalRuntimeState {
         self.policy = policy;
     }
 
+    #[cfg(test)]
     pub(crate) const fn persistence(&self) -> crate::runtime::UiServiceStatePersistencePosture {
         self.persistence
     }
@@ -313,6 +316,7 @@ impl UiPortalRuntimeState {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn posture(
         &self,
         portal: super::UiPortalIdentity,

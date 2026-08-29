@@ -15,6 +15,7 @@ pub(crate) struct UiWgpuDeviceGenerationMechanics {
     pub(super) lost: Arc<std::sync::atomic::AtomicBool>,
 }
 
+#[cfg(test)]
 impl UiWgpuDeviceGenerationMechanics {
     pub(in crate::native) fn new(
         device: wgpu::Device,

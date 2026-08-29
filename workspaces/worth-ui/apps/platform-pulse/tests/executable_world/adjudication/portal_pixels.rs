@@ -1,12 +1,14 @@
-use super::platform_pulse_control_points::{checked_in, PlatformPulseControlPointManifestFailure};
+use super::platform_pulse_control_points::checked_in;
 use super::runtime_service_story_pixels::is_intentionally_mutable_story_pixel;
 use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoint};
 
 mod authored_surface;
+mod failure;
 mod focus_fallback;
 pub(crate) use authored_surface::{
     adjudicate_authored_portal_pixels, PlatformPulseAuthoredPortalPixelEvidence,
 };
+pub(crate) use failure::PlatformPulsePortalPixelFailure;
 pub(crate) use focus_fallback::{
     adjudicate_focus_fallback_portal_pixels, PlatformPulsePortalFocusFallbackPixelEvidence,
 };
@@ -23,40 +25,6 @@ pub(crate) struct PlatformPulsePortalPixelEvidence {
     authored_surface_matching_pixels: usize,
     semantic_ink_pixels: usize,
 }
-
-#[derive(Debug)]
-pub(crate) enum PlatformPulsePortalPixelFailure {
-    Manifest(PlatformPulseControlPointManifestFailure),
-    CaptureMismatch,
-    OverlayMissing {
-        changed: usize,
-        matching: usize,
-        sampled: usize,
-    },
-    AuthoredSurfaceMissing {
-        identity: &'static str,
-        matching: usize,
-        sampled: usize,
-    },
-    SemanticInkMissing {
-        identity: &'static str,
-        matching: usize,
-    },
-    RestorationMissing {
-        differing: usize,
-        sampled: usize,
-    },
-    PreferredFocusParticipantRetained {
-        changed: usize,
-        background_matching: usize,
-        sampled: usize,
-    },
-    FallbackActionChanged {
-        differing: usize,
-        sampled: usize,
-    },
-}
-
 pub(crate) fn adjudicate_open_portal_pixels(
     baseline: &NativeClientPixelCapture,
     opened: &NativeClientPixelCapture,
@@ -383,11 +351,5 @@ impl PlatformPulsePortalPixelEvidence {
 
     pub(crate) const fn semantic_ink_pixels(self) -> usize {
         self.semantic_ink_pixels
-    }
-}
-
-impl std::fmt::Display for PlatformPulsePortalPixelFailure {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{self:?}")
     }
 }

@@ -9,7 +9,7 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum FinancialConsumerRole {
+pub(crate) enum FinancialConsumerRole {
     RiskMatched,
     RiskUnmatched,
     RiskTolerance,

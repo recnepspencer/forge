@@ -54,7 +54,6 @@ pub(super) struct UiMountedFocusPlacementState {
     next_identity: u64,
     last: Option<worth_ui_host_contract::UiHostFocusPlacementAcknowledgement>,
     reconciliation: Option<UiFocusHostPlacementReconciliationReceipt>,
-    settlements: u64,
 }
 
 impl Default for UiMountedFocusPlacementState {
@@ -63,7 +62,6 @@ impl Default for UiMountedFocusPlacementState {
             next_identity: 1,
             last: None,
             reconciliation: None,
-            settlements: 0,
         }
     }
 }
@@ -91,18 +89,6 @@ impl super::UiMountedPresentationCoordinator {
 
     pub(crate) fn shutdown_focus_placement(&mut self) -> UiFocusHostPlacementShutdownReport {
         self.focus_placement.shutdown()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) const fn focus_placement_settlement_count_for_certification(&self) -> u64 {
-        self.focus_placement.settlements
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) const fn last_focus_placement_for_certification(
-        &self,
-    ) -> Option<worth_ui_host_contract::UiHostFocusPlacementAcknowledgement> {
-        self.focus_placement.last
     }
 }
 
@@ -172,7 +158,6 @@ impl UiMountedFocusPlacementState {
         {
             return Err(UiFocusHostPlacementSettlementDenial::StaleRequest);
         }
-        self.settlements = self.settlements.saturating_add(1);
         self.last = Some(acknowledgement);
         self.reconciliation = None;
         Ok(())

@@ -14,7 +14,10 @@ pub(in crate::runtime::session::service_proposal) fn fixture_service_request_coh
         host_surface: worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap(),
         presentation: None,
+        origin: super::UiServiceRequestOrigin::RuntimePolicy,
+        causal_parent: None,
         causal_root: super::UiServiceRequestIdentity(NonZeroU64::new(seed).unwrap()),
+        source_order: super::UiServiceSourceOrder(NonZeroU64::new(seed).unwrap()),
         cancellation: super::UiServiceCancellationIdentity(NonZeroU64::new(seed).unwrap()),
         resource_budget: super::UiServiceResourceBudgetIdentity(NonZeroU64::new(seed).unwrap()),
     })

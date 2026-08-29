@@ -23,6 +23,7 @@ impl UiNativeValidatedRasterKey {
         Ok(Self { key })
     }
 
+    #[cfg(test)]
     pub const fn key(self) -> UiGlyphRasterKey {
         self.key
     }
@@ -34,11 +35,10 @@ pub(crate) fn canonical_raster_key_bytes(key: UiGlyphRasterKey) -> Vec<u8> {
     key.canonical_evidence_bytes()
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UiAtlasEntryIdentity(u64);
 
 impl UiAtlasEntryIdentity {
-    #[allow(dead_code, reason = "reserved for native atlas effect ownership")]
     pub(crate) const fn from_native_host(value: u64) -> Option<Self> {
         if value == 0 {
             None

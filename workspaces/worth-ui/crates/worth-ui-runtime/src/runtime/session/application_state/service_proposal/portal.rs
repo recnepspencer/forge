@@ -152,8 +152,8 @@ impl WorthUiApplicationSessionState {
             crate::runtime::session::service_proposal::UiServiceProposalReservationOutcome::Reserved(
                 reservation,
             ) => reservation,
-            crate::runtime::session::service_proposal::UiServiceProposalReservationOutcome::Coalesced { .. } => {
-                return Err(UiPortalProposalPreparationDenial::Coalesced)
+            crate::runtime::session::service_proposal::UiServiceProposalReservationOutcome::Coalesced { incumbent } => {
+                return Err(UiPortalProposalPreparationDenial::Coalesced(incumbent))
             }
         };
         let portal = crate::runtime::portal::UiStagedPortalServiceProposal::prepare(

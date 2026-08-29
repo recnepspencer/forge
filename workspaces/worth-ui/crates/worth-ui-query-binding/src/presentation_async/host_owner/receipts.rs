@@ -60,10 +60,8 @@ pub struct WorthUiPresentationUnresolvedReceipt {
 }
 
 pub struct WorthUiPresentationRecoveryRequiredReceipt {
-    pub(super) authority: CorrespondenceAuthority,
     pub(super) attempt: PresentationAttempt,
     pub(super) binding: SurfaceBinding,
-    pub(super) nonce: u64,
     pub(super) observation: WorthUiPresentationAsyncObservation,
 }
 

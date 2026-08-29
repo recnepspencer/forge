@@ -59,7 +59,7 @@ pub(crate) enum UiPortalProposalPreparationDenial {
     /// The compiled batch and the Focus owner's staged reveal disagree about
     /// whether a Scroll owner replanned, or about which owner did.
     RevealRefinementMismatch,
-    Coalesced,
+    Coalesced(crate::runtime::session::service_proposal::UiServiceProposalIdentity),
 }
 
 impl UiStagedPortalProposalTransaction {

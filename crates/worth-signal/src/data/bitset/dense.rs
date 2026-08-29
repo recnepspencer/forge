@@ -72,11 +72,6 @@ impl DenseBitset {
         }
     }
 
-    /// Whether this bitset has any marked bits.
-    pub fn any(&self) -> bool {
-        self.words.iter().any(|w| *w != 0)
-    }
-
     /// Iterate marked indices in ascending deterministic order.
     pub fn iter_marked(&self) -> DenseBitsetIter<'_> {
         DenseBitsetIter {

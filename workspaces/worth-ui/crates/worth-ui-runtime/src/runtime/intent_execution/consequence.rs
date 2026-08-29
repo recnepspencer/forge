@@ -58,10 +58,154 @@ pub enum UiIntentConsequenceStopReason {
     IntentPostureIdentityExhausted,
     RuntimeServiceRequiresMountedPosture,
     RuntimeServiceCommandRouteMissing,
-    RuntimeServiceOwnerUnavailable(crate::capability::UiRuntimeServiceFamily),
+    RuntimeServiceOwnerUnavailable(UiRuntimeServiceFamilyStopReason),
     RuntimeServiceTransitionExhausted,
     RuntimeServicePortalPlacement(UiIntentPortalPlacementStopReason),
-    RuntimeServiceProposal(Box<crate::runtime::session::UiPortalProposalPreparationDenial>),
+    RuntimeServiceProposal(UiRuntimeServiceProposalStop),
+}
+
+/// Public, stable service-family identity for consequence diagnostics. Runtime
+/// registry identity remains private to the capability owner.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiRuntimeServiceFamilyStopReason {
+    Portal,
+    Focus,
+    Motion,
+    CommandRouting,
+    Scroll,
+    Selection,
+}
+
+/// Public classification of a failed runtime-service proposal. Internal proof
+/// and authority types do not leak through the product-facing stop surface.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiRuntimeServiceProposalStopReason {
+    RequestBasis,
+    Demand,
+    Preflight,
+    Reservation,
+    Staging,
+    Publication,
+    Focus,
+    Scroll,
+    MissingScrollOwner,
+    SelectionMapping,
+    Selection,
+    MotionRequest,
+    Motion,
+    MountedFrameMismatch,
+    RevealRefinementMismatch,
+    Coalesced,
+}
+
+/// Product-facing proposal stop with a stable category and retained internal
+/// diagnostic detail. The detail is observational only and carries no runtime
+/// authority.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiRuntimeServiceProposalStop {
+    reason: UiRuntimeServiceProposalStopReason,
+    detail: Box<str>,
+}
+
+impl UiRuntimeServiceProposalStop {
+    pub const fn reason(&self) -> UiRuntimeServiceProposalStopReason {
+        self.reason
+    }
+
+    pub fn detail(&self) -> &str {
+        &self.detail
+    }
+}
+
+impl From<crate::capability::UiRuntimeServiceFamily> for UiRuntimeServiceFamilyStopReason {
+    fn from(family: crate::capability::UiRuntimeServiceFamily) -> Self {
+        match family {
+            crate::capability::UiRuntimeServiceFamily::Portal => Self::Portal,
+            crate::capability::UiRuntimeServiceFamily::Focus => Self::Focus,
+            crate::capability::UiRuntimeServiceFamily::Motion => Self::Motion,
+            crate::capability::UiRuntimeServiceFamily::CommandRouting => Self::CommandRouting,
+            crate::capability::UiRuntimeServiceFamily::Scroll => Self::Scroll,
+            crate::capability::UiRuntimeServiceFamily::Selection => Self::Selection,
+        }
+    }
+}
+
+impl From<crate::runtime::session::UiPortalProposalPreparationDenial>
+    for UiRuntimeServiceProposalStop
+{
+    fn from(denial: crate::runtime::session::UiPortalProposalPreparationDenial) -> Self {
+        use crate::runtime::session::UiPortalProposalPreparationDenial as Denial;
+        let (reason, detail) = match denial {
+            Denial::RequestBasis(detail) => (
+                UiRuntimeServiceProposalStopReason::RequestBasis,
+                format!("{detail:?}"),
+            ),
+            Denial::Demand(detail) => (
+                UiRuntimeServiceProposalStopReason::Demand,
+                format!("{detail:?}"),
+            ),
+            Denial::Preflight(detail) => (
+                UiRuntimeServiceProposalStopReason::Preflight,
+                format!("{detail:?}"),
+            ),
+            Denial::Reservation(detail) => (
+                UiRuntimeServiceProposalStopReason::Reservation,
+                format!("{detail:?}"),
+            ),
+            Denial::Staging(detail) => (
+                UiRuntimeServiceProposalStopReason::Staging,
+                format!("{detail:?}"),
+            ),
+            Denial::Publication(detail) => (
+                UiRuntimeServiceProposalStopReason::Publication,
+                format!("{detail:?}"),
+            ),
+            Denial::Focus(detail) => (
+                UiRuntimeServiceProposalStopReason::Focus,
+                format!("{detail:?}"),
+            ),
+            Denial::Scroll(detail) => (
+                UiRuntimeServiceProposalStopReason::Scroll,
+                format!("{detail:?}"),
+            ),
+            Denial::MissingScrollOwner => (
+                UiRuntimeServiceProposalStopReason::MissingScrollOwner,
+                "missing Scroll owner".into(),
+            ),
+            Denial::SelectionMapping(detail) => (
+                UiRuntimeServiceProposalStopReason::SelectionMapping,
+                format!("{detail:?}"),
+            ),
+            Denial::Selection(detail) => (
+                UiRuntimeServiceProposalStopReason::Selection,
+                format!("{detail:?}"),
+            ),
+            Denial::MotionRequest(detail) => (
+                UiRuntimeServiceProposalStopReason::MotionRequest,
+                format!("{detail:?}"),
+            ),
+            Denial::Motion(detail) => (
+                UiRuntimeServiceProposalStopReason::Motion,
+                format!("{detail:?}"),
+            ),
+            Denial::MountedFrameMismatch => (
+                UiRuntimeServiceProposalStopReason::MountedFrameMismatch,
+                "mounted frame mismatch".into(),
+            ),
+            Denial::RevealRefinementMismatch => (
+                UiRuntimeServiceProposalStopReason::RevealRefinementMismatch,
+                "reveal refinement mismatch".into(),
+            ),
+            Denial::Coalesced(detail) => (
+                UiRuntimeServiceProposalStopReason::Coalesced,
+                format!("coalesced with {detail:?}"),
+            ),
+        };
+        Self {
+            reason,
+            detail: detail.into_boxed_str(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

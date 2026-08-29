@@ -5,8 +5,8 @@ mod mounted_allocation;
 #[path = "application_state/service_proposal.rs"]
 mod service_proposal;
 pub(crate) use service_proposal::{
-    UiIndeterminatePortalProposalTransaction, UiPortalProposalPreparation,
-    UiPortalProposalPreparationDenial, UiStagedPortalProposalTransaction,
+    UiIndeterminatePortalProposalTransaction, UiPortalProposalPreparationDenial,
+    UiStagedPortalProposalTransaction,
 };
 #[cfg(any(test, feature = "certification-support"))]
 mod planning;

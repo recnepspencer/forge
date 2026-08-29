@@ -267,24 +267,6 @@ impl PartitionInterner {
         }
     }
 
-    pub fn intern_changed_region(
-        &mut self,
-        region: &ChangedRegion,
-    ) -> InternedPartitionSubscription {
-        InternedPartitionSubscription {
-            partition: self.intern_partition(&region.partition.0),
-            detail: region
-                .detail
-                .as_deref()
-                .map(|detail| self.intern_detail(detail)),
-            match_mode: if region.detail.is_some() {
-                PartitionMatchMode::PartitionAndDetail
-            } else {
-                PartitionMatchMode::WholePartition
-            },
-        }
-    }
-
     pub(crate) fn resolve_subscription(
         &self,
         subscription: &PartitionSubscription,

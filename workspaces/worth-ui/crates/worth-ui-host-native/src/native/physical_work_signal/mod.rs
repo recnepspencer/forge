@@ -33,7 +33,9 @@ pub(crate) use identity::{
     UiNativePhysicalPresentationIdentity,
 };
 pub use lifecycle_observation::UiNativePhysicalSignalLifecycleObservation;
-pub(crate) use observation::{UiNativePhysicalRecoveryPosture, UiNativePhysicalSignalObservation};
+#[cfg(test)]
+pub(crate) use observation::UiNativePhysicalRecoveryPosture;
+pub(crate) use observation::UiNativePhysicalSignalObservation;
 pub(crate) use readiness_handoff::UiNativePhysicalSignalReadyAttempt;
 pub(crate) use routing::UiNativePhysicalSignalRequestToken;
 pub(crate) use routing::UiNativePhysicalSignalWork;
@@ -51,6 +53,7 @@ const PHYSICAL_SIGNAL_OBSERVATION_CAPACITY: usize = 64;
 
 pub(crate) struct UiNativePhysicalSignalOwner {
     runtime_identity: identity::UiNativePhysicalSignalRuntimeIdentity,
+    #[cfg(test)]
     declarations: declarations::UiNativePhysicalSignalDeclarations,
     route: UiNativePhysicalSignalRoute,
     worker: Option<worker::UiNativePhysicalSignalWorker>,
@@ -72,6 +75,7 @@ impl UiNativePhysicalSignalOwner {
         let terminal_telemetry = built.worker.telemetry();
         Self {
             runtime_identity: built.runtime_identity,
+            #[cfg(test)]
             declarations: built.declarations,
             route: built.route,
             worker: Some(built.worker),
@@ -295,6 +299,7 @@ impl UiNativePhysicalSignalOwner {
         self.transition_observations.push(observation);
     }
 
+    #[cfg(test)]
     pub(crate) fn declarations(&self) -> declarations::UiNativePhysicalSignalDeclarations {
         self.declarations
     }
@@ -353,6 +358,7 @@ impl UiNativePhysicalSignalOwner {
         Ok(token)
     }
 
+    #[cfg(test)]
     pub(crate) fn take_ready_token(
         &mut self,
         expected: UiNativePhysicalSignalRequestToken,

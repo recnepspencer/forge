@@ -285,11 +285,6 @@ impl UiNativeApplicationReadinessOwnerCount {
     pub const fn get(self) -> u8 {
         self.count
     }
-
-    pub(crate) fn into_host(self) -> worth_ui_host_native::UiNativeApplicationReadinessOwnerCount {
-        worth_ui_host_native::UiNativeApplicationReadinessOwnerCount::new(self.count)
-            .expect("runtime admission preserves the host readiness capacity")
-    }
 }
 
 impl UiNativeApplicationReadinessPort {

@@ -18,58 +18,11 @@ pub(crate) struct FrontierWaveEntryPlan {
     pub(crate) source_seed_refs: Vec<u32>,
 }
 
-impl FrontierWaveEntryPlan {
-    pub(crate) fn new(
-        node: NodeId,
-        classification: FrontierEntryClassification,
-        inclusion_basis: FrontierInclusionBasis,
-        narrowed_scopes: impl Into<PartitionScopeSet>,
-        source_seed_refs: impl IntoIterator<Item = u32>,
-    ) -> Self {
-        let mut source_seed_refs = source_seed_refs.into_iter().collect::<Vec<_>>();
-        if source_seed_refs.len() > 1 {
-            source_seed_refs.sort_unstable();
-            source_seed_refs.dedup();
-        }
-        Self {
-            node,
-            classification,
-            inclusion_basis,
-            narrowed_scopes: narrowed_scopes.into(),
-            source_seed_refs,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct FrontierWavePlan {
     pub(crate) wave_index: u32,
     pub(crate) aspect: Aspect,
     pub(crate) entries: Vec<FrontierWaveEntryPlan>,
-}
-
-impl FrontierWavePlan {
-    pub(crate) fn new(
-        wave_index: u32,
-        aspect: Aspect,
-        entries: impl IntoIterator<Item = FrontierWaveEntryPlan>,
-    ) -> Self {
-        let mut entries = entries.into_iter().collect::<Vec<_>>();
-        if entries.len() > 1 {
-            entries.sort_unstable_by_key(|entry| {
-                (
-                    super::super::locality::node_sort_key(&entry.node),
-                    entry.classification,
-                    entry.inclusion_basis,
-                )
-            });
-        }
-        Self {
-            wave_index,
-            aspect,
-            entries,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

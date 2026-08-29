@@ -1,12 +1,3 @@
-pub(super) fn prefix_owners(
-    candidates: &[&super::candidate::UiCommandRouteCandidate],
-) -> Box<[Option<crate::capability::UiCommandRegistrationOwner>]> {
-    candidates
-        .iter()
-        .map(|candidate| candidate.route().registration_owner())
-        .collect()
-}
-
 pub(super) fn eligible_candidates<'a>(
     candidates: Vec<&'a super::candidate::UiCommandRouteCandidate>,
     repeat: bool,

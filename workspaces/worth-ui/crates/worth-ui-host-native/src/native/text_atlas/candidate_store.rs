@@ -77,15 +77,6 @@ impl CandidateAtlasStore {
             .saturating_mul(u64::from(predecessor.channels))
     }
 
-    pub(crate) fn allocate(
-        &mut self,
-        predecessor: &AtlasStore,
-        width: u32,
-        height: u32,
-    ) -> Option<(u32, UiAtlasRect)> {
-        self.allocate_observed(predecessor, width, height).placement
-    }
-
     pub(crate) fn allocate_observed(
         &mut self,
         predecessor: &AtlasStore,
@@ -153,14 +144,6 @@ impl CandidateAtlasStore {
             .release(entry.rect);
         self.removed.insert(key);
         Some(entry)
-    }
-
-    pub(crate) fn oldest_unprotected(
-        &self,
-        predecessor: &AtlasStore,
-        protected: &HashSet<UiGlyphRasterKey>,
-    ) -> Option<(u64, Vec<u8>, UiGlyphRasterKey)> {
-        self.oldest_unprotected_observed(predecessor, protected).0
     }
 
     pub(crate) fn oldest_unprotected_observed(

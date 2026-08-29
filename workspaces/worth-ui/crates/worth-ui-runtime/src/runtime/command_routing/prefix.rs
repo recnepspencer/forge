@@ -1,7 +1,6 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct UiCommandPrefixOccupancy {
     first: super::input_stroke::UiCommandInputStroke,
-    owners: Box<[Option<crate::capability::UiCommandRegistrationOwner>]>,
     revision: u64,
     application: crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
     context: super::UiCommandRoutingContext,
@@ -18,7 +17,6 @@ pub(super) enum UiCommandPrefixCurrentness {
 impl UiCommandPrefixOccupancy {
     pub(super) fn new(
         first: super::input_stroke::UiCommandInputStroke,
-        owners: Box<[Option<crate::capability::UiCommandRegistrationOwner>]>,
         revision: u64,
         application: crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
         context: super::UiCommandRoutingContext,
@@ -26,7 +24,6 @@ impl UiCommandPrefixOccupancy {
     ) -> Self {
         Self {
             first,
-            owners,
             revision,
             application,
             context,
@@ -36,16 +33,6 @@ impl UiCommandPrefixOccupancy {
 
     pub(super) const fn first(&self) -> super::input_stroke::UiCommandInputStroke {
         self.first
-    }
-
-    pub(super) const fn revision(&self) -> u64 {
-        self.revision
-    }
-
-    pub(super) fn belongs_to(&self, owner: crate::capability::UiCommandRegistrationOwner) -> bool {
-        self.owners
-            .iter()
-            .any(|candidate| *candidate == Some(owner))
     }
 
     pub(super) fn currentness(

@@ -9,29 +9,29 @@ pub(in crate::tests::domains::fintech) enum Currency {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum FxPair {
+pub(crate) enum FxPair {
     EurUsd,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum QuoteId {
+pub(crate) enum QuoteId {
     TreasuryTwoYear,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum CurveBucket {
+pub(crate) enum CurveBucket {
     UsdOneYear,
     UsdTwoYear,
     EurOneYear,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum VolatilityBucket {
+pub(crate) enum VolatilityBucket {
     EurUsdOneYear,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum MarketFactorKey {
+pub(crate) enum MarketFactorKey {
     Quote(QuoteId),
     FxSpot(FxPair),
     Curve(CurveBucket),

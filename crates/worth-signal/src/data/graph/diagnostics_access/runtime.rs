@@ -69,18 +69,6 @@ impl SignalGraph {
         self.observation.installed_policy().performance()
     }
 
-    pub(crate) fn installed_execution_strategy(
-        &self,
-    ) -> crate::data::performance::ResolvedExecutionStrategy {
-        self.observation.installed_policy().execution_strategy()
-    }
-
-    pub(crate) fn installed_maintenance_strategy(
-        &self,
-    ) -> crate::data::performance::ResolvedMaintenanceStrategy {
-        self.observation.installed_policy().maintenance_strategy()
-    }
-
     /// Reset graph diagnostics to the stock policy for one diagnostics tier.
     ///
     /// This is a lower-level convenience reset. If the caller means to keep

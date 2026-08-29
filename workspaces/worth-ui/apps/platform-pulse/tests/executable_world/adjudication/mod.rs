@@ -50,7 +50,7 @@ pub(crate) use intent_control_points::{
     adjudicate_portal_control_point, adjudicate_visible_control_change,
     require_distinct_control_points, IntentControlPointFailure, NativeControlPixelRegion,
     PlatformPulseActionControlPoint, PlatformPulseConfirmationControlPoint,
-    PlatformPulsePortalControlPoint, VisibleControlPixelChange,
+    VisibleControlPixelChange,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use lifecycle_cleanup::{

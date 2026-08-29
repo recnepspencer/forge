@@ -32,7 +32,7 @@ impl UiNativeQueuedReadinessCloseCertification {
 pub fn certify_client_close_with_queued_readiness<Client: UiNativeEventLoopClient>(
     client: Client,
 ) -> UiNativeQueuedReadinessCloseCertification {
-    let mut readiness = crate::native::UiNativeReadinessRegistry::new();
+    let readiness = crate::native::UiNativeReadinessRegistry::new();
     let owner = readiness
         .register()
         .expect("certification readiness owner must fit the production registry");

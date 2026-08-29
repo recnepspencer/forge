@@ -14,8 +14,10 @@ pub(crate) enum UiPortalDismissalCause {
     ExplicitOwnerRequest,
     AnchorLoss,
     ParentClosed,
+    #[cfg(test)]
     OwnerLoss,
     ApplicationShutdown,
+    #[cfg(test)]
     WindowFocusPolicy,
 }
 

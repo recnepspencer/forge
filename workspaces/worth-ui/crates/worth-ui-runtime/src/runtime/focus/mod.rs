@@ -21,9 +21,7 @@ mod state_tests;
 pub(in crate::runtime) use accessibility_focus_hook::{
     UiAccessibilityFocusHook, UiAccessibilityFocusHookSupport,
 };
-pub(in crate::runtime) use active_descendant::{
-    UiActiveDescendant, UiActiveDescendantDenial, UiActiveDescendantTransitionReceipt,
-};
+pub(in crate::runtime) use active_descendant::UiActiveDescendant;
 pub(in crate::runtime) use identity::UiFocusParticipantIdentity;
 pub(crate) use identity::UiFocusScopeIdentity;
 pub(in crate::runtime) use inspection::UiFocusInspectionSnapshot;

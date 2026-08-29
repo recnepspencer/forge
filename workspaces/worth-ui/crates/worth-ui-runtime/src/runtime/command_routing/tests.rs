@@ -1,7 +1,6 @@
 use crate::capability::{
     CommandId, UiCommandContextConsumption, UiCommandKeyCode, UiCommandModifierSet,
-    UiCommandRegistrationGeneration, UiCommandRegistrationOwner,
-    UiCommandRegistrationOwnerIdentity, UiCommandRouteDeclaration, UiCommandRouteDestination,
+    UiCommandRouteDeclaration, UiCommandRouteDestination,
     UiCommandRoutePriority, UiCommandRouteScope, UiCommandShortcutSequence,
     UiCommandShortcutStroke, UiCommandTextInputPolicy, UiIntent, UiIntentAcceptedInteractions,
     UiIntentId, UiIntentPayload, UiIntentPayloadFieldSet, UiIntentPayloadProjection,
@@ -240,33 +239,6 @@ fn unrelated_shortcut_neighborhoods_are_not_visited() {
     let (_, _, invocations, visited) = state.inspect_for_certification();
     assert_eq!(invocations, 1);
     assert_eq!(visited, 1);
-}
-
-#[test]
-fn owner_unload_removes_routes_and_related_prefix_occupancy() {
-    let owner = UiCommandRegistrationOwner::new(
-        UiCommandRegistrationOwnerIdentity::new(9),
-        UiCommandRegistrationGeneration::new(2),
-    );
-    let first = stroke(UiCommandKeyCode::K);
-    let route = route(UiCommandRouteScope::Application).with_registration_owner(owner);
-    let owned = super::candidate::UiCommandRouteCandidate::new(
-        command_id("command.extension"),
-        Some(UiCommandShortcutSequence::two_stroke(
-            first,
-            stroke(UiCommandKeyCode::X),
-        )),
-        route,
-    );
-    let mut state = state(vec![owned]);
-    let generation = generation(6);
-
-    assert!(matches!(
-        state.route_stroke(first, false, context_at(10), &generation),
-        super::UiCommandRoutingOutcome::AwaitingPrefix(_)
-    ));
-    assert_eq!(state.unload_registration_owner(owner), 1);
-    assert_eq!(state.inspect_for_certification(), (0, false, 1, 1));
 }
 
 #[test]

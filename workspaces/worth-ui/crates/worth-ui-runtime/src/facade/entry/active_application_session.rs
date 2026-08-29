@@ -68,7 +68,7 @@ pub struct WorthUiActiveApplicationSession {
         crate::runtime::command_routing::UiCommandRoutingRuntimeState,
     >,
     pub(super) ime_composing: bool,
-    pub(super) portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator,
+    portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator,
     pub(super) intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry,
     pub(super) intent_application_facts: crate::runtime::intent::UiIntentApplicationFactState,
     pub(super) intent_execution: crate::runtime::intent_execution::UiIntentExecutionState,

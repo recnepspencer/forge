@@ -28,7 +28,7 @@ struct Candidate {
     misses: Vec<UiNativeTextAtlasDemand>,
     hits: Vec<UiGlyphRasterKey>,
     evictions: Vec<UiGlyphRasterKey>,
-    pin_additions: Vec<super::ownership::PinIdentity>,
+    pin_additions: Vec<super::transaction::UiNativeTextAtlasPinRequest>,
     pin_releases: Vec<super::ownership::PinIdentity>,
     pin_change_keys: HashSet<UiGlyphRasterKey>,
     next_entry: u64,
@@ -273,7 +273,7 @@ fn pin_changes_for_overlay(
     candidate: &Candidate,
 ) -> Result<
     (
-        Vec<super::ownership::PinIdentity>,
+        Vec<super::transaction::UiNativeTextAtlasPinRequest>,
         Vec<super::ownership::PinIdentity>,
     ),
     UiNativeTextAtlasDenial,
@@ -290,7 +290,7 @@ fn pin_changes_for_overlay(
         {
             return Err(UiNativeTextAtlasDenial::StalePin);
         }
-        additions.push(super::ownership::PinIdentity::new(add.layout(), add.key()));
+        additions.push(*add);
     }
     Ok((additions, releases))
 }

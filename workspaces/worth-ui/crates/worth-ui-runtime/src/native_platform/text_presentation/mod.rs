@@ -11,7 +11,6 @@ mod mounted_coordinator;
 mod preparation;
 mod query_correspondence;
 mod rasterization;
-mod recovery;
 mod transaction;
 mod work_observation;
 

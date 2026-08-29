@@ -63,13 +63,6 @@ impl ReplayReconstructionBasis {
 }
 
 impl ResourceRuntimeState {
-    pub fn reconstruct_replay_summary(
-        &self,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceReplayReconstructionReport {
-        self.reconstruct_replay_summary_optional(Some(telemetry))
-    }
-
     pub fn reconstruct_replay_summary_optional(
         &self,
         mut telemetry: Option<&mut ResourceTelemetry>,

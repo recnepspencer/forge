@@ -21,6 +21,7 @@ impl UiPortalDismissalPublicationCompletion<'_> {
 }
 
 impl<'session> UiPortalDismissalPublicationCompletion<'session> {
+    #[cfg(test)]
     pub(in crate::facade::entry) fn complete(
         mut self,
         now_tick: u64,
@@ -38,6 +39,7 @@ impl<'session> UiPortalDismissalPublicationCompletion<'session> {
 }
 
 impl DetachedUiPortalDismissalInFlight {
+    #[cfg(test)]
     pub(in crate::facade::entry) fn from_parts(
         session: crate::facade::WorthUiActiveApplicationSessionIdentity,
         proposal: crate::runtime::session::UiStagedPortalProposalTransaction,
@@ -163,6 +165,7 @@ impl<'session> UiPortalDismissalPublicationRecovery<'session> {
         }
     }
 
+    #[cfg(test)]
     pub(in crate::facade::entry) fn into_session_for_shutdown(
         mut self,
     ) -> &'session mut WorthUiActiveApplicationSession {

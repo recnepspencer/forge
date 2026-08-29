@@ -1,9 +1,7 @@
 use core::num::NonZeroU64;
 
 #[derive(Debug)]
-pub(in crate::runtime) struct UiPortalExitTerminalServiceRequestAuthority {
-    retention: crate::runtime::portal::UiPortalExitRetentionReceipt,
-}
+pub(in crate::runtime) struct UiPortalExitTerminalServiceRequestAuthority;
 
 impl super::sealed::Sealed for UiPortalExitTerminalServiceRequestAuthority {}
 
@@ -44,15 +42,7 @@ impl super::UiServiceRequestBasis<UiPortalExitTerminalServiceRequestAuthority> {
             source_order: super::UiServiceSourceOrder(issued),
             cancellation: super::UiServiceCancellationIdentity(parent),
             resource_budget: super::UiServiceResourceBudgetIdentity(parent),
-            authority: UiPortalExitTerminalServiceRequestAuthority { retention },
+            authority: UiPortalExitTerminalServiceRequestAuthority,
         })
-    }
-}
-
-impl UiPortalExitTerminalServiceRequestAuthority {
-    pub(in crate::runtime) const fn retention(
-        &self,
-    ) -> crate::runtime::portal::UiPortalExitRetentionReceipt {
-        self.retention
     }
 }

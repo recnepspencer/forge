@@ -84,7 +84,7 @@ impl UiSelectionRegistration {
 }
 
 impl UiDeclaredSelectionBinding {
-    pub(crate) const fn new(
+    pub(in crate::runtime) const fn new(
         action: crate::runtime::session::service_proposal::UiDeclaredFocusSelectionAction,
         registration: UiSelectionRegistration,
     ) -> Self {
@@ -94,7 +94,7 @@ impl UiDeclaredSelectionBinding {
         }
     }
 
-    pub(crate) const fn current(
+    pub(in crate::runtime) const fn current(
         action: crate::runtime::session::service_proposal::UiDeclaredFocusSelectionAction,
     ) -> Self {
         Self {
@@ -103,13 +103,13 @@ impl UiDeclaredSelectionBinding {
         }
     }
 
-    pub(crate) const fn action(
+    pub(in crate::runtime) const fn action(
         &self,
     ) -> crate::runtime::session::service_proposal::UiDeclaredFocusSelectionAction {
         self.action
     }
 
-    pub(crate) fn into_parts(
+    pub(in crate::runtime) fn into_parts(
         self,
     ) -> (
         crate::runtime::session::service_proposal::UiDeclaredFocusSelectionAction,

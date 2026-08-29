@@ -32,14 +32,17 @@ impl UiPortalServiceReceipt {
         }
     }
 
+    #[cfg(test)]
     pub(crate) const fn portal(self) -> super::UiPortalIdentity {
         self.portal
     }
 
+    #[cfg(test)]
     pub(crate) const fn posture(self) -> super::UiPortalLifecyclePosture {
         self.posture
     }
 
+    #[cfg(test)]
     pub(crate) const fn disposition(self) -> UiPortalServiceDisposition {
         self.disposition
     }
@@ -62,6 +65,7 @@ impl UiPortalExitRetentionReceipt {
         self.portal
     }
 
+    #[cfg(test)]
     pub(crate) const fn revision(self) -> u64 {
         self.revision
     }

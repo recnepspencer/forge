@@ -109,8 +109,8 @@ impl WorthUiMountedSessionState {
                     self.motion_sampling.commit_prepared(prepared),
                 )
             }
-            Outcome::InFlight(_) => UiMountedMotionSampleSettlement::Deferred,
-            Outcome::RejectedBeforeEffects(_) => UiMountedMotionSampleSettlement::Discarded,
+            Outcome::InFlight => UiMountedMotionSampleSettlement::Deferred,
+            Outcome::RejectedBeforeEffects => UiMountedMotionSampleSettlement::Discarded,
             Outcome::Superseded => UiMountedMotionSampleSettlement::Discarded,
             Outcome::PresentationIndeterminate => {
                 UiMountedMotionSampleSettlement::PresentationIndeterminate

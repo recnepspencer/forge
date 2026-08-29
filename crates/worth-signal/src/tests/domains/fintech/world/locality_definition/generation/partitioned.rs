@@ -98,14 +98,16 @@ fn partition_action_traces(
                     producer: correlated_source,
                     aspect: FinancialAspect::Price,
                     scope: LocalityScope::detail(500, 1),
-                    admission_generation: 2 + mutation_width as u64,
+                    // Direct invalidation generations are scoped to the source,
+                    // so this correlated source starts its own successor sequence.
+                    admission_generation: 2,
                     publication_order: mutation_width as u32,
                 }),
                 mutation(MutationDeclaration {
                     producer: correlated_source,
                     aspect: FinancialAspect::Volatility,
                     scope: LocalityScope::detail(501, 2),
-                    admission_generation: 3 + mutation_width as u64,
+                    admission_generation: 3,
                     publication_order: mutation_width as u32 + 1,
                 }),
             ]);
@@ -140,7 +142,9 @@ fn scoped_curve_mutations(
                 producer: source,
                 aspect: FinancialAspect::Curve,
                 scope,
-                admission_generation: 2 + u64::from(index),
+                // One canonical source/aspect batch admission covers every
+                // changed scope, so all regions share the same generation.
+                admission_generation: 2,
                 publication_order: u32::from(index),
             })
         })

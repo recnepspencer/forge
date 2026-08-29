@@ -23,7 +23,9 @@ pub(crate) struct FinancialLocalityCaseEvidence {
     identity: FinancialCanonicalCaseIdentity,
     counters: SignalInvalidationRealizedCounters,
     canonical_work_items: usize,
+    #[cfg(feature = "parallel")]
     operational_digest: worth_foundational::facade::CanonicalDigestId,
+    #[cfg(feature = "parallel")]
     execution_stage_outcomes: Vec<crate::logic::planner::StageExecutionOutcome>,
     #[cfg(feature = "parallel")]
     performed_work: FinancialPerformedCanonicalWork,
@@ -73,16 +75,19 @@ impl FinancialLocalityCaseEvidence {
         self.canonical_work_items
     }
 
+    #[cfg(feature = "parallel")]
     pub(crate) const fn operational_digest(&self) -> worth_foundational::facade::CanonicalDigestId {
         self.operational_digest
     }
 
+    #[cfg(feature = "parallel")]
     pub(crate) fn execution_stage_outcomes(
         &self,
     ) -> &[crate::logic::planner::StageExecutionOutcome] {
         &self.execution_stage_outcomes
     }
 
+    #[cfg(feature = "parallel")]
     pub(crate) fn identity_digest(&self) -> worth_foundational::facade::CanonicalDigestId {
         self.identity.digest_id()
     }
@@ -186,6 +191,7 @@ pub(crate) fn verify_locality_case_with_policy(
         diagnostics_tier,
         performed,
     )?;
+    #[cfg(feature = "parallel")]
     let operational_digest =
         compiled.locality_operational_digest_with_work(&observation.performed_work)?;
     Ok(FinancialLocalityCaseEvidence {
@@ -198,7 +204,9 @@ pub(crate) fn verify_locality_case_with_policy(
         identity,
         counters: observation.performed_counters,
         canonical_work_items: manifest.canonical_work().len(),
+        #[cfg(feature = "parallel")]
         operational_digest,
+        #[cfg(feature = "parallel")]
         execution_stage_outcomes: observation.execution_stage_outcomes,
         #[cfg(feature = "parallel")]
         performed_work: observation.performed_work,

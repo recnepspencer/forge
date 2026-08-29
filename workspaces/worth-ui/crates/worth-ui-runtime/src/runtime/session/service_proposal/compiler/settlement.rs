@@ -7,7 +7,7 @@ pub(in crate::runtime) struct UiServiceProposalSettlement {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalPublicationDenial {
+pub(crate) enum UiServiceProposalPublicationDenial {
     ForeignProposal,
     BatchDigestMismatch,
     ReceiptCapacityExceeded,
@@ -129,6 +129,7 @@ impl UiServiceProposalSettlement {
         Ok(parts)
     }
 
+    #[cfg(test)]
     pub(super) fn into_shutdown_terminal_parts(
         self,
     ) -> super::staging::UiServiceProposalTerminalParts {

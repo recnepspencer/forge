@@ -12,17 +12,25 @@ const OCCUPANCY_LIMIT: usize = 384;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) enum UiServiceProposalConflictDisposition {
+    #[cfg(test)]
     Occupied,
+    #[cfg(test)]
     Superseded,
+    #[cfg(test)]
     Coalesced,
+    #[cfg(test)]
     CancelledBeforeEffect,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(in crate::runtime) enum UiServiceProposalConflictPolicy {
     RejectOccupied,
+    #[cfg(test)]
     SupersedeBeforeEffect,
+    #[cfg(test)]
     CoalesceExact,
+    #[cfg(test)]
     CancelBeforeEffect,
 }
 
@@ -30,9 +38,13 @@ pub(in crate::runtime) enum UiServiceProposalConflictPolicy {
 pub(super) struct UiServiceProposalOccupancyRecord {
     key: UiServiceProposalOccupancyKey,
     proposal: super::UiServiceProposalIdentity,
+    #[cfg(test)]
     requirements: u8,
+    #[cfg(test)]
     fact_references: u16,
+    #[cfg(test)]
     mounted_work_references: u16,
+    #[cfg(test)]
     coherence: super::UiServiceRequestCoherence,
     slot_generation: u64,
     before_effect_open: bool,
@@ -65,11 +77,12 @@ pub(in crate::runtime) struct UiServiceProposalDisplacement {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalOccupancyDenial {
+pub(crate) enum UiServiceProposalOccupancyDenial {
     Occupied(super::UiServiceProposalIdentity),
     AmbiguousConflict,
     CapacityExceeded,
     SlotGenerationExhausted,
+    #[cfg(test)]
     BeforeEffectWindowClosed(super::UiServiceProposalIdentity),
 }
 
@@ -84,6 +97,7 @@ impl UiServiceProposalDisplacement {
         self.proposal
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn disposition(self) -> UiServiceProposalConflictDisposition {
         self.disposition
     }
@@ -120,15 +134,18 @@ impl UiServiceProposalOccupancyTable {
             })
             .collect::<Vec<_>>()
             .into_boxed_slice();
+        #[cfg(test)]
         let mut conflict = None;
+        #[cfg(test)]
         let mut disposition = None;
+        #[cfg(test)]
         let mut coalesced = false;
         self.work_counters.proposal_requirements_visited += keys.len() as u64;
         let neighborhood = self.neighborhoods.find(
             candidate.application(),
             candidate.surface().semantic_surface(),
         );
-        for (key, family) in keys.iter().zip(candidate.family_proposals()) {
+        for (key, _family) in keys.iter().zip(candidate.family_proposals()) {
             let existing = neighborhood.and_then(|neighborhood| {
                 neighborhood
                     .records
@@ -136,17 +153,26 @@ impl UiServiceProposalOccupancyTable {
                     .find(|record| record.key == *key)
             });
             let Some(existing) = existing else {
+                #[cfg(test)]
                 if coalesced {
                     return Err(UiServiceProposalOccupancyDenial::AmbiguousConflict);
                 }
                 continue;
             };
-            let next = match family.conflict_policy() {
+            #[cfg(not(test))]
+            {
+                return Err(UiServiceProposalOccupancyDenial::Occupied(
+                    existing.proposal,
+                ));
+            }
+            #[cfg(test)]
+            let next = match _family.conflict_policy() {
                 UiServiceProposalConflictPolicy::RejectOccupied => {
                     return Err(UiServiceProposalOccupancyDenial::Occupied(
                         existing.proposal,
                     ));
                 }
+                #[cfg(test)]
                 UiServiceProposalConflictPolicy::SupersedeBeforeEffect => {
                     if !existing.before_effect_open {
                         return Err(UiServiceProposalOccupancyDenial::BeforeEffectWindowClosed(
@@ -155,10 +181,12 @@ impl UiServiceProposalOccupancyTable {
                     }
                     UiServiceProposalConflictDisposition::Superseded
                 }
+                #[cfg(test)]
                 UiServiceProposalConflictPolicy::CoalesceExact => {
                     coalesced = true;
                     UiServiceProposalConflictDisposition::Coalesced
                 }
+                #[cfg(test)]
                 UiServiceProposalConflictPolicy::CancelBeforeEffect => {
                     if !existing.before_effect_open {
                         return Err(UiServiceProposalOccupancyDenial::BeforeEffectWindowClosed(
@@ -168,14 +196,19 @@ impl UiServiceProposalOccupancyTable {
                     UiServiceProposalConflictDisposition::CancelledBeforeEffect
                 }
             };
+            #[cfg(test)]
             if conflict.is_some_and(|current| current != existing.proposal)
                 || disposition.is_some_and(|current| current != next)
             {
                 return Err(UiServiceProposalOccupancyDenial::AmbiguousConflict);
             }
-            conflict = Some(existing.proposal);
-            disposition = Some(next);
+            #[cfg(test)]
+            {
+                conflict = Some(existing.proposal);
+                disposition = Some(next);
+            }
         }
+        #[cfg(test)]
         if coalesced {
             let incumbent = conflict.ok_or(UiServiceProposalOccupancyDenial::AmbiguousConflict)?;
             if keys
@@ -211,6 +244,7 @@ impl UiServiceProposalOccupancyTable {
                 coalesced: Some(incumbent),
             });
         }
+        #[cfg(test)]
         let displacement = conflict.map(|proposal| UiServiceProposalDisplacement {
             proposal,
             disposition: disposition.expect("conflict disposition accompanies proposal"),
@@ -220,6 +254,8 @@ impl UiServiceProposalOccupancyTable {
                 .filter(|record| record.proposal == proposal)
                 .count() as u16,
         });
+        #[cfg(not(test))]
+        let displacement: Option<UiServiceProposalDisplacement> = None;
         let released = displacement.map_or(0, |record| usize::from(record.released_leases));
         if self.neighborhoods.live_count() - released + keys.len() > OCCUPANCY_LIMIT {
             return Err(UiServiceProposalOccupancyDenial::CapacityExceeded);
@@ -256,7 +292,7 @@ impl UiServiceProposalOccupancyTable {
         let mut next_slot_generation = self.next_slot_generation;
         self.next_slot_generation += plan.keys.len() as u64;
         let mut leases = Vec::with_capacity(plan.keys.len());
-        for (key, family) in plan.keys.iter().cloned().zip(candidate.family_proposals()) {
+        for (key, _family) in plan.keys.iter().cloned().zip(candidate.family_proposals()) {
             let slot_generation = next_slot_generation;
             next_slot_generation += 1;
             leases.push(UiServiceProposalOccupancyLease {
@@ -270,9 +306,13 @@ impl UiServiceProposalOccupancyTable {
                 UiServiceProposalOccupancyRecord {
                     key,
                     proposal,
-                    requirements: family.requirements(),
-                    fact_references: family.fact_references(),
-                    mounted_work_references: family.mounted_work_references(),
+                    #[cfg(test)]
+                    requirements: _family.requirements(),
+                    #[cfg(test)]
+                    fact_references: _family.fact_references(),
+                    #[cfg(test)]
+                    mounted_work_references: _family.mounted_work_references(),
+                    #[cfg(test)]
                     coherence: candidate.coherence().clone(),
                     slot_generation,
                     before_effect_open: true,

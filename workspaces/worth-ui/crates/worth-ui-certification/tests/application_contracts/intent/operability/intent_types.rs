@@ -13,7 +13,6 @@ pub(in crate::intent) struct ConsequenceOutcome {
 pub(in crate::intent) struct PrimaryIntent;
 pub(in crate::intent) struct ConsequenceIntent;
 pub(super) struct SecondaryIntent;
-pub(super) struct UnsupportedIntent;
 
 macro_rules! activation_intent {
     ($intent:ty, $identity:literal) => {
@@ -86,7 +85,6 @@ impl UiIntentProductOutcome for ConsequenceOutcome {
 
 activation_intent!(PrimaryIntent, "phase3.operability.intent.primary");
 activation_intent!(SecondaryIntent, "phase3.operability.intent.secondary");
-activation_intent!(UnsupportedIntent, "phase3.operability.intent.unsupported");
 
 impl UiIntent for ConsequenceIntent {
     type Payload = EmptyPayload;

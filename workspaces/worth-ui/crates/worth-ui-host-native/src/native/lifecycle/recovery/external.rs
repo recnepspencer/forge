@@ -51,8 +51,9 @@ fn prepare_graphics(
             state.text_pins_by_binding.clear();
             crate::native::UiNativeGraphicsRecovery::DeviceLost
         }
-        UiNativeRecoveryCause::DerivedStateLost
-        | UiNativeRecoveryCause::PresentationIndeterminate
+        #[cfg(any(test, feature = "certification-support"))]
+        UiNativeRecoveryCause::DerivedStateLost => return false,
+        UiNativeRecoveryCause::PresentationIndeterminate
         | UiNativeRecoveryCause::Resize
         | UiNativeRecoveryCause::Dpi => return false,
     };

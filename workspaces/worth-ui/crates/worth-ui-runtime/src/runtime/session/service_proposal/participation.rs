@@ -2,7 +2,7 @@
 pub(in crate::runtime) struct UiServiceFamilyParticipation(u8);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceFamilyParticipationDenial {
+pub(crate) enum UiServiceFamilyParticipationDenial {
     DuplicateFamily,
 }
 
@@ -45,6 +45,7 @@ impl UiServiceFamilyParticipation {
         Ok(Self(self.0 | bit))
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn without(self, settled: Self) -> Self {
         Self(self.0 & !settled.0)
     }

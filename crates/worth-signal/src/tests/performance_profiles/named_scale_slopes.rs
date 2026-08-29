@@ -31,6 +31,7 @@ fn named_scale_slopes_record_independent_axes() {
         nodes.upper_scale > nodes.lower_scale,
         "node slope must change only the node axis: {nodes:?}"
     );
+    assert!(nodes.lower_micros > 0 && nodes.upper_micros > 0);
     let fanout = evidence
         .iter()
         .find(|row| row.axis == "fanout")
@@ -39,12 +40,14 @@ fn named_scale_slopes_record_independent_axes() {
         fanout.upper_scale > fanout.lower_scale,
         "fanout slope must grow downstream instruments at fixed region count: {fanout:?}"
     );
+    assert!(fanout.lower_micros > 0 && fanout.upper_micros > 0);
     let edit_width = evidence
         .iter()
         .find(|row| row.axis == "edit_width")
         .expect("edit width axis");
     assert_eq!(edit_width.lower_scale, 1);
     assert_eq!(edit_width.upper_scale, 4);
+    assert!(edit_width.lower_micros > 0 && edit_width.upper_micros > 0);
     println!("named scale slopes={evidence:?} parallel_regions={parallel_regions}");
     assert_within_throughput_budget(started, "named scale slopes");
 }

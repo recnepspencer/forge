@@ -7,7 +7,7 @@ pub(in crate::runtime) struct UiServiceProposalCensus {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceProposalCensusDenial {
+pub(crate) enum UiServiceProposalCensusDenial {
     Overflow,
     Underflow,
 }
@@ -47,30 +47,6 @@ impl UiServiceProposalCensus {
         self.proposals == proposals
             && self.occupancy_leases == occupancy_leases
             && self.cancellation_records == cancellation_records
-    }
-
-    pub(super) fn record_proposal(&mut self) -> Result<(), UiServiceProposalCensusDenial> {
-        increment(&mut self.proposals)
-    }
-
-    pub(super) fn release_proposal(&mut self) -> Result<(), UiServiceProposalCensusDenial> {
-        decrement(&mut self.proposals)
-    }
-
-    pub(super) fn record_occupancy_lease(&mut self) -> Result<(), UiServiceProposalCensusDenial> {
-        increment(&mut self.occupancy_leases)
-    }
-
-    pub(super) fn release_occupancy_lease(&mut self) -> Result<(), UiServiceProposalCensusDenial> {
-        decrement(&mut self.occupancy_leases)
-    }
-
-    pub(super) fn record_cancellation(&mut self) -> Result<(), UiServiceProposalCensusDenial> {
-        increment(&mut self.cancellation_records)
-    }
-
-    pub(super) fn release_cancellation(&mut self) -> Result<(), UiServiceProposalCensusDenial> {
-        decrement(&mut self.cancellation_records)
     }
 
     pub(super) fn record_stage_receipt(&mut self) -> Result<(), UiServiceProposalCensusDenial> {
@@ -176,28 +152,17 @@ fn increment(value: &mut u16) -> Result<(), UiServiceProposalCensusDenial> {
     Ok(())
 }
 
-fn decrement(value: &mut u16) -> Result<(), UiServiceProposalCensusDenial> {
-    *value = value
-        .checked_sub(1)
-        .ok_or(UiServiceProposalCensusDenial::Underflow)?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::{UiServiceProposalCensus, UiServiceProposalCensusDenial};
 
     #[test]
     fn proposal_census_returns_to_exact_zero() {
-        let mut census = UiServiceProposalCensus::zero();
-        census.record_proposal().unwrap();
-        census.record_occupancy_lease().unwrap();
-        census.record_cancellation().unwrap();
+        let mut census = UiServiceProposalCensus::zero()
+            .with_reservation(1, 0, false)
+            .unwrap();
         census.record_stage_receipt().unwrap();
-        census.release_stage_receipts(1).unwrap();
-        census.release_cancellation().unwrap();
-        census.release_occupancy_lease().unwrap();
-        census.release_proposal().unwrap();
+        census = census.with_complete_release(1, 1).unwrap();
 
         assert!(census.is_zero());
         assert_eq!(

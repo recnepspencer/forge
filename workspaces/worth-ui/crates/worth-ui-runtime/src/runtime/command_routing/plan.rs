@@ -10,7 +10,6 @@ pub(super) struct UiCommandRoutingPlan {
         ),
         Vec<usize>,
     >,
-    command_index: BTreeMap<crate::capability::CommandId, usize>,
     platform: crate::capability::UiCommandShortcutPlatform,
 }
 
@@ -59,26 +58,6 @@ impl UiCommandRoutingPlan {
             .collect()
     }
 
-    pub(super) fn command_candidate(
-        &self,
-        command: &crate::capability::CommandId,
-    ) -> Option<&super::candidate::UiCommandRouteCandidate> {
-        self.command_index
-            .get(command)
-            .map(|index| &self.candidates[*index])
-    }
-
-    pub(super) fn unload(&mut self, owner: crate::capability::UiCommandRegistrationOwner) -> usize {
-        let previous = self.candidates.len();
-        self.candidates
-            .retain(|candidate| candidate.route().registration_owner() != Some(owner));
-        let removed = previous.saturating_sub(self.candidates.len());
-        if removed > 0 {
-            self.rebuild_indexes(self.platform);
-        }
-        removed
-    }
-
     pub(super) fn len(&self) -> usize {
         self.candidates.len()
     }
@@ -95,7 +74,6 @@ impl UiCommandRoutingPlan {
         let mut plan = Self {
             candidates,
             first_stroke_index: BTreeMap::new(),
-            command_index: BTreeMap::new(),
             platform,
         };
         plan.rebuild_indexes(platform);
@@ -104,7 +82,6 @@ impl UiCommandRoutingPlan {
 
     fn rebuild_indexes(&mut self, platform: crate::capability::UiCommandShortcutPlatform) {
         self.first_stroke_index.clear();
-        self.command_index.clear();
         for (index, candidate) in self.candidates.iter().enumerate() {
             if let Some(shortcut) = candidate.shortcut() {
                 let first = shortcut.strokes()[0].resolved_for(platform);
@@ -117,8 +94,6 @@ impl UiCommandRoutingPlan {
                         .push(index);
                 }
             }
-            self.command_index
-                .insert(candidate.command().clone(), index);
         }
     }
 }
@@ -128,7 +103,6 @@ impl Default for UiCommandRoutingPlan {
         Self {
             candidates: Vec::new(),
             first_stroke_index: BTreeMap::new(),
-            command_index: BTreeMap::new(),
             platform: crate::capability::UiCommandShortcutPlatform::current_target(),
         }
     }

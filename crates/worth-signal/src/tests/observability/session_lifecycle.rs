@@ -1,7 +1,7 @@
 use crate::data::telemetry::InvalidationPerformedCounter;
 use crate::facade::{
-    DependencyEdge, SignalGraph, SignalObservationAdmissionDenial, SignalObservationCompletion,
-    SignalObservationRequest, SignalRuntimePolicy,
+    DependencyEdge, SignalGraph, SignalObservationAdmissionDenial, SignalObservationRequest,
+    SignalRuntimePolicy,
 };
 use crate::tests::support::ASPECT_A;
 

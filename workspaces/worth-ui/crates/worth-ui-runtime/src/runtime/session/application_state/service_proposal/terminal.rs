@@ -94,7 +94,7 @@ impl super::WorthUiApplicationSessionState {
 }
 
 impl super::UiStagedPortalProposalTransaction {
-    pub(crate) fn accepted_publication(
+    pub(in crate::runtime) fn accepted_publication(
         &self,
         mounted: &crate::mounting::UiMountedFramePublicationReceipt,
     ) -> Result<
@@ -107,7 +107,7 @@ impl super::UiStagedPortalProposalTransaction {
         ))
     }
 
-    pub(crate) const fn terminal_publication(
+    pub(in crate::runtime) const fn terminal_publication(
         &self,
         disposition: crate::runtime::session::service_proposal::UiServiceProposalPublicationDisposition,
     ) -> crate::runtime::session::service_proposal::UiServiceProposalPublicationReceipt {
@@ -117,7 +117,7 @@ impl super::UiStagedPortalProposalTransaction {
         )
     }
 
-    pub(crate) const fn rejected_publication(
+    pub(in crate::runtime) const fn rejected_publication(
         &self,
     ) -> crate::runtime::session::service_proposal::UiServiceProposalPublicationReceipt {
         self.terminal_publication(

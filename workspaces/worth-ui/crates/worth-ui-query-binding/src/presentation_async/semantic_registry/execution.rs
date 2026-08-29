@@ -65,18 +65,6 @@ impl WorthUiPresentationAsyncRegistry {
         self.resume_semantic_execution(workspace, key, publication.change(), progress)
     }
 
-    #[cfg(test)]
-    pub fn publish_and_execute_change(
-        &mut self,
-        workspace: &mut runtime::WorthQueryWorkspace,
-        admission: &WorthUiPresentationRuntimeAdmission,
-        change: WorthUiPresentationSemanticChange,
-    ) -> Result<WorthUiPresentationSemanticExecution, WorthUiPresentationSemanticExecutionDenial>
-    {
-        let publication = self.publication_for_admission(admission, change)?;
-        self.publish_and_execute_publication(workspace, admission, &publication)
-    }
-
     fn resume_semantic_execution(
         &mut self,
         workspace: &mut runtime::WorthQueryWorkspace,
@@ -124,7 +112,6 @@ impl WorthUiPresentationAsyncRegistry {
                             .query
                             .push(WorthUiPresentationSemanticQueryObservation {
                                 outcome: report.provenance().class(),
-                                counters: report.counters(),
                                 performed,
                             });
                         progress.subscribers.push(instance.subscriber);

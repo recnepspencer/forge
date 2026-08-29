@@ -1,15 +1,9 @@
-use worth_ui_host_contract::{
-    UiMountedInstanceIdentity, UiMountedPortalOverlayMechanic, UiMountedPortalOverlayReference,
-};
+use worth_ui_host_contract::UiMountedPortalOverlayMechanic;
 
 use super::{UiMountedProjectionDenial, UiMountedProjectionFrame, UiMountedProjectionSurface};
 
-type UiMountedPortalOverlayReferenceIndex =
-    std::collections::BTreeMap<UiMountedInstanceIdentity, Vec<UiMountedPortalOverlayReference>>;
-
 pub(super) struct UiMountedPortalOverlayViewRows {
     pub(super) rows: Vec<UiMountedPortalOverlayMechanic>,
-    pub(super) references: UiMountedPortalOverlayReferenceIndex,
 }
 
 impl UiMountedProjectionFrame {
@@ -36,14 +30,7 @@ impl UiMountedProjectionFrame {
                     .map_err(UiMountedProjectionDenial::PortalOverlayCompletion)?,
             );
         }
-        let mut references = UiMountedPortalOverlayReferenceIndex::new();
-        for (index, row) in rows.iter().enumerate() {
-            let reference = u16::try_from(index)
-                .map(UiMountedPortalOverlayReference::from_runtime_mounting)
-                .map_err(|_| UiMountedProjectionDenial::PortalOverlayCapacityExceeded)?;
-            references.entry(row.owner()).or_default().push(reference);
-        }
-        Ok(UiMountedPortalOverlayViewRows { rows, references })
+        Ok(UiMountedPortalOverlayViewRows { rows })
     }
 
     pub(super) fn portal_overlay_visual_rows(&self) -> Vec<UiMountedPortalOverlayMechanic> {

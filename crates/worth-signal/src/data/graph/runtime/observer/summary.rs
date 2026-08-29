@@ -1,9 +1,9 @@
 use super::GraphObserver;
 use crate::data::graph::EvaluationStrategy;
 use crate::data::node::{node_hot_inline_size_bytes, node_warm_inline_size_bytes};
-use crate::data::proof::{
-    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
-};
+#[cfg(test)]
+use crate::data::proof::FrontierDiagnosticsSidecar;
+use crate::data::proof::{InvalidationPlanningEstimate, InvalidationTraceRecord};
 use crate::data::trace::{ColdArtifactRecord, RuntimeArtifactHot, RuntimeArtifactWarm};
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::history::ExecutionInspector;
@@ -127,6 +127,7 @@ impl<'a> GraphObserver<'a> {
         self.graph.observation.diagnostics.latest_observation()
     }
 
+    #[cfg(test)]
     pub(crate) fn latest_frontier_execution_summary(
         &self,
     ) -> Option<&'a FrontierDiagnosticsSidecar> {

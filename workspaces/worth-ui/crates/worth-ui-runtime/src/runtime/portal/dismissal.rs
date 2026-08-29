@@ -21,6 +21,7 @@ pub(crate) enum UiPortalDismissalPreparation {
 pub(crate) struct UiPreparedPortalDismissal {
     transition: super::UiPreparedPortalServiceTransition,
     presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+    #[cfg(test)]
     input_shielded: bool,
 }
 
@@ -78,6 +79,7 @@ impl super::UiPortalRuntimeState {
             }
             UiPortalDismissalTrigger::AnchorLoss(_) => super::UiPortalDismissalCause::AnchorLoss,
         };
+        #[cfg(test)]
         let input_shielded = record.placement.is_some_and(|placement| {
             placement.prepared().shielding() == super::UiPortalInputShielding::ModalSurface
         });
@@ -96,6 +98,7 @@ impl super::UiPortalRuntimeState {
             UiPreparedPortalDismissal {
                 transition,
                 presentation,
+                #[cfg(test)]
                 input_shielded,
             },
         ))
@@ -154,10 +157,12 @@ impl super::UiPortalRuntimeState {
 }
 
 impl UiPreparedPortalDismissal {
+    #[cfg(test)]
     pub(crate) const fn portal(&self) -> super::UiPortalIdentity {
         self.transition.portal()
     }
 
+    #[cfg(test)]
     pub(crate) const fn input_shielded(&self) -> bool {
         self.input_shielded
     }

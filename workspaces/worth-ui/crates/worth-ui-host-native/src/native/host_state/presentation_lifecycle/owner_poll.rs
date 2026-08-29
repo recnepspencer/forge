@@ -11,12 +11,12 @@ pub(super) struct PolledPresentation {
 impl UiNativeHostState {
     pub(super) fn poll_presentation_owner(
         &mut self,
-        identity: crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity,
+        _identity: crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity,
         mut ready: ReadyPresentation,
     ) -> Result<PolledPresentation, UiNativePresentationPhysicalProgress> {
         let device = self.device.as_ref().map(|device| device.state().device());
         #[cfg(feature = "certification-support")]
-        let qualified_override = self.qualification.presentation_poll_override(identity);
+        let qualified_override = self.qualification.presentation_poll_override(_identity);
         #[cfg(feature = "certification-support")]
         if let Some((_, Some(class))) = qualified_override {
             let binding = ready.pending.physical_basis().binding().diagnostic_value();

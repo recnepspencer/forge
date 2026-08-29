@@ -45,9 +45,11 @@ pub(in crate::runtime) struct UiServiceResourceBudgetIdentity(NonZeroU64);
 pub(in crate::runtime) enum UiServiceRequestOrigin {
     AdmittedIntent,
     HostObservation,
+    #[cfg(test)]
     Rebind,
     ServiceContinuation,
     RuntimePolicy,
+    #[cfg(test)]
     Teardown,
 }
 
@@ -82,11 +84,15 @@ worth_proof::binding_axes! {
             worth_ui_host_contract::UiSurfaceBindingGeneration => Binding,
         pub(in crate::runtime) presentation:
             Option<worth_ui_host_contract::UiHostObservationPresentationBasis> => Presentation,
+        pub(in crate::runtime) origin: UiServiceRequestOrigin => Origin,
+        pub(in crate::runtime) causal_parent:
+            Option<UiServiceRequestIdentity> => CausalParent,
         pub(in crate::runtime) causal_root: UiServiceRequestIdentity => CausalRoot,
+        pub(in crate::runtime) source_order: UiServiceSourceOrder => SourceOrder,
         pub(in crate::runtime) cancellation: UiServiceCancellationIdentity => Cancellation,
         pub(in crate::runtime) resource_budget: UiServiceResourceBudgetIdentity => ResourceBudget,
     }
-    drift pub(in crate::runtime) enum UiServiceRequestCoherenceDrift;
+    drift pub(crate) enum UiServiceRequestCoherenceDrift;
 }
 
 pub(in crate::runtime) type UiServiceRequestCoherence =
@@ -125,7 +131,7 @@ where
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) enum UiServiceRequestBasisDenial {
+pub(crate) enum UiServiceRequestBasisDenial {
     IdentityExhausted,
     RootIdentityMismatch,
     ChildRootIdentityMismatch,
@@ -135,6 +141,7 @@ pub(in crate::runtime) enum UiServiceRequestBasisDenial {
 }
 
 impl UiServiceSurfaceBasis {
+    #[cfg(test)]
     pub(in crate::runtime) fn from_mounted_binding(
         binding: crate::mounting::UiSurfaceBindingIdentityView,
     ) -> Self {
@@ -199,30 +206,36 @@ where
         self.identity
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn causal_parent(&self) -> Option<UiServiceRequestIdentity> {
         self.causal_parent
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn application(
         &self,
     ) -> &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity {
         &self.application
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn surface(&self) -> UiServiceSurfaceBasis {
         self.surface
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn presentation(
         &self,
     ) -> Option<worth_ui_host_contract::UiHostObservationPresentationBasis> {
         self.presentation
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn origin(&self) -> UiServiceRequestOrigin {
         self.authority.service_request_origin()
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn source_order(&self) -> UiServiceSourceOrder {
         self.source_order
     }
@@ -234,14 +247,13 @@ where
             host_surface: self.surface.host_surface,
             binding: self.surface.binding,
             presentation: self.presentation,
+            origin: self.authority.service_request_origin(),
+            causal_parent: self.causal_parent,
             causal_root: self.causal_root,
+            source_order: self.source_order,
             cancellation: self.cancellation,
             resource_budget: self.resource_budget,
         })
-    }
-
-    pub(in crate::runtime) fn into_authority(self) -> Authority {
-        self.authority
     }
 }
 

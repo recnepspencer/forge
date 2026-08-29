@@ -233,7 +233,7 @@ impl WorthUiActiveApplicationSession {
         self.intent_execution.retain_consequence_handoff(
             transfer.consequence,
             crate::runtime::intent_execution::UiIntentConsequenceStopReason::RuntimeServiceProposal(
-                Box::new(denial),
+                denial.into(),
             ),
         )
     }

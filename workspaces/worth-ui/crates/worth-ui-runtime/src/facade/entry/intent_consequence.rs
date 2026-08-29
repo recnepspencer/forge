@@ -123,7 +123,7 @@ impl WorthUiActiveApplicationSession {
                     return self.stop_intent_consequence(
                         handoff,
                         UiIntentConsequenceStopReason::RuntimeServiceOwnerUnavailable(
-                            crate::capability::UiRuntimeServiceFamily::Portal,
+                            crate::capability::UiRuntimeServiceFamily::Portal.into(),
                         ),
                     );
                 };

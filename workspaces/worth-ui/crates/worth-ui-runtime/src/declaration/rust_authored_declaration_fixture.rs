@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
+#[cfg(test)]
+use worth_ui_dsl::{UiDslLoweringReceipt, WorthUiDslCompiler};
 use worth_ui_dsl::{
-    UiDslLoweringReceipt, UiDslSemanticArtifactSpec, WorthUiDslCompiler,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiSemanticArtifactDeclaration,
+    UiDslSemanticArtifactSpec, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule, WorthUiSemanticArtifactDeclaration,
 };
 
 #[derive(Clone)]
@@ -25,6 +26,7 @@ impl WorthUiRustAuthoredDeclarationFixture {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn admit_semantic_artifact(
         &self,
         spec: UiDslSemanticArtifactSpec,

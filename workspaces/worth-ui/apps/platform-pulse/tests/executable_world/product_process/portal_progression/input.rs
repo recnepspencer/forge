@@ -82,7 +82,7 @@ fn keyboard(
         .deliver_keyboard_command(&world.native_client, command)
         .map_err(PlatformPulsePortalJourneyFailure::Native)?;
     let expected_event_count = match command {
-        NativeKeyboardCommand::Escape | NativeKeyboardCommand::Submit => 2,
+        NativeKeyboardCommand::Escape => 2,
         NativeKeyboardCommand::PrimaryShiftP => 6,
     };
     require_delivery(

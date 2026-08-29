@@ -383,6 +383,8 @@ fn normalize(
         Outcome::Indeterminate(recovery) => {
             UiNormalizedPortalExitTerminalOutcome::Indeterminate(recovery.detach_for_native())
         }
-        Outcome::Stopped(_) | Outcome::Ignored => UiNormalizedPortalExitTerminalOutcome::Stopped,
+        Outcome::Stopped(_)
+        | Outcome::IgnoredNoMatchingPortal
+        | Outcome::IgnoredInsideTopmostPortal => UiNormalizedPortalExitTerminalOutcome::Stopped,
     }
 }

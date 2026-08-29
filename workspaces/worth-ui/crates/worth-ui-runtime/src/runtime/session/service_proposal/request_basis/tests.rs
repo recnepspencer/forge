@@ -25,7 +25,10 @@ pub(crate) fn fixture_service_request_coherence(seed: u64) -> super::UiServiceRe
         host_surface: worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap(),
         presentation: None,
+        origin: UiServiceRequestOrigin::RuntimePolicy,
+        causal_parent: None,
         causal_root: UiServiceRequestIdentity(NonZeroU64::new(seed).unwrap()),
+        source_order: UiServiceSourceOrder(NonZeroU64::new(seed).unwrap()),
         cancellation: UiServiceCancellationIdentity(NonZeroU64::new(seed).unwrap()),
         resource_budget: UiServiceResourceBudgetIdentity(NonZeroU64::new(seed).unwrap()),
     })

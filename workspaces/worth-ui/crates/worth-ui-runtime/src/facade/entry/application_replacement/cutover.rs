@@ -191,6 +191,10 @@ impl WorthUiActiveApplicationSession {
         scroll: super::scroll_replacement::UiPreparedScrollReplacement,
         selection: super::selection_replacement::UiPreparedSelectionReplacement,
     ) -> WorthUiApplicationCutoverReceipt {
+        let motion_rebind = self
+            .motion
+            .as_ref()
+            .map(|motion| motion.prepare_mounted_rebind(&mounted_successor));
         let transition = prepared
             .transition
             .take()
@@ -229,6 +233,11 @@ impl WorthUiActiveApplicationSession {
             }),
         );
         reconcile_portal_installation(&mut self.portal, service_policy_plan.portal());
+        if let (Some(motion), Some(prepared)) = (self.motion.as_mut(), motion_rebind) {
+            for terminal in motion.commit_mounted_rebind(prepared) {
+                let _retired = self.mounted.retire_terminal_motion_sample(terminal.track());
+            }
+        }
         reconcile_motion_installation(&mut self.motion, service_policy_plan.motion());
         self.intent_application_facts =
             crate::runtime::intent::UiIntentApplicationFactState::activate(

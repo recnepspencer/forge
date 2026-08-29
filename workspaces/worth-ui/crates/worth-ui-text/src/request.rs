@@ -46,6 +46,7 @@ impl UiQualifiedTextLayoutRequest {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn identity_for_input(
     input: &UiTextParagraphAdmissionInput,
 ) -> UiQualifiedTextLayoutRequestIdentity {

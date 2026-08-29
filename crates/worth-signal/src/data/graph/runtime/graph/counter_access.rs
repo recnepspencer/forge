@@ -6,6 +6,7 @@ impl SignalGraph {
             .set_default_surface_mask(surface_mask);
     }
 
+    #[cfg(test)]
     pub(crate) fn reset_invalidation_performed_counters(&mut self) {
         self.invalidation_performed_counters.reset();
         self.invalidation_performed_work.reset();

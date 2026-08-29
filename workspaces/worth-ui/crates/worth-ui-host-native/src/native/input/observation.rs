@@ -97,6 +97,7 @@ impl UiNativeInputObservationState {
         self.event_tick = event_tick;
     }
 
+    #[cfg(test)]
     pub(crate) fn observe_profile_transition(
         &mut self,
         scale_factor: f64,

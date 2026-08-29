@@ -8,11 +8,12 @@
 macro_rules! text_atlas_resource_schema {
     ($($variant:ident => $field:ident),+ $(,)?) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        pub enum UiNativeTextAtlasResourceClass { $($variant),+ }
+        pub(crate) enum UiNativeTextAtlasResourceClass { $($variant),+ }
 
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct UiNativeTextAtlasCensus { $(pub $field: usize),+ }
 
+        #[cfg(test)]
         impl UiNativeTextAtlasResourceClass {
             pub const fn all() -> &'static [Self] {
                 &[$(Self::$variant),+]
@@ -24,10 +25,18 @@ macro_rules! text_atlas_resource_schema {
         }
 
         impl UiNativeTextAtlasCensus {
+            pub(crate) fn classified_entries(
+                self,
+            ) -> impl Iterator<Item = (UiNativeTextAtlasResourceClass, usize)> {
+                [$( (UiNativeTextAtlasResourceClass::$variant, self.$field) ),+].into_iter()
+            }
+
+            #[cfg(test)]
             pub fn entries(self) -> impl Iterator<Item = (&'static str, usize)> {
                 [$((stringify!($field), self.$field)),+].into_iter()
             }
 
+            #[cfg(test)]
             pub fn field_names() -> impl Iterator<Item = &'static str> {
                 UiNativeTextAtlasResourceClass::all()
                     .iter()
@@ -35,6 +44,7 @@ macro_rules! text_atlas_resource_schema {
                     .map(UiNativeTextAtlasResourceClass::field_name)
             }
 
+            #[cfg(test)]
             pub fn is_zero(self) -> bool {
                 self.entries().all(|(_, count)| count == 0)
             }

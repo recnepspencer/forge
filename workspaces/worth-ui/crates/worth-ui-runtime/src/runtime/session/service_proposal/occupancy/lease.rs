@@ -37,30 +37,36 @@ impl UiServiceProposalOccupancyScopeIdentity {
 }
 
 impl UiServiceProposalOccupancyLease {
+    #[cfg(test)]
     pub(in crate::runtime) const fn proposal(&self) -> super::super::UiServiceProposalIdentity {
         self.proposal
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn application(
         &self,
     ) -> &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity {
         &self.key.application
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn semantic_surface(
         &self,
     ) -> worth_ui_host_contract::UiSemanticSurfaceIdentity {
         self.key.semantic_surface
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn family(&self) -> crate::capability::UiRuntimeServiceFamily {
         self.key.family
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn scope(&self) -> UiServiceProposalOccupancyScopeIdentity {
         self.key.scope
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn slot_generation(&self) -> u64 {
         self.slot_generation
     }

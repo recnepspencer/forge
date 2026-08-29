@@ -16,6 +16,8 @@ pub(super) use baseline::{
     FinancialComparatorProfile, FinancialReproductionTuple, FinancialScaleTuple,
     FinancialScenarioIdentity,
 };
+#[cfg(feature = "parallel")]
+pub(super) use compiler::strategy_work_projection;
 pub(crate) use compiler::{
     compile_financial_locality_world, compile_financial_locality_world_at_tier,
     compile_financial_locality_world_with_policy, compile_financial_world,
@@ -23,9 +25,9 @@ pub(crate) use compiler::{
     LocalityOptionalObservationInventory,
 };
 pub(super) use compiler::{
-    strategy_work_projection, FinancialBranchLifecycleCompletion,
-    FinancialDependencyRewireEvidence, FinancialEvaluationLedger, FinancialFactorSequenceEvidence,
-    FinancialLocalityRedObservation, FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
+    FinancialBranchLifecycleCompletion, FinancialDependencyRewireEvidence,
+    FinancialEvaluationLedger, FinancialFactorSequenceEvidence, FinancialLocalityRedObservation,
+    FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
     FinancialQuoteTranslationEvidence, FinancialRestoreLifecycleEvidence, FinancialSemanticHandles,
 };
 pub(crate) use definition::FinancialWorldDefinition;

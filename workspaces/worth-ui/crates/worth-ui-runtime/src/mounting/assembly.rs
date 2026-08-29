@@ -148,10 +148,6 @@ impl UiMountedFrameRequest {
         self
     }
 
-    pub(crate) const fn portal_overlay_revision(&self) -> u64 {
-        self.portal_overlay_revision
-    }
-
     pub(crate) fn portal_overlays(
         &self,
     ) -> std::rc::Rc<[super::UiMountedPortalOverlayProjectionInput]> {

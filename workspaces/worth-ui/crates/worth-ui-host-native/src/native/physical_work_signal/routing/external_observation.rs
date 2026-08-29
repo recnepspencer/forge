@@ -15,6 +15,7 @@ pub(crate) enum UiNativePhysicalSignalExternalStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiNativePhysicalSignalExternalOrigin {
     NativeExternalPort,
+    #[cfg(feature = "certification-support")]
     QualifiedExternalPort,
 }
 
@@ -56,6 +57,7 @@ impl UiNativePhysicalSignalExternalBasis {
         }
     }
 
+    #[cfg(feature = "certification-support")]
     pub(crate) const fn observe_qualified_external(
         self,
         status: UiNativePhysicalSignalExternalStatus,

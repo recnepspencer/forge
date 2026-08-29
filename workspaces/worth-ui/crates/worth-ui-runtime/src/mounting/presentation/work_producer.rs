@@ -30,7 +30,6 @@ mod state_rebind;
 mod successor_issue;
 pub(super) use successor_issue::SuccessorIssueRequest;
 
-pub(crate) use motion_sample::UiMountedMotionSampleWorkDenial;
 pub(crate) use state::UiMountedPresentationState;
 
 pub(super) type UiMountedPresentationCandidates =

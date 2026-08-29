@@ -27,6 +27,8 @@ pub(crate) use consequence::UiIntentConsequenceLease;
 pub use consequence::{
     UiIntentConsequenceCompletionReceipt, UiIntentConsequenceHandle, UiIntentConsequenceRecovery,
     UiIntentConsequenceStop, UiIntentConsequenceStopReason, UiIntentPortalPlacementStopReason,
+    UiRuntimeServiceFamilyStopReason, UiRuntimeServiceProposalStop,
+    UiRuntimeServiceProposalStopReason,
 };
 pub(crate) use provider::{
     FrozenIntentExecutionBindings, UiIntentExecutionBindingPlan, UiIntentExecutionBindingSupport,

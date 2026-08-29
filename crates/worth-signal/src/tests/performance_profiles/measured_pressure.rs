@@ -37,7 +37,7 @@ fn measured_idle_versus_introspective_records_diagnostic_pressure_benefit() {
     let ten_percent = idle_report.completed_batches_per_second_milli
         >= pressure_report.completed_batches_per_second_milli * 11 / 10;
     println!(
-        "pressure packet context={:?} idle_median={} idle_p95={} idle_milli={} pressure_median={} pressure_p95={} pressure_milli={} ten_percent_benefit={ten_percent} governed_nodes={}",
+        "pressure packet context={} idle_median={} idle_p95={} idle_milli={} pressure_median={} pressure_p95={} pressure_milli={} ten_percent_benefit={ten_percent} governed_nodes={}",
         PerformancePacketContext::recorded(),
         idle_report.warm_median_micros,
         idle_report.warm_p95_micros,

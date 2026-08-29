@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(in crate::runtime) enum UiServiceProposalStage {
+pub(crate) enum UiServiceProposalStage {
     ValidatePreState,
     FamilyOwnedStaging,
     AssembleSuccessor,
@@ -10,12 +10,14 @@ pub(in crate::runtime) enum UiServiceProposalStage {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(in crate::runtime) struct UiServiceProposalDependencyEdge {
     prerequisite: UiServiceProposalStage,
     dependent: UiServiceProposalStage,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(in crate::runtime) enum UiServiceProposalDependencyDenial {
     WrongEdgeCount,
     DuplicateEdge,
@@ -34,6 +36,7 @@ impl UiServiceProposalStage {
         Self::SettleFamilyOwners,
     ];
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn dependencies() -> [UiServiceProposalDependencyEdge; 6] {
         [
             edge(Self::ValidatePreState, Self::FamilyOwnedStaging),
@@ -58,6 +61,7 @@ impl UiServiceProposalStage {
     }
 }
 
+#[cfg(test)]
 impl UiServiceProposalDependencyEdge {
     #[cfg(test)]
     const fn recorded_fixture(
@@ -79,6 +83,7 @@ impl UiServiceProposalDependencyEdge {
     }
 }
 
+#[cfg(test)]
 pub(in crate::runtime) fn validate_dependency_graph(
     edges: &[UiServiceProposalDependencyEdge],
 ) -> Result<(), UiServiceProposalDependencyDenial> {
@@ -101,6 +106,7 @@ pub(in crate::runtime) fn validate_dependency_graph(
     Ok(())
 }
 
+#[cfg(test)]
 const fn edge(
     prerequisite: UiServiceProposalStage,
     dependent: UiServiceProposalStage,
