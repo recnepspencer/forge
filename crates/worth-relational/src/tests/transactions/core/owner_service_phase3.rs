@@ -158,81 +158,6 @@ fn phase3_settlement_port_settles_a_performed_publication_from_another_thread() 
     release_test_commit_snapshot(&runtime, &child);
 }
 
-/// Settlement holds no runtime-wide authority. A branch paused inside its own
-/// settlement executor never contacts, and never blocks, an unrelated branch
-/// running the full convenience commit path.
-#[test]
-fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
-    let runtime = runtime_with_test_schema();
-    create_entity(&runtime, "phase3-settlement-independence-anchor");
-    fork_from_main(&runtime, "paused-settlement");
-    fork_from_main(&runtime, "progressing-settlement");
-
-    let reached = Arc::new(Barrier::new(2));
-    let release = Arc::new(Barrier::new(2));
-    let control = crate::mvcc::RelationalOperationControl::uninterrupted().with_boundary_pause(
-        crate::mvcc::RelationalInterruptionBoundary::Settlement,
-        Arc::clone(&reached),
-        Arc::clone(&release),
-    );
-    let performed =
-        perform_write_with_control(&runtime, "paused-settlement", "paused-write", control);
-    let paused_commit_id = performed.canonical_commit().commit.commit_id;
-    let paused_cell = runtime
-        .history
-        .branch_cell(&BranchId("paused-settlement".to_owned()))
-        .expect("paused branch cell");
-    let contacts_before = paused_cell.coordination().contact_count();
-    let waits_before = paused_cell.coordination().wait_count();
-
-    let settlement = runtime.settlement_port();
-    let paused_port = settlement.clone();
-    let paused_thread =
-        std::thread::spawn(move || paused_port.settle_performed_publication(performed));
-
-    reached.wait();
-    assert!(
-        !paused_thread.is_finished(),
-        "branch A remains paused inside its settlement executor"
-    );
-    let mut progressing = test_owner_begin_transaction_for_branch(
-        &runtime,
-        BranchId("progressing-settlement".to_owned()),
-    );
-    progressing
-        .push_batch(batch_create("progressing-write"))
-        .expect("test staging stays within configured resource budgets");
-    let progressing_result = runtime
-        .commit_branch_transaction(progressing)
-        .expect("branch B commits end to end while branch A settlement is paused");
-    assert!(
-        !paused_thread.is_finished(),
-        "branch B did not release branch A"
-    );
-    assert_eq!(
-        paused_cell.coordination().contact_count(),
-        contacts_before,
-        "branch B never contacts branch A coordination",
-    );
-    assert_eq!(
-        paused_cell.coordination().wait_count(),
-        waits_before,
-        "branch B never waits on branch A coordination",
-    );
-    assert!(settlement.retains_pending_settlement(paused_commit_id));
-    assert!(!settlement.retains_pending_settlement(progressing_result.commit.commit_id));
-
-    release.wait();
-    let paused_result = paused_thread
-        .join()
-        .expect("paused settlement worker joins")
-        .expect("branch A settles after release");
-    assert_eq!(paused_result.commit.commit_id, paused_commit_id);
-    assert!(!settlement.retains_pending_settlement(paused_commit_id));
-    release_test_commit_snapshot(&runtime, &paused_result);
-    release_test_commit_snapshot(&runtime, &progressing_result);
-}
-
 /// A deferred durable append is repaired through the same shared-borrow
 /// service, by exact route and by commit identity, without the runtime ever
 /// being borrowed exclusively.
@@ -286,7 +211,7 @@ fn phase3_settlement_port_repairs_a_deferred_append_by_route_and_by_identity() {
     release_test_commit_snapshot(&runtime, &child);
 }
 
-fn fork_from_main(runtime: &RelationalRuntime, target: &str) {
+pub(super) fn fork_from_main(runtime: &RelationalRuntime, target: &str) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main has an exact fork source");
@@ -308,7 +233,7 @@ fn perform_write(
     perform_prepared(runtime, transaction)
 }
 
-fn perform_write_with_control(
+pub(super) fn perform_write_with_control(
     runtime: &RelationalRuntime,
     branch: &str,
     name: &str,

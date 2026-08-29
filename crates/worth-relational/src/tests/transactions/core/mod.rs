@@ -28,6 +28,7 @@ mod owner_service_phase2;
 mod owner_service_phase3;
 mod parallel_preparation;
 mod patch_position_contention;
+mod paused_settlement_locality;
 mod pending_settlement_recovery;
 mod pending_settlement_reservation;
 mod prepared_candidate_fork;
