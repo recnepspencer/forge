@@ -68,6 +68,7 @@ mod merge_certification;
 mod multi_aspect;
 mod node_conditions;
 mod observability;
+mod owner_contract_gate;
 mod partition_propagation;
 mod partition_validation;
 mod performance;

@@ -6,25 +6,27 @@
 
 ## Goal And Roadmap Placement
 
-Carry the exact Runtime Bridge product-branch basis and performed composite
+Carry the exact Runtime World product-branch basis and performed composite
 publication from Milestone 9.17.2 through every Query phase that consumes or
 projects product currentness. Publish one coherent Query host facade for branch
 creation, selection, mutation, reads, history, live observation, inspection,
 aftermath, and existing-outbox eligibility. Delete Relational-only product
 identity and ambient Signal selection.
 
-Milestone 9.17.1 owns exact component bases and branch-local MVCC. Milestone
-9.17.2 owns composite history and product-head movement. Query owns admission,
+Milestones 9.17.1 through 9.17.1.2 own the exact component bases, owner
+services, and branch-local progress contracts. Milestone 9.17.2 owns composite
+history and product-head movement in `worth-runtime-world`. Query owns admission,
 phase carriage, public DX, and projection; it cannot restamp lower authority.
 Closing this milestone closes the 9.17 umbrella and unlocks tree-based semantic
 undo/redo in Milestone 9.18.
 
 ## Central Claim
 
-Every public Query operation on a product branch resolves one exact Bridge-
-admitted composite basis before planning, carries it without rediscovery through
-execution, and constructs committed Query outcomes only from performed Bridge
-composite publication. One-shot, history, live, inspection, aftermath, and
+Every public Query operation on a product branch resolves one exact
+Runtime World-admitted composite basis before planning, carries it without
+rediscovery through execution, and constructs committed Query outcomes only
+from performed Runtime World composite publication. One-shot, history, live,
+inspection, aftermath, and
 outbox eligibility all report the same product branch, composite commit, and
 owner component bases.
 
@@ -35,7 +37,8 @@ The claim is false if:
 - a later phase re-resolves latest instead of consuming carried proof;
 - a plan, session, proposal, invariant result, effect, or terminal from another
   composite basis can be paired successfully;
-- owner-local performed work becomes a committed Query outcome before Bridge
+- owner-local performed work becomes a committed Query outcome before Runtime
+  World
   product publication;
 - history or live views infer product currentness from component history;
 - an outbox fact becomes dispatch-eligible when its exact composite publication
@@ -49,7 +52,8 @@ The claim is false if:
 | Responsibility | Owner |
 | --- | --- |
 | Component truth, bases, branches, and owner-local publication | Relational and Signal |
-| Composite commits, product branches, currentness, and coordinated publication | Runtime Bridge |
+| Installed Relational-to-Signal semantic correspondence | Base Runtime Bridge |
+| Composite commits, product branches, currentness, and coordinated publication | `worth-runtime-world` composition owner |
 | Product-branch intent, admission, carried execution affinity, public outcomes, and Query projections | Query |
 | Existing outbox payload, correlation, and idempotency identity | Query aftermath meaning co-committed in the Relational component |
 | Eligibility to attempt an external effect in the live runtime | Query after consuming exact performed composite publication |
@@ -62,7 +66,7 @@ or dispatch policy.
 
 ## Current Boundary
 
-After 9.17.2, Bridge can resolve a product branch to an exact composite basis,
+After 9.17.2, the Runtime World facade can resolve a product branch to an exact composite basis,
 coordinate owner work, publish a new composite commit, and issue performed
 authority. Query still has branch-bearing surfaces that may use Relational
 identity, ambient Signal context, or weaker descriptors. The migration must
@@ -71,7 +75,7 @@ cover the complete causal chain:
 ```text
 declaration -> normalization -> admission -> planning -> access plan
     -> provider session -> observations/read set -> proposal -> invariants
-    -> effect lowering -> Bridge publication -> terminal -> public projections
+    -> effect lowering -> Runtime World publication -> terminal -> public projections
 ```
 
 No post-terminal surface may retain the old identity lane after cutover.
@@ -86,9 +90,9 @@ Signal-only, and combined operations while:
 - blocking an unrelated branch writer;
 - making each carried binding axis stale between adjacent Query phases;
 - substituting equal-version component and composite artifacts;
-- cancelling before owner preparation, between owner calls, before Bridge
+- cancelling before owner preparation, between owner calls, before Runtime World
   publication, and after performed publication;
-- forcing partial owner preparation and retained-candidate posture;
+- forcing partial owner work and product-unpublished-owner-effects posture;
 - opening one-shot, live, history, inspection, and aftermath observations at
   adversarial times; and
 - creating an outbox occurrence in an owner-local Relational result whose
@@ -98,12 +102,12 @@ An independent product-world oracle must observe exact phase affinity, one
 winner, no half-current projection, correct component reuse, independent branch
 progress, and no dispatch eligibility for the failed composite publication.
 Dropping a carriage field, resolving latest, promoting owner evidence, bypassing
-Bridge, deriving identity from Relational, or enabling outbox work from row
+Runtime World, deriving identity from Relational, or enabling outbox work from row
 existence must turn the court red.
 
 ## Product Decision Lock
 
-1. Query product-branch identity is the exact Bridge product branch, not a
+1. Query product-branch identity is the exact Runtime World product branch, not a
    Relational alias.
 2. Query resolves one exact composite basis before planning and carries it
    through the entire operation.
@@ -112,11 +116,12 @@ existence must turn the court red.
 4. Same-looking plans, sessions, attempts, proposals, or receipts from different
    composite heads are non-substitutable.
 5. Lower runtimes are reached only through their audience facades and exact
-   Bridge-owned progression.
+   Runtime World-owned progression.
 6. A Query committed terminal consumes performed composite publication. Owner-
    local candidate or performed evidence is insufficient.
-7. Stale, conflict, denied, cancelled, retained-candidate, and performed outcomes
-   remain typed and carry honest next actions.
+7. Product-unpublished permits settlement, cleanup, inspection, or a fresh
+   Query-admitted operation referencing the record without deriving authority;
+   every outcome keeps typed next actions.
 8. One-shot, history, live, inspection, preview where supported, and aftermath
    project the same canonical product-world identity.
 9. Existing Query live views retain their exact patch granularity. Product-
@@ -134,8 +139,9 @@ existence must turn the court red.
     idempotency semantics only.
 14. Public branch creation exposes explicit exact component retain/fork intent
     because only the caller can choose that product meaning.
-15. Raw component ids, generic authority markers, internal Bridge handles, and
-    compatibility aliases are absent from the ordinary public facade.
+15. Raw component ids, generic authority markers, internal Bridge or Runtime
+    World handles, and compatibility aliases are absent from the ordinary
+    public facade.
 16. All application state remains memory-resident. A process loss loses the
     current world; no restart guarantee is implied.
 
@@ -144,17 +150,16 @@ existence must turn the court red.
 ```text
 ProductBranchWorkflowIntent
     -> NormalizedProductBranchIntent
-    -> BridgeResolvedProductBranchBasis
+    -> RuntimeWorldResolvedProductBranchBasis
     -> QueryAdmittedCompositeBasis
     -> ProductBranchExecutionPlan
     -> ProductBranchProviderSession
     -> ProductBranchProposal
     -> ProductBranchInvariantResult
-    -> LoweredCompositePublicationIntent
-    -> BridgeExecutionReadyPublication
-    -> PerformedCompositePublication
-    -> QueryCommittedProductBranchTerminal
-    -> receipt / history / live / aftermath / dispatch eligibility
+    -> RuntimeWorldPublicationOutcome
+         PerformedCompositePublication -> QueryCommittedProductBranchTerminal
+             -> receipt / history / live / aftermath / dispatch eligibility
+         NoEffect / ProductUnpublished -> typed Query terminal
 ```
 
 Compiler evidence denies raw composite-basis construction, unresolved planning,
@@ -231,9 +236,10 @@ Remove default-main, derived identity, ambient Signal, and current-head relookup
 
 ### Phase 3: Effect, Publication, And Terminal Carriage
 
-Lower Query effects into exact Bridge component plans, consume only 9.17.2
+Lower Query effects into exact Runtime World component plans, consume only 9.17.2
 publication progression, and construct committed terminals only from performed
-composite transitions. Preserve every losing, partial, and cancellation outcome.
+composite transitions. Preserve every losing, no-effect,
+product-unpublished-owner-effects, and cancellation outcome.
 
 ### Phase 4: Projection And Existing-Outbox Cutover
 
@@ -278,9 +284,9 @@ let committed = app
 assert_eq!(committed.product_branch(), branch.id());
 ```
 
-The caller chooses product intent and component retain/fork posture. Query and
-Bridge carry exact owner identities and orchestrate publication; callers never
-wire component runtimes or manufacture bases.
+The caller chooses product intent and component retain/fork posture. Query
+carries exact owner identities and the Runtime World owner orchestrates
+publication; callers never wire component runtimes or manufacture bases.
 
 ## Performance And Resource Contract
 
@@ -288,7 +294,7 @@ wire component runtimes or manufacture bases.
 - Later phases do not rediscover or rehash a basis already carried within the
   same trust boundary.
 - A single-component operation executes only the changing owner plus fixed
-  Bridge validation/publication work.
+  correspondence validation and Runtime World publication work.
 - One-shot, history, live, inspection, and aftermath never scan histories to
   infer currentness.
 - Existing live patch computation remains bounded by semantic delta and the
@@ -316,7 +322,10 @@ wire component runtimes or manufacture bases.
   publication guarantee;
 - every 9.16.2 portable package and fresh-readmission guarantee;
 - every 9.17.1 component-authority and independent-progress guarantee;
-- every 9.17.2 composite-history, retention, and no-half-publication guarantee;
+- every 9.17.1.1 and 9.17.1.2 owner-service, retention, lifecycle, and
+  independent-branch progress guarantee;
+- every 9.17.2 explicit-bootstrap, composite-history, retention, and
+  no-half-publication guarantee;
 - Query as audience/admission facade rather than history/currentness owner;
 - exact existing outbox payload and idempotency identity;
 - existing Query live-view patch granularity and backpressure policy;
@@ -343,7 +352,7 @@ exact counters; dependency/facade enforcement; and zero legacy identity lanes.
 
 Milestone 9.18 receives exact Query-selected product branches and composite
 heads, immutable single-parent composite commits, owner-observed component
-bases, Bridge coordinated publication, retention, public history/inspection/
+bases, Runtime World coordinated publication, retention, public history/inspection/
 aftermath, typed outcome carriage, and performed-publication-gated outbox
 eligibility. It may add freshly admitted correction semantics but may not create
 a second history owner or introduce persistence as part of undo/redo.

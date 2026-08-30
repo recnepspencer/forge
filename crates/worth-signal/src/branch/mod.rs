@@ -6,6 +6,7 @@ mod fork;
 mod identity;
 mod lifecycle;
 mod merge;
+mod owner_services;
 mod readmission;
 mod reference;
 mod restoration;
@@ -37,6 +38,11 @@ pub use lifecycle::{
     SignalBranchRetirementReceipt,
 };
 pub use merge::{SignalBranchMergeDenial, SignalBranchMergeOutcome};
+#[cfg(feature = "test-operation-control")]
+pub use owner_services::SignalOwnerOperationBoundary;
+pub use owner_services::{
+    SignalOwnerLifecycleObservation, SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable,
+};
 pub use readmission::{
     SignalBranchBasisCompatibilityDenial, SignalBranchBasisObservationDenial,
     SignalBranchBasisReadmissionDenial, SignalBranchRetainedReadmissionDenial,

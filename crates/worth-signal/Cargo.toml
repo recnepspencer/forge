@@ -15,6 +15,7 @@ parallel = []
 profile-compact = []
 profile-standard = []
 profile-extended = []
+test-operation-control = []
 
 [dependencies]
 tracing = "0.1"
