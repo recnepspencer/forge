@@ -21,6 +21,14 @@ impl RelationalRuntime {
     ) -> Result<CommitResult, TransactionCommitError> {
         let (positioned, record) = performed.into_settlement_parts();
         debug_assert_eq!(positioned.envelope().commit.commit_id, record.commit_id());
+        if record.runtime_instance_id() != self.runtime_instance_id() {
+            return Err(TransactionCommitError::publication_denied(
+                crate::mvcc::RelationalPublicationDenial::ForeignRuntime {
+                    expected_runtime_instance_id: self.runtime_instance_id(),
+                    actual_runtime_instance_id: record.runtime_instance_id(),
+                },
+            ));
+        }
         match self.execute_pending_settlement(&record, RelationalSettlementResultOwner::Witness) {
             Ok(RelationalSettlementCompletion::Performed { committed, .. }) => Ok(committed),
             Ok(RelationalSettlementCompletion::Repeated { committed, .. }) => {
@@ -52,8 +60,8 @@ impl RelationalRuntime {
     {
         if settlement.runtime_instance_id() != self.runtime_instance_id() {
             return Err(DeferredPublicationSettlementError::ForeignRuntime {
-                expected_runtime_instance_id: settlement.runtime_instance_id(),
-                actual_runtime_instance_id: self.runtime_instance_id(),
+                expected_runtime_instance_id: self.runtime_instance_id(),
+                actual_runtime_instance_id: settlement.runtime_instance_id(),
             });
         }
         let commit_id = settlement.commit().commit_id;
@@ -88,8 +96,8 @@ impl RelationalRuntime {
         };
         if record.runtime_instance_id() != self.runtime_instance_id() {
             return Err(DeferredPublicationSettlementError::ForeignRuntime {
-                expected_runtime_instance_id: record.runtime_instance_id(),
-                actual_runtime_instance_id: self.runtime_instance_id(),
+                expected_runtime_instance_id: self.runtime_instance_id(),
+                actual_runtime_instance_id: record.runtime_instance_id(),
             });
         }
         self.execute_pending_settlement(&record, RelationalSettlementResultOwner::Runtime)

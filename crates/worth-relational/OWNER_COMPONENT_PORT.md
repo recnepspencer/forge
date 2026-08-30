@@ -234,12 +234,30 @@ the one executor:
 - `repair_pending_publication_settlement` addresses the same record by `CommitId`
   when the capability holder was lost entirely.
 
-`settle_performed_publication` and both repair routes enter one per-commit
-executor gate before claiming any work. Concurrent or repeated callers therefore
-converge on one terminal receipt and never repeat a durable append or a derived
-completion. A repeated call after settlement returns the same
-`RelationalCommitReceipt`, including when the record itself has already been
-released.
+Settlement artifacts are runtime-affine. Before claiming the executor gate,
+`settle_performed_publication` compares the performed witness's retained record
+with the settlement service's runtime, and
+`repair_deferred_publication_settlement` performs the same check against its
+carrier. A mismatch is typed as `RelationalPublicationDenial::ForeignRuntime`
+inside `TransactionCommitError::PublicationDenied` for the performed-witness
+entry, or `DeferredPublicationSettlementError::ForeignRuntime` for deferred
+repair. In both errors, `expected_runtime_instance_id` is the runtime of the
+service that received the call, and `actual_runtime_instance_id` is the runtime
+carried by the witness or deferred route.
+
+`settle_performed_publication` consumes its witness argument even when a foreign
+service rejects it, but rejection does not claim or remove the source runtime's
+pending record. The source owner can still complete the obligation through
+`repair_pending_publication_settlement(commit_id)`. A foreign deferred-repair
+attempt borrows its carrier, so the same carrier remains usable with its source
+owner.
+
+After affinity validation, `settle_performed_publication` and both repair routes
+enter one per-commit executor gate before claiming any work. Concurrent or
+repeated callers therefore converge on one terminal receipt and never repeat a
+durable append or a derived completion. A repeated call after settlement
+returns the same `RelationalCommitReceipt`, including when the record itself has
+already been released.
 
 Both repair routes return `RelationalCommitReceipt`. Only
 `settle_performed_publication` returns the full `CommitResult`, which is issued

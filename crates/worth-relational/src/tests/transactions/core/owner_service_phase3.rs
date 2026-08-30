@@ -209,6 +209,111 @@ fn phase3_settlement_port_repairs_a_deferred_append_by_route_and_by_identity() {
     release_test_commit_snapshot(&runtime, &child);
 }
 
+/// A performed witness carries the source runtime's pending record. A foreign
+/// settlement service must reject that record before claiming its executor
+/// gate, leaving the source runtime able to recover by commit identity.
+#[test]
+fn phase3_foreign_settlement_denial_preserves_source_recovery() {
+    let source = persisted_runtime_with_test_schema();
+    create_entity(&source, "phase3-foreign-settlement-source-anchor");
+    let foreign = persisted_runtime_with_test_schema();
+    create_entity(&foreign, "phase3-foreign-settlement-target-anchor");
+
+    let performed = perform_write(&source, "main", "phase3-foreign-settlement-write");
+    let commit_id = performed.canonical_commit().commit.commit_id;
+    let source_durable_before = source.durability().durable_log().len();
+    let foreign_durable_before = foreign.durability().durable_log().len();
+    let source_settlement = source.settlement_port();
+    assert!(source_settlement.retains_pending_settlement(commit_id));
+
+    match foreign
+        .settlement_port()
+        .settle_performed_publication(performed)
+    {
+        Err(TransactionCommitError::PublicationDenied {
+            denial:
+                crate::mvcc::RelationalPublicationDenial::ForeignRuntime {
+                    expected_runtime_instance_id,
+                    actual_runtime_instance_id,
+                },
+            ..
+        }) => {
+            assert_eq!(expected_runtime_instance_id, foreign.runtime_instance_id());
+            assert_eq!(actual_runtime_instance_id, source.runtime_instance_id());
+        }
+        outcome => panic!("foreign settlement must return its typed denial: {outcome:?}"),
+    }
+
+    assert_eq!(
+        foreign.durability().durable_log().len(),
+        foreign_durable_before
+    );
+    assert!(source_settlement.retains_pending_settlement(commit_id));
+    let recovered = source_settlement
+        .repair_pending_publication_settlement(commit_id)
+        .expect("the source runtime retains recovery after foreign denial");
+    assert_eq!(recovered.commit_id, commit_id);
+    assert_eq!(
+        source.durability().durable_log().len(),
+        source_durable_before + 1,
+        "the source settlement appends exactly once",
+    );
+    assert!(!source_settlement.retains_pending_settlement(commit_id));
+}
+
+/// Deferred repair diagnostics describe the service being asked as expected
+/// and the carrier's source as actual. Rejection must leave the source record
+/// and exact carrier usable for its rightful owner.
+#[test]
+fn phase3_foreign_deferred_repair_reports_affinity_and_preserves_source_recovery() {
+    let source = persisted_runtime_with_test_schema();
+    create_entity(&source, "phase3-foreign-deferred-source-anchor");
+    let foreign = persisted_runtime_with_test_schema();
+    create_entity(&foreign, "phase3-foreign-deferred-target-anchor");
+
+    let performed = perform_write(&source, "main", "phase3-foreign-deferred-write");
+    let commit_id = performed.canonical_commit().commit.commit_id;
+    let source_durable_before = source.durability().durable_log().len();
+    let foreign_durable_before = foreign.durability().durable_log().len();
+    let source_settlement = source.settlement_port();
+    source.durability.arm_append_failure();
+    let deferred_error = source_settlement
+        .settle_performed_publication(performed)
+        .expect_err("the injected append fault leaves exact deferred repair authority");
+    let deferred = deferred_error
+        .deferred_settlement()
+        .expect("durability deferral carries the performed route");
+
+    match foreign
+        .settlement_port()
+        .repair_deferred_publication_settlement(deferred)
+    {
+        Err(DeferredPublicationSettlementError::ForeignRuntime {
+            expected_runtime_instance_id,
+            actual_runtime_instance_id,
+        }) => {
+            assert_eq!(expected_runtime_instance_id, foreign.runtime_instance_id());
+            assert_eq!(actual_runtime_instance_id, source.runtime_instance_id());
+        }
+        outcome => panic!("foreign deferred repair must return exact affinity: {outcome:?}"),
+    }
+
+    assert_eq!(
+        foreign.durability().durable_log().len(),
+        foreign_durable_before
+    );
+    assert!(source_settlement.retains_pending_settlement(commit_id));
+    let recovered = source_settlement
+        .repair_deferred_publication_settlement(deferred)
+        .expect("the source runtime still owns the exact deferred route");
+    assert_eq!(recovered.commit_id, commit_id);
+    assert_eq!(
+        source.durability().durable_log().len(),
+        source_durable_before + 1
+    );
+    assert!(!source_settlement.retains_pending_settlement(commit_id));
+}
+
 pub(super) fn fork_from_main(runtime: &RelationalRuntime, target: &str) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
