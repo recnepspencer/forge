@@ -1,4 +1,5 @@
 mod diagnostics;
+mod disposition;
 mod recovery_join;
 mod resident_admission;
 mod root_protocol_admission_denial;
@@ -6,6 +7,16 @@ mod scrub;
 
 pub(in crate::physical_runtime) use diagnostics::RootProtocolRouteCounterCells;
 pub use diagnostics::{PhysicalRootProtocolRoute, RootProtocolRouteCounters};
+pub(in crate::physical_runtime) use disposition::{
+    project_resident_current_root_selector_authority,
+    project_resident_previous_root_selector_authority, project_resident_root_manifest_authority,
+    StoreOwnerDispositionAdapterDenial,
+};
+pub use disposition::{
+    DamagedPhysicalAuthorityObservation, IntactPhysicalAuthorityObservation,
+    OwnerDispositionProjectionDenial, PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
+    RebuildablePhysicalDerivedObservation,
+};
 pub(in crate::physical_runtime) use recovery_join::{
     RecoveryIntegrityHandoffBinding, RecoveryIntegrityRuntimeGeneration,
 };

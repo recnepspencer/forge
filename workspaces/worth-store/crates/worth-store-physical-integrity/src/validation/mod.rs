@@ -3,6 +3,7 @@ mod rejection;
 mod untrusted_artifact;
 pub(crate) mod validated;
 mod validation_record;
+mod version_window;
 
 pub use artifact_scope::{
     CheckpointStreamHeaderScopeIdentity, PhysicalArtifactScope, PhysicalArtifactScopeDenial,
@@ -23,4 +24,8 @@ pub use validated::{
 pub use validation_record::{
     PhysicalIntegrityValidationDigest, PhysicalIntegrityValidationMechanism,
     PhysicalIntegrityValidationRecord,
+};
+pub use version_window::{
+    PhysicalIntegrityArtifactVersionAdapter, PhysicalIntegrityEnvelopeVersionAdapter,
+    PhysicalIntegritySupportedVersion, PhysicalIntegrityVersionWindowOutcome,
 };
