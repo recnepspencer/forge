@@ -62,6 +62,10 @@ pub use lifecycle::{
     RelationalBranchDeleteDenial, RelationalBranchDeletionOutcome, RelationalBranchDeletionPending,
     RelationalBranchLifecyclePosture,
 };
+pub use owner_services::{
+    RelationalBranchBasisPort, RelationalBranchLifecyclePort, RelationalOwnerLifecycleObservation,
+    RelationalOwnerServicePorts,
+};
 pub use reference::RelationalBranchCellDenial;
 pub use reference::{
     relational_branch_observation, RelationalBranchComparisonBasis, RelationalBranchForkBasis,
