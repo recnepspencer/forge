@@ -36,7 +36,9 @@ impl<'media> IntegrityValidatedCurrentRootSelector<'media> {
         }
         let validation_record = PhysicalIntegrityValidationRecord::from_validated_scope(
             scope,
-            PhysicalIntegrityValidationDigest::crc32c(scope.exact_scope_digest()),
+            PhysicalIntegrityValidationDigest::crc32c(
+                scope.selector_or_manifest_exact_scope_digest(),
+            ),
             PhysicalIntegrityValidationDigest::crc32c(validated_range_checksum),
             PhysicalIntegrityValidationMechanism::Crc32cV1,
         )?;

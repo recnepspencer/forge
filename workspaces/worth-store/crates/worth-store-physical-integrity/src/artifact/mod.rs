@@ -5,6 +5,8 @@ pub(crate) mod free_space;
 pub(crate) mod page;
 pub(crate) mod physical_work_obligation;
 pub(crate) mod root;
+mod segment_membership_block;
+mod segment_membership_block_rejection;
 mod wal_frame;
 
 pub use checkpoint::{
@@ -27,8 +29,12 @@ pub use physical_work_obligation::{
     validate_physical_work_obligation, PhysicalWorkObligationIntegrityValidation,
 };
 pub use root::{
-    validate_current_root_selector, validate_previous_root_selector, validate_root_manifest,
+    validate_bootstrap_catalog, validate_current_root_selector, validate_previous_root_selector,
+    validate_root_manifest, validate_root_routing_block, BootstrapCatalogIntegrityValidation,
     CurrentRootSelectorIntegrityValidation, PreviousRootSelectorIntegrityValidation,
-    RootManifestIntegrityValidation,
+    RootManifestIntegrityValidation, RootRoutingBlockIntegrityValidation,
+};
+pub use segment_membership_block::{
+    validate_segment_membership_block, SegmentMembershipBlockIntegrityValidation,
 };
 pub use wal_frame::{validate_wal_frame, WalFrameIntegrityValidation};

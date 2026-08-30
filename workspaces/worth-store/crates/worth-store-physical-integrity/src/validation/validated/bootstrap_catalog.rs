@@ -1,5 +1,5 @@
 use worth_store_physical_format::{
-    DurableRootSelector, PhysicalRecordFormatDeclaration, RootSelectorIdentity, RootSelectorRole,
+    BootstrapCatalog, CurrentRootCatalogGeneration, PhysicalRecordFormatDeclaration,
 };
 
 use super::super::{
@@ -8,47 +8,38 @@ use super::super::{
 };
 
 #[derive(Debug)]
-pub struct IntegrityValidatedPreviousRootSelector<'media> {
+pub struct IntegrityValidatedBootstrapCatalog<'media> {
     scope: PhysicalArtifactScope,
-    selector_identity: RootSelectorIdentity,
     record_format: PhysicalRecordFormatDeclaration,
-    root_generation: u64,
-    linked_selector: Option<RootSelectorIdentity>,
-    linked_root_generation: Option<u64>,
+    current_root_generation: CurrentRootCatalogGeneration,
     validation_record: PhysicalIntegrityValidationRecord,
     inspected: UntrustedPhysicalArtifact<'media>,
 }
 
-impl<'media> IntegrityValidatedPreviousRootSelector<'media> {
+impl<'media> IntegrityValidatedBootstrapCatalog<'media> {
     pub(crate) fn new(
         scope: PhysicalArtifactScope,
-        selector: DurableRootSelector,
+        catalog: BootstrapCatalog,
         validated_range_checksum: u32,
         inspected: UntrustedPhysicalArtifact<'media>,
     ) -> Option<Self> {
-        if !scope.is_previous_selector()
-            || selector.role() != RootSelectorRole::Previous
-            || selector.store_identity() != scope.store_identity()
-            || selector.format() != scope.record_format()
+        if !scope.is_bootstrap_catalog()
+            || catalog.store_identity() != scope.store_identity()
+            || catalog.format() != scope.record_format()
             || inspected.byte_count() != scope.byte_range().length()
         {
             return None;
         }
         let validation_record = PhysicalIntegrityValidationRecord::from_validated_scope(
             scope,
-            PhysicalIntegrityValidationDigest::crc32c(
-                scope.selector_or_manifest_exact_scope_digest(),
-            ),
+            PhysicalIntegrityValidationDigest::crc32c(scope.bootstrap_exact_scope_digest()),
             PhysicalIntegrityValidationDigest::crc32c(validated_range_checksum),
             PhysicalIntegrityValidationMechanism::Crc32cV1,
         )?;
         Some(Self {
             scope,
-            selector_identity: selector.identity(),
-            record_format: selector.format(),
-            root_generation: selector.root_generation(),
-            linked_selector: selector.linked_selector(),
-            linked_root_generation: selector.linked_root_generation(),
+            record_format: catalog.format(),
+            current_root_generation: catalog.current_root().generation(),
             validation_record,
             inspected,
         })
@@ -58,24 +49,12 @@ impl<'media> IntegrityValidatedPreviousRootSelector<'media> {
         self.scope
     }
 
-    pub const fn selector_identity(&self) -> RootSelectorIdentity {
-        self.selector_identity
-    }
-
     pub const fn record_format(&self) -> PhysicalRecordFormatDeclaration {
         self.record_format
     }
 
-    pub const fn root_generation(&self) -> u64 {
-        self.root_generation
-    }
-
-    pub const fn linked_selector(&self) -> Option<RootSelectorIdentity> {
-        self.linked_selector
-    }
-
-    pub const fn linked_root_generation(&self) -> Option<u64> {
-        self.linked_root_generation
+    pub const fn current_root_generation(&self) -> CurrentRootCatalogGeneration {
+        self.current_root_generation
     }
 
     pub const fn into_validation_record(self) -> PhysicalIntegrityValidationRecord {

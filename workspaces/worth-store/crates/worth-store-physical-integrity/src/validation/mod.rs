@@ -15,14 +15,15 @@ pub use rejection::{
 };
 pub use untrusted_artifact::UntrustedPhysicalArtifact;
 pub use validated::{
-    IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointBindingCompaction,
-    IntegrityValidatedCheckpointDirtyBasis, IntegrityValidatedCheckpointFooter,
-    IntegrityValidatedCheckpointStreamHeader, IntegrityValidatedCurrentRootSelector,
-    IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
-    IntegrityValidatedFreeSpaceHeader, IntegrityValidatedFreeSpaceMembershipBlock,
-    IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
-    IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest,
-    IntegrityValidatedWalFrame,
+    IntegrityValidatedBootstrapCatalog, IntegrityValidatedCheckpointBinding,
+    IntegrityValidatedCheckpointBindingCompaction, IntegrityValidatedCheckpointDirtyBasis,
+    IntegrityValidatedCheckpointFooter, IntegrityValidatedCheckpointStreamHeader,
+    IntegrityValidatedCurrentRootSelector, IntegrityValidatedExtentChunkFrame,
+    IntegrityValidatedExtentManifest, IntegrityValidatedFreeSpaceHeader,
+    IntegrityValidatedFreeSpaceMembershipBlock, IntegrityValidatedPageFrame,
+    IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedPreviousRootSelector,
+    IntegrityValidatedRootManifest, IntegrityValidatedRootRoutingBlock,
+    IntegrityValidatedSegmentMembershipBlock, IntegrityValidatedWalFrame,
 };
 pub use validation_record::{
     PhysicalIntegrityValidationDigest, PhysicalIntegrityValidationMechanism,

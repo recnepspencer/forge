@@ -194,3 +194,15 @@ impl PhysicalArtifactScope {
         }
     }
 }
+
+pub(super) fn encode_durable_artifact_scope_prefix(
+    scope: PhysicalArtifactScope,
+    family_tag: u8,
+    target: &mut [u8; 43],
+) {
+    target[..16].copy_from_slice(&scope.store.bytes());
+    target[16] = family_tag;
+    target[17..25].copy_from_slice(&scope.range.offset().to_le_bytes());
+    target[25..33].copy_from_slice(&scope.range.length().to_le_bytes());
+    target[33..43].copy_from_slice(&scope.record_format().canonical_identity_bytes());
+}

@@ -1,5 +1,6 @@
 use worth_store_physical_format::{
-    DurableRootSelector, PhysicalRecordFormatDeclaration, RootSelectorIdentity, RootSelectorRole,
+    PhysicalRecordFormatDeclaration, PhysicalSegmentMembershipBlock,
+    RecordSegmentPageManifestEntry, SegmentManifestBlockReference,
 };
 
 use super::super::{
@@ -8,28 +9,26 @@ use super::super::{
 };
 
 #[derive(Debug)]
-pub struct IntegrityValidatedPreviousRootSelector<'media> {
+pub struct IntegrityValidatedSegmentMembershipBlock<'media> {
     scope: PhysicalArtifactScope,
-    selector_identity: RootSelectorIdentity,
     record_format: PhysicalRecordFormatDeclaration,
-    root_generation: u64,
-    linked_selector: Option<RootSelectorIdentity>,
-    linked_root_generation: Option<u64>,
+    block: PhysicalSegmentMembershipBlock,
     validation_record: PhysicalIntegrityValidationRecord,
     inspected: UntrustedPhysicalArtifact<'media>,
 }
 
-impl<'media> IntegrityValidatedPreviousRootSelector<'media> {
+impl<'media> IntegrityValidatedSegmentMembershipBlock<'media> {
     pub(crate) fn new(
         scope: PhysicalArtifactScope,
-        selector: DurableRootSelector,
+        block: PhysicalSegmentMembershipBlock,
+        record_format: PhysicalRecordFormatDeclaration,
         validated_range_checksum: u32,
         inspected: UntrustedPhysicalArtifact<'media>,
     ) -> Option<Self> {
-        if !scope.is_previous_selector()
-            || selector.role() != RootSelectorRole::Previous
-            || selector.store_identity() != scope.store_identity()
-            || selector.format() != scope.record_format()
+        let expected = scope.segment_membership_block_identity()?;
+        if record_format != scope.record_format()
+            || block.tree_identity() != expected.tree().get()
+            || block.reference(validated_range_checksum) != expected.reference()
             || inspected.byte_count() != scope.byte_range().length()
         {
             return None;
@@ -37,18 +36,15 @@ impl<'media> IntegrityValidatedPreviousRootSelector<'media> {
         let validation_record = PhysicalIntegrityValidationRecord::from_validated_scope(
             scope,
             PhysicalIntegrityValidationDigest::crc32c(
-                scope.selector_or_manifest_exact_scope_digest(),
+                scope.segment_membership_exact_scope_digest(),
             ),
             PhysicalIntegrityValidationDigest::crc32c(validated_range_checksum),
             PhysicalIntegrityValidationMechanism::Crc32cV1,
         )?;
         Some(Self {
             scope,
-            selector_identity: selector.identity(),
-            record_format: selector.format(),
-            root_generation: selector.root_generation(),
-            linked_selector: selector.linked_selector(),
-            linked_root_generation: selector.linked_root_generation(),
+            record_format,
+            block,
             validation_record,
             inspected,
         })
@@ -58,27 +54,35 @@ impl<'media> IntegrityValidatedPreviousRootSelector<'media> {
         self.scope
     }
 
-    pub const fn selector_identity(&self) -> RootSelectorIdentity {
-        self.selector_identity
-    }
-
     pub const fn record_format(&self) -> PhysicalRecordFormatDeclaration {
         self.record_format
     }
 
-    pub const fn root_generation(&self) -> u64 {
-        self.root_generation
+    pub const fn tree_identity(&self) -> u64 {
+        self.block.tree_identity()
     }
 
-    pub const fn linked_selector(&self) -> Option<RootSelectorIdentity> {
-        self.linked_selector
+    pub const fn generation(&self) -> u64 {
+        self.block.generation()
     }
 
-    pub const fn linked_root_generation(&self) -> Option<u64> {
-        self.linked_root_generation
+    pub const fn block_identity(&self) -> u64 {
+        self.block.block()
     }
 
-    pub const fn into_validation_record(self) -> PhysicalIntegrityValidationRecord {
+    pub const fn level(&self) -> u16 {
+        self.block.level()
+    }
+
+    pub fn entries(&self) -> Option<&[RecordSegmentPageManifestEntry]> {
+        self.block.entries()
+    }
+
+    pub fn children(&self) -> Option<&[SegmentManifestBlockReference]> {
+        self.block.children()
+    }
+
+    pub fn into_validation_record(self) -> PhysicalIntegrityValidationRecord {
         self.validation_record
     }
 

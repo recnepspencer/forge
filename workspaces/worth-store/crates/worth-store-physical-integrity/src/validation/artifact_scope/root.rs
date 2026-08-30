@@ -76,8 +76,8 @@ impl PhysicalArtifactScope {
         )
     }
 
-    /// Phase 3 exact preimage retained byte-for-byte for admitted root views.
-    pub(crate) fn exact_scope_digest(self) -> u32 {
+    /// Phase 3 exact preimage retained byte-for-byte for admitted selector/root views.
+    pub(crate) fn selector_or_manifest_exact_scope_digest(self) -> u32 {
         let mut bytes = [0_u8; 51];
         bytes[..16].copy_from_slice(&self.store.bytes());
         bytes[16] = if self.is_current_selector() {
@@ -161,21 +161,24 @@ mod tests {
             .admit()
             .unwrap();
 
-        assert_eq!(baseline.exact_scope_digest(), 1_585_574_697);
+        assert_eq!(
+            baseline.selector_or_manifest_exact_scope_digest(),
+            1_585_574_697
+        );
         assert_ne!(
-            baseline.exact_scope_digest(),
+            baseline.selector_or_manifest_exact_scope_digest(),
             PhysicalArtifactScope::root_manifest(store(), other_format, 9, range)
                 .unwrap()
-                .exact_scope_digest()
+                .selector_or_manifest_exact_scope_digest()
         );
         assert_ne!(
-            baseline.exact_scope_digest(),
+            baseline.selector_or_manifest_exact_scope_digest(),
             PhysicalArtifactScope::root_manifest(store(), format(), 10, range)
                 .unwrap()
-                .exact_scope_digest()
+                .selector_or_manifest_exact_scope_digest()
         );
         assert_ne!(
-            baseline.exact_scope_digest(),
+            baseline.selector_or_manifest_exact_scope_digest(),
             PhysicalArtifactScope::root_manifest(
                 store(),
                 format(),
@@ -183,7 +186,7 @@ mod tests {
                 PhysicalByteRange::new(8192, 368).unwrap(),
             )
             .unwrap()
-            .exact_scope_digest()
+            .selector_or_manifest_exact_scope_digest()
         );
     }
 }
