@@ -1,4 +1,5 @@
 mod checkpoint_source_binding;
+mod checkpoint_stream_projection;
 mod observation_counters;
 mod recovery_source_binding;
 mod routing_compile_contract;

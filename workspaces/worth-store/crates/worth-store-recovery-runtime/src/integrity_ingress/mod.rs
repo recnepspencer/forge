@@ -16,6 +16,10 @@ mod tests;
 #[allow(unused_imports)]
 pub(crate) use admitted_artifact::IntegrityAdmittedRecoveryArtifact;
 pub(crate) use counters::RecoveryIntegrityIngressCounters;
+#[allow(unused_imports)]
+pub(crate) use families::checkpoint::{
+    IntegrityAdmittedCheckpointProjection, IntegrityAdmittedCheckpointStream,
+};
 use families::root::{
     admit_current_root_selector, admit_previous_root_selector, admit_root_manifest,
 };

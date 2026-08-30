@@ -10,8 +10,8 @@ pub(in crate::integrity_ingress) use binding_compaction::IntegrityAdmittedCheckp
 pub(in crate::integrity_ingress) use dirty_basis::IntegrityAdmittedCheckpointDirtyBasis;
 pub(in crate::integrity_ingress) use footer::IntegrityAdmittedCheckpointFooter;
 pub(in crate::integrity_ingress) use stream_header::IntegrityAdmittedCheckpointStreamHeader;
-pub(in crate::integrity_ingress) use stream_projection::{
-    CheckpointStreamProjectionDenial, IntegrityAdmittedCheckpointStream,
+pub(crate) use stream_projection::{
+    IntegrityAdmittedCheckpointProjection, IntegrityAdmittedCheckpointStream,
 };
 
 #[cfg(test)]
