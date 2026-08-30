@@ -6,8 +6,7 @@ use crate::storage::substrate::{
     EntityRecordKind, HistoricalMetadata, RecordKind, RelationRecordKind,
 };
 
-type RefreshRetention =
-    fn(&mut RelationalRuntime, PartitionId, usize, Option<VersionId>, VersionId);
+type RefreshRetention = fn(&RelationalRuntime, PartitionId, usize, Option<VersionId>, VersionId);
 
 #[derive(Default)]
 pub(super) struct RetentionCounts {
@@ -33,7 +32,7 @@ pub(super) struct RetentionPassCounts {
 }
 
 pub(super) fn refresh_entity_retention_state(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     partition_id: PartitionId,
     slot: usize,
     retired_at: Option<VersionId>,
@@ -50,7 +49,7 @@ pub(super) fn refresh_entity_retention_state(
 }
 
 pub(super) fn refresh_relation_retention_state(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     partition_id: PartitionId,
     slot: usize,
     retired_at: Option<VersionId>,
@@ -67,7 +66,7 @@ pub(super) fn refresh_relation_retention_state(
 }
 
 pub(super) fn inspect_partition_retention<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     partition_id: PartitionId,
     retention_fence: VersionId,
     refresh_retention: RefreshRetention,
@@ -98,7 +97,7 @@ pub(super) fn inspect_partition_retention<K: RecordKind>(
 }
 
 pub(super) fn run_partition_retention_pass<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     pass: PartitionRetentionPass,
     count_scan: impl Fn(&RelationalRuntime),
     refresh_retention: RefreshRetention,
@@ -151,7 +150,7 @@ pub(super) fn run_partition_retention_pass<K: RecordKind>(
 }
 
 pub(super) fn trim_live_history<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     slots_by_partition: std::collections::BTreeMap<PartitionId, std::collections::BTreeSet<usize>>,
     oldest_pinned_version: VersionId,
     count_trimmed: impl Fn(&RelationalRuntime, usize),
@@ -183,7 +182,7 @@ mod tests {
 
     #[test]
     fn sparse_high_slot_retention_scans_one_materialized_chunk() {
-        let mut runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
+        let runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
         let partition_id = PartitionId(7);
         let high_slot = 50_000;
         let mut entity_arena = EntityArena::with_capacity(0);
@@ -203,7 +202,7 @@ mod tests {
             .adjust_named_pin(high_slot, PinClass::Branch)
             .unwrap() = 1;
         let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
-        runtime.partitions.insert(
+        runtime.edit_partitions().insert(
             partition_id,
             PartitionState {
                 partition_id,
@@ -217,7 +216,7 @@ mod tests {
         );
 
         let inspected = inspect_partition_retention::<EntityRecordKind>(
-            &mut runtime,
+            &runtime,
             partition_id,
             VersionId(1),
             refresh_entity_retention_state,
@@ -226,7 +225,7 @@ mod tests {
 
         let scans = Cell::new(0);
         let outcome = run_partition_retention_pass::<EntityRecordKind>(
-            &mut runtime,
+            &runtime,
             PartitionRetentionPass {
                 class: RecordAllocationClass::Entity,
                 partition_id,

@@ -11,7 +11,7 @@ use super::seed_catalog::FintechCaseSeed;
 use super::{FintechWorkflowCase, LEDGER_PARTITION, MARKET_PARTITION, RISK_PARTITION};
 
 pub(super) fn seed_relations(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
     seeded: &SeededEntityState,
     workflow_cases: &[FintechWorkflowCase],
@@ -177,7 +177,7 @@ pub(super) fn seed_relations(
 }
 
 pub(super) fn bulk_create_relations<I>(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     batch_name: &str,
     partition_id: PartitionId,
     specs: I,
@@ -196,7 +196,7 @@ where
         ));
         field_patches.push(fields);
     }
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(batch_name).push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -207,8 +207,9 @@ where
                 field_patches,
             }),
         )),
-    );
-    changed_relations(&txn.commit(&mut runtime).unwrap())
+    )
+    .expect("test staging stays within configured resource budgets");
+    changed_relations(&txn.commit(runtime).unwrap())
 }
 
 fn relation_role_patch(role: &str) -> AspectFieldPatch {

@@ -5,8 +5,8 @@ use crate::tests::support::*;
 
 #[test]
 fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "handoff-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "handoff-anchor");
     let identity = runtime.main_branch_identity();
     let (_, old_basis) = runtime
         .observe_branch(&identity)
@@ -18,12 +18,15 @@ fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
         .commit
         .commit_id;
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("handoff-write"));
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(batch_create("handoff-write"))
+        .expect("test staging stays within configured resource budgets");
     let candidate = runtime
         .prepare_branch_transaction(transaction)
         .expect("handoff candidate prepares");
-    let publication_gate = Arc::clone(candidate.publication_cell.coordination());
+    let publication_cell = candidate.publication_cell_for_test();
+    let publication_gate = Arc::clone(publication_cell.coordination());
     let held_gate = publication_gate.enter();
     let port = runtime.publication_port();
     let publisher_done = Arc::new(AtomicBool::new(false));
@@ -83,12 +86,12 @@ fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
     assert!(observations.load(Ordering::Acquire) > 0);
     drop(held_gate);
 
-    let worth_proof::TransitionOutcome::Success(performed) =
+    let crate::mvcc::RelationalPublicationOutcome::Performed(performed) =
         publisher.join().expect("publisher joins")
     else {
         panic!("publication must perform through the production path");
     };
-    let (mut runtime, observed_commits) = reader.join().expect("public reader joins");
+    let (runtime, observed_commits) = reader.join().expect("public reader joins");
     let new_commit = performed.canonical_commit().commit.commit_id;
     assert_ne!(old_commit, new_commit);
     assert!(observed_commits
@@ -113,9 +116,10 @@ fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
         checkpoint_error.class,
         crate::durability::data::RecoveryFailureClass::PerformedPublicationRequiresSettlement
     );
-    runtime
+    let committed = runtime
         .settle_performed_publication(performed)
         .expect("performed publication settles explicitly");
+    release_test_commit_snapshot(&runtime, &committed);
     runtime
         .durability_authority()
         .checkpoint()

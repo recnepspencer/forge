@@ -45,13 +45,40 @@ impl WorthQueryDecisionFactProvider for Arc<WorthQueryPrimaryGraphProvider> {
         };
         let fresh = self
             .graph
-            .with_runtime_mut(|runtime| fact_basis.remains_equal_in(runtime));
+            .with_runtime_mut(|runtime| fact_basis.remains_equal_in(runtime))
+            .map_err(snapshot_read_set_failure)?;
         admission.observe_current_version(if fresh {
             evidence.physical_version_evidence().to_owned()
         } else {
             format!("application-stale:{}", evidence.locator().identity())
         })
     }
+}
+
+fn snapshot_read_set_failure(
+    denial: crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial,
+) -> WorthQueryDecisionReadSetFailure {
+    let kind = match denial {
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => crate::domain_computation::WorthQueryDecisionReadSetDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        },
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+            crate::domain_computation::WorthQueryDecisionReadSetDenialKind::RetentionCapacityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+            crate::domain_computation::WorthQueryDecisionReadSetDenialKind::RetentionIdentityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+            crate::domain_computation::WorthQueryDecisionReadSetDenialKind::SnapshotIdentityExhausted
+        }
+        _ => crate::domain_computation::WorthQueryDecisionReadSetDenialKind::ProviderRejected,
+    };
+    WorthQueryDecisionReadSetFailure::new(
+        kind,
+        "primary provider could not open the exact decision-fact basis",
+    )
 }
 
 fn provider_rejected() -> WorthQueryDecisionReadSetFailure {

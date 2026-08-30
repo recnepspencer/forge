@@ -6,6 +6,12 @@ use super::{
 
 use std::time::Duration;
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityElevationDefinitionParts,
+    WorthQueryPortableApplicationCapabilityElevationRuleParts,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityElevationStates {
     requested: ApplicationCapabilityValueBinding,

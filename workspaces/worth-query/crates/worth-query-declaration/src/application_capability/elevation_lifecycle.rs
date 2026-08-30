@@ -1,19 +1,22 @@
 use crate::application_schema::ApplicationOperationRef;
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 
-use super::{ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityRef};
+use super::{
+    ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityOperationBinding,
+    ApplicationCapabilityRef,
+};
 use super::{ApplicationCapabilityLifecycleEffect, ApplicationCapabilityLifecycleEffectBinding};
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ApplicationCapabilityOperationBinding {
-    operation: String,
-    operation_type: String,
-    input_type: String,
-}
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityElevationLifecycleParts,
+    WorthQueryPortableApplicationCapabilityTransitionBindingParts,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityTransitionBinding {
     capability: String,
-    capability_type: String,
+    capability_type: WorthQueryPortableTypeIdentity,
     operation: ApplicationCapabilityOperationBinding,
     lifecycle_effect: Option<ApplicationCapabilityLifecycleEffectBinding>,
 }
@@ -22,10 +25,13 @@ impl ApplicationCapabilityTransitionBinding {
     pub fn from_references<Schema, Capability, Operation, Input>(
         capability: ApplicationCapabilityRef<Schema, Capability>,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
-    ) -> Self {
+    ) -> Self
+    where
+        Input: WorthQueryPortableType,
+    {
         Self {
             capability: capability.name().to_string(),
-            capability_type: capability.marker_type().to_string(),
+            capability_type: capability.marker_identity(),
             operation: ApplicationCapabilityOperationBinding::from_reference(operation),
             lifecycle_effect: None,
         }
@@ -36,11 +42,11 @@ impl ApplicationCapabilityTransitionBinding {
         operation: ApplicationOperationRef<Schema, Operation, Input>,
     ) -> Self
     where
-        Input: ApplicationCapabilityLifecycleEffect<Schema, Operation>,
+        Input: ApplicationCapabilityLifecycleEffect<Schema, Operation> + WorthQueryPortableType,
     {
         Self {
             capability: capability.name().to_string(),
-            capability_type: capability.marker_type().to_string(),
+            capability_type: capability.marker_identity(),
             operation: ApplicationCapabilityOperationBinding::from_reference(operation),
             lifecycle_effect: Some(ApplicationCapabilityLifecycleEffectBinding::from_input::<
                 Schema,
@@ -55,7 +61,11 @@ impl ApplicationCapabilityTransitionBinding {
     }
 
     pub fn capability_type(&self) -> &str {
-        &self.capability_type
+        self.capability_type.as_str()
+    }
+
+    pub fn capability_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.capability_type.clone()
     }
 
     pub const fn operation(&self) -> &ApplicationCapabilityOperationBinding {
@@ -64,30 +74,6 @@ impl ApplicationCapabilityTransitionBinding {
 
     pub const fn lifecycle_effect(&self) -> Option<&ApplicationCapabilityLifecycleEffectBinding> {
         self.lifecycle_effect.as_ref()
-    }
-}
-
-impl ApplicationCapabilityOperationBinding {
-    pub fn from_reference<Schema, Operation, Input>(
-        operation: ApplicationOperationRef<Schema, Operation, Input>,
-    ) -> Self {
-        Self {
-            operation: operation.name().to_string(),
-            operation_type: std::any::type_name::<Operation>().to_string(),
-            input_type: std::any::type_name::<Input>().to_string(),
-        }
-    }
-
-    pub fn operation(&self) -> &str {
-        &self.operation
-    }
-
-    pub fn operation_type(&self) -> &str {
-        &self.operation_type
-    }
-
-    pub fn input_type(&self) -> &str {
-        &self.input_type
     }
 }
 

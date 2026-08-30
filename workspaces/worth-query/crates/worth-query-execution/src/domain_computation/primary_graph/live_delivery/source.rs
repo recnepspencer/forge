@@ -39,6 +39,24 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryLiveSourcePoll {
 }
 
 impl WorthQueryLiveDeliverySource {
+    pub(in crate::domain_computation::primary_graph) fn admit_publication(
+        &self,
+        commit_id: CommitId,
+    ) -> Result<(), &'static str> {
+        let state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if state
+            .last_commit_id
+            .is_some_and(|last_commit_id| commit_id.0 <= last_commit_id)
+        {
+            Err("application commit causality is not strictly ordered")
+        } else {
+            Ok(())
+        }
+    }
+
     pub(in crate::domain_computation::primary_graph) fn publish(
         &self,
         commit_id: CommitId,

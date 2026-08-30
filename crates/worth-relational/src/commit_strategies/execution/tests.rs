@@ -233,7 +233,7 @@ fn bound_execution_executes_against_snapshot_and_contains_panics() {
     let executor_binding = CommitStrategyExecutionRegistration::new(&descriptor, EchoExecutor);
     let panic_binding = CommitStrategyExecutionRegistration::new(&descriptor, PanicExecutor);
 
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .commit_strategy(registration.clone())
         .commit_strategy_executor(executor_binding)
         .build();
@@ -250,7 +250,7 @@ fn bound_execution_executes_against_snapshot_and_contains_panics() {
     assert_eq!(draft.summary().projected_partition_reads, 0);
     assert_eq!(draft.summary().projected_entity_record_reads, 0);
 
-    let mut panic_runtime = RelationalRuntimeBuilder::new()
+    let panic_runtime = RelationalRuntimeBuilder::new()
         .commit_strategy(registration)
         .commit_strategy_executor(panic_binding)
         .build();
@@ -274,7 +274,7 @@ fn single_partition_locality_rejects_cross_partition_strategy_reads() {
     let executor_binding =
         CommitStrategyExecutionRegistration::new(&descriptor, CrossPartitionExecutor);
 
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .commit_strategy(registration)
         .commit_strategy_executor(executor_binding)
         .build();
@@ -301,7 +301,7 @@ fn foreign_snapshot_handle_is_rejected_for_strategy_execution() {
     let registration = CommitStrategyRegistration::new(descriptor.clone()).unwrap();
     let executor_binding = CommitStrategyExecutionRegistration::new(&descriptor, EchoExecutor);
 
-    let mut left_runtime = RelationalRuntimeBuilder::new()
+    let left_runtime = RelationalRuntimeBuilder::new()
         .commit_strategy(registration.clone())
         .commit_strategy_executor(executor_binding.clone())
         .build();
@@ -332,7 +332,7 @@ fn unsupported_read_contract_is_rejected_before_execution() {
     let executor_binding =
         CommitStrategyExecutionRegistration::new(&descriptor, UnsupportedContractExecutor);
 
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .commit_strategy(registration)
         .commit_strategy_executor(executor_binding)
         .build();
@@ -376,7 +376,7 @@ fn projection_contract_violation_is_typed_not_panic_bucket() {
 
     let executor_binding =
         CommitStrategyExecutionRegistration::new(&descriptor, ProjectionViolationExecutor);
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .commit_strategy(registration)
         .commit_strategy_executor(executor_binding)
         .build();

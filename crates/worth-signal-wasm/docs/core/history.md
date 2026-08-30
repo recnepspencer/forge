@@ -47,6 +47,13 @@ await history.restore_exact_snapshot(snapshot);
 The exact snapshot carries a same-runtime restore token. Treat that token as an
 authority artifact, not a generic JSON backup format.
 
+Exact wire restore tokens are single-use transfer authorities. Restoring
+consumes the token; call the raw-module `discardRestoreToken(token)` export
+when abandoning one. Each JavaScript/worker realm retains at most 64 pending
+exact restore artifacts and returns `restoreTokenCapacityExhausted` before
+creating another. Portable wire artifacts do not occupy this exact-token
+registry.
+
 ## Runtime Branches
 
 ```ts
@@ -86,6 +93,7 @@ portable application posture.
 - Do not store business records only in runtime snapshots.
 - Do not use a runtime branch ID as an application-value merge decision.
 - Do not edit restore tokens.
+- Do not retain unused exact restore tokens; explicitly discard them.
 - Do not describe retained process history as durable cross-process audit
   history.
 

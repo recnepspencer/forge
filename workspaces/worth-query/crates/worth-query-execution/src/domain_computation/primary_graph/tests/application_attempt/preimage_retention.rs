@@ -16,6 +16,7 @@ fn relational_head(world: &AuthorizationWorld) -> RelationalCommitReceipt {
     world
         .application
         .relational_branch_head(&primary_relational_branch_id())
+        .expect("fixture branch-head observation is admitted")
         .expect("fixture has a Relational head")
 }
 

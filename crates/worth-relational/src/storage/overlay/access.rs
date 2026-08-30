@@ -45,27 +45,6 @@ impl PartitionAccess for BTreeMap<PartitionId, PartitionState> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct BorrowedWorkingState<'a> {
-    partitions: &'a BTreeMap<PartitionId, PartitionState>,
-}
-
-impl<'a> BorrowedWorkingState<'a> {
-    pub(crate) fn new(partitions: &'a BTreeMap<PartitionId, PartitionState>) -> Self {
-        Self { partitions }
-    }
-}
-
-impl PartitionAccess for BorrowedWorkingState<'_> {
-    fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
-        self.partitions.get(&partition_id)
-    }
-
-    fn partition_ids(&self) -> Vec<PartitionId> {
-        self.partitions.keys().copied().collect()
-    }
-}
-
 #[derive(Clone)]
 pub(crate) struct OverlayStateView<'a, S> {
     base_partitions: &'a dyn PartitionAccess,

@@ -48,7 +48,7 @@ fn build_strategy_identity_runtime() -> (
 fn merge_strategy_witness_is_equivalent_across_ordinary_and_compatibility_lanes() {
     let (mut ordinary_runtime, feature, main, _node) = build_strategy_identity_runtime();
     let ordinary = ordinary_runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .run()
@@ -57,7 +57,7 @@ fn merge_strategy_witness_is_equivalent_across_ordinary_and_compatibility_lanes(
     let (mut compatibility_runtime, compatibility_feature, compatibility_main, _node) =
         build_strategy_identity_runtime();
     let compatibility = compatibility_runtime
-        .merge_branch(compatibility_feature.clone(), compatibility_main.clone())
+        .merge_branch_raw(compatibility_feature.clone(), compatibility_main.clone())
         .expect("compatibility merge lane should succeed");
 
     assert_eq!(ordinary.strategy_witness, compatibility.strategy_witness);
@@ -85,7 +85,7 @@ fn merge_strategy_witness_is_equivalent_across_ordinary_and_compatibility_lanes(
 fn strategy_witness_is_retained_across_plan_result_and_replay_surfaces() {
     let (mut runtime, feature, main, _node) = build_strategy_identity_runtime();
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -96,7 +96,7 @@ fn strategy_witness_is_retained_across_plan_result_and_replay_surfaces() {
     drop(planned);
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .run()
@@ -177,7 +177,7 @@ fn synthetic_or_incomplete_strategy_witness_is_denied() {
 fn admitted_policy_changes_mutate_only_the_relevant_strategy_identity_surface() {
     let (mut default_runtime, feature, main, _node) = build_strategy_identity_runtime();
     let default_result = default_runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .run()
@@ -185,7 +185,7 @@ fn admitted_policy_changes_mutate_only_the_relevant_strategy_identity_surface() 
 
     let (mut customized_runtime, feature, main, _node) = build_strategy_identity_runtime();
     let customized_result = customized_runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")

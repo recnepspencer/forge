@@ -157,17 +157,13 @@ where
             )
         })?;
         let observed = graph.integration_handle().with_runtime_mut(|runtime| {
-            let Some(snapshot) =
-                crate::domain_computation::primary_graph::open_current_branch_snapshot(
-                    runtime,
-                    refresh.branch,
-                )
-            else {
-                return Err(denial(
-                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                    refresh.installed.contract().name(),
-                ));
-            };
+            let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
+                runtime,
+                refresh.branch,
+            )
+            .map_err(|denial| {
+                super::exact_basis_snapshot_denial(denial, refresh.installed.contract().name())
+            })?;
             let result = self
                 .validate_active_capability_currentness(runtime, &snapshot, authorization, refresh)
                 .and_then(|()| {
@@ -185,7 +181,7 @@ where
                         Some(authorization.decision()),
                     )
                 });
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             result
         })?;
         Ok(observed)
@@ -292,17 +288,13 @@ where
             )
         })?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let Some(snapshot) =
-                crate::domain_computation::primary_graph::open_current_branch_snapshot(
-                    runtime,
-                    refresh.branch,
-                )
-            else {
-                return Err(denial(
-                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                    refresh.installed.contract().name(),
-                ));
-            };
+            let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
+                runtime,
+                refresh.branch,
+            )
+            .map_err(|denial| {
+                super::exact_basis_snapshot_denial(denial, refresh.installed.contract().name())
+            })?;
             let result = WorthQueryCapabilityRevalidationObservation::new(
                 refresh.session,
                 runtime,
@@ -317,7 +309,7 @@ where
                 supporting.grant(),
                 Some(supporting.decision()),
             );
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             result
         })
     }

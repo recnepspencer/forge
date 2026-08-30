@@ -96,6 +96,13 @@ impl WorthQueryAggregateProjections {
             generation.version = after.version_id();
         }
     }
+
+    pub(super) fn recover_after_commit(&mut self, version: VersionId) {
+        for generation in self.incoming_sums.values_mut() {
+            generation.materialized.clear();
+            generation.version = version;
+        }
+    }
 }
 
 fn affected_sources(

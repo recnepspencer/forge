@@ -2,7 +2,7 @@ use crate::authority::commit::phases::prepare::{
     prepare_lowered_working_state_scope, prepare_working_state_scope, PreparedWorkingStateScope,
 };
 use crate::authority::commit::phases::proposed_invariant_state::prepare_proposed_invariant_state;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::{RelationalPreparationRuntime, RelationalRuntime};
 use crate::transactions::data::{
     CommitConflict, CommitValidation, ConflictClass, TransactionCommitError,
 };
@@ -12,16 +12,16 @@ use super::validated_proposal::{
     RelationalMutationInvariantEvidence, StrategyProposalDecoration, ValidatedRelationalProposal,
 };
 
-impl RelationalRuntime {
+impl RelationalPreparationRuntime {
     pub fn validate_branch_transaction(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
     ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
         self.validate_branch_transaction_source(transaction, None, None)
     }
 
     pub(crate) fn validate_lowered_strategy_proposal(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
         selected_branch_state: crate::branch::SelectedRelationalBranchState,
         merged_plan: crate::transactions::data::MergedCommitPlan,
@@ -35,7 +35,7 @@ impl RelationalRuntime {
     }
 
     fn validate_branch_transaction_source(
-        &mut self,
+        &self,
         mut transaction: crate::mvcc::BranchBoundRelationalTransaction,
         lowered: Option<(
             crate::branch::SelectedRelationalBranchState,
@@ -43,6 +43,11 @@ impl RelationalRuntime {
         )>,
         strategy: Option<StrategyProposalDecoration>,
     ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
+        require_not_interrupted(
+            &transaction.control,
+            &transaction.basis.inner.retention_binding,
+            crate::mvcc::RelationalInterruptionBoundary::ProposalValidation,
+        )?;
         let complexity_before = self.performance_access().complexity_counters_snapshot();
         let batch_count = transaction.batches().len();
         let basis = transaction.basis.clone();
@@ -56,7 +61,7 @@ impl RelationalRuntime {
             )));
         }
         self.history.record_transaction_validation_attempt(&branch);
-        if !self.admitted_branch_basis_is_current(&basis) {
+        if !basis.is_current() {
             return Err(stale_validated_proposal(
                 "transaction basis is no longer current",
             ));
@@ -72,6 +77,11 @@ impl RelationalRuntime {
             ),
             None => prepare_working_state_scope(self, &mut transaction)?,
         };
+        require_not_interrupted(
+            &transaction.control,
+            &transaction.basis.inner.retention_binding,
+            crate::mvcc::RelationalInterruptionBoundary::ProposalValidation,
+        )?;
         let transaction_id = transaction.transaction_id;
         let validation_input =
             super::RelationalTransactionValidationInput::from_transaction(&transaction);
@@ -132,6 +142,11 @@ impl RelationalRuntime {
                 complexity_before,
                 complexity_after,
             );
+        require_not_interrupted(
+            &transaction.control,
+            &transaction.basis.inner.retention_binding,
+            crate::mvcc::RelationalInterruptionBoundary::ProposalValidation,
+        )?;
         Ok(ValidatedRelationalProposal {
             mutation_authority: transaction.mutation_authority,
             transaction_id,
@@ -156,5 +171,45 @@ impl RelationalRuntime {
             strategy_bulk_mutation_batch,
             validation_complexity_delta,
         })
+    }
+}
+
+impl RelationalRuntime {
+    pub fn validate_branch_transaction(
+        &self,
+        transaction: crate::mvcc::BranchBoundRelationalTransaction,
+    ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
+        self.preparation_runtime_snapshot()
+            .validate_branch_transaction(transaction)
+    }
+
+    pub(crate) fn validate_lowered_strategy_proposal(
+        &self,
+        transaction: crate::mvcc::BranchBoundRelationalTransaction,
+        selected_branch_state: crate::branch::SelectedRelationalBranchState,
+        merged_plan: crate::transactions::data::MergedCommitPlan,
+        strategy: StrategyProposalDecoration,
+    ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
+        self.preparation_runtime_snapshot()
+            .validate_lowered_strategy_proposal(
+                transaction,
+                selected_branch_state,
+                merged_plan,
+                strategy,
+            )
+    }
+}
+
+fn require_not_interrupted(
+    control: &crate::mvcc::RelationalOperationControl,
+    retention_binding: &crate::history::retention::RelationalBranchRetentionBinding,
+    boundary: crate::mvcc::RelationalInterruptionBoundary,
+) -> Result<(), TransactionCommitError> {
+    match control.observe(boundary) {
+        Some(interruption) => {
+            retention_binding.record_interruption(interruption);
+            Err(TransactionCommitError::interrupted(interruption))
+        }
+        None => Ok(()),
     }
 }

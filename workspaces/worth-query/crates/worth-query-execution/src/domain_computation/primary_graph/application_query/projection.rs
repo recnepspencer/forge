@@ -1,10 +1,12 @@
 use std::marker::PhantomData;
 
 use worth_query_declaration::facade::application_query::{
-    ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef,
-    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
-    ApplicationQueryResultTraversal, ExactlyOneResult, ManyResults, OptionalOneResult,
+    ApplicationQueryMarkerIdentity, ApplicationQueryOptionalResultFieldRef,
+    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
+    ApplicationQueryResultRelationRef, ApplicationQueryResultTraversal, ExactlyOneResult,
+    ManyResults, OptionalOneResult,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableType;
 use worth_query_installation::facade::{
     ApplicationFieldUnit, OptionalApplicationFieldValue, TypedApplicationReadableValue,
     WritePosture,
@@ -99,11 +101,11 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         >,
     ) -> Result<Value, WorthQueryApplicationProjectionDenial>
     where
-        Value: TypedApplicationReadableValue,
+        Value: TypedApplicationReadableValue + WorthQueryPortableType,
         Write: WritePosture,
         Unit: ApplicationFieldUnit,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.disclosed_field(selector)?
             .into_required(WorthQueryApplicationProjectionDenialKind::FieldOmitted)
@@ -126,11 +128,11 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     ) -> Result<Option<Value>, WorthQueryApplicationProjectionDenial>
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
-        Value: TypedApplicationReadableValue,
+        Value: TypedApplicationReadableValue + WorthQueryPortableType,
         Write: WritePosture,
         Unit: ApplicationFieldUnit,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.disclosed_optional_field(selector)?
             .into_required(WorthQueryApplicationProjectionDenialKind::FieldOmitted)
@@ -154,8 +156,8 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     >
     where
         Direction: ApplicationQueryResultTraversal,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         let relation = self.relation(&selector)?;
         match relation.rows() {
@@ -186,8 +188,8 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     >
     where
         Direction: ApplicationQueryResultTraversal,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         let relation = self.relation(&selector)?;
         match relation.rows() {
@@ -217,8 +219,8 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     >
     where
         Direction: ApplicationQueryResultTraversal,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         let relation = self.relation(&selector)?;
         Ok(WorthQueryApplicationProjectionRows {
@@ -245,8 +247,8 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     where
         Direction: ApplicationQueryResultTraversal,
         Cardinality: ApplicationQueryResultRelationCardinality,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.disclosed_relation(selector)?
             .into_required(WorthQueryApplicationProjectionDenialKind::RelationOmitted)

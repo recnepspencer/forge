@@ -59,6 +59,13 @@ Neither one is authority.
 That is the core law of this feature. If you need a committed transition, you
 must leave this lane and move into committed authority later.
 
+These Milestone 5 candidate forms also do not identify the current target of a
+live owner reference. `BoundaryEpoch` and `EquivalenceBasisId` are descriptive
+candidate axes; they cannot be converted into the exact branch-reference
+grammar. Relational or Signal must supply a
+`FoundationalBranchReferenceObservation<TargetBasis>` and then issue its own
+admitted authority. See [Exact Branch References](./branch-references.md).
+
 ## How It Executes
 
 You build a candidate with the builder:
@@ -180,6 +187,8 @@ local state never becomes authority by accident.
 - Do not skip staged state and jump straight from branch-local work to receipt
   issuance.
 - Do not use discard as if it were a commit-like receipt.
+- Do not upgrade an epoch/equivalence candidate into an operational owner basis
+  through an alias, wrapper, or compatibility constructor.
 
 ## Current Limits
 
@@ -189,5 +198,6 @@ local state never becomes authority by accident.
 
 ## Related Docs
 
+- [Exact Branch References](./branch-references.md)
 - [Merge Planning And Verdicts](./merge-planning-and-verdicts.md)
 - [Commit Receipts, Discard, And Transition Bundles](./commit-receipts-discard-and-transition-bundles.md)

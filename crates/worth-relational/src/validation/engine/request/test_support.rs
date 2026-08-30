@@ -81,13 +81,13 @@ pub(super) fn relation_integrity_runtime() -> crate::runtime::RelationalRuntime 
 }
 
 pub(super) fn create_relation_of_kind(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     kind_id: KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
     client_key: &str,
 ) -> crate::identity::data::RelationId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("relation-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -99,8 +99,9 @@ pub(super) fn create_relation_of_kind(
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).unwrap();
     outcome
         .changed_records
         .iter()
@@ -112,10 +113,10 @@ pub(super) fn create_relation_of_kind(
 }
 
 pub(super) fn create_entity(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("entity-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -125,8 +126,9 @@ pub(super) fn create_entity(
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).unwrap();
     outcome
         .changed_records
         .iter()
@@ -144,7 +146,7 @@ pub(super) fn request_for_plan<'runtime>(
     InvariantExecutionRequest::from_profile_with_contract(
         InvariantRequestProfile::CommitBoundary,
         runtime,
-        InvariantObservation::committed(runtime.storage_access().current_state()),
+        InvariantObservation::committed(runtime.storage_access().current_edition()),
         runtime.current_version_id(),
         Some(plan),
         Some(InvariantPlanContract::from_merged_plan(plan)),

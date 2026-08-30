@@ -247,14 +247,6 @@ fn create_entity_on_branch(
     name: &str,
     branch_id: BranchId,
 ) -> EntityId {
-    changed_entities(&commit_entity_create(runtime, name, branch_id))[0]
-}
-
-fn commit_entity_create(
-    runtime: &mut RelationalRuntime,
-    name: &str,
-    branch_id: BranchId,
-) -> CommitResult {
     let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
@@ -266,8 +258,12 @@ fn commit_entity_create(
                     .expect("entity name aspect patch"),
             }),
         )),
-    );
-    txn.commit(runtime).expect("entity create should commit")
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).expect("entity create should commit");
+    let entity = changed_entities(&outcome)[0];
+    release_commit_snapshot(runtime, &outcome);
+    entity
 }
 
 fn update_entity_on_branch(
@@ -285,8 +281,10 @@ fn update_entity_on_branch(
                     .expect("entity name aspect patch"),
             }),
         )),
-    );
-    txn.commit(runtime).expect("entity update should commit");
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).expect("entity update should commit");
+    release_commit_snapshot(runtime, &outcome);
 }
 
 fn delete_entity_on_branch(
@@ -299,8 +297,10 @@ fn delete_entity_on_branch(
         WorkerIntentBatch::new("delete-entity").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
         )),
-    );
-    txn.commit(runtime).expect("entity delete should commit");
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).expect("entity delete should commit");
+    release_commit_snapshot(runtime, &outcome);
 }
 
 fn create_relation_on_branch(
@@ -324,8 +324,12 @@ fn create_relation_on_branch(
                     .expect("relation label aspect patch"),
             }),
         )),
-    );
-    changed_relations(&txn.commit(runtime).expect("relation create should commit"))[0]
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).expect("relation create should commit");
+    let relation = changed_relations(&outcome)[0];
+    release_commit_snapshot(runtime, &outcome);
+    relation
 }
 
 fn delete_relation_on_branch(
@@ -338,16 +342,26 @@ fn delete_relation_on_branch(
         WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent { relation_id }),
         )),
-    );
-    txn.commit(runtime).expect("relation delete should commit");
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).expect("relation delete should commit");
+    release_commit_snapshot(runtime, &outcome);
+}
+
+fn release_commit_snapshot(runtime: &mut RelationalRuntime, outcome: &CommitResult) {
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("merge inspection fixture releases its exact commit snapshot");
 }
 
 fn begin_branch_transaction(
     runtime: &RelationalRuntime,
     branch_id: &BranchId,
 ) -> worth_relational::facade::mvcc::BranchBoundRelationalTransaction {
+    let identity = runtime.branch_identity(branch_id).expect("branch identity");
     let context = runtime
-        .admit_named_branch_basis(branch_id)
+        .admit_branch_basis(&identity)
         .expect("branch context");
     runtime
         .begin_branch_transaction(

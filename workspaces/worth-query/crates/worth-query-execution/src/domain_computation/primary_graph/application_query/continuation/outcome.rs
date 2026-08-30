@@ -34,8 +34,7 @@ struct WorthQueryContinuationIdentity {
     provider_identity: String,
     index_id: worth_relational::facade::indexes::DerivedIndexId,
     basis_descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
-    basis_retention:
-        Option<worth_relational::facade::branch::RelationalComponentBasisRetentionLease>,
+    basis_retention: Option<worth_relational::facade::branch::RelationalBranchRetentionLease>,
     next_page_ordinal: u64,
 }
 
@@ -139,11 +138,20 @@ fn release_continuation_page_basis<
     let basis_identity = plan.basis.identity().clone();
     let basis_descriptor = basis_identity.descriptor().clone();
     let basis_version = plan.basis.version_id();
-    let basis_retention = plan.basis.retain_for_continuation().map_err(|_| {
-        denial(
-            WorthQueryApplicationContinuationDenialKind::BasisUnavailable,
-            &subject,
-        )
+    let basis_retention = plan.basis.retain_for_continuation().map_err(|basis_denial| {
+        let kind = match basis_denial {
+            worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+                WorthQueryApplicationContinuationDenialKind::RetentionCapacityExhausted
+            }
+            worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+                WorthQueryApplicationContinuationDenialKind::RetentionIdentityExhausted
+            }
+            worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+                WorthQueryApplicationContinuationDenialKind::SnapshotIdentityExhausted
+            }
+            _ => WorthQueryApplicationContinuationDenialKind::BasisUnavailable,
+        };
+        denial(kind, &subject)
     })?;
     let continuation = WorthQueryContinuationIdentity {
         runtime_authority: plan.runtime_authority.as_u64(),

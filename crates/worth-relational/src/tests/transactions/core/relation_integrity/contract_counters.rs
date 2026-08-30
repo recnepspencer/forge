@@ -49,13 +49,13 @@ fn relation_integrity_commit_reports_contract_counters_on_success() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema)
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
 
-    let result = create_relation_outcome(&mut runtime, source, target, "guarded");
+    let result = create_relation_outcome(&runtime, source, target, "guarded");
 
     assert!(
         result

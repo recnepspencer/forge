@@ -33,10 +33,18 @@ pub(crate) fn resolve_relational_branch_basis_descriptor(
         }
         _ => {}
     }
-    if descriptor.posture() == RelationalBranchBasisPosture::Archived {
-        return Err(RelationalBranchBasisDenial::ArchivedBranch(
-            descriptor.branch_id().clone(),
-        ));
+    match descriptor.posture() {
+        RelationalBranchBasisPosture::Live => {}
+        RelationalBranchBasisPosture::Archived => {
+            return Err(RelationalBranchBasisDenial::ArchivedBranch(
+                descriptor.branch_id().clone(),
+            ));
+        }
+        RelationalBranchBasisPosture::Deleting => {
+            return Err(RelationalBranchBasisDenial::DeletingBranch(
+                descriptor.branch_id().clone(),
+            ));
+        }
     }
     Ok(ResolvedRelationalBasisDescriptor::new(descriptor))
 }

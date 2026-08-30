@@ -40,7 +40,7 @@ fn replica_convergence_strategy_updates_replicas_and_preserves_other_fields() {
     let descriptor = ReplicaConvergenceStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(601),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -50,7 +50,7 @@ fn replica_convergence_strategy_updates_replicas_and_preserves_other_fields() {
             &descriptor,
         ))
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "before");
+    let entity = crate::tests::support::create_entity(&runtime, "before");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -90,7 +90,7 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
     let descriptor = ReplicaConvergenceStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(602),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -100,8 +100,8 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
             &descriptor,
         ))
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "before");
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let entity = crate::tests::support::create_entity(&runtime, "before");
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         crate::transactions::data::WorkerIntentBatch::new("seed-replicas").push(
             crate::transactions::data::MutationIntent::Entity(
@@ -116,8 +116,9 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
                 ),
             ),
         ),
-    );
-    txn.commit(&mut runtime).expect("seed replicas");
+    )
+    .expect("test staging stays within configured resource budgets");
+    txn.commit(&runtime).expect("seed replicas");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(

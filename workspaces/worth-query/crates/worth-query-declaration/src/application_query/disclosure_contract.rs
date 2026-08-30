@@ -30,6 +30,18 @@ pub struct ApplicationQueryDisclosureRule {
 }
 
 impl ApplicationQueryDisclosureRule {
+    pub fn from_untrusted_fields(
+        selector: ApplicationQueryDisclosureSelector,
+        disclosure_value: AspectValue,
+        influence: ApplicationQueryInfluenceContract,
+    ) -> Self {
+        Self {
+            selector,
+            disclosure_value,
+            influence,
+        }
+    }
+
     pub const fn selector(&self) -> &ApplicationQueryDisclosureSelector {
         &self.selector
     }
@@ -46,27 +58,46 @@ impl ApplicationQueryDisclosureRule {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryDisclosureContract {
     posture: ApplicationQueryDisclosurePosture,
-    classification: &'static str,
-    capability_name: Option<&'static str>,
-    capability_type: Option<&'static str>,
+    classification: String,
+    capability_name: Option<String>,
+    capability_type: Option<crate::portable_identity::WorthQueryPortableTypeIdentity>,
     rules: Vec<ApplicationQueryDisclosureRule>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryPortableApplicationQueryDisclosureParts {
+    pub posture: ApplicationQueryDisclosurePosture,
+    pub classification: String,
+    pub capability_name: Option<String>,
+    pub capability_type: Option<crate::portable_identity::WorthQueryPortableTypeIdentity>,
+    pub rules: Vec<ApplicationQueryDisclosureRule>,
+}
+
 impl ApplicationQueryDisclosureContract {
-    pub const fn public() -> Self {
+    pub fn from_untrusted_parts(parts: WorthQueryPortableApplicationQueryDisclosureParts) -> Self {
+        Self {
+            posture: parts.posture,
+            classification: parts.classification,
+            capability_name: parts.capability_name,
+            capability_type: parts.capability_type,
+            rules: parts.rules,
+        }
+    }
+
+    pub fn public() -> Self {
         Self {
             posture: ApplicationQueryDisclosurePosture::Public,
-            classification: "public",
+            classification: "public".to_owned(),
             capability_name: None,
             capability_type: None,
             rules: Vec::new(),
         }
     }
 
-    pub const fn installed_policy(classification: &'static str) -> Self {
+    pub fn installed_policy(classification: &'static str) -> Self {
         Self {
             posture: ApplicationQueryDisclosurePosture::InstalledPolicyRequired,
-            classification,
+            classification: classification.to_owned(),
             capability_name: None,
             capability_type: None,
             rules: Vec::new(),
@@ -79,9 +110,9 @@ impl ApplicationQueryDisclosureContract {
     ) -> Self {
         Self {
             posture: ApplicationQueryDisclosurePosture::Governed,
-            classification,
-            capability_name: Some(capability.name()),
-            capability_type: Some(capability.marker_type()),
+            classification: classification.to_owned(),
+            capability_name: Some(capability.name().to_owned()),
+            capability_type: Some(capability.marker_identity()),
             rules: Vec::new(),
         }
     }
@@ -104,7 +135,7 @@ impl ApplicationQueryDisclosureContract {
         influence: ApplicationQueryInfluenceContract,
     ) -> Self
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + crate::portable_identity::WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
         DisclosureValue: TypedApplicationValue,
     {
@@ -112,9 +143,9 @@ impl ApplicationQueryDisclosureContract {
             .expect("typed application fields are valid Foundational keys");
         self.rules.push(ApplicationQueryDisclosureRule {
             selector: ApplicationQueryDisclosureSelector::InternalField {
-                entity: field.entity(),
-                aspect: field.aspect(),
-                field: field.field(),
+                entity: field.entity().to_owned(),
+                aspect: field.aspect().to_owned(),
+                field: field.field().to_owned(),
                 projection_mask: AspectMask::new([CanonicalFieldPath::single(field_key.clone())]),
                 diagnostic_mask: AspectMask::new([CanonicalFieldPath::single(field_key)]),
             },
@@ -127,8 +158,8 @@ impl ApplicationQueryDisclosureContract {
 
     #[allow(clippy::too_many_arguments)]
     pub fn disclose_field_by<
-        Query: 'static,
-        Slot: 'static,
+        Query,
+        Slot,
         Schema,
         Entity,
         Aspect,
@@ -156,21 +187,25 @@ impl ApplicationQueryDisclosureContract {
         influence: ApplicationQueryInfluenceContract,
     ) -> Self
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + crate::portable_identity::WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
         DisclosureValue: TypedApplicationValue,
+        Query: super::ApplicationQueryMarkerIdentity + 'static,
+        Slot: crate::portable_identity::WorthQueryPortableType + 'static,
     {
         let field = FieldKey::new(selector.field())
             .expect("typed application-query fields are valid Foundational keys");
         self.rules.push(ApplicationQueryDisclosureRule {
             selector: ApplicationQueryDisclosureSelector::Field {
-                slot_key: selector.slot_key(),
-                query_type: selector.query_type(),
-                slot_type: selector.slot_type(),
-                entity: selector.entity(),
-                aspect: selector.aspect(),
-                field: selector.field(),
-                output_name: selector.output_name(),
+                query_type: selector.slot_key().query_identity(),
+                slot_type: selector.slot_key().slot_identity(),
+                entity: selector.entity().to_owned(),
+                aspect: selector.aspect().to_owned(),
+                field: selector.field().to_owned(),
+                output_name: selector.output_name().to_owned(),
+                scalar_family: selector.scalar_family(),
+                value_type: Value::PORTABLE_TYPE_IDENTITY,
+                presence: crate::application_schema::ApplicationFieldPresence::Required,
                 projection_mask: AspectMask::new([CanonicalFieldPath::single(field.clone())]),
                 diagnostic_mask: AspectMask::new([CanonicalFieldPath::single(field)]),
             },
@@ -183,8 +218,8 @@ impl ApplicationQueryDisclosureContract {
 
     #[allow(clippy::too_many_arguments)]
     pub fn disclose_optional_field_by<
-        Query: 'static,
-        Slot: 'static,
+        Query,
+        Slot,
         Schema,
         Entity,
         Aspect,
@@ -213,21 +248,25 @@ impl ApplicationQueryDisclosureContract {
     ) -> Self
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + crate::portable_identity::WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
         DisclosureValue: TypedApplicationValue,
+        Query: super::ApplicationQueryMarkerIdentity + 'static,
+        Slot: crate::portable_identity::WorthQueryPortableType + 'static,
     {
         let field = FieldKey::new(selector.field())
             .expect("typed application-query fields are valid Foundational keys");
         self.rules.push(ApplicationQueryDisclosureRule {
             selector: ApplicationQueryDisclosureSelector::Field {
-                slot_key: selector.slot_key(),
-                query_type: selector.query_type(),
-                slot_type: selector.slot_type(),
-                entity: selector.entity(),
-                aspect: selector.aspect(),
-                field: selector.field(),
-                output_name: selector.output_name(),
+                query_type: selector.slot_key().query_identity(),
+                slot_type: selector.slot_key().slot_identity(),
+                entity: selector.entity().to_owned(),
+                aspect: selector.aspect().to_owned(),
+                field: selector.field().to_owned(),
+                output_name: selector.output_name().to_owned(),
+                scalar_family: selector.scalar_family(),
+                value_type: Value::PORTABLE_TYPE_IDENTITY,
+                presence: crate::application_schema::ApplicationFieldPresence::Optional,
                 projection_mask: AspectMask::new([CanonicalFieldPath::single(field.clone())]),
                 diagnostic_mask: AspectMask::new([CanonicalFieldPath::single(field)]),
             },
@@ -240,8 +279,8 @@ impl ApplicationQueryDisclosureContract {
 
     #[allow(clippy::too_many_arguments)]
     pub fn disclose_relation_by<
-        Query: 'static,
-        Slot: 'static,
+        Query,
+        Slot,
         Schema,
         Relation,
         From,
@@ -268,18 +307,19 @@ impl ApplicationQueryDisclosureContract {
         Direction: ApplicationQueryResultTraversal,
         Cardinality: ApplicationQueryResultRelationCardinality,
         DisclosureValue: TypedApplicationValue,
+        Query: super::ApplicationQueryMarkerIdentity + 'static,
+        Slot: crate::portable_identity::WorthQueryPortableType + 'static,
     {
         self.rules.push(ApplicationQueryDisclosureRule {
             selector: ApplicationQueryDisclosureSelector::Relation {
-                slot_key: selector.slot_key(),
-                query_type: selector.query_type(),
-                slot_type: selector.slot_type(),
-                relation: selector.relation(),
-                from: selector.from(),
-                to: selector.to(),
+                query_type: selector.slot_key().query_identity(),
+                slot_type: selector.slot_key().slot_identity(),
+                relation: selector.relation().to_owned(),
+                from: selector.from().to_owned(),
+                to: selector.to().to_owned(),
                 direction: selector.direction(),
                 cardinality: selector.cardinality(),
-                output_name: selector.output_name(),
+                output_name: selector.output_name().to_owned(),
             },
             disclosure_value: disclosure_value.into_foundational_value(),
             influence,
@@ -292,16 +332,24 @@ impl ApplicationQueryDisclosureContract {
         self.posture
     }
 
-    pub const fn classification(&self) -> &'static str {
-        self.classification
+    pub fn classification(&self) -> &str {
+        &self.classification
     }
 
-    pub const fn capability_name(&self) -> Option<&'static str> {
-        self.capability_name
+    pub fn capability_name(&self) -> Option<&str> {
+        self.capability_name.as_deref()
     }
 
-    pub const fn capability_type(&self) -> Option<&'static str> {
+    pub fn capability_type(&self) -> Option<&str> {
         self.capability_type
+            .as_ref()
+            .map(|identity| identity.as_str())
+    }
+
+    pub fn capability_identity(
+        &self,
+    ) -> Option<crate::portable_identity::WorthQueryPortableTypeIdentity> {
+        self.capability_type.clone()
     }
 
     pub fn rules(&self) -> &[ApplicationQueryDisclosureRule] {

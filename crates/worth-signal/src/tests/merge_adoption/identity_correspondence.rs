@@ -57,7 +57,7 @@ fn runtime_merge_identity_matcher_changes_source_only_correspondence_behavior() 
     let target_node_count_before_exact = runtime.graph().active_node_count();
 
     let exact_result = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .identity_matcher_named("signal.identity.exact-node-id")
@@ -132,7 +132,7 @@ fn runtime_merge_identity_matcher_changes_source_only_correspondence_behavior() 
     let target_node_count_before_output_identity = runtime.graph().active_node_count();
 
     let matched_result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .identity_matcher_named("signal.identity.output-identity-in-target-journal")
@@ -219,7 +219,7 @@ fn runtime_merge_output_identity_matcher_fails_closed_without_explicit_admissibi
     let target_node_count_before = runtime.graph().active_node_count();
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .identity_matcher_named("signal.identity.output-identity-in-target-journal")

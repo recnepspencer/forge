@@ -11,13 +11,15 @@ pub(super) fn install_schema_version(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
     schema_version_id: SchemaVersionId,
 ) {
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id,
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            crate::tests::support::CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id,
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                crate::tests::support::CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
 }
 
 pub(super) fn visible_bridge_transition_options(

@@ -9,22 +9,22 @@ fn perf_recoverability_policy_matrix() {
         suite,
         "geometry_hot_truth_vs_deferred_trace_policy",
         || {
-            let mut runtime = persisted_runtime_with_test_schema_profile(
+            let runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::GeometryKernel,
             );
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
-            let source = create_entity_outcome(&mut runtime, "policy-geometry-source");
-            let middle = create_entity_outcome(&mut runtime, "policy-geometry-middle");
-            let target = create_entity_outcome(&mut runtime, "policy-geometry-target");
+            let source = create_entity_outcome(&runtime, "policy-geometry-source");
+            let middle = create_entity_outcome(&runtime, "policy-geometry-middle");
+            let target = create_entity_outcome(&runtime, "policy-geometry-target");
             let source_entity = changed_entities(&source)[0];
             let middle_entity = changed_entities(&middle)[0];
             let target_entity = changed_entities(&target)[0];
-            create_relation_outcome(&mut runtime, source_entity, middle_entity, "policy-link-a");
-            create_relation_outcome(&mut runtime, middle_entity, target_entity, "policy-link-b");
+            create_relation_outcome(&runtime, source_entity, middle_entity, "policy-link-a");
+            create_relation_outcome(&runtime, middle_entity, target_entity, "policy-link-b");
 
             let hot_commit_started_at = Instant::now();
-            let hot_commit = update_entity(&mut runtime, middle_entity, "policy-middle-updated");
+            let hot_commit = update_entity(&runtime, middle_entity, "policy-middle-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let hot_bundle = runtime
                 .publication()
@@ -44,7 +44,7 @@ fn perf_recoverability_policy_matrix() {
                 RelationalRuntimeProfile::GeometryKernel,
             );
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("policy geometry recovery");
             let replay_started_at = Instant::now();
@@ -125,15 +125,16 @@ fn perf_recoverability_policy_matrix() {
             let mut runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::ChipSimulation,
             );
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
 
-            let source =
-                create_entity_in_partition(&mut runtime, "policy-chip-source", PartitionId(7));
+            let source = create_entity_in_partition(&runtime, "policy-chip-source", PartitionId(7));
             let sinks = (0..4)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("policy-chip-sink-{index}"),
                         PartitionId(11 + index as u32),
                     )
@@ -141,7 +142,7 @@ fn perf_recoverability_policy_matrix() {
                 .collect::<Vec<_>>();
             for (index, sink) in sinks.iter().enumerate() {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     source,
                     *sink,
                     &format!("policy-chip-link-{index}"),
@@ -150,7 +151,7 @@ fn perf_recoverability_policy_matrix() {
             }
 
             let hot_commit_started_at = Instant::now();
-            let hot_commit = update_entity(&mut runtime, source, "policy-chip-updated");
+            let hot_commit = update_entity(&runtime, source, "policy-chip-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
                 .history()
@@ -185,7 +186,7 @@ fn perf_recoverability_policy_matrix() {
                 RelationalRuntimeProfile::ChipSimulation,
             );
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("policy chip recovery");
             let replay_started_at = Instant::now();

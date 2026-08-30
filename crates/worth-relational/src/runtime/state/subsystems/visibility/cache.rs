@@ -1,49 +1,66 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, RwLock};
 
+use crate::history::data::BranchId;
 use crate::runtime::RelationalRuntimeConfig;
 use crate::visibility::snapshot_states::{SnapshotState, VisibilitySnapshotStateKey};
 
 #[derive(Debug)]
 pub(crate) struct VisibilityCache {
-    pub(crate) states: RwLock<BTreeMap<VisibilitySnapshotStateKey, SnapshotState>>,
-    pub(crate) residency: RwLock<BTreeMap<VisibilitySnapshotStateKey, VisibilityResidency>>,
+    pub(crate) states: RwLock<HashMap<VisibilitySnapshotStateKey, SnapshotState>>,
+    pub(crate) residency: RwLock<HashMap<VisibilitySnapshotStateKey, VisibilityResidency>>,
+    branch_head_states: RwLock<HashMap<BranchId, VisibilitySnapshotStateKey>>,
     pub(crate) recent_policy: Mutex<DeterministicVersionWindowPolicy>,
+    residency_key_lookups: AtomicU64,
+    residency_mutations: AtomicU64,
+    branch_head_population_scans: AtomicU64,
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct VisibilityCacheCostCounters {
+    pub(crate) residency_entries: u64,
+    pub(crate) residency_key_lookups: u64,
+    pub(crate) residency_mutations: u64,
+    pub(crate) branch_head_population_scans: u64,
 }
 
 impl VisibilityCache {
     pub(crate) fn new(config: &RelationalRuntimeConfig) -> Self {
         Self {
-            states: RwLock::new(BTreeMap::new()),
-            residency: RwLock::new(BTreeMap::new()),
+            states: RwLock::new(HashMap::new()),
+            residency: RwLock::new(HashMap::new()),
+            branch_head_states: RwLock::new(HashMap::new()),
             recent_policy: Mutex::new(DeterministicVersionWindowPolicy {
                 recent_version_window: config.visibility.cache_policy.recent_version_window,
                 order: VecDeque::new(),
                 resident_count: 0,
             }),
+            residency_key_lookups: AtomicU64::new(0),
+            residency_mutations: AtomicU64::new(0),
+            branch_head_population_scans: AtomicU64::new(0),
         }
     }
 
     pub(crate) fn fork(&self) -> Self {
+        let recent_version_window = self
+            .recent_policy
+            .lock()
+            .expect("recent visibility policy lock poisoned")
+            .recent_version_window;
         Self {
-            states: RwLock::new(
-                self.states
-                    .read()
-                    .expect("visibility state lock poisoned")
-                    .clone(),
-            ),
-            residency: RwLock::new(
-                self.residency
-                    .read()
-                    .expect("visibility residency lock poisoned")
-                    .clone(),
-            ),
-            recent_policy: Mutex::new(
-                self.recent_policy
-                    .lock()
-                    .expect("recent visibility policy lock poisoned")
-                    .clone(),
-            ),
+            states: RwLock::new(HashMap::new()),
+            residency: RwLock::new(HashMap::new()),
+            branch_head_states: RwLock::new(HashMap::new()),
+            recent_policy: Mutex::new(DeterministicVersionWindowPolicy {
+                recent_version_window,
+                order: VecDeque::new(),
+                resident_count: 0,
+            }),
+            residency_key_lookups: AtomicU64::new(0),
+            residency_mutations: AtomicU64::new(0),
+            branch_head_population_scans: AtomicU64::new(0),
         }
     }
 
@@ -55,6 +72,10 @@ impl VisibilityCache {
         self.residency
             .write()
             .expect("visibility residency lock poisoned")
+            .clear();
+        self.branch_head_states
+            .write()
+            .expect("branch-head visibility state lock poisoned")
             .clear();
         let mut recent_policy = self
             .recent_policy
@@ -75,7 +96,8 @@ impl VisibilityCache {
         &self,
         protect_active_snapshots: bool,
     ) -> Vec<VisibilitySnapshotStateKey> {
-        self.residency
+        let mut keys = self
+            .residency
             .read()
             .expect("visibility residency lock poisoned")
             .iter()
@@ -85,7 +107,9 @@ impl VisibilityCache {
                     || (protect_active_snapshots && entry.active_snapshot_refs > 0))
                     .then_some(key.clone())
             })
-            .collect()
+            .collect::<Vec<_>>();
+        keys.sort();
+        keys
     }
 
     pub(crate) fn recent_visibility_count(&self) -> usize {
@@ -96,12 +120,34 @@ impl VisibilityCache {
     }
 
     pub(crate) fn tracked_branch_head_states(&self) -> Vec<VisibilitySnapshotStateKey> {
-        self.residency
+        self.branch_head_population_scans
+            .fetch_add(1, Ordering::Relaxed);
+        let mut keys = self
+            .branch_head_states
             .read()
-            .expect("visibility residency lock poisoned")
-            .iter()
-            .filter_map(|(key, residency)| (residency.branch_head_refs > 0).then_some(key.clone()))
-            .collect()
+            .expect("branch-head visibility state lock poisoned")
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        keys.sort();
+        keys
+    }
+
+    pub(crate) fn track_branch_head_state(&self, key: &VisibilitySnapshotStateKey) {
+        self.branch_head_states
+            .write()
+            .expect("branch-head visibility state lock poisoned")
+            .insert(key.branch_id().clone(), key.clone());
+    }
+
+    pub(crate) fn untrack_branch_head_state(
+        &self,
+        branch_id: &BranchId,
+    ) -> Option<VisibilitySnapshotStateKey> {
+        self.branch_head_states
+            .write()
+            .expect("branch-head visibility state lock poisoned")
+            .remove(branch_id)
     }
 
     pub(crate) fn state(&self, key: &VisibilitySnapshotStateKey) -> Option<SnapshotState> {
@@ -128,6 +174,7 @@ impl VisibilityCache {
     }
 
     pub(crate) fn residency(&self, key: &VisibilitySnapshotStateKey) -> VisibilityResidency {
+        self.residency_key_lookups.fetch_add(1, Ordering::Relaxed);
         self.residency
             .read()
             .expect("visibility residency lock poisoned")
@@ -145,14 +192,32 @@ impl VisibilityCache {
             .residency
             .write()
             .expect("visibility residency lock poisoned");
+        self.residency_key_lookups.fetch_add(1, Ordering::Relaxed);
         let entry = residency.entry(key.clone()).or_default();
         update(entry);
+        self.residency_mutations.fetch_add(1, Ordering::Relaxed);
         if entry.branch_head_refs == 0
             && entry.replay_refs == 0
             && entry.active_snapshot_refs == 0
             && !entry.recent_resident
         {
+            self.residency_key_lookups.fetch_add(1, Ordering::Relaxed);
+            self.residency_mutations.fetch_add(1, Ordering::Relaxed);
             residency.remove(key);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn cost_counters(&self) -> VisibilityCacheCostCounters {
+        VisibilityCacheCostCounters {
+            residency_entries: self
+                .residency
+                .read()
+                .expect("visibility residency lock poisoned")
+                .len() as u64,
+            residency_key_lookups: self.residency_key_lookups.load(Ordering::Relaxed),
+            residency_mutations: self.residency_mutations.load(Ordering::Relaxed),
+            branch_head_population_scans: self.branch_head_population_scans.load(Ordering::Relaxed),
         }
     }
 
@@ -248,6 +313,10 @@ impl VisibilityCache {
         &self,
         tracked_states: &[VisibilitySnapshotStateKey],
     ) {
+        self.branch_head_states
+            .write()
+            .expect("branch-head visibility state lock poisoned")
+            .clear();
         let mut residency = self
             .residency
             .write()

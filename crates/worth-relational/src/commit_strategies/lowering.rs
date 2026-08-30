@@ -5,16 +5,16 @@ use crate::commit_strategies::data::{
 use crate::runtime::RelationalRuntime;
 
 pub(crate) fn lower_execution(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     request: &CanonicalStrategyCommitRequest,
     execution: &StrategyExecutionDraft,
     mut transaction: crate::mvcc::BranchBoundRelationalTransaction,
 ) -> Result<LoweredStrategyCommitPlan, StrategyLoweringError> {
     validate_execution_binding(request, execution)?;
-
     transaction
-        .ensure_current_basis(runtime)
+        .ensure_current_basis_for_runtime(runtime)
         .map_err(StrategyLoweringError::mutation_conflict)?;
+    let preparation = runtime.preparation_runtime_snapshot();
     let selected_branch_state = runtime
         .selected_branch_state(transaction.basis())
         .map_err(StrategyLoweringError::preparation)?;
@@ -24,22 +24,29 @@ pub(crate) fn lower_execution(
         .iter()
         .cloned()
     {
-        transaction.push_batch(worker_batch);
+        transaction
+            .push_batch(worker_batch)
+            .map_err(|denial| StrategyLoweringError::mutation_conflict(denial.into_conflict()))?;
     }
-    transaction
-        .validate_staged_branch_locality(selected_branch_state.state(), &runtime.services.symbols)
+    runtime
+        .services
+        .symbols
+        .with_read(|symbols| {
+            transaction.validate_staged_branch_locality(selected_branch_state.state(), symbols)
+        })
         .map_err(StrategyLoweringError::mutation_conflict)?;
 
     let bulk_mutation_batch = transaction
         .admit_provenance_complete_bulk_mutation_batch(runtime)
         .map_err(StrategyLoweringError::mutation_conflict)?;
-    let intents = transaction.normalized_intents_for_merge(runtime);
+    let intents = transaction.normalized_intents_for_merge(&preparation);
     let merged_plan = transaction
-        .build_merged_plan_for_state(runtime, selected_branch_state.state(), intents)
+        .build_merged_plan_for_state(&preparation, selected_branch_state.state(), intents)
         .map_err(StrategyLoweringError::mutation_conflict)?;
     transaction
         .footprint
-        .derive_validation_dependencies(&merged_plan);
+        .derive_validation_dependencies(&merged_plan, transaction.maximum_footprint_loci)
+        .map_err(|denial| StrategyLoweringError::mutation_conflict(denial.into_conflict()))?;
     let lowering_provenance =
         StrategyLoweringProvenance::from_request_and_execution(request, execution);
     let lowering_summary = build_lowering_summary(execution, bulk_mutation_batch.as_ref());
@@ -76,6 +83,9 @@ pub(crate) fn strategy_transaction_admission_error(
                 detail: "strategy transaction basis identity is inconsistent".to_owned(),
             }
         }
+        denial => StrategyLoweringError::RequestExecutionMismatch {
+            detail: format!("strategy transaction admission denied: {denial:?}"),
+        },
     }
 }
 
@@ -217,7 +227,7 @@ mod tests {
 
     #[test]
     fn lower_execution_routes_strategy_batches_through_transaction_admission() {
-        let mut runtime = RelationalRuntimeBuilder::new()
+        let runtime = RelationalRuntimeBuilder::new()
             .schema_registry(crate::tests::support::test_schema_registry())
             .build();
         let request = canonical_request();
@@ -228,7 +238,7 @@ mod tests {
             .begin_branch_transaction_with_owner_inputs(transaction_validation_input)
             .expect("owner context opens a branch-bound transaction");
 
-        let lowered = lower_execution(&mut runtime, &request, &execution, transaction)
+        let lowered = lower_execution(&runtime, &request, &execution, transaction)
             .expect("lowered strategy plan");
 
         assert_eq!(lowered.request().strategy_id(), CommitStrategyId(41));
@@ -251,7 +261,7 @@ mod tests {
 
     #[test]
     fn lower_execution_rejects_request_execution_mismatch() {
-        let mut runtime = RelationalRuntimeBuilder::new().build();
+        let runtime = RelationalRuntimeBuilder::new().build();
         let request = canonical_request();
         let other_request = CanonicalStrategyCommitRequest::new(
             CommitStrategyId(42),
@@ -266,8 +276,7 @@ mod tests {
             .begin_branch_transaction_with_owner_inputs(transaction_validation_input)
             .expect("owner context opens a branch-bound transaction");
 
-        let error =
-            lower_execution(&mut runtime, &other_request, &execution, transaction).unwrap_err();
+        let error = lower_execution(&runtime, &other_request, &execution, transaction).unwrap_err();
 
         assert!(matches!(
             error,
@@ -277,8 +286,8 @@ mod tests {
 
     #[test]
     fn transaction_admission_denies_missing_root_before_raw_key_normalization() {
-        let mut runtime = crate::tests::support::runtime_with_test_schema();
-        crate::tests::support::create_entity_outcome(&mut runtime, "strategy-root-source");
+        let runtime = crate::tests::support::runtime_with_test_schema();
+        crate::tests::support::create_entity_outcome(&runtime, "strategy-root-source");
         let source = BranchId("main".to_owned());
         let (_, basis) = runtime
             .observe_fork_source(&source)
@@ -294,8 +303,11 @@ mod tests {
             .clear_root_for_test();
         let symbols_before = runtime.services.symbols.clone();
         let symbol_table_before = runtime.config().identity.symbol_table.clone();
+        let child_identity = runtime
+            .branch_identity(&child)
+            .expect("child identity remains owner-issued");
         let denial = runtime
-            .admit_named_branch_basis(&child)
+            .admit_branch_basis(&child_identity)
             .expect_err("a committed branch without its exact root cannot mint authority");
 
         assert_eq!(

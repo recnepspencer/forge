@@ -1,6 +1,8 @@
 #[test]
 fn warm_capability_lookup_contains_no_canonical_or_digest_work() {
     let warm_lookup = include_str!("../installed_contract.rs");
+    let registry = include_str!("../registry.rs");
+    let warm_identity_path = [warm_lookup, registry].join("\n");
     for forbidden in [
         "prepare_capability_basis",
         "prepare_canonical_basis_sequence",
@@ -18,6 +20,16 @@ fn warm_capability_lookup_contains_no_canonical_or_digest_work() {
     assert!(warm_lookup.contains(".get(&key)"));
     assert!(warm_lookup.contains(".cloned()"));
     assert!(warm_lookup.contains("WorthQueryCanonicalWorkEvidence::zero()"));
+    for forbidden in [
+        "std::any::type_name",
+        "core::any::type_name",
+        "type_name::<",
+    ] {
+        assert!(
+            !warm_identity_path.contains(forbidden),
+            "warm capability identity contains Rust type-path residue: {forbidden}"
+        );
+    }
 }
 
 #[test]

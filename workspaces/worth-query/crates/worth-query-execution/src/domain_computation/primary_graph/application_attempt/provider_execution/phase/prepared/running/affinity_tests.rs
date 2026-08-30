@@ -104,6 +104,7 @@ fn exact_affinity_accepts_its_real_session_and_rejects_runtime_snapshot_and_bran
         runtime
             .snapshots()
             .release_snapshot(&foreign_branch_snapshot)
+            .is_ok()
     }));
     let _ = staged.abort();
     finish_uncommitted(mutation_run, running, lease);

@@ -16,7 +16,7 @@ use super::transactions::apply::{
 use super::worker_branch_command_model::{
     WorkerApplyTransactionToBranchReceipt, WorkerApplyTransactionToBranchRequest,
     WorkerBranchBasisReceipt, WorkerBranchRetirementReason, WorkerForkBranchReceipt,
-    WorkerForkBranchRequest, WorkerRetireBranchReceipt, WorkerRetireBranchRequest,
+    WorkerForkBranchRequest,
 };
 use super::RuntimeCore;
 
@@ -31,10 +31,8 @@ impl RuntimeCore {
             .ok_or_else(|| unknown_branch(branch_id))?;
         let native_basis = self.native_branch_basis(branch.clone())?;
         let state = self.state_for_branch(branch_id);
-        let native_state_digest = self.branch_state_proof(branch_id)?.state_digest;
         let authored_state_digest = canonical_certification_digest(&(
-            native_state_digest,
-            &state.store,
+            &state.store.sources,
             state.authored_graph_generation,
         ))?;
         Ok(worker_basis(
@@ -53,12 +51,13 @@ impl RuntimeCore {
         require_basis(&request.expected_parent_basis, &parent_basis, "forkBranch")?;
         let native_parent_basis = self.native_branch_basis_by_id(request.parent_branch_id)?;
         let parent_state = self.state_for_branch(request.parent_branch_id);
-        let branch = self
+        let fork = self
             .runtime
             .fork_signal_branch(request.name, &native_parent_basis)
             .map_err(|error| {
-                WorthSignalJsError::invalid_input(format!("fork worker branch denied: {error}"))
+                WorthSignalJsError::invalid_input(format!("fork worker branch denied: {error:?}"))
             })?;
+        let branch = fork.created_branch().clone();
         self.branch_states.insert(branch.id.0, parent_state);
         let created_basis = self.worker_branch_basis(branch.id.0)?;
         Ok(WorkerForkBranchReceipt {
@@ -72,6 +71,13 @@ impl RuntimeCore {
         &mut self,
         request: WorkerApplyTransactionToBranchRequest,
     ) -> Result<WorkerApplyTransactionToBranchReceipt, WorthSignalJsError> {
+        let active_branch_id_before = self.runtime.current_branch().id.0;
+        if request.branch_id == active_branch_id_before {
+            return Err(WorthSignalJsError::invalid_input(format!(
+                "applyTransactionToBranch denies active branch target `{}`",
+                request.branch_id
+            )));
+        }
         let before_basis = self.worker_branch_basis(request.branch_id)?;
         require_basis(
             &request.expected_basis,
@@ -83,74 +89,68 @@ impl RuntimeCore {
             .branch_handle(RuntimeBranchId(request.branch_id))
             .ok_or_else(|| unknown_branch(request.branch_id))?;
         let native_basis = self.native_branch_basis(branch.clone())?;
-        let plan = expect_success(
-            self.runtime
-                .plan_signal_branch_targeted_transaction(branch, &native_basis),
-            "plan targeted worker transaction",
-        )?;
 
-        let active_branch_id_before = self.runtime.current_branch().id.0;
         let active_state = self.snapshot_branch_state();
         let target_state = self
             .branch_states
             .get(&request.branch_id)
             .cloned()
             .ok_or_else(|| unknown_branch(request.branch_id))?;
-        self.install_companion_state(&target_state)?;
-        if let Err(error) = self.validate_targeted_transaction_shape(&request.transaction_ops) {
-            self.install_companion_state(&active_state)?;
-            return Err(error);
-        }
-        let changes = match self.collect_changes(&request.transaction_ops) {
-            Ok(changes) => changes,
+        let target_result = (|| {
+            self.install_companion_state(&target_state)?;
+            self.validate_targeted_transaction_shape(&request.transaction_ops)?;
+            let changes = self.collect_changes(&request.transaction_ops)?;
+            let store = self.store.clone();
+            let dense_grids = self.dense_grids.clone();
+            let evaluator = self.evaluator();
+            let dependency_patches = Arc::new(Mutex::new(
+                None::<(Vec<PendingCallbackDependencyPatch>, u64)>,
+            ));
+            let dependency_patches_for_tx = dependency_patches.clone();
+            let outcome =
+                self.runtime
+                    .advance_signal_branch(&mut self.store, &native_basis, move |tx| {
+                        apply_set_changes(tx, &store, &dense_grids, &changes)?;
+                        tx.evaluate_dirty(&evaluator)?;
+                        let patches = apply_pending_dependency_patches_in_transaction(tx, &store)?;
+                        *dependency_patches_for_tx.lock().map_err(|_| {
+                            SignalError::internal("dependency patch receipt mutex poisoned")
+                        })? = Some(patches);
+                        Ok(())
+                    });
+            let transaction = outcome.map_err(|error| {
+                WorthSignalJsError::invalid_input(format!(
+                    "execute targeted worker transaction denied: {error:?}"
+                ))
+            })?;
+            let (pending, runtime_read_breadth) = dependency_patches
+                .lock()
+                .map_err(|_| {
+                    WorthSignalJsError::internal("dependency patch receipt mutex poisoned")
+                })?
+                .take()
+                .unwrap_or_default();
+            self.record_committed_callback_dependency_patches(pending, runtime_read_breadth)?;
+            let committed_target_state = BranchRuntimeState {
+                metadata: self.snapshot_branch_metadata(),
+                store: self.lock_store()?.snapshot(&self.catalog),
+                authored_graph_generation: target_state.authored_graph_generation.saturating_add(1),
+            };
+            Ok::<_, WorthSignalJsError>((transaction.into_parts().1, committed_target_state))
+        })();
+        let restoration = self.install_companion_state(&active_state);
+        let (transaction, committed_target_state) = match target_result {
+            Ok(result) => {
+                restoration?;
+                result
+            }
             Err(error) => {
-                self.install_companion_state(&active_state)?;
+                restoration?;
                 return Err(error);
             }
         };
-        let store = self.store.clone();
-        let dense_grids = self.dense_grids.clone();
-        let evaluator = self.evaluator();
-        let dependency_patches = Arc::new(Mutex::new(
-            None::<(Vec<PendingCallbackDependencyPatch>, u64)>,
-        ));
-        let dependency_patches_for_tx = dependency_patches.clone();
-
-        let outcome = self.runtime.execute_signal_branch_targeted_transaction(
-            &mut self.store,
-            plan,
-            move |tx| {
-                apply_set_changes(tx, &store, &dense_grids, &changes)?;
-                tx.evaluate_dirty(&evaluator)?;
-                let patches = apply_pending_dependency_patches_in_transaction(tx, &store)?;
-                *dependency_patches_for_tx.lock().map_err(|_| {
-                    SignalError::internal("dependency patch receipt mutex poisoned")
-                })? = Some(patches);
-                Ok(())
-            },
-        );
-
-        let executed = match outcome {
-            TransitionOutcome::Success(receipt) => receipt,
-            other => {
-                self.install_companion_state(&active_state)?;
-                return Err(outcome_error("execute targeted worker transaction", other));
-            }
-        };
-        let (pending, runtime_read_breadth) = dependency_patches
-            .lock()
-            .map_err(|_| WorthSignalJsError::internal("dependency patch receipt mutex poisoned"))?
-            .take()
-            .unwrap_or_default();
-        self.record_committed_callback_dependency_patches(pending, runtime_read_breadth)?;
-        let committed_target_state = BranchRuntimeState {
-            metadata: self.snapshot_branch_metadata(),
-            store: self.lock_store()?.snapshot(&self.catalog),
-            authored_graph_generation: target_state.authored_graph_generation.saturating_add(1),
-        };
         self.branch_states
             .insert(request.branch_id, committed_target_state);
-        self.install_companion_state(&active_state)?;
         let active_branch_id_after = self.runtime.current_branch().id.0;
         let after_basis = self.worker_branch_basis(request.branch_id)?;
         Ok(WorkerApplyTransactionToBranchReceipt {
@@ -158,46 +158,7 @@ impl RuntimeCore {
             after_basis,
             active_branch_id_before,
             active_branch_id_after,
-            run_summary: run_summary(executed.transaction()),
-        })
-    }
-
-    pub fn retire_worker_branch(
-        &mut self,
-        request: WorkerRetireBranchRequest,
-    ) -> Result<WorkerRetireBranchReceipt, WorthSignalJsError> {
-        let terminal_basis = self.worker_branch_basis(request.branch_id)?;
-        require_basis(&request.expected_basis, &terminal_basis, "retireBranch")?;
-        let branch = self
-            .runtime
-            .branch_handle(RuntimeBranchId(request.branch_id))
-            .ok_or_else(|| unknown_branch(request.branch_id))?;
-        let plan = expect_success(
-            self.runtime.plan_signal_branch_retirement(
-                branch,
-                &self.native_branch_basis_by_id(request.branch_id)?,
-                request.reason.into(),
-            ),
-            "plan worker branch retirement",
-        )?;
-        let receipt = expect_success(
-            self.runtime.retire_signal_branch(plan),
-            "retire worker branch",
-        )?;
-        self.branch_states.remove(&request.branch_id);
-        self.snapshot_states
-            .retain(|(branch_id, _), _| *branch_id != request.branch_id);
-        self.runtime_snapshots
-            .retain(|(branch_id, _), _| *branch_id != request.branch_id);
-        Ok(WorkerRetireBranchReceipt {
-            retired_branch_id: request.branch_id,
-            parent_branch_id: receipt.parent_branch_id().0,
-            terminal_basis,
-            closeout_digest: receipt.closeout_digest().to_owned(),
-            reclaimed_branch_state_count: receipt.reclaimed_branch_state_count(),
-            reclaimed_snapshot_state_count: receipt.reclaimed_snapshot_state_count(),
-            reclaimed_runtime_meta_count: receipt.reclaimed_runtime_meta_count(),
-            retained_proof_record_count: receipt.retained_proof_record_count(),
+            run_summary: run_summary(&transaction),
         })
     }
 
@@ -230,7 +191,7 @@ impl RuntimeCore {
             .observe_signal_branch_basis(branch)
             .map_err(|error| {
                 WorthSignalJsError::invalid_input(format!(
-                    "read worker branch basis denied: {error}"
+                    "read worker branch basis denied: {error:?}"
                 ))
             })
     }
@@ -335,7 +296,7 @@ pub(super) fn require_basis(
         return Ok(());
     }
     Err(WorthSignalJsError::invalid_input(format!(
-        "{operation} denied a stale worker branch basis: expected generation {}/{}, observed {}/{}",
+        "{operation} denied a stale worker branch basis: expected generation {}/{}, observed {}/{}; expected {expected:?}; observed {observed:?}",
         expected.native_head_generation,
         expected.authored_graph_generation,
         observed.native_head_generation,
@@ -367,7 +328,7 @@ fn outcome_error<
     WorthSignalJsError::invalid_input(format!("{operation} denied: {outcome:?}"))
 }
 
-fn unknown_branch(branch_id: u64) -> WorthSignalJsError {
+pub(super) fn unknown_branch(branch_id: u64) -> WorthSignalJsError {
     WorthSignalJsError::invalid_input(format!("unknown worker branch `{branch_id}`"))
 }
 

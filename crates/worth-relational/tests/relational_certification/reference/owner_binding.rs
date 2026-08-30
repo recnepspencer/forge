@@ -14,7 +14,7 @@ use worth_relational::facade::transactions::WorkerIntentBatch;
 
 #[test]
 fn owner_issues_transaction_context_from_exact_main_identity() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let identity = world.runtime.main_branch_identity();
     assert_eq!(identity.branch_id(), &BranchId("main".to_owned()));
@@ -34,9 +34,11 @@ fn owner_issues_transaction_context_from_exact_main_identity() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(WorkerIntentBatch::new("owner-issued-options"));
+    transaction
+        .push_batch(WorkerIntentBatch::new("owner-issued-options"))
+        .unwrap();
     let result = transaction
-        .commit(&mut world.runtime)
+        .commit(&world.runtime)
         .expect("owner-issued context routes through the ordinary commit authority");
     assert_eq!(result.commit.branch_id, BranchId("main".to_owned()));
     assert!(matches!(
@@ -70,9 +72,9 @@ fn owner_issued_transaction_basis_is_denied_before_foreign_transaction_creation(
         .runtime
         .admit_branch_basis(&main_identity)
         .expect("configured main branch must remain owner-admissible");
-    let mut foreign = world.runtime.fork().expect("settled runtime forks");
+    let foreign = world.runtime.fork().expect("settled runtime forks");
     let before = capture_reference_evidence(
-        &mut foreign,
+        &foreign,
         &BranchId("main".to_owned()),
         &BranchId("foreign-target".to_owned()),
         world.commit.commit_id,
@@ -89,7 +91,7 @@ fn owner_issued_transaction_basis_is_denied_before_foreign_transaction_creation(
         RelationalBranchTransactionAdmissionDenial::ForeignRuntime { .. }
     ));
     let after = capture_reference_evidence(
-        &mut foreign,
+        &foreign,
         &BranchId("main".to_owned()),
         &BranchId("foreign-target".to_owned()),
         world.commit.commit_id,
@@ -100,7 +102,7 @@ fn owner_issued_transaction_basis_is_denied_before_foreign_transaction_creation(
 
 #[test]
 fn public_owner_binding_path_prepares_merge_without_test_adapter() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     let (_, source_basis) = world
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
@@ -128,7 +130,7 @@ fn public_owner_binding_path_prepares_merge_without_test_adapter() {
 
 #[test]
 fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     let (_, source_basis) = world
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
@@ -173,13 +175,15 @@ fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
             )
             .expect("owner-admitted transaction context")
     };
-    main_transaction.push_batch(WorkerIntentBatch::new("advance-main-only"));
     main_transaction
-        .commit(&mut world.runtime)
+        .push_batch(WorkerIntentBatch::new("advance-main-only"))
+        .unwrap();
+    main_transaction
+        .commit(&world.runtime)
         .expect("main branch movement succeeds independently");
 
     let committed = storm_transaction
-        .commit(&mut world.runtime)
+        .commit(&world.runtime)
         .expect("main branch movement must not stale an unrelated storm basis");
     assert_eq!(committed.commit.branch_id, BranchId("storm".to_owned()));
     assert_oracle_matches(&world, &expected);
@@ -187,7 +191,7 @@ fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
 
 #[test]
 fn source_movement_cannot_mutate_a_forked_target_reference() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     let (_, source_basis) = world
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
@@ -198,7 +202,7 @@ fn source_movement_cannot_mutate_a_forked_target_reference() {
         .expect("storm fork succeeds");
 
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -227,13 +231,15 @@ fn source_movement_cannot_mutate_a_forked_target_reference() {
             )
             .expect("owner-admitted transaction context")
     };
-    advance.push_batch(WorkerIntentBatch::new("advance-source-after-fork"));
     advance
-        .commit(&mut world.runtime)
+        .push_batch(WorkerIntentBatch::new("advance-source-after-fork"))
+        .unwrap();
+    advance
+        .commit(&world.runtime)
         .expect("source movement succeeds after the fork");
 
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -252,9 +258,9 @@ fn source_movement_cannot_mutate_a_forked_target_reference() {
 
 #[test]
 fn unknown_branch_cannot_issue_an_owner_binding() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("ghost".to_owned()),
         world.commit.commit_id,
@@ -266,7 +272,7 @@ fn unknown_branch_cannot_issue_an_owner_binding() {
             if branch == BranchId("ghost".to_owned())
     ));
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("ghost".to_owned()),
         world.commit.commit_id,

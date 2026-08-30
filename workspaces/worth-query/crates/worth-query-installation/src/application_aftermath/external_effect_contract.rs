@@ -3,6 +3,7 @@
 use worth_query_declaration::facade::application_schema::{
     ApplicationExternalEffectProtocol, WorthQueryExternalEffectCorrelationFamily,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity;
 
 /// Installed external-effect posture bound into an aftermath contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,7 +12,7 @@ pub enum InstalledExternalEffectContract {
     Declared {
         correlation_family: WorthQueryExternalEffectCorrelationFamily,
         effect: String,
-        rust_payload_type: String,
+        rust_payload_type: WorthQueryPortableTypeIdentity,
         protocol: ApplicationExternalEffectProtocol,
         maximum_payload_bytes: u64,
     },

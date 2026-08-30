@@ -20,6 +20,9 @@ pub struct LiveActivityEvent {
     account: String,
     activity: String,
 }
+worth_query_declaration::worth_query_portable_type!(
+    LiveActivityEvent => "worth.query.test.live-activity-event.v1"
+);
 
 impl LiveActivityEvent {
     pub(in crate::domain_computation::primary_graph) fn new(
@@ -61,12 +64,17 @@ pub struct AccountIdentityParameter;
 pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
 pub struct ActivitySequenceSlot;
+worth_query_declaration::worth_query_portable_type!(AccountIdentitySlot => "worth.query.test.execution.live.account_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitiesSlot => "worth.query.test.execution.live.activities_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivityIdentitySlot => "worth.query.test.execution.live.activity_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitySequenceSlot => "worth.query.test.execution.live.activity_sequence_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LiveAccountActivityResult {
     account: String,
     activities: Vec<(String, u64)>,
 }
+worth_query_declaration::worth_query_portable_type!(LiveAccountActivityResult => "worth.query.test.execution.live.result.v1");
 
 impl LiveAccountActivityResult {
     pub(in crate::domain_computation::primary_graph) fn account(&self) -> &str {
@@ -180,6 +188,7 @@ impl
 }
 
 pub struct LiveAccountActivityCause;
+worth_query_declaration::worth_query_portable_type!(LiveAccountActivityCause => "worth.query.test.execution.live.cause.v1");
 
 impl
     ApplicationQueryLiveCauseBinding<

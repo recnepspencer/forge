@@ -22,7 +22,23 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    runtime
+        .branches
+        .ensure_snapshot_storage_available()
+        .map_err(|denial| {
+            SignalError::invalid_input(format!(
+                "Signal merge snapshot storage exhausted before movement: {denial:?}"
+            ))
+        })?;
     let raw_request = request.normalized_request().request();
+    let next_target_generation = runtime
+        .branches
+        .next_branch_head_generation(raw_request.target_branch.id)
+        .map_err(|denial| {
+            SignalError::internal(format!(
+                "Signal merge target generation cannot advance: {denial:?}"
+            ))
+        })?;
     runtime
         .branches
         .mark_merge_participants(raw_request.source_branch.id, raw_request.target_branch.id);
@@ -44,7 +60,7 @@ where
     };
     runtime
         .branches
-        .advance_branch_head_generation(raw_request.target_branch.id);
+        .commit_branch_head_generation(raw_request.target_branch.id, next_target_generation);
     crate::diagnostics::recorder::record_branch_merge_summary(
         &mut runtime.graph,
         &summary,

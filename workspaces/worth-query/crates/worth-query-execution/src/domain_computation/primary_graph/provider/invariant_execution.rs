@@ -3,6 +3,10 @@ use std::sync::Arc;
 mod material;
 use material::{ApplicationInvariantCandidateMaterial, ApplicationInvariantSemanticMaterial};
 
+use super::invariant_execution_failure::{
+    map_branch_basis_failure, map_exact_basis_failure, map_transaction_admission_failure,
+    map_transaction_staging_failure, map_validation_failure,
+};
 use super::WorthQueryPrimaryGraphProvider;
 use crate::domain_computation::{
     WorthQueryBoundInvariantExecutionView, WorthQueryInvariantExecutionDenialKind,
@@ -173,6 +177,7 @@ impl WorthQueryPrimaryGraphProvider {
                     crate::domain_computation::primary_graph::exact_basis_access::current_branch_head(
                         runtime, branch,
                     )
+                    .map_err(map_exact_basis_failure)?
                     .ok_or_else(aftermath_failure)?;
                 if pending.parent() != &current {
                     return Err(aftermath_failure());
@@ -183,14 +188,19 @@ impl WorthQueryPrimaryGraphProvider {
                 .map_err(|_| owner_failure())?;
             let options = runtime
                 .admit_branch_basis(&identity)
-                .map_err(|_| owner_failure())?;
-            let mut transaction = runtime.begin_branch_transaction(&options, worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary()).expect("owner-admitted transaction context");
-            transaction.push_batch(batch);
+                .map_err(map_branch_basis_failure)?;
+            let mut transaction = runtime
+                .begin_branch_transaction(
+                    &options,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .map_err(map_transaction_admission_failure)?;
+            transaction
+                .push_batch(batch)
+                .map_err(map_transaction_staging_failure)?;
             Ok::<_, WorthQueryInvariantExecutionFailure>(transaction.validate(runtime))
         });
-        let candidate = candidate
-            .map_err(|error| error)?
-            .map_err(|_| owner_failure())?;
+        let candidate = candidate?.map_err(map_validation_failure)?;
         validate_owner_evidence(candidate.invariant_evidence(), branch)?;
         Ok(candidate)
     }

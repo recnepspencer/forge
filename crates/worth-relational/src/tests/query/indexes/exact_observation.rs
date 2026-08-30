@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn index_query_keeps_the_admitted_root_after_same_and_sibling_reference_movement() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_index_field_aspects();
+    let alpha = create_entity_outcome(&runtime, "alpha");
     let alpha_id = changed_entities(&alpha)[0];
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
@@ -20,7 +20,7 @@ fn index_query_keeps_the_admitted_root_after_same_and_sibling_reference_movement
             branch_id: BranchId("main".to_owned()),
             index_ids: vec![index.index_id],
         });
-    let snapshot = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+    let snapshot = snapshot_for_owner_branch(&runtime, &BranchId("main".to_owned()));
 
     runtime
         .history_authority()
@@ -29,9 +29,9 @@ fn index_query_keeps_the_admitted_root_after_same_and_sibling_reference_movement
             &BranchId("main".to_owned()),
         )
         .expect("sibling begins at the observed root");
-    update_entity(&mut runtime, alpha_id, "main-new");
+    update_entity(&runtime, alpha_id, "main-new");
     create_entity_outcome_on_branch(
-        &mut runtime,
+        &runtime,
         "sibling-only",
         BranchId("index-sibling".to_owned()),
     );
@@ -86,8 +86,8 @@ fn index_query_keeps_the_admitted_root_after_same_and_sibling_reference_movement
 
 #[test]
 fn current_query_prefers_its_exact_generation_over_a_later_historical_rebuild() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_index_field_aspects();
+    let alpha = create_entity_outcome(&runtime, "alpha");
     let alpha_id = changed_entities(&alpha)[0];
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
@@ -104,7 +104,7 @@ fn current_query_prefers_its_exact_generation_over_a_later_historical_rebuild() 
             branch_id: BranchId("main".to_owned()),
             index_ids: vec![index.index_id],
         });
-    let current = update_entity(&mut runtime, alpha_id, "beta");
+    let current = update_entity(&runtime, alpha_id, "beta");
     let current_build = runtime
         .index_authority()
         .build_for_commit(DerivedIndexBuildRequest {
@@ -172,8 +172,8 @@ fn current_query_prefers_its_exact_generation_over_a_later_historical_rebuild() 
 
 #[test]
 fn current_query_rejects_an_older_generation_and_returns_every_exact_match() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let first = create_entity_outcome(&mut runtime, "shared-name");
+    let runtime = runtime_with_index_field_aspects();
+    let first = create_entity_outcome(&runtime, "shared-name");
     let first_id = changed_entities(&first)[0];
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
@@ -190,7 +190,7 @@ fn current_query_rejects_an_older_generation_and_returns_every_exact_match() {
             branch_id: BranchId("main".to_owned()),
             index_ids: vec![index.index_id],
         });
-    let second = create_entity_outcome(&mut runtime, "shared-name");
+    let second = create_entity_outcome(&runtime, "shared-name");
     let second_id = changed_entities(&second)[0];
 
     let snapshot = runtime.visibility_authority().snapshot();

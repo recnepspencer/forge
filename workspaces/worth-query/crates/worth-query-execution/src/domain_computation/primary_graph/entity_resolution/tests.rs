@@ -22,7 +22,7 @@ fn equal_version_snapshot_from_another_relational_runtime_is_rejected() {
             let snapshot = super::super::exact_basis_access::open_current_main_snapshot(runtime)
                 .expect("primary branch has a current snapshot");
             let version = snapshot.version_id();
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             version
         });
 
@@ -44,7 +44,7 @@ fn equal_version_snapshot_from_another_relational_runtime_is_rejected() {
                 denial.kind(),
                 WorthQueryEntityResolutionDenialKind::ForeignResolutionTruth
             );
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
         });
 }
 
@@ -97,7 +97,7 @@ fn rebuilt_index_generation_preserves_stable_entity_meaning() {
             )
             .unwrap();
         truth.validate_entity_freshness(&identity).unwrap();
-        runtime.snapshots().release_snapshot(&snapshot);
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
     });
 }
 
@@ -123,6 +123,6 @@ fn installed_context_derives_binding_layout_and_index_from_its_graph() {
         let typed = resolved.into_application_identity::<IdentityExecutionSchema, super::super::tests::fixture::Account>();
         assert_eq!(typed.binding_identity(), graph.binding_identity());
         assert_eq!(typed.identity_index_id(), graph.layout().equality_field("Account", "AccountPolicy", "AccountStatus").unwrap().equality_index_id.unwrap());
-        runtime.snapshots().release_snapshot(&snapshot);
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
     });
 }

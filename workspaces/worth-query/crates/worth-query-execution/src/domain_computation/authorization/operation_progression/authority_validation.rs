@@ -2,6 +2,7 @@
 
 use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
@@ -120,6 +121,7 @@ pub(super) fn validate_capability_operation<'a, Schema, Capability, Operation, I
 >
 where
     Schema: ApplicationSchema,
+    Operation: ApplicationOperationMarkerIdentity,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     access.validate_operation_authority(runtime, operation, progression)?;

@@ -109,7 +109,7 @@ fn empty_persisted_recovery_plan(
 ) -> RecoveryPlan {
     RecoveryPlan::new(
         runtime.runtime_config().clone(),
-        runtime.durable_store().cloned(),
+        runtime.durable_store().map(|store| store.as_ref().clone()),
         None,
         None,
         Vec::new(),

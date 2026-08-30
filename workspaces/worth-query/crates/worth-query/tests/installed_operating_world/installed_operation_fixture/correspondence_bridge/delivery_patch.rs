@@ -59,8 +59,9 @@ fn conditional_runtime_bridge_with_change_sequence(
         CanonicalFieldPath::single(field.clone()),
     );
     let mut create = {
+        let main_identity = relational.main_branch_identity();
         let transaction_validation_input = relational
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         relational
             .begin_branch_transaction(
@@ -69,14 +70,18 @@ fn conditional_runtime_bridge_with_change_sequence(
             )
             .expect("owner-admitted transaction context")
     };
-    create.push_batch(WorkerIntentBatch::new("create-delivery-entity").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: ClientKey::raw("conditional-delivery-entity"),
-            fields: AspectFieldPatch::new(BTreeMap::from([(locator.clone(), before)])),
-        })),
-    ));
+    create
+        .push_batch(
+            WorkerIntentBatch::new("create-delivery-entity").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::raw("conditional-delivery-entity"),
+                    fields: AspectFieldPatch::new(BTreeMap::from([(locator.clone(), before)])),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let created = create
         .commit(&mut relational)
         .expect("delivery entity should commit");
@@ -94,9 +99,11 @@ fn conditional_runtime_bridge_with_change_sequence(
     let (_, created_basis) = relational
         .observe_branch(&branch_identity)
         .expect("created owner-admitted branch basis");
+    commit_snapshot_closeout::release_commit_snapshot(&mut relational, &created);
     let mut update = {
+        let main_identity = relational.main_branch_identity();
         let transaction_validation_input = relational
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         relational
             .begin_branch_transaction(
@@ -105,14 +112,16 @@ fn conditional_runtime_bridge_with_change_sequence(
             )
             .expect("owner-admitted transaction context")
     };
-    update.push_batch(WorkerIntentBatch::new("update-delivery-entity").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: AspectFieldPatch::from_locator(locator.clone(), after.clone()),
-            },
-        )),
-    ));
+    update
+        .push_batch(
+            WorkerIntentBatch::new("update-delivery-entity").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: AspectFieldPatch::from_locator(locator.clone(), after.clone()),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let updated = update
         .commit(&mut relational)
         .expect("delivery update should commit");
@@ -121,10 +130,12 @@ fn conditional_runtime_bridge_with_change_sequence(
         .expect("updated owner-admitted branch basis");
     let mut requests = vec![request(&updated)];
     let mut retained_bases = vec![created_basis, updated_basis];
+    commit_snapshot_closeout::release_commit_snapshot(&mut relational, &updated);
     if repeat_after_value {
         let mut repeated = {
+            let main_identity = relational.main_branch_identity();
             let transaction_validation_input = relational
-                .admit_main_branch_basis()
+                .admit_branch_basis(&main_identity)
                 .expect("main branch binding");
             relational
                 .begin_branch_transaction(
@@ -133,17 +144,19 @@ fn conditional_runtime_bridge_with_change_sequence(
                 )
                 .expect("owner-admitted transaction context")
         };
-        repeated.push_batch(WorkerIntentBatch::new("repeat-delivery-value").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: entity,
-                    fields: AspectFieldPatch::from_locator(
-                        locator,
-                        repeated_raw_fixture_value(dependency.contract()),
-                    ),
-                },
-            )),
-        ));
+        repeated
+            .push_batch(WorkerIntentBatch::new("repeat-delivery-value").push(
+                MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                    UpdateEntityFieldsIntent {
+                        entity_id: entity,
+                        fields: AspectFieldPatch::from_locator(
+                            locator,
+                            repeated_raw_fixture_value(dependency.contract()),
+                        ),
+                    },
+                )),
+            ))
+            .expect("test staging stays within configured resource budgets");
         let committed = repeated
             .commit(&mut relational)
             .expect("repeated delivery value should retain a distinct authoritative commit");
@@ -152,6 +165,7 @@ fn conditional_runtime_bridge_with_change_sequence(
             .observe_branch(&branch_identity)
             .expect("repeated owner-admitted branch basis");
         retained_bases.push(repeated_basis);
+        commit_snapshot_closeout::release_commit_snapshot(&mut relational, &committed);
     }
     let record = worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(
         PartitionId::main().0,

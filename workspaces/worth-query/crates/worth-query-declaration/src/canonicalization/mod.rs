@@ -3,11 +3,15 @@ mod artifacts;
 mod bindings;
 mod bundle_state;
 mod errors;
+mod fresh_readmission;
+mod logical_width;
 mod ordering;
 pub mod pipeline;
+mod portable_bundle;
 mod predicates;
 mod projection;
 mod query_artifact;
+mod readmission_limits;
 mod result_shape_artifact;
 mod traversal;
 
@@ -19,4 +23,13 @@ pub use artifacts::{
 };
 pub use bundle_state::CanonicalQueryBundle;
 pub use errors::{CanonicalizationFailureClass, QueryCanonicalizationError};
+pub use fresh_readmission::{
+    validate_portable_query_bundle_freshly, validate_portable_query_bundle_freshly_with_work,
+    WorthQueryPortableCanonicalQueryReadmission,
+};
 pub use pipeline::canonicalize_request;
+pub use portable_bundle::{
+    WorthQueryPortableCanonicalQueryBundleParts, WorthQueryPortableCanonicalQueryBundleRecord,
+    WorthQueryPortableCanonicalQueryRecord, WorthQueryPortableCanonicalResultShapeRecord,
+};
+pub use readmission_limits::WorthQueryPortableCanonicalQueryReadmissionLimits;

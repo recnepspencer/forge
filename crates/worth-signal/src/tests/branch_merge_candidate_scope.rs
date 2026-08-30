@@ -83,7 +83,7 @@ fn selected_node_scope_changes_candidate_truth_before_identity_and_support_plann
 
     let (full_candidate_breadth, full_selected_semantics, full_boundary_candidate_nodes) = {
         let full_plan = runtime
-            .merge()
+            .merge_raw()
             .from(feature.clone())
             .into(main.clone())
             .plan()
@@ -99,7 +99,7 @@ fn selected_node_scope_changes_candidate_truth_before_identity_and_support_plann
         )
     };
     let selected_plan = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_nodes([primary])
@@ -194,7 +194,7 @@ fn selected_aspect_scope_preserves_requested_and_skipped_loci_without_widening_c
         full_boundary_candidate_nodes,
     ) = {
         let full_plan = runtime
-            .merge()
+            .merge_raw()
             .from(feature.clone())
             .into(main.clone())
             .plan()
@@ -229,7 +229,7 @@ fn selected_aspect_scope_preserves_requested_and_skipped_loci_without_widening_c
         )
     };
     let plan = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_aspects([

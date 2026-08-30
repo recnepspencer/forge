@@ -17,7 +17,7 @@ impl<'runtime> InvariantAccess<'runtime> {
     ) -> InvariantExecutionResult {
         self.execute_for_state(
             profile,
-            InvariantObservation::committed(self.runtime.storage_access().current_state()),
+            InvariantObservation::committed(self.runtime.storage_access().current_edition()),
             self.runtime.current_version_id(),
             None,
         )
@@ -36,33 +36,6 @@ impl<'runtime> InvariantAccess<'runtime> {
         self.execute_for_state_with_current_version(
             profile,
             InvariantObservation::committed_branch(selected_state.state()),
-            version_id,
-            version_id,
-            Some(merged_plan),
-        )
-    }
-
-    pub(super) fn execute_for_selected_branch_plan<'state>(
-        &self,
-        profile: InvariantRequestProfile,
-        selected_state: &'state SelectedRelationalBranchState,
-        proposed_working_state: &'state crate::storage::overlay::WorkingState,
-        proposed_version_id: crate::identity::data::VersionId,
-        merged_plan: &'runtime MergedCommitPlan,
-        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
-    ) -> InvariantExecutionResult
-    where
-        'runtime: 'state,
-    {
-        let version_id = selected_state.version_id();
-        self.execute_for_state_with_current_version(
-            profile,
-            InvariantObservation::committed_branch_with_proposed(
-                selected_state.state(),
-                proposed_working_state,
-                proposed_version_id,
-                proposal_identity.cloned(),
-            ),
             version_id,
             version_id,
             Some(merged_plan),
@@ -122,7 +95,7 @@ impl<'runtime> InvariantAccess<'runtime> {
 
         let request = InvariantExecutionRequest::from_profile_with_contract_at_current_version(
             profile,
-            self.runtime,
+            &self.view,
             observation,
             version_id,
             current_version_id,
@@ -155,7 +128,7 @@ impl<'runtime> InvariantAccess<'runtime> {
                 request.proposal_identity(),
             ));
         }
-        InvariantEngine::new(self.runtime).execute(request)
+        InvariantEngine::from_view(&self.view).execute(request)
     }
 
     fn preparation_violation_result<'state>(

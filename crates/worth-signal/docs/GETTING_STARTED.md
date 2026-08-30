@@ -40,7 +40,7 @@ The main pieces are:
 
 - `SignalGraph`
 - `SignalRuntime`
-- `runtime.transaction(...)`
+- `runtime.advance_signal_branch(...)`
 - `runtime.observe_nodes(...)`
 - `runtime.target(node).read(...)`
 - `runtime.diagnostics()`
@@ -63,7 +63,10 @@ graph.set_dependencies(
 
 let mut runtime = SignalRuntime::build_for::<()>(graph);
 
-runtime.transaction(&mut (), |tx| {
+let basis = runtime
+    .observe_signal_branch_basis(runtime.current_branch())
+    .expect("current branch should admit an owner basis");
+let _next_basis = runtime.advance_signal_branch(&mut (), &basis, |tx| {
     tx.mark_changed(product_price, PRICE)?;
     tx.target(checkout_summary).run(&|view| {
         let result = if view.node() == product_price {
@@ -77,7 +80,9 @@ runtime.transaction(&mut (), |tx| {
         Ok(result)
     })?;
     Ok(())
-})?;
+})
+.expect("admitted branch advance should succeed")
+.into_basis();
 
 let version = runtime.target(checkout_summary).read(&(), &|view| {
     let price_version = view.read_aspect_version(product_price, PRICE)?;
@@ -124,14 +129,18 @@ let handle = runtime.observe_nodes(
     Box::new(CounterListener),
 );
 
-runtime.transaction(&mut (), |tx| {
+let basis = runtime
+    .observe_signal_branch_basis(runtime.current_branch())
+    .expect("current branch should admit an owner basis");
+let _next_basis = runtime.advance_signal_branch(&mut (), &basis, |tx| {
     tx.mark_changed(source, ASPECT_A)?;
     tx.target(derived).run(&|view| {
         let version = view.read_aspect_version(source, ASPECT_A)?;
         Ok(view.finish(NodeEvaluationResult::from_version(version)))
     })?;
     Ok(())
-})?;
+})
+.expect("admitted branch advance should succeed");
 
 let latest_observation = runtime.observe().latest_observation_summary();
 assert!(latest_observation.is_some());

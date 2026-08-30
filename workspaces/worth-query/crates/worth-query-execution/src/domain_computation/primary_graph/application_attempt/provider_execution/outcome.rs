@@ -10,6 +10,7 @@ pub(in crate::domain_computation) enum WorthQueryProviderProgressionOutcome {
     AlreadyCommitted(WorthQueryApplicationCommitReceipt),
     Stale(WorthQueryApplicationStaleAttempt),
     Cancelled,
+    TimedOut,
     Denied(WorthQueryApplicationCommitDenial),
     Aborted,
     Deferred(super::super::WorthQueryApplicationCommitDeferred),
@@ -33,6 +34,7 @@ impl WorthQueryProviderProgressionOutcome {
             }
             Self::Stale(stale) => WorthQueryApplicationCommitOutcome::Stale(stale),
             Self::Cancelled => WorthQueryApplicationCommitOutcome::Cancelled,
+            Self::TimedOut => WorthQueryApplicationCommitOutcome::TimedOut,
             Self::Denied(denial) => WorthQueryApplicationCommitOutcome::Denied(denial),
             Self::Aborted => WorthQueryApplicationCommitOutcome::Aborted,
             Self::Deferred(deferred) => WorthQueryApplicationCommitOutcome::Deferred(deferred),

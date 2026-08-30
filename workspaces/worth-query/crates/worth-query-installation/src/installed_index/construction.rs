@@ -23,7 +23,7 @@ struct InstalledIndexConstruction {
     artifact_contract_slots: BTreeMap<(String, u32, u32), (String, String)>,
     application_schemas: BTreeMap<
         (String, String),
-        worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration,
+        application_schema_records::PortableApplicationSchemaInstallationSeed,
     >,
     conditional_application_operations: BTreeMap<
         (String, String, String),
@@ -215,7 +215,7 @@ impl InstalledIndexConstruction {
             self.counters.application_schema_rows_examined += 1;
             let key = (owner.to_string(), schema.name().to_string());
             if let Some(existing) = self.application_schemas.get(&key) {
-                if existing != schema {
+                if &existing.declaration != schema {
                     return Err(WorthQueryInstalledPackageIndexDenial::new(
                         WorthQueryInstalledPackageIndexDenialKind::ConflictingApplicationSchema,
                         schema.name(),
@@ -223,7 +223,25 @@ impl InstalledIndexConstruction {
                 }
                 continue;
             }
-            self.application_schemas.insert(key, schema.clone());
+            let spine = package.package().application_contract_spine();
+            self.application_schemas.insert(
+                key,
+                application_schema_records::PortableApplicationSchemaInstallationSeed {
+                    declaration: schema.clone(),
+                    native_contracts: spine
+                        .native_aspects()
+                        .iter()
+                        .filter(|record| record.schema() == schema.name())
+                        .cloned()
+                        .collect(),
+                    operation_contracts: spine
+                        .operations()
+                        .iter()
+                        .filter(|record| record.schema() == schema.name())
+                        .cloned()
+                        .collect(),
+                },
+            );
         }
         self.admit_conditional_application_operations(owner, package)?;
         Ok(())

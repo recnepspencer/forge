@@ -250,9 +250,10 @@ fn lineage_workflow_operation(
         domain::WorthQueryOperationPromotionContract::NotRequired
     };
     semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
-        comparator: domain::WorthQueryOperationReplayComparatorContract {
-            family: "installed-workflow-exact-v1",
-        },
+        comparator: domain::WorthQueryOperationReplayComparatorContract::new(
+            "installed-workflow-exact-v1",
+        )
+        .expect("static replay comparator family is portable"),
     };
     semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
     domain::WorthQueryDomainOperationDefinition::<GeometryDomain, WorkflowRead, ReadFamily>::new(

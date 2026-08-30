@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::branch::{RelationalBranchCellCheckpoint, RelationalBranchReferenceCell};
 use crate::history::data::{BranchId, CanonicalCommitEnvelope, CommitId};
-use crate::history::RelationalCommitCatalog;
 use worth_foundational::FoundationalBranchTarget;
 
 use super::history_recovery_lineage::{
@@ -25,6 +24,30 @@ pub(super) fn branch_cell_truth_matches(
         && existing.fork_source_branch_id == incoming.fork_source_branch_id
 }
 
+/// A fresh runtime installs one empty owner cell before tail-only recovery can
+/// readmit the carried pre-first-commit checkpoint. With no recovered history,
+/// those cells carry the same empty truth even if their local truth counters
+/// were initialized through different construction paths.
+pub(super) fn empty_bootstrap_cells_are_equivalent(
+    existing: &RelationalBranchCellCheckpoint,
+    incoming: &RelationalBranchCellCheckpoint,
+) -> bool {
+    existing.runtime_instance_id == incoming.runtime_instance_id
+        && existing.branch_id == incoming.branch_id
+        && matches!(
+            existing.observation.target(),
+            FoundationalBranchTarget::Empty
+        )
+        && matches!(
+            incoming.observation.target(),
+            FoundationalBranchTarget::Empty
+        )
+        && existing.fork_provenance.is_none()
+        && incoming.fork_provenance.is_none()
+        && existing.fork_source_branch_id.is_none()
+        && incoming.fork_source_branch_id.is_none()
+}
+
 /// Validate a branch-cell checkpoint admitted while replay is extending an
 /// already restored checkpoint. Tail admission must use the same artifact and
 /// fork-provenance court as the complete checkpoint restore; structural
@@ -37,7 +60,7 @@ pub(super) fn validate_recovered_branch_cell(
     let observation = cell.observation();
     let fork_source_branch_id = cell.fork_source_branch_id();
     let fork_provenance = cell.fork_provenance();
-    validate_branch_target_artifact(&history.commit_catalog, branch_id, observation.target())?;
+    validate_branch_target_artifact(history, branch_id, observation.target())?;
     validate_branch_target_lineage(
         history,
         branch_id,
@@ -61,11 +84,7 @@ pub(super) fn validate_recovered_branch_cell(
                     branch_id.0, source_branch_id.0
                 ));
             }
-            validate_branch_target_artifact(
-                &history.commit_catalog,
-                branch_id,
-                provenance.target(),
-            )?;
+            validate_branch_target_artifact(history, branch_id, provenance.target())?;
             validate_target_authoring_lineage(history, &source_branch_id, provenance.target())?;
             Ok(())
         }
@@ -82,7 +101,7 @@ pub(super) fn validate_recovered_branch_cell(
 }
 
 pub(super) fn validate_branch_target_artifact(
-    catalog: &RelationalCommitCatalog,
+    history: &HistorySubsystem,
     branch_id: &BranchId,
     target: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
 ) -> Result<(), String> {
@@ -90,7 +109,7 @@ pub(super) fn validate_branch_target_artifact(
         return Ok(());
     };
     let selected_commit_id = CommitId(target.selected_commit_id());
-    let artifact = catalog.get(selected_commit_id).ok_or_else(|| {
+    let artifact = history.commit_artifact(selected_commit_id).ok_or_else(|| {
         format!(
             "branch cell `{}` references missing commit artifact `{}`",
             branch_id.0, selected_commit_id.0
@@ -106,24 +125,8 @@ pub(super) fn validate_branch_target_artifact(
             != target.parent_commit_ids()
         || artifact.roots() != target.roots()
     {
-        let root_shape = artifact.linked_root().map(|root| {
-            root.partition_ids()
-                .into_iter()
-                .filter_map(|partition_id| {
-                    root.partition_state(partition_id).map(|partition| {
-                        (
-                            partition_id,
-                            partition.entity_arena.generations.clone(),
-                            partition.entity_arena.lifecycle.clone(),
-                            partition.relation_arena.generations.clone(),
-                            partition.relation_arena.lifecycle.clone(),
-                        )
-                    })
-                })
-                .collect::<Vec<_>>()
-        });
         return Err(format!(
-            "branch cell `{}` target does not match immutable commit artifact `{}`: target version/parents/roots = {}/{:?}/{:?}, artifact = {}/{:?}/{:?}, root shape = {:?}",
+            "branch cell `{}` target does not match immutable commit artifact `{}`: target version/parents/roots = {}/{:?}/{:?}, artifact = {}/{:?}/{:?}",
             branch_id.0,
             selected_commit_id.0,
             target.version_id(),
@@ -132,14 +135,13 @@ pub(super) fn validate_branch_target_artifact(
             artifact.version_id().0,
             artifact.parentage().as_slice(),
             artifact.roots(),
-            root_shape,
         ));
     }
     Ok(())
 }
 
 pub(super) fn require_branch_target_artifact(
-    catalog: &RelationalCommitCatalog,
+    history: &HistorySubsystem,
     branch_id: &BranchId,
     target: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
 ) -> Result<(), String> {
@@ -147,7 +149,7 @@ pub(super) fn require_branch_target_artifact(
         return Ok(());
     };
     let commit_id = CommitId(target.selected_commit_id());
-    if catalog.get(commit_id).is_none() {
+    if history.commit_artifact(commit_id).is_none() {
         return Err(format!(
             "branch cell `{}` references missing commit artifact `{}`",
             branch_id.0, commit_id.0

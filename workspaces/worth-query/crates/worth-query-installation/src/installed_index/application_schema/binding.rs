@@ -23,6 +23,20 @@ impl WorthQueryInstalledPackageIndex {
         Schema: ApplicationSchema,
     {
         let schema = declaration.erased();
+        if !declaration.member_provenance().is_empty() {
+            let owner_declaration = Schema::declaration().map_err(|_| {
+                WorthQueryInstalledApplicationSchemaDenial::new(
+                    WorthQueryInstalledApplicationSchemaDenialKind::SchemaMeaningChanged,
+                    schema.name(),
+                )
+            })?;
+            if owner_declaration.member_provenance() != declaration.member_provenance() {
+                return Err(WorthQueryInstalledApplicationSchemaDenial::new(
+                    WorthQueryInstalledApplicationSchemaDenialKind::SchemaMeaningChanged,
+                    schema.name(),
+                ));
+            }
+        }
         let installed = self
             .application_schemas
             .get(&(schema.owner().to_string(), schema.name().to_string()))
@@ -46,6 +60,8 @@ impl WorthQueryInstalledPackageIndex {
             declaration: &declaration,
             schema_identity: installed.schema_identity(),
             native_contract_catalog: installed.catalog().clone(),
+            portable_native_contracts: installed.native_contracts().clone(),
+            portable_operation_contracts: installed.operation_contracts().clone(),
             upstream_installation_work: self.installation_canonical_work(),
         })
         .map_err(|denial| map_compilation_denial(schema.name(), denial))?;

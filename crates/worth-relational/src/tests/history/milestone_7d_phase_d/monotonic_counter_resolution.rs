@@ -26,7 +26,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         )]),
         BranchId("main".to_string()),
     );
-    create_branch_from_main(&mut runtime, "feature");
+    create_branch_from_main(&runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
@@ -113,7 +113,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("live merge envelope");
 
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         runtime_with_aspect_field_merge_policy(
             AspectKey::new("value").unwrap(),
             field_key("value"),

@@ -10,6 +10,10 @@ use crate::application_schema::{
     WorthQueryInstalledApplicationSchemaContractCatalog,
 };
 use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
+use crate::package::{
+    WorthQueryPortableApplicationOperationContractRecord,
+    WorthQueryPortableNativeAspectContractRecord,
+};
 
 use super::super::application_schema::denial_mapping::{
     map_catalog_denial_to_index_denial, map_schema_digest_denial_to_index_denial,
@@ -24,8 +28,15 @@ pub(super) struct ApplicationSchemaRecordCompilationInput<'a> {
     pub runtime: &'a WorthQueryInstallationRuntimeIdentity,
     pub generation: WorthQueryInstallationGeneration,
     pub packages: &'a BTreeMap<String, WorthQueryInstalledPackageRecord>,
-    pub declarations: BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+    pub declarations: BTreeMap<(String, String), PortableApplicationSchemaInstallationSeed>,
     pub counters: &'a mut WorthQueryInstalledPackageIndexCounters,
+}
+
+#[derive(Clone)]
+pub(super) struct PortableApplicationSchemaInstallationSeed {
+    pub declaration: ErasedApplicationSchemaDeclaration,
+    pub native_contracts: Vec<WorthQueryPortableNativeAspectContractRecord>,
+    pub operation_contracts: Vec<WorthQueryPortableApplicationOperationContractRecord>,
 }
 
 pub(super) fn compile_application_schema_records(
@@ -35,13 +46,13 @@ pub(super) fn compile_application_schema_records(
     WorthQueryInstalledPackageIndexDenial,
 > {
     let mut records = BTreeMap::new();
-    for ((owner, name), declaration) in input.declarations {
+    for ((owner, name), seed) in input.declarations {
         let package = input
             .packages
             .get(&owner)
             .expect("an admitted application schema retains its owning package");
         let (schema_identity, schema_work) =
-            derive_installed_schema_identity(declaration.identity())
+            derive_installed_schema_identity(seed.declaration.identity())
                 .map_err(|denial| map_schema_digest_denial_to_index_denial(&name, denial))?;
         let binding = ApplicationSchemaBindingIdentity::from_installed_parts(
             input.runtime.ordinal(),
@@ -49,16 +60,19 @@ pub(super) fn compile_application_schema_records(
             *package.package.package().identity().digest(),
             schema_identity,
         );
-        let catalog = compile_native_contract_catalog(&binding, &declaration, schema_work)
-            .map_err(map_catalog_denial_to_index_denial)?;
+        let catalog =
+            compile_native_contract_catalog(&binding, &seed.native_contracts, schema_work)
+                .map_err(map_catalog_denial_to_index_denial)?;
         accumulate_catalog_counters(input.counters, &catalog);
         records.insert(
             (owner, name),
             WorthQueryInstalledApplicationSchemaRecord::new(
-                declaration,
+                seed.declaration,
                 schema_identity,
                 schema_work,
                 Arc::new(catalog),
+                Arc::new(seed.native_contracts),
+                Arc::new(seed.operation_contracts),
             ),
         );
     }

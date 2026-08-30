@@ -14,7 +14,9 @@ fn merge_branch_self_merge_surfaces_typed_failure() {
         .build();
     let branch = runtime.observe().current_branch();
 
-    let err = runtime.merge_branch(branch.clone(), branch).unwrap_err();
+    let err = runtime
+        .merge_branch_raw(branch.clone(), branch)
+        .unwrap_err();
     match err {
         SignalError::BranchMergeFailed { kind, .. } => {
             assert_eq!(kind, BranchMergeFailureKind::SelfMergeRejected);
@@ -94,7 +96,7 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
         })
         .unwrap();
 
-    let err = runtime.merge_branch(feature, main).unwrap_err();
+    let err = runtime.merge_branch_raw(feature, main).unwrap_err();
     match err {
         SignalError::BranchMergeFailed { kind, evidence, .. } => {
             assert_eq!(
@@ -263,7 +265,7 @@ fn merge_branch_dependency_topology_conflict_surfaces_structural_requirement() {
         )
         .unwrap();
 
-    let err = runtime.merge_branch(feature, main).unwrap_err();
+    let err = runtime.merge_branch_raw(feature, main).unwrap_err();
     match err {
         SignalError::BranchMergeFailed { kind, evidence, .. } => {
             assert_eq!(

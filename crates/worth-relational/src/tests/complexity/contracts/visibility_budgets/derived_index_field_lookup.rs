@@ -11,8 +11,8 @@ use crate::tests::support::*;
 
 #[test]
 fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization() {
-    let mut runtime = runtime_with_test_schema();
-    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_test_schema();
+    let alpha = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
@@ -77,12 +77,12 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
 
 #[test]
 fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&runtime, "source");
     let source_id = changed_entities(&source)[0];
-    let target = create_entity_outcome(&mut runtime, "target");
+    let target = create_entity_outcome(&runtime, "target");
     let target_id = changed_entities(&target)[0];
-    let relation = create_relation_outcome(&mut runtime, source_id, target_id, "edge");
+    let relation = create_relation_outcome(&runtime, source_id, target_id, "edge");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
@@ -147,8 +147,8 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
 
 #[test]
 fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lookup() {
-    let mut runtime = runtime_with_test_schema();
-    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_test_schema();
+    let alpha = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(2),
         name: "entity.name.reuse".to_string(),
@@ -210,9 +210,9 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
 
 #[test]
 fn complexity_budget_index_field_equals_reports_actual_result_width() {
-    let mut runtime = runtime_with_test_schema();
-    let _alpha_a = create_entity_outcome(&mut runtime, "alpha");
-    let _alpha_b = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_test_schema();
+    let _alpha_a = create_entity_outcome(&runtime, "alpha");
+    let _alpha_b = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(3),
         name: "entity.name.width".to_string(),

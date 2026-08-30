@@ -5,11 +5,10 @@ pub(super) fn certify_checkpoint_window_recover_compile_round_trip(suite: &'stat
         suite,
         "checkpoint_window_recover_compile_round_trip",
         || {
-            let mut runtime = persisted_runtime_with_test_schema_profile(
+            let runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::ChipSimulation,
             );
-            let source =
-                create_entity_in_partition(&mut runtime, "persisted-driver", PartitionId(7));
+            let source = create_entity_in_partition(&runtime, "persisted-driver", PartitionId(7));
             let targets = (0..12)
                 .map(|index| {
                     let partition_id = match index % 3 {
@@ -18,7 +17,7 @@ pub(super) fn certify_checkpoint_window_recover_compile_round_trip(suite: &'stat
                         _ => PartitionId(17),
                     };
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("persisted-sink-{index}"),
                         partition_id,
                     )
@@ -26,7 +25,7 @@ pub(super) fn certify_checkpoint_window_recover_compile_round_trip(suite: &'stat
                 .collect::<Vec<_>>();
             for (index, target) in targets.iter().enumerate() {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     source,
                     *target,
                     &format!("persisted-edge-{index}"),
@@ -49,7 +48,7 @@ pub(super) fn certify_checkpoint_window_recover_compile_round_trip(suite: &'stat
             );
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("chip checkpoint recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

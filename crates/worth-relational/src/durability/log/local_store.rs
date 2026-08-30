@@ -33,7 +33,7 @@ pub(crate) fn ensure_loaded_store(
     runtime: &(impl DurabilityRead + crate::capabilities::RuntimeConfigSource),
 ) -> Result<DurableStore, DurabilityError> {
     if let Some(store) = runtime.durable_store() {
-        return Ok(store.clone());
+        return Ok(store.as_ref().clone());
     }
     let Some(layout) = runtime
         .runtime_config()

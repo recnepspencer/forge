@@ -11,7 +11,7 @@ use worth_relational::facade::identity::EntityId;
 
 use crate::domain_computation::primary_graph::{
     application_resource_request, primary_relational_branch_id, WorthQueryApplicationSnapshotLease,
-    WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryApplicationSnapshotLeaseDenial, WorthQueryPrimaryGraphApplicationRuntime,
 };
 use crate::domain_computation::provider_session::{
     WorthQueryGraphWorkAccessContextAffinity, WorthQueryManagedGraphWorkSession,
@@ -40,7 +40,7 @@ where
         graph.retain_layout(),
         &primary_relational_branch_id(),
     )
-    .ok_or_else(|| graph_work_denial(operation.operation()))?;
+    .map_err(|denial| snapshot_lease_denial(denial, operation.operation()))?;
     let intent = if operation
         .graph_obligations()
         .rows()
@@ -104,7 +104,7 @@ where
         graph.retain_layout(),
         &primary_relational_branch_id(),
     )
-    .ok_or_else(|| graph_work_denial(operation.operation()))?;
+    .map_err(|denial| snapshot_lease_denial(denial, operation.operation()))?;
     let mutating = operation.graph_obligations().rows().iter().any(|row| {
         matches!(
             row.effect_posture(),
@@ -167,6 +167,30 @@ fn graph_work_denial(subject: impl Into<String>) -> WorthQueryOperationAuthoriza
         WorthQueryOperationAuthorizationDenialKind::GraphWorkAdmissionUnavailable,
         subject,
     )
+}
+
+fn snapshot_lease_denial(
+    lease_denial: WorthQueryApplicationSnapshotLeaseDenial,
+    subject: impl Into<String>,
+) -> WorthQueryOperationAuthorizationDenial {
+    let kind = match lease_denial {
+        WorthQueryApplicationSnapshotLeaseDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => WorthQueryOperationAuthorizationDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        },
+        WorthQueryApplicationSnapshotLeaseDenial::RetentionCapacityExhausted => {
+            WorthQueryOperationAuthorizationDenialKind::RetentionCapacityExhausted
+        }
+        WorthQueryApplicationSnapshotLeaseDenial::RetentionIdentityExhausted => {
+            WorthQueryOperationAuthorizationDenialKind::RetentionIdentityExhausted
+        }
+        WorthQueryApplicationSnapshotLeaseDenial::SnapshotIdentityExhausted => {
+            WorthQueryOperationAuthorizationDenialKind::SnapshotIdentityExhausted
+        }
+        _ => WorthQueryOperationAuthorizationDenialKind::GraphWorkAdmissionUnavailable,
+    };
+    denial(kind, subject)
 }
 
 fn denial(

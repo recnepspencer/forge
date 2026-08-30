@@ -30,18 +30,37 @@ pub struct ApplicationMutationPreconditionTarget {
 }
 
 impl ApplicationMutationPreconditionTarget {
+    /// Reconstructs authority-free target meaning from an untrusted package.
+    ///
+    /// This constructor deliberately performs no identifier or schema-closure
+    /// validation. The enclosing application-schema readmission boundary owns
+    /// those decisions.
+    pub fn from_untrusted_fields(
+        family: ApplicationMutationPreconditionFamily,
+        entity: String,
+        aspect: String,
+        field: String,
+    ) -> Self {
+        Self {
+            family,
+            entity,
+            aspect,
+            field,
+        }
+    }
+
     pub(crate) fn field(
         family: ApplicationMutationPreconditionFamily,
         entity: &str,
         aspect: &str,
         field: &str,
     ) -> Self {
-        Self {
+        Self::from_untrusted_fields(
             family,
-            entity: entity.to_owned(),
-            aspect: aspect.to_owned(),
-            field: field.to_owned(),
-        }
+            entity.to_owned(),
+            aspect.to_owned(),
+            field.to_owned(),
+        )
     }
 
     pub const fn family(&self) -> ApplicationMutationPreconditionFamily {

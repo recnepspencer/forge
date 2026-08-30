@@ -220,15 +220,10 @@ fn validate_digest_basis_consistency(
         return Err(QueryCanonicalizationError::DigestBasisInconsistency { artifact: "query" });
     }
 
-    let mut result_shape_digest_parts = vec![format!("shape_family:{:?}", result_shape.family())];
-    result_shape_digest_parts.extend(
-        result_shape
-            .fields()
-            .iter()
-            .map(|field| field.digest_part()),
+    let expected_result_shape_digest = super::result_shape_artifact::derive_result_shape_digest(
+        result_shape.family(),
+        result_shape.fields(),
     );
-    let expected_result_shape_digest =
-        crate::identity::CanonicalResultShapeDigest::from_parts(&result_shape_digest_parts);
     if &expected_result_shape_digest != result_shape.digest() {
         return Err(QueryCanonicalizationError::DigestBasisInconsistency {
             artifact: "result_shape",

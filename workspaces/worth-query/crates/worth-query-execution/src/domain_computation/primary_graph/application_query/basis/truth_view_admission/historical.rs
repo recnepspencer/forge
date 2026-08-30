@@ -90,9 +90,12 @@ where
                     ));
                 }
                 let basis = self
-                    .relational_source
-                    .readmit_branch_basis(&descriptor)
-                    .map_err(super::super::admission::map_basis_denial)?;
+                    .primary_provider
+                    .graph
+                    .with_runtime(|runtime| {
+                        runtime.readmit_retained_branch_basis(&descriptor, retention.lease())
+                    })
+                    .map_err(super::super::map_basis_denial)?;
                 let selected_commit = self.primary_provider.graph.with_runtime(|runtime| {
                     runtime
                         .history()

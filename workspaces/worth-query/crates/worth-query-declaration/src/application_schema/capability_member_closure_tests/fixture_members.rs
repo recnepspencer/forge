@@ -36,26 +36,39 @@ pub(super) fn members(contract: ErasedContract) -> Vec<ApplicationSchemaMember> 
             principal_identity_aspect: "Facts".to_string(),
             principal_identity_field: "Field".to_string(),
             principal_identity_scalar_family: ScalarAspectType::UInt64,
-            principal_identity_value_type: std::any::type_name::<u64>().to_string(),
+            principal_identity_value_type:
+                <u64 as crate::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY
+                    .as_str()
+                    .to_string(),
         },
         ApplicationSchemaMember::Operation {
             operation: "Operation".to_string(),
-            input_type: std::any::type_name::<()>().to_string(),
+            input_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "worth.rust.unit",
+            ),
         },
         ApplicationSchemaMember::ApplicationCapabilityContext {
             context: "Context".to_string(),
-            context_type: std::any::type_name::<Context>().to_string(),
+            context_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "Context",
+            ),
         },
         ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
             context: "Context".to_string(),
-            context_type: std::any::type_name::<Context>().to_string(),
+            context_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "Context",
+            ),
             slot: "ResourceSlot".to_string(),
-            slot_type: std::any::type_name::<ResourceSlot>().to_string(),
+            slot_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "ResourceSlot",
+            ),
             entity: "Resource".to_string(),
         },
         ApplicationSchemaMember::ApplicationCapabilityProvenance {
             provenance: "Provenance".to_string(),
-            provenance_type: std::any::type_name::<Provenance>().to_string(),
+            provenance_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "Provenance",
+            ),
         },
         relation_member("ResourceRelation", "Grant", "Resource"),
         relation_member("WrongResourceRelation", "Principal", "Resource"),
@@ -90,7 +103,10 @@ pub(super) fn field_member(field: &str) -> ApplicationSchemaMember {
         field: field.to_string(),
         presence: ApplicationFieldPresence::Required,
         scalar_family: ScalarAspectType::UInt64,
-        value_type: std::any::type_name::<u64>().to_string(),
+        value_type:
+            <u64 as crate::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY
+                .as_str()
+                .to_string(),
         unit: None,
         writable: false,
         equality_queryable: true,
@@ -104,7 +120,10 @@ pub(super) fn resource_field_member(field: &str) -> ApplicationSchemaMember {
         field: field.to_string(),
         presence: ApplicationFieldPresence::Required,
         scalar_family: ScalarAspectType::UInt64,
-        value_type: std::any::type_name::<u64>().to_string(),
+        value_type:
+            <u64 as crate::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY
+                .as_str()
+                .to_string(),
         unit: None,
         writable: false,
         equality_queryable: true,

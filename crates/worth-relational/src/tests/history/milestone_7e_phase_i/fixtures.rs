@@ -45,7 +45,7 @@ pub(super) fn merge_request() -> crate::facade::merge::MergeExecutionRequest {
 }
 
 pub(super) fn update_entity_status_on_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     status: &str,
     branch: &str,
@@ -53,7 +53,7 @@ pub(super) fn update_entity_status_on_branch(
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_branch(
-                &runtime,
+                runtime,
                 BranchId(branch.to_string()),
             );
         runtime
@@ -78,7 +78,8 @@ pub(super) fn update_entity_status_on_branch(
                 ),
             ),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(runtime).expect("update status");
 }
 

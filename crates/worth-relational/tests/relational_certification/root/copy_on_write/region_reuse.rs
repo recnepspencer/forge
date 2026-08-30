@@ -11,7 +11,7 @@ use worth_relational::facade::transactions::{
 
 #[test]
 fn phase5_region_reuse_is_sensitive_to_empty_and_touched_deltas() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let baseline = inspect_main_regions(&world.runtime);
     let baseline_sharing = inspect_main_sharing(&world.runtime);
@@ -21,7 +21,7 @@ fn phase5_region_reuse_is_sensitive_to_empty_and_touched_deltas() {
     );
     assert!(!baseline.is_empty());
     commit_main_batch(
-        &mut world.runtime,
+        &world.runtime,
         WorkerIntentBatch::new("phase5-no-storage-delta"),
     );
     let after_noop = inspect_main_regions(&world.runtime);
@@ -63,7 +63,7 @@ fn phase5_region_reuse_is_sensitive_to_empty_and_touched_deltas() {
         vec![world.runtime.main_branch_identity()],
     );
     commit_main_batch(
-        &mut world.runtime,
+        &world.runtime,
         WorkerIntentBatch::new("phase5-touched-storage-delta").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: port_id,

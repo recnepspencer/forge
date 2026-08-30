@@ -5,7 +5,7 @@ use crate::tests::support::*;
 #[test]
 fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = {
@@ -21,8 +21,9 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
-    txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    txn.commit(&runtime).unwrap();
 
     let first_batch = runtime
         .publication()
@@ -50,8 +51,10 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
             )
             .expect("owner-admitted transaction context")
     };
-    second_txn.push_batch(batch_create("c"));
-    second_txn.commit(&mut runtime).unwrap();
+    second_txn
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
+    second_txn.commit(&runtime).unwrap();
 
     let resumed = runtime
         .publication()
@@ -83,7 +86,7 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
 #[test]
 fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trace() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut first_transition = {
@@ -99,8 +102,10 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
             )
             .expect("owner-admitted transaction context")
     };
-    first_transition.push_batch(batch_create("b"));
-    first_transition.commit(&mut runtime).unwrap();
+    first_transition
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    first_transition.commit(&runtime).unwrap();
 
     let first_batch = runtime
         .publication()
@@ -128,8 +133,10 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
             )
             .expect("owner-admitted transaction context")
     };
-    second_transition.push_batch(batch_create("c"));
-    second_transition.commit(&mut runtime).unwrap();
+    second_transition
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
+    second_transition.commit(&runtime).unwrap();
 
     let resumed = runtime
         .publication()

@@ -10,6 +10,38 @@ pub enum WorthQueryInvariantExecutionDenialKind {
     ExecutionBudgetExceeded,
     ProviderUnsupported,
     ProviderRejected,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
+    TransactionOverlayCapacityExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    TransactionFootprintCapacityExhausted {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    SavepointCapacityExhausted {
+        maximum_savepoints: usize,
+    },
+    SavepointFootprintCapacityExhausted {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    SavepointIdentityExhausted,
+    CandidateCapacityExhausted {
+        maximum_candidates: usize,
+    },
+    PublishedSnapshotCapacityExhausted {
+        maximum_handles: usize,
+    },
+    CandidateIdentityExhausted,
+    PreparedRootBudgetExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    PatchPositionReservationContended,
+    ProposalIdentityExhausted,
     ProviderPanicked,
     EvidenceSubstitution,
     EmptyStateLoad,

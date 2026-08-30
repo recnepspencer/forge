@@ -66,7 +66,7 @@ fn runtime_merge_uses_schema_default_deletion_policy_when_request_is_silent() {
         .unwrap();
 
     let err = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .run()
@@ -140,7 +140,7 @@ fn runtime_merge_node_deletion_policy_override_precedes_schema_default() {
         .unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -230,7 +230,7 @@ fn runtime_merge_request_named_deletion_policy_precedes_schema_and_node_defaults
         .unwrap();
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .deletion_policy_named("signal.deletion.preserve-target-only")

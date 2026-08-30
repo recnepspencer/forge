@@ -18,7 +18,7 @@ fn scoped_merge_denials_preserve_distinct_selected_node_aspect_and_ambiguous_pos
         .basis_digest()
         .to_owned();
     let missing_node_error = match missing_node_runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([NodeId::new(999, 1)])
@@ -68,7 +68,7 @@ fn scoped_merge_denials_preserve_distinct_selected_node_aspect_and_ambiguous_pos
         .basis_digest()
         .to_owned();
     let missing_aspect_error = match missing_aspect_runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects([SignalSelectedAspectRequestEntry::new(
@@ -123,7 +123,7 @@ fn scoped_merge_denials_preserve_distinct_selected_node_aspect_and_ambiguous_pos
         .basis_digest()
         .to_owned();
     let ambiguous_error = match ambiguous_runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([source])
@@ -181,7 +181,7 @@ fn unsupported_scoped_strategy_fails_as_unavailable_without_branch_mutation_or_d
         other => panic!("expected feature branch basis artifact, got {other:?}"),
     };
     let unavailable = match runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([primary])

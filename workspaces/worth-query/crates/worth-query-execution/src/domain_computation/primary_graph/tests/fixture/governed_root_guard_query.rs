@@ -18,11 +18,13 @@ use crate::domain_computation::primary_graph::{
 };
 
 pub struct RootGuardSequenceSlot;
+worth_query_declaration::worth_query_portable_type!(RootGuardSequenceSlot => "worth.query.test.execution.root_guard.sequence_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RootGuardResult {
     sequence: u64,
 }
+worth_query_declaration::worth_query_portable_type!(RootGuardResult => "worth.query.test.execution.root_guard.result.v1");
 
 worth_query_application_query!(
     pub GovernedRootGuardQuery in IdentityExecutionSchema,
@@ -66,7 +68,9 @@ pub(super) fn forbidden_root_guard_definition() -> ApplicationQueryDefinition<
     )
 }
 
-fn definition<Query: 'static>(
+fn definition<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity + 'static,
+>(
     reference: worth_query_declaration::facade::application_query::ApplicationQueryReference<
         IdentityExecutionSchema,
         Query,
@@ -123,8 +127,8 @@ fn definition<Query: 'static>(
         .unwrap()
 }
 
-impl<Query: 'static> WorthQueryApplicationProjection<IdentityExecutionSchema, Query>
-    for RootGuardResult
+impl<Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity>
+    WorthQueryApplicationProjection<IdentityExecutionSchema, Query> for RootGuardResult
 {
     fn project(
         row: &WorthQueryApplicationProjectionRow<'_, IdentityExecutionSchema, Query>,
@@ -135,7 +139,9 @@ impl<Query: 'static> WorthQueryApplicationProjection<IdentityExecutionSchema, Qu
     }
 }
 
-fn sequence<Query: 'static>() -> ApplicationQueryResultFieldRef<
+fn sequence<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+>() -> ApplicationQueryResultFieldRef<
     Query,
     RootGuardSequenceSlot,
     IdentityExecutionSchema,

@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
-use super::invariant_oracle_expectations::expected_phase5_branch;
+use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
     assert_oracle_matches, certified_supply_chain_world, commit_branch_batch, compare,
-    lower_phase5_production_delta, observe_supply_chain_snapshot,
+    lower_supply_chain_production_delta, observe_supply_chain_snapshot,
     snapshot_for_supply_chain_identity, BranchLabel, DeltaId, EntityKey, EntityKind,
     ExpectedSupplyChainObservation, RelationKey, RelationKind, SupplyChainScale,
 };
@@ -19,8 +19,8 @@ use worth_relational::facade::runtime::RelationalRuntime;
 fn phase5_forked_topology_write_copies_only_touched_regions() {
     let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork_from_main(&mut world.runtime, "rewire");
-    fork_from_main(&mut world.runtime, "maintenance");
+    fork_from_main(&world.runtime, "rewire");
+    fork_from_main(&world.runtime, "maintenance");
 
     let main = world.runtime.main_branch_identity();
     let rewire = branch_identity(&world.runtime, "rewire");
@@ -78,8 +78,8 @@ fn phase5_forked_topology_write_copies_only_touched_regions() {
     let main_cost_scope = RelationalMvccCostScope::capture(&world.runtime, vec![main.clone()]);
     let sibling_cost_scope =
         RelationalMvccCostScope::capture(&world.runtime, vec![sibling.clone()]);
-    let batch = lower_phase5_production_delta(
-        &mut world.runtime,
+    let batch = lower_supply_chain_production_delta(
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId("rewire".to_owned()),
@@ -87,7 +87,7 @@ fn phase5_forked_topology_write_copies_only_touched_regions() {
         delta,
     )
     .expect("the actual rewire branch pre-state lowers to production intent");
-    commit_branch_batch(&mut world.runtime, BranchId("rewire".to_owned()), batch);
+    commit_branch_batch(&world.runtime, BranchId("rewire".to_owned()), batch);
 
     assert_rewire_matches_oracle(&mut world, &rewire, expected);
     let cost = world
@@ -227,7 +227,7 @@ fn phase5_forked_topology_write_copies_only_touched_regions() {
     }
 }
 
-fn fork_from_main(runtime: &mut RelationalRuntime, branch: &str) {
+fn fork_from_main(runtime: &RelationalRuntime, branch: &str) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains a fork source");
@@ -247,7 +247,7 @@ fn sharing(
     branches: &[RelationalBranchIdentity],
 ) -> RelationalBranchSharingObservation {
     runtime
-        .inspect_branch_sharing(branches)
+        .observe_branch_sharing(branches)
         .expect("owner-bound sharing inspection succeeds")
 }
 
@@ -261,7 +261,7 @@ fn expected_rewire_from_pure_oracle(
     world: &super::world::supply_chain::ProductionSeededSupplyChainWorld,
     delta: DeltaId,
 ) -> ExpectedSupplyChainObservation {
-    expected_phase5_branch(&world.program, BranchLabel::Rewire, Some(delta))
+    expected_supply_chain_branch(&world.program, BranchLabel::Rewire, Some(delta))
 }
 
 fn assert_rewire_matches_oracle(
@@ -269,7 +269,7 @@ fn assert_rewire_matches_oracle(
     rewire: &RelationalBranchIdentity,
     expected: ExpectedSupplyChainObservation,
 ) {
-    let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, rewire);
+    let snapshot = snapshot_for_supply_chain_identity(&world.runtime, rewire);
     let observed = observe_supply_chain_snapshot(
         &world.program,
         &world.handles.for_snapshot(snapshot.clone()),

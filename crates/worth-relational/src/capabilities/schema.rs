@@ -22,6 +22,9 @@ pub(crate) trait AspectPlanSource {
     ) -> Option<&LoweredAspectContractPlan>;
 }
 
+/// Schema truth is read from the configuration this handle holds in force, so
+/// registry and contract runtime answers always come from the same installed
+/// configuration even while the owner installs another one.
 impl SchemaSource for RelationalRuntime {
     fn schema_registry(&self) -> &RelationalSchemaRegistry {
         &self.config.schema.registry

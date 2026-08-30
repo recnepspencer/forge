@@ -13,6 +13,7 @@ impl VersionSource for RelationalRuntime {
 }
 
 pub(crate) trait RuntimeConfigSource {
+    /// The configuration in force for this operation.
     fn runtime_config(&self) -> &RelationalRuntimeConfig;
 }
 

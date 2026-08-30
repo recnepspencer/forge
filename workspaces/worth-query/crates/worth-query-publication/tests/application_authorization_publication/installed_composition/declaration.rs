@@ -122,7 +122,8 @@ worth_query_capability_provenance!(pub PublicationCapabilityProvenance in Public
 worth_query_capability!(pub PublicationCapability in PublicationAuthorizationSchema);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct PublicationInput;
+pub struct PublicationInput;
+worth_query_declaration::worth_query_portable_type!(PublicationInput => "worth.query.test.publication.input.v1");
 
 worth_query_operation!(pub PublicationOperation(PublicationInput) in PublicationAuthorizationSchema);
 worth_query_operation_reads!(PublicationOperation => [ResourceLabelField]);

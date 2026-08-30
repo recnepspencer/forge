@@ -20,6 +20,54 @@ use world::CourtroomWorld;
 use worth_query_host::facade::primary_graph;
 
 #[test]
+fn conditional_clock_observation_preserves_real_snapshot_capacity_denial() {
+    const MAXIMUM_ACTIVE_SNAPSHOTS: usize = 3;
+    let mut world =
+        CourtroomWorld::publish_with_active_snapshot_limit("ready", MAXIMUM_ACTIVE_SNAPSHOTS);
+    let (_, before) = world.application.relational_snapshot_state_for_test();
+    let pinned = (0..MAXIMUM_ACTIVE_SNAPSHOTS)
+        .map(|_| {
+            world
+                .application
+                .pin_current_application_query_basis(&world::request_scope())
+                .expect("each basis inside the configured limit must be admitted")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        world.application.relational_snapshot_state_for_test().0,
+        MAXIMUM_ACTIVE_SNAPSHOTS
+    );
+
+    let outcome = world
+        .application
+        .conditional_clock(&world.clock)
+        .unwrap()
+        .observe();
+    let primary_graph::WorthQueryConditionalClockObservationOutcome::Failed(failure) = outcome
+    else {
+        panic!("capacity exhaustion must be a typed public conditional failure")
+    };
+    assert_eq!(
+        failure.kind(),
+        primary_graph::WorthQueryConditionalClockObservationFailureKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots: MAXIMUM_ACTIVE_SNAPSHOTS,
+        }
+    );
+    assert_eq!(world.contacts.snapshot(), (0, 0, 0, 0));
+    assert_eq!(
+        world.application.relational_snapshot_state_for_test().0,
+        MAXIMUM_ACTIVE_SNAPSHOTS
+    );
+
+    for basis in pinned {
+        assert!(basis.release().released());
+    }
+    let (active, after) = world.application.relational_snapshot_state_for_test();
+    assert_eq!(active, 0);
+    assert_eq!(after, before);
+}
+
+#[test]
 fn application_readiness_reports_current_query_basis_without_leaking_a_lease() {
     let world = CourtroomWorld::publish("ready");
     let observer = world.application.application_query_basis_observer();

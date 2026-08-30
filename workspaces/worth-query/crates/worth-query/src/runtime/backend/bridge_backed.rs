@@ -24,6 +24,7 @@ use crate::runtime::{
 use super::bootstrap::BridgeBackedRuntimeBootstrap;
 
 mod primary_graph_execution;
+mod settlement_recovery;
 
 pub struct WorthQueryBridgeBackedRuntimeBackend {
     relational_runtime: Option<RelationalRuntime>,
@@ -78,28 +79,18 @@ impl WorthQueryBridgeBackedRuntimeBackend {
     }
 }
 
+impl super::WorthQueryMergeSnapshotOwner for WorthQueryBridgeBackedRuntimeBackend {
+    fn release_query_merge_snapshot(
+        &mut self,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    ) {
+        self.release_backend_merge_snapshot(snapshot)
+    }
+}
+
 impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()
-    }
-
-    fn repair_deferred_branch_merge_settlement(
-        &mut self,
-        deferred: &crate::ordinary::workflow::WorthQueryBranchMergeSettlementDeferred,
-    ) -> Result<
-        worth_relational::facade::history::RelationalCommitReceipt,
-        crate::runtime::WorthQuerySettlementRepairError,
-    > {
-        let settlement = deferred.settlement();
-        match self.primary_graph_runtime.as_ref() {
-            Some(primary_graph) => primary_graph.repair_deferred_publication_settlement(settlement),
-            None => self
-                .relational_runtime
-                .as_mut()
-                .ok_or(crate::runtime::WorthQuerySettlementRepairError::RelationalOwnerUnavailable)?
-                .repair_deferred_publication_settlement(settlement)
-                .map_err(Into::into),
-        }
     }
 
     fn readmits_primary_graph_source(

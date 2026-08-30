@@ -12,10 +12,10 @@ use super::{ValidatedMutationTouch, ValidatedMutationTouches};
 
 #[test]
 fn create_and_update_project_exact_entity_touch_loci() {
-    let mut runtime = runtime_with_test_schema();
-    let existing = create_entity(&mut runtime, "existing");
+    let runtime = runtime_with_test_schema();
+    let existing = create_entity(&runtime, "existing");
     let projected = project(validate(
-        &mut runtime,
+        &runtime,
         [
             MutationIntent::Create(CreateIntent::Entity(entity_spec("created"))),
             update_name(existing, "updated"),
@@ -41,13 +41,13 @@ fn create_and_update_project_exact_entity_touch_loci() {
 
 #[test]
 fn delete_and_endpoint_rewrite_preserve_unlink_and_link_meaning() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let new_target = create_entity(&mut runtime, "new-target");
-    let relation = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let new_target = create_entity(&runtime, "new-target");
+    let relation = create_relation(&runtime, source, old_target, "edge");
     let projected = project(validate(
-        &mut runtime,
+        &runtime,
         [
             MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
                 entity_id: old_target,
@@ -77,7 +77,7 @@ fn delete_and_endpoint_rewrite_preserve_unlink_and_link_meaning() {
 }
 
 fn validate(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     intents: impl IntoIterator<Item = MutationIntent>,
 ) -> crate::mvcc::ValidatedRelationalProposal {
     let batch = intents.into_iter().fold(
@@ -85,7 +85,9 @@ fn validate(
         WorkerIntentBatch::push,
     );
     let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
-    transaction.push_batch(batch);
+    transaction
+        .push_batch(batch)
+        .expect("test staging stays within configured resource budgets");
     transaction
         .validate(runtime)
         .expect("owner validates touch projection fixture")

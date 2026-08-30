@@ -10,7 +10,9 @@ keywords = ["graph", "runtime", "transactions", "replay", "simulation"]
 categories = ["data-structures", "database-implementations", "science"]
 
 [features]
+allocation-probes = []
 test-durability-faults = []
+test-operation-control = []
 
 [dependencies]
 worth-foundational = { path = "../worth-foundational" }
@@ -22,12 +24,24 @@ rayon = "1"
 smallvec = "1"
 sha2 = "0.10"
 dashmap = "6"
+crossbeam-queue = "0.3"
 arc-swap = "1"
 
 [dev-dependencies]
 worth-harness.workspace = true
 proptest = "1"
+stats_alloc = "0.1"
 trybuild = "1"
 
 [lints]
 workspace = true
+
+# Declared so `cargo test` executes this example's own `main` as an ordinary
+# part of the existing workspace test lane. dx_laws #18: a public example is a
+# compatibility contract, so it must run against the real facade rather than
+# only compile. `harness = false` runs `main` instead of an empty libtest
+# harness. No separate `cargo run` evidence lane exists or is wanted.
+[[example]]
+name = "branch_local_mvcc"
+test = true
+harness = false

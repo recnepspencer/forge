@@ -190,7 +190,7 @@ fn validated_status_footprint(
         )]));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -199,14 +199,16 @@ fn validated_status_footprint(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("selection-owner-path").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: entity,
-                    fields,
-                },
-            )),
-        ));
+        transaction
+            .push_batch(WorkerIntentBatch::new("selection-owner-path").push(
+                MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                    UpdateEntityFieldsIntent {
+                        entity_id: entity,
+                        fields,
+                    },
+                )),
+            ))
+            .expect("test staging stays within configured resource budgets");
         transaction
             .validate(runtime)
             .expect("owner validates mutation")

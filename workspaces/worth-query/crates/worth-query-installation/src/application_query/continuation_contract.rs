@@ -2,6 +2,7 @@ use worth_foundational::facade::{CanonicalDigestDerivationDenial, CanonicalDiges
 use worth_query_declaration::facade::application_query::{
     ApplicationQueryResultTraversalDirection, ErasedApplicationQueryDefinition,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity;
 
 use super::{
     canonical_basis::{prepare_continuation_basis, ContinuationCanonicalInput},
@@ -13,7 +14,7 @@ use super::{
 pub struct WorthQueryInstalledApplicationContinuationContract {
     canonical: WorthQueryApplicationCanonicalArtifact,
     collection_path: String,
-    slot_type: String,
+    slot_type: WorthQueryPortableTypeIdentity,
     relation: String,
     parent_entity: String,
     child_entity: String,
@@ -33,7 +34,7 @@ impl WorthQueryInstalledApplicationContinuationContract {
         let relation = graph
             .relations()
             .iter()
-            .find(|relation| relation.slot_type() == target.slot_type())
+            .find(|relation| relation.portable_slot_identity() == target.slot_identity())
             .expect("validated continuation target resolves to one installed relation");
         let ordering = graph
             .ordering()
@@ -43,7 +44,7 @@ impl WorthQueryInstalledApplicationContinuationContract {
             .collect::<Vec<_>>();
         debug_assert!(!ordering.is_empty());
         let collection_path = relation.result_path().to_string();
-        let slot_type = relation.slot_type().to_string();
+        let slot_type = relation.portable_slot_identity();
         let relation_name = relation.relation().to_string();
         let parent_entity = relation.parent_entity().to_string();
         let child_entity = relation.child_entity().to_string();
@@ -52,7 +53,7 @@ impl WorthQueryInstalledApplicationContinuationContract {
             &ContinuationCanonicalInput {
                 graph_digest: graph.digest(),
                 collection_path: &collection_path,
-                slot_type: &slot_type,
+                slot_type: slot_type.as_str(),
                 relation: &relation_name,
                 parent_entity: &parent_entity,
                 child_entity: &child_entity,
@@ -86,7 +87,7 @@ impl WorthQueryInstalledApplicationContinuationContract {
     }
 
     pub fn slot_type(&self) -> &str {
-        &self.slot_type
+        self.slot_type.as_str()
     }
 
     pub fn relation(&self) -> &str {

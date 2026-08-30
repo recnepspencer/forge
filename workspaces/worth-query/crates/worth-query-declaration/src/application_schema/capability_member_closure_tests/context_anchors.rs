@@ -50,14 +50,20 @@ fn context_anchor_cannot_cross_the_contract_context() {
     let mut members = members(contract);
     members.push(ApplicationSchemaMember::ApplicationCapabilityContext {
         context: "OtherContext".to_string(),
-        context_type: std::any::type_name::<OtherContext>().to_string(),
+        context_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "OtherContext",
+        ),
     });
     members.push(
         ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
             context: "OtherContext".to_string(),
-            context_type: std::any::type_name::<OtherContext>().to_string(),
+            context_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "OtherContext",
+            ),
             slot: "OtherResourceSlot".to_string(),
-            slot_type: std::any::type_name::<OtherResourceSlot>().to_string(),
+            slot_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "OtherResourceSlot",
+            ),
             entity: "Resource".to_string(),
         },
     );

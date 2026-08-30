@@ -4,14 +4,14 @@ use crate::authority::commit::phases::history::{
 };
 use crate::identity::data::VersionId;
 use crate::mvcc::RelationalTransactionValidationInput;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, MergeCommitMutationPlan, TransactionCommitError,
     TransactionId,
 };
 
 pub(super) fn resolve_authoritative_history_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     transaction_id: TransactionId,

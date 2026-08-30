@@ -147,10 +147,13 @@ fn idempotency_lookup_never_substitutes_another_branch_head() {
         .with_runtime_mut(|runtime| {
             let (_, basis) = runtime.observe_fork_source(&main).unwrap();
             runtime.fork_branch(feature.clone(), basis).unwrap();
-            let mut transaction: worth_relational::facade::mvcc::BranchBoundRelationalTransaction ={
+            let mut transaction: worth_relational::facade::mvcc::BranchBoundRelationalTransaction = {
+    let identity = runtime
+        .branch_identity(&feature)
+        .expect("feature branch identity");
     let transaction_validation_input = runtime
-                        .admit_named_branch_basis(&feature)
-                        .expect("feature branch binding");
+        .admit_branch_basis(&identity)
+        .expect("feature branch binding");
     runtime
         .begin_branch_transaction(
             &transaction_validation_input,
@@ -162,8 +165,11 @@ fn idempotency_lookup_never_substitutes_another_branch_head() {
                 worth_relational::facade::transactions::WorkerIntentBatch::new(
                     "feature-branch-head",
                 ),
+            ).expect("test staging stays within configured resource budgets");
+            let committed = transaction.commit(runtime).unwrap();
+            crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+                runtime, &committed,
             );
-            transaction.commit(runtime).unwrap();
         });
     let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
         .application

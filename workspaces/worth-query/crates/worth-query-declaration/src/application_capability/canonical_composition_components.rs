@@ -148,7 +148,7 @@ fn append_context_anchor(
     text(
         components,
         format!("{prefix}.slot.context-type"),
-        anchor.slot().context_type(),
+        anchor.slot().context_identity().as_str(),
     );
     text(
         components,
@@ -158,7 +158,7 @@ fn append_context_anchor(
     text(
         components,
         format!("{prefix}.slot.type"),
-        anchor.slot().slot_type(),
+        anchor.slot().slot_identity().as_str(),
     );
     text(
         components,

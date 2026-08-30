@@ -205,7 +205,7 @@ fn change_principal_identity(
         )]));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -214,15 +214,18 @@ fn change_principal_identity(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("change-principal-identity").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: principal_id,
-                    fields,
-                },
-            )),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(WorkerIntentBatch::new("change-principal-identity").push(
+                MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                    UpdateEntityFieldsIntent {
+                        entity_id: principal_id,
+                        fields,
+                    },
+                )),
+            ))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        super::fixture::release_test_commit_snapshot(runtime, &committed);
     });
 }
 
@@ -243,7 +246,7 @@ fn disable_mapping(
         )]));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -252,15 +255,18 @@ fn disable_mapping(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("disable-mapping").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: mapping_id,
-                    fields,
-                },
-            )),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(
+                WorkerIntentBatch::new("disable-mapping").push(MutationIntent::Entity(
+                    EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                        entity_id: mapping_id,
+                        fields,
+                    }),
+                )),
+            )
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        super::fixture::release_test_commit_snapshot(runtime, &committed);
     });
 }
 
@@ -323,7 +329,7 @@ fn append_duplicate_mapping(world: &mut super::fixture::IdentityWorld, subject: 
             )));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -332,7 +338,9 @@ fn append_duplicate_mapping(world: &mut super::fixture::IdentityWorld, subject: 
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(batch);
+        transaction
+            .push_batch(batch)
+            .expect("test staging stays within configured resource budgets");
         let commit = transaction.commit(runtime).unwrap();
         let build = runtime
             .index_authority()
@@ -342,5 +350,6 @@ fn append_duplicate_mapping(world: &mut super::fixture::IdentityWorld, subject: 
                 index_ids: vec![layout.index_id],
             });
         assert!(build.failed_indexes.is_empty());
+        super::fixture::release_test_commit_snapshot(runtime, &commit);
     });
 }

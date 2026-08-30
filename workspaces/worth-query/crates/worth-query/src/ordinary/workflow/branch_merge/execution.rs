@@ -4,7 +4,8 @@ use crate::ordinary::workflow::{
 use crate::runtime::{WorthQueryMergeAuthorityValidationError, WorthQueryWorkspace};
 
 use super::{
-    WorthQueryBranchMergeAftermath, WorthQueryBranchMergeCompletion, WorthQueryBranchMergeDeferred,
+    WorthQueryBranchMergeAftermath, WorthQueryBranchMergeCompletion,
+    WorthQueryBranchMergeControlStopped, WorthQueryBranchMergeDeferred,
     WorthQueryBranchMergeOutcome, WorthQueryBranchMergeRequest,
     WorthQueryBranchMergeSettlementDeferred, WorthQueryBranchMergeStop,
     WorthQueryBranchMergeStopSource,
@@ -36,6 +37,40 @@ impl WorthQueryBranchMergeRequest {
                     counters,
                 ));
             }
+            Err(WorthQueryMergeAuthorityValidationError::RetentionBackpressure) => {
+                return WorthQueryBranchMergeOutcome::Deferred(WorthQueryBranchMergeDeferred::new(
+                    crate::effect_lifecycle::EffectExecutionDeferredKind::RetentionBackpressure,
+                    "branch-merge authority validation exhausted owner retention capacity"
+                        .to_owned(),
+                    counters,
+                ));
+            }
+            Err(WorthQueryMergeAuthorityValidationError::RetentionIdentityExhausted) => {
+                return WorthQueryBranchMergeOutcome::Stopped(
+                    WorthQueryBranchMergeStop::from_execution_denial(
+                        crate::runtime::WorthQueryOrdinaryMergeFailureStage::Basis,
+                        Some(
+                            crate::effect_lifecycle::EffectExecutionDenialKind::TransactionRetentionIdentityExhausted,
+                        ),
+                        "branch-merge authority validation exhausted retention identity"
+                            .to_owned(),
+                        counters,
+                    ),
+                );
+            }
+            Err(WorthQueryMergeAuthorityValidationError::SnapshotIdentityExhausted) => {
+                return WorthQueryBranchMergeOutcome::Stopped(
+                    WorthQueryBranchMergeStop::from_execution_denial(
+                        crate::runtime::WorthQueryOrdinaryMergeFailureStage::Basis,
+                        Some(
+                            crate::effect_lifecycle::EffectExecutionDenialKind::SnapshotIdentityExhausted,
+                        ),
+                        "branch-merge authority validation exhausted snapshot identity"
+                            .to_owned(),
+                        counters,
+                    ),
+                );
+            }
         };
         let materialize_inspection = self
             .declaration
@@ -57,17 +92,34 @@ impl WorthQueryBranchMergeRequest {
             materialize_inspection,
         ) {
             Ok(execution) => execution,
-            Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::Deferred { message }) => {
+            Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::Deferred {
+                kind,
+                message,
+            }) => {
                 return WorthQueryBranchMergeOutcome::Deferred(WorthQueryBranchMergeDeferred::new(
-                    message, counters,
+                    kind, message, counters,
                 ));
             }
             Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::Denied {
                 stage,
+                effect_kind,
                 message,
             }) => {
                 return WorthQueryBranchMergeOutcome::Stopped(
-                    WorthQueryBranchMergeStop::from_execution_denial(stage, message, counters),
+                    WorthQueryBranchMergeStop::from_execution_denial(
+                        stage,
+                        effect_kind,
+                        message,
+                        counters,
+                    ),
+                );
+            }
+            Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::ControlStopped {
+                kind,
+                message,
+            }) => {
+                return WorthQueryBranchMergeOutcome::ControlStopped(
+                    WorthQueryBranchMergeControlStopped::new(kind, message, counters),
                 );
             }
             Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::SettlementDeferred {

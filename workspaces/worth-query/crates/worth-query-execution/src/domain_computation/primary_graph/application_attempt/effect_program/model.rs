@@ -7,6 +7,9 @@ use worth_foundational::facade::{AspectFieldLocator, AspectValue, PortableAspect
 use worth_query_declaration::facade::application_schema::{
     ApplicationEffectPayload, ApplicationExternalEffectPayload,
 };
+use worth_query_declaration::facade::portable_identity::{
+    WorthQueryPortableType, WorthQueryPortableTypeIdentity,
+};
 use worth_relational::facade::identity::{EntityId, KindId, RelationId};
 use worth_relational::facade::transactions::EntityReference;
 
@@ -16,7 +19,7 @@ use super::super::WorthQueryProjectedApplicationMutation;
 #[derive(Clone)]
 pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationEmission {
     effect: &'static str,
-    payload_type: &'static str,
+    payload_type: WorthQueryPortableTypeIdentity,
     payload_type_id: TypeId,
     payload: Arc<dyn Any + Send + Sync>,
     retained_bytes: u64,
@@ -36,12 +39,12 @@ impl WorthQueryApplicationEmission {
         payload: Payload,
     ) -> Self
     where
-        Payload: ApplicationEffectPayload,
+        Payload: ApplicationEffectPayload + WorthQueryPortableType,
     {
         let retained_bytes = payload.retained_bytes();
         Self {
             effect,
-            payload_type: std::any::type_name::<Payload>(),
+            payload_type: Payload::PORTABLE_TYPE_IDENTITY,
             payload_type_id: TypeId::of::<Payload>(),
             payload: Arc::new(payload),
             retained_bytes,
@@ -55,7 +58,7 @@ impl WorthQueryApplicationEmission {
         payload: Payload,
     ) -> Result<Self, ()>
     where
-        Payload: ApplicationExternalEffectPayload,
+        Payload: ApplicationExternalEffectPayload + WorthQueryPortableType,
     {
         let bytes = payload.external_effect_bytes();
         let encoded_len = u64::try_from(bytes.len()).map_err(|_| ())?;
@@ -75,7 +78,7 @@ impl WorthQueryApplicationEmission {
     ) -> Self {
         Self {
             effect: derived.effect(),
-            payload_type: derived.payload_type(),
+            payload_type: derived.payload_identity(),
             payload_type_id: derived.payload_type_id(),
             payload: derived.payload(),
             retained_bytes: derived.retained_bytes(),
@@ -89,7 +92,7 @@ impl WorthQueryApplicationEmission {
         derived: &worth_query_declaration::lifecycle_effect_derivation_authority::DerivedApplicationCapabilityLifecycleEffect,
     ) -> bool {
         self.effect == derived.effect()
-            && self.payload_type == derived.payload_type()
+            && self.payload_type == derived.payload_identity()
             && self.payload_type_id == derived.payload_type_id()
             && self.retained_bytes == derived.retained_bytes()
             && derived.payload_is(&self.payload)
@@ -98,7 +101,7 @@ impl WorthQueryApplicationEmission {
 
     pub(in crate::domain_computation::primary_graph) fn is_well_formed(&self) -> bool {
         !self.effect.is_empty()
-            && !self.payload_type.is_empty()
+            && self.payload_type.is_valid()
             && self.payload_type_id == self.payload.as_ref().type_id()
             && (self.measure_retained_bytes)(self.payload.as_ref()) == Some(self.retained_bytes)
     }
@@ -202,7 +205,7 @@ impl WorthQueryAdmittedApplicationEmissionBatch {
             return Ok(None);
         };
         let mut matching = self.emissions.iter().filter(|emission| {
-            emission.effect == effect && emission.payload_type == rust_payload_type
+            emission.effect == effect && emission.payload_type == *rust_payload_type
         });
         let emission = matching
             .next()

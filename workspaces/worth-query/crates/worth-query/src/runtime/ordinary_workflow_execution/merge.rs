@@ -26,10 +26,16 @@ pub(crate) enum WorthQueryOrdinaryMergeFailureStage {
 
 pub(crate) enum WorthQueryOrdinaryMergeExecutionError {
     Deferred {
+        kind: crate::effect_lifecycle::EffectExecutionDeferredKind,
         message: String,
     },
     Denied {
         stage: WorthQueryOrdinaryMergeFailureStage,
+        effect_kind: Option<crate::effect_lifecycle::EffectExecutionDenialKind>,
+        message: String,
+    },
+    ControlStopped {
+        kind: crate::effect_lifecycle::EffectExecutionControlStopKind,
         message: String,
     },
     SettlementDeferred {
@@ -42,6 +48,7 @@ impl WorthQueryOrdinaryMergeExecutionError {
     fn new(stage: WorthQueryOrdinaryMergeFailureStage, message: impl Into<String>) -> Self {
         Self::Denied {
             stage,
+            effect_kind: None,
             message: message.into(),
         }
     }
@@ -50,15 +57,21 @@ impl WorthQueryOrdinaryMergeExecutionError {
         failure: crate::effect_lifecycle::RelationalEffectExecutionFailure,
     ) -> Self {
         match failure {
-            crate::effect_lifecycle::RelationalEffectExecutionFailure::Deferred { message } => {
-                Self::Deferred { message }
-            }
+            crate::effect_lifecycle::RelationalEffectExecutionFailure::Deferred {
+                kind,
+                message,
+            } => Self::Deferred { kind, message },
             crate::effect_lifecycle::RelationalEffectExecutionFailure::Denied { kind, message } => {
                 Self::Denied {
                     stage: WorthQueryOrdinaryMergeFailureStage::RelationalExecution,
+                    effect_kind: Some(kind),
                     message: format!("{}: {message}", kind.as_str()),
                 }
             }
+            crate::effect_lifecycle::RelationalEffectExecutionFailure::ControlStopped {
+                kind,
+                message,
+            } => Self::ControlStopped { kind, message },
             crate::effect_lifecycle::RelationalEffectExecutionFailure::SettlementDeferred(
                 deferred,
             ) => {
@@ -172,9 +185,14 @@ impl WorthQueryRuntime {
             .backend
             .execute_query_merge(merge_authority, &declaration)
             .map_err(WorthQueryOrdinaryMergeExecutionError::from_relational)?;
-        let receipt =
-            ExecutedEffectPlan::new(lowered, ExecutedEffectAuthorityArtifact::Merge(outcome), 1)
-                .receipt();
+        let executed =
+            ExecutedEffectPlan::new(lowered, ExecutedEffectAuthorityArtifact::Merge(outcome), 1);
+        let receipt = executed.receipt();
+        self.backend.release_query_merge_snapshot(
+            executed
+                .published_snapshot()
+                .expect("ordinary relational merge publishes one exact snapshot"),
+        );
         let diagnostics = materialize_inspection
             .then(|| receipt.materialize_diagnostics(EffectDiagnosticsRequest::forensic()));
         Ok(WorthQueryLowerRuntimeMergeExecution {

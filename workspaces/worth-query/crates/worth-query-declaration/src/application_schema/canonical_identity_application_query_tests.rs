@@ -3,18 +3,19 @@ use crate::{
         ApplicationQueryBasisSupport, ApplicationQueryCardinality,
         ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
         ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
-        ApplicationQueryReference, ApplicationQueryResultRelationRef,
-        ApplicationQueryResultShapeBuilder, ExactlyOneResult, ForwardResultTraversal, ManyResults,
-        OptionalOneResult,
+        ApplicationQueryResultRelationRef, ApplicationQueryResultShapeBuilder, ExactlyOneResult,
+        ForwardResultTraversal, ManyResults, OptionalOneResult,
     },
     application_schema::{ApplicationEntityRef, ApplicationRelationRef, ApplicationSchemaMember},
 };
 
-use super::{identity, QueryEntity, QueryMarker, QueryParameters, QueryResult, QuerySchema};
+use super::{identity, QueryEntity, QueryMarker, QueryResult, QuerySchema};
 
 struct QueryChild;
 struct QueryRelation;
 struct QueryChildSlot;
+
+worth_query_portable_type!(QueryChildSlot => "worth.query.test.canonical-query-child-slot.v1");
 
 #[test]
 fn nested_relation_cardinality_changes_schema_identity() {
@@ -96,14 +97,7 @@ fn application_query_with_relation(
         ),
     }
     .build();
-    let definition =
-        ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
-            QuerySchema,
-            QueryMarker,
-            QueryParameters,
-            QueryResult,
-            QueryEntity,
-        >::from_schema_identifier("query"))
+    let definition = ApplicationQueryDefinitionBuilder::declare(QueryMarker::reference())
         .root(entity)
         .scope(entity)
         .result_shape(shape)

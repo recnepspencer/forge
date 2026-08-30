@@ -17,7 +17,7 @@ pub(super) struct RestoredBranchRootImages {
 }
 
 pub(super) fn restore_branch_root_images(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     checkpoint: &DurableCheckpoint,
 ) -> Result<RestoredBranchRootImages, DurabilityError> {
     let mut schema_catalog = RootSchemaReadmissionCatalog::readmit(checkpoint)?;

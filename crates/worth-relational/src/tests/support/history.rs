@@ -9,6 +9,23 @@ use crate::visibility::materialization::read_records::{
     entity_query_locus_comparison_key, relation_query_locus_comparison_key,
 };
 
+pub(crate) fn install_empty_test_branch(runtime: &RelationalRuntime, branch_id: BranchId) {
+    let cell = crate::branch::RelationalBranchReferenceCell::empty(
+        runtime.runtime_instance_id(),
+        branch_id.clone(),
+    )
+    .expect("test empty branch identity is valid");
+    runtime.history.insert_branch_cell(cell);
+    let root = crate::branch::RelationalBranchRoot::empty_with_schema(
+        &runtime.config().schema.registry,
+        crate::schema::data::runtime_descriptor_semantics_policy().current_write_version(),
+    );
+    runtime
+        .history
+        .install_branch_root(&branch_id, root)
+        .expect("test retention owner admits the empty branch head");
+}
+
 pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<String> {
     read_entity_field(record, field_key("name"))
 }

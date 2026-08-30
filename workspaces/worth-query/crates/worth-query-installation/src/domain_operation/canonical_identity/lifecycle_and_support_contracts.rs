@@ -1,50 +1,50 @@
-use sha2::{Digest, Sha256};
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 
-use super::{bool_name, hash_sequence};
+use super::{bool_name, hash_sequence, WorthQueryDomainOperationCanonicalSemantics};
 use crate::domain_operation::*;
 
 pub(super) fn hash_lifecycle_and_support_contracts(
-    hasher: &mut Sha256,
-    semantics: &WorthQueryDomainOperationSemanticClosure,
+    hasher: &mut impl CanonicalHashSink,
+    semantics: &impl WorthQueryDomainOperationCanonicalSemantics,
 ) {
-    hash_text_field(hasher, "replay", &replay_name(semantics.replay));
-    hash_aftermath(hasher, semantics.aftermath.as_ref());
-    hash_text_field(hasher, "lineage", lineage_name(semantics.lineage));
-    hash_text_field(hasher, "promotion", promotion_name(semantics.promotion));
-    hash_publication(hasher, &semantics.publication);
+    hash_replay(hasher, semantics.replay());
+    hash_aftermath(hasher, semantics.aftermath());
+    hash_text_field(hasher, "lineage", lineage_name(semantics.lineage()));
+    hash_text_field(hasher, "promotion", promotion_name(semantics.promotion()));
+    hash_publication(hasher, semantics.publication());
     hash_text_field(
         hasher,
         "projection-consumption",
-        match semantics.projection_consumption {
+        match semantics.projection_consumption() {
             WorthQueryOperationProjectionConsumptionContract::NotRequired => "not-required",
             WorthQueryOperationProjectionConsumptionContract::QueryReadAuthority => {
                 "query-read-authority"
             }
         },
     );
-    hash_terminal(hasher, &semantics.terminal);
-    hash_cost(hasher, semantics.cost);
-    hash_support(hasher, semantics.support);
-    hash_text_field(hasher, "lowering-family", &semantics.lowering.family);
+    hash_terminal(hasher, semantics.terminal());
+    hash_cost(hasher, semantics.cost());
+    hash_support(hasher, semantics.support());
+    hash_text_field(hasher, "lowering-family", &semantics.lowering().family);
     hash_text_field(
         hasher,
         "lowering-deterministic",
-        bool_name(semantics.lowering.deterministic),
+        bool_name(semantics.lowering().deterministic),
     );
 }
 
 fn hash_aftermath(
-    hasher: &mut Sha256,
+    hasher: &mut impl CanonicalHashSink,
     contract: Option<&crate::application_aftermath::WorthQueryInstalledAftermathContract>,
 ) {
     match contract {
         None => hash_text_field(hasher, "aftermath", "none"),
         Some(contract) => {
             hash_text_field(hasher, "aftermath", "installed");
-            hasher.update(32u64.to_le_bytes());
-            hasher.update(contract.identity().bytes());
+            hasher.write(&32u64.to_le_bytes());
+            hasher.write(contract.identity().bytes());
             hash_text_field(hasher, "aftermath-operation", contract.operation_slot());
             hash_text_field(
                 hasher,
@@ -68,7 +68,10 @@ fn hash_aftermath(
     }
 }
 
-fn hash_publication(hasher: &mut Sha256, contract: &WorthQueryOperationPublicationContract) {
+fn hash_publication(
+    hasher: &mut impl CanonicalHashSink,
+    contract: &WorthQueryOperationPublicationContract,
+) {
     match contract {
         WorthQueryOperationPublicationContract::NotRequired => {
             hash_text_field(hasher, "publication", "not-required");
@@ -80,7 +83,10 @@ fn hash_publication(hasher: &mut Sha256, contract: &WorthQueryOperationPublicati
     }
 }
 
-fn hash_terminal(hasher: &mut Sha256, contract: &WorthQueryOperationTerminalContract) {
+fn hash_terminal(
+    hasher: &mut impl CanonicalHashSink,
+    contract: &WorthQueryOperationTerminalContract,
+) {
     hash_sequence(
         hasher,
         "result-state",
@@ -100,7 +106,7 @@ fn hash_terminal(hasher: &mut Sha256, contract: &WorthQueryOperationTerminalCont
     }
 }
 
-fn hash_cost(hasher: &mut Sha256, contract: WorthQueryOperationCostContract) {
+fn hash_cost(hasher: &mut impl CanonicalHashSink, contract: WorthQueryOperationCostContract) {
     hash_text_field(hasher, "lookup-cost", cost_name(contract.lookup));
     hash_text_field(hasher, "execution-cost", cost_name(contract.execution));
     hash_text_field(
@@ -110,7 +116,10 @@ fn hash_cost(hasher: &mut Sha256, contract: WorthQueryOperationCostContract) {
     );
 }
 
-fn hash_support(hasher: &mut Sha256, support: WorthQueryOperationSupportRequirements) {
+fn hash_support(
+    hasher: &mut impl CanonicalHashSink,
+    support: WorthQueryOperationSupportRequirements,
+) {
     for (dimension, requirement) in [
         ("live", support.live),
         ("continuation", support.continuation),
@@ -134,20 +143,26 @@ fn hash_support(hasher: &mut Sha256, support: WorthQueryOperationSupportRequirem
     }
 }
 
-fn replay_name(posture: WorthQueryOperationReplayContract) -> String {
+fn hash_replay(hasher: &mut impl CanonicalHashSink, posture: &WorthQueryOperationReplayContract) {
     match posture {
-        WorthQueryOperationReplayContract::NotSupported => "not-supported".into(),
-        WorthQueryOperationReplayContract::ReExecutable => "re-executable".into(),
+        WorthQueryOperationReplayContract::NotSupported => {
+            hash_text_field(hasher, "replay", "not-supported");
+        }
+        WorthQueryOperationReplayContract::ReExecutable => {
+            hash_text_field(hasher, "replay", "re-executable");
+        }
         WorthQueryOperationReplayContract::CertReplayable { comparator } => {
-            format!("cert-replayable:{}", comparator.family)
+            hash_text_field(hasher, "replay", "cert-replayable");
+            hash_text_field(hasher, "replay-comparator-family", comparator.family());
         }
         WorthQueryOperationReplayContract::CertReplayableWithNoise { comparator, noise } => {
-            let posture = if noise.diagnostic_warnings {
-                "diagnostic-noise"
-            } else {
-                "strict"
-            };
-            format!("cert-replayable:{posture}:{}", comparator.family)
+            hash_text_field(hasher, "replay", "cert-replayable-with-noise");
+            hash_text_field(hasher, "replay-comparator-family", comparator.family());
+            hash_text_field(
+                hasher,
+                "replay-diagnostic-warnings",
+                bool_name(noise.diagnostic_warnings),
+            );
         }
     }
 }

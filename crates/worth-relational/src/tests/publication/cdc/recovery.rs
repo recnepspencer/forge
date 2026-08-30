@@ -2,10 +2,10 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_recovers_from_durable_canonical_envelopes_when_checkpoint_is_not_in_memory() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "a");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "a");
     runtime.durability_authority().checkpoint().unwrap();
-    let _second = create_entity_outcome(&mut runtime, "b");
+    let _second = create_entity_outcome(&runtime, "b");
 
     assert!(runtime
         .history_authority()
@@ -35,10 +35,10 @@ fn subscriber_stream_recovers_from_durable_canonical_envelopes_when_checkpoint_i
 #[test]
 fn subscriber_stream_reports_durable_latest_available_checkpoint_when_latest_head_is_not_in_memory()
 {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "a");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "a");
     runtime.durability_authority().checkpoint().unwrap();
-    let second = create_entity_outcome(&mut runtime, "b");
+    let second = create_entity_outcome(&runtime, "b");
     runtime.durability_authority().checkpoint().unwrap();
 
     assert!(runtime

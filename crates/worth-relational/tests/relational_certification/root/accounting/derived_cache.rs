@@ -18,7 +18,7 @@ use worth_relational::facade::transactions::planned_single_field_locator;
 #[test]
 fn populated_derived_index_cache_stays_outside_owner_authority_accounting() {
     let empty_cache_growth = empty_entity_field_cache_growth();
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let main_branch = BranchId("main".to_owned());
     let main_identity = world.runtime.main_branch_identity();
@@ -29,7 +29,7 @@ fn populated_derived_index_cache_stays_outside_owner_authority_accounting() {
         .expect("owner ledger observes the selected root directly");
     let before_sharing = world
         .runtime
-        .inspect_branch_sharing(std::slice::from_ref(&main_identity))
+        .observe_branch_sharing(std::slice::from_ref(&main_identity))
         .expect("sharing boundary observes the selected root");
 
     let index = world
@@ -67,7 +67,7 @@ fn populated_derived_index_cache_stays_outside_owner_authority_accounting() {
         .expect("owner ledger observes the populated optional cache");
     let after_sharing = world
         .runtime
-        .inspect_branch_sharing(std::slice::from_ref(&main_identity))
+        .observe_branch_sharing(std::slice::from_ref(&main_identity))
         .expect("sharing boundary observes the populated optional cache");
 
     assert_eq!(
@@ -88,6 +88,10 @@ fn populated_derived_index_cache_stays_outside_owner_authority_accounting() {
     assert_eq!(
         before_sharing.unique_physical_authoritative_bytes(),
         after_sharing.unique_physical_authoritative_bytes()
+    );
+    assert_eq!(
+        before_sharing.branch_metadata_bytes(),
+        after_sharing.branch_metadata_bytes()
     );
     assert!(
         after_sharing.unique_optional_cache_bytes() > before_sharing.unique_optional_cache_bytes()
@@ -117,14 +121,14 @@ fn populated_derived_index_cache_stays_outside_owner_authority_accounting() {
 }
 
 fn empty_entity_field_cache_growth() -> u64 {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let main_branch = BranchId("main".to_owned());
     let main_identity = world.runtime.main_branch_identity();
     let source_commit = head_for_supply_chain_branch(&world.runtime, &main_branch);
     let before = world
         .runtime
-        .inspect_branch_sharing(std::slice::from_ref(&main_identity))
+        .observe_branch_sharing(std::slice::from_ref(&main_identity))
         .expect("empty-cache baseline is inspectable")
         .unique_optional_cache_bytes();
     let index = world
@@ -156,7 +160,7 @@ fn empty_entity_field_cache_growth() -> u64 {
     ));
     world
         .runtime
-        .inspect_branch_sharing(std::slice::from_ref(&main_identity))
+        .observe_branch_sharing(std::slice::from_ref(&main_identity))
         .expect("empty derived generation is inspectable")
         .unique_optional_cache_bytes()
         .saturating_sub(before)

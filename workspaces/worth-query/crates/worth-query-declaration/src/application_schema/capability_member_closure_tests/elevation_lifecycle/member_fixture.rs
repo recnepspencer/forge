@@ -30,7 +30,10 @@ fn typed_field_member(entity: &str, aspect: &str, field: &str) -> ApplicationSch
         field: field.to_string(),
         presence: ApplicationFieldPresence::Required,
         scalar_family: ScalarAspectType::UInt64,
-        value_type: std::any::type_name::<u64>().to_string(),
+        value_type:
+            <u64 as crate::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY
+                .as_str()
+                .to_string(),
         unit: None,
         writable: false,
         equality_queryable: true,
@@ -39,14 +42,14 @@ fn typed_field_member(entity: &str, aspect: &str, field: &str) -> ApplicationSch
 
 pub(super) fn context_slot_member(
     slot: &str,
-    slot_type: &str,
+    slot_type: &'static str,
     entity: &str,
 ) -> ApplicationSchemaMember {
     ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
         context: "Context".to_string(),
-        context_type: std::any::type_name::<Context>().to_string(),
+        context_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared("Context"),
         slot: slot.to_string(),
-        slot_type: slot_type.to_string(),
+        slot_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(slot_type),
         entity: entity.to_string(),
     }
 }
@@ -54,6 +57,8 @@ pub(super) fn context_slot_member(
 pub(super) fn operation_member(operation: &str) -> ApplicationSchemaMember {
     ApplicationSchemaMember::Operation {
         operation: operation.to_string(),
-        input_type: std::any::type_name::<()>().to_string(),
+        input_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "worth.rust.unit",
+        ),
     }
 }

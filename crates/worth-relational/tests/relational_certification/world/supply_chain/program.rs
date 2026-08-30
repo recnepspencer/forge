@@ -9,7 +9,7 @@ use worth_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, FieldKey, InternedString,
 };
 use worth_relational::facade::identity::PartitionId;
-use worth_relational::facade::schema::RelationalSchemaRegistry;
+use worth_relational::facade::schema::{RelationalSchemaRegistry, SchemaVersionId};
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::AspectFieldPatch;
 use worth_relational::facade::transactions::{
@@ -20,6 +20,7 @@ use worth_relational::facade::transactions::{
 pub(crate) enum SupplyChainProgramError {
     Definition(DefinitionError),
     Schema(worth_relational::facade::schema::SchemaRegistryError),
+    UnsupportedSchemaVersion(super::SchemaVersion),
 }
 
 #[derive(Clone, Debug)]
@@ -37,7 +38,8 @@ impl CompiledSupplyChainProgram {
         let definition = definition
             .validate()
             .map_err(SupplyChainProgramError::Definition)?;
-        let schema_registry = schema_registry().map_err(SupplyChainProgramError::Schema)?;
+        let schema_registry =
+            schema_registry(SchemaVersionId(1)).map_err(SupplyChainProgramError::Schema)?;
         let entity_specs = definition
             .entities
             .iter()
@@ -70,6 +72,20 @@ impl CompiledSupplyChainProgram {
 
     pub(crate) fn schema_registry(&self) -> &RelationalSchemaRegistry {
         &self.schema_registry
+    }
+
+    pub(crate) fn schema_registry_for_version(
+        &self,
+        version: super::SchemaVersion,
+    ) -> Result<RelationalSchemaRegistry, SupplyChainProgramError> {
+        let version = if version == super::SchemaVersion::V1 {
+            SchemaVersionId(1)
+        } else if version == super::SchemaVersion::V2 {
+            SchemaVersionId(2)
+        } else {
+            return Err(SupplyChainProgramError::UnsupportedSchemaVersion(version));
+        };
+        schema_registry(version).map_err(SupplyChainProgramError::Schema)
     }
 
     pub(crate) fn entity_specs(&self) -> &[EntitySpec] {

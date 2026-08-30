@@ -11,18 +11,18 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
         CascadeDeletePolicy::CascadeDeleteRelations,
         endpoint_kind_integrity_declarations(),
     );
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema)
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
     let checkpoint = checkpoint_for_schema_version(
         runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    let savepoint = txn.create_savepoint();
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    let savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("illegal-self-edge").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -34,7 +34,8 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("surviving-edge").push(MutationIntent::Create(
@@ -47,8 +48,9 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(rollback.has_effects());
     assert_patch_omits_detail(&outcome, "illegal");
@@ -69,26 +71,27 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
         CascadeDeletePolicy::RetainDanglingForAudit,
         endpoint_deletion_integrity_declarations(),
     );
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema)
         .cascade_delete_policy(CascadeDeletePolicy::RetainDanglingForAudit)
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "live");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "live");
     let relation = changed_relations(&relation_outcome)[0];
     let checkpoint = checkpoint_for_schema_version(
         runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    let savepoint = txn.create_savepoint();
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    let savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(WorkerIntentBatch::new("rolled-back-delete-source").push(
         MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
             entity_id: source,
         })),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("surviving-update").push(MutationIntent::Entity(
@@ -101,8 +104,9 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
                 ),
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(rollback.has_effects());
     assert_patch_omits_detail(&outcome, "RetainedDanglingForAudit");

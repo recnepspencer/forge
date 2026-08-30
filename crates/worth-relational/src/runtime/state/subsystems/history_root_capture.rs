@@ -43,7 +43,7 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn readmit_branch_root(
-        &mut self,
+        &self,
         partitions: &BTreeMap<
             crate::identity::data::PartitionId,
             crate::storage::overlay::PartitionState,
@@ -54,20 +54,12 @@ impl HistorySubsystem {
         symbols: &crate::symbols::data::StringInterner,
     ) -> Result<Arc<RelationalBranchRoot>, RelationalBranchRootCaptureDenial> {
         RelationalBranchRoot::readmit(
-            &mut self.root_identity_issuer,
+            &self.root_identity_issuer,
             partitions,
             envelope,
             descriptor,
             schema_authority,
             symbols,
         )
-    }
-
-    pub(crate) fn validate_branch_root_capture(
-        &self,
-        touched_regions: usize,
-    ) -> Result<(), RelationalBranchRootCaptureDenial> {
-        self.root_identity_issuer
-            .validate_capture_capacity(touched_regions)
     }
 }

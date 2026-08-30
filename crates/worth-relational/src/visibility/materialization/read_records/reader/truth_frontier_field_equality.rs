@@ -30,7 +30,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Result<BoundedFrontierFieldEqualityTruthRead, FrontierFieldEqualityTruthReadLimitExceeded>
     {
         let expected = AuthoritativeFieldComparisonKey::from_aspect_value(expected);
-        let state = self.runtime.storage_access().current_state();
+        let state = self.runtime.storage_access().current_edition();
         let mut matching_entity_ids = BTreeSet::new();
         let mut entity_records_examined = 0_usize;
         for entity_id in entity_ids {

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::world::supply_chain::{assert_oracle_matches, certified_supply_chain_world};
 use super::world::supply_chain::{
-    commit_branch_batch, lower_phase5_production_delta, DeltaId, SupplyChainScale,
+    commit_branch_batch, lower_supply_chain_production_delta, DeltaId, SupplyChainScale,
 };
 use worth_relational::facade::branch::RelationalBranchIdentity;
 use worth_relational::facade::history::BranchId;
@@ -18,7 +18,7 @@ fn phase5_persistent_radix_paths_retain_untouched_owner_allocations() {
     const RADIX_NODES_PER_PATH: u64 = 33;
     const EXPECTED_NEW_RADIX_NODES: u64 = EXPECTED_TOUCHED_REGIONS * RADIX_NODES_PER_PATH;
 
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let branch_id = BranchId("storm".to_owned());
     let (_, source) = world
@@ -35,8 +35,8 @@ fn phase5_persistent_radix_paths_retain_untouched_owner_allocations() {
         .expect("fork identity is owner issued");
     let baseline_nodes = persistent_node_locators(&world.runtime, &identity);
     let mutation_scope = RelationalMvccCostScope::capture(&world.runtime, vec![identity.clone()]);
-    let batch = lower_phase5_production_delta(
-        &mut world.runtime,
+    let batch = lower_supply_chain_production_delta(
+        &world.runtime,
         &world.program,
         &world.handles,
         &branch_id,
@@ -44,7 +44,7 @@ fn phase5_persistent_radix_paths_retain_untouched_owner_allocations() {
         DeltaId::StormRerouteAurora,
     )
     .expect("storm delta lowers through production intent");
-    commit_branch_batch(&mut world.runtime, branch_id.clone(), batch);
+    commit_branch_batch(&world.runtime, branch_id.clone(), batch);
 
     let after_mutation = persistent_node_locators(&world.runtime, &identity);
     let mutation_cost = world
@@ -81,7 +81,7 @@ fn phase5_persistent_radix_paths_retain_untouched_owner_allocations() {
     let before_noop = after_mutation;
     let noop_scope = RelationalMvccCostScope::capture(&world.runtime, vec![identity.clone()]);
     commit_branch_batch(
-        &mut world.runtime,
+        &world.runtime,
         branch_id,
         WorkerIntentBatch::new("phase5-persistent-path-noop"),
     );

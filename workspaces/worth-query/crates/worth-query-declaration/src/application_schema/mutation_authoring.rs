@@ -14,6 +14,7 @@ use super::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
     ApplicationSchemaBindingIdentity,
 };
+use crate::portable_identity::WorthQueryPortableType;
 
 pub struct TypedOperationBuilder<Schema, Operation, Input> {
     operation: &'static str,
@@ -22,7 +23,10 @@ pub struct TypedOperationBuilder<Schema, Operation, Input> {
     _marker: PhantomData<fn(Input) -> (Schema, Operation)>,
 }
 
-impl<Schema, Operation, Input> TypedOperationBuilder<Schema, Operation, Input> {
+impl<Schema, Operation: 'static, Input> TypedOperationBuilder<Schema, Operation, Input>
+where
+    Input: WorthQueryPortableType + 'static,
+{
     pub fn new(operation: ApplicationOperationRef<Schema, Operation, Input>) -> Self {
         Self {
             operation: operation.name(),
@@ -35,7 +39,7 @@ impl<Schema, Operation, Input> TypedOperationBuilder<Schema, Operation, Input> {
     #[doc(hidden)]
     pub fn with_installed_context(mut self, context: ApplicationSchemaAuthoringContext) -> Self {
         self.denial = context
-            .admit_operation(self.operation, std::any::type_name::<Input>())
+            .admit_operation::<Operation, Input>(self.operation, Input::PORTABLE_TYPE_IDENTITY)
             .err();
         self.context = Some(context);
         self

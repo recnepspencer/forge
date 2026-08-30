@@ -22,6 +22,14 @@ pub struct PrimarySequenceSlot;
 pub struct SecondarySequenceSlot;
 pub struct AllSequenceSlot;
 pub struct ReverseSequenceSlot;
+worth_query_declaration::worth_query_portable_type!(PrimaryActivitySlot => "worth.query.test.execution.nested.primary_activity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(SecondaryActivitySlot => "worth.query.test.execution.nested.secondary_activity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(AllActivitySlot => "worth.query.test.execution.nested.all_activity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ReverseActivitySlot => "worth.query.test.execution.nested.reverse_activity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(PrimarySequenceSlot => "worth.query.test.execution.nested.primary_sequence_slot.v1");
+worth_query_declaration::worth_query_portable_type!(SecondarySequenceSlot => "worth.query.test.execution.nested.secondary_sequence_slot.v1");
+worth_query_declaration::worth_query_portable_type!(AllSequenceSlot => "worth.query.test.execution.nested.all_sequence_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ReverseSequenceSlot => "worth.query.test.execution.nested.reverse_sequence_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NestedAccountResult {
@@ -30,6 +38,7 @@ pub struct NestedAccountResult {
     all_sequences: Vec<u64>,
     reverse_sequences: Vec<u64>,
 }
+worth_query_declaration::worth_query_portable_type!(NestedAccountResult => "worth.query.test.execution.nested.result.v1");
 
 impl NestedAccountResult {
     pub(in crate::domain_computation::primary_graph::tests) const fn primary_sequence(
@@ -138,7 +147,9 @@ pub(super) fn nested_account_definition() -> ApplicationQueryDefinition<
         .unwrap()
 }
 
-fn nested_shape<Slot: 'static>(
+fn nested_shape<
+    Slot: worth_query_declaration::facade::portable_identity::WorthQueryPortableType,
+>(
     field: ApplicationQueryResultFieldRef<
         NestedAccountQuery,
         Slot,

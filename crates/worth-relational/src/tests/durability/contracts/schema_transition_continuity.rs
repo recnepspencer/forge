@@ -3,15 +3,17 @@ use super::*;
 #[test]
 fn durable_recovery_and_schema_mismatch_test() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let _baseline = create_entity_outcome(&mut runtime, "main-a");
+    let _baseline = create_entity_outcome(&runtime, "main-a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -29,8 +31,9 @@ fn durable_recovery_and_schema_mismatch_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("main-b"));
-    let transitioned = txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("main-b"))
+        .expect("test staging stays within configured resource budgets");
+    let transitioned = txn.commit(&runtime).unwrap();
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -64,7 +67,7 @@ fn durable_recovery_and_schema_mismatch_test() {
         })
         .build();
     let _outcome = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan.clone())
         .unwrap();
     let recovered_envelope = recovered
@@ -119,7 +122,7 @@ fn durable_recovery_and_schema_mismatch_test() {
     let mut mismatched = RelationalRuntimeApi::builder()
         .schema_registry(mismatched_registry)
         .build();
-    let error = mismatched.durability_authority().recover(plan).unwrap_err();
+    let error = mismatched.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
@@ -145,9 +148,9 @@ fn durable_recovery_and_schema_mismatch_test() {
 
 #[test]
 fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
-    let mut runtime =
+    let runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    create_entity_outcome(&mut runtime, "main-a");
+    create_entity_outcome(&runtime, "main-a");
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -186,7 +189,7 @@ fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
     let mut recovered = RelationalRuntimeApi::builder()
         .schema_registry(mismatched_registry)
         .build();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_ne!(expected_revision, mismatched_revision);
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
@@ -245,14 +248,14 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
         root_path: unique_test_store_path("worth-relational-relation-integrity-mismatch"),
         segment_commit_capacity: 2,
     };
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(base_registry)
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout.clone())
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    create_relation_outcome(&mut runtime, source, target, "guarded");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    create_relation_outcome(&runtime, source, target, "guarded");
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -300,7 +303,7 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout)
         .build();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(

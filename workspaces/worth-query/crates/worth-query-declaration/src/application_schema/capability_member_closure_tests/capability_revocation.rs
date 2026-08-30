@@ -9,6 +9,12 @@ use crate::application_schema::{
 struct RevocationOperation;
 struct Identity;
 
+impl ApplicationOperationMarkerIdentity for RevocationOperation {
+    type Schema = Schema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "Revoke";
+}
+
 #[test]
 fn revocation_operation_installs_without_application_owned_reads_or_effects() {
     assert_eq!(build_from_members(revocation_members(2)), Ok(()));
@@ -85,7 +91,7 @@ fn revoked_status_must_be_distinct_from_active_status() {
 fn one_operation_cannot_be_both_delegation_activation_and_revocation() {
     let contract = ApplicationCapabilityContractBuilder::new(
         ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
         ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
     .target(target_definition(false, false))
@@ -93,15 +99,11 @@ fn one_operation_cannot_be_both_delegation_activation_and_revocation() {
     .delegation(
         delegation_definition()
             .with_activation(ApplicationCapabilityDelegationActivationDefinition::new(
-                ApplicationOperationRef::<Schema, RevocationOperation, ()>::from_schema_identifier(
-                    "Revoke",
-                ),
+                ApplicationOperationRef::<Schema, RevocationOperation, ()>::from_declaration(),
                 binding::<Identity>("Identity"),
             ))
             .with_revocation(ApplicationCapabilityRevocationDefinition::new(
-                ApplicationOperationRef::<Schema, RevocationOperation, ()>::from_schema_identifier(
-                    "Revoke",
-                ),
+                ApplicationOperationRef::<Schema, RevocationOperation, ()>::from_declaration(),
                 binding::<Identity>("Identity"),
                 ApplicationCapabilityValueBinding::new(field::<Status>("Status"), 2_u64),
             )),
@@ -126,7 +128,9 @@ fn revocation_members_for(contract: ErasedContract) -> Vec<ApplicationSchemaMemb
     members.push(field_member("Identity"));
     members.push(ApplicationSchemaMember::Operation {
         operation: "Revoke".to_owned(),
-        input_type: std::any::type_name::<()>().to_owned(),
+        input_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "worth.rust.unit",
+        ),
     });
     members
 }
@@ -134,16 +138,14 @@ fn revocation_members_for(contract: ErasedContract) -> Vec<ApplicationSchemaMemb
 fn revocable_contract(revoked: u64) -> ErasedContract {
     ApplicationCapabilityContractBuilder::new(
         ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
         ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
     .target(target_definition(false, false))
     .constraints(constraint_definition())
     .delegation(delegation_definition().with_revocation(
         ApplicationCapabilityRevocationDefinition::new(
-            ApplicationOperationRef::<Schema, RevocationOperation, ()>::from_schema_identifier(
-                "Revoke",
-            ),
+            ApplicationOperationRef::<Schema, RevocationOperation, ()>::from_declaration(),
             binding::<Identity>("Identity"),
             ApplicationCapabilityValueBinding::new(field::<Status>("Status"), revoked),
         ),

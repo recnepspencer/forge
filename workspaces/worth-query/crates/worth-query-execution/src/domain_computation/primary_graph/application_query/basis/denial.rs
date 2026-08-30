@@ -4,6 +4,10 @@ pub enum WorthQueryApplicationPinnedBasisDenialKind {
     DeadlineExceeded,
     RuntimeSupportUnavailable,
     BasisUnavailable,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

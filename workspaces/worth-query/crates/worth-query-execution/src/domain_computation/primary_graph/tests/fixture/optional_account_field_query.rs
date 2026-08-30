@@ -19,6 +19,9 @@ use crate::domain_computation::primary_graph::{
 pub struct AccountSlot;
 pub struct NoteSlot;
 pub struct ScoreSlot;
+worth_query_declaration::worth_query_portable_type!(AccountSlot => "worth.query.test.execution.optional_account.account_slot.v1");
+worth_query_declaration::worth_query_portable_type!(NoteSlot => "worth.query.test.execution.optional_account.note_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ScoreSlot => "worth.query.test.execution.optional_account.score_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OptionalAccountFieldResult {
@@ -26,6 +29,7 @@ pub struct OptionalAccountFieldResult {
     note: Option<String>,
     score: Option<u64>,
 }
+worth_query_declaration::worth_query_portable_type!(OptionalAccountFieldResult => "worth.query.test.execution.optional_account.result.v1");
 
 impl OptionalAccountFieldResult {
     pub fn account(&self) -> &str {

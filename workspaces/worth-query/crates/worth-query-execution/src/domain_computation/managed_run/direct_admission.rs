@@ -71,6 +71,15 @@ impl WorthQueryManagedRunAdmission<'_> {
                     WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis => {
                         WorthQueryManagedDirectRunAdmissionFailureKind::RelationalBasis
                     }
+                    WorthQueryManagedLowerAdmissionFailureKind::RetentionCapacityExhausted => {
+                        WorthQueryManagedDirectRunAdmissionFailureKind::RetentionCapacityExhausted
+                    }
+                    WorthQueryManagedLowerAdmissionFailureKind::RetentionIdentityExhausted => {
+                        WorthQueryManagedDirectRunAdmissionFailureKind::RetentionIdentityExhausted
+                    }
+                    WorthQueryManagedLowerAdmissionFailureKind::SnapshotIdentityExhausted => {
+                        WorthQueryManagedDirectRunAdmissionFailureKind::SnapshotIdentityExhausted
+                    }
                     WorthQueryManagedLowerAdmissionFailureKind::BridgePlanning => {
                         WorthQueryManagedDirectRunAdmissionFailureKind::BridgePlanning
                     }

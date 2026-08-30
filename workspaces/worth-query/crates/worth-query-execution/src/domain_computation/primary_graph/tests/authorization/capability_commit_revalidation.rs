@@ -349,7 +349,7 @@ fn update_field(
         let fields = AspectFieldPatch::from(BTreeMap::from([(locator, value)]));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -358,10 +358,13 @@ fn update_field(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new(reason).push(MutationIntent::Entity(
-            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
-        )));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(WorkerIntentBatch::new(reason).push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
+            )))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        super::super::fixture::release_test_commit_snapshot(runtime, &committed);
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

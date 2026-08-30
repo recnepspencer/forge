@@ -84,6 +84,9 @@ worth_query_effect!(pub AccountActivityEffect(String) in IdentityExecutionSchema
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RetainedStatusNotice(pub String);
+worth_query_declaration::worth_query_portable_type!(
+    RetainedStatusNotice => "worth.query.test.retained-status-notice.v1"
+);
 
 impl ApplicationEffectPayload for RetainedStatusNotice {
     fn retained_bytes(&self) -> u64 {
@@ -109,6 +112,9 @@ worth_query_effect!(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MutationFreeNotice(pub String);
+worth_query_declaration::worth_query_portable_type!(
+    MutationFreeNotice => "worth.query.test.mutation-free-notice.v1"
+);
 
 impl ApplicationEffectPayload for MutationFreeNotice {
     fn retained_bytes(&self) -> u64 {
@@ -155,6 +161,31 @@ pub struct MutationFreeEmitInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PatchAccountDraftInput;
+
+worth_query_declaration::worth_query_portable_type!(
+    TouchAccountInput => "worth.query.test.touch-account-input.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    WrongFieldRetentionInput => "worth.query.test.wrong-field-retention-input.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    ExactStatusRetentionInput => "worth.query.test.exact-status-retention-input.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    MultiFieldRetentionInput => "worth.query.test.multi-field-retention-input.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    MultiTouchInput => "worth.query.test.multi-touch-input.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    ChangeOwnershipInput => "worth.query.test.change-ownership-input.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    MutationFreeEmitInput => "worth.query.test.mutation-free-emit-input.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    PatchAccountDraftInput => "worth.query.test.patch-account-draft-input.v1"
+);
 
 worth_query_operation!(
     pub TouchAccountOperation(TouchAccountInput) in IdentityExecutionSchema

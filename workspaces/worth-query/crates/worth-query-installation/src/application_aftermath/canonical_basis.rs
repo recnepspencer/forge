@@ -152,7 +152,7 @@ fn push_external_effect(
             builder.text("external-effect", "declared");
             builder.text("external-correlation", correlation_family.as_str());
             builder.text("external-emission", effect);
-            builder.text("external-rust-payload-type", rust_payload_type);
+            builder.text("external-rust-payload-type", rust_payload_type.as_str());
             builder.text("external-protocol-identity", protocol.identity().as_str());
             builder.u64(
                 "external-protocol-version",

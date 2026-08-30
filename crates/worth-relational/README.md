@@ -26,6 +26,9 @@ Start here:
 - [`QUICKSTART.md`](./QUICKSTART.md)
 - [`DAILY_WORKFLOWS.md`](./DAILY_WORKFLOWS.md)
 - [`API_OVERVIEW.md`](./API_OVERVIEW.md)
+- [`BRANCH_LOCAL_MVCC.md`](./BRANCH_LOCAL_MVCC.md)
+- [`OWNER_COMPONENT_PORT.md`](./OWNER_COMPONENT_PORT.md)
+- [`TESTING_WORLDS.md`](./TESTING_WORLDS.md)
 
 Examples:
 
@@ -34,6 +37,7 @@ Examples:
 - `cargo run -p worth-relational --example history_and_replay`
 - `cargo run -p worth-relational --example derived_indexes`
 - `cargo run -p worth-relational --example validation_and_durability`
+- `cargo run -p worth-relational --example branch_local_mvcc`
 
 ## Minimal shape
 
@@ -50,12 +54,12 @@ let mut runtime = RelationalRuntimeApi::builder()
     .build();
 
 let main = runtime.main_branch_identity();
-let basis = runtime.admit_branch_basis(&main)?;
+let (_descriptor, basis) = runtime.observe_branch(&main)?;
 let mut tx = runtime.begin_branch_transaction(
     &basis,
     RelationalTransactionIntent::ordinary(),
 )?;
-tx.push_batch(WorkerIntentBatch::new("example"));
+tx.push_batch(WorkerIntentBatch::new("example"))?;
 let _outcome = tx.commit(&mut runtime)?;
 
 let _truth = runtime.read_truth();
@@ -67,9 +71,10 @@ let _inspection = runtime.inspect_what_happened();
 ## Mental model
 
 - `RelationalRuntimeApi::builder()` is the setup door
-- transactions are the write-truth door
-- `read_truth()` is the current-truth door
-- `snapshots()` is the controlled-view door
+- an explicit identity plus owner-admitted basis is the branch-selection door
+- branch-bound transactions are the write-truth door
+- `read_truth()` is the explicitly current standalone-truth door
+- an exact observation plus `snapshots()` is the repeatable-view door
 - `inspect_what_happened()` and `publication()` are the readback doors
 - `history()` and `replay()` are the past-truth doors
 - `validation()`, `compiled_artifacts()`, `retention()`, `durability()`,
@@ -78,6 +83,10 @@ let _inspection = runtime.inspect_what_happened();
 If you find yourself reaching into crate internals instead of
 [`facade`](./src/facade.rs), you are probably leaving the intended public
 surface.
+
+The owner catalog, branch cells, roots, and retention accounting are currently
+memory-resident. Restart durability for this branch-owner model is deferred to
+Worth Store integration.
 
 ## Aspect-Precise Publication
 

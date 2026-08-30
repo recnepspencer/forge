@@ -1,3 +1,4 @@
+use crate::invariant_uniqueness_assertion::assert_unique_conflict;
 use std::collections::BTreeMap;
 
 use super::world::supply_chain::{
@@ -15,9 +16,8 @@ use worth_relational::facade::runtime::{
     RelationalRuntime,
 };
 use worth_relational::facade::transactions::{
-    planned_single_field_locator, AspectFieldPatch, CommitConflict, ConflictClass, CreateIntent,
-    EntitySpec, InvariantViolationFields, MutationIntent, TransactionCommitError,
-    WorkerIntentBatch,
+    planned_single_field_locator, AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
+    TransactionCommitError, WorkerIntentBatch,
 };
 use worth_relational::facade::{history::BranchId, identity::PartitionId, symbols::ClientKey};
 
@@ -38,7 +38,7 @@ fn global_uniqueness_uses_selected_branch_proposal_after_sibling_diverges() {
             ),
         )],
     };
-    let mut world = compile_supply_chain_baseline_with_invariant_catalog(program, catalog)
+    let world = compile_supply_chain_baseline_with_invariant_catalog(program, catalog)
         .expect("Court world with native uniqueness compiles");
     let main = BranchId("main".to_owned());
     let storm = BranchId("storm".to_owned());
@@ -74,24 +74,24 @@ fn global_uniqueness_uses_selected_branch_proposal_after_sibling_diverges() {
     )
     .expect("oracle accepts the independent storm vessel");
 
-    let main_commit = commit_vessel(&mut world.runtime, main.clone(), "main-only-vessel");
+    let main_commit = commit_vessel(&world.runtime, main.clone(), "main-only-vessel");
     assert!(main_commit.is_ok(), "main-only call sign is admissible");
     assert_unique_execution(main_commit.as_ref().expect("main commit"));
-    let main_values = vessel_call_signs(&mut world.runtime, &main);
-    let storm_before = vessel_call_signs(&mut world.runtime, &storm);
+    let main_values = vessel_call_signs(&world.runtime, &main);
+    let storm_before = vessel_call_signs(&world.runtime, &storm);
     assert_eq!(main_values, oracle_vessel_call_signs(&oracle_main));
     assert_eq!(storm_before, oracle_vessel_call_signs(&oracle_genesis));
 
     // A global-current-state mutant would see main's value here and reject this
     // legal child commit. The semantic oracle is independent of production
     // snapshots, indexes, and record identifiers.
-    let storm_commit = commit_vessel(&mut world.runtime, storm.clone(), "storm-only-vessel");
+    let storm_commit = commit_vessel(&world.runtime, storm.clone(), "storm-only-vessel");
     assert!(
         storm_commit.is_ok(),
         "child uniqueness must use the child root plus its proposal: {storm_commit:?}"
     );
     assert_unique_execution(storm_commit.as_ref().expect("storm commit"));
-    let storm_values = vessel_call_signs(&mut world.runtime, &storm);
+    let storm_values = vessel_call_signs(&world.runtime, &storm);
     assert_eq!(storm_values, oracle_vessel_call_signs(&oracle_storm));
     assert_eq!(main_values, oracle_vessel_call_signs(&oracle_main));
 }
@@ -111,12 +111,12 @@ fn global_uniqueness_rejects_duplicate_on_one_branch_without_residue() {
             ),
         )],
     };
-    let mut world = compile_supply_chain_baseline_with_invariant_catalog(program, catalog)
+    let world = compile_supply_chain_baseline_with_invariant_catalog(program, catalog)
         .expect("Court world with native uniqueness compiles");
     let main = BranchId("main".to_owned());
-    commit_vessel(&mut world.runtime, main.clone(), "first-vessel")
+    commit_vessel(&world.runtime, main.clone(), "first-vessel")
         .expect("first branch vessel commits");
-    let before_values = vessel_call_signs(&mut world.runtime, &main);
+    let before_values = vessel_call_signs(&world.runtime, &main);
     let before_branch = world
         .runtime
         .branch_reference_state(&main)
@@ -128,12 +128,12 @@ fn global_uniqueness_rejects_duplicate_on_one_branch_without_residue() {
         .expect("baseline has a latest commit")
         .version_id;
     let before_catalog = world.runtime.history().immutable_commit_count();
-    let before_snapshot = current_snapshot_version(&mut world.runtime, &main);
+    let before_snapshot = current_snapshot_version(&world.runtime, &main);
 
-    let duplicate = commit_vessel(&mut world.runtime, main.clone(), "duplicate-vessel");
+    let duplicate = commit_vessel(&world.runtime, main.clone(), "duplicate-vessel");
     assert_unique_conflict(duplicate.unwrap_err(), DIVERGENT_CALL_SIGN);
 
-    assert_eq!(vessel_call_signs(&mut world.runtime, &main), before_values);
+    assert_eq!(vessel_call_signs(&world.runtime, &main), before_values);
     assert_eq!(
         world
             .runtime
@@ -156,7 +156,7 @@ fn global_uniqueness_rejects_duplicate_on_one_branch_without_residue() {
         before_catalog
     );
     assert_eq!(
-        current_snapshot_version(&mut world.runtime, &main),
+        current_snapshot_version(&world.runtime, &main),
         before_snapshot
     );
 }
@@ -176,21 +176,21 @@ fn global_uniqueness_rejects_two_colliding_creates_in_one_proposal_without_resid
             ),
         )],
     };
-    let mut world = compile_supply_chain_baseline_with_invariant_catalog(program, catalog)
+    let world = compile_supply_chain_baseline_with_invariant_catalog(program, catalog)
         .expect("Court world with native uniqueness compiles");
     let main = BranchId("main".to_owned());
-    let before_values = vessel_call_signs(&mut world.runtime, &main);
+    let before_values = vessel_call_signs(&world.runtime, &main);
     let before_branch = world
         .runtime
         .branch_reference_state(&main)
         .expect("main branch reference is observable");
     let before_catalog = world.runtime.history().immutable_commit_count();
-    let before_snapshot = current_snapshot_version(&mut world.runtime, &main);
+    let before_snapshot = current_snapshot_version(&world.runtime, &main);
 
-    let duplicate = commit_two_vessels(&mut world.runtime, main.clone());
+    let duplicate = commit_two_vessels(&world.runtime, main.clone());
     assert_unique_conflict(duplicate.unwrap_err(), DIVERGENT_CALL_SIGN);
 
-    assert_eq!(vessel_call_signs(&mut world.runtime, &main), before_values);
+    assert_eq!(vessel_call_signs(&world.runtime, &main), before_values);
     assert_eq!(
         world
             .runtime
@@ -204,7 +204,7 @@ fn global_uniqueness_rejects_two_colliding_creates_in_one_proposal_without_resid
         before_catalog
     );
     assert_eq!(
-        current_snapshot_version(&mut world.runtime, &main),
+        current_snapshot_version(&world.runtime, &main),
         before_snapshot
     );
 }
@@ -234,7 +234,7 @@ fn semantic_uniqueness_oracle_rejects_duplicate_without_mutating_branch() {
 }
 
 fn commit_vessel(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: BranchId,
     client_key: &str,
 ) -> Result<worth_relational::facade::transactions::CommitResult, TransactionCommitError> {
@@ -255,7 +255,7 @@ fn commit_vessel(
 }
 
 fn commit_two_vessels(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: BranchId,
 ) -> Result<worth_relational::facade::transactions::CommitResult, TransactionCommitError> {
     let identity = runtime
@@ -279,16 +279,18 @@ fn push_vessel(
     transaction: &mut worth_relational::facade::mvcc::BranchBoundRelationalTransaction,
     client_key: &str,
 ) {
-    transaction.push_batch(
-        WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
-            EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: entity_kind_id(EntityKind::Vessel),
-                client_key: ClientKey::raw(client_key),
-                fields: vessel_fields(DIVERGENT_CALL_SIGN),
-            },
-        ))),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
+                EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: entity_kind_id(EntityKind::Vessel),
+                    client_key: ClientKey::raw(client_key),
+                    fields: vessel_fields(DIVERGENT_CALL_SIGN),
+                },
+            ))),
+        )
+        .unwrap();
 }
 
 fn vessel_fields(call_sign: &str) -> AspectFieldPatch {
@@ -320,7 +322,7 @@ fn insert_string(
     );
 }
 
-fn vessel_call_signs(runtime: &mut RelationalRuntime, branch: &BranchId) -> Vec<String> {
+fn vessel_call_signs(runtime: &RelationalRuntime, branch: &BranchId) -> Vec<String> {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
@@ -366,35 +368,11 @@ fn assert_unique_execution(commit: &worth_relational::facade::transactions::Comm
     assert!(observed, "commit must record native uniqueness execution");
 }
 
-fn current_snapshot_version(runtime: &mut RelationalRuntime, branch: &BranchId) -> u64 {
+fn current_snapshot_version(runtime: &RelationalRuntime, branch: &BranchId) -> u64 {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
     snapshot_for_supply_chain_identity(runtime, &identity)
         .version_id()
         .0
-}
-fn assert_unique_conflict(error: TransactionCommitError, value: &str) {
-    let TransactionCommitError::Conflict { error, .. } = error else {
-        panic!("expected invariant conflict, got {error:?}");
-    };
-    let CommitConflict { class, .. } = error;
-    let ConflictClass::InvariantViolation {
-        fields:
-            InvariantViolationFields::UniqueEntityField {
-                field_locator,
-                value: observed,
-            },
-        ..
-    } = class
-    else {
-        panic!("expected typed unique field conflict, got {class:?}");
-    };
-    let expected = planned_single_field_locator(
-        AspectKey::new("call_sign").expect("call-sign aspect"),
-        FieldKey::new("call_sign").expect("call-sign field"),
-    );
-    assert_eq!(field_locator, expected);
-    let expected_value = AspectValue::String(InternedString::Raw(value.into()));
-    assert_eq!(observed, expected_value);
 }

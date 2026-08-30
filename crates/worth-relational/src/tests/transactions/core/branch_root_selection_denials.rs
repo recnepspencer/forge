@@ -2,10 +2,10 @@ use crate::branch::{
     RelationalBranchBasisDenial, RelationalBranchRoot, SelectedRelationalBranchState,
 };
 use crate::facade::history::BranchId;
-use crate::tests::support::{create_entity_outcome, runtime_with_test_schema};
+use crate::tests::support::{create_entity, install_empty_test_branch, runtime_with_test_schema};
 
-fn committed_child(runtime: &mut crate::runtime::RelationalRuntime) -> BranchId {
-    create_entity_outcome(runtime, "root-selection-source");
+fn committed_child(runtime: &crate::runtime::RelationalRuntime) -> BranchId {
+    create_entity(runtime, "root-selection-source");
     let source = BranchId("main".to_owned());
     let (_, basis) = runtime
         .observe_fork_source(&source)
@@ -19,8 +19,8 @@ fn committed_child(runtime: &mut crate::runtime::RelationalRuntime) -> BranchId 
 
 #[test]
 fn unavailable_committed_root_denies_before_transaction_admission() {
-    let mut runtime = runtime_with_test_schema();
-    let child = committed_child(&mut runtime);
+    let runtime = runtime_with_test_schema();
+    let child = committed_child(&runtime);
     runtime
         .history
         .branch_cell_mut(&child)
@@ -29,8 +29,11 @@ fn unavailable_committed_root_denies_before_transaction_admission() {
     let symbols_before = runtime.services.symbols.clone();
     let symbol_table_before = runtime.config().identity.symbol_table.clone();
     let commit_count = runtime.history().immutable_commit_count();
+    let child_identity = runtime
+        .branch_identity(&child)
+        .expect("child identity remains owner-issued");
     let denial = runtime
-        .admit_named_branch_basis(&child)
+        .admit_branch_basis(&child_identity)
         .expect_err("a committed branch without its exact root cannot mint authority");
 
     assert_eq!(
@@ -44,16 +47,19 @@ fn unavailable_committed_root_denies_before_transaction_admission() {
 
 #[test]
 fn committed_root_reference_mismatch_denies_before_transaction_admission() {
-    let mut runtime = runtime_with_test_schema();
-    let child = committed_child(&mut runtime);
+    let runtime = runtime_with_test_schema();
+    let child = committed_child(&runtime);
     runtime
         .history
         .branch_cell_mut(&child)
         .expect("child remains registered")
         .install_root(RelationalBranchRoot::empty());
     let commit_count = runtime.history().immutable_commit_count();
+    let child_identity = runtime
+        .branch_identity(&child)
+        .expect("child identity remains owner-issued");
     let denial = runtime
-        .admit_named_branch_basis(&child)
+        .admit_branch_basis(&child_identity)
         .expect_err("a root that cannot satisfy the reference cannot mint authority");
 
     assert_eq!(
@@ -65,21 +71,17 @@ fn committed_root_reference_mismatch_denies_before_transaction_admission() {
 
 #[test]
 fn selected_state_shape_keeps_empty_and_committed_roots_distinct() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let empty = BranchId("root-selection-empty".to_owned());
-    runtime.history.insert_branch_cell(
-        crate::branch::RelationalBranchReferenceCell::empty(
-            runtime.runtime_instance_id(),
-            empty.clone(),
-        )
-        .expect("empty branch identity is valid"),
-    );
+    install_empty_test_branch(&runtime, empty.clone());
+    let empty_identity = runtime
+        .branch_identity(&empty)
+        .expect("empty identity remains owner-issued");
+    let empty_basis = runtime
+        .admit_branch_basis(&empty_identity)
+        .expect("empty basis");
     let empty_state = runtime
-        .selected_branch_state(
-            &runtime
-                .admit_named_branch_basis(&empty)
-                .expect("empty basis"),
-        )
+        .selected_branch_state(&empty_basis)
         .expect("empty state is selectable");
     assert!(matches!(
         empty_state,

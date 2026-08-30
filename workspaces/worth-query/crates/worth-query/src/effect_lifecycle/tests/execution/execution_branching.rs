@@ -85,7 +85,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after execution");
     assert_entity_name(updated, "authority-plan");
-    assert!(runtime.snapshots().release_snapshot(&snapshot));
+    assert!(runtime.snapshots().release_snapshot(&snapshot).is_ok());
 }
 
 #[test]
@@ -150,7 +150,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after stale denial");
     assert_entity_name(updated, "intervening");
-    assert!(runtime.snapshots().release_snapshot(&snapshot));
+    assert!(runtime.snapshots().release_snapshot(&snapshot).is_ok());
 }
 
 #[test]
@@ -215,8 +215,9 @@ fn create_entity(
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
     let mut txn = {
+        let identity = runtime.branch_identity(&branch).expect("branch identity");
         let transaction_validation_input = runtime
-            .admit_named_branch_basis(&branch)
+            .admit_branch_basis(&identity)
             .expect("branch binding");
         runtime
             .begin_branch_transaction(
@@ -235,16 +236,22 @@ fn create_entity(
                     .expect("entity name aspect patch"),
             }),
         )),
-    );
+    )
+    .expect("execution fixture staging fits its transaction budget");
     let outcome = txn.commit(runtime).expect("seed commit should succeed");
-    outcome
+    let entity = outcome
         .changed_records
         .iter()
         .find_map(|record| match record {
             RecordRef::Entity(entity_id) => Some(*entity_id),
             RecordRef::Relation(_) => None,
         })
-        .expect("seed commit should touch one entity")
+        .expect("seed commit should touch one entity");
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("execution fixture releases its exact published snapshot");
+    entity
 }
 
 fn update_entity_name(
@@ -254,8 +261,9 @@ fn update_entity_name(
     branch: BranchId,
 ) -> worth_relational::facade::history::CommitId {
     let mut txn = {
+        let identity = runtime.branch_identity(&branch).expect("branch identity");
         let transaction_validation_input = runtime
-            .admit_named_branch_basis(&branch)
+            .admit_branch_basis(&identity)
             .expect("branch binding");
         runtime
             .begin_branch_transaction(
@@ -272,12 +280,17 @@ fn update_entity_name(
                     .expect("entity name aspect patch"),
             }),
         )),
-    );
-    txn.commit(runtime)
-        .expect("intervening update should succeed")
-        .outcome()
-        .commit
-        .commit_id
+    )
+    .expect("execution fixture staging fits its transaction budget");
+    let outcome = txn
+        .commit(runtime)
+        .expect("intervening update should succeed");
+    let commit_id = outcome.outcome().commit.commit_id;
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("execution fixture releases its exact published snapshot");
+    commit_id
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {

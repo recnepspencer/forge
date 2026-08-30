@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
 
-use super::invariant_oracle_expectations::expected_phase5_branch;
+use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
     commit_branch_batch, compare, compile_supply_chain_baseline_with_custom_invariant,
-    head_for_supply_chain_branch, lower_phase5_production_delta, observe_supply_chain,
+    head_for_supply_chain_branch, lower_supply_chain_production_delta, observe_supply_chain,
     observe_supply_chain_snapshot, relation_kind_id, snapshot_for_supply_chain_identity,
     BranchLabel, CompiledSupplyChainProgram, DeltaId, EntityKind, RelationKind, SupplyChainScale,
     SupplyChainWorldDefinition,
@@ -38,7 +38,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
             .expect("Court Supply Chain definition is valid"),
     )
     .expect("Supply Chain program compiles");
-    let mut world = compile_supply_chain_baseline_with_custom_invariant(program, registration)
+    let world = compile_supply_chain_baseline_with_custom_invariant(program, registration)
         .expect("Court world compiles with the structural selection probe");
 
     let relation = world.handles.relations
@@ -54,7 +54,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
         .id;
     let baseline = observe_supply_chain(&world).expect("baseline remains observable");
     compare(
-        &expected_phase5_branch(&world.program, BranchLabel::Operating, None),
+        &expected_supply_chain_branch(&world.program, BranchLabel::Operating, None),
         &baseline,
     )
     .expect("production baseline matches the independent oracle");
@@ -72,7 +72,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
             .version_id;
 
     commit_branch_batch(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("main".to_owned()),
         WorkerIntentBatch::new("phase5-main-rewire-cargo-booking").push(MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -94,12 +94,12 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
 
     let child_before = observe_branch_snapshot(
         &world.program,
-        &mut world.runtime,
+        &world.runtime,
         &world.handles,
         "medical-hold",
     );
     let main_after =
-        observe_branch_snapshot(&world.program, &mut world.runtime, &world.handles, "main");
+        observe_branch_snapshot(&world.program, &world.runtime, &world.handles, "main");
     assert_eq!(
         child_before.relations
             [&super::world::supply_chain::RelationKey::new(RelationKind::CargoBookedOnVoyage, 0,)]
@@ -114,8 +114,8 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
     );
     assert_ne!(child_before.relations, main_after.relations);
 
-    let child_batch = lower_phase5_production_delta(
-        &mut world.runtime,
+    let child_batch = lower_supply_chain_production_delta(
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId("medical-hold".to_owned()),
@@ -124,19 +124,19 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
     )
     .expect("the child medical-hold delta lowers from its selected root");
     let child_commit = commit_branch_batch_result(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("medical-hold".to_owned()),
         child_batch,
     );
 
     let child_after = observe_branch_snapshot(
         &world.program,
-        &mut world.runtime,
+        &world.runtime,
         &world.handles,
         "medical-hold",
     );
     compare(
-        &expected_phase5_branch(
+        &expected_supply_chain_branch(
             &world.program,
             BranchLabel::MedicalHold,
             Some(DeltaId::HoldMedicalCargo),
@@ -188,7 +188,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
 
 fn observe_branch_snapshot(
     program: &CompiledSupplyChainProgram,
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     handles: &super::world::supply_chain::SupplyChainSemanticHandles,
     branch: &str,
 ) -> super::world::supply_chain::ObservedSupplyChainState {
@@ -206,7 +206,7 @@ fn observe_branch_snapshot(
 }
 
 fn commit_branch_batch_result(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: BranchId,
     batch: WorkerIntentBatch,
 ) -> worth_relational::facade::transactions::CommitResult {
@@ -222,7 +222,7 @@ fn commit_branch_batch_result(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(batch);
+    transaction.push_batch(batch).unwrap();
     transaction
         .commit(runtime)
         .expect("branch batch commits through production publication")

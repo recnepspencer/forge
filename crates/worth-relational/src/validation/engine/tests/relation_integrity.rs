@@ -23,7 +23,7 @@ fn engine_rejects_cross_partition_relations_under_partition_isolation_contracts(
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             Some(&plan),
             Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
@@ -84,7 +84,7 @@ fn engine_rejects_planned_cycles_under_acyclicity_contracts() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             Some(&plan),
             Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
@@ -117,20 +117,21 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
             max_scanned_relations: 16,
             max_planned_edges: 8,
         });
-    let a = create_entity_of_kind(&mut runtime, KindId(3), "a");
-    let b = create_entity_of_kind(&mut runtime, KindId(3), "b");
-    let c = create_entity_of_kind(&mut runtime, KindId(3), "c");
-    let d = create_entity_of_kind(&mut runtime, KindId(3), "d");
-    let e = create_entity_of_kind(&mut runtime, KindId(3), "e");
-    create_relation_of_kind(&mut runtime, KindId(2), a, b, "edge-ab");
-    create_relation_of_kind(&mut runtime, KindId(2), b, c, "edge-bc");
-    create_relation_of_kind(&mut runtime, KindId(2), c, d, "edge-cd");
-    create_relation_of_kind(&mut runtime, KindId(2), d, e, "edge-de");
-    runtime
-        .config
-        .execution
-        .relation_integrity_scope_budget
-        .max_scanned_relations = 2;
+    let a = create_entity_of_kind(&runtime, KindId(3), "a");
+    let b = create_entity_of_kind(&runtime, KindId(3), "b");
+    let c = create_entity_of_kind(&runtime, KindId(3), "c");
+    let d = create_entity_of_kind(&runtime, KindId(3), "d");
+    let e = create_entity_of_kind(&runtime, KindId(3), "e");
+    create_relation_of_kind(&runtime, KindId(2), a, b, "edge-ab");
+    create_relation_of_kind(&runtime, KindId(2), b, c, "edge-bc");
+    create_relation_of_kind(&runtime, KindId(2), c, d, "edge-cd");
+    create_relation_of_kind(&runtime, KindId(2), d, e, "edge-de");
+    runtime.configure_for_test(|config| {
+        config
+            .execution
+            .relation_integrity_scope_budget
+            .max_scanned_relations = 2
+    });
 
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(19),
@@ -171,8 +172,8 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
 
 #[test]
 fn commit_publication_stage_rejects_sources_without_required_connectivity() {
-    let mut runtime = runtime_with_acyclicity_and_connectivity();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_acyclicity_and_connectivity();
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("node-a").push(MutationIntent::Create(CreateIntent::Entity(
             EntitySpec {
@@ -182,10 +183,11 @@ fn commit_publication_stage_rejects_sources_without_required_connectivity() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("connectivity publication failure");
     match error {
         crate::facade::transactions::TransactionCommitError::Publication { error, .. } => {
@@ -198,29 +200,31 @@ fn commit_publication_stage_rejects_sources_without_required_connectivity() {
 
 #[test]
 fn minimum_cardinality_current_version_scans_only_live_slots() {
-    let mut runtime = runtime_with_cardinality_minimum();
-    let source = create_entity_of_kind(&mut runtime, KindId(1), "source");
-    let target = create_entity_of_kind(&mut runtime, KindId(1), "target");
-    let retired_target = create_entity_of_kind(&mut runtime, KindId(1), "retired-target");
+    let runtime = runtime_with_cardinality_minimum();
+    let source = create_entity_of_kind(&runtime, KindId(1), "source");
+    let target = create_entity_of_kind(&runtime, KindId(1), "target");
+    let retired_target = create_entity_of_kind(&runtime, KindId(1), "retired-target");
     let retired_relation =
-        create_relation_of_kind(&mut runtime, KindId(2), source, retired_target, "retired");
-    create_relation_of_kind(&mut runtime, KindId(2), source, target, "live");
-    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    delete_txn.push_batch(
-        WorkerIntentBatch::new("delete-retired").push(MutationIntent::Relation(
-            RelationMutationIntent::Delete(DeleteRelationIntent {
-                relation_id: retired_relation,
-            }),
-        )),
-    );
-    delete_txn.commit(&mut runtime).expect("retire relation");
+        create_relation_of_kind(&runtime, KindId(2), source, retired_target, "retired");
+    create_relation_of_kind(&runtime, KindId(2), source, target, "live");
+    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    delete_txn
+        .push_batch(
+            WorkerIntentBatch::new("delete-retired").push(MutationIntent::Relation(
+                RelationMutationIntent::Delete(DeleteRelationIntent {
+                    relation_id: retired_relation,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    delete_txn.commit(&runtime).expect("retire relation");
 
     runtime.performance_access().reset_counters();
     let _results = InvariantEngine::new(&runtime).execute(
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CertificationBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             None,
             None,

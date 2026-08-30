@@ -5,6 +5,7 @@ pub mod engine;
 pub mod execution;
 mod invariant_access;
 mod invariant_authority;
+mod preparation_invariant_authority;
 pub mod reduction;
 
 pub(crate) use custom_registry::FrozenCustomInvariantRegistry;

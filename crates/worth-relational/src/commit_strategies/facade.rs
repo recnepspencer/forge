@@ -50,7 +50,7 @@ impl CommitStrategiesAuthorityFacade {
 
     pub fn lower_execution(
         &mut self,
-        runtime: &mut RelationalRuntime,
+        runtime: &RelationalRuntime,
         request: &CanonicalStrategyCommitRequest,
         execution: &StrategyExecutionDraft,
         basis: &crate::branch::AdmittedRelationalBranchBasis,
@@ -64,7 +64,7 @@ impl CommitStrategiesAuthorityFacade {
 
     pub(crate) fn lower_execution_with_input(
         &mut self,
-        runtime: &mut RelationalRuntime,
+        runtime: &RelationalRuntime,
         request: &CanonicalStrategyCommitRequest,
         execution: &StrategyExecutionDraft,
         input: RelationalTransactionValidationInput,
@@ -77,7 +77,7 @@ impl CommitStrategiesAuthorityFacade {
 
     pub fn validate_lowered_plan(
         &mut self,
-        runtime: &mut RelationalRuntime,
+        runtime: &RelationalRuntime,
         lowered: LoweredStrategyCommitPlan,
     ) -> Result<crate::mvcc::ValidatedRelationalProposal, TransactionCommitError> {
         validate_lowered_strategy_plan(runtime, lowered)
@@ -85,7 +85,7 @@ impl CommitStrategiesAuthorityFacade {
 
     pub fn prepare_validated_commit(
         &mut self,
-        runtime: &mut RelationalRuntime,
+        runtime: &RelationalRuntime,
         validated: crate::mvcc::ValidatedRelationalProposal,
     ) -> Result<crate::mvcc::PreparedRelationalCommitCandidate, TransactionCommitError> {
         runtime.prepare_validated_proposal(validated)
@@ -94,7 +94,7 @@ impl CommitStrategiesAuthorityFacade {
     #[cfg(test)]
     pub(crate) fn execute_validated_commit(
         &mut self,
-        runtime: &mut RelationalRuntime,
+        runtime: &RelationalRuntime,
         validated: crate::mvcc::ValidatedRelationalProposal,
     ) -> Result<crate::transactions::data::CommitResult, TransactionCommitError> {
         let candidate = self.prepare_validated_commit(runtime, validated)?;

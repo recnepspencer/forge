@@ -13,6 +13,7 @@ use worth_relational::facade::transactions::{
     EntitySpec, MutationIntent, RecordRef, WorkerIntentBatch,
 };
 
+use super::owner_test_support::{release_commit_snapshot, retain_commit_basis};
 use super::*;
 use crate::domain_computation::application_aftermath::{
     bind_dispatch_outbox_create_intent, derive_external_effect_correlation_identity,
@@ -74,9 +75,9 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
             WorthQueryApplicationCommitOutcomeIdentity::mint().unwrap(),
             0,
         );
-        let mut transaction: BranchBoundRelationalTransaction ={
+        let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -89,7 +90,7 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
             WorkerIntentBatch::new("wrong-kind-outbox-owner-test")
                 .push(outbox_intent)
                 .push(idempotency_intent),
-        );
+        ).expect("test staging stays within configured resource budgets");
         let committed = transaction.commit(runtime).unwrap();
         let correct = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
             provider.graph.layout.provider_dispatch_outbox(),
@@ -105,11 +106,14 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
             .unwrap()
             .clone();
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture(record.clone(), wrong_ref);
+        let commit = committed.outcome().commit.clone();
+        retain_commit_basis(provider, runtime, &committed);
+        release_commit_snapshot(runtime, &committed);
         let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
             .unwrap();
         let runtime_id = snapshot.runtime_instance_id();
-        runtime.snapshots().release_snapshot(&snapshot);
-        (binding, committed.outcome().commit.clone(), runtime_id)
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        (binding, commit, runtime_id)
     });
 
     assert_eq!(
@@ -129,9 +133,9 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
             Some(&record),
         )
         .unwrap();
-        let mut create: BranchBoundRelationalTransaction ={
+        let mut create: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -140,7 +144,7 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
         )
         .expect("owner-admitted transaction context")
 };
-        create.push_batch(WorkerIntentBatch::new("live-outbox-before-delete").push(intent));
+        create.push_batch(WorkerIntentBatch::new("live-outbox-before-delete").push(intent)).expect("test staging stays within configured resource budgets");
         let created = create.commit(runtime).unwrap();
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
             provider.graph.layout.provider_dispatch_outbox(),
@@ -152,9 +156,11 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
         let RecordRef::Entity(entity_id) = binding.record_ref().clone() else {
             panic!("outbox binding is an entity")
         };
-        let mut delete: BranchBoundRelationalTransaction ={
+        retain_commit_basis(provider, runtime, &created);
+        release_commit_snapshot(runtime, &created);
+        let mut delete: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -167,13 +173,16 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
             WorkerIntentBatch::new("delete-outbox-before-owner-read").push(MutationIntent::Entity(
                 EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
             )),
-        );
+        ).expect("test staging stays within configured resource budgets");
         let deleted = delete.commit(runtime).unwrap();
+        let commit = deleted.outcome().commit.clone();
+        retain_commit_basis(provider, runtime, &deleted);
+        release_commit_snapshot(runtime, &deleted);
         let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
             .unwrap();
         let runtime_id = snapshot.runtime_instance_id();
-        runtime.snapshots().release_snapshot(&snapshot);
-        (binding, deleted.outcome().commit.clone(), runtime_id)
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        (binding, commit, runtime_id)
     });
 
     assert_eq!(
@@ -204,9 +213,9 @@ fn committed_substituted_row(
         };
         let alternate_key = format!("corrupt-outbox-field-{field}");
         let corrupted = corrupted_spec(&layout, expected, field, replacement, &alternate_key);
-        let mut transaction: BranchBoundRelationalTransaction ={
+        let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -219,7 +228,7 @@ fn committed_substituted_row(
             WorkerIntentBatch::new("persisted-outbox-corruption-matrix")
                 .push(intent)
                 .push(MutationIntent::Create(CreateIntent::Entity(corrupted))),
-        );
+        ).expect("test staging stays within configured resource budgets");
         let committed = transaction.commit(runtime).unwrap();
         let corrupted_id = committed
             .created_entity(&CreatedEntityRef {
@@ -234,11 +243,14 @@ fn committed_substituted_row(
             pending.record().clone(),
             RecordRef::Entity(corrupted_id),
         );
+        let commit = committed.outcome().commit.clone();
+        retain_commit_basis(&provider, runtime, &committed);
+        release_commit_snapshot(runtime, &committed);
         let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
             .unwrap();
         let runtime_id = snapshot.runtime_instance_id();
-        runtime.snapshots().release_snapshot(&snapshot);
-        (binding, committed.outcome().commit.clone(), runtime_id)
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        (binding, commit, runtime_id)
     });
     (provider, binding, commit, runtime_id)
 }
@@ -316,7 +328,9 @@ fn record() -> WorthQueryDispatchOutboxRecord {
                 )
                 .unwrap(),
             effect: "OwnerTestEffect".to_owned(),
-            rust_payload_type: "tests::Payload".to_owned(),
+            rust_payload_type: worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "worth.query.test.owner-payload.v1",
+            ),
             protocol: ApplicationExternalEffectProtocol::new(
                 BoundaryProtocolIdentity::new("test.owner.payload"),
                 BoundaryProtocolVersion::new(1),

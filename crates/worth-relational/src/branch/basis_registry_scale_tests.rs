@@ -1,15 +1,15 @@
 use crate::history::data::BranchId;
 fn prove_registry_lookup_work_is_population_independent(branch_population: usize) {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "basis-scale-root");
-    populate_branches(&mut runtime, branch_population);
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity(&runtime, "basis-scale-root");
+    populate_branches(&runtime, branch_population);
     let (target, retained) = retain_one_basis_per_branch(&runtime, branch_population);
     let after = prove_single_readmission_is_fixed_work(&runtime, &target, branch_population);
     drop(retained);
     assert_exact_registry_cleanup(&runtime, after, branch_population);
 }
 
-fn populate_branches(runtime: &mut crate::runtime::RelationalRuntime, branch_population: usize) {
+fn populate_branches(runtime: &crate::runtime::RelationalRuntime, branch_population: usize) {
     for index in 1..branch_population {
         runtime
             .history_authority()
@@ -102,5 +102,33 @@ fn assert_exact_registry_cleanup(
 fn retained_basis_registry_cost_is_fixed_at_one_sixty_four_and_four_thousand_ninety_six_branches() {
     for branch_population in [1, 64, 4_096] {
         prove_registry_lookup_work_is_population_independent(branch_population);
+    }
+}
+
+#[test]
+fn ordinary_publication_does_not_scan_branch_or_branch_head_populations() {
+    for branch_population in [64, 4_096] {
+        let runtime = crate::tests::support::runtime_with_test_schema();
+        crate::tests::support::create_entity(&runtime, "publication-scan-root");
+        populate_branches(&runtime, branch_population);
+        let branch_scans_before = runtime
+            .phase4_reference_cost_counters()
+            .branch_population_scans;
+        let visibility_before = runtime.visibility.visibility_cache_cost_counters();
+
+        crate::tests::support::create_entity(
+            &runtime,
+            &format!("publication-scan-{branch_population}"),
+        );
+
+        let branch_scans_after = runtime
+            .phase4_reference_cost_counters()
+            .branch_population_scans;
+        let visibility_after = runtime.visibility.visibility_cache_cost_counters();
+        assert_eq!(branch_scans_after, branch_scans_before);
+        assert_eq!(
+            visibility_after.branch_head_population_scans,
+            visibility_before.branch_head_population_scans
+        );
     }
 }

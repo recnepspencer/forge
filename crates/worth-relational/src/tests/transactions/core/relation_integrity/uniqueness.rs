@@ -32,15 +32,15 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema)
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
 
-    create_relation(&mut runtime, source, target, "forward");
+    create_relation(&runtime, source, target, "forward");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-normalized").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -52,9 +52,10 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationUniquenessViolation);

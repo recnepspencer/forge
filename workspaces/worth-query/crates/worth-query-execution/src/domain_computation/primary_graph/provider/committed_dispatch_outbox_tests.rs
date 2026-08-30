@@ -7,7 +7,9 @@ use worth_relational::facade::transactions::{
     UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
-use super::owner_test_support::{commit_record, record_for, string};
+use super::owner_test_support::{
+    commit_record, record_for, release_commit_snapshot, retain_commit_basis, string,
+};
 use super::restoration::hex_bytes;
 use super::*;
 use crate::domain_computation::application_aftermath::dispatch_outbox_create_intent;
@@ -60,7 +62,7 @@ fn assert_commit_affinity_substitutions(
     wrong_commit_id.commit_id = CommitId(commit.commit_id.0.saturating_sub(1));
     assert_eq!(
         provider.observe_expected(binding, &wrong_commit_id, runtime_id),
-        Err(Denial::CommitMismatch)
+        Err(Denial::ExactCommitUnavailable)
     );
     let mut wrong_version = commit.clone();
     wrong_version.version_id = VersionId(commit.version_id.0.saturating_sub(1));
@@ -74,8 +76,11 @@ fn assert_commit_affinity_substitutions(
         runtime.fork_branch(feature.clone(), basis).unwrap();
         let feature_record = record_for(99);
         let mut transaction = {
+            let identity = runtime
+                .branch_identity(&feature)
+                .expect("feature branch identity");
             let transaction_validation_input = runtime
-                .admit_named_branch_basis(&feature)
+                .admit_branch_basis(&identity)
                 .expect("feature branch binding");
             runtime
                 .begin_branch_transaction(
@@ -84,16 +89,20 @@ fn assert_commit_affinity_substitutions(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(
-            WorkerIntentBatch::new("feature-outbox-head").push(
-                dispatch_outbox_create_intent(
-                    Some(provider.graph.layout.provider_dispatch_outbox()),
-                    Some(&feature_record),
-                )
-                .unwrap(),
-            ),
-        );
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(
+                WorkerIntentBatch::new("feature-outbox-head").push(
+                    dispatch_outbox_create_intent(
+                        Some(provider.graph.layout.provider_dispatch_outbox()),
+                        Some(&feature_record),
+                    )
+                    .unwrap(),
+                ),
+            )
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        retain_commit_basis(provider, runtime, &committed);
+        release_commit_snapshot(runtime, &committed);
     });
     let mut wrong_branch = commit;
     wrong_branch.branch_id = feature;
@@ -145,7 +154,7 @@ fn every_later_valid_field_substitution_leaves_exact_commit_truth_unchanged() {
                 outbox_field_locator(provider.graph.layout.provider_dispatch_outbox(), field);
             let mut transaction = {
                 let transaction_validation_input = runtime
-                    .admit_main_branch_basis()
+                    .admit_branch_basis(&runtime.main_branch_identity())
                     .expect("main branch binding");
                 runtime
                     .begin_branch_transaction(
@@ -154,17 +163,21 @@ fn every_later_valid_field_substitution_leaves_exact_commit_truth_unchanged() {
                     )
                     .expect("owner-admitted transaction context")
             };
-            transaction.push_batch(
-                WorkerIntentBatch::new("later-valid-outbox-substitution").push(
-                    MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                        UpdateEntityFieldsIntent {
-                            entity_id: *entity_id,
-                            fields: AspectFieldPatch::from_locator(locator, replacement),
-                        },
-                    )),
-                ),
-            );
-            transaction.commit(runtime).unwrap();
+            transaction
+                .push_batch(
+                    WorkerIntentBatch::new("later-valid-outbox-substitution").push(
+                        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                            UpdateEntityFieldsIntent {
+                                entity_id: *entity_id,
+                                fields: AspectFieldPatch::from_locator(locator, replacement),
+                            },
+                        )),
+                    ),
+                )
+                .expect("test staging stays within configured resource budgets");
+            let committed = transaction.commit(runtime).unwrap();
+            retain_commit_basis(provider, runtime, &committed);
+            release_commit_snapshot(runtime, &committed);
         });
 
         let exact = provider
@@ -190,7 +203,7 @@ fn later_deletion_cannot_erase_exact_commit_truth() {
     provider.graph.with_runtime_mut(|runtime| {
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -199,12 +212,16 @@ fn later_deletion_cannot_erase_exact_commit_truth() {
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("later-outbox-deletion").push(
-            MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
-                entity_id: *entity_id,
-            })),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(WorkerIntentBatch::new("later-outbox-deletion").push(
+                MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
+                    entity_id: *entity_id,
+                })),
+            ))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        retain_commit_basis(provider, runtime, &committed);
+        release_commit_snapshot(runtime, &committed);
     });
 
     let exact = provider
@@ -271,7 +288,7 @@ fn unrelated_identical_row_cannot_make_owner_mapping_ambiguous() {
         };
         let mut transaction: BranchBoundRelationalTransaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -280,13 +297,15 @@ fn unrelated_identical_row_cannot_make_owner_mapping_ambiguous() {
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(
-            WorkerIntentBatch::new("owner-mapped-committed-outbox-test")
-                .push(intent)
-                .push(MutationIntent::Create(
-                    worth_relational::facade::transactions::CreateIntent::Entity(unrelated),
-                )),
-        );
+        transaction
+            .push_batch(
+                WorkerIntentBatch::new("owner-mapped-committed-outbox-test")
+                    .push(intent)
+                    .push(MutationIntent::Create(
+                        worth_relational::facade::transactions::CreateIntent::Entity(unrelated),
+                    )),
+            )
+            .expect("test staging stays within configured resource budgets");
         let committed = transaction.commit(runtime).unwrap();
         assert_ne!(
             committed.created_entity(pending.created_entity()),
@@ -313,6 +332,8 @@ fn unrelated_identical_row_cannot_make_owner_mapping_ambiguous() {
             ),
             Err(WorthQueryCommittedDispatchOutboxBindingDenial::CreatedEntityMissing)
         );
+        retain_commit_basis(provider, runtime, &committed);
+        release_commit_snapshot(runtime, &committed);
     });
 }
 
@@ -331,22 +352,24 @@ fn another_committed_record_ref_cannot_substitute_for_the_bound_outbox() {
                 )
                 .unwrap()
             };
-            let mut transaction ={
-    let transaction_validation_input = runtime
-                    .admit_main_branch_basis()
+            let mut transaction = {
+                let transaction_validation_input = runtime
+                    .admit_branch_basis(&runtime.main_branch_identity())
                     .expect("main branch binding");
-    runtime
-        .begin_branch_transaction(
-            &transaction_validation_input,
-            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
-        )
-        .expect("owner-admitted transaction context")
-};
-            transaction.push_batch(
-                WorkerIntentBatch::new("record-ref-substitution-owner-test")
-                    .push(intent(&first))
-                    .push(intent(&second)),
-            );
+                runtime
+                    .begin_branch_transaction(
+                        &transaction_validation_input,
+                        worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                    )
+                    .expect("owner-admitted transaction context")
+            };
+            transaction
+                .push_batch(
+                    WorkerIntentBatch::new("record-ref-substitution-owner-test")
+                        .push(intent(&first))
+                        .push(intent(&second)),
+                )
+                .expect("test staging stays within configured resource budgets");
             let committed = transaction.commit(runtime).unwrap();
             let bind = |record| {
                 WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
@@ -357,16 +380,14 @@ fn another_committed_record_ref_cannot_substitute_for_the_bound_outbox() {
                 .unwrap()
                 .unwrap()
             };
+            let commit = committed.outcome().commit.clone();
+            retain_commit_basis(provider, runtime, &committed);
+            release_commit_snapshot(runtime, &committed);
             let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
                 .unwrap();
             let runtime_id = snapshot.runtime_instance_id();
-            runtime.snapshots().release_snapshot(&snapshot);
-            (
-                bind(&first),
-                bind(&second),
-                committed.outcome().commit.clone(),
-                runtime_id,
-            )
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+            (bind(&first), bind(&second), commit, runtime_id)
         });
     let substituted = WorthQueryCommittedDispatchOutboxBinding::fixture(
         first_binding.record().clone(),

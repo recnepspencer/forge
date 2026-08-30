@@ -9,7 +9,7 @@ pub(super) fn certify_flat_entity_batch_region_wave(suite: &'static str) {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            let seeded = seed_game_engine_frame_world(&mut runtime, "scene-batch", 8, 24);
+            let seeded = seed_game_engine_frame_world(&runtime, "scene-batch", 8, 24);
 
             let mut partition_targets = BTreeMap::new();
             for entity in &seeded.entities {
@@ -38,7 +38,7 @@ pub(super) fn certify_flat_entity_batch_region_wave(suite: &'static str) {
             let update_started_at = Instant::now();
             let update = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 let mut batch = WorkerIntentBatch::new("scene-batch-flat-entity-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -68,8 +68,9 @@ pub(super) fn certify_flat_entity_batch_region_wave(suite: &'static str) {
                         },
                     )));
                 }
-                txn.push_batch(batch);
-                txn.commit(&mut runtime)
+                txn.push_batch(batch)
+                    .expect("test staging stays within configured resource budgets");
+                txn.commit(&runtime)
                     .expect("scene batch flat entity wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
@@ -97,7 +98,10 @@ pub(super) fn certify_flat_entity_batch_region_wave(suite: &'static str) {
                 )
                 .expect("scene batch explicit outcome");
             let explicit_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             measurement_with_elapsed(update_micros + explicit_micros, || {
                 perf_metrics!({

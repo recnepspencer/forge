@@ -21,6 +21,20 @@ impl PartialEq for WorthQueryGranularSourceReadBasis {
 impl Eq for WorthQueryGranularSourceReadBasis {}
 
 impl WorthQueryGranularSourceReadBasis {
+    pub(in crate::domain_computation::primary_graph) fn new(
+        snapshot: worth_runtime_bridge::facade::TruthSnapshotIdentity,
+        branch: worth_runtime_bridge::facade::TruthBranchIdentity,
+        observation: std::sync::Arc<
+            worth_relational::facade::bridge::RelationalBridgeObservationLease,
+        >,
+    ) -> Self {
+        Self {
+            snapshot,
+            branch,
+            observation,
+        }
+    }
+
     pub fn snapshot(&self) -> &worth_runtime_bridge::facade::TruthSnapshotIdentity {
         &self.snapshot
     }
@@ -149,21 +163,9 @@ impl WorthQueryGranularInvalidationDeliveryBatch {
 pub(in crate::domain_computation::primary_graph) fn collect_granular_invalidations(
     installation: WorthQueryGranularInvalidationInstallation,
     deliveries: Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
+    source_read_basis: Option<WorthQueryGranularSourceReadBasis>,
 ) -> WorthQueryGranularInvalidationDeliveryBatch {
     let observation = WorthQueryGranularInvalidationObservation::from_deliveries(&deliveries);
-    let branch = super::super::primary_truth_branch_identity();
-    let source_observation = installation
-        .retain_primary_graph_integration_handle()
-        .retain_current_truth_observation(&super::super::primary_relational_branch_id())
-        .ok();
-    let source_read_basis =
-        source_observation
-            .as_ref()
-            .map(|observation| WorthQueryGranularSourceReadBasis {
-                snapshot: observation.snapshot_identity().clone(),
-                branch,
-                observation: std::sync::Arc::clone(observation),
-            });
     WorthQueryGranularInvalidationDeliveryBatch {
         installation,
         observation,

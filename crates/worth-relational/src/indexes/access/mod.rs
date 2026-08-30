@@ -39,16 +39,15 @@ impl<'runtime> IndexAccess<'runtime> {
         &self,
         index_id: DerivedIndexId,
         branch_id: &BranchId,
-    ) -> Option<&DerivedIndexGeneration> {
-        let definition = self.runtime.indexes.definitions.get(&index_id)?;
+    ) -> Option<std::sync::Arc<DerivedIndexGeneration>> {
+        let definition = self.runtime.indexes.definition(index_id)?;
         self.runtime
             .indexes
-            .generations
-            .get(&index_id)
-            .and_then(|generations| {
-                generations.iter().rev().find(|generation| {
-                    !definition.branch_scoped || generation.applicability.branch_id == *branch_id
-                })
+            .generations_for(index_id)
+            .into_iter()
+            .rev()
+            .find(|generation| {
+                !definition.branch_scoped || generation.applicability.branch_id == *branch_id
             })
     }
 
@@ -56,13 +55,12 @@ impl<'runtime> IndexAccess<'runtime> {
         &self,
         index_id: DerivedIndexId,
         commit: &crate::history::data::RelationalCommitReceipt,
-    ) -> Option<&DerivedIndexGeneration> {
-        let definition = self.runtime.indexes.definitions.get(&index_id)?;
+    ) -> Option<std::sync::Arc<DerivedIndexGeneration>> {
+        let definition = self.runtime.indexes.definition(index_id)?;
         self.runtime
             .indexes
-            .generations
-            .get(&index_id)?
-            .iter()
+            .generations_for(index_id)
+            .into_iter()
             .rev()
             .find(|generation| {
                 generation.status == crate::indexes::data::DerivedIndexPublicationStatus::Published
@@ -80,11 +78,10 @@ impl<'runtime> IndexAccess<'runtime> {
         let mut generations = self
             .runtime
             .indexes
-            .generations
-            .values()
-            .flat_map(|generations| generations.iter())
+            .all_generations()
+            .into_iter()
             .filter(|generation| generation.applicability.version_id <= version_id)
-            .cloned()
+            .map(|generation| generation.as_ref().clone())
             .collect::<Vec<_>>();
         generations.sort_by(|left, right| {
             left.applicability
@@ -185,15 +182,20 @@ impl<'runtime> IndexAccess<'runtime> {
     }
 
     pub(crate) fn definitions_snapshot(&self) -> Vec<DerivedIndexDefinition> {
-        self.runtime.indexes.definitions.values().cloned().collect()
+        self.runtime
+            .indexes
+            .definitions()
+            .into_iter()
+            .map(|definition| definition.as_ref().clone())
+            .collect()
     }
 
     pub(crate) fn generations_snapshot(&self) -> Vec<DerivedIndexGeneration> {
         self.runtime
             .indexes
-            .generations
-            .values()
-            .flat_map(|generations| generations.iter().cloned())
+            .all_generations()
+            .into_iter()
+            .map(|generation| generation.as_ref().clone())
             .collect()
     }
 
@@ -202,15 +204,14 @@ impl<'runtime> IndexAccess<'runtime> {
         &self,
         field_locator: &worth_foundational::facade::AspectFieldLocator,
     ) -> Option<
-        &std::collections::BTreeMap<
+        std::collections::BTreeMap<
             crate::storage::data::AuthoritativeFieldComparisonKey,
             std::collections::BTreeSet<crate::identity::data::EntityId>,
         >,
     > {
         self.runtime
             .indexes
-            .entity_unique_aspect_field_index
-            .get(field_locator)
+            .with_unique_index(|index| index.get(field_locator).cloned())
     }
 }
 

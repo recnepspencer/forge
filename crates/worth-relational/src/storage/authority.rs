@@ -9,17 +9,17 @@ use crate::runtime::RelationalRuntime;
 use crate::storage::substrate::RecordKind;
 
 pub struct StorageAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 impl RelationalRuntime {
-    pub(crate) fn storage_authority(&mut self) -> StorageAuthority<'_> {
+    pub(crate) fn storage_authority(&self) -> StorageAuthority<'_> {
         StorageAuthority::new(self)
     }
 }
 
 impl<'runtime> StorageAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 }

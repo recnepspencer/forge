@@ -44,7 +44,7 @@ impl RecoveryAdmission {
         self.entry
     }
 
-    pub(super) fn emit(&self, runtime: &mut RelationalRuntime) {
+    pub(super) fn emit(&self, runtime: &RelationalRuntime) {
         runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::History,
             self.artifact_kind,
@@ -65,7 +65,7 @@ impl RecoveryRejection {
         self.record_verification_counters
     }
 
-    pub(super) fn emit(&self, runtime: &mut RelationalRuntime) {
+    pub(super) fn emit(&self, runtime: &RelationalRuntime) {
         self.admission.emit(runtime);
     }
 

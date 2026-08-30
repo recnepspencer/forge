@@ -6,7 +6,7 @@ fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() 
         detailed_traces_enabled: true,
         ..RelationalDiagnosticsProfile::default()
     };
-    let mut serial = RelationalRuntimeApi::builder()
+    let serial = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
@@ -14,7 +14,7 @@ fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() 
         .diagnostics(serial_diagnostics.clone())
         .execution_model(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution)
         .build();
-    let mut staged = RelationalRuntimeApi::builder()
+    let staged = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
@@ -22,7 +22,7 @@ fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() 
         .diagnostics(serial_diagnostics.clone())
         .execution_model(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation)
         .build();
-    let mut post_commit = RelationalRuntimeApi::builder()
+    let post_commit = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
@@ -33,9 +33,9 @@ fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() 
         )
         .build();
 
-    let serial_outcome = create_entity_outcome(&mut serial, "trace-stable");
-    let staged_outcome = create_entity_outcome(&mut staged, "trace-stable");
-    let post_commit_outcome = create_entity_outcome(&mut post_commit, "trace-stable");
+    let serial_outcome = create_entity_outcome(&serial, "trace-stable");
+    let staged_outcome = create_entity_outcome(&staged, "trace-stable");
+    let post_commit_outcome = create_entity_outcome(&post_commit, "trace-stable");
 
     assert_eq!(
         serial_outcome.aspect_evaluation_traces(),
@@ -102,13 +102,13 @@ fn aspect_relevant_diagnostics(
 
 #[test]
 fn geometry_operational_hot_path_policy_suppresses_detailed_traces() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::GeometryKernel)
         .schema_registry(test_schema_registry())
         .diagnostics(RelationalDiagnosticsProfile::geometry_operational_hot_path())
         .build();
 
-    let _ = create_entity_outcome(&mut runtime, "geometry-hot-policy");
+    let _ = create_entity_outcome(&runtime, "geometry-hot-policy");
     let diagnostics = runtime.publication().diagnostics();
 
     assert!(diagnostics.artifacts().iter().any(|artifact| {
@@ -123,13 +123,13 @@ fn geometry_operational_hot_path_policy_suppresses_detailed_traces() {
 
 #[test]
 fn chip_rich_certification_policy_keeps_detailed_traces_available() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::ChipSimulation)
         .schema_registry(test_schema_registry())
         .diagnostics(RelationalDiagnosticsProfile::chip_rich_certification())
         .build();
 
-    let _ = create_entity_outcome(&mut runtime, "chip-rich-policy");
+    let _ = create_entity_outcome(&runtime, "chip-rich-policy");
     let diagnostics = runtime.publication().diagnostics();
 
     assert!(diagnostics.artifacts().iter().any(|artifact| {

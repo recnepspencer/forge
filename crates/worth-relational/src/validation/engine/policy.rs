@@ -1,5 +1,5 @@
-use crate::runtime::RelationalRuntime;
 use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint, InvariantGroupSet};
+use crate::validation::engine::InvariantRuntimeView;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InvariantScale {
@@ -15,12 +15,10 @@ pub(crate) struct InvariantContext {
     pub snapshot_pressure: bool,
 }
 
-pub(crate) fn derive_invariant_context(runtime: &RelationalRuntime) -> InvariantContext {
-    let entity_count = runtime.storage_access().entity_slot_count();
-    let relation_count = runtime.storage_access().relation_slot_count();
+pub(crate) fn derive_invariant_context(runtime: &InvariantRuntimeView) -> InvariantContext {
+    let (entity_count, relation_count, version_depth, snapshot_pressure) =
+        runtime.invariant_scale_inputs();
     let total_records = entity_count + relation_count;
-    let version_depth = runtime.history().commit_count();
-    let snapshot_pressure = runtime.visibility.active_snapshot_count() > 10;
 
     let scale = match total_records {
         0..=1_000 => InvariantScale::Small,

@@ -92,6 +92,17 @@ impl RelationalBranchRootSchemaAuthority {
         &self.registry
     }
 
+    pub(crate) fn registry_arc(&self) -> Arc<RelationalSchemaRegistry> {
+        Arc::clone(&self.registry)
+    }
+
+    pub(crate) fn has_same_executable_meaning_except_basis(
+        &self,
+        target: &RelationalSchemaRegistry,
+    ) -> bool {
+        super::schema_meaning::registry_meaning_matches(&self.registry, target)
+    }
+
     pub(crate) const fn authority_digest(&self) -> [u8; 32] {
         self.authority_digest
     }

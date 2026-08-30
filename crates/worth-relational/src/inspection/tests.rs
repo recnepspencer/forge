@@ -8,8 +8,8 @@ use crate::tests::support::*;
 
 #[test]
 fn structural_identity_origin_tracks_non_current_scope() {
-    let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "scoped-identity");
+    let runtime = runtime_with_test_schema();
+    let entity = create_entity(&runtime, "scoped-identity");
     let version_id = runtime.current_version_id();
     let snapshot = runtime.visibility_authority().snapshot();
 
@@ -39,15 +39,15 @@ fn structural_identity_origin_tracks_non_current_scope() {
 
 #[test]
 fn historical_neighbors_follow_scoped_relation_endpoints_after_rewire() {
-    let mut runtime = runtime_with_test_schema();
-    let original_source = create_entity(&mut runtime, "original-source");
-    let shared_target = create_entity(&mut runtime, "shared-target");
-    let replacement_source = create_entity(&mut runtime, "replacement-source");
-    let relation = create_relation(&mut runtime, original_source, shared_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let original_source = create_entity(&runtime, "original-source");
+    let shared_target = create_entity(&runtime, "shared-target");
+    let replacement_source = create_entity(&runtime, "replacement-source");
+    let relation = create_relation(&runtime, original_source, shared_target, "edge");
     let historical_version = runtime.current_version_id();
     let historical_snapshot = runtime.visibility_authority().snapshot();
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-edge").push(MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -57,9 +57,9 @@ fn historical_neighbors_follow_scoped_relation_endpoints_after_rewire() {
                 target: EntityReference::Existing(shared_target),
             }),
         )),
-    );
-    txn.commit(&mut runtime)
-        .expect("relation rewire should commit");
+    )
+    .expect("test staging stays within configured resource budgets");
+    txn.commit(&runtime).expect("relation rewire should commit");
 
     let current_neighbors = runtime
         .inspect_what_happened()

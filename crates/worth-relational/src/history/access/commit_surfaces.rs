@@ -29,8 +29,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     ) -> Option<crate::history::RelationalCommitIdentity> {
         self.runtime
             .history
-            .commit_catalog
-            .get(commit_id)
+            .commit_artifact(commit_id)
             .map(|artifact| artifact.identity().clone())
             .or_else(|| {
                 self.runtime
@@ -52,8 +51,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     pub fn immutable_commit_receipt(&self, commit_id: CommitId) -> Option<RelationalCommitReceipt> {
         self.runtime
             .history
-            .commit_catalog
-            .get(commit_id)
+            .commit_artifact(commit_id)
             .map(|artifact| artifact.envelope().commit.clone())
             .or_else(|| {
                 self.runtime
@@ -66,19 +64,14 @@ impl<'runtime> HistoryAccess<'runtime> {
     pub fn latest_catalog_commit_identity(
         &self,
     ) -> Option<crate::history::RelationalCommitIdentity> {
-        self.runtime
-            .history
-            .commit_catalog
-            .latest_identity()
-            .cloned()
+        self.runtime.history.latest_commit_identity()
     }
 
     pub fn immutable_commit_count(&self) -> usize {
         let mut commit_ids = self
             .runtime
             .history
-            .commit_catalog
-            .snapshot()
+            .commit_artifacts()
             .into_iter()
             .map(|artifact| artifact.commit_id())
             .collect::<std::collections::BTreeSet<_>>();
@@ -105,19 +98,15 @@ impl<'runtime> HistoryAccess<'runtime> {
                     .or_else(|| {
                         self.runtime
                             .history
-                            .patch_stream_index
-                            .get(&position)
-                            .and_then(|commit_id| {
-                                self.runtime.history.commit_catalog.get(*commit_id)
-                            })
+                            .recorded_commit_at_patch_position(position)
+                            .and_then(|commit_id| self.runtime.history.commit_artifact(commit_id))
                             .map(|artifact| artifact.envelope().commit.clone())
                     })
             })
             .or_else(|| {
                 self.runtime
                     .history
-                    .commit_catalog
-                    .latest_artifact()
+                    .latest_commit_artifact()
                     .map(|artifact| artifact.envelope().commit.clone())
             })
     }
@@ -128,7 +117,6 @@ impl<'runtime> HistoryAccess<'runtime> {
         version_id: crate::identity::data::VersionId,
     ) -> Option<CommittedVersionSummary> {
         self.commit_envelope_for_version(version_id)
-            .map(|envelope| envelope.clone())
             .or_else(|| {
                 self.runtime
                     .history
@@ -156,8 +144,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     ) -> Option<CanonicalCommitEnvelope> {
         self.runtime
             .history
-            .commit_catalog
-            .find_by_version(version_id)
+            .commit_artifact_for_version(version_id)
             .map(|artifact| artifact.envelope().as_ref().clone())
             .or_else(|| {
                 self.runtime
@@ -168,12 +155,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     pub(crate) fn latest_patch_stream_position(&self) -> Option<PatchStreamPosition> {
-        let projected = self
-            .runtime
-            .history
-            .patch_stream_index
-            .last_key_value()
-            .map(|(position, _)| *position);
+        let projected = self.runtime.history.latest_recorded_patch_position();
         projected.max(
             self.runtime
                 .history
@@ -192,8 +174,8 @@ impl<'runtime> HistoryAccess<'runtime> {
     pub(crate) fn contains_patch_stream_position(&self, position: PatchStreamPosition) -> bool {
         self.runtime
             .history
-            .patch_stream_index
-            .contains_key(&position)
+            .recorded_commit_at_patch_position(position)
+            .is_some()
             || self
                 .runtime
                 .history
@@ -205,8 +187,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         let mut envelopes = self
             .runtime
             .history
-            .commit_catalog
-            .snapshot()
+            .commit_artifacts()
             .into_iter()
             .map(|artifact| (artifact.commit_id(), artifact.envelope().as_ref().clone()))
             .collect::<std::collections::BTreeMap<_, _>>();
@@ -243,7 +224,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     pub(crate) fn commit_count(&self) -> usize {
-        self.runtime.history.commit_catalog.len()
+        self.runtime.history.catalog_len()
     }
 
     pub(crate) fn branch_head(&self, branch_id: &BranchId) -> Option<RelationalCommitReceipt> {
@@ -263,8 +244,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         };
         self.runtime
             .history
-            .commit_catalog
-            .get(commit_id)
+            .commit_artifact(commit_id)
             .map(|artifact| artifact.envelope().commit.clone())
     }
 
@@ -282,9 +262,7 @@ impl<'runtime> HistoryAccess<'runtime> {
                     .or_else(|| {
                         self.runtime
                             .history
-                            .patch_stream_index
-                            .get(&position)
-                            .copied()
+                            .recorded_commit_at_patch_position(position)
                     })
             })
             .or_else(|| self.latest_commit().map(|commit| commit.commit_id))
@@ -331,15 +309,6 @@ impl<'runtime> HistoryAccess<'runtime> {
                 .map(|positioned| positioned.envelope().commit.commit_id)
                 .collect(),
         }
-    }
-
-    pub(crate) fn branch_head_versions(&self) -> Vec<crate::identity::data::VersionId> {
-        self.runtime
-            .history
-            .branch_ids_snapshot()
-            .into_iter()
-            .filter_map(|branch_id| self.branch_head(&branch_id).map(|head| head.version_id))
-            .collect()
     }
 
     pub(super) fn branch_commit_envelopes(

@@ -21,7 +21,7 @@ fn engine_skips_rules_when_request_groups_do_not_intersect() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             Some(&plan),
             Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),

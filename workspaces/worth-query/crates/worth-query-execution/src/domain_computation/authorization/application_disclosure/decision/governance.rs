@@ -158,12 +158,12 @@ impl WorthQueryApplicationQueryGovernance {
                 disclosure
                     .disclosed
                     .iter()
-                    .map(|(slot, rule)| (*slot, rule.disclosure_value().clone()))
+                    .map(|(slot, rule)| (slot.clone(), rule.disclosure_value().clone()))
                     .collect(),
                 disclosure
                     .omitted
                     .iter()
-                    .map(|(slot, rule)| (*slot, rule.disclosure_value().clone()))
+                    .map(|(slot, rule)| (slot.clone(), rule.disclosure_value().clone()))
                     .collect(),
                 authorization.capability_authority_identity(),
                 authorization.decision_identity(),

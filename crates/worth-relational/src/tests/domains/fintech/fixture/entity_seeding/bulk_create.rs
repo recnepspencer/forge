@@ -6,7 +6,7 @@ use crate::facade::transactions::{
 };
 
 pub(super) fn bulk_create_entities<I>(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     batch_name: &str,
     partition_id: PartitionId,
     specs: I,
@@ -18,7 +18,7 @@ where
         .into_iter()
         .map(|(key, fields)| (crate::facade::symbols::ClientKey::raw(key), fields))
         .unzip();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(batch_name).push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -28,8 +28,9 @@ where
                 field_patches,
             }),
         )),
-    );
-    changed_entities(&txn.commit(&mut runtime).unwrap())
+    )
+    .expect("test staging stays within configured resource budgets");
+    changed_entities(&txn.commit(runtime).unwrap())
 }
 
 fn changed_entities(outcome: &CommitResult) -> Vec<EntityId> {

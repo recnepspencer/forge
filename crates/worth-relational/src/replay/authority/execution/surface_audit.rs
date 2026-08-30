@@ -28,7 +28,7 @@ pub(super) fn compare_replay_surfaces(
     validated_replayed_envelope: &ValidatedReplayContinuityEnvelope<'_>,
     replay_runtime: &RelationalRuntime,
     request: &RelationalReplayRequest,
-    selected_lineage_authority: Option<&SelectedPublishedLineageAuthority<'_>>,
+    selected_lineage_authority: Option<&SelectedPublishedLineageAuthority>,
 ) {
     runtime
         .performance_access()
@@ -237,9 +237,9 @@ pub(super) fn compare_replay_surfaces(
         ReplayObservableSurface::BranchHead,
         ReplayMismatchClass::BranchHeadDrift,
         surface_basis_for_branch_head(expected_branch_head.as_ref()),
-        surface_basis_for_branch_head(replay_runtime.branch_head_ref(&request.branch_id)),
+        surface_basis_for_branch_head(replay_runtime.branch_head_ref(&request.branch_id).as_ref()),
         "branch head movement differed",
-        || replay_runtime.branch_head_ref(&request.branch_id) == expected_branch_head.as_ref(),
+        || replay_runtime.branch_head_ref(&request.branch_id) == expected_branch_head,
         || format!("{:?}", expected_branch_head),
         || format!("{:?}", replay_runtime.branch_head_ref(&request.branch_id)),
     );
@@ -252,10 +252,10 @@ pub(super) fn compare_replay_surfaces(
                 mismatches,
                 ReplayObservableSurface::Lineage,
                 ReplayMismatchClass::LineageDrift,
-                surface_basis_for_published_lineage(original_lineage.artifact),
+                surface_basis_for_published_lineage(&original_lineage.artifact),
                 surface_basis_for_published_lineage(replayed_lineage),
                 "lineage artifacts differed",
-                || published_lineage_artifacts_match(original_lineage.artifact, replayed_lineage),
+                || published_lineage_artifacts_match(&original_lineage.artifact, replayed_lineage),
                 || format!("{:?}", original_lineage.artifact),
                 || format!("{:?}", replayed_lineage),
             );

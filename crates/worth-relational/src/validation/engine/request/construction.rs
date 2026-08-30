@@ -19,12 +19,13 @@ impl<'state> InvariantExecutionRequest<'state> {
     where
         'runtime: 'state,
     {
+        let view = crate::validation::engine::InvariantRuntimeView::from_runtime(runtime);
         Self::from_profile_with_contract_at_current_version(
             profile,
-            runtime,
+            &view,
             observation,
             version_id,
-            runtime.current_version_id(),
+            view.current_version_id(),
             merged_plan,
             plan_contract,
         )
@@ -32,16 +33,13 @@ impl<'state> InvariantExecutionRequest<'state> {
 
     pub(crate) fn from_profile_with_contract_at_current_version<'runtime>(
         profile: InvariantRequestProfile,
-        runtime: &'runtime crate::runtime::RelationalRuntime,
+        runtime: &crate::validation::engine::InvariantRuntimeView<'runtime>,
         observation: InvariantObservation<'state>,
         version_id: crate::identity::data::VersionId,
         current_version_id: crate::identity::data::VersionId,
         merged_plan: Option<&'state MergedCommitPlan>,
         plan_contract: Option<InvariantPlanContract>,
-    ) -> Self
-    where
-        'runtime: 'state,
-    {
+    ) -> Self {
         debug_assert!(
             profile.supports_observation(observation.kind()),
             "invariant profile {:?} does not support {:?} observation",
@@ -97,7 +95,7 @@ impl<'state> InvariantExecutionRequest<'state> {
 }
 
 fn relation_scope_requirements_for(
-    runtime: &crate::runtime::RelationalRuntime,
+    runtime: &crate::validation::engine::InvariantRuntimeView,
     profile: InvariantRequestProfile,
 ) -> BTreeMap<crate::identity::data::KindId, super::RelationScopeRequirement> {
     runtime

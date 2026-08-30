@@ -23,10 +23,10 @@ mod variant_matrix;
 
 #[test]
 fn exact_field_footprint_keeps_record_aspect_and_field_distinct() {
-    let mut runtime = runtime_with_test_schema();
-    let changed = create_entity(&mut runtime, "changed");
-    let other = create_entity(&mut runtime, "other");
-    let footprint = project(validate(&mut runtime, [update_name(changed, "after")]));
+    let runtime = runtime_with_test_schema();
+    let changed = create_entity(&runtime, "changed");
+    let other = create_entity(&runtime, "other");
+    let footprint = project(validate(&runtime, [update_name(changed, "after")]));
 
     assert!(footprint.mutates_field(&RecordRef::Entity(changed), &locator("name", "name")));
     assert!(!footprint.mutates_field(&RecordRef::Entity(changed), &locator("name", "other")));
@@ -37,9 +37,9 @@ fn exact_field_footprint_keeps_record_aspect_and_field_distinct() {
 
 #[test]
 fn whole_aspect_footprint_keeps_its_record_and_aspect_boundaries() {
-    let mut runtime = runtime_with_test_schema();
-    let changed = create_entity(&mut runtime, "changed");
-    let other = create_entity(&mut runtime, "other");
+    let runtime = runtime_with_test_schema();
+    let changed = create_entity(&runtime, "changed");
+    let other = create_entity(&runtime, "other");
     let contract = runtime
         .entity_aspect_plan(KindId(1))
         .unwrap()
@@ -51,7 +51,7 @@ fn whole_aspect_footprint_keeps_its_record_and_aspect_boundaries() {
         value: ContractValidationInput::Scalar(AspectValue::String("after".into())),
     }]);
     let footprint = project(validate(
-        &mut runtime,
+        &runtime,
         [MutationIntent::Entity(
             EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
                 entity_id: changed,
@@ -68,18 +68,18 @@ fn whole_aspect_footprint_keeps_its_record_and_aspect_boundaries() {
 
 #[test]
 fn replace_and_delete_footprints_cover_only_the_exact_whole_record() {
-    let mut runtime = runtime_with_test_schema();
-    let changed = create_entity(&mut runtime, "changed");
-    let other = create_entity(&mut runtime, "other");
+    let runtime = runtime_with_test_schema();
+    let changed = create_entity(&runtime, "changed");
+    let other = create_entity(&runtime, "other");
     let replace = MutationIntent::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
         entity_id: changed,
         replacement: entity_spec("replacement"),
     }));
-    let replaced = project(validate(&mut runtime, [replace]));
+    let replaced = project(validate(&runtime, [replace]));
     assert_whole_record(&replaced, changed, other);
 
     let deleted = project(validate(
-        &mut runtime,
+        &runtime,
         [MutationIntent::Entity(EntityMutationIntent::Delete(
             DeleteEntityIntent { entity_id: changed },
         ))],
@@ -89,14 +89,14 @@ fn replace_and_delete_footprints_cover_only_the_exact_whole_record() {
 
 #[test]
 fn create_only_and_endpoint_only_intents_examine_work_but_name_no_prior_field() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let new_target = create_entity(&mut runtime, "new-target");
-    let relation = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let new_target = create_entity(&runtime, "new-target");
+    let relation = create_relation(&runtime, source, old_target, "edge");
 
     let created = project(validate(
-        &mut runtime,
+        &runtime,
         [MutationIntent::Create(CreateIntent::Entity(entity_spec(
             "new",
         )))],
@@ -105,7 +105,7 @@ fn create_only_and_endpoint_only_intents_examine_work_but_name_no_prior_field() 
     assert_work(&created, 1, 0);
 
     let endpoints = project(validate(
-        &mut runtime,
+        &runtime,
         [MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
                 relation_id: relation,
@@ -121,13 +121,13 @@ fn create_only_and_endpoint_only_intents_examine_work_but_name_no_prior_field() 
 
 #[test]
 fn mixed_breadth_reports_every_validated_intent_and_materialized_target() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity(&mut runtime, "first");
-    let second = create_entity(&mut runtime, "second");
-    let target = create_entity(&mut runtime, "target");
-    let relation = create_relation(&mut runtime, first, second, "edge");
+    let runtime = runtime_with_test_schema();
+    let first = create_entity(&runtime, "first");
+    let second = create_entity(&runtime, "second");
+    let target = create_entity(&runtime, "target");
+    let relation = create_relation(&runtime, first, second, "edge");
     let footprint = project(validate(
-        &mut runtime,
+        &runtime,
         [
             update_name(first, "first-after"),
             update_name(second, "second-after"),
@@ -149,11 +149,11 @@ fn mixed_breadth_reports_every_validated_intent_and_materialized_target() {
 
 #[test]
 fn omitted_demand_performs_no_footprint_scan_or_materialization() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity(&mut runtime, "first");
-    let second = create_entity(&mut runtime, "second");
+    let runtime = runtime_with_test_schema();
+    let first = create_entity(&runtime, "first");
+    let second = create_entity(&runtime, "second");
     let validated = validate(
-        &mut runtime,
+        &runtime,
         [
             update_name(first, "first-after"),
             update_name(second, "second-after"),
@@ -172,18 +172,19 @@ fn omitted_demand_performs_no_footprint_scan_or_materialization() {
 }
 
 fn validate(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     intents: impl IntoIterator<Item = MutationIntent>,
 ) -> ValidatedRelationalProposal {
     let batch = intents.into_iter().fold(
         WorkerIntentBatch::new("footprint-owner-proof"),
         WorkerIntentBatch::push,
     );
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch);
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     transaction
-        .validate(&mut runtime)
+        .push_batch(batch)
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .validate(runtime)
         .expect("owner validates fixture mutation")
 }
 

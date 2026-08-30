@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::config::data::CompiledLanePolicy;
 use crate::runtime::RelationalRuntime;
 use crate::simulation::data::{CompiledArtifactAuthorityStatus, CompiledExecutionArtifact};
@@ -17,7 +19,7 @@ impl<'runtime> SimulationAccess<'runtime> {
         Self { runtime }
     }
 
-    pub fn compiled_artifact(&self, artifact_id: u64) -> Option<&CompiledExecutionArtifact> {
+    pub fn compiled_artifact(&self, artifact_id: u64) -> Option<Arc<CompiledExecutionArtifact>> {
         self.runtime.services.compiled_artifact(artifact_id)
     }
 
@@ -36,8 +38,7 @@ impl<'runtime> SimulationAccess<'runtime> {
         let Some(commit) = self
             .runtime
             .history
-            .commit_envelopes
-            .get(&artifact.source_commit_id)
+            .recorded_commit_envelope(artifact.source_commit_id)
         else {
             return CompiledArtifactAuthorityStatus::MissingSourceCommit;
         };

@@ -73,7 +73,31 @@ where
         .graph_work
         .execute_query_read(basis, |runtime, layout| {
             let current = super::super::exact_basis_access::open_current_main_snapshot(runtime)
-                .expect("installed primary graph retains an exact main-branch basis");
+                .map_err(|basis_denial| {
+                    let kind = match basis_denial {
+                        super::super::WorthQueryExactBasisSnapshotDenial::ActiveSnapshotCapacityExhausted {
+                            maximum_active_snapshots,
+                        } => crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::ActiveSnapshotCapacityExhausted {
+                            maximum_active_snapshots,
+                        },
+                        super::super::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+                            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::RetentionCapacityExhausted
+                        }
+                        super::super::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+                            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::RetentionIdentityExhausted
+                        }
+                        super::super::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+                            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::SnapshotIdentityExhausted
+                        }
+                        _ => crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::RelationalObservationRejected,
+                    };
+                    WorthQueryAuthorizedApplicationReadDenial::Authorization(
+                        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial::new(
+                            kind,
+                            "authorized application read",
+                        ),
+                    )
+                })?;
             let authorization_work = validate_current_authorization(
                 application,
                 &entity_resolution,
@@ -81,7 +105,7 @@ where
                 &current,
                 plan,
             );
-            runtime.snapshots().release_snapshot(&current);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &current);
             let authorization_work = authorization_work?;
             entity_resolution
                 .at_snapshot(

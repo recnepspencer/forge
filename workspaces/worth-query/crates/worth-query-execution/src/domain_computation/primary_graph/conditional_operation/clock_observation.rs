@@ -6,6 +6,11 @@ use super::installation::WorthQueryConditionalClockHandle;
 use super::WorthQueryConditionalOperationRegistry;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
+mod erased;
+pub(in crate::domain_computation::primary_graph) use erased::{
+    ErasedClockObservationOutcome, ErasedClockObservationReceipt,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryConditionalClockObservationDenialKind {
     ForeignRuntime,
@@ -44,6 +49,10 @@ pub enum WorthQueryConditionalClockObservationFailureKind {
     ObservationFailed,
     SourcePanicked,
     RuntimeRejected,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -65,6 +74,8 @@ impl WorthQueryConditionalClockObservationFailure {
 pub struct WorthQueryConditionalClockObservationReceipt<Clock> {
     granular_invalidation_installation:
         crate::domain_computation::primary_graph::WorthQueryGranularInvalidationInstallation,
+    granular_source_read_basis:
+        Option<crate::domain_computation::primary_graph::WorthQueryGranularSourceReadBasis>,
     sequence: u64,
     observed_time: WorthQueryClockCoordinate<Clock>,
     due_wake_count: usize,
@@ -80,6 +91,8 @@ pub struct WorthQueryConditionalClockObservationReceipt<Clock> {
     already_committed_operation_count: usize,
     failed_operation_count: usize,
     indeterminate_operation_count: usize,
+    snapshot_capacity_backpressure: Option<usize>,
+    retention_capacity_backpressure: bool,
     execution_provenance: Vec<super::WorthQueryConditionalExecutionProvenance>,
     granular_invalidations: Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
 }
@@ -147,6 +160,16 @@ impl<Clock> WorthQueryConditionalClockObservationReceipt<Clock> {
         self.indeterminate_operation_count
     }
 
+    /// The owner-local snapshot ceiling that deferred operation re-entry.
+    pub fn snapshot_capacity_backpressure(&self) -> Option<usize> {
+        self.snapshot_capacity_backpressure
+    }
+
+    /// Whether owner-local retention pressure deferred operation re-entry.
+    pub fn retention_capacity_backpressure(&self) -> bool {
+        self.retention_capacity_backpressure
+    }
+
     pub fn execution_provenance(&self) -> &[super::WorthQueryConditionalExecutionProvenance] {
         &self.execution_provenance
     }
@@ -161,6 +184,7 @@ impl<Clock> WorthQueryConditionalClockObservationReceipt<Clock> {
         crate::domain_computation::primary_graph::granular_invalidation::collect_granular_invalidations(
             self.granular_invalidation_installation.clone(),
             std::mem::take(&mut self.granular_invalidations),
+            self.granular_source_read_basis.clone(),
         )
     }
 }
@@ -191,7 +215,43 @@ where
             &self.runtime.runtime,
         ) {
             Ok(truth) => truth,
-            Err(detail) => {
+            Err(super::signal_decision_reentry::WorthQueryConditionalTruthBasisDenial::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            }) => {
+                return WorthQueryConditionalClockObservationOutcome::Failed(
+                    WorthQueryConditionalClockObservationFailure {
+                        kind: WorthQueryConditionalClockObservationFailureKind::ActiveSnapshotCapacityExhausted {
+                            maximum_active_snapshots,
+                        },
+                        detail: "conditional clock observation exhausted active snapshot capacity".to_string(),
+                    },
+                );
+            }
+            Err(super::signal_decision_reentry::WorthQueryConditionalTruthBasisDenial::RetentionCapacityExhausted) => {
+                return WorthQueryConditionalClockObservationOutcome::Failed(
+                    WorthQueryConditionalClockObservationFailure {
+                        kind: WorthQueryConditionalClockObservationFailureKind::RetentionCapacityExhausted,
+                        detail: "conditional clock observation exhausted relational retention capacity".to_string(),
+                    },
+                );
+            }
+            Err(super::signal_decision_reentry::WorthQueryConditionalTruthBasisDenial::RetentionIdentityExhausted) => {
+                return WorthQueryConditionalClockObservationOutcome::Failed(
+                    WorthQueryConditionalClockObservationFailure {
+                        kind: WorthQueryConditionalClockObservationFailureKind::RetentionIdentityExhausted,
+                        detail: "conditional clock observation exhausted relational retention identity space".to_string(),
+                    },
+                );
+            }
+            Err(super::signal_decision_reentry::WorthQueryConditionalTruthBasisDenial::SnapshotIdentityExhausted) => {
+                return WorthQueryConditionalClockObservationOutcome::Failed(
+                    WorthQueryConditionalClockObservationFailure {
+                        kind: WorthQueryConditionalClockObservationFailureKind::SnapshotIdentityExhausted,
+                        detail: "conditional clock observation exhausted snapshot identity space".to_string(),
+                    },
+                );
+            }
+            Err(super::signal_decision_reentry::WorthQueryConditionalTruthBasisDenial::RuntimeRejected(detail)) => {
                 return WorthQueryConditionalClockObservationOutcome::Failed(
                     WorthQueryConditionalClockObservationFailure {
                         kind: WorthQueryConditionalClockObservationFailureKind::RuntimeRejected,
@@ -201,10 +261,14 @@ where
             }
         };
         let granular_invalidation_installation = self.runtime.granular_invalidation_installation();
+        let granular_source_read_basis = truth.granular_source_read_basis();
         let mut owners = super::runtime_owners::ConditionalRuntimeOwners::take(self.runtime);
         let outcome = owners.observe_clock(identity, &self.handle.lease, &truth);
         match outcome {
-            Some(outcome) => outcome.typed(granular_invalidation_installation),
+            Some(outcome) => outcome.typed(
+                granular_invalidation_installation,
+                Some(granular_source_read_basis),
+            ),
             None => WorthQueryConditionalClockObservationOutcome::Failed(
                 WorthQueryConditionalClockObservationFailure {
                     kind: WorthQueryConditionalClockObservationFailureKind::RuntimeRejected,
@@ -250,89 +314,6 @@ fn validate_handle<Schema, Node, Clock>(
             WorthQueryConditionalClockObservationDenialKind::ForeignRuntime,
             handle.binding_identity(),
         ))
-    }
-}
-
-pub(in crate::domain_computation::primary_graph) struct ErasedClockObservationReceipt {
-    pub(super) sequence: u64,
-    pub(super) observed_coordinate: u64,
-    pub(super) due_wake_count: usize,
-    pub(super) due_work_remaining: bool,
-    pub(super) authoritative_commit_count: usize,
-    pub(super) authoritative_work_remaining: bool,
-    pub(super) retained_due_wake_count: usize,
-    pub(super) retained_eligible_wake_count: usize,
-    pub(super) retained_suppressed_wake_count: usize,
-    pub(super) retained_deferred_wake_count: usize,
-    pub(super) retained_failed_wake_count: usize,
-    pub(super) committed_operation_count: usize,
-    pub(super) already_committed_operation_count: usize,
-    pub(super) failed_operation_count: usize,
-    pub(super) indeterminate_operation_count: usize,
-    pub(super) execution_provenance: Vec<super::WorthQueryConditionalExecutionProvenance>,
-    pub(super) granular_invalidations:
-        Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
-}
-
-pub(in crate::domain_computation::primary_graph) enum ErasedClockObservationOutcome {
-    Accepted(ErasedClockObservationReceipt),
-    Duplicate(ErasedClockObservationReceipt),
-    Stale,
-    Reordered,
-    Closed,
-    Failed {
-        kind: WorthQueryConditionalClockObservationFailureKind,
-        detail: String,
-    },
-}
-
-impl ErasedClockObservationOutcome {
-    fn typed<Clock>(
-        self,
-        installation: crate::domain_computation::primary_graph::WorthQueryGranularInvalidationInstallation,
-    ) -> WorthQueryConditionalClockObservationOutcome<Clock> {
-        match self {
-            Self::Accepted(receipt) => {
-                WorthQueryConditionalClockObservationOutcome::Accepted(receipt.typed(installation))
-            }
-            Self::Duplicate(receipt) => {
-                WorthQueryConditionalClockObservationOutcome::Duplicate(receipt.typed(installation))
-            }
-            Self::Stale => WorthQueryConditionalClockObservationOutcome::Stale,
-            Self::Reordered => WorthQueryConditionalClockObservationOutcome::Reordered,
-            Self::Closed => WorthQueryConditionalClockObservationOutcome::Closed,
-            Self::Failed { kind, detail } => WorthQueryConditionalClockObservationOutcome::Failed(
-                WorthQueryConditionalClockObservationFailure { kind, detail },
-            ),
-        }
-    }
-}
-
-impl ErasedClockObservationReceipt {
-    fn typed<Clock>(
-        self,
-        granular_invalidation_installation: crate::domain_computation::primary_graph::WorthQueryGranularInvalidationInstallation,
-    ) -> WorthQueryConditionalClockObservationReceipt<Clock> {
-        WorthQueryConditionalClockObservationReceipt {
-            granular_invalidation_installation,
-            sequence: self.sequence,
-            observed_time: WorthQueryClockCoordinate::from_nanoseconds(self.observed_coordinate),
-            due_wake_count: self.due_wake_count,
-            due_work_remaining: self.due_work_remaining,
-            authoritative_commit_count: self.authoritative_commit_count,
-            authoritative_work_remaining: self.authoritative_work_remaining,
-            retained_due_wake_count: self.retained_due_wake_count,
-            retained_eligible_wake_count: self.retained_eligible_wake_count,
-            retained_suppressed_wake_count: self.retained_suppressed_wake_count,
-            retained_deferred_wake_count: self.retained_deferred_wake_count,
-            retained_failed_wake_count: self.retained_failed_wake_count,
-            committed_operation_count: self.committed_operation_count,
-            already_committed_operation_count: self.already_committed_operation_count,
-            failed_operation_count: self.failed_operation_count,
-            indeterminate_operation_count: self.indeterminate_operation_count,
-            execution_provenance: self.execution_provenance,
-            granular_invalidations: self.granular_invalidations,
-        }
     }
 }
 

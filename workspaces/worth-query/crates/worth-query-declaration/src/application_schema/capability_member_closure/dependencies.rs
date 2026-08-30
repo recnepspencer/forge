@@ -145,7 +145,8 @@ fn operation_exists(
             ApplicationSchemaMember::Operation {
                 operation,
                 input_type,
-            } if operation == contract.operation() && input_type == contract.input_type()
+            } if operation == contract.operation()
+                && input_type.as_str() == contract.input_type()
         )
     })
 }
@@ -160,7 +161,8 @@ fn operation_binding_exists(
             ApplicationSchemaMember::Operation {
                 operation,
                 input_type,
-            } if operation == binding.operation() && input_type == binding.input_type()
+            } if operation == binding.operation()
+                && input_type.as_str() == binding.input_type()
         )
     })
 }

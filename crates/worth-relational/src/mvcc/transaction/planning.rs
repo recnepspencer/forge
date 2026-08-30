@@ -10,11 +10,11 @@ impl super::BranchBoundRelationalTransaction {
         &self,
         runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<Option<PlannedBulkMutationBatch>, CommitConflict> {
-        self.ensure_runtime_affinity(runtime)?;
+        self.ensure_runtime_affinity_for_runtime(runtime)?;
         let intents = crate::transactions::planning::bulk::canonical_bulk_mutation_intents(
             self.batches(),
             self.client_key_symbol_policy,
-            runtime.services.symbols.clone(),
+            runtime.services.symbols.interner_snapshot(),
         );
         if intents.is_empty() {
             return Ok(None);

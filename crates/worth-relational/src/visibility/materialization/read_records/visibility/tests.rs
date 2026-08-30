@@ -64,7 +64,7 @@ fn visibility_regression_runtime() -> RelationalRuntime {
 
 #[test]
 fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
-    let mut runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
+    let runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
     let partition_id = PartitionId(7);
     let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
     let mut entity_arena = crate::storage::substrate::EntityArena::with_capacity(1);
@@ -86,8 +86,10 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
     });
     assert_eq!(reused_generation, 2);
 
-    runtime.history.next_version_id = 4;
-    runtime.partitions.insert(
+    runtime
+        .history
+        .with_ledger_mut(|ledger| ledger.next_version_id = 4);
+    runtime.edit_partitions().insert(
         partition_id,
         PartitionState {
             partition_id,
@@ -100,7 +102,7 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
         },
     );
 
-    let current_state = runtime.storage_access().current_state();
+    let current_state = runtime.storage_access().current_edition();
     assert!(runtime
         .read_truth()
         .authoritative_entity_record_for_id_at_version(
@@ -113,7 +115,7 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
 
 #[test]
 fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() {
-    let mut runtime = visibility_regression_runtime();
+    let runtime = visibility_regression_runtime();
     let partition_id = PartitionId(7);
     let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
     let mut entity_arena = crate::storage::substrate::EntityArena::with_capacity(1);
@@ -134,8 +136,10 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
     });
     assert_eq!(reused_generation, 2);
 
-    runtime.history.next_version_id = 4;
-    runtime.partitions.insert(
+    runtime
+        .history
+        .with_ledger_mut(|ledger| ledger.next_version_id = 4);
+    runtime.edit_partitions().insert(
         partition_id,
         PartitionState {
             partition_id,
@@ -148,7 +152,7 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
         },
     );
 
-    let state = runtime.storage_access().current_state();
+    let state = runtime.storage_access().current_edition();
     let historical_records = runtime
         .read_truth()
         .visible_entities_of_kind_in_partition_from_state(
@@ -177,7 +181,7 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
 
 #[test]
 fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind() {
-    let mut runtime = visibility_regression_runtime();
+    let runtime = visibility_regression_runtime();
     let partition_id = PartitionId(9);
     let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
     let mut relation_arena = crate::storage::substrate::RelationArena::with_capacity(1);
@@ -213,8 +217,10 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
     });
     assert_eq!(reused_generation, 2);
 
-    runtime.history.next_version_id = 4;
-    runtime.partitions.insert(
+    runtime
+        .history
+        .with_ledger_mut(|ledger| ledger.next_version_id = 4);
+    runtime.edit_partitions().insert(
         partition_id,
         PartitionState {
             partition_id,
@@ -227,7 +233,7 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
         },
     );
 
-    let state = runtime.storage_access().current_state();
+    let state = runtime.storage_access().current_edition();
     let historical_records = runtime
         .read_truth()
         .visible_relations_of_kind_in_partition_from_state(

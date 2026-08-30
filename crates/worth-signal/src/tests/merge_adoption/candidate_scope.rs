@@ -34,7 +34,7 @@ fn proof_minimal_overlap_and_conservative_expansion_remain_distinct_and_bounded(
 
     runtime.switch_branch(main).unwrap();
     let result = runtime
-        .merge_branch(feature, runtime.observe().current_branch())
+        .merge_branch_raw(feature, runtime.observe().current_branch())
         .unwrap();
 
     assert!(
@@ -197,7 +197,7 @@ fn merge_budget_identity_counters_track_bounded_target_journal_scope() {
         .unwrap();
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .identity_matcher_named("signal.identity.output-identity-in-target-journal")

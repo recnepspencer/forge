@@ -6,6 +6,7 @@ use worth_query_declaration::facade::{
         ApplicationOperationProgramTarget, ApplicationOperationRef,
         ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
     },
+    portable_identity::WorthQueryPortableTypeIdentity,
 };
 
 use crate::{
@@ -23,20 +24,20 @@ use super::{
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) struct ApplicationCapabilityRegistryKey {
     name: String,
-    capability_type: String,
+    capability_type: WorthQueryPortableTypeIdentity,
     operation: String,
-    operation_type: String,
-    input_type: String,
+    operation_type: WorthQueryPortableTypeIdentity,
+    input_type: WorthQueryPortableTypeIdentity,
 }
 
 impl ApplicationCapabilityRegistryKey {
     pub(crate) fn from_contract(contract: &ErasedApplicationCapabilityContract) -> Self {
         Self {
             name: contract.name().to_string(),
-            capability_type: contract.capability_type().to_string(),
+            capability_type: contract.capability_identity(),
             operation: contract.operation().to_string(),
-            operation_type: contract.operation_type().to_string(),
-            input_type: contract.input_type().to_string(),
+            operation_type: contract.operation_identity(),
+            input_type: contract.input_identity(),
         }
     }
 
@@ -46,10 +47,10 @@ impl ApplicationCapabilityRegistryKey {
     ) -> Self {
         Self {
             name: capability.name().to_string(),
-            capability_type: std::any::type_name::<Capability>().to_string(),
+            capability_type: capability.marker_identity(),
             operation: operation.name().to_string(),
-            operation_type: std::any::type_name::<Operation>().to_string(),
-            input_type: std::any::type_name::<Input>().to_string(),
+            operation_type: WorthQueryPortableTypeIdentity::declared(operation.name()),
+            input_type: operation.input_identity(),
         }
     }
 
@@ -133,4 +134,38 @@ pub(crate) fn compile_capability_registry(
         }
     }
     Ok(registry)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
+
+    struct Schema;
+    struct Operation;
+
+    worth_query_declaration::worth_query_capability!(
+        Capability in Schema,
+        identity "worth.query.test.capability.v1"
+    );
+
+    impl ApplicationOperationMarkerIdentity for Operation {
+        type Schema = Schema;
+        type Input = ();
+        const IDENTIFIER: &'static str = "RetainedOperation";
+    }
+
+    #[test]
+    fn warm_registry_lookup_uses_retained_portable_marker_identities() {
+        let capability = ApplicationCapabilityRef::<Schema, Capability>::from_declaration();
+        let operation = ApplicationOperationRef::<Schema, Operation, ()>::from_declaration();
+        let key = ApplicationCapabilityRegistryKey::from_references(&capability, &operation);
+
+        assert_eq!(
+            key.capability_type.as_str(),
+            "worth.query.test.capability.v1"
+        );
+        assert_eq!(key.operation_type.as_str(), "RetainedOperation");
+        assert_eq!(key.input_type.as_str(), "worth.rust.unit");
+    }
 }

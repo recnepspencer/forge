@@ -94,7 +94,7 @@ fn protected_label_difference_is_absent_from_every_one_shot_observable() {
     let slots = left
         .decisions
         .iter()
-        .map(|decision| *decision.slot())
+        .map(|decision| decision.slot().clone())
         .collect::<BTreeSet<_>>();
     assert_eq!(slots.len(), left.decisions.len());
     assert!(left

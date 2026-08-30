@@ -113,14 +113,15 @@ let handle = runtime.observe_nodes(
     Box::new(CounterListener),
 );
 
-runtime.transaction(&mut (), |tx| {
+let basis = runtime.observe_signal_branch_basis(runtime.current_branch())?;
+let _next_basis = runtime.advance_signal_branch(&mut (), &basis, |tx| {
     tx.mark_changed(source, ASPECT_A)?;
     tx.target(derived).run(&|view| {
         let version = view.read_aspect_version(source, ASPECT_A)?;
         Ok(view.finish(NodeEvaluationResult::from_version(version)))
     })?;
     Ok(())
-})?;
+})?.into_basis();
 
 let latest_observation = runtime.observe().latest_observation_summary();
 assert!(latest_observation.is_some());

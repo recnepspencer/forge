@@ -20,6 +20,29 @@ pub enum TransactionCommitError {
         error: CommitPreparationError,
         commit_log: CommitLog,
     },
+    Interrupted {
+        interruption: crate::mvcc::RelationalInterruptionEvent,
+        context: ErrorContext,
+        commit_log: CommitLog,
+    },
+    #[serde(skip)]
+    PublicationDenied {
+        denial: crate::mvcc::RelationalPublicationDenial,
+        context: ErrorContext,
+        commit_log: CommitLog,
+    },
+    #[serde(skip)]
+    PublicationDeferred {
+        deferred: crate::mvcc::RelationalPublicationDeferred,
+        context: ErrorContext,
+        commit_log: CommitLog,
+    },
+    #[serde(skip)]
+    PublicationFailed {
+        failure: crate::mvcc::RelationalPublicationFailure,
+        context: ErrorContext,
+        commit_log: CommitLog,
+    },
     #[serde(skip)]
     PerformedButDurabilityDeferred {
         settlement: crate::publication::data::DeferredPublicationSettlement,
@@ -50,6 +73,52 @@ impl TransactionCommitError {
         }
     }
 
+    pub fn interrupted(interruption: crate::mvcc::RelationalInterruptionEvent) -> Self {
+        let operation = match interruption.boundary() {
+            crate::mvcc::RelationalInterruptionBoundary::ProposalValidation => {
+                crate::errors::data::ErrorOperation::Validate
+            }
+            crate::mvcc::RelationalInterruptionBoundary::CandidatePreparation => {
+                crate::errors::data::ErrorOperation::Commit
+            }
+            _ => crate::errors::data::ErrorOperation::Publish,
+        };
+        Self::Interrupted {
+            interruption,
+            context: ErrorContext::new(
+                crate::errors::data::RelationalSubsystem::Transaction,
+                operation,
+            ),
+            commit_log: CommitLog::new(),
+        }
+    }
+
+    pub(crate) fn publication_denied(denial: crate::mvcc::RelationalPublicationDenial) -> Self {
+        Self::PublicationDenied {
+            denial,
+            context: publication_context(),
+            commit_log: CommitLog::new(),
+        }
+    }
+
+    pub(crate) fn publication_deferred(
+        deferred: crate::mvcc::RelationalPublicationDeferred,
+    ) -> Self {
+        Self::PublicationDeferred {
+            deferred,
+            context: publication_context(),
+            commit_log: CommitLog::new(),
+        }
+    }
+
+    pub(crate) fn publication_failed(failure: crate::mvcc::RelationalPublicationFailure) -> Self {
+        Self::PublicationFailed {
+            failure,
+            context: publication_context(),
+            commit_log: CommitLog::new(),
+        }
+    }
+
     pub(crate) fn performed_but_durability_deferred(
         settlement: crate::publication::data::DeferredPublicationSettlement,
         cause: Self,
@@ -74,6 +143,36 @@ impl TransactionCommitError {
             Self::Conflict { error, .. } => Self::Conflict { error, commit_log },
             Self::Publication { error, .. } => Self::Publication { error, commit_log },
             Self::Preparation { error, .. } => Self::Preparation { error, commit_log },
+            Self::Interrupted {
+                interruption,
+                context,
+                ..
+            } => Self::Interrupted {
+                interruption,
+                context,
+                commit_log,
+            },
+            Self::PublicationDenied {
+                denial, context, ..
+            } => Self::PublicationDenied {
+                denial,
+                context,
+                commit_log,
+            },
+            Self::PublicationDeferred {
+                deferred, context, ..
+            } => Self::PublicationDeferred {
+                deferred,
+                context,
+                commit_log,
+            },
+            Self::PublicationFailed {
+                failure, context, ..
+            } => Self::PublicationFailed {
+                failure,
+                context,
+                commit_log,
+            },
             Self::PerformedButDurabilityDeferred {
                 settlement, error, ..
             } => Self::PerformedButDurabilityDeferred {
@@ -89,6 +188,10 @@ impl TransactionCommitError {
             Self::Conflict { error, .. } => &error.context,
             Self::Publication { error, .. } => &error.context,
             Self::Preparation { error, .. } => error.context(),
+            Self::Interrupted { context, .. } => context,
+            Self::PublicationDenied { context, .. }
+            | Self::PublicationDeferred { context, .. }
+            | Self::PublicationFailed { context, .. } => context,
             Self::PerformedButDurabilityDeferred { error, .. } => &error.context,
         }
     }
@@ -98,6 +201,21 @@ impl TransactionCommitError {
             Self::Conflict { error, .. } => error.detail(),
             Self::Publication { error, .. } => error.detail.clone(),
             Self::Preparation { error, .. } => error.detail(),
+            Self::Interrupted { interruption, .. } => {
+                format!("operation interrupted before effect: {interruption:?}")
+            }
+            Self::PublicationDenied { denial, .. } => {
+                format!("branch publication denied: {denial:?}")
+            }
+            Self::PublicationDeferred { deferred, .. } => {
+                format!("branch publication deferred: {deferred:?}")
+            }
+            Self::PublicationFailed { failure, .. } => {
+                format!(
+                    "branch publication failed before movement: {}",
+                    failure.detail()
+                )
+            }
             Self::PerformedButDurabilityDeferred { error, .. } => error.detail.clone(),
         }
     }
@@ -107,6 +225,10 @@ impl TransactionCommitError {
             Self::Conflict { commit_log, .. } => commit_log,
             Self::Publication { commit_log, .. } => commit_log,
             Self::Preparation { commit_log, .. } => commit_log,
+            Self::Interrupted { commit_log, .. } => commit_log,
+            Self::PublicationDenied { commit_log, .. }
+            | Self::PublicationDeferred { commit_log, .. }
+            | Self::PublicationFailed { commit_log, .. } => commit_log,
             Self::PerformedButDurabilityDeferred { commit_log, .. } => commit_log,
         }
     }
@@ -130,4 +252,11 @@ impl TransactionCommitError {
     pub fn commit_summary(&self) -> &crate::transactions::data::CommitSummary {
         self.commit_log().summary()
     }
+}
+
+fn publication_context() -> ErrorContext {
+    ErrorContext::new(
+        crate::errors::data::RelationalSubsystem::Transaction,
+        crate::errors::data::ErrorOperation::Publish,
+    )
 }

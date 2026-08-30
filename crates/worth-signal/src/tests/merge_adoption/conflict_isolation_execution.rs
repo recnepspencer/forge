@@ -57,7 +57,7 @@ fn runtime_merge_conflict_isolation_selection_flows_into_execution_counters() {
         .unwrap();
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")

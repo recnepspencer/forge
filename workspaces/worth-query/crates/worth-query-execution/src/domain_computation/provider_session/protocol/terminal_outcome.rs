@@ -36,6 +36,7 @@ pub enum WorthQuerySessionCommitOrAbortOutcome {
     Committed(WorthQueryClosedProviderSessionDisposition),
     Aborted(WorthQueryClosedProviderSessionDisposition),
     CommitDeferred(super::WorthQueryProviderSessionCommitDeferred),
+    CommitControlStopped(super::WorthQueryProviderSessionCommitControlStopped),
     CommitSettlementDeferred(WorthQueryProviderSessionSettlementDeferred),
     CommitRecoveryRequired(WorthQueryProviderSessionFailure),
     AbortRecoveryRequired(WorthQueryProviderSessionFailure),
@@ -44,9 +45,10 @@ pub enum WorthQuerySessionCommitOrAbortOutcome {
 impl WorthQuerySessionCommitOrAbortOutcome {
     pub fn recovery_posture(&self) -> WorthQueryProviderSessionRecoveryPosture {
         match self {
-            Self::Committed(_) | Self::Aborted(_) | Self::CommitDeferred(_) => {
-                WorthQueryProviderSessionRecoveryPosture::Closed
-            }
+            Self::Committed(_)
+            | Self::Aborted(_)
+            | Self::CommitDeferred(_)
+            | Self::CommitControlStopped(_) => WorthQueryProviderSessionRecoveryPosture::Closed,
             Self::CommitSettlementDeferred(_)
             | Self::CommitRecoveryRequired(_)
             | Self::AbortRecoveryRequired(_) => {
@@ -63,6 +65,7 @@ impl WorthQuerySessionCommitOrAbortOutcome {
             Self::Committed(_)
             | Self::Aborted(_)
             | Self::CommitDeferred(_)
+            | Self::CommitControlStopped(_)
             | Self::CommitSettlementDeferred(_) => None,
         }
     }
@@ -73,8 +76,16 @@ impl WorthQuerySessionCommitOrAbortOutcome {
             Self::Committed(_)
             | Self::Aborted(_)
             | Self::CommitDeferred(_)
+            | Self::CommitControlStopped(_)
             | Self::CommitRecoveryRequired(_)
             | Self::AbortRecoveryRequired(_) => None,
+        }
+    }
+
+    pub fn control_stopped(&self) -> Option<&super::WorthQueryProviderSessionCommitControlStopped> {
+        match self {
+            Self::CommitControlStopped(stopped) => Some(stopped),
+            _ => None,
         }
     }
 }

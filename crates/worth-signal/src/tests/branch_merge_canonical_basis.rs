@@ -165,7 +165,7 @@ fn scoped_merge_canonical_basis_keeps_requested_admitted_and_no_op_scope_separat
     ];
 
     let canonical_a = match runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects(request_a)
@@ -178,7 +178,7 @@ fn scoped_merge_canonical_basis_keeps_requested_admitted_and_no_op_scope_separat
         outcome => panic!("expected scoped canonical basis bundle, got {outcome:?}"),
     };
     let canonical_b = match runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_aspects(request_b)
@@ -219,7 +219,7 @@ fn canonical_projection_keeps_selected_node_and_selected_aspect_families_distinc
     let (mut runtime, feature, main, _support, primary) = build_scoped_canonical_runtime();
 
     let selected_node_bundle = match runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([primary])
@@ -232,7 +232,7 @@ fn canonical_projection_keeps_selected_node_and_selected_aspect_families_distinc
         outcome => panic!("expected selected-node canonical basis bundle, got {outcome:?}"),
     };
     let selected_aspect_bundle = match runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_aspects([SignalSelectedAspectRequestEntry::new(primary, ASPECT_A)])

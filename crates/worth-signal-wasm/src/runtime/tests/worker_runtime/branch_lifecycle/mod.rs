@@ -1,2 +1,3 @@
 mod worker_branch_commands;
 mod worker_host_branch_lifecycle_parity;
+mod worker_snapshot_retirement;

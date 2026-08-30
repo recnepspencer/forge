@@ -3,13 +3,15 @@ use super::*;
 #[test]
 fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is_tampered() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -52,8 +54,9 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
-    let outcome = txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -89,13 +92,15 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
 #[test]
 fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_deep_layer() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -138,8 +143,9 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
-    let outcome = txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -175,13 +181,15 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
 #[test]
 fn replay_certification_audit_drift_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -224,8 +232,9 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
-    let outcome = txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -286,13 +295,15 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
 #[test]
 fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_unavailable() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -335,8 +346,9 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
-    let outcome = txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,

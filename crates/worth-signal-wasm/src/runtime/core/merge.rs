@@ -1,6 +1,7 @@
 use worth_signal::facade::adapters::{BranchMergePlan, BranchMergeResult};
 use worth_signal::facade::history::RuntimeBranchId;
 
+use super::merge_caller_restoration::MergeCallerState;
 use super::merge_state::{merge_branch_metadata, merge_branch_store};
 use super::state::BranchRuntimeState;
 use super::MergePolicyPreviewRequest;
@@ -58,10 +59,26 @@ impl RuntimeCore {
             .ok_or_else(|| {
                 WorthSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
             })?;
+        let source_basis = self
+            .runtime
+            .observe_signal_branch_basis(source)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "source branch basis admission denied: {denial:?}"
+                ))
+            })?;
+        let target_basis = self
+            .runtime
+            .observe_signal_branch_basis(target)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "target branch basis admission denied: {denial:?}"
+                ))
+            })?;
         self.runtime
             .merge()
-            .from(source)
-            .into_branch(target)
+            .from(&source_basis)
+            .into_branch(&target_basis)
             .plan()
             .map(|planned| planned.plan().clone())
             .map_err(WorthSignalJsError::from)
@@ -108,7 +125,28 @@ impl RuntimeCore {
                 ))
             })?;
 
-        let mut merge = self.runtime.merge().from(source).into_branch(target);
+        let source_basis = self
+            .runtime
+            .observe_signal_branch_basis(source)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "source branch basis admission denied: {denial:?}"
+                ))
+            })?;
+        let target_basis = self
+            .runtime
+            .observe_signal_branch_basis(target)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "target branch basis admission denied: {denial:?}"
+                ))
+            })?;
+
+        let mut merge = self
+            .runtime
+            .merge()
+            .from(&source_basis)
+            .into_branch(&target_basis);
         if let Some(policy_name) = request.conflict_policy_name {
             merge = merge.conflict_policy_named(policy_name);
         }
@@ -169,7 +207,28 @@ impl RuntimeCore {
                 ))
             })?;
 
-        let mut merge = self.runtime.merge().from(source).into_branch(target);
+        let source_basis = self
+            .runtime
+            .observe_signal_branch_basis(source)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "source branch basis admission denied: {denial:?}"
+                ))
+            })?;
+        let target_basis = self
+            .runtime
+            .observe_signal_branch_basis(target)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "target branch basis admission denied: {denial:?}"
+                ))
+            })?;
+
+        let mut merge = self
+            .runtime
+            .merge()
+            .from(&source_basis)
+            .into_branch(&target_basis);
         if let Some(policy_name) = request.conflict_policy_name {
             merge = merge.conflict_policy_named(policy_name);
         }
@@ -183,7 +242,10 @@ impl RuntimeCore {
             merge = merge.deletion_policy_named(policy_name);
         }
 
-        merge.run().map_err(WorthSignalJsError::from)
+        merge
+            .run()
+            .map(|outcome| outcome.into_parts().1)
+            .map_err(WorthSignalJsError::from)
     }
 
     pub fn merge_branches_policy_preview_with_proof(
@@ -203,31 +265,6 @@ impl RuntimeCore {
         source_branch_id: u64,
         target_branch_id: u64,
     ) -> Result<BranchMergeResult, WorthSignalJsError> {
-        let current_branch_id = self.runtime.current_branch().id.0;
-        let current_state = self.snapshot_branch_state();
-        self.branch_states
-            .insert(current_branch_id, current_state.clone());
-
-        if current_branch_id != source_branch_id {
-            self.switch_branch(source_branch_id)?;
-        }
-        let source_state = self.snapshot_branch_state();
-        self.branch_states
-            .insert(source_branch_id, source_state.clone());
-
-        if self.runtime.current_branch().id.0 != target_branch_id {
-            self.switch_branch(target_branch_id)?;
-        }
-        let target_state = self.snapshot_branch_state();
-        self.branch_states
-            .insert(target_branch_id, target_state.clone());
-
-        if self.runtime.current_branch().id.0 != source_branch_id {
-            self.switch_branch(source_branch_id)?;
-        }
-
-        let merged_metadata = merge_branch_metadata(&target_state.metadata, &source_state.metadata);
-        self.restore_branch_metadata(merged_metadata.clone());
         let source = self
             .runtime
             .branch_handle(RuntimeBranchId(source_branch_id))
@@ -240,37 +277,62 @@ impl RuntimeCore {
             .ok_or_else(|| {
                 WorthSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
             })?;
-        self.runtime
-            .merge_branch(source, target)
-            .map_err(WorthSignalJsError::from)
-            .map(|result| {
-                let merged_store = merge_branch_store(
-                    &target_state.store,
-                    &source_state.store,
-                    &source_state.metadata,
-                    &merged_metadata,
-                    &result,
-                );
-                let merged_state = BranchRuntimeState {
-                    metadata: merged_metadata,
-                    store: merged_store,
-                    authored_graph_generation: target_state
-                        .authored_graph_generation
-                        .max(source_state.authored_graph_generation)
-                        .saturating_add(1),
-                };
-                self.branch_states
-                    .insert(target_branch_id, merged_state.clone());
-                let active_branch_id = self.runtime.current_branch().id.0;
-                let restored = if active_branch_id == target_branch_id {
-                    merged_state
-                } else if active_branch_id == source_branch_id {
-                    source_state
-                } else {
-                    current_state
-                };
-                let _ = self.restore_branch_state(restored);
-                result
-            })
+        let source_basis = self
+            .runtime
+            .observe_signal_branch_basis(source)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "source branch basis admission denied: {denial:?}"
+                ))
+            })?;
+        let target_basis = self
+            .runtime
+            .observe_signal_branch_basis(target)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "target branch basis admission denied: {denial:?}"
+                ))
+            })?;
+        let caller = MergeCallerState::capture(self, source_branch_id, target_branch_id)?;
+        if let Err(error) = caller.stage_source(self) {
+            return Err(caller.restore_after_failure(self, error));
+        }
+
+        let merge = self
+            .runtime
+            .merge_branch(&source_basis, &target_basis)
+            .map_err(|denial| {
+                WorthSignalJsError::invalid_input(format!(
+                    "canonical Signal branch merge denied: {denial:?}"
+                ))
+            });
+        let outcome = match merge {
+            Ok(outcome) => outcome,
+            Err(error) => {
+                return Err(caller.restore_after_failure(self, error));
+            }
+        };
+
+        let (_, result) = outcome.into_parts();
+        let source_state = caller.source_state();
+        let target_state = caller.target_state();
+        let merged_metadata = merge_branch_metadata(&target_state.metadata, &source_state.metadata);
+        let merged_store = merge_branch_store(
+            &target_state.store,
+            &source_state.store,
+            &source_state.metadata,
+            &merged_metadata,
+            &result,
+        );
+        let merged_state = BranchRuntimeState {
+            metadata: merged_metadata,
+            store: merged_store,
+            authored_graph_generation: target_state
+                .authored_graph_generation
+                .max(source_state.authored_graph_generation)
+                .saturating_add(1),
+        };
+        caller.restore_after_success(self, merged_state)?;
+        Ok(result)
     }
 }

@@ -16,10 +16,8 @@ pub(crate) fn invalid_savepoint_rollback_code(
     world: &mut FintechWorld,
     branch_id: BranchId,
 ) -> DiagnosticCode {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut world.runtime,
-        branch_id,
-    );
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&world.runtime, branch_id);
     txn.rollback_to_savepoint(SavepointId(999))
         .unwrap_err()
         .code

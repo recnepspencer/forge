@@ -11,12 +11,20 @@ mod test_complexity_observability;
 mod validation_counters;
 mod working_state_counters;
 
-use crate::runtime::RelationalRuntime;
+use crate::runtime::{RelationalRuntime, RuntimeInstrumentation};
 
 pub(crate) use replay_authority_basis_counters::ReplayLineageAuthorityIndexedSource;
 
 pub struct PerformanceAccess<'runtime> {
-    pub(super) runtime: &'runtime RelationalRuntime,
+    pub(super) runtime: PerformanceOwnerView<'runtime>,
+}
+
+pub(super) struct PerformanceOwnerView<'runtime> {
+    pub(super) services: PerformanceServicesView<'runtime>,
+}
+
+pub(super) struct PerformanceServicesView<'runtime> {
+    pub(super) instrumentation: &'runtime RuntimeInstrumentation,
 }
 
 impl RelationalRuntime {
@@ -27,7 +35,15 @@ impl RelationalRuntime {
 
 impl<'runtime> PerformanceAccess<'runtime> {
     pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
-        Self { runtime }
+        Self::from_instrumentation(&runtime.services.instrumentation)
+    }
+
+    pub(crate) fn from_instrumentation(instrumentation: &'runtime RuntimeInstrumentation) -> Self {
+        Self {
+            runtime: PerformanceOwnerView {
+                services: PerformanceServicesView { instrumentation },
+            },
+        }
     }
 
     pub(crate) fn complexity_counters_snapshot(

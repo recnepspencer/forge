@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn structural_identity_comparison_only_uses_fingerprint_truth() {
-    let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "alpha");
+    let runtime = runtime_with_test_schema();
+    let entity = create_entity(&runtime, "alpha");
 
     let comparison = runtime.inspect_what_happened().compare_structural_identity(
         InspectionScope::Current,
@@ -20,7 +20,7 @@ fn structural_identity_comparison_only_uses_fingerprint_truth() {
 #[test]
 fn structural_identity_evidence_exposes_declared_fingerprint_and_lineage_for_entities_only() {
     let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "alpha");
+    let entity = create_entity(&runtime, "alpha");
     assert!(runtime.set_entity_structural_identity_for_test(
         entity,
         Some(StructuralFingerprint::new(Symbol(11), 101)),
@@ -42,7 +42,7 @@ fn structural_identity_evidence_exposes_declared_fingerprint_and_lineage_for_ent
     assert_eq!(entity_evidence.lineage_id, Some(LineageId(77)));
     assert!(entity_evidence.degradations.is_empty());
 
-    let relation = create_relation(&mut runtime, entity, entity, "self");
+    let relation = create_relation(&runtime, entity, entity, "self");
     let relation_evidence = runtime
         .inspect_what_happened()
         .structural_identity(
@@ -64,9 +64,9 @@ fn structural_identity_evidence_exposes_declared_fingerprint_and_lineage_for_ent
 #[test]
 fn structural_identity_comparison_distinguishes_equal_mismatch_and_family_mismatch() {
     let mut runtime = runtime_with_test_schema();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let other_family = create_entity(&mut runtime, "other-family");
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let other_family = create_entity(&runtime, "other-family");
 
     assert!(runtime.set_entity_structural_identity_for_test(
         left,
@@ -123,10 +123,10 @@ fn structural_identity_comparison_distinguishes_equal_mismatch_and_family_mismat
 #[test]
 fn structural_identity_query_is_family_scoped_and_entity_only() {
     let mut runtime = runtime_with_test_schema();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let ignored = create_entity(&mut runtime, "ignored");
-    let _relation = create_relation(&mut runtime, left, right, "rel");
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let ignored = create_entity(&runtime, "ignored");
+    let _relation = create_relation(&runtime, left, right, "rel");
 
     assert!(runtime.set_entity_structural_identity_for_test(
         left,
@@ -165,7 +165,7 @@ fn structural_identity_query_is_family_scoped_and_entity_only() {
 #[test]
 fn structural_identity_historical_scope_does_not_leak_reused_slot_sidecars() {
     let mut runtime = runtime_with_test_schema();
-    let original = create_entity_outcome(&mut runtime, "original");
+    let original = create_entity_outcome(&runtime, "original");
     let original_entity = changed_entities(&original)[0];
     assert!(runtime.set_entity_structural_identity_for_test(
         original_entity,
@@ -214,8 +214,8 @@ fn structural_identity_historical_scope_does_not_leak_reused_slot_sidecars() {
 #[test]
 fn structural_identity_recovery_preserves_current_evidence_and_queries() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
     assert!(runtime.set_entity_structural_identity_for_test(
         left,
         Some(StructuralFingerprint::new(Symbol(51), 1001)),
@@ -246,7 +246,7 @@ fn structural_identity_recovery_preserves_current_evidence_and_queries() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     let actual_left = recovered
         .inspect_what_happened()
@@ -269,10 +269,10 @@ fn structural_identity_recovery_preserves_current_evidence_and_queries() {
 
 #[test]
 fn inspection_truth_bundle_recovery_parity_holds_for_current_and_historical_surfaces() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "bundle");
+    let runtime = persisted_runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "bundle");
     let entity = changed_entities(&created)[0];
-    let _relation = create_relation(&mut runtime, entity, entity, "self");
+    let _relation = create_relation(&runtime, entity, entity, "self");
     runtime.durability_authority().checkpoint().unwrap();
 
     let expected = capture_inspection_truth_bundle(
@@ -285,7 +285,7 @@ fn inspection_truth_bundle_recovery_parity_holds_for_current_and_historical_surf
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let actual = capture_inspection_truth_bundle(
         &recovered,
         &BranchId("main".to_string()),

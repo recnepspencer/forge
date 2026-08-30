@@ -23,7 +23,8 @@ fn external_effect_requires_exact_declared_effect_payload_and_emit_target() {
     let ApplicationSchemaMember::Effect { payload_type, .. } = &mut wrong_payload[1] else {
         unreachable!("fixture effect moved")
     };
-    *payload_type = "WrongPayload".to_owned();
+    *payload_type =
+        crate::portable_identity::WorthQueryPortableTypeIdentity::declared("WrongPayload");
     assert_eq!(
         validate_member_closure(&wrong_payload),
         Err(ApplicationSchemaDeclarationDenial::MissingOperationProgramDependency)
@@ -52,11 +53,13 @@ fn closed_members() -> Vec<ApplicationSchemaMember> {
     vec![
         ApplicationSchemaMember::Operation {
             operation: "Operation".to_owned(),
-            input_type: "Input".to_owned(),
+            input_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared("Input"),
         },
         ApplicationSchemaMember::Effect {
             effect: "ExternalEffect".to_owned(),
-            payload_type: "Payload".to_owned(),
+            payload_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "Payload",
+            ),
         },
         ApplicationSchemaMember::OperationProgram {
             operation: "Operation".to_owned(),
@@ -67,7 +70,9 @@ fn closed_members() -> Vec<ApplicationSchemaMember> {
         ApplicationSchemaMember::OperationExternalEffect {
             operation: "Operation".to_owned(),
             effect: "ExternalEffect".to_owned(),
-            rust_payload_type: "Payload".to_owned(),
+            rust_payload_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "Payload",
+            ),
             protocol: ApplicationExternalEffectProtocol::new(
                 BoundaryProtocolIdentity::new("test.external-payload"),
                 BoundaryProtocolVersion::new(1),

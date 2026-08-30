@@ -1,7 +1,7 @@
 use worth_query_declaration::facade::application_query::{
     ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinition,
     ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
-    ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility, ApplicationQueryReference,
+    ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
     ApplicationQueryResultFieldRef, ApplicationQueryResultShapeBuilder,
 };
 use worth_query_declaration::{
@@ -41,6 +41,12 @@ worth_query_field!(
 struct RecordQueryParameters;
 struct RecordQueryResult;
 struct RecordIdentitySlot;
+worth_query_declaration::worth_query_portable_type!(
+    RecordQueryResult => "worth.query.test.host.record_query.result.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    RecordIdentitySlot => "worth.query.test.host.record_query.identity_slot.v1"
+);
 
 worth_query_application_query!(
     RecordQuery in HostileConsumerSchema,
@@ -76,20 +82,18 @@ fn record_query_definition() -> ApplicationQueryDefinition<
         _,
     >::new("identity", RecordIdentity::reference()))
     .build();
-    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::from_schema_identifier(
-        "record_query",
-    ))
-    .root(Record::reference())
-    .scope(Record::reference())
-    .result_shape(shape)
-    .cardinality(ApplicationQueryCardinality::ExactlyOne)
-    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
-    .disclosure(ApplicationQueryDisclosureContract::public())
-    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
-    .lanes(ApplicationQueryLaneEligibility::one_shot())
-    .public()
-    .build()
-    .expect("hostile-consumer query declaration should be valid")
+    ApplicationQueryDefinitionBuilder::declare(RecordQuery::reference())
+        .root(Record::reference())
+        .scope(Record::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .expect("hostile-consumer query declaration should be valid")
 }
 
 #[test]

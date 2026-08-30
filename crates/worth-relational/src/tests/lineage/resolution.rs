@@ -16,8 +16,8 @@ use crate::tests::support::*;
 
 #[test]
 fn historical_lineage_resolution_follows_replace_events() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
     let start_lineage = runtime
         .lineage_access()
@@ -25,7 +25,7 @@ fn historical_lineage_resolution_follows_replace_events() {
         .unwrap()
         .lineage_id;
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -42,8 +42,9 @@ fn historical_lineage_resolution_follows_replace_events() {
                 },
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
     let resolution =
         runtime
             .lineage_access()
@@ -91,8 +92,8 @@ fn historical_lineage_resolution_follows_replace_events() {
 
 #[test]
 fn failed_durable_append_cannot_misreport_a_performed_owner_commit() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "failed-lineage-source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "failed-lineage-source");
     let entity = changed_entities(&created)[0];
     let start_lineage = runtime
         .lineage_access()
@@ -105,25 +106,29 @@ fn failed_durable_append_cannot_misreport_a_performed_owner_commit() {
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
     });
 
-    runtime.durability.fail_next_append = true;
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("failed-replacement").push(
-        MutationIntent::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
-            entity_id: entity,
-            replacement: crate::transactions::data::EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw("failed-successor"),
-                fields: single_string_aspect_field_patch(
-                    aspect_key("name"),
-                    field_key("name"),
-                    "failed-successor",
-                ),
-            },
-        })),
-    ));
+    runtime.durability.arm_append_failure();
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("failed-replacement").push(MutationIntent::Entity(
+                EntityMutationIntent::Replace(ReplaceEntityIntent {
+                    entity_id: entity,
+                    replacement: crate::transactions::data::EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: crate::symbols::data::ClientKey::raw("failed-successor"),
+                        fields: single_string_aspect_field_patch(
+                            aspect_key("name"),
+                            field_key("name"),
+                            "failed-successor",
+                        ),
+                    },
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let durability_deferred = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("an unacknowledged performed movement is a typed error");
     assert!(matches!(
         durability_deferred,
@@ -166,8 +171,8 @@ fn failed_durable_append_cannot_misreport_a_performed_owner_commit() {
 
 #[test]
 fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
     let start_lineage = runtime
         .lineage_access()
@@ -177,10 +182,10 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
 
     for index in 0..6 {
         let label = format!("unrelated-{index}");
-        let _ = create_entity_outcome(&mut runtime, &label);
+        let _ = create_entity_outcome(&runtime, &label);
     }
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -197,8 +202,9 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
                 },
             }),
         )),
-    );
-    let _ = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let _ = txn.commit(&runtime).unwrap();
 
     let total_branch_events = runtime
         .lineage_access()
@@ -225,9 +231,8 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
 
 #[test]
 fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
     let start_lineage = runtime
         .lineage_access()
@@ -235,7 +240,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
         .unwrap()
         .lineage_id;
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -252,8 +257,9 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
                 },
             }),
         )),
-    );
-    let replacement = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let replacement = txn.commit(&runtime).unwrap();
     let history = runtime
         .lineage_access()
         .entity_aspect_history(

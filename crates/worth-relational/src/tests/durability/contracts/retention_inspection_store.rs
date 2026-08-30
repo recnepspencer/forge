@@ -1,13 +1,13 @@
 use super::*;
 
 #[test]
-fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_heads() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let source = create_entity_outcome(&mut runtime, "source");
+fn durability_contract_recovery_rebuilds_branch_head_root_obligations() {
+    let runtime = persisted_runtime_with_test_schema();
+    let source = create_entity_outcome(&runtime, "source");
     let source_entity = changed_entities(&source)[0];
-    let target = create_entity_outcome(&mut runtime, "target");
+    let target = create_entity_outcome(&runtime, "target");
     let target_entity = changed_entities(&target)[0];
-    let _relation = create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
+    let _relation = create_relation_outcome(&runtime, source_entity, target_entity, "r1");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -15,26 +15,37 @@ fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_hea
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let _deleted = delete_entity(&mut runtime, source_entity);
+    let _deleted = delete_entity(&runtime, source_entity);
     runtime.durability_authority().checkpoint().unwrap();
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
 
     let retention = recovered.retention().inspect_plan();
     assert_eq!(retention.active_snapshot_count, 0);
-    assert!(retention.branch_pinned_entities >= 1);
-    assert!(retention.branch_pinned_relations >= 1);
-    assert_eq!(retention.reclaimable_entities, 0);
-    assert_eq!(retention.reclaimable_relations, 0);
+    assert_eq!(retention.branch_pinned_entities, 0);
+    assert_eq!(retention.branch_pinned_relations, 0);
+    let feature = recovered
+        .branch_identity(&BranchId("feature".to_owned()))
+        .unwrap();
+    let (_, feature_basis) = recovered.observe_branch(&feature).unwrap();
+    let feature_truth = recovered
+        .read_truth()
+        .read_observation(&feature_basis.observation())
+        .unwrap();
+    assert!(feature_truth.get_entity(source_entity).is_some());
+    assert!(feature_truth
+        .relations()
+        .iter()
+        .any(|relation| { relation.source == source_entity && relation.target == target_entity }));
 }
 
 #[test]
 fn durability_contract_recovery_preserves_inspection_truth_bundle() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = persisted_runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
     runtime
         .history_authority()
@@ -43,10 +54,10 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let _main_update = update_entity(&mut runtime, entity, "main");
+    let _main_update = update_entity(&runtime, entity, "main");
     let _feature_update = {
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-            &mut runtime,
+            &runtime,
             BranchId("feature".to_string()),
         );
         txn.push_batch(
@@ -60,8 +71,9 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
                     ),
                 }),
             )),
-        );
-        txn.commit(&mut runtime).unwrap()
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).unwrap()
     };
     runtime.durability_authority().checkpoint().unwrap();
     let expected = capture_inspection_truth_bundle(
@@ -75,7 +87,7 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let actual = capture_inspection_truth_bundle(
         &recovered,
         &BranchId("feature".to_string()),
@@ -87,9 +99,9 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
 }
 
 #[test]
-fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+fn durability_contract_branch_heads_do_not_mutate_legacy_record_pins() {
+    let runtime = persisted_runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
     let inspection = runtime.inspect_what_happened();
     assert_eq!(
@@ -98,7 +110,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after create")
             .pins
             .branch_pins,
-        1
+        0
     );
 
     runtime
@@ -115,10 +127,10 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after branch create")
             .pins
             .branch_pins,
-        2
+        0
     );
 
-    update_entity(&mut runtime, entity, "main");
+    update_entity(&runtime, entity, "main");
     let inspection = runtime.inspect_what_happened();
     assert_eq!(
         inspection
@@ -126,15 +138,10 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after main update")
             .pins
             .branch_pins,
-        2
+        0
     );
 
-    update_entity_on_branch(
-        &mut runtime,
-        entity,
-        "feature",
-        BranchId("feature".to_string()),
-    );
+    update_entity_on_branch(&runtime, entity, "feature", BranchId("feature".to_string()));
     let inspection = runtime.inspect_what_happened();
     assert_eq!(
         inspection
@@ -142,7 +149,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after feature update")
             .pins
             .branch_pins,
-        2
+        0
     );
 }
 
@@ -150,7 +157,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
 fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
     let root_path = unique_test_store_path("worth-relational-bad-store");
     std::fs::write(&root_path, b"not-a-directory").unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(DurableStoreLayout {
@@ -159,10 +166,11 @@ fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
         })
         .build();
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("fail-closed"));
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    txn.push_batch(batch_create("fail-closed"))
+        .expect("test staging stays within configured resource budgets");
     let durability_deferred = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("the performed movement is not falsely acknowledged as durable");
     match &durability_deferred {
         TransactionCommitError::PerformedButDurabilityDeferred { error, .. } => {
@@ -198,8 +206,7 @@ fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
         runtime.history().branch_head(&BranchId("main".to_owned())),
         Some(performed_commit.clone())
     );
-    let basis = runtime
-        .admit_main_branch_basis()
+    let basis = crate::tests::support::test_owner_main_basis(&runtime)
         .expect("the performed branch basis remains admissible");
     let truth = runtime
         .read_truth()
@@ -215,5 +222,5 @@ fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
             .commit_id,
         performed_commit.commit_id
     );
-    assert_eq!(runtime.retention().inspect_plan().branch_pinned_entities, 1);
+    assert_eq!(runtime.retention().inspect_plan().branch_pinned_entities, 0);
 }

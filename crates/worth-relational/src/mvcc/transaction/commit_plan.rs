@@ -19,16 +19,24 @@ pub(crate) struct MergedPlanPreparationTiming {
 impl crate::mvcc::BranchBoundRelationalTransaction {
     pub fn merged_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
+    ) -> Result<&MergedCommitPlan, CommitConflict> {
+        let preparation = runtime.preparation_runtime_snapshot();
+        self.merged_plan_for_preparation(&preparation)?;
+        Ok(self.last_merged_plan.as_ref().expect("merged plan"))
+    }
+
+    fn merged_plan_for_preparation(
+        &mut self,
+        runtime: &crate::runtime::RelationalPreparationRuntime,
     ) -> Result<&MergedCommitPlan, CommitConflict> {
         if self.last_merged_plan.is_none() {
             self.ensure_current_basis(runtime)?;
             let selected_state =
                 crate::branch::SelectedRelationalBranchState::from_admitted_basis(&self.basis);
-            self.validate_staged_branch_locality(
-                selected_state.state(),
-                &runtime.services.symbols,
-            )?;
+            runtime.services.symbols.with_read(|symbols| {
+                self.validate_staged_branch_locality(selected_state.state(), symbols)
+            })?;
             let intents = self.normalized_intents_for_merge(runtime);
             let plan =
                 self.build_merged_plan_for_state(runtime, selected_state.state(), intents)?;
@@ -47,7 +55,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
 
     pub(crate) fn build_merged_plan_for_state(
         &self,
-        runtime: &crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalPreparationRuntime,
         current_state: &impl PartitionAccess,
         intents: Vec<MutationIntent>,
     ) -> Result<MergedCommitPlan, CommitConflict> {
@@ -57,21 +65,18 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
 
     pub(crate) fn build_merged_plan_for_state_with_timing(
         &self,
-        runtime: &crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalPreparationRuntime,
         current_state: &impl PartitionAccess,
         mut intents: Vec<MutationIntent>,
     ) -> Result<(MergedCommitPlan, MergedPlanPreparationTiming), CommitConflict> {
         let created_entities = collect_created_entity_refs(&intents);
-        let branch_basis_version_id = Some(self.basis.observation().version_id());
         let validation_started = Instant::now();
         for intent in &intents {
             validate_intent(
-                runtime,
                 current_state,
                 self.schema_authority.as_ref(),
                 runtime.runtime_config().storage.cross_context_policy,
                 runtime.runtime_instrumentation(),
-                branch_basis_version_id,
                 &created_entities,
                 intent,
             )?;
@@ -95,7 +100,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
 
     pub(crate) fn normalized_intents_for_merge(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalPreparationRuntime,
     ) -> Vec<MutationIntent> {
         self.normalize_intents_for_merge(runtime);
         self.batches()
@@ -104,35 +109,47 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
             .collect()
     }
 
-    fn normalize_intents_for_merge(&mut self, runtime: &mut crate::runtime::RelationalRuntime) {
+    fn normalize_intents_for_merge(
+        &mut self,
+        runtime: &crate::runtime::RelationalPreparationRuntime,
+    ) {
         let client_key_symbol_policy = runtime.runtime_config().identity.client_key_symbol_policy;
         if !client_key_symbol_policy.interns_requested_strings() {
             return;
         }
 
-        let new_snapshot_entries = self.overlay.normalize_client_keys(
-            &mut self.footprint,
-            &mut runtime.services.symbols,
-            client_key_symbol_policy,
-        );
-        if !new_snapshot_entries.is_empty() {
-            runtime
-                .config
-                .identity
-                .symbol_table
-                .merge_new_entries(new_snapshot_entries);
-        }
+        runtime.services.symbols.normalize_client_keys(|symbols| {
+            self.overlay.normalize_client_keys(
+                &mut self.footprint,
+                symbols,
+                client_key_symbol_policy,
+            )
+        });
     }
 
     pub(crate) fn ensure_runtime_affinity(
         &self,
+        runtime: &crate::runtime::RelationalPreparationRuntime,
+    ) -> Result<(), CommitConflict> {
+        self.ensure_runtime_affinity_for_instance(runtime.runtime_instance_id())
+    }
+
+    pub(crate) fn ensure_runtime_affinity_for_runtime(
+        &self,
         runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<(), CommitConflict> {
-        if self.basis.identity().runtime_instance_id() == runtime.runtime_instance_id() {
+        self.ensure_runtime_affinity_for_instance(runtime.runtime_instance_id())
+    }
+
+    fn ensure_runtime_affinity_for_instance(
+        &self,
+        runtime_instance_id: u64,
+    ) -> Result<(), CommitConflict> {
+        if self.basis.identity().runtime_instance_id() == runtime_instance_id {
             Ok(())
         } else {
             Err(CommitConflict::new(ConflictClass::ForeignRuntime {
-                expected_runtime_instance_id: runtime.runtime_instance_id(),
+                expected_runtime_instance_id: runtime_instance_id,
                 actual_runtime_instance_id: self.basis.identity().runtime_instance_id(),
             }))
         }
@@ -140,10 +157,24 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
 
     pub(crate) fn ensure_current_basis(
         &self,
-        runtime: &crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalPreparationRuntime,
     ) -> Result<(), CommitConflict> {
         self.ensure_runtime_affinity(runtime)?;
-        if runtime.admitted_branch_basis_is_current(&self.basis) {
+        if self.basis.is_current() {
+            Ok(())
+        } else {
+            Err(CommitConflict::new(ConflictClass::StaleValidationBasis {
+                detail: "transaction basis is no longer current".to_owned(),
+            }))
+        }
+    }
+
+    pub(crate) fn ensure_current_basis_for_runtime(
+        &self,
+        runtime: &crate::runtime::RelationalRuntime,
+    ) -> Result<(), CommitConflict> {
+        self.ensure_runtime_affinity_for_runtime(runtime)?;
+        if self.basis.is_current() {
             Ok(())
         } else {
             Err(CommitConflict::new(ConflictClass::StaleValidationBasis {

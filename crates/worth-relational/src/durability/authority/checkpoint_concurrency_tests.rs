@@ -6,10 +6,12 @@ use crate::tests::support::*;
 
 #[test]
 fn checkpoint_reconstruction_does_not_exclude_publication_after_capture() {
-    let mut runtime = runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "checkpoint-concurrency-anchor");
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("publication-during-checkpoint-reconstruction"));
+    let runtime = runtime_with_test_schema();
+    let baseline = create_entity_outcome(&runtime, "checkpoint-concurrency-anchor");
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(batch_create("publication-during-checkpoint-reconstruction"))
+        .expect("test staging stays within configured resource budgets");
     let candidate = runtime
         .prepare_branch_transaction(transaction)
         .expect("publication candidate prepares");
@@ -55,7 +57,7 @@ fn checkpoint_reconstruction_does_not_exclude_publication_after_capture() {
     publication_thread
         .join()
         .expect("bounded publication thread joins");
-    let worth_proof::TransitionOutcome::Success(performed) = outcome else {
+    let crate::mvcc::RelationalPublicationOutcome::Performed(performed) = outcome else {
         panic!("publication must complete while checkpoint reconstruction is paused");
     };
     let performed_commit_id = performed.canonical_commit().commit.commit_id;
@@ -64,7 +66,7 @@ fn checkpoint_reconstruction_does_not_exclude_publication_after_capture() {
         .send(())
         .expect("checkpoint reconstruction resumes after publication");
 
-    let (mut runtime, checkpoint) = checkpoint_thread.join().expect("checkpoint thread joins");
+    let (runtime, checkpoint) = checkpoint_thread.join().expect("checkpoint thread joins");
     let checkpoint = checkpoint.expect("the pre-publication checkpoint remains valid");
     assert_eq!(
         checkpoint
@@ -88,7 +90,7 @@ fn checkpoint_reconstruction_does_not_exclude_publication_after_capture() {
     );
     let mut recovered = runtime_with_test_schema();
     let outcome = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("fresh recovery replays the concurrent publication as checkpoint tail");
     assert_eq!(outcome.coverage.replayed_tail_commits, 1);

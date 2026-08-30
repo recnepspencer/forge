@@ -57,8 +57,8 @@ mod tests {
 
     #[test]
     fn foreign_runtime_authority_cannot_append_an_exact_commit_envelope() {
-        let mut source = runtime_with_test_schema();
-        let committed = create_entity_outcome(&mut source, "durable-authority-source");
+        let source = runtime_with_test_schema();
+        let committed = create_entity_outcome(&source, "durable-authority-source");
         let envelope = committed.envelope().clone();
         let positioned = crate::history::data::PositionedCanonicalCommit::for_test(
             committed.patch_position(),
@@ -69,7 +69,7 @@ mod tests {
             commit_id: envelope.commit.commit_id,
             branch_id: envelope.commit.branch_id.clone(),
         };
-        let mut foreign = runtime_with_test_schema();
+        let foreign = runtime_with_test_schema();
         let durable_count_before = foreign.durable_log().len();
 
         let error = foreign

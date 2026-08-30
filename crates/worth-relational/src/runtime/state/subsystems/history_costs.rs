@@ -101,3 +101,60 @@ pub(crate) struct RelationalForkMaterializationCost {
     pub(crate) authoritative_bytes: u64,
     pub(crate) copied_commit_envelopes: u64,
 }
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct RelationalPhase4ReferenceCostOwner {
+    counters: std::sync::Arc<RelationalPhase4ReferenceCostCountersOwner>,
+}
+
+#[derive(Debug, Default)]
+struct RelationalPhase4ReferenceCostCountersOwner {
+    branch_cell_lookups: std::sync::atomic::AtomicU64,
+    reference_allocations: std::sync::atomic::AtomicU64,
+    branch_cell_contacts: std::sync::atomic::AtomicU64,
+}
+
+impl RelationalPhase4ReferenceCostOwner {
+    pub(crate) fn detached_owner_snapshot(&self) -> Self {
+        let snapshot = self.snapshot();
+        Self {
+            counters: std::sync::Arc::new(RelationalPhase4ReferenceCostCountersOwner {
+                branch_cell_lookups: snapshot.branch_cell_lookups.into(),
+                reference_allocations: snapshot.reference_allocations.into(),
+                branch_cell_contacts: snapshot.branch_cell_contacts.into(),
+            }),
+        }
+    }
+
+    pub(crate) fn record_branch_cell_lookup(&self) {
+        increment(&self.counters.branch_cell_lookups);
+    }
+
+    pub(crate) fn record_reference_allocation(&self) {
+        increment(&self.counters.reference_allocations);
+    }
+
+    pub(crate) fn record_branch_cell_contact(&self) {
+        increment(&self.counters.branch_cell_contacts);
+    }
+
+    pub(crate) fn snapshot(&self) -> super::RelationalPhase4ReferenceCostCounters {
+        use std::sync::atomic::Ordering;
+        super::RelationalPhase4ReferenceCostCounters {
+            branch_cell_lookups: self.counters.branch_cell_lookups.load(Ordering::Relaxed),
+            reference_allocations: self.counters.reference_allocations.load(Ordering::Relaxed),
+            branch_cell_contacts: self.counters.branch_cell_contacts.load(Ordering::Relaxed),
+            ..Default::default()
+        }
+    }
+}
+
+fn increment(counter: &std::sync::atomic::AtomicU64) {
+    counter
+        .fetch_update(
+            std::sync::atomic::Ordering::Relaxed,
+            std::sync::atomic::Ordering::Relaxed,
+            |current| Some(current.saturating_add(1)),
+        )
+        .expect("saturating counter update cannot fail");
+}

@@ -23,6 +23,17 @@ pub enum WorthQueryProviderSessionDenialKind {
     ForeignGraphAuthority,
     UndeclaredOperationScope,
     ResourceEnvelopeMismatch,
+    ActiveSnapshotCapacityExhausted {
+        maximum_active_snapshots: usize,
+    },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
+    CandidateIdentityExhausted,
+    PreparedRootBudgetExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
     ProviderIdentityMismatch,
     ProviderGenerationMismatch,
     SessionProtocolUnsupported,

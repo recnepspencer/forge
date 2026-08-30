@@ -35,35 +35,14 @@ impl DiagnosticsState {
             })
     }
 
-    pub fn create_branch_from_basis(
-        &mut self,
-        name: impl Into<String>,
-        parent_branch_id: SignalBranchId,
-        parent_head_snapshot_id: Option<SignalSnapshotId>,
-    ) -> SignalBranchHandle {
-        self.bootstrap_defaults();
-        let handle = SignalBranchHandle {
-            id: SignalBranchId(self.next_branch_id.max(1)),
-            name: name.into(),
-            parent_branch_id: Some(parent_branch_id),
-            head_snapshot_id: parent_head_snapshot_id,
-        };
-        self.next_branch_id = handle.id.0 + 1;
-        self.branch_catalog.insert(handle.id, handle.clone());
-        handle
-    }
-
     pub fn set_active_branch(&mut self, branch_id: SignalBranchId) {
         self.bootstrap_defaults();
         self.active_branch = branch_id;
     }
 
-    pub(crate) fn retire_branch_from_catalog(&mut self, branch_id: SignalBranchId) {
-        debug_assert_ne!(self.active_branch, branch_id);
-        self.branch_catalog.remove(&branch_id);
-    }
-
-    pub fn set_branch_head_snapshot(
+    /// Stage a head value inside a not-yet-installed graph. Live catalog
+    /// truth is projected from `BranchManager` before installation.
+    pub(crate) fn stage_branch_head_snapshot_projection(
         &mut self,
         branch_id: SignalBranchId,
         snapshot_id: SignalSnapshotId,

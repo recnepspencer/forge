@@ -25,6 +25,12 @@ where
         self
     }
 
+    /// Bound the total heavy branch snapshot states retained by this runtime.
+    pub fn maximum_stored_branch_snapshots(mut self, maximum: usize) -> Self {
+        self.maximum_stored_branch_snapshots = maximum;
+        self
+    }
+
     pub fn adjust_runtime_policy<F>(mut self, adjust: F) -> Self
     where
         F: FnOnce(SignalRuntimePolicy) -> SignalRuntimePolicy,

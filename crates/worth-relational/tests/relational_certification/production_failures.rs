@@ -72,7 +72,7 @@ fn production_transaction_failure_is_typed_before_handle_binding() {
 #[test]
 fn missing_owner_binding_is_typed_and_cannot_fall_back_to_a_raw_id() {
     let program = court_program();
-    let mut owner = RelationalRuntimeApi::builder().build();
+    let owner = RelationalRuntimeApi::builder().build();
     let owner_identity = owner.main_branch_identity();
     let owner_options = owner
         .admit_branch_basis(&owner_identity)
@@ -83,9 +83,11 @@ fn missing_owner_binding_is_typed_and_cannot_fall_back_to_a_raw_id() {
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(WorkerIntentBatch::new("missing-owner-binding"));
+    transaction
+        .push_batch(WorkerIntentBatch::new("missing-owner-binding"))
+        .unwrap();
     let commit = transaction
-        .commit(&mut owner)
+        .commit(&owner)
         .expect("the public no-op commit supplies a real empty correspondence");
     let error = SupplyChainSemanticHandles::bind(&program, &commit, commit.snapshot.clone())
         .expect_err("a real commit with no matching owner records cannot mint semantic handles");
@@ -96,7 +98,7 @@ fn missing_owner_binding_is_typed_and_cannot_fall_back_to_a_raw_id() {
 fn foreign_snapshot_observation_is_typed_and_does_not_cross_runtime() {
     let program = court_program();
     let mut world = compile_supply_chain_baseline(program).expect("Court world compiles");
-    let mut foreign_runtime = RelationalRuntimeApi::builder().build();
+    let foreign_runtime = RelationalRuntimeApi::builder().build();
     let foreign_snapshot = {
         let identity = foreign_runtime.main_branch_identity();
         let options = foreign_runtime
@@ -109,7 +111,7 @@ fn foreign_snapshot_observation_is_typed_and_does_not_cross_runtime() {
             )
             .expect("owner-admitted transaction context");
         let commit = transaction
-            .commit(&mut foreign_runtime)
+            .commit(&foreign_runtime)
             .expect("foreign runtime no-op commit");
         commit.snapshot.clone()
     };
@@ -137,7 +139,7 @@ fn foreign_snapshot_observation_is_typed_and_does_not_cross_runtime() {
 fn relation_binding_rejects_a_snapshot_from_another_runtime() {
     let program = court_program();
     let world = compile_supply_chain_baseline(program.clone()).expect("Court world compiles");
-    let mut foreign_runtime = RelationalRuntimeApi::builder().build();
+    let foreign_runtime = RelationalRuntimeApi::builder().build();
     let foreign_snapshot = {
         let identity = foreign_runtime.main_branch_identity();
         let options = foreign_runtime
@@ -150,7 +152,7 @@ fn relation_binding_rejects_a_snapshot_from_another_runtime() {
             )
             .expect("owner-admitted transaction context");
         let commit = transaction
-            .commit(&mut foreign_runtime)
+            .commit(&foreign_runtime)
             .expect("foreign runtime no-op commit");
         commit.snapshot.clone()
     };
@@ -347,13 +349,14 @@ fn semantic_relation_binding_rejects_duplicate_correspondence() {
 
 #[test]
 fn observation_rejects_missing_snapshot_and_unbound_record_identities() {
-    let mut missing_snapshot =
+    let missing_snapshot =
         compile_supply_chain_baseline(court_program()).expect("Court world compiles");
     let released_snapshot = missing_snapshot.handles.snapshot.clone();
     assert!(missing_snapshot
         .runtime
         .snapshots()
-        .release_snapshot(&released_snapshot));
+        .release_snapshot(&released_snapshot)
+        .is_ok());
     let missing_error = super::world::supply_chain::observe_supply_chain_snapshot(
         &missing_snapshot.program,
         &missing_snapshot.handles,
@@ -384,12 +387,7 @@ fn observation_rejects_missing_snapshot_and_unbound_record_identities() {
 
     let mut unknown_relation =
         compile_supply_chain_baseline(court_program()).expect("Court world compiles");
-    let relation_key = *unknown_relation
-        .handles
-        .relations
-        .keys()
-        .next()
-        .expect("Court has a relation");
+    let relation_key = *unknown_relation.handles.relations.keys().next().unwrap();
     unknown_relation.handles.relations.remove(&relation_key);
     let relation_error = super::world::supply_chain::observe_supply_chain(&unknown_relation)
         .expect_err("an unbound production relation must not be ignored");

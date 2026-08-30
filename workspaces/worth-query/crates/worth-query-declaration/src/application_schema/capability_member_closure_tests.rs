@@ -1,7 +1,8 @@
 use super::{
     capability_member_closure::validate_application_capability_members,
     ApplicationAuthorizationPathBuilder, ApplicationEntityRef, ApplicationFieldRef,
-    ApplicationOperationRef, ApplicationRelationRef, ApplicationSchemaDeclarationDenial,
+    ApplicationOperationMarkerIdentity, ApplicationOperationRef, ApplicationRelationRef,
+    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
     ApplicationSchemaMember, EqualityPredicate, NoApplicationUnit, ReadOnly,
 };
 use crate::application_capability::{
@@ -25,7 +26,7 @@ use crate::application_capability::{
     ApplicationCapabilityWorkflowDefinition,
 };
 use worth_foundational::facade::ScalarAspectType;
-struct Schema;
+pub(crate) struct Schema;
 struct Capability;
 struct Operation;
 struct Grant;
@@ -56,6 +57,12 @@ struct ResourceSlot;
 struct MissingResourceSlot;
 struct OtherContext;
 struct OtherResourceSlot;
+
+impl ApplicationOperationMarkerIdentity for Operation {
+    type Schema = Schema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "Operation";
+}
 type ErasedContract = crate::application_capability::ErasedApplicationCapabilityContract;
 
 mod capability_revocation;
@@ -71,6 +78,8 @@ mod elevation_lifecycle;
 mod fixture_members;
 #[path = "capability_member_closure_tests/population_budget.rs"]
 mod population_budget;
+#[path = "capability_member_closure_tests/portable_reconstruction.rs"]
+mod portable_reconstruction;
 
 use fixture_members::{field_member, members, relation_member};
 
@@ -112,15 +121,52 @@ fn contract_with_name_and_composition(
     changed_purpose: bool,
     composition: ApplicationCapabilityComposition,
 ) -> ErasedContract {
+    contract_with_identity_and_composition(
+        capability_name,
+        capability_name,
+        wrong_resource_topology,
+        changed_purpose,
+        composition,
+    )
+}
+
+fn contract_with_identity_and_composition(
+    capability_name: &'static str,
+    capability_identity: &'static str,
+    wrong_resource_topology: bool,
+    changed_purpose: bool,
+    composition: ApplicationCapabilityComposition,
+) -> ErasedContract {
     ApplicationCapabilityContractBuilder::new(
-        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier(capability_name),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationCapabilityRef::<Schema, Capability>::from_test_declaration(
+            capability_name,
+            crate::portable_identity::WorthQueryPortableTypeIdentity::declared(capability_identity),
+        ),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
         ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
     .target(target_definition(wrong_resource_topology, changed_purpose))
     .constraints(constraint_definition())
     .delegation(delegation_definition())
     .composition(composition)
+    .elevation(ApplicationCapabilityElevationRule::not_applicable())
+    .build()
+    .erased()
+    .clone()
+}
+
+fn contract_with_capability_ref<CapabilityMarker>(
+    capability: ApplicationCapabilityRef<Schema, CapabilityMarker>,
+) -> ErasedContract {
+    ApplicationCapabilityContractBuilder::new(
+        capability,
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
+        ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
+    )
+    .target(target_definition(false, false))
+    .constraints(constraint_definition())
+    .delegation(delegation_definition())
+    .composition(composition(true))
     .elevation(ApplicationCapabilityElevationRule::not_applicable())
     .build()
     .erased()

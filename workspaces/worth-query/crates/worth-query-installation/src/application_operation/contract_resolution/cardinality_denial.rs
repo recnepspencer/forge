@@ -4,6 +4,7 @@ use crate::application_operation::WorthQueryApplicationOperationInstallationDeni
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorthQueryOperationContractCardinalityDenial {
+    #[cfg(test)]
     AmbiguousExternalEffect,
     AmbiguousAftermath,
 }
@@ -13,6 +14,7 @@ impl WorthQueryOperationContractCardinalityDenial {
         self,
     ) -> WorthQueryApplicationOperationInstallationDenialKind {
         match self {
+            #[cfg(test)]
             Self::AmbiguousExternalEffect => {
                 WorthQueryApplicationOperationInstallationDenialKind::AmbiguousExternalEffectContract
             }

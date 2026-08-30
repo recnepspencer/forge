@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
-    let mut runtime = runtime_with_test_schema_execution_model(
+    let runtime = runtime_with_test_schema_execution_model(
         crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     runtime.performance_access().reset_counters();
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("bulk-entities").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -27,8 +27,9 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
                     .collect(),
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(outcome.changed_records.len(), 65);
@@ -42,12 +43,12 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
 
 #[test]
 fn complexity_budget_preparation_narrow_delta_falls_back_to_serial() {
-    let mut runtime = runtime_with_test_schema_execution_model(
+    let runtime = runtime_with_test_schema_execution_model(
         crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     runtime.performance_access().reset_counters();
 
-    let _ = create_entity_outcome(&mut runtime, "narrow");
+    let _ = create_entity_outcome(&runtime, "narrow");
     let counters = runtime.performance_access().counters();
 
     assert!(counters.preparation_packet_count <= 3);

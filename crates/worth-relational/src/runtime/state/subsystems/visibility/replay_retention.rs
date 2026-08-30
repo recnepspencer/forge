@@ -13,9 +13,7 @@ impl ReplayRetentionIndex {
     }
 
     pub(crate) fn fork(&self) -> Self {
-        Self {
-            entries: self.entries.clone(),
-        }
+        Self::new()
     }
 
     pub(crate) fn retained_mut(

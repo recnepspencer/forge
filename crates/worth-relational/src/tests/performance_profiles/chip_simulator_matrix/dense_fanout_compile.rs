@@ -2,10 +2,9 @@ use super::*;
 
 pub(super) fn certify_dense_fanout_compile_wave(suite: &'static str) {
     let fanout_compile_samples = capture_perf_samples(suite, "dense_fanout_compile_wave", || {
-        let mut runtime =
-            runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+        let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
         let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
-        let source = create_entity_in_partition(&mut runtime, "net-driver", PartitionId(7));
+        let source = create_entity_in_partition(&runtime, "net-driver", PartitionId(7));
         let targets = (0..24)
             .map(|index| {
                 let partition_id = match index % 4 {
@@ -14,15 +13,14 @@ pub(super) fn certify_dense_fanout_compile_wave(suite: &'static str) {
                     2 => PartitionId(17),
                     _ => PartitionId(19),
                 };
-                create_entity_in_partition(&mut runtime, &format!("net-sink-{index}"), partition_id)
+                create_entity_in_partition(&runtime, &format!("net-sink-{index}"), partition_id)
             })
             .collect::<Vec<_>>();
 
         runtime.performance_access().reset_counters();
         let commit_started_at = Instant::now();
         let commit_outcome = {
-            let mut txn =
-                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
             let mut batch = WorkerIntentBatch::new("chip-fanout-wave");
             for (index, target) in targets.iter().enumerate() {
                 batch = batch.push(MutationIntent::Create(CreateIntent::Relation(
@@ -38,8 +36,9 @@ pub(super) fn certify_dense_fanout_compile_wave(suite: &'static str) {
                     },
                 )));
             }
-            txn.push_batch(batch);
-            txn.commit(&mut runtime)
+            txn.push_batch(batch)
+                .expect("test staging stays within configured resource budgets");
+            txn.commit(&runtime)
                 .expect("chip fanout relation burst commit")
         };
         let commit_micros = commit_started_at.elapsed().as_micros();

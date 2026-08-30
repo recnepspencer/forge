@@ -1,6 +1,5 @@
 //! Native and custom invariant registration execution.
 
-use crate::runtime::RelationalRuntime;
 use crate::validation::data::{
     CustomInvariantExecutionContext, CustomInvariantFailure, CustomInvariantFailureKind,
     CustomInvariantProvenance, CustomInvariantRuntimePhase, InvariantReportedRule,
@@ -8,6 +7,7 @@ use crate::validation::data::{
 };
 use crate::validation::engine::context::InvariantExecutionContext;
 use crate::validation::engine::evaluator::evaluate_rule;
+use crate::validation::engine::InvariantRuntimeView;
 
 use super::super::packets::InvariantWorkPacket;
 
@@ -20,7 +20,7 @@ pub(super) struct RegisteredInvariantEvaluation {
 }
 
 pub(super) fn evaluate_registered_rule(
-    runtime: &RelationalRuntime,
+    runtime: &InvariantRuntimeView,
     packet: &InvariantWorkPacket<'_>,
 ) -> RegisteredInvariantEvaluation {
     match &packet.registration {
@@ -42,7 +42,7 @@ pub(super) fn evaluate_registered_rule(
 }
 
 fn evaluate_native_registration(
-    runtime: &RelationalRuntime,
+    runtime: &InvariantRuntimeView,
     packet: &InvariantWorkPacket<'_>,
     registration: &crate::validation::data::InvariantRegistration,
 ) -> RegisteredInvariantEvaluation {
@@ -77,7 +77,7 @@ fn evaluate_native_registration(
 }
 
 fn evaluate_custom_registration(
-    runtime: &RelationalRuntime,
+    runtime: &InvariantRuntimeView,
     packet: &InvariantWorkPacket<'_>,
     registration: &crate::validation::data::CustomInvariantRegistration,
     prepared_execution: &std::sync::Arc<

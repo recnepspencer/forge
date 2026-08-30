@@ -80,7 +80,8 @@ Use history when you need the sequence of changes, not just the current answer.
 The normal shape should be:
 
 - `runtime.diagnostics()` for why, compare, health, and inspection
-- `runtime.history()` for replay, branches, snapshots, and lineage
+- `runtime.history()` for read-only replay, branch, and lineage inspection
+- admitted runtime snapshot operations for capture and restore
 
 Only drop into the flatter diagnostics module when you are doing tooling or
 custom reporting.

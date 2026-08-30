@@ -23,6 +23,10 @@ mod request_boundary;
 mod result_projection;
 mod source_only_policy;
 
+use crate::branch::{
+    AdmittedSignalBranchBasis, SignalBranchAdmissionLease, SignalBranchMergeDenial,
+    SignalBranchMergeOutcome,
+};
 use crate::data::error::SignalError;
 use crate::state::SignalBranchHandle;
 
@@ -34,6 +38,7 @@ use super::super::merge::{
 #[cfg(test)]
 use super::super::merge::BranchMergeExecutionSummary;
 use super::super::runtime_state::SignalRuntime;
+use super::branches::SignalBranchSnapshotStorageDenial;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -42,6 +47,21 @@ where
     T: Copy + Ord,
 {
     pub fn merge_branch(
+        &mut self,
+        source: &AdmittedSignalBranchBasis,
+        target: &AdmittedSignalBranchBasis,
+    ) -> Result<SignalBranchMergeOutcome, SignalBranchMergeDenial> {
+        let (source, target, retention) = self.preflight_signal_branch_merge(source, target)?;
+        let result = self
+            .merge_branch_raw(source, target.clone())
+            .map_err(|error| SignalBranchMergeDenial::OwnerFailed { error })?;
+        let target_basis = self
+            .admit_signal_branch_with_retention(target, retention)
+            .map_err(|error| SignalBranchMergeDenial::OwnerFailed { error })?;
+        Ok(SignalBranchMergeOutcome::owner_issued(target_basis, result))
+    }
+
+    pub(crate) fn merge_branch_raw(
         &mut self,
         source: SignalBranchHandle,
         target: SignalBranchHandle,
@@ -52,6 +72,91 @@ where
         let lowered_request = self.lower_foundational_merge_request(&normalized_request)?;
         let plan = self.plan_branch_merge_request(&lowered_request)?;
         self.execute_branch_merge_request_plan(&lowered_request, &plan)
+    }
+
+    pub(crate) fn validate_signal_branch_merge_bases(
+        &self,
+        source: &AdmittedSignalBranchBasis,
+        target: &AdmittedSignalBranchBasis,
+    ) -> Result<(SignalBranchHandle, SignalBranchHandle), SignalBranchMergeDenial> {
+        let source_id = source.owner_branch_id();
+        let source_branch = self.branches.branch_handle(source_id).ok_or(
+            SignalBranchMergeDenial::UnknownSourceBranch {
+                branch_id: source_id,
+            },
+        )?;
+        let source_live = self
+            .signal_branch_observation(&source_branch)
+            .map_err(|_| SignalBranchMergeDenial::UnknownSourceBranch {
+                branch_id: source_id,
+            })?;
+        if let Err(mismatch) = source_live.compare(source.observation()) {
+            return Err(SignalBranchMergeDenial::SourceBasisMismatch {
+                axes: mismatch.axes().to_vec(),
+            });
+        }
+
+        let target_id = target.owner_branch_id();
+        let target_branch = self.branches.branch_handle(target_id).ok_or(
+            SignalBranchMergeDenial::UnknownTargetBranch {
+                branch_id: target_id,
+            },
+        )?;
+        let target_live = self
+            .signal_branch_observation(&target_branch)
+            .map_err(|_| SignalBranchMergeDenial::UnknownTargetBranch {
+                branch_id: target_id,
+            })?;
+        if let Err(mismatch) = target_live.compare(target.observation()) {
+            return Err(SignalBranchMergeDenial::TargetBasisMismatch {
+                axes: mismatch.axes().to_vec(),
+            });
+        }
+        Ok((source_branch, target_branch))
+    }
+
+    fn preflight_signal_branch_merge(
+        &self,
+        source: &AdmittedSignalBranchBasis,
+        target: &AdmittedSignalBranchBasis,
+    ) -> Result<
+        (
+            SignalBranchHandle,
+            SignalBranchHandle,
+            SignalBranchAdmissionLease,
+        ),
+        SignalBranchMergeDenial,
+    > {
+        let (source, target) = self.validate_signal_branch_merge_bases(source, target)?;
+        self.branches
+            .ensure_snapshot_storage_available()
+            .map_err(|denial| match denial {
+                SignalBranchSnapshotStorageDenial::CapacityExhausted {
+                    maximum_stored_snapshots,
+                } => SignalBranchMergeDenial::SnapshotCapacityExhausted {
+                    maximum_stored_snapshots,
+                },
+            })?;
+        let retention = self
+            .branches
+            .acquire_admitted_retention(target.id)
+            .map_err(|denial| SignalBranchMergeDenial::RetentionUnavailable { denial })?;
+        Ok((source, target, retention))
+    }
+
+    pub(crate) fn execute_admitted_branch_merge_request_plan(
+        &mut self,
+        source_basis: &AdmittedSignalBranchBasis,
+        target_basis: &AdmittedSignalBranchBasis,
+        request: &LoweredFoundationalMergeRequest,
+        plan: &BranchMergePlan,
+    ) -> Result<SignalBranchMergeOutcome, SignalError> {
+        let (_, target, retention) = self
+            .preflight_signal_branch_merge(source_basis, target_basis)
+            .map_err(signal_branch_merge_denial_to_error)?;
+        let result = self.execute_branch_merge_request_plan(request, plan)?;
+        let target_basis = self.admit_signal_branch_with_retention(target, retention)?;
+        Ok(SignalBranchMergeOutcome::owner_issued(target_basis, result))
     }
 
     pub(crate) fn lower_foundational_merge_request(
@@ -97,4 +202,8 @@ where
         let lowered_request = self.lower_foundational_merge_request(&normalized_request)?;
         self.plan_branch_merge_request(&lowered_request)
     }
+}
+
+fn signal_branch_merge_denial_to_error(denial: SignalBranchMergeDenial) -> SignalError {
+    SignalError::invalid_input(format!("canonical Signal branch merge denied: {denial:?}"))
 }

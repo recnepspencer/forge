@@ -214,6 +214,13 @@ pub struct CapabilityTouchInput {
     pub caller_time: u64,
     pub governed_input_identity: CapabilityGovernedInputIdentity,
 }
+worth_query_declaration::worth_query_portable_type!(CapabilityAction => "worth.query.test.execution.capability.action.v1");
+worth_query_declaration::worth_query_portable_type!(CapabilityPurpose => "worth.query.test.execution.capability.purpose.v1");
+worth_query_declaration::worth_query_portable_type!(CapabilityStatus => "worth.query.test.execution.capability.status.v1");
+worth_query_declaration::worth_query_portable_type!(CapabilityDisclosure => "worth.query.test.execution.capability.disclosure.v1");
+worth_query_declaration::worth_query_portable_type!(
+    CapabilityTouchInput => "worth.query.test.capability-touch-input.v1"
+);
 
 worth_query_operation!(
     pub CapabilityTouchOperation(CapabilityTouchInput) in IdentityExecutionSchema

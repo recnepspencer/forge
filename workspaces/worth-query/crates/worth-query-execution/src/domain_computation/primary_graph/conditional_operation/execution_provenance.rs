@@ -17,10 +17,25 @@ pub enum WorthQueryConditionalExecutionTerminal {
     SuppressedRetained,
     DeferredRetained,
     Retryable,
+    ControlStopped,
     Indeterminate,
     Committed,
     AlreadyCommitted,
     Failed,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryConditionalExecutionCause {
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
+    PatchPositionReservationContended,
+    CandidateCapacityExhausted { maximum_candidates: usize },
+    PublishedSnapshotCapacityExhausted { maximum_handles: usize },
+    Cancelled,
+    TimedOut,
+    TerminalFailure,
 }
 
 /// Descriptive, non-authorizing lineage for one temporal wake processed by an
@@ -35,6 +50,7 @@ pub struct WorthQueryConditionalExecutionProvenance {
     signal_decision: Option<WorthQueryConditionalSignalDecision>,
     application_attempt_ordinal: Option<u64>,
     terminal: WorthQueryConditionalExecutionTerminal,
+    cause: Option<WorthQueryConditionalExecutionCause>,
     canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases,
 }
 
@@ -64,6 +80,10 @@ impl WorthQueryConditionalExecutionProvenance {
         self.terminal
     }
 
+    pub fn cause(&self) -> Option<WorthQueryConditionalExecutionCause> {
+        self.cause
+    }
+
     pub const fn canonical_work(
         &self,
     ) -> worth_query_installation::facade::WorthQueryCanonicalWorkPhases {
@@ -85,6 +105,7 @@ pub(super) fn execution_provenance(
             signal_decision: wake.last_signal_decision,
             application_attempt_ordinal: wake.application_attempted.then_some(wake.attempt),
             terminal: terminal(&wake.decision),
+            cause: cause(&wake.decision),
             canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases::new(
                 worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
                 wake.application_admission_canonical_work,
@@ -94,6 +115,157 @@ pub(super) fn execution_provenance(
             ),
         })
         .collect()
+}
+
+fn cause(
+    decision: &WorthQueryRetainedConditionalDecision,
+) -> Option<WorthQueryConditionalExecutionCause> {
+    use super::application_operation_reentry::{
+        WorthQueryTemporalAdmissionTerminalFailure as Admission,
+        WorthQueryTemporalControlStop as Control, WorthQueryTemporalTerminalFailure as Terminal,
+    };
+    use super::signal_decision_reentry::WorthQueryOperationBackpressureCause as Backpressure;
+    match decision {
+        WorthQueryRetainedConditionalDecision::OperationBackpressured(_, cause) => match cause {
+            Backpressure::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            } => Some(WorthQueryConditionalExecutionCause::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots: *maximum_active_snapshots,
+            }),
+            Backpressure::RetentionCapacityExhausted => {
+                Some(WorthQueryConditionalExecutionCause::RetentionCapacityExhausted)
+            }
+            Backpressure::ProviderCommit(kind) => provider_commit_cause(*kind),
+        },
+        WorthQueryRetainedConditionalDecision::OperationControlStopped(_, Control::Cancelled) => {
+            Some(WorthQueryConditionalExecutionCause::Cancelled)
+        }
+        WorthQueryRetainedConditionalDecision::OperationControlStopped(_, Control::TimedOut) => {
+            Some(WorthQueryConditionalExecutionCause::TimedOut)
+        }
+        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(
+            _,
+            Terminal::ApplicationCommit(
+                crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::RetentionIdentityExhausted,
+            ),
+        ) => Some(WorthQueryConditionalExecutionCause::RetentionIdentityExhausted),
+        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(_, Terminal::Admission(failure))
+            if admission_retention_identity_exhausted(*failure) =>
+        {
+            Some(WorthQueryConditionalExecutionCause::RetentionIdentityExhausted)
+        }
+        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(
+            _,
+            Terminal::ApplicationCommit(
+                crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::SnapshotIdentityExhausted,
+            ),
+        ) => Some(WorthQueryConditionalExecutionCause::SnapshotIdentityExhausted),
+        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(_, Terminal::Admission(failure))
+            if admission_snapshot_identity_exhausted(*failure) =>
+        {
+            Some(WorthQueryConditionalExecutionCause::SnapshotIdentityExhausted)
+        }
+        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(
+            _,
+            Terminal::Admission(Admission::Principal(_)
+                | Admission::Entity(_)
+                | Admission::Authorization(_)
+                | Admission::Projection(_)
+                | Admission::Invariant(_)),
+        )
+        | WorthQueryRetainedConditionalDecision::OperationTerminalFailure(
+            _,
+            Terminal::ApplicationCommit(_),
+        ) => Some(WorthQueryConditionalExecutionCause::TerminalFailure),
+        _ => None,
+    }
+}
+
+fn provider_commit_cause(
+    kind: crate::domain_computation::primary_graph::WorthQueryApplicationCommitDeferredKind,
+) -> Option<WorthQueryConditionalExecutionCause> {
+    use crate::domain_computation::primary_graph::WorthQueryApplicationCommitDeferredKind as Kind;
+    match kind {
+        Kind::RetentionCapacityExhausted => {
+            Some(WorthQueryConditionalExecutionCause::RetentionCapacityExhausted)
+        }
+        Kind::PatchPositionReservationContended => {
+            Some(WorthQueryConditionalExecutionCause::PatchPositionReservationContended)
+        }
+        Kind::CandidateCapacityExhausted { maximum_candidates } => Some(
+            WorthQueryConditionalExecutionCause::CandidateCapacityExhausted { maximum_candidates },
+        ),
+        Kind::PublishedSnapshotCapacityExhausted { maximum_handles } => Some(
+            WorthQueryConditionalExecutionCause::PublishedSnapshotCapacityExhausted {
+                maximum_handles,
+            },
+        ),
+        Kind::CandidateLifetimeExpired { .. } => None,
+    }
+}
+
+fn admission_retention_identity_exhausted(
+    failure: super::application_operation_reentry::WorthQueryTemporalAdmissionTerminalFailure,
+) -> bool {
+    use super::application_operation_reentry::WorthQueryTemporalAdmissionTerminalFailure as Admission;
+    match failure {
+        Admission::Principal(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryPrincipalResolutionDenialKind::RetentionIdentityExhausted
+        ),
+        Admission::Entity(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind::RetentionIdentityExhausted
+        ),
+        Admission::Authorization(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::RetentionIdentityExhausted
+        ),
+        Admission::Projection(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryOperationProjectionDenialKind::Authorization(
+                crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::RetentionIdentityExhausted
+            ) | crate::domain_computation::primary_graph::WorthQueryOperationProjectionDenialKind::InvariantAdmission(
+                crate::domain_computation::primary_graph::WorthQueryInvariantProjectionDenialKind::RetentionIdentityExhausted
+            )
+        ),
+        Admission::Invariant(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryInvariantProjectionDenialKind::RetentionIdentityExhausted
+        ),
+    }
+}
+
+fn admission_snapshot_identity_exhausted(
+    failure: super::application_operation_reentry::WorthQueryTemporalAdmissionTerminalFailure,
+) -> bool {
+    use super::application_operation_reentry::WorthQueryTemporalAdmissionTerminalFailure as Admission;
+    match failure {
+        Admission::Principal(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryPrincipalResolutionDenialKind::SnapshotIdentityExhausted
+        ),
+        Admission::Entity(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind::SnapshotIdentityExhausted
+        ),
+        Admission::Authorization(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::SnapshotIdentityExhausted
+        ),
+        Admission::Projection(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryOperationProjectionDenialKind::Authorization(
+                crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::SnapshotIdentityExhausted
+            ) | crate::domain_computation::primary_graph::WorthQueryOperationProjectionDenialKind::InvariantAdmission(
+                crate::domain_computation::primary_graph::WorthQueryInvariantProjectionDenialKind::SnapshotIdentityExhausted
+            )
+        ),
+        Admission::Invariant(kind) => matches!(
+            kind,
+            crate::domain_computation::primary_graph::WorthQueryInvariantProjectionDenialKind::SnapshotIdentityExhausted
+        ),
+    }
 }
 
 fn terminal(
@@ -111,6 +283,15 @@ fn terminal(
         }
         WorthQueryRetainedConditionalDecision::OperationRetryable(_, _) => {
             WorthQueryConditionalExecutionTerminal::Retryable
+        }
+        WorthQueryRetainedConditionalDecision::OperationBackpressured(_, _) => {
+            WorthQueryConditionalExecutionTerminal::DeferredRetained
+        }
+        WorthQueryRetainedConditionalDecision::OperationControlStopped(_, _) => {
+            WorthQueryConditionalExecutionTerminal::ControlStopped
+        }
+        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(_, _) => {
+            WorthQueryConditionalExecutionTerminal::Failed
         }
         WorthQueryRetainedConditionalDecision::OperationIndeterminate(_, _) => {
             WorthQueryConditionalExecutionTerminal::Indeterminate

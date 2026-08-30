@@ -63,6 +63,9 @@ impl WorthQueryProviderSessionLease {
             || matches!(
                 &result,
                 Err(super::WorthQueryProviderSessionCommitStop::SettlementDeferred(_))
+                    | Err(super::WorthQueryProviderSessionCommitStop::ControlStopped(
+                        _
+                    ))
             )
         {
             self.close();

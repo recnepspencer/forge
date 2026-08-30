@@ -3,12 +3,12 @@ use super::*;
 pub(super) fn certify_merge_planning_divergent_update(suite: &'static str) {
     let merge_planning_samples =
         capture_perf_samples(suite, "merge_planning_divergent_update", || {
-            let mut runtime = persisted_runtime_with_test_schema();
-            let shared = create_entity(&mut runtime, "shared");
-            create_branch_from_main(&mut runtime, "feature");
-            let _ = update_entity(&mut runtime, shared, "main-value");
+            let runtime = persisted_runtime_with_test_schema();
+            let shared = create_entity(&runtime, "shared");
+            create_branch_from_main(&runtime, "feature");
+            let _ = update_entity(&runtime, shared, "main-value");
             let _ = update_entity_on_branch(
-                &mut runtime,
+                &runtime,
                 shared,
                 "feature-value",
                 BranchId("feature".to_string()),

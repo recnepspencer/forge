@@ -15,6 +15,6 @@ pub use emissions::{
     WorthQueryInstalledApplicationEffectEmission, WorthQueryOperationEmissionContract,
 };
 
-pub(in crate::application_operation) use emissions::compile_effect_emissions;
-pub(in crate::application_operation) use graph_reads::compile_graph_reads;
-pub(in crate::application_operation) use graph_touches::compile_graph_touches;
+pub(in crate::application_operation) use emissions::install_portable_effect_emissions;
+pub(in crate::application_operation) use graph_reads::install_portable_graph_reads;
+pub(in crate::application_operation) use graph_touches::install_portable_graph_touches;

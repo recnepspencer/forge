@@ -9,7 +9,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
     /// owner-issued branch basis.
     pub fn commit_boundary_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<InvariantExecutionResult, CommitConflict> {
         let (selected_state, merged_plan) = self.branch_bound_invariant_plan(runtime)?;
         Ok(runtime
@@ -21,7 +21,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
     /// owner-issued branch basis.
     pub fn graph_composition_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<InvariantExecutionResult, CommitConflict> {
         let (selected_state, merged_plan) = self.branch_bound_invariant_plan(runtime)?;
         Ok(runtime
@@ -31,7 +31,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
 
     fn branch_bound_invariant_plan(
         &mut self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<
         (
             SelectedRelationalBranchState,
@@ -39,7 +39,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
         ),
         CommitConflict,
     > {
-        self.ensure_current_basis(runtime)?;
+        self.ensure_current_basis_for_runtime(runtime)?;
         let selected_state = SelectedRelationalBranchState::from_admitted_basis(&self.basis);
         let merged_plan = self.merged_plan(runtime)?.clone();
         Ok((selected_state, merged_plan))

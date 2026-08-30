@@ -14,11 +14,10 @@ pub(super) fn apply_authoritative_commit_artifacts(
     advance_branch_currentness: bool,
 ) -> Result<(), DurabilityError> {
     let envelope = positioned.envelope();
-    let history_before = runtime.history.clone();
+    let history_before = runtime.history.detached_owner_snapshot();
     if runtime
         .history
-        .commit_envelopes
-        .get(&envelope.commit.commit_id)
+        .recorded_commit_envelope(envelope.commit.commit_id)
         .is_some_and(|existing| existing.as_ref() != envelope)
         && !allow_reconstructed_replacement
     {
@@ -32,8 +31,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
     }
     if runtime
         .history
-        .commit_catalog
-        .get(envelope.commit.commit_id)
+        .commit_artifact(envelope.commit.commit_id)
         .is_some_and(|existing| existing.envelope().as_ref() != envelope)
         && !allow_reconstructed_replacement
     {
@@ -45,7 +43,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
             ),
         ));
     }
-    runtime.history.commit_graph.insert(
+    runtime.history.insert_commit_graph_node(
         envelope.commit.commit_id,
         VersionNode {
             commit: envelope.commit.clone(),
@@ -53,29 +51,29 @@ pub(super) fn apply_authoritative_commit_artifacts(
     );
     let canonical = runtime
         .history
-        .commit_envelopes
-        .get(&envelope.commit.commit_id)
-        .cloned()
+        .recorded_commit_envelope(envelope.commit.commit_id)
         .unwrap_or_else(|| Arc::clone(positioned.canonical_arc()));
-    runtime
-        .history
-        .commit_envelopes
-        .insert(envelope.commit.commit_id, Arc::clone(&canonical));
-    runtime
-        .history
-        .patch_stream_index
-        .insert(positioned.position(), envelope.commit.commit_id);
+    runtime.history.with_ledger_mut(|ledger| {
+        ledger
+            .commit_envelopes
+            .insert(envelope.commit.commit_id, Arc::clone(&canonical));
+        ledger
+            .patch_stream_index
+            .insert(positioned.position(), envelope.commit.commit_id);
+    });
     let result = runtime
         .history
         .record_recovered_commit(
             canonical.as_ref(),
             allow_reconstructed_replacement,
             advance_branch_currentness,
-            &runtime.services.symbols,
+            &runtime.services.symbols.interner_snapshot(),
         )
         .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail));
     if let Err(error) = result {
-        runtime.history = history_before;
+        super::unshared_state(runtime)?
+            .history
+            .restore_detached_recovery_snapshot(history_before);
         return Err(error);
     }
 
@@ -84,7 +82,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
 }
 
 pub(super) fn validate_recovered_history_parity(
-    runtime: &RelationalRuntime,
+    runtime: &mut RelationalRuntime,
     durable_envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
     let replay_access = runtime.replay();
@@ -215,7 +213,7 @@ fn branch_observation_truth_matches(
 }
 
 pub(super) fn validate_expected_recovery_parent_shape(
-    runtime: &RelationalRuntime,
+    runtime: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
     let ordered_parents = envelope.commit.ordered_parents();

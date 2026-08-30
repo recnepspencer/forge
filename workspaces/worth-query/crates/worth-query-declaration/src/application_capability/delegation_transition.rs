@@ -1,12 +1,19 @@
 use std::{collections::BTreeSet, marker::PhantomData};
 
 use crate::application_schema::ApplicationOperationRef;
+use crate::portable_identity::WorthQueryPortableType;
 
 use super::{
     ApplicationCapabilityEntitySelector, ApplicationCapabilityFieldBinding,
     ApplicationCapabilityOperationBinding, ApplicationCapabilityRelatedEntitySelector,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRequestProjection,
     ApplicationCapabilityValueBinding, ErasedApplicationCapabilityEntitySelector,
+};
+
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityDelegationActivationParts,
+    WorthQueryPortableApplicationCapabilityRevocationParts,
 };
 
 const MAXIMUM_ACTIVATION_CONTEXT_RELATIONS: usize = 16;
@@ -30,7 +37,10 @@ impl ApplicationCapabilityRevocationDefinition {
         operation: ApplicationOperationRef<Schema, Operation, Input>,
         identity: ApplicationCapabilityFieldBinding,
         revoked_status: ApplicationCapabilityValueBinding,
-    ) -> Self {
+    ) -> Self
+    where
+        Input: WorthQueryPortableType,
+    {
         Self {
             operation: ApplicationCapabilityOperationBinding::from_reference(operation),
             identity,
@@ -103,7 +113,10 @@ impl ApplicationCapabilityDelegationActivationDefinition {
     pub fn new<Schema, Operation, Input>(
         operation: ApplicationOperationRef<Schema, Operation, Input>,
         identity: ApplicationCapabilityFieldBinding,
-    ) -> Self {
+    ) -> Self
+    where
+        Input: WorthQueryPortableType,
+    {
         Self {
             operation: ApplicationCapabilityOperationBinding::from_reference(operation),
             identity,

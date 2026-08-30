@@ -32,7 +32,7 @@ fn runtime_merge_request_named_source_only_policy_selects_registered_descriptor(
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = match runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .source_only_policy_named("signal.source-only.reject-introduction")
@@ -82,7 +82,7 @@ fn runtime_merge_uses_schema_default_source_only_policy_when_request_is_silent()
         .unwrap();
     runtime.switch_branch(main.clone()).unwrap();
 
-    let err = match runtime.merge().from(feature).into(main).plan() {
+    let err = match runtime.merge_raw().from(feature).into(main).plan() {
         Ok(_) => panic!("schema default reject-introduction should fail closed"),
         Err(err) => err,
     };
@@ -127,7 +127,7 @@ fn runtime_merge_node_source_only_policy_override_precedes_schema_default() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -185,7 +185,7 @@ fn runtime_merge_reject_source_only_policy_blocks_introduction_and_preserves_tar
     runtime.switch_branch(main.clone()).unwrap();
     let target_node_count_before = runtime.graph().active_node_count();
     let err = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .source_only_policy_named("signal.source-only.reject-introduction")

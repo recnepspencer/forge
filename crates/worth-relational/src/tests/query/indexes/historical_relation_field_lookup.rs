@@ -2,10 +2,10 @@ use super::*;
 
 #[test]
 fn relation_field_index_executes_retained_history_after_relation_deletion() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let source = changed_entities(&create_entity_outcome(&mut runtime, "source"))[0];
-    let target = changed_entities(&create_entity_outcome(&mut runtime, "target"))[0];
-    let historical = create_relation_outcome(&mut runtime, source, target, "historical");
+    let runtime = runtime_with_index_field_aspects();
+    let source = changed_entities(&create_entity_outcome(&runtime, "source"))[0];
+    let target = changed_entities(&create_entity_outcome(&runtime, "target"))[0];
+    let historical = create_relation_outcome(&runtime, source, target, "historical");
     let relation_id = changed_relations(&historical)[0];
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
@@ -16,7 +16,7 @@ fn relation_field_index_executes_retained_history_after_relation_deletion() {
         branch_scoped: false,
     });
 
-    delete_relation_on_branch(&mut runtime, relation_id, BranchId("main".to_string()));
+    delete_relation_on_branch(&runtime, relation_id, BranchId("main".to_string()));
     let build = runtime
         .index_authority()
         .build_for_commit(DerivedIndexBuildRequest {

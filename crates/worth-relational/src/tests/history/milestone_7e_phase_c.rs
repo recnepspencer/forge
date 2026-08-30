@@ -118,7 +118,7 @@ fn unsupported_request_posture_denies_before_history_or_planning_work() {
 
 #[test]
 fn planning_execution_and_publication_consume_normalized_request_authority() {
-    let mut runtime = merge_ready_runtime();
+    let runtime = merge_ready_runtime();
     let planning_request = planning_request();
     let execution_request = execution_request();
     let normalized = runtime
@@ -230,14 +230,10 @@ fn normalized_request_deserialization_revalidates_admitted_truth() {
 }
 
 fn merge_ready_runtime() -> RelationalRuntime {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     runtime
 }
 

@@ -4,7 +4,7 @@ use crate::mvcc::RelationalTransactionValidationInput;
 use crate::runtime::RelationalRuntime;
 
 pub(super) fn owner_options_for_branch(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     branch: &BranchId,
 ) -> Result<RelationalTransactionValidationInput, DurabilityError> {
     let identity = restored.branch_identity(branch).map_err(|denial| {
@@ -24,7 +24,7 @@ pub(super) fn owner_options_for_branch(
 }
 
 pub(super) fn owner_merge_parent_bases(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     branches: &[BranchId],
 ) -> Result<Vec<crate::branch::AdmittedRelationalBranchBasis>, DurabilityError> {
     branches

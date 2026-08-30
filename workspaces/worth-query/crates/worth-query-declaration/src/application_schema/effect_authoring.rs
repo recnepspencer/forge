@@ -7,11 +7,12 @@ use super::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
     ApplicationSchemaBindingIdentity,
 };
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 
 pub struct TypedEffectIntent<Schema, Operation> {
     operation: &'static str,
     binding: Option<ApplicationSchemaBindingIdentity>,
-    effects: Vec<(&'static str, &'static str)>,
+    effects: Vec<(&'static str, WorthQueryPortableTypeIdentity)>,
     _marker: PhantomData<fn() -> (Schema, Operation)>,
 }
 
@@ -54,7 +55,7 @@ impl<Schema, Operation> TypedEffectIntent<Schema, Operation> {
         self.operation
     }
 
-    pub fn effects(&self) -> &[(&'static str, &'static str)] {
+    pub fn effects(&self) -> &[(&'static str, WorthQueryPortableTypeIdentity)] {
         &self.effects
     }
 }
@@ -63,11 +64,14 @@ pub struct TypedEffectIntentBuilder<Schema, Operation, Input> {
     operation: &'static str,
     context: Option<ApplicationSchemaAuthoringContext>,
     denial: Option<ApplicationSchemaAuthoringDenial>,
-    effects: Vec<(&'static str, &'static str)>,
+    effects: Vec<(&'static str, WorthQueryPortableTypeIdentity)>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation)>,
 }
 
-impl<Schema, Operation, Input> TypedEffectIntentBuilder<Schema, Operation, Input> {
+impl<Schema, Operation: 'static, Input> TypedEffectIntentBuilder<Schema, Operation, Input>
+where
+    Input: WorthQueryPortableType + 'static,
+{
     pub fn new(operation: ApplicationOperationRef<Schema, Operation, Input>) -> Self {
         Self {
             operation: operation.name(),
@@ -81,7 +85,7 @@ impl<Schema, Operation, Input> TypedEffectIntentBuilder<Schema, Operation, Input
     #[doc(hidden)]
     pub fn with_installed_context(mut self, context: ApplicationSchemaAuthoringContext) -> Self {
         self.denial = context
-            .admit_operation(self.operation, std::any::type_name::<Input>())
+            .admit_operation::<Operation, Input>(self.operation, Input::PORTABLE_TYPE_IDENTITY)
             .err();
         self.context = Some(context);
         self
@@ -93,12 +97,13 @@ impl<Schema, Operation, Input> TypedEffectIntentBuilder<Schema, Operation, Input
         _payload: Payload,
     ) -> Self
     where
-        Effect: OperationEmits<Operation>,
+        Effect: OperationEmits<Operation> + 'static,
+        Payload: WorthQueryPortableType + 'static,
     {
         if self.denial.is_none() {
             self.denial = self.context.as_ref().and_then(|context| {
                 context
-                    .admit_effect(effect.name(), std::any::type_name::<Payload>())
+                    .admit_effect::<Effect, Payload>(effect.name(), Payload::PORTABLE_TYPE_IDENTITY)
                     .and_then(|()| {
                         context.admit_operation_program(
                             self.operation,
@@ -109,7 +114,7 @@ impl<Schema, Operation, Input> TypedEffectIntentBuilder<Schema, Operation, Input
             });
         }
         self.effects
-            .push((effect.name(), std::any::type_name::<Payload>()));
+            .push((effect.name(), Payload::PORTABLE_TYPE_IDENTITY));
         self
     }
 

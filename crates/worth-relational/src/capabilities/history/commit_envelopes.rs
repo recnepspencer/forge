@@ -19,8 +19,7 @@ impl CommitEnvelopeSource for RelationalRuntime {
 
     fn canonical_envelope_owned(&self, commit_id: CommitId) -> Option<CanonicalCommitEnvelope> {
         self.history
-            .commit_catalog
-            .get(commit_id)
+            .commit_artifact(commit_id)
             .map(|artifact| artifact.envelope().as_ref().clone())
             .or_else(|| {
                 self.history

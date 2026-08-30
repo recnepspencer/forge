@@ -13,6 +13,12 @@ macro_rules! declaration_digest {
         pub struct $name(String);
 
         impl $name {
+            /// Retains one descriptive digest claim decoded from untrusted
+            /// storage without minting canonicalization authority.
+            pub fn from_untrusted(value: String) -> Self {
+                Self(value)
+            }
+
             pub fn from_parts(parts: &[String]) -> Self {
                 Self(digest_hash_parts(parts))
             }

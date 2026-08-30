@@ -44,7 +44,7 @@ pub(super) struct DurableAppendPhaseInput<'a> {
 }
 
 pub(super) fn append_durable_commit_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     input: DurableAppendPhaseInput<'_>,
 ) -> Result<(), TransactionCommitError> {
     let DurableAppendPhaseInput {
@@ -70,10 +70,12 @@ pub(super) fn append_durable_commit_phase(
 }
 
 pub(super) fn finalize_publication_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     prepared: PreparedPublicationCompletion,
+    published_snapshot_basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
+    published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
 ) -> Result<FinalizedPublicationPhase, TransactionCommitError> {
     let PreparedPublicationCompletion {
         clone_mode,
@@ -136,6 +138,8 @@ pub(super) fn finalize_publication_phase(
             patch_position: positioned_commit.position(),
             merge_parent_branches: &merge_parent_branches,
             phase_timing: &mut publication_phase_timing,
+            published_snapshot_basis,
+            published_snapshot_slot,
         },
     );
     for artifact in deferred_diagnostic_artifacts {

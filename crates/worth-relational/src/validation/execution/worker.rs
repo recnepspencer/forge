@@ -5,7 +5,7 @@ use crate::authority::commit::preparation::proofs::locality::{
     PreparationPartitionScope, PreparationReadSetApproximation, PreparationRecordDomain,
     PreparationWriteExclusionClass,
 };
-use crate::runtime::RelationalRuntime;
+use crate::validation::engine::InvariantRuntimeView;
 
 use super::envelope::InvariantWorkerEnvelope;
 use super::packets::InvariantWorkPacket;
@@ -14,7 +14,7 @@ mod registered_rule;
 mod verdict_reduction;
 
 pub(crate) fn evaluate_invariant_packet(
-    runtime: &RelationalRuntime,
+    runtime: &InvariantRuntimeView,
     packet: &InvariantWorkPacket<'_>,
 ) -> InvariantWorkerEnvelope {
     let preparation_failures = invariant_packet_failures(packet);

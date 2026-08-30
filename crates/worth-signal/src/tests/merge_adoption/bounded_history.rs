@@ -36,7 +36,7 @@ fn merge_branch_without_established_journal_boundary_fails_explicitly() {
 
     runtime.switch_branch(main.clone()).unwrap();
     let err = runtime
-        .merge_branch(feature.clone(), main.clone())
+        .merge_branch_raw(feature.clone(), main.clone())
         .expect_err("merge must fail explicitly when no bounded journal boundary exists");
 
     assert!(matches!(
@@ -79,7 +79,9 @@ fn repeated_merge_after_target_restore_stays_bounded_and_history_honest() {
         .unwrap();
 
     runtime.switch_branch(main.clone()).unwrap();
-    let first_merge = runtime.merge_branch(feature.clone(), main.clone()).unwrap();
+    let first_merge = runtime
+        .merge_branch_raw(feature.clone(), main.clone())
+        .unwrap();
     assert!(
         first_merge
             .records
@@ -157,7 +159,7 @@ fn repeated_merge_after_target_restore_stays_bounded_and_history_honest() {
         "target restore between merge cycles must not fabricate extra branch merge lineage"
     );
 
-    let second_merge = runtime.merge_branch(feature, main).unwrap();
+    let second_merge = runtime.merge_branch_raw(feature, main).unwrap();
     assert!(
         second_merge.counters.final_candidate_breadth
             == second_merge.planned_candidates.nodes.len() as u64,

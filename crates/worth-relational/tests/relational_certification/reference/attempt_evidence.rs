@@ -22,7 +22,7 @@ pub(crate) struct Phase4ReferenceEvidence {
 }
 
 pub(crate) fn capture_reference_evidence(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     source_branch: &BranchId,
     target_branch: &BranchId,
     commit_id: CommitId,
@@ -91,7 +91,7 @@ pub(crate) fn assert_denial_left_no_reference_residue(
 }
 
 fn observe_descriptor(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: &BranchId,
 ) -> Option<RelationalForkSourceDescriptor> {
     runtime

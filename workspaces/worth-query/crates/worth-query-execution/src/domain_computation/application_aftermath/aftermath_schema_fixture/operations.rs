@@ -34,10 +34,15 @@ pub(super) struct FixtureReads {
     pub(super) balance: BalanceRead,
 }
 
-fn op<Operation>(
-    name: &'static str,
-) -> ApplicationOperationRef<AftermathFixtureSchema, Operation, FixtureInput> {
-    ApplicationOperationRef::from_schema_identifier(name)
+fn op<Operation>() -> ApplicationOperationRef<AftermathFixtureSchema, Operation, FixtureInput>
+where
+    Operation:
+        worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity<
+            Schema = AftermathFixtureSchema,
+            Input = FixtureInput,
+        >,
+{
+    ApplicationOperationRef::from_declaration()
 }
 
 fn not_correctable() -> DeclaredApplicationAftermathContract<AftermathFixtureSchema> {
@@ -79,7 +84,7 @@ fn inverse(
 
 macro_rules! bind_principal_op {
     ($schema:expr, $ability:expr, $op:ty, $name:expr, $aftermath:expr) => {{
-        let operation = op::<$op>($name);
+        let operation = op::<$op>();
         let read = principal_read();
         $schema
             .operation(
@@ -98,7 +103,7 @@ macro_rules! bind_principal_op {
 
 macro_rules! bind_escaping_principal_op {
     ($schema:expr, $ability:expr, $op:ty, $name:expr, $effect:expr, $rail:expr, $aftermath:expr) => {{
-        let operation = op::<$op>($name);
+        let operation = op::<$op>();
         let read = principal_read();
         $schema
             .operation(
@@ -208,7 +213,7 @@ fn bind_inverse_ops(
     ability: FixtureAbilityRef,
     reads: FixtureReads,
 ) -> FixtureBuilder {
-    let freeze = op::<FreezeAccount>("freeze-account");
+    let freeze = op::<FreezeAccount>();
     let schema = schema
         .operation(
             freeze
@@ -225,7 +230,7 @@ fn bind_inverse_ops(
         .operation_projection_work_budget(freeze, 16)
         .operation_requires_ability(freeze, ability)
         .operation_read_field(freeze, reads.frozen);
-    let note_op = op::<FreezeNote>("freeze-note");
+    let note_op = op::<FreezeNote>();
     let schema = schema
         .operation(
             note_op
@@ -242,7 +247,7 @@ fn bind_inverse_ops(
         .operation_projection_work_budget(note_op, 16)
         .operation_requires_ability(note_op, ability)
         .operation_read_field(note_op, reads.note);
-    let balance_op = op::<FreezeBalance>("freeze-balance");
+    let balance_op = op::<FreezeBalance>();
     let schema = schema
         .operation(
             balance_op
@@ -259,7 +264,7 @@ fn bind_inverse_ops(
         .operation_projection_work_budget(balance_op, 16)
         .operation_requires_ability(balance_op, ability)
         .operation_read_field(balance_op, reads.balance);
-    let fields_op = op::<FreezeAccountFields>("freeze-account-fields");
+    let fields_op = op::<FreezeAccountFields>();
     schema
         .operation(
             fields_op

@@ -13,7 +13,10 @@ pub(crate) fn read_view_from_snapshot_state(
     debug_assert_eq!(state.basis.version_id(), handle.version_id);
     let (entities, relations) = match &state.basis {
         SnapshotStateBasis::Exact(basis) => {
-            debug_assert_eq!(state.basis.root_version(), Some(state.handle.version_id));
+            debug_assert!(match state.basis.root_version() {
+                Some(root_version) => root_version == state.handle.version_id,
+                None => state.handle.version_id.is_zero(),
+            });
             materialize_exact(runtime, state, basis.root().as_ref())
         }
         SnapshotStateBasis::Historical(basis) => {
@@ -65,19 +68,24 @@ fn materialize_historical(
 ) -> (Vec<EntityReadRecord>, Vec<RelationReadRecord>) {
     let empty = std::collections::BTreeMap::new();
     let access: &dyn PartitionAccess = root.map_or(&empty, |root| root.as_ref());
+    let registry = root.map_or(&runtime.config.schema.registry, |root| {
+        root.schema_authority().registry()
+    });
     let reader = runtime.read_truth();
     materialize_pins(
         state,
         |partition_id, slot| {
-            reader.authoritative_entity_record_for_id_at_version(
+            reader.authoritative_entity_record_for_id_at_version_with_registry(
                 access,
+                registry,
                 crate::identity::data::EntityId::new(partition_id, slot as u64, 0),
                 version_id,
             )
         },
         |partition_id, slot| {
-            reader.authoritative_relation_record_for_id_at_version(
+            reader.authoritative_relation_record_for_id_at_version_with_registry(
                 access,
+                registry,
                 crate::identity::data::RelationId::new(partition_id, slot as u64, 0),
                 version_id,
             )

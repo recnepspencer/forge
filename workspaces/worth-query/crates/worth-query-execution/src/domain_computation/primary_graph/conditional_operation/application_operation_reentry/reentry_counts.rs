@@ -6,4 +6,8 @@ pub(in crate::domain_computation::primary_graph::conditional_operation) struct W
         usize,
     pub(in crate::domain_computation::primary_graph::conditional_operation) failed: usize,
     pub(in crate::domain_computation::primary_graph::conditional_operation) indeterminate: usize,
+    pub(in crate::domain_computation::primary_graph::conditional_operation) snapshot_capacity_backpressure:
+        Option<usize>,
+    pub(in crate::domain_computation::primary_graph::conditional_operation) retention_capacity_backpressure:
+        bool,
 }

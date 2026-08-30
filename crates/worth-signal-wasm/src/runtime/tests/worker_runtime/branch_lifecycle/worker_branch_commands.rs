@@ -72,11 +72,13 @@ fn worker_branch_commands_isolate_ten_siblings_and_preserve_authored_values() {
     }
     shell.switch_branch(main.id.0).unwrap();
 
-    for (branch, applied) in branches {
+    for (branch, _) in branches {
+        let _retained_snapshot = shell.branch_snapshot(branch.id.0).unwrap();
+        let retirement_basis = shell.worker_branch_basis(branch.id.0).unwrap();
         let retired = shell
             .retire_worker_branch(WorkerRetireBranchRequest {
                 branch_id: branch.id.0,
-                expected_basis: applied.after_basis,
+                expected_basis: retirement_basis,
                 reason: WorkerBranchRetirementReason::Rejected,
             })
             .unwrap();
@@ -128,6 +130,28 @@ fn worker_targeted_commands_match_compatibility_branch_truth() {
     assert_eq!(
         worker.read_value("doubleCounter").unwrap(),
         compatibility.read_value("doubleCounter").unwrap()
+    );
+}
+
+#[test]
+fn worker_targeted_transaction_denies_the_active_branch_without_movement() {
+    let mut shell = worker_shell_with_counter_graph();
+    let main = shell.current_branch();
+    let before = shell.worker_branch_basis(main.id.0).unwrap();
+
+    let denial = shell
+        .apply_transaction_to_worker_branch(WorkerApplyTransactionToBranchRequest {
+            branch_id: main.id.0,
+            expected_basis: before.clone(),
+            transaction_ops: set_counter(99.0),
+        })
+        .unwrap_err();
+
+    assert!(denial.message.contains("denies active branch target"));
+    assert_eq!(shell.worker_branch_basis(main.id.0).unwrap(), before);
+    assert_eq!(
+        shell.read_value("counter").unwrap(),
+        SignalValue::Number(1.0)
     );
 }
 

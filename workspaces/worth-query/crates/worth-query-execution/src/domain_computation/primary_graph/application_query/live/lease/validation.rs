@@ -31,9 +31,11 @@ where
             query.name(),
         )
     })?;
-    let binding_matches = live.binding_type() == std::any::type_name::<Binding>()
+    let binding_matches = live.binding_type()
+        == <Binding as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY.as_str()
         && live.effect() == Binding::effect().name()
-        && live.payload_type() == std::any::type_name::<Binding::Payload>();
+        && live.payload_type()
+            == <Binding::Payload as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY.as_str();
     if binding_matches {
         Ok(live)
     } else {

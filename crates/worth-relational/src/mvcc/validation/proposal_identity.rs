@@ -62,9 +62,9 @@ impl RelationalMutationProposalIdentity {
     }
 }
 
-impl crate::runtime::RelationalRuntime {
+impl crate::runtime::RelationalPreparationRuntime {
     pub(crate) fn issue_mutation_proposal_identity(
-        &mut self,
+        &self,
         transaction_id: TransactionId,
         validation_input: &crate::mvcc::RelationalTransactionValidationInput,
     ) -> Result<RelationalMutationProposalIdentity, crate::transactions::data::TransactionCommitError>

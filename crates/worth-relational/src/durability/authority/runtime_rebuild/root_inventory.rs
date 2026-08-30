@@ -32,13 +32,27 @@ impl RecoveredRootInventory {
         runtime: &RelationalRuntime,
         branch_id: &BranchId,
     ) -> Result<(), DurabilityError> {
-        let Some(root) = runtime
-            .history
-            .branch_cell(branch_id)
-            .and_then(|cell| cell.root())
-        else {
+        let Some(cell) = runtime.history.branch_cell(branch_id) else {
             return Ok(());
         };
+        let Some(root) = cell.root() else {
+            return Ok(());
+        };
+        if matches!(
+            cell.observation().target(),
+            worth_foundational::FoundationalBranchTarget::Empty
+        ) {
+            if root.id() != 0 || root.descriptor().is_some() {
+                return Err(DurabilityError::new(
+                    RecoveryFailureClass::CorruptCheckpoint,
+                    format!(
+                        "recovered empty branch `{}` owns a committed root",
+                        branch_id.0
+                    ),
+                ));
+            }
+            return Ok(());
+        }
         let commit_id = root.commit_id().ok_or_else(|| {
             DurabilityError::new(
                 RecoveryFailureClass::CorruptCheckpoint,

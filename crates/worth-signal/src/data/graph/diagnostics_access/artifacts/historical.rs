@@ -74,7 +74,7 @@ impl SignalGraph {
         Ok(())
     }
 
-    pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
+    pub(crate) fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         self.interrupt_observation_at_boundary();
         let installed = self.installed_runtime_policy();
         let request_metadata = installed.requested_policy();
@@ -170,7 +170,10 @@ impl SignalGraph {
         Ok(())
     }
 
-    pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
+    pub(crate) fn restore_snapshot(
+        &mut self,
+        snapshot: &SignalSnapshotV1,
+    ) -> Result<(), SignalError> {
         self.restore_snapshot_with_intent(snapshot, SnapshotRestoreIntent::restore_runtime_truth())
     }
 
@@ -243,7 +246,7 @@ impl SignalGraph {
         ))
     }
 
-    pub fn restore_snapshot_with_intent(
+    pub(crate) fn restore_snapshot_with_intent(
         &mut self,
         snapshot: &SignalSnapshotV1,
         intent: SnapshotRestoreIntent,

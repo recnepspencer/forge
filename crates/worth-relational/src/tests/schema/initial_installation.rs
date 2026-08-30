@@ -19,6 +19,7 @@ fn initial_schema_installation_moves_empty_exact_basis_without_revoking_retained
         .snapshots()
         .snapshot_for_observation(&old_observation)
         .unwrap();
+    let retention_before = runtime.retention_cost_counters();
     assert_eq!(
         runtime
             .read_truth()
@@ -28,6 +29,12 @@ fn initial_schema_installation_moves_empty_exact_basis_without_revoking_retained
     );
 
     install_entity_kind(&mut runtime, KindId(7), "installed");
+    let retention_after = runtime.retention_cost_counters();
+    assert_eq!(
+        retention_after.head_transfers - retention_before.head_transfers,
+        1,
+        "initial schema replacement transfers the one live head obligation"
+    );
 
     let retained = runtime.readmit_branch_basis(&old_descriptor).unwrap();
     let (new_descriptor, new_basis) = runtime.observe_branch(&identity).unwrap();
@@ -61,12 +68,12 @@ fn initial_schema_installation_moves_empty_exact_basis_without_revoking_retained
     drop(retained);
     drop(old_observation);
     drop(old_basis);
+    assert!(runtime.snapshots().release_snapshot(&old_snapshot).is_ok());
     assert!(matches!(
         runtime.readmit_branch_basis(&old_descriptor),
         Err(crate::branch::RelationalBranchBasisDenial::StaleReferenceGeneration)
     ));
-    assert!(runtime.snapshots().release_snapshot(&old_snapshot));
-    assert!(runtime.snapshots().release_snapshot(&new_snapshot));
+    assert!(runtime.snapshots().release_snapshot(&new_snapshot).is_ok());
 }
 
 fn install_entity_kind(
@@ -135,6 +142,33 @@ fn initial_schema_installation_retains_existing_kinds_and_rejects_duplicates() {
 }
 
 #[test]
+fn held_preparation_port_observes_atomic_initial_schema_replacement() {
+    let mut runtime = RelationalRuntimeApi::builder().build();
+    let preparation = runtime.preparation_port();
+    install_entity_kind(&mut runtime, KindId(7), "held-port-installed");
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("held-port-schema").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(7),
+                    client_key: ClientKey::raw("held-port-entity"),
+                    fields: Default::default(),
+                }),
+            )),
+        )
+        .expect("post-installation transaction stages");
+
+    let candidate = preparation
+        .prepare_branch_transaction(transaction)
+        .expect("held port validates against the atomically replaced schema world");
+    preparation
+        .discard_prepared_candidate(candidate)
+        .expect("held port discards through the same live owner");
+}
+
+#[test]
 fn initial_schema_authority_closes_after_first_commit() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(
@@ -143,17 +177,18 @@ fn initial_schema_authority_closes_after_first_commit() {
                 .unwrap(),
         )
         .build();
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("close-schema-installation").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: ClientKey::raw("first"),
-            fields: Default::default(),
-        })),
-    ));
-    transaction.commit(&mut runtime).unwrap();
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(WorkerIntentBatch::new("close-schema-installation").push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: ClientKey::raw("first"),
+                fields: Default::default(),
+            })),
+        ))
+        .unwrap();
+    transaction.commit(&runtime).unwrap();
 
     let denial = runtime.prepare_initial_schema_installation().unwrap_err();
     assert_eq!(

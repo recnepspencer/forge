@@ -51,8 +51,11 @@ pub fn public_relational_merge_runtime() -> RelationalRuntime {
 fn create_empty_entity(runtime: &mut RelationalRuntime, branch: &str, key: &str) {
     let branch_id = BranchId(branch.to_string());
     let mut transaction = {
+        let identity = runtime
+            .branch_identity(&branch_id)
+            .expect("branch identity");
         let transaction_validation_input = runtime
-            .admit_named_branch_basis(&branch_id)
+            .admit_branch_basis(&identity)
             .expect("branch binding");
         runtime
             .begin_branch_transaction(
@@ -61,15 +64,23 @@ fn create_empty_entity(runtime: &mut RelationalRuntime, branch: &str, key: &str)
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(WorkerIntentBatch::new(format!("create-{key}")).push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: ClientKey::raw(key),
-            fields: BTreeMap::new().into(),
-        })),
-    ));
     transaction
+        .push_batch(
+            WorkerIntentBatch::new(format!("create-{key}")).push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::raw(key),
+                    fields: BTreeMap::new().into(),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    let committed = transaction
         .commit(runtime)
         .expect("public merge seed should commit");
+    runtime
+        .snapshots()
+        .release_snapshot(&committed.snapshot)
+        .expect("public merge seed snapshot should close exactly once");
 }

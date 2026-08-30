@@ -244,11 +244,11 @@ fn canonical_runtime_basis_is_foundational_and_forkable_without_head_tuple() {
     let forked = runtime
         .fork_signal_branch("canonical-feature", &basis)
         .expect("canonical basis should authorize one owner fork");
-    assert_eq!(forked.parent_branch_id, Some(source.id));
+    assert_eq!(forked.created_branch().parent_branch_id, Some(source.id));
 
     let shared = basis.clone();
     let second = runtime
         .fork_signal_branch("canonical-feature-2", &shared)
         .expect("cloned canonical basis should remain cheaply shareable");
-    assert_eq!(second.parent_branch_id, Some(source.id));
+    assert_eq!(second.created_branch().parent_branch_id, Some(source.id));
 }

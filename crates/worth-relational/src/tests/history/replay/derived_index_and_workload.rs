@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn replay_contract_reports_derived_index_drift_at_digest_layer_when_artifacts_are_tampered() {
-    let mut runtime = runtime_with_test_schema();
-    let commit = create_entity_outcome(&mut runtime, "indexed");
+    let runtime = runtime_with_test_schema();
+    let commit = create_entity_outcome(&runtime, "indexed");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity-name".to_string(),
@@ -58,18 +58,18 @@ fn replay_contract_reports_derived_index_drift_at_digest_layer_when_artifacts_ar
 
 #[test]
 fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_workload() {
-    let mut runtime =
+    let runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
-    let created = create_entity_outcome(&mut runtime, "anchor");
+    let created = create_entity_outcome(&runtime, "anchor");
     let anchor = changed_entities(&created)[0];
-    let _updated = update_entity(&mut runtime, anchor, "anchor-updated");
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "net-edge");
+    let _updated = update_entity(&runtime, anchor, "anchor-updated");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "net-edge");
     let relation = changed_relations(&relation_outcome)[0];
-    let _retained = delete_entity(&mut runtime, source);
+    let _retained = delete_entity(&runtime, source);
     let replace_outcome = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(
             WorkerIntentBatch::new("replace-anchor").push(MutationIntent::Entity(
                 EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -86,8 +86,9 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
                     },
                 }),
             )),
-        );
-        txn.commit(&mut runtime).unwrap()
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).unwrap()
     };
     runtime.durability_authority().checkpoint().unwrap();
 
@@ -130,7 +131,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     let mut recovered =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_replay_check =
@@ -144,8 +145,8 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
             });
 
     assert_recovered_commit_truth_matches(
-        &mut runtime,
-        &mut recovered,
+        &runtime,
+        &recovered,
         replace_outcome.commit.commit_id,
         &[anchor],
         &[relation],
@@ -153,7 +154,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     );
     assert!(recovered.replay().compare_outcome(&recovered_replay_check));
     let recovered_bundle =
-        capture_aspect_truth_bundle(&mut recovered, &[anchor], &[relation], &[start_lineage]);
+        capture_aspect_truth_bundle(&recovered, &[anchor], &[relation], &[start_lineage]);
     assert_eq!(
         recovered_replay_check.requested.commit_id,
         replace_outcome.commit.commit_id
@@ -166,25 +167,27 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
 fn hostile_commit_replay_equivalence_test() {
     let mut runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
-    let created = create_entity_outcome(&mut runtime, "anchor");
+    let created = create_entity_outcome(&runtime, "anchor");
     let anchor = changed_entities(&created)[0];
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "net-edge");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "net-edge");
     let relation = changed_relations(&relation_outcome)[0];
-    create_branch_from_main(&mut runtime, "feature");
+    create_branch_from_main(&runtime, "feature");
     let _feature_update = update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         anchor,
         "feature-anchor",
         BranchId("feature".to_string()),
     );
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
     let mut transition_txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -202,11 +205,13 @@ fn hostile_commit_replay_equivalence_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    transition_txn.push_batch(batch_create("after-boundary"));
-    let _transition_outcome = transition_txn.commit(&mut runtime).unwrap();
+    transition_txn
+        .push_batch(batch_create("after-boundary"))
+        .expect("test staging stays within configured resource budgets");
+    let _transition_outcome = transition_txn.commit(&runtime).unwrap();
 
     let merge = merge_commit_from_branches(
-        &mut runtime,
+        &runtime,
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
@@ -218,7 +223,7 @@ fn hostile_commit_replay_equivalence_test() {
         .unwrap()
         .lineage_id;
     let original_bundle =
-        capture_aspect_truth_bundle(&mut runtime, &[anchor], &[relation], &[anchor_lineage]);
+        capture_aspect_truth_bundle(&runtime, &[anchor], &[relation], &[anchor_lineage]);
     let original_inspection = capture_inspection_truth_bundle(
         &runtime,
         &BranchId("main".to_string()),
@@ -266,11 +271,11 @@ fn hostile_commit_replay_equivalence_test() {
         })
         .build();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_bundle =
-        capture_aspect_truth_bundle(&mut recovered, &[anchor], &[relation], &[anchor_lineage]);
+        capture_aspect_truth_bundle(&recovered, &[anchor], &[relation], &[anchor_lineage]);
     let recovered_inspection = capture_inspection_truth_bundle(
         &recovered,
         &BranchId("main".to_string()),

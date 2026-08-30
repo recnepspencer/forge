@@ -71,14 +71,14 @@ pub(super) fn runtime_with_collaboration_merge_history() -> RelationalRuntime {
         .build()
 }
 
-pub(super) fn execute_feature_merge(runtime: &mut RelationalRuntime) -> MergeExecutionOutcome {
+pub(super) fn execute_feature_merge(runtime: &RelationalRuntime) -> MergeExecutionOutcome {
     let prepared = prepared_feature_merge(runtime);
     runtime
         .execute_prepared_merge(prepared)
         .expect("executed feature merge")
 }
 
-pub(super) fn prepared_feature_merge(runtime: &mut RelationalRuntime) -> PreparedMergeExecution {
+pub(super) fn prepared_feature_merge(runtime: &RelationalRuntime) -> PreparedMergeExecution {
     install_merge_scenario(runtime);
     runtime
         .merge()
@@ -141,7 +141,7 @@ pub(super) fn snapshot_from_authority(
         .inspect_what_happened()
         .prepare_published_merge_support_inspection_witness(&authority)
         .expect("support inspection witness");
-    let canonical_basis = lower_packet(&runtime, authority.execution_summary.proof_packet());
+    let canonical_basis = lower_packet(runtime, authority.execution_summary.proof_packet());
     CollaborationTruthSnapshot {
         authority,
         support,
@@ -162,7 +162,7 @@ fn lower_packet(
     basis
 }
 
-fn install_merge_scenario(runtime: &mut RelationalRuntime) {
+fn install_merge_scenario(runtime: &RelationalRuntime) {
     if runtime
         .history()
         .branch_head(&BranchId("feature".to_string()))
@@ -179,7 +179,7 @@ fn install_merge_scenario(runtime: &mut RelationalRuntime) {
 }
 
 fn update_entity_status_on_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     status: &str,
     branch: &str,
@@ -187,7 +187,7 @@ fn update_entity_status_on_branch(
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_branch(
-                &runtime,
+                runtime,
                 BranchId(branch.to_string()),
             );
         runtime
@@ -212,6 +212,7 @@ fn update_entity_status_on_branch(
                 ),
             ),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(runtime).expect("update entity status on branch");
 }

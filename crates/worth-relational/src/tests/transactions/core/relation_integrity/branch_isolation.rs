@@ -3,11 +3,11 @@ use crate::tests::support::*;
 
 #[test]
 fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_leak_to_main() {
-    let mut runtime = source_max_one_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let target_b = create_entity(&mut runtime, "target-b");
-    let accepted = create_relation_outcome(&mut runtime, source, target_a, "accepted");
+    let runtime = source_max_one_runtime();
+    let source = create_entity(&runtime, "source");
+    let target_a = create_entity(&runtime, "target-a");
+    let target_b = create_entity(&runtime, "target-b");
+    let accepted = create_relation_outcome(&runtime, source, target_a, "accepted");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -39,7 +39,7 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         .position;
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut runtime,
+        &runtime,
         BranchId("feature".to_string()),
     );
     txn.push_batch(WorkerIntentBatch::new("illegal-feature-relation").push(
@@ -53,9 +53,10 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
 
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);

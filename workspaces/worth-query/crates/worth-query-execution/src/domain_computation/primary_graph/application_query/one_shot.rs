@@ -35,6 +35,12 @@ pub enum WorthQueryApplicationOneShotDenialKind {
     Cancelled,
     DeadlineExceeded,
     BasisUnavailable,
+    ActiveSnapshotCapacityExhausted {
+        maximum_active_snapshots: usize,
+    },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     ExpiredBasis,
     BasisReleaseFailed,
     PredicateIndexUnavailable,
@@ -307,8 +313,25 @@ fn denial(
 fn authorization_denial(
     denial: WorthQueryOperationAuthorizationDenial,
 ) -> WorthQueryApplicationOneShotDenial {
+    let kind = match denial.kind() {
+        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => WorthQueryApplicationOneShotDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        },
+        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::RetentionCapacityExhausted => {
+            WorthQueryApplicationOneShotDenialKind::RetentionCapacityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::RetentionIdentityExhausted => {
+            WorthQueryApplicationOneShotDenialKind::RetentionIdentityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::SnapshotIdentityExhausted => {
+            WorthQueryApplicationOneShotDenialKind::SnapshotIdentityExhausted
+        }
+        kind => WorthQueryApplicationOneShotDenialKind::Authorization(kind),
+    };
     WorthQueryApplicationOneShotDenial {
-        kind: WorthQueryApplicationOneShotDenialKind::Authorization(denial.kind()),
+        kind,
         subject: denial.subject().to_string(),
         authorization_denial: Some(Box::new(denial)),
     }

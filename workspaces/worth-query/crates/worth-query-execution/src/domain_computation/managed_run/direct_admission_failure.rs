@@ -6,6 +6,9 @@ use crate::domain_computation::WorthQueryDirectExecutionResourceAttempt;
 pub enum WorthQueryManagedDirectRunAdmissionFailureKind {
     QueryAuthority,
     RelationalBasis,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     BridgePlanning,
     InstalledStepContract,
     BridgeExecutionBasis,

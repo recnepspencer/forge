@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use crate::runtime::RuntimeComplexityCounters;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct RuntimeInstrumentation {
-    pub(crate) complexity_counters: Mutex<RuntimeComplexityCounters>,
-    basis_counters: Mutex<crate::branch::RelationalBranchBasisCostCounters>,
+    pub(crate) complexity_counters: Arc<Mutex<RuntimeComplexityCounters>>,
+    basis_counters: Arc<Mutex<crate::branch::RelationalBranchBasisCostCounters>>,
     external_retention_terminals:
         Arc<crate::history::retention::RelationalExternalRetentionTerminalAccounting>,
 }
@@ -13,21 +13,23 @@ pub(crate) struct RuntimeInstrumentation {
 impl RuntimeInstrumentation {
     pub(crate) fn new() -> Self {
         Self {
-            complexity_counters: Mutex::new(RuntimeComplexityCounters::default()),
-            basis_counters: Mutex::new(crate::branch::RelationalBranchBasisCostCounters::default()),
+            complexity_counters: Arc::new(Mutex::new(RuntimeComplexityCounters::default())),
+            basis_counters: Arc::new(Mutex::new(
+                crate::branch::RelationalBranchBasisCostCounters::default(),
+            )),
             external_retention_terminals: Arc::new(Default::default()),
         }
     }
 
     pub(crate) fn fork(&self) -> Self {
         Self {
-            complexity_counters: Mutex::new(
+            complexity_counters: Arc::new(Mutex::new(
                 self.complexity_counters
                     .lock()
                     .expect("complexity counter lock poisoned")
                     .clone(),
-            ),
-            basis_counters: Mutex::new(self.basis_counters()),
+            )),
+            basis_counters: Arc::new(Mutex::new(self.basis_counters())),
             external_retention_terminals: Arc::new(Default::default()),
         }
     }

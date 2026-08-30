@@ -7,11 +7,11 @@ use crate::tests::support::*;
 
 #[test]
 fn require_interned_normalizes_plan_and_created_footprint_to_identical_symbols() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .client_key_symbol_policy(ClientKeySymbolPolicy::RequireInterned)
         .build();
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     let raw_source = created_entity("normalized-source");
     let raw_target = created_entity("normalized-target");
     let raw_relation = CreatedRelationRef {
@@ -21,41 +21,65 @@ fn require_interned_normalizes_plan_and_created_footprint_to_identical_symbols()
         source: EntityReference::Created(raw_source.clone()),
         target: EntityReference::Created(raw_target.clone()),
     };
-    transaction.push_batch(batch_create("normalized-source"));
-    transaction.push_batch(batch_create("normalized-target"));
-    transaction.push_batch(WorkerIntentBatch::new("normalized-relation-batch").push(
-        MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-            partition_id: raw_relation.partition_id,
-            kind_id: raw_relation.kind_id,
-            client_key: raw_relation.client_key.clone(),
-            source: raw_relation.source.clone(),
-            target: raw_relation.target.clone(),
-            fields: Default::default(),
-        })),
-    ));
-    assert!(transaction.read_created_entity(&raw_source).is_some());
-    assert!(transaction.read_created_entity(&raw_target).is_some());
-    assert!(transaction.read_created_relation(&raw_relation).is_some());
+    transaction
+        .push_batch(batch_create("normalized-source"))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(batch_create("normalized-target"))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(WorkerIntentBatch::new("normalized-relation-batch").push(
+            MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                partition_id: raw_relation.partition_id,
+                kind_id: raw_relation.kind_id,
+                client_key: raw_relation.client_key.clone(),
+                source: raw_relation.source.clone(),
+                target: raw_relation.target.clone(),
+                fields: Default::default(),
+            })),
+        ))
+        .expect("test staging stays within configured resource budgets");
+    assert!(transaction
+        .read_created_entity(&raw_source)
+        .unwrap()
+        .is_some());
+    assert!(transaction
+        .read_created_entity(&raw_target)
+        .unwrap()
+        .is_some());
+    assert!(transaction
+        .read_created_relation(&raw_relation)
+        .unwrap()
+        .is_some());
 
     let merged_intents = transaction
-        .merged_plan(&mut runtime)
+        .merged_plan(&runtime)
         .expect("raw created graph normalizes")
         .merged_intents
         .clone();
     let normalized_source = normalized_entity(
         &merged_intents,
-        &runtime.services.symbols,
+        &runtime.services.symbols.interner_snapshot(),
         "normalized-source",
     );
     let normalized_target = normalized_entity(
         &merged_intents,
-        &runtime.services.symbols,
+        &runtime.services.symbols.interner_snapshot(),
         "normalized-target",
     );
     let normalized_relation = normalized_relation(&merged_intents);
-    assert!(transaction.read_created_entity(&raw_source).is_some());
-    assert!(transaction.read_created_entity(&raw_target).is_some());
-    assert!(transaction.read_created_relation(&raw_relation).is_some());
+    assert!(transaction
+        .read_created_entity(&raw_source)
+        .unwrap()
+        .is_some());
+    assert!(transaction
+        .read_created_entity(&raw_target)
+        .unwrap()
+        .is_some());
+    assert!(transaction
+        .read_created_relation(&raw_relation)
+        .unwrap()
+        .is_some());
 
     assert_eq!(
         normalized_relation.source,
@@ -71,7 +95,10 @@ fn require_interned_normalizes_plan_and_created_footprint_to_identical_symbols()
         (&normalized_relation.client_key, "normalized-relation"),
     ] {
         let symbol = key.as_symbol().expect("RequireInterned emits symbols");
-        assert_eq!(runtime.services.symbols.resolve(symbol), Some(expected));
+        assert_eq!(
+            runtime.services.symbols.resolve(symbol).as_deref(),
+            Some(expected)
+        );
         assert!(runtime
             .config()
             .identity

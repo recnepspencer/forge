@@ -35,6 +35,11 @@ fn build_from_retained_state(
     state: &impl PartitionAccess,
 ) -> SnapshotState {
     let version_id = basis.version_id();
+    let registry = basis
+        .root()
+        .map_or(&runtime.config.schema.registry, |root| {
+            root.schema_authority().registry()
+        });
     let reader = runtime.read_truth();
     let entities = reader.visible_entity_slots_from_state(state, version_id);
     let relations = reader
@@ -44,6 +49,7 @@ fn build_from_retained_state(
             retained: retained_historical_relations(
                 runtime,
                 state,
+                registry,
                 partition_id,
                 &visible,
                 version_id,
@@ -63,6 +69,7 @@ fn build_from_retained_state(
 fn retained_historical_relations(
     runtime: &RelationalRuntime,
     state: &impl PartitionAccess,
+    registry: &crate::schema::data::RelationalSchemaRegistry,
     partition_id: crate::identity::data::PartitionId,
     visible: &DenseSlotBitSet,
     version_id: crate::identity::data::VersionId,
@@ -71,8 +78,12 @@ fn retained_historical_relations(
     let mut retained = DenseSlotBitSet::with_capacity(visible.represented_slot_capacity());
     for slot in visible.iter_set_slots() {
         let relation_id = crate::identity::data::RelationId::new(partition_id, slot as u64, 0);
-        let record =
-            reader.authoritative_relation_record_for_id_at_version(state, relation_id, version_id);
+        let record = reader.authoritative_relation_record_for_id_at_version_with_registry(
+            state,
+            registry,
+            relation_id,
+            version_id,
+        );
         if record.is_some_and(|record| {
             record.lifecycle == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit
         }) {

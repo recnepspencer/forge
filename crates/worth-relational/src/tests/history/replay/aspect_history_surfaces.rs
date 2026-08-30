@@ -2,14 +2,13 @@ use super::*;
 
 #[test]
 fn replay_contract_preserves_aspect_bearing_patch_and_history_surfaces() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "before");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&runtime, "before");
     let entity = changed_entities(&created)[0];
-    let updated = update_entity(&mut runtime, entity, "after");
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r1");
+    let updated = update_entity(&runtime, entity, "after");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "r1");
     let relation = changed_relations(&relation_outcome)[0];
     let expected_entity_history =
         runtime

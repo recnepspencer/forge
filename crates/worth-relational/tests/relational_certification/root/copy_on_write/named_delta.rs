@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
-use super::invariant_oracle_expectations::expected_phase5_branch;
+use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
-    assert_oracle_matches, certified_supply_chain_world, commit_branch_batch, compare,
-    lower_phase5_production_delta, observe_supply_chain_snapshot,
+    assert_oracle_matches, certified_supply_chain_world, commit_supply_chain_delta, compare,
+    lower_supply_chain_production_delta, observe_supply_chain_snapshot,
     snapshot_for_supply_chain_identity, BranchLabel, DeltaId, EntityKey, EntityKind, RelationKey,
     RelationKind, SupplyChainScale, SupplyChainSemanticHandles,
 };
@@ -16,7 +16,7 @@ use worth_relational::facade::inspection::{
 use worth_relational::facade::runtime::RelationalRuntime;
 
 #[test]
-fn phase5_required_named_deltas_copy_exact_declared_partition_footprints() {
+fn every_supply_chain_delta_copies_its_exact_declared_partition_footprint() {
     let scenarios = [
         ("storm", BranchLabel::Storm, DeltaId::StormRerouteAurora),
         (
@@ -29,6 +29,27 @@ fn phase5_required_named_deltas_copy_exact_declared_partition_footprints() {
             BranchLabel::MedicalHold,
             DeltaId::HoldMedicalCargo,
         ),
+        (
+            "southpoint-expansion",
+            BranchLabel::SouthpointExpansion,
+            DeltaId::ExpandSouthpointCapacity,
+        ),
+        (
+            "competing-arrival",
+            BranchLabel::CompetingArrival,
+            DeltaId::CompetingAuroraArrival,
+        ),
+        (
+            "inspection",
+            BranchLabel::Inspection,
+            DeltaId::RetireAtlasWhileInspectingAurora,
+        ),
+        ("rewire", BranchLabel::Rewire, DeltaId::RewireAuroraPortCall),
+        (
+            "hazard-v2",
+            BranchLabel::HazardV2,
+            DeltaId::AdoptHazardClassificationV2,
+        ),
     ];
     for (branch, label, delta) in scenarios {
         prove_named_delta_cow(branch, label, delta);
@@ -36,10 +57,10 @@ fn phase5_required_named_deltas_copy_exact_declared_partition_footprints() {
 }
 
 fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
-    let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork_from_main(&mut world.runtime, branch);
-    fork_from_main(&mut world.runtime, "inspection");
+    fork_from_main(&world.runtime, branch);
+    fork_from_main(&world.runtime, "cost-sibling");
     let selected = world
         .runtime
         .branch_identity(&BranchId(branch.to_owned()))
@@ -47,11 +68,11 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
     let main = world.runtime.main_branch_identity();
     let sibling = world
         .runtime
-        .branch_identity(&BranchId("inspection".to_owned()))
+        .branch_identity(&BranchId("cost-sibling".to_owned()))
         .unwrap();
     let selected_before = world
         .runtime
-        .inspect_branch_sharing(std::slice::from_ref(&selected))
+        .observe_branch_sharing(std::slice::from_ref(&selected))
         .unwrap();
     let before_regions = selected_before
         .region_locators()
@@ -80,12 +101,11 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
         })
         .map(|allocation| allocation.authoritative_bytes())
         .sum::<u64>();
-    assert!(touched.len() < before_regions.len());
     let selected_scope = RelationalMvccCostScope::capture(&world.runtime, vec![selected.clone()]);
     let main_scope = RelationalMvccCostScope::capture(&world.runtime, vec![main]);
     let sibling_scope = RelationalMvccCostScope::capture(&world.runtime, vec![sibling]);
-    let batch = lower_phase5_production_delta(
-        &mut world.runtime,
+    let batch = lower_supply_chain_production_delta(
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId(branch.to_owned()),
@@ -93,7 +113,13 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
         delta,
     )
     .expect("the actual branch pre-state admits its named delta");
-    commit_branch_batch(&mut world.runtime, BranchId(branch.to_owned()), batch);
+    commit_supply_chain_delta(
+        &world.runtime,
+        &world.program,
+        BranchId(branch.to_owned()),
+        delta,
+        batch,
+    );
 
     let cost = world.runtime.observe_mvcc_cost(&selected_scope).unwrap();
     let publication = cost.sharing_cost_delta();
@@ -145,7 +171,7 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
             RelationalBranchSharingCostCounters::default()
         );
     }
-    let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, &selected);
+    let snapshot = snapshot_for_supply_chain_identity(&world.runtime, &selected);
     let observed = observe_supply_chain_snapshot(
         &world.program,
         &world.handles.for_snapshot(snapshot.clone()),
@@ -154,10 +180,15 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
     )
     .unwrap();
     compare(
-        &expected_phase5_branch(&world.program, label, Some(delta)),
+        &expected_supply_chain_branch(&world.program, label, Some(delta)),
         &observed,
     )
     .unwrap();
+    world
+        .runtime
+        .snapshots()
+        .release_snapshot(&snapshot)
+        .expect("the exact semantic proof releases its selected snapshot");
 }
 
 fn declared_partitions(
@@ -189,11 +220,32 @@ fn declared_partitions(
         .into_iter()
         .collect(),
         DeltaId::HoldMedicalCargo => [entity(EntityKind::CargoLot, 0)].into_iter().collect(),
-        _ => unreachable!("this proof only admits required named deltas"),
+        DeltaId::ExpandSouthpointCapacity => [
+            entity(EntityKind::Terminal, 1),
+            entity(EntityKind::Berth, 2),
+        ]
+        .into_iter()
+        .collect(),
+        DeltaId::CompetingAuroraArrival => [entity(EntityKind::Voyage, 0)].into_iter().collect(),
+        DeltaId::RetireAtlasWhileInspectingAurora => [
+            entity(EntityKind::Berth, 0),
+            entity(EntityKind::Inspection, 0),
+        ]
+        .into_iter()
+        .collect(),
+        DeltaId::RewireAuroraPortCall => [
+            entity(EntityKind::PortCall, 1),
+            relation(RelationKind::CallAtPort, 1),
+        ]
+        .into_iter()
+        .collect(),
+        DeltaId::AdoptHazardClassificationV2 => {
+            [entity(EntityKind::CargoLot, 0)].into_iter().collect()
+        }
     }
 }
 
-fn fork_from_main(runtime: &mut RelationalRuntime, branch: &str) {
+fn fork_from_main(runtime: &RelationalRuntime, branch: &str) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .unwrap();

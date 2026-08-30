@@ -8,15 +8,17 @@ pub(super) fn certify_chip_hot_compile_vs_recovery_compile(suite: &'static str) 
             let mut runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::ChipSimulation,
             );
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
 
             let source =
-                create_entity_in_partition(&mut runtime, "chip-hot-cold-source", PartitionId(7));
+                create_entity_in_partition(&runtime, "chip-hot-cold-source", PartitionId(7));
             let sinks = (0..8)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("chip-hot-cold-sink-{index}"),
                         if index % 2 == 0 {
                             PartitionId(11)
@@ -28,7 +30,7 @@ pub(super) fn certify_chip_hot_compile_vs_recovery_compile(suite: &'static str) 
                 .collect::<Vec<_>>();
             for (index, sink) in sinks.iter().enumerate() {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     source,
                     *sink,
                     &format!("chip-hot-cold-link-{index}"),
@@ -38,7 +40,7 @@ pub(super) fn certify_chip_hot_compile_vs_recovery_compile(suite: &'static str) 
 
             runtime.performance_access().reset_counters();
             let hot_commit_started_at = Instant::now();
-            let hot_commit = update_entity(&mut runtime, source, "chip-hot-cold-updated");
+            let hot_commit = update_entity(&runtime, source, "chip-hot-cold-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
                 .history()
@@ -76,7 +78,7 @@ pub(super) fn certify_chip_hot_compile_vs_recovery_compile(suite: &'static str) 
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("chip hot/cold recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

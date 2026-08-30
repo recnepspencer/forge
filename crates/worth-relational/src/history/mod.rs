@@ -9,6 +9,7 @@ pub(crate) use access::{CommitAncestryInspection, CommitAncestryPosture};
 pub use authority::HistoryAuthority;
 pub(crate) use commit::{
     RelationalCommitArtifact, RelationalCommitAuthoritativeAllocationKind, RelationalCommitCatalog,
+    RelationalCommitCatalogEnvelopeAppendDenial,
 };
 pub use commit::{
     RelationalCommitArtifactDenial, RelationalCommitCatalogAppendDenial,

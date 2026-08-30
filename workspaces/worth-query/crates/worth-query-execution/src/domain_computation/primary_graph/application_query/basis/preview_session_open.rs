@@ -24,6 +24,9 @@ pub enum WorthQueryApplicationPreviewSessionDenialKind {
     Cancelled,
     DeadlineExceeded,
     CurrentTruthUnavailable,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     SessionIdentityExhausted,
     BridgeRejected,
 }
@@ -110,11 +113,11 @@ where
         let (_, source_basis) = self
             .relational_source
             .observe_branch_basis(&self.relational_branch_identity)
-            .map_err(|_| current_truth_denial())?;
+            .map_err(current_truth_denial)?;
         let source_observation = self
             .relational_source
             .retain_branch_basis_for_bridge(&source_basis)
-            .map_err(|_| current_truth_denial())?;
+            .map_err(current_truth_denial)?;
         let sequence = next_preview_sequence(&self.next_preview_session)?;
         let identity_basis = format!("{}-{sequence}", self.runtime.authority_identity().as_u64());
         let identity = WorthQueryApplicationPreviewSessionIdentity::mint(format!(
@@ -197,10 +200,24 @@ fn validate_request(
     }
 }
 
-fn current_truth_denial() -> WorthQueryApplicationPreviewSessionDenial {
+fn current_truth_denial(
+    denial: worth_relational::facade::branch::RelationalBranchBasisDenial,
+) -> WorthQueryApplicationPreviewSessionDenial {
+    let kind = match denial {
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+            WorthQueryApplicationPreviewSessionDenialKind::RetentionCapacityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+            WorthQueryApplicationPreviewSessionDenialKind::RetentionIdentityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+            WorthQueryApplicationPreviewSessionDenialKind::SnapshotIdentityExhausted
+        }
+        _ => WorthQueryApplicationPreviewSessionDenialKind::CurrentTruthUnavailable,
+    };
     WorthQueryApplicationPreviewSessionDenial::new(
-        WorthQueryApplicationPreviewSessionDenialKind::CurrentTruthUnavailable,
-        "primary application branch has no committed head",
+        kind,
+        format!("primary application branch truth admission denied: {denial:?}"),
     )
 }
 

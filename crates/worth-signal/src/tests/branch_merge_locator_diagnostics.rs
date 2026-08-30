@@ -68,7 +68,7 @@ fn build_locator_runtime() -> (
 fn scoped_merge_locators_and_compact_diagnostics_round_trip_from_retained_proof() {
     let (mut runtime, feature, main, node) = build_locator_runtime();
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects([
@@ -167,7 +167,7 @@ fn scoped_denial_and_unavailable_locators_stay_family_distinct_and_canonicalizab
     let (mut runtime, feature, main, _primary) = build_scoped_denial_runtime();
     let denied_entry = SignalSelectedAspectRequestEntry::new(NodeId::new(777, 2), ASPECT_A);
     let denied = match runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects([denied_entry.clone()])
@@ -185,7 +185,7 @@ fn scoped_denial_and_unavailable_locators_stay_family_distinct_and_canonicalizab
     );
 
     let unavailable = match runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([NodeId::new(1, 0)])

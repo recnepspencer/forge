@@ -27,7 +27,7 @@ where
         Ok(DefinedComputation::from_recipe(recipe))
     }
 
-    pub fn begin<'a>(
+    pub(crate) fn begin<'a>(
         &'a mut self,
         runtime_ctx: &'a mut Ctx,
     ) -> SignalTransaction<'a, D, I, E, Ctx, T> {
@@ -59,7 +59,7 @@ where
         }
     }
 
-    pub fn transaction<F>(
+    pub(crate) fn transaction<F>(
         &mut self,
         runtime_ctx: &mut Ctx,
         apply: F,

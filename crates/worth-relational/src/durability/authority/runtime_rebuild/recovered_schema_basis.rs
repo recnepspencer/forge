@@ -29,7 +29,7 @@ struct ExpectedRecoveredSchema {
 
 impl RecoveredSchemaBasis {
     pub(super) fn admit(
-        runtime: &crate::runtime::RelationalRuntime,
+        runtime: &mut crate::runtime::RelationalRuntime,
         envelope: &CanonicalCommitEnvelope,
     ) -> Result<Self, DurabilityError> {
         validate_schema_continuity_bundle(envelope)
@@ -199,7 +199,7 @@ fn canonical_authority_snapshot(
 }
 
 fn canonical_basis_version(
-    runtime: &crate::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) -> Result<DescriptorCanonicalBasisVersion, DurabilityError> {
     match (

@@ -11,6 +11,36 @@ That division is deliberate:
 - the protected operation accepts those concrete types, not a generic marker;
 - downstream contracts prove both the legitimate and counterfeit caller paths.
 
+## Place the owner seal before designing the facade
+
+For a governed public operation, place the concrete marker and issuer in the
+domain owner that decides whether the operation is legal. The owner may use
+`worth-proof` witness, proof, binding, and transition carriers because Proof is
+the progression substrate. Proof must not define a Relational, Signal, Bridge,
+or Query owner marker on that domain's behalf: doing so would move the trust
+decision beneath the component that owns its live identity and policy.
+
+The protected signature names the concrete owner type:
+
+~~~rust
+fn publish(candidate: Candidate<RelationalPublicationAuthority>) {
+    // only the Relational owner can have produced this exact candidate
+}
+~~~
+
+This generic alternative is not a governed boundary:
+
+~~~rust,compile_fail
+fn publish<A: AuthorityMarker>(candidate: Candidate<A>) {
+    // any caller can define A, so the signature has delegated its authority
+}
+~~~
+
+Open marker traits remain useful substrate for caller-owned workflows. They are
+not a seal shared by every domain. If a marker requires a clock, live table,
+counter, retention obligation, or `Drop` behavior to mean anything, that state
+belongs in the owning runtime artifact rather than in `worth-proof`.
+
 ## The Authority Boundary
 
 An authority-bearing operation should name its concrete requirements:
@@ -152,6 +182,7 @@ For sensitive operations:
 
 - accept concrete owner types;
 - issue them only from the owning workflow;
+- define the domain marker and minting path in that owner, not in Proof;
 - use named production imports and reexports; authority-governed globs are denied;
 - test the real protected call with both owner-issued and counterfeit values;
 - add direct-construction compile-fail evidence when privacy is load-bearing.
@@ -159,6 +190,10 @@ For sensitive operations:
 Avoid relying only on "private fields cannot be named." That proves one
 constructor is closed; it does not prove the protected operation rejects a
 structurally similar counterfeit value.
+
+Also avoid generic `A: AuthorityMarker` or `C: CapabilityMarker` parameters on
+governed facades. They describe an open substrate extension point, not the one
+owner whose decision the operation requires.
 
 ## DX Posture
 

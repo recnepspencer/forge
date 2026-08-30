@@ -42,7 +42,7 @@ fn runtime_merge_strategy_hint_selects_registered_descriptor() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .strategy_hint(BranchMergeStrategy::ReplaySourceDeltaOntoTarget)
@@ -96,7 +96,7 @@ fn runtime_merge_strategy_named_selects_registered_descriptor() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .strategy_named("signal.merge.rebase-source-onto-target")
@@ -150,7 +150,7 @@ fn runtime_merge_base_named_selects_registered_descriptor_and_lowers_plan() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .merge_base_named("signal.merge-base.fork-point")
@@ -254,7 +254,7 @@ fn runtime_merge_uses_schema_default_strategy_when_request_is_silent() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -318,7 +318,7 @@ fn runtime_merge_node_override_precedes_schema_default_strategy() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()

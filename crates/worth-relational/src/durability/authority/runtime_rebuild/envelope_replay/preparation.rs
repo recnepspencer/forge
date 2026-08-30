@@ -19,8 +19,7 @@ pub(super) fn prepare_replay_context(
 ) -> Result<bool, DurabilityError> {
     let had_checkpoint_artifact = restored
         .history
-        .commit_envelopes
-        .contains_key(&envelope.commit.commit_id);
+        .has_recorded_commit_envelope(envelope.commit.commit_id);
     validate_parent_closure(restored, envelope, available_commit_ids)?;
     if allows_legacy_branch_admission && !restored.history.has_branch(&envelope.branch_context) {
         admit_legacy_branch_from_first_parent(restored, envelope, recovered_roots)?;
@@ -88,13 +87,14 @@ fn admit_carried_branch_checkpoint(
             &envelope.branch_context,
             recovered_root,
             recovered_provenance_root,
-            &restored.services.symbols,
+            &restored.config.schema.registry,
+            &restored.services.symbols.interner_snapshot(),
         )
         .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail))
 }
 
 fn validate_parent_closure(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
     available_commit_ids: &BTreeSet<crate::history::data::CommitId>,
 ) -> Result<(), DurabilityError> {
@@ -119,7 +119,7 @@ fn validate_parent_closure(
     if authoritative_parent_list
         .as_slice()
         .iter()
-        .any(|parent| !restored.history.commit_envelopes.contains_key(parent))
+        .any(|parent| !restored.history.has_recorded_commit_envelope(*parent))
     {
         return Err(DurabilityError::new(
             RecoveryFailureClass::MissingAuthoritativeParentClosure,

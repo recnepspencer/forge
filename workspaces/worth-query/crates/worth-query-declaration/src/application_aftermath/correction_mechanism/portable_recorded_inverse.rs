@@ -11,6 +11,14 @@ pub struct PortablePreImageLocus {
 }
 
 impl PortablePreImageLocus {
+    pub fn from_untrusted_fields(entity: String, aspect: String, field: String) -> Self {
+        Self {
+            entity,
+            aspect,
+            field,
+        }
+    }
+
     pub fn entity(&self) -> &str {
         &self.entity
     }
@@ -31,6 +39,16 @@ pub struct PortablePreImageDemand {
 }
 
 impl PortablePreImageDemand {
+    pub fn from_untrusted_fields(
+        loci: Vec<PortablePreImageLocus>,
+        maximum_encoded_bytes: usize,
+    ) -> Self {
+        Self {
+            loci,
+            maximum_encoded_bytes,
+        }
+    }
+
     pub fn loci(&self) -> &[PortablePreImageLocus] {
         &self.loci
     }
@@ -49,6 +67,20 @@ pub struct PortableRecordedInverse {
 }
 
 impl PortableRecordedInverse {
+    pub fn from_untrusted_fields(
+        inverse_operation_slot: String,
+        lowering_correspondence: DeclaredLoweringCorrespondenceRef,
+        postcondition: DeclaredAftermathPostcondition,
+        preimage_demand: PortablePreImageDemand,
+    ) -> Self {
+        Self {
+            inverse_operation_slot,
+            lowering_correspondence,
+            postcondition,
+            preimage_demand,
+        }
+    }
+
     pub fn inverse_operation_slot(&self) -> &str {
         &self.inverse_operation_slot
     }

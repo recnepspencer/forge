@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use crate::capabilities::RuntimeConfigSource;
 use crate::merge::aspect_plan_lookup::lowered_plan_for_record;
 use crate::merge::data::{
     AspectPolicyResolutionRecord, CausallyAnnotatedMergePlan, MergePlanningError,
@@ -41,6 +42,7 @@ pub(super) fn resolve_policy_scope(
     let source_view_index = PolicyReadViewIndex::new(&source_view);
     let target_view_index = PolicyReadViewIndex::new(&target_view);
     let base_view_index = PolicyReadViewIndex::new(&base_view);
+    let schema_registry = &runtime.runtime_config().schema.registry;
     let source_view_context = PolicyReadViewContext::new(&source_view, &source_view_index);
     let target_view_context = PolicyReadViewContext::new(&target_view, &target_view_index);
     let source_records_by_ref = causal_plan
@@ -71,7 +73,7 @@ pub(super) fn resolve_policy_scope(
                 .ok_or_else(|| MergePlanningError::MissingPolicySourceRecord {
                     record: classification.record.clone(),
                 })?;
-            let applied_policies = effective_merge_policies_for_record(runtime, record);
+            let applied_policies = effective_merge_policies_for_record(schema_registry, record);
             let annotation = causal_annotations_by_record
                 .get(&classification.record)
                 .ok_or_else(|| MergePlanningError::MissingCausalAnnotation {

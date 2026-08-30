@@ -10,7 +10,7 @@ use crate::snapshots::data::SnapshotId;
 
 impl<'runtime> PublicationAuthority<'runtime> {
     pub(crate) fn consume_post_commit_artifacts(
-        &mut self,
+        &self,
         commit_id: CommitId,
         snapshot_id: SnapshotId,
         branch_id: BranchId,

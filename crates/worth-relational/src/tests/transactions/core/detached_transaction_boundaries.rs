@@ -10,10 +10,10 @@ use crate::tests::support::*;
 #[test]
 fn relation_overlays_and_validation_footprints_stay_exact_basis_local() {
     let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "relation-source");
-    let target = create_entity(&mut runtime, "relation-target");
-    let alternate_target = create_entity(&mut runtime, "alternate-relation-target");
-    let relation = create_relation(&mut runtime, source, target, "root-edge");
+    let source = create_entity(&runtime, "relation-source");
+    let target = create_entity(&runtime, "relation-target");
+    let alternate_target = create_entity(&runtime, "alternate-relation-target");
+    let relation = create_relation(&runtime, source, target, "root-edge");
     fork_from_main(&mut runtime, "storm");
     fork_from_main(&mut runtime, "maintenance");
 
@@ -37,10 +37,12 @@ fn relation_overlays_and_validation_footprints_stay_exact_basis_local() {
             source: EntityReference::Existing(source),
             target: EntityReference::Existing(alternate_target),
         });
-    storm.push_batch(
-        WorkerIntentBatch::new("storm-relation-update")
-            .push(MutationIntent::Relation(storm_relation_mutation.clone())),
-    );
+    storm
+        .push_batch(
+            WorkerIntentBatch::new("storm-relation-update")
+                .push(MutationIntent::Relation(storm_relation_mutation.clone())),
+        )
+        .expect("test staging stays within configured resource budgets");
     assert_eq!(
         storm
             .read_relation(relation)
@@ -82,25 +84,31 @@ fn relation_overlays_and_validation_footprints_stay_exact_basis_local() {
         target: created.target.clone(),
         fields: Default::default(),
     });
-    maintenance.push_batch(
-        WorkerIntentBatch::new("maintenance-relation-create")
-            .push(MutationIntent::Create(maintenance_create.clone())),
-    );
+    maintenance
+        .push_batch(
+            WorkerIntentBatch::new("maintenance-relation-create")
+                .push(MutationIntent::Create(maintenance_create.clone())),
+        )
+        .expect("test staging stays within configured resource budgets");
     assert_eq!(
         maintenance
             .read_created_relation(&created)
+            .expect("read footprint fits")
             .expect("maintenance reads its exact relation create")
             .cloned()
             .collect::<Vec<_>>(),
         vec![maintenance_create]
     );
-    assert!(storm.read_created_relation(&created).is_none());
+    assert!(storm
+        .read_created_relation(&created)
+        .expect("read footprint fits")
+        .is_none());
 
     let storm = storm
-        .validate(&mut runtime)
+        .validate(&runtime)
         .expect("storm relation overlay validates against its root");
     let maintenance = maintenance
-        .validate(&mut runtime)
+        .validate(&runtime)
         .expect("maintenance relation overlay validates against its root");
     assert_eq!(storm.footprint().basis(), storm_basis.descriptor());
     assert_eq!(
@@ -199,17 +207,22 @@ fn bulk_created_reads_share_one_staged_intent_allocation() {
         .cloned()
         .map(created_entity)
         .collect::<Vec<_>>();
-    transaction.push_batch(WorkerIntentBatch::new("bulk-overlay-sharing").push(
-        MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
-            partition_id: crate::facade::identity::PartitionId::main(),
-            kind_id: crate::facade::identity::KindId(1),
-            field_patches: vec![Default::default(); client_keys.len()],
-            client_keys,
-        })),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("bulk-overlay-sharing").push(MutationIntent::Create(
+                CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    field_patches: vec![Default::default(); client_keys.len()],
+                    client_keys,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
 
     let first_intent = transaction
         .read_created_entity(&created_entities[0])
+        .expect("read footprint fits")
         .expect("first bulk member is indexed")
         .next()
         .expect("first bulk member resolves its source intent")
@@ -217,6 +230,7 @@ fn bulk_created_reads_share_one_staged_intent_allocation() {
     for created in &created_entities {
         let mut matches = transaction
             .read_created_entity(created)
+            .expect("read footprint fits")
             .expect("every bulk member is indexed");
         let intent = matches
             .next()

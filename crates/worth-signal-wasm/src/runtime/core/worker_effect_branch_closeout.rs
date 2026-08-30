@@ -10,6 +10,7 @@ use super::worker_branch_command_model::{
     WorkerRetireBranchesRequest,
 };
 use super::worker_branch_commands::{expect_success, require_basis};
+use super::worker_branch_snapshot_retirement::WorkerBranchSnapshotRetirement;
 use super::RuntimeCore;
 
 impl RuntimeCore {
@@ -27,17 +28,34 @@ impl RuntimeCore {
                 "retireBranches",
             )?;
             terminal_bases.push(terminal_basis);
-            native_requests.push(self.native_retirement_basis(retirement)?);
+            let (branch, basis, reason) = self.native_retirement_basis(retirement)?;
+            let snapshots = WorkerBranchSnapshotRetirement::admitted_for(
+                &self.admitted_runtime_snapshots,
+                retirement.branch_id,
+            );
+            native_requests.push((branch, basis, snapshots, reason));
         }
-        let plan = expect_success(
+        let branch_ids = request
+            .retirements
+            .iter()
+            .map(|retirement| retirement.branch_id)
+            .collect::<Vec<_>>();
+        let plan = match expect_success(
             self.runtime
-                .plan_signal_branch_retirement_batch(native_requests),
+                .plan_signal_branch_retirement_batch_releasing_snapshots(native_requests),
             "plan worker retirement batch",
-        )?;
-        let receipt = expect_success(
+        ) {
+            Ok(plan) => plan,
+            Err(error) => return Err(error),
+        };
+        WorkerBranchSnapshotRetirement::release(self, &branch_ids);
+        let receipt = match expect_success(
             self.runtime.retire_signal_branch_batch(plan),
             "retire worker branch batch",
-        )?;
+        ) {
+            Ok(receipt) => receipt,
+            Err(error) => return Err(error),
+        };
         let retirements = request
             .retirements
             .into_iter()
@@ -57,6 +75,20 @@ impl RuntimeCore {
     ) -> Result<WorkerCloseoutEffectBranchReceipt, WorthSignalJsError> {
         let effect_request = request.effect_retirement;
         let dependency_request = request.dependency_basis_retirement;
+        let canonical_target_id = request.canonical_transaction.branch_id;
+        let canonical_target = self
+            .runtime
+            .branch_handle(RuntimeBranchId(canonical_target_id))
+            .ok_or_else(|| {
+                WorthSignalJsError::invalid_input(format!(
+                    "closeoutEffectBranch references unknown canonical transaction branch `{canonical_target_id}`"
+                ))
+            })?;
+        if canonical_target.parent_branch_id.is_some() {
+            return Err(WorthSignalJsError::invalid_input(format!(
+                "closeoutEffectBranch canonical transaction target `{canonical_target_id}` must be the canonical root branch"
+            )));
+        }
         let terminal_basis = self.worker_branch_basis(effect_request.branch_id)?;
         require_basis(
             &effect_request.expected_basis,
@@ -74,23 +106,51 @@ impl RuntimeCore {
         } else {
             None
         };
-        let mut retirement_requests = vec![self.native_retirement_basis(&effect_request)?];
+        let (effect_branch, effect_basis, effect_reason) =
+            self.native_retirement_basis(&effect_request)?;
+        let effect_snapshots = WorkerBranchSnapshotRetirement::admitted_for(
+            &self.admitted_runtime_snapshots,
+            effect_request.branch_id,
+        );
+        let mut retirement_requests =
+            vec![(effect_branch, effect_basis, effect_snapshots, effect_reason)];
         if let Some(dependency) = &dependency_request {
-            retirement_requests.push(self.native_retirement_basis(dependency)?);
+            let (branch, basis, reason) = self.native_retirement_basis(dependency)?;
+            let snapshots = WorkerBranchSnapshotRetirement::admitted_for(
+                &self.admitted_runtime_snapshots,
+                dependency.branch_id,
+            );
+            retirement_requests.push((branch, basis, snapshots, reason));
         }
-        let retirement_plan = expect_success(
+        let mut retirement_branch_ids = vec![effect_request.branch_id];
+        if let Some(dependency) = &dependency_request {
+            retirement_branch_ids.push(dependency.branch_id);
+        }
+        let retirement_plan = match expect_success(
             self.runtime
-                .plan_signal_branch_retirement_batch(retirement_requests),
+                .plan_signal_branch_retirement_batch_releasing_snapshots(retirement_requests),
             "plan worker effect closeout retirement batch",
-        )?;
+        ) {
+            Ok(plan) => plan,
+            Err(error) => return Err(error),
+        };
 
         let canonical_transaction =
-            self.apply_transaction_to_worker_branch(request.canonical_transaction)?;
+            match self.apply_transaction_to_worker_branch(request.canonical_transaction) {
+                Ok(receipt) => receipt,
+                Err(error) => {
+                    drop(retirement_plan);
+                    return Err(error);
+                }
+            };
+        WorkerBranchSnapshotRetirement::release(self, &retirement_branch_ids);
         let retired = match self.runtime.retire_signal_branch_batch(retirement_plan) {
             TransitionOutcome::Success(receipt) => receipt,
-            other => panic!(
-                "prevalidated effect retirement batch must remain executable after isolated canonical transaction: {other:?}",
-            ),
+            other => {
+                return Err(WorthSignalJsError::internal(format!(
+                    "prevalidated effect retirement batch changed before execution: {other:?}"
+                )));
+            }
         };
         let receipts = retired.receipts();
         self.reclaim_worker_branch_companion_state(effect_request.branch_id);
@@ -112,7 +172,7 @@ impl RuntimeCore {
     }
 
     fn native_retirement_basis(
-        &mut self,
+        &self,
         request: &WorkerRetireBranchRequest,
     ) -> Result<
         (
@@ -132,14 +192,6 @@ impl RuntimeCore {
             })?;
         let native_basis = self.native_branch_basis_by_id(request.branch_id)?;
         Ok((branch, native_basis, request.reason.into()))
-    }
-
-    fn reclaim_worker_branch_companion_state(&mut self, branch_id: u64) {
-        self.branch_states.remove(&branch_id);
-        self.snapshot_states
-            .retain(|(stored_branch_id, _), _| *stored_branch_id != branch_id);
-        self.runtime_snapshots
-            .retain(|(stored_branch_id, _), _| *stored_branch_id != branch_id);
     }
 }
 

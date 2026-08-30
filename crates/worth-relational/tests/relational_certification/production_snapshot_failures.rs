@@ -9,7 +9,7 @@ use worth_relational::facade::transactions::{
 
 #[test]
 fn pinned_snapshot_observation_does_not_select_a_later_head() {
-    let mut world = compile_supply_chain_baseline(court_program()).expect("Court world compiles");
+    let world = compile_supply_chain_baseline(court_program()).expect("Court world compiles");
     let port_key = EntityKey::new(EntityKind::Port, 0);
     let port_id = world.handles.entities[&port_key].id;
     let mut fields = std::collections::BTreeMap::new();
@@ -36,16 +36,18 @@ fn pinned_snapshot_observation_does_not_select_a_later_head() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(WorkerIntentBatch::new("latest-head-twin").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: port_id,
-                fields: worth_relational::facade::transactions::AspectFieldPatch::new(fields),
-            },
-        )),
-    ));
     transaction
-        .commit(&mut world.runtime)
+        .push_batch(
+            WorkerIntentBatch::new("latest-head-twin").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: port_id,
+                    fields: worth_relational::facade::transactions::AspectFieldPatch::new(fields),
+                }),
+            )),
+        )
+        .unwrap();
+    transaction
+        .commit(&world.runtime)
         .expect("later head update commits through the public facade");
 
     let observed = super::world::supply_chain::observe_supply_chain(&world)

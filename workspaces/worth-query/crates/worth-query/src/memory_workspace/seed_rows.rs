@@ -42,25 +42,33 @@ impl WorthQueryMemoryWorkspace {
                 )))
             },
         );
+        let main_identity = self.runtime.main_branch_identity();
         let options = self
             .runtime
-            .admit_main_branch_basis()
-            .expect("memory workspace main branch remains owner-admissible");
+            .admit_branch_basis(&main_identity)
+            .map_err(super::transaction_denial::basis)?;
         let mut transaction = self
             .runtime
             .begin_branch_transaction(
                 &options,
                 worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
             )
-            .expect("owner-admitted transaction context");
-        transaction.push_batch(batch);
+            .map_err(super::transaction_denial::admission)?;
+        transaction
+            .push_batch(batch)
+            .map_err(super::transaction_denial::staging)?;
         let result = transaction
-            .commit(&mut self.runtime)
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+            .commit(&self.runtime)
+            .map_err(super::transaction_denial::commit)?;
+        let published_snapshot = result.snapshot.clone();
         self.next_client_key = next_key;
-        Ok(WorthQueryCommitIdentity::from_runtime_receipt_commit(
-            result.commit.commit_id.0,
-        ))
+        let identity =
+            WorthQueryCommitIdentity::from_runtime_receipt_commit(result.commit.commit_id.0);
+        super::commit_snapshot_closeout::release_commit_snapshot(
+            &mut self.runtime,
+            &published_snapshot,
+        );
+        Ok(identity)
     }
 
     pub(crate) fn seeded_identity_entities(
@@ -80,7 +88,7 @@ impl WorthQueryMemoryWorkspace {
                     "seed identity touch is not declared by the test backend schema",
                 )
             })?;
-        self.entities()
+        self.entities()?
             .into_iter()
             .map(|entity| {
                 let identity = match entity.scalar_value_at(field_path) {

@@ -15,8 +15,8 @@ use worth_foundational::{CanonicalBasisLocus, CanonicalBasisValue, InternedStrin
 
 #[test]
 fn merge_proof_packet_canonical_basis_parity_survives_publication_and_recovery() {
-    let mut runtime = merge_ready_runtime();
-    let outcome = execute_merge(&mut runtime);
+    let runtime = merge_ready_runtime();
+    let outcome = execute_merge(&runtime);
     let live_packet = outcome.execution_summary.proof_packet().clone();
     let live_basis = lower_packet(&runtime, &live_packet);
     let published_packet = published_merge_authority(&runtime, outcome.commit.commit.commit_id)
@@ -25,7 +25,7 @@ fn merge_proof_packet_canonical_basis_parity_survives_publication_and_recovery()
         .clone();
     let published_basis = lower_packet(&runtime, &published_packet);
     let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_packet = published_merge_authority(&recovered, outcome.commit.commit.commit_id)
         .execution_summary
         .proof_packet
@@ -196,16 +196,12 @@ fn merge_proof_packet_canonical_basis_localizes_single_field_drift() {
 }
 
 fn merge_ready_runtime() -> RelationalRuntime {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_branch_from_main(&mut runtime, "alt");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
-    create_entity_outcome_on_branch(&mut runtime, "alt-only", BranchId("alt".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_branch_from_main(&runtime, "alt");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(&runtime, "alt-only", BranchId("alt".to_string()));
     runtime
 }
 
@@ -217,7 +213,7 @@ fn merge_request() -> MergeExecutionRequest {
     )
 }
 
-fn execute_merge(runtime: &mut RelationalRuntime) -> MergeExecutionOutcome {
+fn execute_merge(runtime: &RelationalRuntime) -> MergeExecutionOutcome {
     let prepared = runtime
         .merge()
         .prepare_merge_execution(merge_request())

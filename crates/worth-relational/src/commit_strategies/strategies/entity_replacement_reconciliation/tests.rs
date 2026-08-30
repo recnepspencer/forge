@@ -54,7 +54,7 @@ fn entity_replacement_reconciliation_strategy_replaces_with_normalized_client_ke
     let descriptor = EntityReplacementReconciliationStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(711),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -64,7 +64,7 @@ fn entity_replacement_reconciliation_strategy_replaces_with_normalized_client_ke
             EntityReplacementReconciliationStrategy::execution_registration(&descriptor),
         )
         .build();
-    let entity = create_entity(&mut runtime, "before");
+    let entity = create_entity(&runtime, "before");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -116,7 +116,7 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
     let descriptor = EntityReplacementReconciliationStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(713),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -126,7 +126,7 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
             EntityReplacementReconciliationStrategy::execution_registration(&descriptor),
         )
         .build();
-    let entity = create_entity(&mut runtime, "before");
+    let entity = create_entity(&runtime, "before");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -151,16 +151,17 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
         .commit_strategies()
         .execute(&request, &snapshot)
         .expect("strategy execution");
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     for batch in execution
         .mutation_program()
         .worker_batches()
         .iter()
         .cloned()
     {
-        txn.push_batch(batch);
+        txn.push_batch(batch)
+            .expect("test staging stays within configured resource budgets");
     }
-    let commit = txn.commit(&mut runtime).expect("replacement patch commit");
+    let commit = txn.commit(&runtime).expect("replacement patch commit");
     let replacement_id = crate::tests::support::changed_entities(&commit)
         .into_iter()
         .last()
@@ -208,7 +209,7 @@ fn entity_replacement_reconciliation_strategy_rejects_undeclared_fields() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(registry)
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -218,7 +219,7 @@ fn entity_replacement_reconciliation_strategy_rejects_undeclared_fields() {
             EntityReplacementReconciliationStrategy::execution_registration(&descriptor),
         )
         .build();
-    let entity = create_entity(&mut runtime, "before");
+    let entity = create_entity(&runtime, "before");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -260,7 +261,7 @@ fn entity_replacement_reconciliation_strategy_replaces_when_only_client_key_chan
     let descriptor = EntityReplacementReconciliationStrategy::descriptor(
         crate::facade::commit_strategies::CommitStrategyId(77),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             EntityReplacementReconciliationStrategy::registration(descriptor.id())
@@ -270,7 +271,7 @@ fn entity_replacement_reconciliation_strategy_replaces_when_only_client_key_chan
             EntityReplacementReconciliationStrategy::execution_registration(&descriptor),
         )
         .build();
-    let entity = create_entity(&mut runtime, "service");
+    let entity = create_entity(&runtime, "service");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -310,7 +311,7 @@ fn entity_replacement_reconciliation_strategy_noops_when_authoritative_fields_ma
     let descriptor = EntityReplacementReconciliationStrategy::descriptor(
         crate::facade::commit_strategies::CommitStrategyId(78),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             EntityReplacementReconciliationStrategy::registration(descriptor.id())
@@ -320,7 +321,7 @@ fn entity_replacement_reconciliation_strategy_noops_when_authoritative_fields_ma
             EntityReplacementReconciliationStrategy::execution_registration(&descriptor),
         )
         .build();
-    let entity = create_entity(&mut runtime, "service");
+    let entity = create_entity(&runtime, "service");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(

@@ -1,6 +1,6 @@
 use crate::authority::commit::phases::prepare::PreparedWorkingStateScope;
 use crate::identity::data::VersionId;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{CommitConflict, ConflictClass, TransactionCommitError};
 use crate::validation::engine::InvariantExecutionResult;
 
@@ -11,7 +11,7 @@ pub(super) fn stale_validated_proposal(detail: &str) -> TransactionCommitError {
 }
 
 pub(super) fn validate_proposed_state(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     prepared: &PreparedWorkingStateScope,
     proposed: &crate::runtime::WorkingState,
     proposed_version: VersionId,

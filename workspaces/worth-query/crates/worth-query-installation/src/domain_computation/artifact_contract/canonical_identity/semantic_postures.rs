@@ -1,39 +1,42 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_computation::*;
 
-use super::super::WorthQueryPortableArtifactContract;
 use super::vocabulary::*;
+use super::WorthQueryArtifactContractCanonicalSemantics;
 
 pub(super) fn hash_occurrence_and_evidence(
-    hash: &mut Sha256,
-    contract: &WorthQueryPortableArtifactContract,
+    hash: &mut impl CanonicalHashSink,
+    contract: &impl WorthQueryArtifactContractCanonicalSemantics,
 ) {
     hash_text_field(
         hash,
         "occurrence-policy",
-        occurrence_policy(contract.occurrence.identity_policy()),
+        occurrence_policy(contract.occurrence().identity_policy()),
     );
-    for purpose in contract.occurrence.permitted_substitutions() {
+    for purpose in contract.occurrence().permitted_substitutions() {
         hash_text_field(hash, "substitution-purpose", substitution(*purpose));
     }
     for (label, value) in [
-        ("basis-family", contract.evidence.basis_family()),
-        ("provenance-family", contract.evidence.provenance_family()),
-        ("dependency-family", contract.evidence.dependency_family()),
+        ("basis-family", contract.evidence().basis_family()),
+        ("provenance-family", contract.evidence().provenance_family()),
+        ("dependency-family", contract.evidence().dependency_family()),
         (
             "invalidation-family",
-            contract.evidence.invalidation_family(),
+            contract.evidence().invalidation_family(),
         ),
-        ("equivalence-family", contract.evidence.equivalence_family()),
+        (
+            "equivalence-family",
+            contract.evidence().equivalence_family(),
+        ),
     ] {
         hash_text_field(hash, label, value);
     }
 }
 
 pub(super) fn hash_reproducibility(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     value: &WorthQueryArtifactReproducibilityContract,
 ) {
     hash_text_field(
@@ -77,7 +80,10 @@ pub(super) fn hash_reproducibility(
     }
 }
 
-pub(super) fn hash_search(hash: &mut Sha256, value: &WorthQueryCandidateSearchContract) {
+pub(super) fn hash_search(
+    hash: &mut impl CanonicalHashSink,
+    value: &WorthQueryCandidateSearchContract,
+) {
     hash_optional(hash, "candidate-universe", value.universe_family());
     hash_optional(hash, "search-termination", value.termination_family());
     hash_optional(hash, "candidate-feasibility", value.feasibility_family());
@@ -141,7 +147,10 @@ pub(super) fn hash_search(hash: &mut Sha256, value: &WorthQueryCandidateSearchCo
     }
 }
 
-pub(super) fn hash_convergence(hash: &mut Sha256, value: &WorthQueryConvergenceContract) {
+pub(super) fn hash_convergence(
+    hash: &mut impl CanonicalHashSink,
+    value: &WorthQueryConvergenceContract,
+) {
     match value {
         WorthQueryConvergenceContract::NotIterative => {
             hash_text_field(hash, "convergence", "not-iterative")
@@ -166,7 +175,7 @@ pub(super) fn hash_convergence(hash: &mut Sha256, value: &WorthQueryConvergenceC
 }
 
 pub(super) fn hash_transformation(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     value: &WorthQueryTransformationEvidenceContract,
 ) {
     match value {

@@ -7,14 +7,14 @@ use worth_relational::facade::mvcc::RelationalTransactionIntent;
 use worth_relational::facade::runtime::RelationalRuntime;
 
 fn sharing_cannot_fork(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     observation: RelationalBranchSharingObservation,
 ) {
     let _ = runtime.fork_branch(BranchId("forged".to_owned()), observation);
 }
 
 fn allocation_cannot_begin_mutation(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     observation: RelationalOwnerAllocationLedgerObservation,
 ) {
     let _ = runtime.begin_branch_transaction(
@@ -24,7 +24,7 @@ fn allocation_cannot_begin_mutation(
 }
 
 fn visibility_cannot_retain(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     observation: RelationalVisibilityCommitmentObservation,
 ) {
     let _ = runtime

@@ -25,7 +25,10 @@ use worth_query_declaration::facade::{
 
 fn without_external_effect_or_aftermath<Operation, Input>(
     operation: ApplicationOperationRef<IdentityExecutionSchema, Operation, Input>,
-) -> ApplicationOperationDefinition<IdentityExecutionSchema, Operation, Input> {
+) -> ApplicationOperationDefinition<IdentityExecutionSchema, Operation, Input>
+where
+    Input: worth_query_declaration::facade::portable_identity::WorthQueryPortableType,
+{
     operation
         .definition()
         .no_external_effect()

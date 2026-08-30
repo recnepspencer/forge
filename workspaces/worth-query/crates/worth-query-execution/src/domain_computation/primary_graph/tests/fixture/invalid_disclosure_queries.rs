@@ -128,7 +128,9 @@ pub(super) fn result_rule_predicate_definition() -> ApplicationQueryDefinition<
     )
 }
 
-fn shape<Query: 'static>(
+fn shape<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+>(
 ) -> TypedApplicationQueryResultShape<IdentityExecutionSchema, Query, Account, AccountSummaryResult>
 {
     ApplicationQueryResultShapeBuilder::<
@@ -142,7 +144,9 @@ fn shape<Query: 'static>(
     .build()
 }
 
-fn definition<Query: 'static>(
+fn definition<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+>(
     reference: worth_query_declaration::facade::application_query::ApplicationQueryReference<
         IdentityExecutionSchema,
         Query,

@@ -55,7 +55,7 @@ pub(super) fn persisted_strategy_runtime(root_path: std::path::PathBuf) -> Relat
 }
 
 pub(super) fn execute_strategy_commit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     request: NativeStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> CommitResult {
@@ -64,20 +64,16 @@ pub(super) fn execute_strategy_commit(
         .canonicalize_request(&request)
         .expect("canonical strategy request");
     let snapshot = if let Some(branch_id) = target_branch.as_ref() {
-        let branch_head = runtime
-            .history()
-            .branch_head(branch_id)
-            .expect("target branch head for strategy snapshot");
-        if branch_head.version_id == runtime.current_version_id() {
-            runtime.visibility_authority().snapshot()
-        } else {
-            runtime
-                .visibility_authority()
-                .pin_snapshot(branch_head.version_id)
-                .expect("pin target branch strategy snapshot")
-                .handle()
-                .clone()
-        }
+        let identity = runtime
+            .branch_identity(branch_id)
+            .expect("target branch identity for strategy snapshot");
+        let (_, basis) = runtime
+            .observe_branch(&identity)
+            .expect("observe target branch strategy basis");
+        runtime
+            .snapshots()
+            .snapshot_for_observation(&basis.observation())
+            .expect("open target branch strategy snapshot")
     } else {
         runtime.visibility_authority().snapshot()
     };
@@ -85,16 +81,20 @@ pub(super) fn execute_strategy_commit(
         .commit_strategies()
         .execute(&request, &snapshot)
         .expect("strategy execution");
+    runtime
+        .snapshots()
+        .release_snapshot(&snapshot)
+        .expect("strategy helper releases its execution snapshot");
     let transaction_validation_input = target_branch
         .as_ref()
         .map(|branch| {
             crate::tests::support::test_owner_transaction_validation_input_for_branch(
-                &*runtime,
+                runtime,
                 branch.clone(),
             )
         })
         .unwrap_or_else(|| {
-            crate::tests::support::test_owner_transaction_validation_input_for_main(&*runtime)
+            crate::tests::support::test_owner_transaction_validation_input_for_main(runtime)
         });
     let mut authority = runtime.commit_strategies_authority();
     let lowered = authority

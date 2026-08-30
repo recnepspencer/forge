@@ -3,8 +3,8 @@ use crate::tests::support::*;
 
 #[test]
 fn publication_rejects_envelope_identity_drift_before_any_effect() {
-    let mut runtime = runtime_with_test_schema();
-    let commit = create_entity_outcome(&mut runtime, "publication-identity");
+    let runtime = runtime_with_test_schema();
+    let commit = create_entity_outcome(&runtime, "publication-identity");
     let receipt = commit.commit.clone();
     let envelope = commit.publication().envelope.clone();
     let identity = runtime
@@ -14,7 +14,7 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
         .admitted_branch_basis_for_identity(&identity)
         .expect("main binding");
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
+    let before_catalog = runtime.history.catalog_len();
 
     let mut mismatched_commit = envelope.as_ref().clone();
     mismatched_commit.commit.commit_id.0 += 100;
@@ -24,7 +24,7 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
         .expect_err("envelope commit identity drift must be denied");
     assert!(error.contains("envelope commit identity mismatch"));
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
 
     let mut mismatched_branch = envelope.as_ref().clone();
     mismatched_branch.branch_context = BranchId("other".to_owned());
@@ -34,13 +34,53 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
         .expect_err("envelope branch context drift must be denied");
     assert!(error.contains("envelope branch context mismatch"));
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
+}
+
+#[test]
+fn prepared_publication_rejects_an_existing_envelope_before_any_effect() {
+    let runtime = runtime_with_test_schema();
+    let committed = create_entity_outcome(&runtime, "duplicate-catalog-envelope");
+    let identity = runtime
+        .branch_identity(&BranchId("main".to_owned()))
+        .expect("main identity");
+    let binding = runtime
+        .admitted_branch_basis_for_identity(&identity)
+        .expect("main binding");
+    let selected_branch_state = runtime
+        .selected_branch_state(&binding)
+        .expect("current binding selects its committed root");
+    let schema_registry = runtime.config.schema.registry.clone();
+    let before_cells = runtime.history.branch_cells_snapshot();
+    let before_catalog = runtime.history.catalog_len();
+    let preparation_runtime = runtime.preparation_runtime_snapshot();
+    let delta = crate::storage::RelationalPublishedPartitionDelta::from_committed_partitions(
+        &std::collections::BTreeMap::new(),
+    );
+
+    let error = preparation_runtime
+        .mvcc_publication_authority()
+        .prepare_commit(
+            committed.commit.commit_id,
+            committed.commit.clone(),
+            &binding,
+            &selected_branch_state,
+            delta,
+            std::sync::Arc::clone(&committed.publication().envelope),
+            &schema_registry,
+        )
+        .err()
+        .expect("an existing envelope must fail the real prepared-publication court");
+
+    assert!(error.contains("DuplicateCommit"));
+    assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
 }
 
 #[test]
 fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() {
-    let mut runtime = runtime_with_test_schema();
-    let committed = create_entity_outcome(&mut runtime, "root-capture-sabotage");
+    let runtime = runtime_with_test_schema();
+    let committed = create_entity_outcome(&runtime, "root-capture-sabotage");
     let current_receipt = committed.commit.clone();
     let identity = runtime
         .branch_identity(&BranchId("main".to_owned()))
@@ -60,10 +100,15 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
 
     let partition_id = *runtime
         .partitions
-        .keys()
-        .next()
+        .partition_ids()
+        .first()
         .expect("the committed entity installs one partition");
-    let mut malformed_partition = runtime.partitions[&partition_id].clone();
+    let mut malformed_partition = runtime
+        .partitions
+        .partition(partition_id)
+        .expect("committed partition")
+        .as_ref()
+        .clone();
     malformed_partition.entity_arena.aspect_versions[0]
         .insert(crate::symbols::data::Symbol(u32::MAX), 1);
     let mut journal = crate::storage::overlay::PartitionMutationJournal::default();
@@ -73,31 +118,30 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
     );
 
     let before_storage = runtime
-        .partitions
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("installed storage symbols resolve"),
             )
         })
         .collect::<Vec<_>>();
-    let before_index = runtime.indexes.entity_unique_aspect_field_index.clone();
+    let before_index = runtime.indexes.with_unique_index(Clone::clone);
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
-    let before_envelopes = runtime.history.commit_envelopes.len();
-    let before_patch_index = runtime.history.patch_stream_index.len();
-    let before_sequences = (
-        runtime.history.next_commit_id,
-        runtime.history.next_version_id,
-    );
+    let before_catalog = runtime.history.catalog_len();
+    let before_envelopes = runtime.history.recorded_commit_envelope_count();
+    let before_patch_index = runtime.history.recorded_patch_position_count();
+    let before_sequences = runtime.history.reserved_sequence_floors();
 
     let selected_branch_state = runtime
         .selected_branch_state(&binding)
         .expect("current binding must select a root");
-    let error = runtime
+    let schema_registry = runtime.config.schema.registry.clone();
+    let preparation_runtime = runtime.preparation_runtime_snapshot();
+    let error = preparation_runtime
         .mvcc_publication_authority()
         .prepare_commit(
             commit_id,
@@ -106,117 +150,117 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
             &selected_branch_state,
             delta,
             std::sync::Arc::new(future_envelope),
+            &schema_registry,
         )
         .err()
         .expect("the unresolved owner symbol sabotages root capture");
     assert!(error.contains("UnresolvedContentSymbol"));
     let after_storage = runtime
-        .partitions
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("failed preparation cannot corrupt installed storage"),
             )
         })
         .collect::<Vec<_>>();
     assert_eq!(after_storage, before_storage);
     assert_eq!(
-        runtime.indexes.entity_unique_aspect_field_index,
+        runtime.indexes.with_unique_index(Clone::clone),
         before_index
     );
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
-    assert_eq!(runtime.history.commit_envelopes.len(), before_envelopes);
-    assert_eq!(runtime.history.patch_stream_index.len(), before_patch_index);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
     assert_eq!(
-        (
-            runtime.history.next_commit_id,
-            runtime.history.next_version_id
-        ),
-        before_sequences
+        runtime.history.recorded_commit_envelope_count(),
+        before_envelopes
     );
+    assert_eq!(
+        runtime.history.recorded_patch_position_count(),
+        before_patch_index
+    );
+    assert_eq!(runtime.history.reserved_sequence_floors(), before_sequences);
 }
 
 #[test]
 fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effects() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "root-capture-production-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "root-capture-production-anchor");
     let before_storage = runtime
-        .partitions
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("installed storage symbols resolve"),
             )
         })
         .collect::<Vec<_>>();
-    let before_index = runtime.indexes.entity_unique_aspect_field_index.clone();
+    let before_index = runtime.indexes.with_unique_index(Clone::clone);
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
+    let before_catalog = runtime.history.catalog_len();
     let before_durable = runtime.durable_log().len();
-    let before_envelopes = runtime.history.commit_envelopes.len();
-    let before_patch_index = runtime.history.patch_stream_index.len();
-    let before_sequences = (
-        runtime.history.next_commit_id,
-        runtime.history.next_version_id,
-    );
+    let before_envelopes = runtime.history.recorded_commit_envelope_count();
+    let before_patch_index = runtime.history.recorded_patch_position_count();
+    let before_sequences = runtime.history.reserved_sequence_floors();
 
     runtime.history.sabotage_next_root_capture();
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("root-capture-production-sabotage"));
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(batch_create("root-capture-production-sabotage"))
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("the test-only root court must reject the real commit path");
     assert!(format!("{error:?}").contains("UnresolvedContentSymbol"));
 
     let after_storage = runtime
-        .partitions
-        .iter()
+        .acquire_partition_edition()
+        .entries()
         .map(|(id, partition)| {
             (
-                *id,
+                id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("failed publication cannot corrupt installed storage"),
             )
         })
         .collect::<Vec<_>>();
     assert_eq!(after_storage, before_storage);
     assert_eq!(
-        runtime.indexes.entity_unique_aspect_field_index,
+        runtime.indexes.with_unique_index(Clone::clone),
         before_index
     );
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
     assert_eq!(runtime.durable_log().len(), before_durable);
-    assert_eq!(runtime.history.commit_envelopes.len(), before_envelopes);
-    assert_eq!(runtime.history.patch_stream_index.len(), before_patch_index);
     assert_eq!(
-        (
-            runtime.history.next_commit_id,
-            runtime.history.next_version_id
-        ),
-        before_sequences
+        runtime.history.recorded_commit_envelope_count(),
+        before_envelopes
     );
+    assert_eq!(
+        runtime.history.recorded_patch_position_count(),
+        before_patch_index
+    );
+    assert_eq!(runtime.history.reserved_sequence_floors(), before_sequences);
 }
 
 #[test]
 fn new_partition_publication_reuses_every_prior_region() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "prior-main-region");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "prior-main-region");
     let identity = runtime
         .branch_identity(&BranchId("main".to_owned()))
         .expect("main branch identity exists");
     let scope =
         crate::facade::inspection::RelationalMvccCostScope::capture(&runtime, vec![identity]);
 
-    create_entity_in_partition(&mut runtime, "new-partition-region", PartitionId(29));
+    create_entity_in_partition(&runtime, "new-partition-region", PartitionId(29));
     let costs = runtime
         .observe_mvcc_cost(&scope)
         .expect("main sharing remains inspectable")

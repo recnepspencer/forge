@@ -31,6 +31,7 @@ struct RecordIdentityState {
     next_slots: BTreeMap<RecordFrontierKey, usize>,
     generation_high_water: BTreeMap<RecordSlotKey, u32>,
     pending: BTreeMap<RecordSlotKey, PendingRecordReservation>,
+    staged_replay_allocations: Option<Vec<CanonicalRecordAllocation>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,21 +43,20 @@ struct PendingRecordReservation {
 #[derive(Debug, Default)]
 pub(crate) struct RecordIdentitySubsystem {
     state: Arc<Mutex<RecordIdentityState>>,
-    staged_replay_allocations: Option<Vec<CanonicalRecordAllocation>>,
 }
 
 impl Clone for RecordIdentitySubsystem {
     fn clone(&self) -> Self {
         Self {
             state: Arc::clone(&self.state),
-            staged_replay_allocations: None,
         }
     }
 }
 
 impl RecordIdentitySubsystem {
-    pub(crate) fn begin_allocations(&mut self) -> PendingRecordAllocations {
-        PendingRecordAllocations::new(self.clone(), self.staged_replay_allocations.take())
+    pub(crate) fn begin_allocations(&self) -> PendingRecordAllocations {
+        let staged_replay_allocations = self.lock().staged_replay_allocations.take();
+        PendingRecordAllocations::new(self.clone(), staged_replay_allocations)
     }
 
     pub(crate) fn admit_reclaimed(&self, reclaimed: ReclaimedRecordSlot) {
@@ -164,9 +164,10 @@ impl RuntimeSubsystem for RecordIdentitySubsystem {
     }
 
     fn fork(&self) -> Self {
+        let mut state = self.lock().clone();
+        state.staged_replay_allocations = None;
         Self {
-            state: Arc::new(Mutex::new(self.lock().clone())),
-            staged_replay_allocations: None,
+            state: Arc::new(Mutex::new(state)),
         }
     }
 }

@@ -101,11 +101,23 @@ impl SignalBranchBasisIdentity {
     }
 
     pub(super) fn from_branch_handle(branch: &SignalBranchHandle) -> Self {
+        Self::from_branch_handle_with_restore(branch, None)
+    }
+
+    pub(super) fn from_branch_handle_with_restore(
+        branch: &SignalBranchHandle,
+        restore_snapshot_id: Option<SignalSnapshotId>,
+    ) -> Self {
         Self {
             branch_id: branch.id,
             snapshot_id: branch.head_snapshot_id,
             head_posture: SignalBranchHeadPosture::from_snapshot(branch.head_snapshot_id),
-            restore_posture: SignalBranchRestorePosture::NotRestoreDerived,
+            restore_posture: restore_snapshot_id
+                .map(|snapshot_id| SignalBranchRestorePosture::SnapshotRestore {
+                    snapshot_id,
+                    intent: SnapshotRestoreIntent::restore_runtime_truth(),
+                })
+                .unwrap_or(SignalBranchRestorePosture::NotRestoreDerived),
         }
     }
 

@@ -11,13 +11,14 @@ use super::world::supply_chain::{
 use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::identity::{EntityId, PartitionId};
+use worth_relational::facade::mvcc::RelationalBranchTransactionAdmissionDenial;
 use worth_relational::facade::runtime::{
     InvariantCatalog, InvariantCostClass, InvariantExecutionPoint, InvariantExecutionResult,
     InvariantReportedRule, InvariantVerdict, RelationalRuntime,
 };
 use worth_relational::facade::transactions::{
-    planned_single_field_locator, AspectFieldPatch, ConflictClass, CreateIntent, EntitySpec,
-    MutationIntent, RecordRef, WorkerIntentBatch,
+    planned_single_field_locator, AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
+    RecordRef, WorkerIntentBatch,
 };
 
 const COMMIT_PROBE_ID: &str = "phase5.common.commit-boundary";
@@ -41,7 +42,7 @@ fn standard_runtime_public_graph_admission_is_touched_and_not_ordinary_commit_wo
     );
     let graph_preparation_calls = graph_probe.preparation_calls.clone();
     let graph_evaluation_calls = graph_probe.evaluation_calls.clone();
-    let mut world =
+    let world =
         compile_supply_chain_baseline_with_budget_and_invariant_catalog_and_custom_invariants(
             program,
             20_000,
@@ -61,7 +62,7 @@ fn standard_runtime_public_graph_admission_is_touched_and_not_ordinary_commit_wo
     assert_eq!(graph_evaluation_calls.load(Ordering::Relaxed), 0);
 
     let branch = BranchId("main".to_owned());
-    let graph_execution = graph_execution(&mut world.runtime, &branch);
+    let graph_execution = graph_execution(&world.runtime, &branch);
     assert_eq!(
         graph_execution.metadata().max_cost(),
         InvariantCostClass::Touched
@@ -82,7 +83,7 @@ fn graph_planning_uses_child_basis_after_main_diverges_and_rejects_stale_binding
         .expect("Court Supply Chain program compiles");
     let selected_state_probe = selected_state_registration();
     let selected_state_expectation = selected_state_probe.expectation.clone();
-    let mut world =
+    let world =
         compile_supply_chain_baseline_with_budget_and_invariant_catalog_and_custom_invariants(
             program,
             20_000,
@@ -96,15 +97,15 @@ fn graph_planning_uses_child_basis_after_main_diverges_and_rejects_stale_binding
     world.runtime.fork_branch(child.clone(), source).unwrap();
     let child_identity = world.runtime.branch_identity(&child).unwrap();
     let child_version =
-        snapshot_for_supply_chain_identity(&mut world.runtime, &child_identity).version_id();
+        snapshot_for_supply_chain_identity(&world.runtime, &child_identity).version_id();
 
-    let main_only_entity = commit_graph_entity(&mut world.runtime, &main, "main-divergence");
+    let main_only_entity = commit_graph_entity(&world.runtime, &main, "main-divergence");
     selected_state_expectation.forbid(main_only_entity);
     let main_identity = world.runtime.main_branch_identity();
     let main_version =
-        snapshot_for_supply_chain_identity(&mut world.runtime, &main_identity).version_id();
-    let main_execution = graph_execution(&mut world.runtime, &main);
-    let child_execution = graph_execution(&mut world.runtime, &child);
+        snapshot_for_supply_chain_identity(&world.runtime, &main_identity).version_id();
+    let main_execution = graph_execution(&world.runtime, &main);
+    let child_execution = graph_execution(&world.runtime, &child);
     assert_ne!(main_version, child_version);
     assert!(matches!(
         custom_rule_verdict(&main_execution, RULE_ID),
@@ -120,28 +121,23 @@ fn graph_planning_uses_child_basis_after_main_diverges_and_rejects_stale_binding
         child_version
     );
 
-    assert_graph_binding_stales_after_child_diverges(&mut world.runtime, &child);
+    assert_graph_binding_stales_after_child_diverges(&world.runtime, &child);
 }
 
-fn assert_graph_binding_stales_after_child_diverges(
-    runtime: &mut RelationalRuntime,
-    child: &BranchId,
-) {
+fn assert_graph_binding_stales_after_child_diverges(runtime: &RelationalRuntime, child: &BranchId) {
     let child_identity = runtime.branch_identity(child).unwrap();
     let stale_options = runtime.admit_branch_basis(&child_identity).unwrap();
     commit_graph_entity(runtime, child, "child-divergence");
-    let mut stale = runtime
+    let denied = runtime
         .begin_branch_transaction(
             &stale_options,
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
-        .expect("owner-admitted transaction context");
-    stale.push_batch(graph_entity_batch("stale-child-plan"));
-    let denied = stale.graph_composition_plan(runtime).unwrap_err();
-    assert!(matches!(
-        denied.class,
-        ConflictClass::StaleValidationBasis { .. }
-    ));
+        .unwrap_err();
+    assert_eq!(
+        denied,
+        RelationalBranchTransactionAdmissionDenial::StaleBasis
+    );
 }
 
 fn custom_execution<'a>(
@@ -202,7 +198,7 @@ fn custom_rule_verdict<'a>(
         .verdict
 }
 
-fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> InvariantExecutionResult {
+fn graph_execution(runtime: &RelationalRuntime, branch: &BranchId) -> InvariantExecutionResult {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
@@ -215,14 +211,16 @@ fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> Invari
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(graph_entity_batch("common-graph-plan"));
+    transaction
+        .push_batch(graph_entity_batch("common-graph-plan"))
+        .unwrap();
     transaction
         .graph_composition_plan(runtime)
         .expect("the Standard graph plan is branch-bound and owner-prepared")
 }
 
 fn commit_graph_entity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: &BranchId,
     client_key: &str,
 ) -> EntityId {
@@ -234,7 +232,9 @@ fn commit_graph_entity(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(graph_entity_batch(client_key));
+    transaction
+        .push_batch(graph_entity_batch(client_key))
+        .unwrap();
     let commit = transaction
         .commit(runtime)
         .expect("branch divergence commits");

@@ -14,7 +14,7 @@ use super::sharing::{
 /// Owner inventory used to cross-examine the derived sharing summary.
 ///
 /// Entries come directly from root, partition, and canonical-artifact owners;
-/// this artifact does not call or reuse `inspect_branch_sharing`.
+/// this artifact does not call or reuse `observe_branch_sharing`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalOwnerAllocationLedgerObservation {
     authoritative_allocations: Vec<RelationalAuthoritativeAllocationObservation>,
@@ -117,8 +117,7 @@ impl RelationalRuntime {
                 .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
             let artifact = self
                 .history
-                .commit_catalog
-                .get(commit_id)
+                .commit_artifact(commit_id)
                 .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
             canonical_payloads.insert(RelationalCanonicalPayloadObservation {
                 commit_id,
@@ -131,7 +130,7 @@ impl RelationalRuntime {
             inventory_root(
                 self.runtime_instance_id(),
                 &root,
-                artifact,
+                artifact.as_ref(),
                 derived_cache_bytes,
                 &mut authoritative_allocations,
                 &mut excluded_allocations,

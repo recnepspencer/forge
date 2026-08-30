@@ -10,6 +10,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryPrimaryGraphFaul
     FailedIndexPublication,
     SkippedInvariantOwnerExecution,
     RelationalInvariantViolation,
+    FailedPostCommitSnapshot,
     #[cfg(test)]
     UndeclaredApplicationTouch,
 }
@@ -88,6 +89,7 @@ const fn fault_mask(fault: WorthQueryPrimaryGraphFault) -> u8 {
         WorthQueryPrimaryGraphFault::FailedIndexPublication => 1 << 3,
         WorthQueryPrimaryGraphFault::SkippedInvariantOwnerExecution => 1 << 4,
         WorthQueryPrimaryGraphFault::RelationalInvariantViolation => 1 << 5,
+        WorthQueryPrimaryGraphFault::FailedPostCommitSnapshot => 1 << 7,
         #[cfg(test)]
         WorthQueryPrimaryGraphFault::UndeclaredApplicationTouch => 1 << 6,
     }

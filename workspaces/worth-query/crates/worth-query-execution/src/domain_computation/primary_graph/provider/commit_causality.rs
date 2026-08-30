@@ -6,6 +6,13 @@ use crate::domain_computation::primary_graph::application_attempt::WorthQueryAdm
 use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationEmission;
 
 impl WorthQueryPrimaryGraphProvider {
+    pub(in crate::domain_computation::primary_graph) fn admit_application_commit_causality(
+        &self,
+        commit_id: CommitId,
+    ) -> Result<(), &'static str> {
+        self.live_delivery.admit_publication(commit_id)
+    }
+
     pub(in crate::domain_computation::primary_graph) fn publish_application_commit_causality(
         &self,
         commit_id: CommitId,

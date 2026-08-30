@@ -6,7 +6,7 @@ use crate::replay::data::{
 use crate::runtime::RelationalRuntime;
 
 pub(super) fn record_replay_diagnostic(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     request: &RelationalReplayRequest,
     outcome: &RelationalReplayOutcome,
 ) {

@@ -11,8 +11,8 @@ fn replay_request(commit_id: crate::history::data::CommitId) -> RelationalReplay
 
 #[test]
 fn replay_reports_owner_create_event_drift_at_digest_layer() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "event-drift");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "event-drift");
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         created.commit.commit_id,
         |envelope| {
@@ -38,8 +38,8 @@ fn replay_reports_owner_create_event_drift_at_digest_layer() {
 
 #[test]
 fn replay_reports_owner_create_decision_drift_at_digest_layer() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "decision-drift");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "decision-drift");
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         created.commit.commit_id,
         |envelope| {
@@ -65,8 +65,8 @@ fn replay_reports_owner_create_decision_drift_at_digest_layer() {
 
 #[test]
 fn replay_uses_retained_owner_envelope_only_in_normal_mode() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "retained-envelope");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "retained-envelope");
     assert!(runtime
         .durability_authority()
         .remove_durable_envelope_for_test(created.commit.commit_id));
@@ -87,8 +87,8 @@ fn replay_uses_retained_owner_envelope_only_in_normal_mode() {
 
 #[test]
 fn audit_replay_rejects_retained_owner_envelope_basis() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "audit-retained-envelope");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "audit-retained-envelope");
     assert!(runtime
         .durability_authority()
         .remove_durable_envelope_for_test(created.commit.commit_id));
@@ -105,8 +105,8 @@ fn audit_replay_rejects_retained_owner_envelope_basis() {
 
 #[test]
 fn audit_replay_uses_checkpoint_owner_basis_when_tail_is_absent() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "checkpoint-basis");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "checkpoint-basis");
     runtime.durability_authority().checkpoint().unwrap();
     assert!(runtime
         .durability_authority()

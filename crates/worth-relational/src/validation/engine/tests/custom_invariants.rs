@@ -12,7 +12,7 @@ fn engine_executes_custom_invariant_packets() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             None,
             None,
@@ -45,7 +45,7 @@ fn engine_executes_graph_composition_custom_invariant_packets() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::GraphComposition,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             None,
             None,
@@ -110,7 +110,7 @@ fn engine_executes_custom_packets_against_real_structural_surfaces() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()).into(),
+            InvariantObservation::committed(runtime.storage_access().current_edition()).into(),
             runtime.current_version_id(),
             Some(&plan),
             None,
@@ -140,7 +140,7 @@ fn engine_captures_custom_prepare_panics_as_typed_failures() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             None,
             None,
@@ -195,7 +195,7 @@ fn engine_captures_custom_evaluate_panics_as_typed_failures() {
         InvariantExecutionRequest::from_profile_with_contract(
             InvariantRequestProfile::CommitBoundary,
             &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
+            InvariantObservation::committed(runtime.storage_access().current_edition()),
             runtime.current_version_id(),
             None,
             None,

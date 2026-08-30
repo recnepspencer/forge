@@ -232,13 +232,45 @@ fn elevation_definition_with_lifecycle(
 fn lifecycle_definition(
     posture: LifecyclePosture,
 ) -> ApplicationCapabilityElevationLifecycleDefinition {
-    let (request, approve) = match posture {
-        LifecyclePosture::DuplicateOperation => ("Request", "Request"),
-        LifecyclePosture::MissingOperation => ("Missing", "Approve"),
-        LifecyclePosture::SwappedOperations => ("Approve", "Request"),
+    let request = match posture {
+        LifecyclePosture::MissingOperation => transition_binding::<
+            RequestCapability,
+            MissingRequestOperation,
+        >("RequestCapability", "Missing"),
+        LifecyclePosture::SwappedOperations => transition_binding::<
+            RequestCapability,
+            SwappedRequestOperation,
+        >("RequestCapability", "Approve"),
         LifecyclePosture::Distinct
+        | LifecyclePosture::DuplicateOperation
         | LifecyclePosture::WrongElevationSlot
-        | LifecyclePosture::MissingCapability => ("Request", "Approve"),
+        | LifecyclePosture::MissingCapability => {
+            transition_binding::<RequestCapability, RequestOperation>(
+                if matches!(posture, LifecyclePosture::MissingCapability) {
+                    "MissingCapability"
+                } else {
+                    "RequestCapability"
+                },
+                "Request",
+            )
+        }
+    };
+    let approve = match posture {
+        LifecyclePosture::DuplicateOperation => transition_binding::<
+            ApproveCapability,
+            DuplicateApproveOperation,
+        >("ApproveCapability", "Request"),
+        LifecyclePosture::SwappedOperations => transition_binding::<
+            ApproveCapability,
+            SwappedApproveOperation,
+        >("ApproveCapability", "Request"),
+        LifecyclePosture::Distinct
+        | LifecyclePosture::MissingOperation
+        | LifecyclePosture::MissingCapability
+        | LifecyclePosture::WrongElevationSlot => transition_binding::<
+            ApproveCapability,
+            ApproveOperation,
+        >("ApproveCapability", "Approve"),
     };
     let elevation_slot = match posture {
         LifecyclePosture::WrongElevationSlot => {
@@ -266,15 +298,8 @@ fn lifecycle_definition(
         >(
             "ReviewSlot", "Review"
         )),
-        transition_binding::<RequestCapability, RequestOperation>(
-            if matches!(posture, LifecyclePosture::MissingCapability) {
-                "MissingCapability"
-            } else {
-                "RequestCapability"
-            },
-            request,
-        ),
-        transition_binding::<ApproveCapability, ApproveOperation>("ApproveCapability", approve),
+        request,
+        approve,
         transition_binding::<RevokeCapability, RevokeOperation>("RevokeCapability", "Revoke"),
         transition_binding::<CompleteReviewCapability, CompleteReviewOperation>(
             "CompleteReviewCapability",
@@ -306,12 +331,8 @@ fn elevation_members(
         relation_member("ElevationReview", "Elevation", "Review"),
         relation_member("ReviewScope", "Review", "Resource"),
         relation_member("Reviewer", "Principal", "Review"),
-        context_slot_member(
-            "ElevationSlot",
-            std::any::type_name::<ElevationSlot>(),
-            "Elevation",
-        ),
-        context_slot_member("ReviewSlot", std::any::type_name::<ReviewSlot>(), "Review"),
+        context_slot_member("ElevationSlot", "ElevationSlot", "Elevation"),
+        context_slot_member("ReviewSlot", "ReviewSlot", "Review"),
         operation_member("Request"),
         operation_member("Approve"),
         operation_member("Revoke"),

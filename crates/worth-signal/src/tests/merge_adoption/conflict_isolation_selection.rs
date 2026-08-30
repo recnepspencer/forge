@@ -53,7 +53,7 @@ fn runtime_merge_lowers_conflict_isolation_records_for_conflicted_nodes() {
         .unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -126,7 +126,7 @@ fn runtime_merge_request_named_conflict_isolation_precedes_schema_and_node_defau
         .unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")
@@ -205,7 +205,7 @@ fn runtime_merge_node_conflict_isolation_override_precedes_schema_default() {
         .unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -277,7 +277,7 @@ fn runtime_merge_schema_default_conflict_isolation_applies_to_structural_conflic
         .unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()

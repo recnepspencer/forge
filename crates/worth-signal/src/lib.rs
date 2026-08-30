@@ -29,7 +29,7 @@
 //!
 //! - [`facade::SignalGraph`]
 //! - [`facade::SignalRuntime`]
-//! - `runtime.transaction(...)`
+//! - `runtime.advance_signal_branch(...)`
 //! - `runtime.diagnostics()`
 //! - `runtime.history()`
 //!
@@ -96,11 +96,16 @@
 //!     Ok::<_, SignalError>(result)
 //! };
 //!
-//! runtime.transaction(&mut state, |tx| {
+//! let basis = runtime
+//!     .observe_signal_branch_basis(runtime.current_branch())
+//!     .expect("current branch should admit an owner basis");
+//! let _next_basis = runtime.advance_signal_branch(&mut state, &basis, |tx| {
 //!     tx.mark_changed(price, PRICE)?;
 //!     tx.target(total).read(&evaluate)?;
 //!     Ok(())
-//! })?;
+//! })
+//! .expect("admitted branch advance should succeed")
+//! .into_basis();
 //!
 //! let version = runtime.target(total).read(&state, &evaluate)?;
 //! assert_eq!(version.get(TOTAL), 5);
@@ -122,6 +127,7 @@
 //! - `crates/worth-signal/examples/easy_task_board.rs`
 //! - `crates/worth-signal/examples/compiler_targeted_rebuild.rs`
 //! - `crates/worth-signal/examples/geometry_partial_recompute.rs`
+//! - `crates/worth-signal/examples/branch_bases.rs`
 
 #![forbid(unsafe_code)]
 
@@ -141,6 +147,15 @@ pub mod schema;
 mod state;
 
 pub mod facade;
+
+/// Compiles the branch-basis guide against the real public facade.
+///
+/// The module exists only while rustdoc collects doctests, so it never enters
+/// the public API and `BRANCH_BASES.md` is never rendered as a rustdoc page.
+/// It is here so the guide cannot drift away from the facade without breaking
+/// `cargo test`.
+#[cfg(doctest)]
+pub mod branch_bases_guide;
 
 #[cfg(test)]
 mod tests;

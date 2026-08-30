@@ -21,14 +21,18 @@ use crate::runtime::summaries::{public_callback_read_ids, RuntimeSnapshotEnvelop
 
 use super::merge_state::build_branch_state_proof_basis;
 use super::state::{
-    BranchRuntimeState, CallbackDiagnosticState, CatalogEntry, DenseGridFamily, RuntimeStore,
-    StoredRecipeDefinition, WebRuntimeMetrics, WebSignalKind,
+    CallbackDiagnosticState, CatalogEntry, DenseGridFamily, RuntimeStore, StoredRecipeDefinition,
+    WebRuntimeMetrics, WebSignalKind,
 };
 use super::RuntimeCore;
 
 mod restore;
 
 #[derive(Clone)]
+/// In-memory exact state for the current root head.
+///
+/// Historical snapshots and sibling branches are owner-bound and are not
+/// transferred to a newly constructed runtime by this artifact.
 pub(crate) struct ExactRuntimeRestoreArtifact {
     snapshot: RuntimeSnapshotEnvelope,
     store: RuntimeStore,
@@ -37,9 +41,6 @@ pub(crate) struct ExactRuntimeRestoreArtifact {
     web_signals: BTreeMap<String, WebSignalKind>,
     nodes_by_id: BTreeMap<worth_signal::facade::NodeId, String>,
     dense_grids: BTreeMap<String, Arc<DenseGridFamily>>,
-    branch_states: BTreeMap<u64, BranchRuntimeState>,
-    snapshot_states: BTreeMap<(u64, u64), BranchRuntimeState>,
-    runtime_snapshots: BTreeMap<(u64, u64), worth_signal::facade::history::RuntimeSnapshot>,
     policy: crate::runtime::policy::RuntimePolicySpec,
     web_metrics: WebRuntimeMetrics,
 }
@@ -190,6 +191,7 @@ impl RuntimeCore {
 
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn export_runtime_envelope(&mut self) -> Result<RuntimeEnvelope, WorthSignalJsError> {
+        self.preflight_runtime_envelope_export()?;
         Ok(RuntimeEnvelope {
             definitions: self.export_definitions()?,
             snapshot: self.snapshot()?,
@@ -199,6 +201,7 @@ impl RuntimeCore {
     pub(crate) fn export_exact_runtime_restore_artifact(
         &mut self,
     ) -> Result<ExactRuntimeRestoreArtifact, WorthSignalJsError> {
+        self.preflight_runtime_envelope_export()?;
         let snapshot = self.snapshot()?;
         let store = self.lock_store()?.clone();
         let callback_diagnostics = self.lock_callback_diagnostics()?.clone();
@@ -210,12 +213,18 @@ impl RuntimeCore {
             web_signals: self.web_signals.clone(),
             nodes_by_id: self.nodes_by_id.clone(),
             dense_grids: self.dense_grids.clone(),
-            branch_states: self.branch_states.clone(),
-            snapshot_states: self.snapshot_states.clone(),
-            runtime_snapshots: self.runtime_snapshots.clone(),
             policy: self.policy.clone(),
             web_metrics: self.web_metrics.clone(),
         })
+    }
+
+    pub(crate) fn preflight_runtime_envelope_export(&self) -> Result<(), WorthSignalJsError> {
+        if self.runtime.current_branch().parent_branch_id.is_some() {
+            return Err(WorthSignalJsError::invalid_input(
+                "exact runtime restore artifacts require the root branch to be active",
+            ));
+        }
+        Ok(())
     }
 
     pub fn runtime_proof_report(&self) -> RuntimeProofReport {

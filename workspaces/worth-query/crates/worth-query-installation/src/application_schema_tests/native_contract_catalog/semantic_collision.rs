@@ -5,7 +5,7 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationSchemaDeclarationBuilder, DeclaredApplicationFieldValue,
 };
 
-use super::{assert_installation_denial, WorthQueryInstalledPackageIndexDenialKind};
+use super::{assert_package_contract_denial, WorthQueryPortablePackageValidationDenialKind};
 
 struct DuplicateAspectLocusSchema;
 struct DuplicateFieldLocusSchema;
@@ -168,9 +168,9 @@ fn duplicate_semantic_aspect_locus_denies_instead_of_overwriting_meaning() {
         )
         .build()
         .unwrap();
-    assert_installation_denial(
+    assert_package_contract_denial(
         declaration,
-        WorthQueryInstalledPackageIndexDenialKind::ApplicationSchemaDuplicateAspectLocus,
+        WorthQueryPortablePackageValidationDenialKind::ApplicationContractDuplicateAspectLocus,
     );
 }
 
@@ -190,9 +190,9 @@ fn duplicate_semantic_field_locus_denies_instead_of_overwriting_shape() {
         )
         .build()
         .unwrap();
-    assert_installation_denial(
+    assert_package_contract_denial(
         declaration,
-        WorthQueryInstalledPackageIndexDenialKind::ApplicationSchemaDuplicateFieldLocus,
+        WorthQueryPortablePackageValidationDenialKind::ApplicationContractDuplicateFieldLocus,
     );
 }
 
@@ -217,9 +217,9 @@ fn duplicate_identity_denies_across_distinct_entities() {
         )
         .build()
         .unwrap();
-    assert_installation_denial(
+    assert_package_contract_denial(
         declaration,
-        WorthQueryInstalledPackageIndexDenialKind::ApplicationSchemaDuplicateAspectIdentity,
+        WorthQueryPortablePackageValidationDenialKind::ApplicationContractDuplicateAspectIdentity,
     );
 }
 

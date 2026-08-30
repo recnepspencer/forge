@@ -52,15 +52,34 @@ mod tests {
             ApplicationCapabilityLifecycleEffect, ApplicationCapabilityRef,
             ApplicationCapabilityTransitionBinding,
         },
-        application_schema::{ApplicationEffectRef, ApplicationOperationRef, OperationEmits},
+        application_schema::{
+            ApplicationEffectMarkerIdentity, ApplicationEffectRef,
+            ApplicationOperationMarkerIdentity, ApplicationOperationRef, OperationEmits,
+        },
     };
 
     use super::*;
 
-    struct Schema;
-    struct Capability;
+    pub struct Schema;
     struct Operation;
     pub struct Effect;
+
+    worth_query_declaration::worth_query_capability!(
+        Capability in Schema,
+        identity "worth.query.execution-test.lifecycle-capability.v1"
+    );
+
+    impl ApplicationOperationMarkerIdentity for Operation {
+        type Schema = Schema;
+        type Input = String;
+        const IDENTIFIER: &'static str = "Run";
+    }
+
+    impl ApplicationEffectMarkerIdentity for Effect {
+        type Schema = Schema;
+        type Payload = String;
+        const IDENTIFIER: &'static str = "ActivityEffect";
+    }
 
     impl OperationEmits<Operation> for Effect {}
 
@@ -69,7 +88,7 @@ mod tests {
         type Payload = String;
 
         fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload> {
-            ApplicationEffectRef::from_schema_identifier("ActivityEffect")
+            ApplicationEffectRef::from_declaration()
         }
 
         fn lifecycle_effect(&self) -> Option<Self::Payload> {
@@ -81,10 +100,8 @@ mod tests {
     fn omitted_extra_and_retargeted_lifecycle_emissions_are_not_exact() {
         let transition =
             ApplicationCapabilityTransitionBinding::from_references_with_lifecycle_effect(
-                ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier(
-                    "Capability",
-                ),
-                ApplicationOperationRef::<Schema, Operation, String>::from_schema_identifier("Run"),
+                ApplicationCapabilityRef::<Schema, Capability>::from_declaration(),
+                ApplicationOperationRef::<Schema, Operation, String>::from_declaration(),
             );
         let binding = transition.lifecycle_effect().unwrap();
         let input = "estate:access".to_owned();

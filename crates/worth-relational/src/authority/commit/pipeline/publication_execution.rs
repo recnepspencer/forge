@@ -17,12 +17,12 @@ pub(crate) struct CommitDurableAppendAdmission {
 
 impl CommitDurableAppendAdmission {
     pub(crate) fn new(
-        runtime: &crate::runtime::RelationalRuntime,
+        runtime_instance_id: u64,
         commit_id: crate::history::data::CommitId,
         branch_id: &crate::history::data::BranchId,
     ) -> Self {
         Self {
-            runtime_instance_id: runtime.runtime_instance_id(),
+            runtime_instance_id,
             commit_id,
             branch_id: branch_id.clone(),
         }
@@ -93,7 +93,7 @@ impl PublishedCommitExecution {
 }
 
 pub(super) fn prepare_commit_publication_execution(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     assembled: AssembledCommitExecution,
 ) -> Result<PreparedCommitPublicationExecution, crate::transactions::data::TransactionCommitError> {
     let (
@@ -150,8 +150,9 @@ pub(super) fn prepare_commit_publication_execution(
 }
 
 pub(crate) fn publish_commit_execution(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     prepared: PreparedCommitPublicationCompletion,
+    published_snapshot_basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
 ) -> Result<
     (
         PublishedCommitExecution,
@@ -171,10 +172,18 @@ pub(crate) fn publish_commit_execution(
         publication_snapshot,
         aspect_evaluation_traces,
         aspect_emission_traces,
+        published_snapshot_slot,
     } = prepared;
     let finalized = {
         let (_, _, _, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
-        finalize_publication_phase(runtime, commit_log, phase_timing, publication)?
+        finalize_publication_phase(
+            runtime,
+            commit_log,
+            phase_timing,
+            publication,
+            published_snapshot_basis,
+            published_snapshot_slot,
+        )?
     };
     let (positioned_commit, changed_records, durability_error) = finalized.into_parts();
     let patch_position = positioned_commit.position();
@@ -217,7 +226,7 @@ pub(crate) fn publish_commit_execution(
 }
 
 fn publish_prepared_trace_diagnostics(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     evaluation_traces: &[crate::transactions::data::AspectEvaluationTrace],
     emission_traces: &[crate::transactions::data::AspectEmissionTrace],
 ) {
@@ -225,14 +234,10 @@ fn publish_prepared_trace_diagnostics(
         return;
     }
     for trace in evaluation_traces {
-        runtime
-            .publication_authority()
-            .push_diagnostic_artifact(trace.diagnostic_artifact());
+        runtime.push_preparation_diagnostic_artifact(trace.diagnostic_artifact());
     }
     for trace in emission_traces {
-        runtime
-            .publication_authority()
-            .push_diagnostic_artifact(trace.diagnostic_artifact());
+        runtime.push_preparation_diagnostic_artifact(trace.diagnostic_artifact());
     }
 }
 
@@ -264,6 +269,7 @@ pub(crate) struct PreparedCommitPublicationCompletion {
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
     aspect_emission_traces:
         Vec<super::artifact_execution::preparation::PreparedAspectEmissionTrace>,
+    published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
 }
 
 impl PreparedCommitPublicationExecution {
@@ -271,8 +277,24 @@ impl PreparedCommitPublicationExecution {
         self.publication.reservation_count()
     }
 
+    pub(crate) fn prepared_root(&self) -> &std::sync::Arc<crate::branch::RelationalBranchRoot> {
+        self.publication.prepared_root()
+    }
+
+    pub(crate) fn release_transaction_retention(&mut self) {
+        self.admitted.release_transaction_retention();
+    }
+
+    pub(crate) fn append_diagnostics(
+        &mut self,
+        diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    ) {
+        self.admitted.append_diagnostics(diagnostics);
+    }
+
     pub(crate) fn split(
         self,
+        published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
     ) -> (
         crate::mvcc::PreparedCanonicalBranchMovement,
         PreparedCommitPublicationCompletion,
@@ -290,6 +312,7 @@ impl PreparedCommitPublicationExecution {
             publication_snapshot: self.publication_snapshot,
             aspect_evaluation_traces: self.aspect_evaluation_traces,
             aspect_emission_traces: self.aspect_emission_traces,
+            published_snapshot_slot,
         };
         (movement, completion)
     }
@@ -297,5 +320,14 @@ impl PreparedCommitPublicationExecution {
     #[cfg(test)]
     pub(crate) fn materialization_counts(&self) -> (u64, u64) {
         self.publication.materialization_counts()
+    }
+}
+
+impl PublishedCommitExecution {
+    pub(crate) fn append_diagnostics(
+        &mut self,
+        diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    ) {
+        self.admitted.append_diagnostics(diagnostics);
     }
 }

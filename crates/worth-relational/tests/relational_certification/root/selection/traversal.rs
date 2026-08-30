@@ -21,13 +21,13 @@ use worth_relational::facade::transactions::{
 
 #[test]
 fn branch_traversal_enumerates_edges_from_the_selected_immutable_root() {
-    let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
     let edge = edge_movement(&world.handles, &baseline);
-    let child_snapshot = fork_from_main(&mut world.runtime, "storm");
+    let child_snapshot = fork_from_main(&world.runtime, "storm");
     assert_ancestor_edge_is_visible(&world.runtime, &child_snapshot, &edge);
-    publish_main_rewire(&mut world.runtime, &edge);
-    let main_snapshot = current_snapshot(&mut world.runtime, "main");
+    publish_main_rewire(&world.runtime, &edge);
+    let main_snapshot = current_snapshot(&world.runtime, "main");
     assert_main_edge_is_visible(&world.runtime, &main_snapshot, &edge);
     assert_child_retains_ancestor_and_rejects_main_edge(&world.runtime, &child_snapshot, &edge);
 }
@@ -70,7 +70,7 @@ fn assert_ancestor_edge_is_visible(
     assert!(incoming.relations.contains(&edge.ancestor_tuple()));
 }
 
-fn publish_main_rewire(runtime: &mut RelationalRuntime, edge: &EdgeMovement) {
+fn publish_main_rewire(runtime: &RelationalRuntime, edge: &EdgeMovement) {
     let intent = UpdateRelationEndpointsIntent {
         relation_id: edge.relation_id,
         kind_id: edge.kind_id,
@@ -257,7 +257,7 @@ fn traversal_packet(
     }
 }
 
-fn fork_from_main(runtime: &mut RelationalRuntime, branch: &str) -> SnapshotHandle {
+fn fork_from_main(runtime: &RelationalRuntime, branch: &str) -> SnapshotHandle {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains forkable");
@@ -267,7 +267,7 @@ fn fork_from_main(runtime: &mut RelationalRuntime, branch: &str) -> SnapshotHand
     current_snapshot(runtime, branch)
 }
 
-fn current_snapshot(runtime: &mut RelationalRuntime, branch: &str) -> SnapshotHandle {
+fn current_snapshot(runtime: &RelationalRuntime, branch: &str) -> SnapshotHandle {
     let identity = runtime
         .branch_identity(&BranchId(branch.to_owned()))
         .expect("branch identity is owner-issued");

@@ -31,8 +31,14 @@ Public usage pattern:
 Important boundary:
 
 - public code does not call the sealed `mint` constructors directly
-- marker visibility is the domain-owned guardrail: if callers should not obtain
-  an authority, do not expose a constructible marker for that authority
+- `AuthorityMarker` and `CapabilityMarker` are open substrate traits; any
+  caller may define a marker for a workflow it owns
+- a governed owner facade names one concrete owner marker and accepts only the
+  witness specialized to that marker
+- keep that concrete marker's construction and issuer inside the domain owner
+  that decides legality
+- do not define a Relational, Signal, Bridge, or Query seal in `worth-proof`;
+  Proof supplies the carrier, while the domain owner supplies the decision
 
 ## DX Posture
 
@@ -80,9 +86,10 @@ fn resolution_authority() -> AuthorityWitness<ResolutionAuthority> {
 }
 ```
 
-This is the smallest honest public example. If the authority must not be
-available outside the owning module or crate, keep `ResolutionAuthority` private
-or make its fields private.
+This is the smallest honest substrate example for a workflow owned by the same
+module. It is not sufficient evidence for a governed cross-crate facade. Such a
+facade must require its one concrete owner type and prove that a caller-defined
+marker cannot satisfy the protected call.
 
 ## Real Example
 
@@ -112,6 +119,26 @@ What this shows:
 - the witness authorizes resolution
 - the stronger resolved form is the thing that carries semantic progression afterward
 
+Because `resolve` names `ResolutionAuthority`, a witness specialized to a
+different caller marker is the wrong type. A signature such as
+`fn resolve<A: AuthorityMarker>(AuthorityWitness<A>)` would erase that owner
+decision and is therefore inappropriate for a governed facade.
+
+## Owner placement rule
+
+Three questions decide placement, with the first `yes` winning:
+
+1. Does the type decide whether an operation is legal? Its proof/progression
+   vocabulary belongs with `worth-proof`, but its concrete domain marker and
+   issuer belong to the owning domain boundary.
+2. Would the value mean the same thing crossing into another runtime?
+   Descriptive meaning may belong in `worth-foundational`.
+3. Does it require a clock, counter, live table, retention obligation, or
+   `Drop` to exist? The owning runtime must hold it.
+
+This keeps Proof reusable without making it the authority source for every
+component.
+
 ## How It Relates To Other Features
 
 - Pair this with [Recipes And Stages](./recipes-and-stages.md) because most witness-bearing flows are staged recipe transitions.
@@ -129,6 +156,9 @@ What this shows:
 - Do not use a witness as though it were itself a proof fact.
 - Do not hide authority requirements in ambient globals or side channels when the transition should expose them.
 - Do not invent public witness minting shortcuts that bypass the crateâ€™s sealing rules.
+- Do not accept a generic marker parameter at a governed owner facade.
+- Do not move a domain's concrete seal into `worth-proof` merely because the
+  witness carrier is defined there.
 
 ## Current Limits
 

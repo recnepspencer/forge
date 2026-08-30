@@ -1,46 +1,56 @@
 use super::*;
 
+worth_query_application_query!(
+    HostAuthoredQuery in QueryTestSchema,
+    identity "worth.query.test.installation.host-query.v1",
+    parameters ActivityQueryParameters => "ActivityQueryParameters",
+    result ActivityQueryResult => "ActivityQueryResult",
+    scope Account => "Account",
+    name "account_activity"
+);
+struct HostParameters;
+worth_query_application_query!(
+    ChangedParametersQuery in QueryTestSchema,
+    identity "ActivityQuery",
+    parameters HostParameters => "HostParameters",
+    result ActivityQueryResult => "ActivityQueryResult",
+    scope Account => "Account",
+    name "account_activity"
+);
+struct HostResult;
+worth_query_application_query!(
+    ChangedResultQuery in QueryTestSchema,
+    identity "ActivityQuery",
+    parameters ActivityQueryParameters => "ActivityQueryParameters",
+    result HostResult => "HostResult",
+    scope Account => "Account",
+    name "account_activity"
+);
+worth_query_application_query!(
+    ChangedScopeQuery in QueryTestSchema,
+    identity "ActivityQuery",
+    parameters ActivityQueryParameters => "ActivityQueryParameters",
+    result ActivityQueryResult => "ActivityQueryResult",
+    scope Activity => "Activity",
+    name "account_activity"
+);
+worth_query_application_query!(
+    MissingQuery in QueryTestSchema,
+    identity "ActivityQuery",
+    parameters ActivityQueryParameters => "ActivityQueryParameters",
+    result ActivityQueryResult => "ActivityQueryResult",
+    scope Account => "Account",
+    name "host_query"
+);
+
 #[test]
 fn installation_resolves_only_the_package_declared_typed_reference() {
     let schema = installed_schema();
-    struct HostAuthoredQuery;
-    struct HostParameters;
-    struct HostResult;
-    let changed = ApplicationQueryReference::<
-        QueryTestSchema,
-        HostAuthoredQuery,
-        ActivityQueryParameters,
-        ActivityQueryResult,
-        Account,
-    >::from_schema_identifier("account_activity");
-    let missing = ApplicationQueryReference::<
-        QueryTestSchema,
-        ActivityQuery,
-        ActivityQueryParameters,
-        ActivityQueryResult,
-        Account,
-    >::from_schema_identifier("host_query");
-    let changed_parameters = ApplicationQueryReference::<
-        QueryTestSchema,
-        ActivityQuery,
-        HostParameters,
-        ActivityQueryResult,
-        Account,
-    >::from_schema_identifier("account_activity");
-    let changed_result = ApplicationQueryReference::<
-        QueryTestSchema,
-        ActivityQuery,
-        ActivityQueryParameters,
-        HostResult,
-        Account,
-    >::from_schema_identifier("account_activity");
-    let changed_scope = ApplicationQueryReference::<
-        QueryTestSchema,
-        ActivityQuery,
-        ActivityQueryParameters,
-        ActivityQueryResult,
-        Activity,
-    >::from_schema_identifier("account_activity");
+    let changed = HostAuthoredQuery::reference();
+    let missing = MissingQuery::reference();
+    let changed_parameters = ChangedParametersQuery::reference();
+    let changed_result = ChangedResultQuery::reference();
+    let changed_scope = ChangedScopeQuery::reference();
 
     for denial in [
         schema.application_query(changed).err().unwrap(),

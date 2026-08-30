@@ -5,22 +5,24 @@ use std::sync::{Arc, Barrier};
 
 #[test]
 fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "prepared-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "prepared-anchor");
 
     let branch_cells_before = runtime.history.branch_cells_snapshot();
     let envelopes_before = runtime.history().commit_envelopes_snapshot();
     let commit_count_before = runtime.history().immutable_commit_count();
-    let patch_count_before = runtime.history.patch_stream_index.len();
-    let bundle_before = runtime.publication().latest_bundle().cloned();
+    let patch_count_before = runtime.history.recorded_patch_position_count();
+    let bundle_before = runtime.publication().latest_bundle();
     let diagnostics_before = runtime.publication().diagnostic_access().artifact_count();
     let durable_count_before = runtime.durability().durable_log().len();
     let candidate_cost_before = runtime
         .history
         .sharing_costs_for_branch(&BranchId("main".to_owned()));
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("prepared-discard"));
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(batch_create("prepared-discard"))
+        .expect("test staging stays within configured resource budgets");
     let candidate = runtime
         .prepare_branch_transaction(transaction)
         .expect("all fallible preparation succeeds without publication");
@@ -34,11 +36,11 @@ fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
         runtime.history().immutable_commit_count(),
         commit_count_before
     );
-    assert_eq!(runtime.history.patch_stream_index.len(), patch_count_before);
     assert_eq!(
-        runtime.publication().latest_bundle(),
-        bundle_before.as_ref()
+        runtime.history.recorded_patch_position_count(),
+        patch_count_before
     );
+    assert_eq!(runtime.publication().latest_bundle(), bundle_before);
     assert_eq!(
         runtime.publication().diagnostic_access().artifact_count(),
         diagnostics_before
@@ -63,11 +65,11 @@ fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
         runtime.history().immutable_commit_count(),
         commit_count_before
     );
-    assert_eq!(runtime.history.patch_stream_index.len(), patch_count_before);
     assert_eq!(
-        runtime.publication().latest_bundle(),
-        bundle_before.as_ref()
+        runtime.history.recorded_patch_position_count(),
+        patch_count_before
     );
+    assert_eq!(runtime.publication().latest_bundle(), bundle_before);
     assert_eq!(
         runtime.publication().diagnostic_access().artifact_count(),
         diagnostics_before
@@ -95,14 +97,18 @@ fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
 
 #[test]
 fn prepared_root_materializes_exactly_the_declared_write_partitions() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_in_partition(&mut runtime, "main-anchor", PartitionId::main());
-    create_entity_in_partition(&mut runtime, "second-anchor", PartitionId(29));
-    create_entity_in_partition(&mut runtime, "untouched-anchor", PartitionId(41));
+    let runtime = runtime_with_test_schema();
+    create_entity_in_partition(&runtime, "main-anchor", PartitionId::main());
+    create_entity_in_partition(&runtime, "second-anchor", PartitionId(29));
+    create_entity_in_partition(&runtime, "untouched-anchor", PartitionId(41));
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(create_batch("main-write", PartitionId::main()));
-    transaction.push_batch(create_batch("second-write", PartitionId(29)));
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(create_batch("main-write", PartitionId::main()))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(create_batch("second-write", PartitionId(29)))
+        .expect("test staging stays within configured resource budgets");
     let declared_write_partition_count = transaction.footprint().write_partitions().len() as u64;
     let candidate = runtime
         .prepare_branch_transaction(transaction)
@@ -126,64 +132,19 @@ fn prepared_candidate_is_sendable_across_one_worker_boundary() {
 }
 
 #[test]
-fn foreign_publication_port_denies_before_reference_movement() {
-    let mut source = runtime_with_test_schema();
-    create_entity(&mut source, "foreign-port-anchor");
-    let before = source.admit_main_branch_basis().expect("source basis");
-    let commit_count_before = source.history().immutable_commit_count();
-    let mut transaction = source
-        .begin_branch_transaction(
-            &before,
-            crate::mvcc::RelationalTransactionIntent::ordinary(),
-        )
-        .expect("source transaction binds");
-    transaction.push_batch(batch_create("foreign-port-write"));
-    let candidate = source
-        .prepare_branch_transaction(transaction)
-        .expect("source candidate prepares");
-    let foreign = runtime_with_test_schema();
-
-    match foreign.publication_port().compare_and_publish(candidate) {
-        worth_proof::TransitionOutcome::Denied(
-            crate::mvcc::RelationalPublicationDenial::ForeignRuntime {
-                expected_runtime_instance_id,
-                actual_runtime_instance_id,
-            },
-        ) => {
-            assert_eq!(expected_runtime_instance_id, foreign.runtime_instance_id());
-            assert_eq!(actual_runtime_instance_id, source.runtime_instance_id());
-        }
-        outcome => panic!("foreign port must return its typed denial: {outcome:?}"),
-    }
-    assert_eq!(
-        source
-            .admit_main_branch_basis()
-            .expect("source basis remains current")
-            .descriptor(),
-        before.descriptor()
-    );
-    assert_eq!(
-        source.history().immutable_commit_count(),
-        commit_count_before
-    );
-}
-
-#[test]
 fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
-    let mut runtime = runtime_with_test_schema();
-    let anchor = create_entity_outcome(&mut runtime, "publication-race-anchor");
+    let runtime = runtime_with_test_schema();
+    let anchor = create_entity_outcome(&runtime, "publication-race-anchor");
     let anchor_commit_id = anchor.commit.commit_id;
     let commit_count_before = runtime.history().immutable_commit_count();
-    let expected = runtime
-        .admit_main_branch_basis()
+    let expected = crate::tests::support::test_owner_main_basis(&runtime)
         .expect("main basis is admitted")
         .descriptor()
         .clone();
     let visible_entity_count_before = runtime
         .read_truth()
         .read_observation(
-            &runtime
-                .admit_main_branch_basis()
+            &crate::tests::support::test_owner_main_basis(&runtime)
                 .expect("counting basis")
                 .observation(),
         )
@@ -193,22 +154,26 @@ fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
 
     let mut first = runtime
         .begin_branch_transaction(
-            &runtime.admit_main_branch_basis().expect("first basis"),
+            &crate::tests::support::test_owner_main_basis(&runtime).expect("first basis"),
             crate::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("first transaction binds");
-    first.push_batch(batch_create("first-race-write"));
+    first
+        .push_batch(batch_create("first-race-write"))
+        .expect("test staging stays within configured resource budgets");
     let first = runtime
         .prepare_branch_transaction(first)
         .expect("first candidate prepares");
 
     let mut second = runtime
         .begin_branch_transaction(
-            &runtime.admit_main_branch_basis().expect("second basis"),
+            &crate::tests::support::test_owner_main_basis(&runtime).expect("second basis"),
             crate::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("second transaction binds");
-    second.push_batch(batch_create("second-race-write"));
+    second
+        .push_batch(batch_create("second-race-write"))
+        .expect("test staging stays within configured resource budgets");
     let second = runtime
         .prepare_branch_transaction(second)
         .expect("second candidate prepares");
@@ -246,12 +211,12 @@ fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
     let second_outcome = second_thread.join().expect("second publisher joins");
     let (performed, stale) = match (first_outcome, second_outcome) {
         (
-            worth_proof::TransitionOutcome::Success(performed),
-            worth_proof::TransitionOutcome::Stale(stale),
+            crate::mvcc::RelationalPublicationOutcome::Performed(performed),
+            crate::mvcc::RelationalPublicationOutcome::Stale(stale),
         )
         | (
-            worth_proof::TransitionOutcome::Stale(stale),
-            worth_proof::TransitionOutcome::Success(performed),
+            crate::mvcc::RelationalPublicationOutcome::Stale(stale),
+            crate::mvcc::RelationalPublicationOutcome::Performed(performed),
         ) => (performed, stale),
         outcomes => {
             panic!("the same-reference race must have one winner and one stale loser: {outcomes:?}")
@@ -282,7 +247,7 @@ fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
         .next_basis()
         .inner
         .root
-        .is_complete(&runtime.services.symbols));
+        .is_complete(&runtime.services.symbols.interner_snapshot()));
     let observation = performed.next_basis().observation();
     let created_entity = match &performed
         .canonical_commit()

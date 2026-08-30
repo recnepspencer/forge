@@ -16,13 +16,12 @@ pub(super) fn certify_rocketship_propagation_endurance(suite: &'static str) {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime
-                .config
-                .publication
-                .policy
-                .max_patch_records_per_commit = rocketship_endurance_node_count * 2;
+            runtime.configure_for_test(|config| {
+                config.publication.policy.max_patch_records_per_commit =
+                    rocketship_endurance_node_count * 2
+            });
             let seeded = seed_pseudorealistic_rocketship_world(
-                &mut runtime,
+                &runtime,
                 rocketship_endurance_node_count,
                 query_target_count,
             );
@@ -43,7 +42,7 @@ pub(super) fn certify_rocketship_propagation_endurance(suite: &'static str) {
                 let target = seeded.traversal_seeds[index % seeded.traversal_seeds.len()];
                 let update_started_at = Instant::now();
                 let _ = update_entity(
-                    &mut runtime,
+                    &runtime,
                     target,
                     &format!("rocket.endurance.propagation.{index}"),
                 );
@@ -116,7 +115,10 @@ pub(super) fn certify_rocketship_propagation_endurance(suite: &'static str) {
                     .expect("rocketship endurance explicit broad outcome");
                 let explicit_query_micros = explicit_started_at.elapsed().as_micros();
                 total_explicit_query_micros += explicit_query_micros;
-                assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+                assert!(runtime
+                    .visibility_authority()
+                    .release_snapshot(&snapshot)
+                    .is_ok());
 
                 let cycle_micros = update_micros + propagation_micros + explicit_query_micros;
                 cycle_samples.push(cycle_micros);

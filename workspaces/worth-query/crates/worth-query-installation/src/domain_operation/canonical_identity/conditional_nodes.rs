@@ -1,10 +1,10 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_operation::WorthQueryPortableConditionalNodeDeclaration;
 
 pub(super) fn hash_conditional_nodes(
-    hasher: &mut Sha256,
+    hasher: &mut impl CanonicalHashSink,
     nodes: &[WorthQueryPortableConditionalNodeDeclaration],
     tag: &'static str,
 ) {

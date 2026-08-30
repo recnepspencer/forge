@@ -159,6 +159,12 @@ impl WorkerRuntimeEnvelopeImportReport {
 }
 
 impl WorkerRuntimeShell {
+    pub(crate) fn preflight_worker_runtime_envelope_export(
+        &self,
+    ) -> Result<(), WorthSignalJsError> {
+        self.core.preflight_runtime_envelope_export()
+    }
+
     pub fn export_worker_runtime_envelope(
         &mut self,
     ) -> Result<RuntimeEnvelope, WorthSignalJsError> {

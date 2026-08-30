@@ -2,7 +2,6 @@ mod comparison;
 mod envelope_self_audit;
 mod surface_audit;
 
-use crate::capabilities::SchemaSource;
 use crate::history::data::{BranchId, CommitId, HistoryDriftClass};
 use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
@@ -37,7 +36,7 @@ struct ReplayReconstruction {
 
 impl<'runtime> ReplayAuthority<'runtime> {
     fn fail_and_record(
-        &mut self,
+        &self,
         request: RelationalReplayRequest,
         envelope: Option<&CanonicalCommitEnvelope>,
         chain: Option<&[CommitId]>,
@@ -53,7 +52,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
         outcome
     }
 
-    pub fn replay_commit(&mut self, request: RelationalReplayRequest) -> RelationalReplayOutcome {
+    pub fn replay_commit(&self, request: RelationalReplayRequest) -> RelationalReplayOutcome {
         let admission = match self.admit_replay_target(&request) {
             Ok(admission) => admission,
             Err(outcome) => return outcome,
@@ -66,7 +65,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
     }
 
     fn admit_replay_target(
-        &mut self,
+        &self,
         request: &RelationalReplayRequest,
     ) -> Result<ReplayAdmission, RelationalReplayOutcome> {
         let Some(envelope) = load_replay_envelope(self.runtime, request.commit_id) else {
@@ -84,15 +83,6 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 Some(&envelope),
                 None,
                 ReplayFailureClass::BranchMismatch,
-                None,
-            ));
-        }
-        if envelope.schema_authority != self.runtime.schema_registry().authority_snapshot() {
-            return Err(self.fail_and_record(
-                request.clone(),
-                Some(&envelope),
-                None,
-                ReplayFailureClass::SchemaMismatch,
                 None,
             ));
         }
@@ -149,7 +139,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
     }
 
     fn reconstruct_replay_target(
-        &mut self,
+        &self,
         request: &RelationalReplayRequest,
         admission: &ReplayAdmission,
     ) -> Result<ReplayReconstruction, RelationalReplayOutcome> {
@@ -214,7 +204,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
     }
 
     fn compare_replay_reconstruction(
-        &mut self,
+        &self,
         request: RelationalReplayRequest,
         admission: ReplayAdmission,
         reconstruction: ReplayReconstruction,
@@ -299,7 +289,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
     }
 
     pub fn replay_range(
-        &mut self,
+        &self,
         branch_id: BranchId,
         commits: &[CommitId],
         verification_mode: ReplayVerificationMode,
@@ -319,7 +309,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
     }
 
     fn record_continuity_rejection(
-        &mut self,
+        &self,
         request: RelationalReplayRequest,
         envelope: &CanonicalCommitEnvelope,
         commit_closure: &[CommitId],

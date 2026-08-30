@@ -15,15 +15,15 @@ use partition_pass::{
 };
 
 pub struct VisibilityRetentionAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 impl<'runtime> VisibilityRetentionAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 
-    pub fn inspect_plan(&mut self) -> RetentionPlan {
+    pub fn inspect_plan(&self) -> RetentionPlan {
         let retention_fence = self
             .runtime
             .visibility
@@ -96,7 +96,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
         plan
     }
 
-    pub fn run_pass(&mut self) -> RetentionPassOutcome {
+    pub fn run_pass(&self) -> RetentionPassOutcome {
         let mut outcome = RetentionPassOutcome {
             entity_reclaimable: 0,
             entity_reclaimed: 0,
@@ -166,7 +166,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
     }
 
     pub(crate) fn trim_live_history_for_records(
-        &mut self,
+        &self,
         changed_records: &[crate::transactions::data::RecordRef],
         published_version: crate::identity::data::VersionId,
     ) {
@@ -176,10 +176,8 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             .historical_reconstruction_fence_version(published_version);
         let oldest_branch_head_version = self
             .runtime
-            .history()
-            .branch_head_versions()
-            .into_iter()
-            .min()
+            .history
+            .oldest_branch_head_version()
             .unwrap_or(published_version);
         let oldest_pinned_version =
             oldest_visibility_retained_version.min(oldest_branch_head_version);
@@ -235,7 +233,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
     }
 
     pub(crate) fn reconcile_changed_record_states(
-        &mut self,
+        &self,
         changed_records: &[crate::transactions::data::RecordRef],
         published_version: crate::identity::data::VersionId,
     ) {
@@ -249,7 +247,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
                     let retired_at = self
                         .runtime
                         .partitions
-                        .get(&entity_id.partition_id)
+                        .partition(entity_id.partition_id)
                         .and_then(|partition| {
                             partition
                                 .entity_arena
@@ -267,7 +265,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
                     let retired_at = self
                         .runtime
                         .partitions
-                        .get(&relation_id.partition_id)
+                        .partition(relation_id.partition_id)
                         .and_then(|partition| {
                             partition
                                 .relation_arena
@@ -287,7 +285,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub(crate) fn retention_authority(&mut self) -> VisibilityRetentionAuthority<'_> {
+    pub(crate) fn retention_authority(&self) -> VisibilityRetentionAuthority<'_> {
         VisibilityRetentionAuthority::new(self)
     }
 }

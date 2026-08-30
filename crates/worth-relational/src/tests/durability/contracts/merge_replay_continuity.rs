@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn durability_contract_recovery_preserves_merge_parent_order() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let main = create_entity_outcome(&mut runtime, "main");
+    let runtime = persisted_runtime_with_test_schema();
+    let main = create_entity_outcome(&runtime, "main");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -12,9 +12,9 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
         )
         .unwrap();
     let feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let merge = merge_commit_from_branches(
-        &mut runtime,
+        &runtime,
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
@@ -22,7 +22,7 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let replay = recovered.replay();
     let recovered_merge = replay
         .canonical_commit_envelope(merge.commit.commit_id)
@@ -44,12 +44,12 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
 
 #[test]
 fn durability_contract_replays_empty_intent_merge_currentness_once() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let merge = merge_commit_from_branches(
-        &mut runtime,
+        &runtime,
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
@@ -66,7 +66,7 @@ fn durability_contract_replays_empty_intent_merge_currentness_once() {
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let actual = recovered
         .branch_reference_state(&BranchId("main".to_string()))
         .expect("main state after recovery");
@@ -95,10 +95,10 @@ fn durability_contract_replays_empty_intent_merge_currentness_once() {
 
 #[test]
 fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_absent() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),
@@ -147,7 +147,7 @@ fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_a
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(plan).unwrap();
+    recovered.durability_recovery().recover(plan).unwrap();
     let replay = recovered.replay();
     let recovered_merge = replay
         .canonical_commit_envelope(merge.commit.commit.commit_id)
@@ -167,13 +167,13 @@ fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_a
 
 #[test]
 fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is_tampered() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let main = create_entity_outcome(&mut runtime, "main");
-    create_branch_from_main(&mut runtime, "feature");
+    let runtime = persisted_runtime_with_test_schema();
+    let main = create_entity_outcome(&runtime, "main");
+    create_branch_from_main(&runtime, "feature");
     let feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let merge = merge_commit_from_branches(
-        &mut runtime,
+        &runtime,
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
@@ -209,7 +209,7 @@ fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::ReplayFailure);
     assert_eq!(
@@ -221,10 +221,10 @@ fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is
 
 #[test]
 fn durability_contract_does_not_reconstruct_missing_merge_authority_from_diagnostics() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),
@@ -263,7 +263,7 @@ fn durability_contract_does_not_reconstruct_missing_merge_authority_from_diagnos
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
-    let error = recovered.durability_authority().recover(plan).unwrap_err();
+    let error = recovered.durability_recovery().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::ReplayFailure);
     assert_eq!(error.history_drift_class, None);

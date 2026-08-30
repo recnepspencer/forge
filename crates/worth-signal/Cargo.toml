@@ -33,6 +33,16 @@ trybuild = "1"
 quote = "1"
 syn = { version = "2", features = ["full", "visit"] }
 
+# The documented owner workflow is evidence, not decoration: `cargo test` must
+# run it, not merely build it. `harness = false` keeps `fn main` the single
+# entry point, so what the test lane executes is byte-identical to what
+# `cargo run --example branch_bases` shows a developer. The target runs whole
+# or not at all; a libtest filter passed after `--` does not select within it.
+[[example]]
+name = "branch_bases"
+test = true
+harness = false
+
 [target.'cfg(all(target_family = "wasm", target_os = "unknown"))'.dependencies]
 js-sys = "0.3"
 wasm-bindgen = "0.2"

@@ -1,9 +1,6 @@
 use super::*;
 
-pub(crate) fn create_branch_from_main(
-    runtime: &mut RelationalRuntime,
-    branch_name: &str,
-) -> BranchId {
+pub(crate) fn create_branch_from_main(runtime: &RelationalRuntime, branch_name: &str) -> BranchId {
     let branch_id = BranchId(branch_name.to_string());
     runtime
         .history_authority()
@@ -13,7 +10,7 @@ pub(crate) fn create_branch_from_main(
 }
 
 pub(crate) fn checkpoint_and_recover_with<F>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     recovered_factory: F,
 ) -> (crate::runtime::RecoveryOutcome, RelationalRuntime)
 where
@@ -24,6 +21,6 @@ where
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = recovered_factory();
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let outcome = recovered.durability_recovery().recover(plan).unwrap();
     (outcome, recovered)
 }

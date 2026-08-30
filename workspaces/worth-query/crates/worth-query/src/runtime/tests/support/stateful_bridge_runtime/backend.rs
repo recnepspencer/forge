@@ -18,7 +18,7 @@ use crate::subscription::SubscriptionActivationInput;
 use super::SharedState;
 
 pub(super) struct StatefulBridgeRuntimeBackend {
-    state: SharedState,
+    pub(super) state: SharedState,
     support_profile: WorthQueryRuntimeSupportProfile,
 }
 
@@ -34,25 +34,25 @@ impl StatefulBridgeRuntimeBackend {
     }
 }
 
-impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
-    fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
-        self.support_profile.clone()
-    }
-
-    fn repair_deferred_branch_merge_settlement(
+impl WorthQueryMergeSnapshotOwner for StatefulBridgeRuntimeBackend {
+    fn release_query_merge_snapshot(
         &mut self,
-        deferred: &crate::ordinary::workflow::WorthQueryBranchMergeSettlementDeferred,
-    ) -> Result<
-        worth_relational::facade::history::RelationalCommitReceipt,
-        crate::runtime::WorthQuerySettlementRepairError,
-    > {
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    ) {
         self.state
             .borrow_mut()
             .relational_runtime
             .as_mut()
-            .ok_or(crate::runtime::WorthQuerySettlementRepairError::RelationalOwnerUnavailable)?
-            .repair_deferred_publication_settlement(deferred.settlement())
-            .map_err(Into::into)
+            .expect("merge fixture retains its relational runtime")
+            .snapshots()
+            .release_snapshot(snapshot)
+            .expect("merge fixture closes its exact published snapshot once");
+    }
+}
+
+impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
+    fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
+        self.support_profile.clone()
     }
 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {

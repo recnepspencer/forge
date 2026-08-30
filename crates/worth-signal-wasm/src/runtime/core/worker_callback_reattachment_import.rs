@@ -105,7 +105,7 @@ fn rebuild_runtime_with_callback_reattachments(
             return Err(error);
         }
     }
-    rebuilt.restore_snapshot(envelope.snapshot)?;
+    rebuilt.reconstruct_imported_runtime_snapshot(envelope.snapshot)?;
     rebuilt.mark_worker_public_outputs(envelope.definitions.worker_public_output_ids)?;
     Ok(rebuilt)
 }

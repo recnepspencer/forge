@@ -14,7 +14,7 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
         "strategy.aspect",
         "aspect.scalar.field.reconcile",
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(
             CommitStrategyRegistration::new(main_descriptor.clone())
@@ -25,8 +25,8 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
                 .expect("feature strategy registration"),
         )
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "shared");
-    let feature_branch = crate::tests::support::create_branch_from_main(&mut runtime, "feature");
+    let entity = crate::tests::support::create_entity(&runtime, "shared");
+    let feature_branch = crate::tests::support::create_branch_from_main(&runtime, "feature");
 
     {
         let request = runtime
@@ -53,20 +53,20 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
             .expect("main canonical request");
         let execution = update_execution_draft(&request, entity, "main-strategy");
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered main strategy plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated main strategy plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("main strategy commit");
     }
 
@@ -95,22 +95,22 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
         let execution = update_execution_draft(&request, entity, "feature-strategy");
         let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(
-                &mut runtime,
+                &runtime,
                 Some(feature_branch.clone()),
             );
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered feature strategy plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated feature strategy plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("feature strategy commit");
     }
 
@@ -158,7 +158,7 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
 fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_boundary() {
     let intent_descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(71));
     let replica_descriptor = ReplicaConvergenceStrategy::descriptor(CommitStrategyId(72));
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(
             CommitStrategyRegistration::new(intent_descriptor.clone())
@@ -175,9 +175,8 @@ fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_bounda
             &replica_descriptor,
         ))
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "shared");
-    let feature_branch =
-        crate::tests::support::create_branch_from_main(&mut runtime, "feature-real");
+    let entity = crate::tests::support::create_entity(&runtime, "shared");
+    let feature_branch = crate::tests::support::create_branch_from_main(&runtime, "feature-real");
 
     {
         let request = runtime
@@ -201,20 +200,20 @@ fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_bounda
             .execute(&request, &snapshot)
             .expect("intent execution");
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered intent plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated intent plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("intent strategy commit");
     }
 
@@ -241,22 +240,22 @@ fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_bounda
             .expect("replica execution");
         let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(
-                &mut runtime,
+                &runtime,
                 Some(feature_branch.clone()),
             );
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered replica plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated replica plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("replica strategy commit");
     }
 

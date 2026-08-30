@@ -179,7 +179,7 @@ fn patch_summary(session: &CertifiedRelationalFintechSession) -> WorkflowArtifac
                 .latest_patch
                 .as_ref()
                 .zip(publication.latest_patch())
-                .map(|(snapshot_patch, patch)| snapshot_patch == patch)
+                .map(|(snapshot_patch, patch)| snapshot_patch == &patch)
                 .unwrap_or(false),
         ),
         bool_field(
@@ -188,7 +188,7 @@ fn patch_summary(session: &CertifiedRelationalFintechSession) -> WorkflowArtifac
                 .latest_replay
                 .as_ref()
                 .zip(publication.latest_replay())
-                .map(|(snapshot_replay, replay)| snapshot_replay == replay)
+                .map(|(snapshot_replay, replay)| snapshot_replay == &replay)
                 .unwrap_or(false),
         ),
     ])

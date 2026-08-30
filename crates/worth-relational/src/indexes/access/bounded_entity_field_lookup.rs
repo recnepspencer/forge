@@ -38,10 +38,10 @@ impl IndexAccess<'_> {
             super::super::projected_field_values::IndexProjectionSource::exact(&projection)
                 .expect("resolved snapshot projection must carry an exact basis");
         let prepared = prepare_entity_field_lookup(runtime, &snapshot, &request)?;
-        let overflowed = prepared.indexed_ids.len() > request.candidate_limit();
-        let examined_entry_count = prepared.indexed_ids.len().min(request.candidate_limit());
-        let candidate_entity_ids =
-            verify_bounded_index_entries(&source, &request, prepared.indexed_ids)?;
+        let indexed_ids = prepared.indexed_ids();
+        let overflowed = indexed_ids.len() > request.candidate_limit();
+        let examined_entry_count = indexed_ids.len().min(request.candidate_limit());
+        let candidate_entity_ids = verify_bounded_index_entries(&source, &request, indexed_ids)?;
         let outcome = BoundedEntityFieldLookupOutcome::new(
             prepared.generation_id,
             candidate_entity_ids,
@@ -60,20 +60,31 @@ impl IndexAccess<'_> {
     }
 }
 
-struct PreparedEntityFieldLookup<'a> {
+/// The generation this lookup is pinned to, carried by shared ownership so the
+/// entries stay readable without retaining the index subsystem lock.
+struct PreparedEntityFieldLookup {
     generation_id: crate::indexes::data::DerivedIndexGenerationId,
-    indexed_ids: &'a [crate::identity::data::EntityId],
+    generation: std::sync::Arc<crate::indexes::data::DerivedIndexGeneration>,
+    key: AuthoritativeFieldComparisonKey,
 }
 
-fn prepare_entity_field_lookup<'a>(
-    runtime: &'a crate::runtime::RelationalRuntime,
+impl PreparedEntityFieldLookup {
+    fn indexed_ids(&self) -> &[crate::identity::data::EntityId] {
+        let DerivedIndexEntries::EntityField(entries) = &self.generation.entries else {
+            return &[];
+        };
+        entries.get(&self.key).map(Vec::as_slice).unwrap_or(&[])
+    }
+}
+
+fn prepare_entity_field_lookup(
+    runtime: &crate::runtime::RelationalRuntime,
     snapshot: &crate::snapshots::data::SnapshotHandle,
     request: &BoundedEntityFieldLookupRequest,
-) -> Result<PreparedEntityFieldLookup<'a>, BoundedEntityFieldLookupDenial> {
+) -> Result<PreparedEntityFieldLookup, BoundedEntityFieldLookupDenial> {
     let definition = runtime
         .indexes
-        .definitions
-        .get(&request.index_id())
+        .definition(request.index_id())
         .ok_or_else(|| {
             lookup_denial(
                 BoundedEntityFieldLookupDenialKind::IndexNotInstalled,
@@ -90,23 +101,23 @@ fn prepare_entity_field_lookup<'a>(
         ));
     }
     let generation =
-        super::generation_selection::exact_published_generation(runtime, snapshot, definition)
+        super::generation_selection::exact_published_generation(runtime, snapshot, &definition)
             .ok_or_else(|| {
                 lookup_denial(
                     BoundedEntityFieldLookupDenialKind::ExactGenerationUnavailable,
                     request,
                 )
             })?;
-    let DerivedIndexEntries::EntityField(entries) = &generation.entries else {
+    if !matches!(generation.entries, DerivedIndexEntries::EntityField(_)) {
         return Err(lookup_denial(
             BoundedEntityFieldLookupDenialKind::WrongIndexKind,
             request,
         ));
-    };
-    let key = AuthoritativeFieldComparisonKey::from_aspect_value(request.value());
+    }
     Ok(PreparedEntityFieldLookup {
         generation_id: generation.generation_id,
-        indexed_ids: entries.get(&key).map(Vec::as_slice).unwrap_or(&[]),
+        key: AuthoritativeFieldComparisonKey::from_aspect_value(request.value()),
+        generation,
     })
 }
 

@@ -12,7 +12,7 @@ fn activation_operation_compiles_its_union_from_selected_capability_targets() {
         super::contract_resolution::operation_program_from_members(
             &members,
             "Activation",
-            std::any::type_name::<()>(),
+            <() as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY.as_str(),
         ),
         selected
     );

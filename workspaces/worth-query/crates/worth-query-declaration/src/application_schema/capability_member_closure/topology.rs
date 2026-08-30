@@ -136,10 +136,12 @@ fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -
         && distinct_elevation_states(elevation)
         && review.required().value() != review.completed().value()
         && lifecycle.elevation_slot().context() == contract.constraints().context()
-        && lifecycle.elevation_slot().context_type() == contract.constraints().context_type()
+        && lifecycle.elevation_slot().context_identity().as_str()
+            == contract.constraints().context_type()
         && lifecycle.elevation_slot().entity() == elevation_entity
         && lifecycle.review_slot().context() == contract.constraints().context()
-        && lifecycle.review_slot().context_type() == contract.constraints().context_type()
+        && lifecycle.review_slot().context_identity().as_str()
+            == contract.constraints().context_type()
         && lifecycle.review_slot().entity() == review_entity
         && distinct_lifecycle_operations(contract)
 }

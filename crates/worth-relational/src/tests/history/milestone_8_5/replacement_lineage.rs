@@ -3,15 +3,15 @@ use super::*;
 pub(super) fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
     let root_path = unique_test_store_path("worth-relational-strategy-replacement-cert");
     let recovered_root = root_path.clone();
-    let mut runtime = persisted_replacement_strategy_runtime(root_path);
-    let replacement_entity = create_entity(&mut runtime, "replace-target");
+    let runtime = persisted_replacement_strategy_runtime(root_path);
+    let replacement_entity = create_entity(&runtime, "replace-target");
     let replacement_start_lineage = runtime
         .lineage_access()
         .for_record(replacement_entity)
         .expect("replacement entity lineage before strategy")
         .lineage_id;
     let replacement_commit = execute_strategy_commit(
-        &mut runtime,
+        &runtime,
         EntityReplacementReconciliationInput {
             entity_id: replacement_entity,
             replacement_client_key: "replace-target-v2".to_string(),
@@ -82,7 +82,7 @@ pub(super) fn run_replacement_strategy_certification() -> ReplacementCertificati
                 .lineage_transition_count(),
         },
     };
-    let (_recovery, mut recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         persisted_replacement_strategy_runtime(recovered_root)
     });
     let recovered_replacement_envelope = recovered

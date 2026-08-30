@@ -31,7 +31,7 @@ fi
 
 echo "[relational-complexity] declaration and proof lanes"
 cargo test -p worth-relational tests::complexity::contracts::complexity_contract_registry_covers_runtime_hot_paths -- --nocapture
-cargo test -p worth-relational tests::complexity::contracts::complexity_contract_current_state_clone_is_declared_and_measured -- --nocapture
+cargo test -p worth-relational tests::complexity::contracts::complexity_contract_partition_edition_acquisition_is_declared_and_measured -- --nocapture
 cargo test -p worth-relational tests::complexity::contracts::complexity_budget_snapshot_pin_maintenance_is_incremental -- --nocapture
 cargo test -p worth-relational tests::complexity::contracts::complexity_contract_visibility_scans_are_explicitly_measured -- --nocapture
 cargo test -p worth-relational tests::complexity::contracts::complexity_contract_invariant_materialization_is_declared_and_measured -- --nocapture

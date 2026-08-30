@@ -5,9 +5,9 @@ use crate::application_aftermath::{
 };
 
 use super::{
-    ApplicationFieldRef, ApplicationOperationRef, ApplicationSchema, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
-    ApplicationSchemaIdentity,
+    ApplicationFieldRef, ApplicationOperationMarkerIdentity, ApplicationOperationRef,
+    ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+    ApplicationSchemaDeclarationDenial, ApplicationSchemaIdentity,
 };
 
 struct Schema;
@@ -15,6 +15,12 @@ struct Operation;
 struct Entity;
 struct Aspect;
 struct Field;
+
+impl ApplicationOperationMarkerIdentity for Operation {
+    type Schema = Schema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "Operation";
+}
 
 impl ApplicationSchema for Schema {
     const OWNER: &'static str = "owner";
@@ -61,14 +67,13 @@ fn identity(
         .unwrap(),
     )
     .unwrap();
-    let definition =
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation")
-            .definition()
-            .no_external_effect()
-            .aftermath(DeclaredApplicationAftermathContract::runtime_alone(
-                DeclaredCorrectionMechanism::RecordedInverse(inverse),
-            ))
-            .finish();
+    let definition = ApplicationOperationRef::<Schema, Operation, ()>::from_declaration()
+        .definition()
+        .no_external_effect()
+        .aftermath(DeclaredApplicationAftermathContract::runtime_alone(
+            DeclaredCorrectionMechanism::RecordedInverse(inverse),
+        ))
+        .finish();
     ApplicationSchemaDeclarationBuilder::<Schema>::for_schema()
         .operation(definition)
         .build()

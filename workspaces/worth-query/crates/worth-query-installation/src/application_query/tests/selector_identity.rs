@@ -4,14 +4,16 @@ use worth_foundational::facade::{
 };
 use worth_query_declaration::facade::application_query::ApplicationQueryOrderingDirection;
 
-use super::{definition_with_scope_and_sequence_slot, Account, ActivitySequenceSlot};
+use super::{definition_with_sequence_slot, ActivitySequenceSlot};
+use worth_query_declaration::worth_query_portable_type;
+
+worth_query_portable_type!(AlternativeActivitySequenceSlot => "worth.query.test.installation.alternative-sequence-slot.v1");
 
 struct AlternativeActivitySequenceSlot;
 
 #[test]
 fn schema_basis_changes_normalized_planning_identity() {
-    let definition = definition_with_scope_and_sequence_slot::<Account, ActivitySequenceSlot>(
-        Account::reference(),
+    let definition = definition_with_sequence_slot::<ActivitySequenceSlot>(
         ApplicationQueryOrderingDirection::Descending,
         "sequence",
     )
@@ -43,19 +45,16 @@ fn schema_basis_changes_normalized_planning_identity() {
 
 #[test]
 fn selector_slot_changes_installed_identity_but_not_normalized_planning_meaning() {
-    let first = definition_with_scope_and_sequence_slot::<Account, ActivitySequenceSlot>(
-        Account::reference(),
+    let first = definition_with_sequence_slot::<ActivitySequenceSlot>(
         ApplicationQueryOrderingDirection::Descending,
         "sequence",
     )
     .into_erased();
-    let changed =
-        definition_with_scope_and_sequence_slot::<Account, AlternativeActivitySequenceSlot>(
-            Account::reference(),
-            ApplicationQueryOrderingDirection::Descending,
-            "sequence",
-        )
-        .into_erased();
+    let changed = definition_with_sequence_slot::<AlternativeActivitySequenceSlot>(
+        ApplicationQueryOrderingDirection::Descending,
+        "sequence",
+    )
+    .into_erased();
     let package = CanonicalDigestId::new([3; 32]);
     let schema = CanonicalDigestId::new([1; 32]);
     let first_graph =

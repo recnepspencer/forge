@@ -2,7 +2,7 @@ use crate::tests::support::*;
 
 #[test]
 fn durable_log_compaction_respects_checkpoint_policy() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .durable_log_policy(DurableLogPolicy {
             retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
@@ -11,10 +11,10 @@ fn durable_log_compaction_respects_checkpoint_policy() {
         })
         .build();
 
-    create_entity(&mut runtime, "first");
+    create_entity(&runtime, "first");
     runtime.durability_authority().checkpoint().unwrap();
-    create_entity(&mut runtime, "second");
-    create_entity(&mut runtime, "third");
+    create_entity(&runtime, "second");
+    create_entity(&runtime, "third");
 
     assert!(runtime.durability().durable_log().len() <= 1);
 }

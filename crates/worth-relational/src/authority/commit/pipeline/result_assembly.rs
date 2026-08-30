@@ -14,7 +14,7 @@ struct CommitResultMaterial {
     phase_timing: crate::transactions::data::CommitPhaseTiming,
     commit_log: crate::transactions::data::CommitLog,
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
-    diagnostics_start: usize,
+    diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
     complexity_before: crate::performance::data::RuntimeComplexityCounters,
     prior_complexity_delta: crate::performance::data::RuntimeComplexityCounters,
     public_structural_summary: crate::transactions::data::CommitStructuralSummary,
@@ -41,6 +41,7 @@ pub(crate) struct CommitResultSeal {
     execution: CommitExecution,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
     created_relations: crate::transactions::data::CommitCreatedRelationBindings,
+    late_interruption: Option<crate::runtime::RelationalInterruptionEvent>,
 }
 
 impl CommitResultSeal {
@@ -56,6 +57,7 @@ impl CommitResultSeal {
         CommitExecution,
         crate::transactions::data::CommitCreatedEntityBindings,
         crate::transactions::data::CommitCreatedRelationBindings,
+        Option<crate::runtime::RelationalInterruptionEvent>,
     ) {
         (
             self.outcome,
@@ -67,6 +69,7 @@ impl CommitResultSeal {
             self.execution,
             self.created_entities,
             self.created_relations,
+            self.late_interruption,
         )
     }
 }
@@ -74,14 +77,12 @@ impl CommitResultSeal {
 pub(crate) fn assemble_commit_result(
     runtime: &crate::runtime::RelationalRuntime,
     published: PublishedCommitExecution,
+    late_interruption: Option<crate::runtime::RelationalInterruptionEvent>,
 ) -> CommitResult {
     let material = CommitResultMaterial::from_published(published);
     let complexity_after = runtime.performance_access().complexity_counters_snapshot();
-    let diagnostics = runtime
-        .publication()
-        .diagnostic_access()
-        .artifacts_since(material.diagnostics_start);
-    material.assemble(diagnostics, complexity_after)
+    let diagnostics = material.diagnostics.clone();
+    material.assemble(diagnostics, complexity_after, late_interruption)
 }
 
 impl CommitResultMaterial {
@@ -106,7 +107,7 @@ impl CommitResultMaterial {
             phase_timing,
             commit_log,
             strategy_artifacts,
-            diagnostics_start,
+            diagnostics,
             complexity_before,
             prior_complexity_delta,
         ) = admitted.into_result_parts();
@@ -115,7 +116,7 @@ impl CommitResultMaterial {
             phase_timing,
             commit_log,
             strategy_artifacts,
-            diagnostics_start,
+            diagnostics,
             complexity_before,
             prior_complexity_delta,
             public_structural_summary,
@@ -137,6 +138,7 @@ impl CommitResultMaterial {
         self,
         diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
         complexity_after: crate::performance::data::RuntimeComplexityCounters,
+        late_interruption: Option<crate::runtime::RelationalInterruptionEvent>,
     ) -> CommitResult {
         let commit_summary = self.commit_log.summary().clone();
         let schema_summary = commit_schema_summary(&self.canonical_commit_envelope);
@@ -175,6 +177,7 @@ impl CommitResultMaterial {
             },
             created_entities: self.created_entities,
             created_relations: self.created_relations,
+            late_interruption,
         })
     }
 }

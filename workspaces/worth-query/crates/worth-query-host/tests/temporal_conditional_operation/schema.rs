@@ -8,7 +8,8 @@ use worth_query_host::facade::{declaration, primary_graph};
 use worth_query_host::facade::{
     worth_query_application_query, worth_query_application_schema, worth_query_aspect,
     worth_query_entity, worth_query_field, worth_query_operation, worth_query_operation_reads,
-    worth_query_operation_writes, worth_query_principal_binding, worth_query_relation,
+    worth_query_operation_writes, worth_query_portable_type, worth_query_principal_binding,
+    worth_query_relation,
 };
 
 worth_query_application_schema! {
@@ -110,6 +111,7 @@ worth_query_principal_binding!(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TemporalInput(pub String);
+worth_query_portable_type!(TemporalInput => "worth.query.test.host.temporal.input.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AmendTemporalInput {
@@ -119,6 +121,7 @@ pub struct AmendTemporalInput {
     pub input: String,
     pub gate: String,
 }
+worth_query_portable_type!(AmendTemporalInput => "worth.query.test.host.temporal.amend_input.v1");
 
 worth_query_operation!(pub ExecuteTemporal(TemporalInput) in TemporalHostSchema);
 worth_query_operation_reads!(ExecuteTemporal => [IntentIdentityField, IntentRevisionField, IntentLifecycleField, IntentEffectField]);
@@ -132,6 +135,11 @@ pub struct IntentRevisionSlot;
 pub struct IntentDueSlot;
 pub struct IntentLifecycleSlot;
 pub struct IntentInputSlot;
+worth_query_portable_type!(IntentIdentitySlot => "worth.query.test.host.temporal.intent_identity_slot.v1");
+worth_query_portable_type!(IntentRevisionSlot => "worth.query.test.host.temporal.intent_revision_slot.v1");
+worth_query_portable_type!(IntentDueSlot => "worth.query.test.host.temporal.intent_due_slot.v1");
+worth_query_portable_type!(IntentLifecycleSlot => "worth.query.test.host.temporal.intent_lifecycle_slot.v1");
+worth_query_portable_type!(IntentInputSlot => "worth.query.test.host.temporal.intent_input_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntentQueryResult {
@@ -141,6 +149,7 @@ pub struct IntentQueryResult {
     pub lifecycle: String,
     pub input: String,
 }
+worth_query_portable_type!(IntentQueryResult => "worth.query.test.host.temporal.intent_result.v1");
 
 worth_query_application_query!(
     pub TemporalIntentQuery in TemporalHostSchema,

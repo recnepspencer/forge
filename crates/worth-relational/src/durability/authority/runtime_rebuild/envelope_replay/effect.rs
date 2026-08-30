@@ -41,7 +41,9 @@ pub(super) fn replay_envelope_effect(
                 Arc::clone(positioned.canonical_arc()),
             )
             .map_err(|detail| DurabilityError::new(RecoveryFailureClass::ReplayFailure, detail))?;
-        prepared_recovery.install_recovered(restored, positioned);
+        prepared_recovery
+            .install_recovered(restored, positioned)
+            .map_err(|detail| DurabilityError::new(RecoveryFailureClass::ReplayFailure, detail))?;
         restored
             .history
             .install_recovered_canonical_route(Arc::new(positioned.clone()))
@@ -135,7 +137,13 @@ pub(super) fn replay_ordinary_commit(
         partition_key: None,
         worker_local_only: true,
         intents: envelope.merged_plan.merged_intents.clone().to_vec(),
-    });
+    })
+    .map_err(|denial| {
+        DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!("durable transaction staging denied: {denial:?}"),
+        )
+    })?;
     let outcome = restored.commit_branch_transaction(txn).map_err(|error| {
         DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
@@ -145,13 +153,16 @@ pub(super) fn replay_ordinary_commit(
             ),
         )
     })?;
-    if outcome.patch_position() != position {
-        return Err(DurabilityError::new(
+    let validation = if outcome.patch_position() != position {
+        Err(DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
             "replayed durable commit stream position drifted",
-        ));
-    }
-    schema_basis.validate_replayed(outcome.envelope())
+        ))
+    } else {
+        schema_basis.validate_replayed(outcome.envelope())
+    };
+    release_replayed_snapshot(restored, &outcome.snapshot)?;
+    validation
 }
 
 pub(super) fn replay_merge_commit(
@@ -185,13 +196,32 @@ pub(super) fn replay_merge_commit(
             ),
         )
     })?;
-    if outcome.patch_position() != position {
-        return Err(DurabilityError::new(
+    let validation = if outcome.patch_position() != position {
+        Err(DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
             "replayed durable merge stream position drifted",
-        ));
-    }
-    schema_basis.validate_replayed(outcome.envelope())
+        ))
+    } else {
+        schema_basis.validate_replayed(outcome.envelope())
+    };
+    release_replayed_snapshot(restored, &outcome.snapshot)?;
+    validation
+}
+
+fn release_replayed_snapshot(
+    restored: &mut RelationalRuntime,
+    snapshot: &crate::snapshots::data::SnapshotHandle,
+) -> Result<(), DurabilityError> {
+    restored
+        .snapshots()
+        .release_snapshot(snapshot)
+        .map(|_| ())
+        .map_err(|denial| {
+            DurabilityError::new(
+                RecoveryFailureClass::ReplayFailure,
+                format!("failed to settle replayed snapshot: {denial:?}"),
+            )
+        })
 }
 
 fn require_merge_execution_authority(

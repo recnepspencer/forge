@@ -64,7 +64,10 @@ impl RuntimeBridgeRelationalSource {
             });
         }
         let retention = runtime.retain_component_basis(basis)?;
-        let snapshot_id = runtime.visibility.allocate_snapshot_id();
+        let snapshot_id = runtime
+            .visibility
+            .allocate_snapshot_id()
+            .ok_or(RelationalBranchBasisDenial::SnapshotIdentityExhausted)?;
         Ok(self
             .observation_bindings
             .insert(snapshot_id, basis.observation(), retention))

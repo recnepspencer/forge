@@ -1,4 +1,4 @@
-use crate::runtime::RelationalRuntime;
+use crate::validation::engine::InvariantRuntimeView;
 use crate::validation::execution::{
     evaluate_invariant_packet, plan_invariant_execution, planned_proof_boundary_summary,
 };
@@ -10,12 +10,21 @@ use super::request::InvariantExecutionRequest;
 use super::result::InvariantExecutionResult;
 
 pub(crate) struct InvariantEngine<'runtime> {
-    runtime: &'runtime RelationalRuntime,
+    runtime: InvariantRuntimeView<'runtime>,
 }
 
 impl<'runtime> InvariantEngine<'runtime> {
-    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
-        Self { runtime }
+    pub(crate) fn from_view(runtime: &InvariantRuntimeView<'runtime>) -> Self {
+        Self {
+            runtime: runtime.clone(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new(runtime: &'runtime crate::runtime::RelationalRuntime) -> Self {
+        Self {
+            runtime: InvariantRuntimeView::from_runtime(runtime),
+        }
     }
 
     pub(crate) fn execute<'state>(
@@ -28,7 +37,7 @@ impl<'runtime> InvariantEngine<'runtime> {
         let mut work_plan =
             crate::authority::commit::preparation::planning::work_plan::empty_preparation_work_plan(
             );
-        work_plan.invariant_execution = Some(plan_invariant_execution(self.runtime, &request));
+        work_plan.invariant_execution = Some(plan_invariant_execution(&self.runtime, &request));
         self.record_preparation_plan(&work_plan);
         let planned = work_plan
             .invariant_execution
@@ -39,14 +48,14 @@ impl<'runtime> InvariantEngine<'runtime> {
                 planned
                     .packets
                     .iter()
-                    .map(|packet| evaluate_invariant_packet(self.runtime, packet))
+                    .map(|packet| evaluate_invariant_packet(&self.runtime, packet))
                     .collect()
             }
             crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::StagedParallel => {
                 planned
                     .packets
                     .par_iter()
-                    .map(|packet| evaluate_invariant_packet(self.runtime, packet))
+                    .map(|packet| evaluate_invariant_packet(&self.runtime, packet))
                     .collect()
             }
         };

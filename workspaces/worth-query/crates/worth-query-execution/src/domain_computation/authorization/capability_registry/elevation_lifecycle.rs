@@ -4,6 +4,7 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityElevationRule, ApplicationCapabilityTransitionBinding,
     ErasedApplicationCapabilityContract,
 };
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 
 use super::WorthQueryInstalledCapabilityPlan;
 
@@ -89,9 +90,10 @@ impl WorthQueryInstalledElevationLifecycleRegistry {
         Ok(())
     }
 
-    pub(super) fn operation<Operation, Input>(
+    pub(super) fn operation<Operation>(
         &self,
         operation: &str,
+        input_type: &str,
     ) -> Result<
         Option<(
             [u8; 32],
@@ -99,14 +101,17 @@ impl WorthQueryInstalledElevationLifecycleRegistry {
             WorthQueryElevationLifecycleOperationRole,
         )>,
         (),
-    > {
+    >
+    where
+        Operation: ApplicationOperationMarkerIdentity,
+    {
         let Some(inputs) = self.operations.get(operation) else {
             return Ok(None);
         };
-        let Some(markers) = inputs.get(std::any::type_name::<Input>()) else {
+        let Some(markers) = inputs.get(input_type) else {
             return Ok(None);
         };
-        let installed = markers.get(std::any::type_name::<Operation>()).ok_or(())?;
+        let installed = markers.get(Operation::IDENTIFIER).ok_or(())?;
         Ok(Some((
             installed.governed_capability_identity,
             installed.command_capability_identity,

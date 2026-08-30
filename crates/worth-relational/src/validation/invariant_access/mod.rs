@@ -10,9 +10,7 @@ use crate::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
 #[cfg(test)]
 use crate::validation::engine::HarnessAuditMode;
-use crate::validation::engine::{
-    InvariantExecutionResult, InvariantObservation, InvariantRequestProfile,
-};
+use crate::validation::engine::{InvariantExecutionResult, InvariantRequestProfile};
 
 impl RelationalRuntime {
     pub(crate) fn invariant_access(&self) -> InvariantAccess<'_> {
@@ -22,11 +20,15 @@ impl RelationalRuntime {
 
 pub struct InvariantAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
+    view: crate::validation::engine::InvariantRuntimeView<'runtime>,
 }
 
 impl<'runtime> InvariantAccess<'runtime> {
     pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
-        Self { runtime }
+        Self {
+            runtime,
+            view: crate::validation::engine::InvariantRuntimeView::from_runtime(runtime),
+        }
     }
 
     #[cfg(test)]
@@ -62,39 +64,6 @@ impl<'runtime> InvariantAccess<'runtime> {
         self.execute_for_runtime(InvariantRequestProfile::CertificationBoundary)
     }
 
-    pub(crate) fn mutation_sensitive_for_state_with_proposal<'state>(
-        &self,
-        state: crate::storage::overlay::OverlayStateView<'state, crate::runtime::WorkingState>,
-        version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&'state MergedCommitPlan>,
-        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
-    ) -> InvariantExecutionResult {
-        self.execute_for_state(
-            InvariantRequestProfile::MutationSensitive,
-            InvariantObservation::speculative_with_proposal(state, proposal_identity.cloned()),
-            version_id,
-            merged_plan,
-        )
-    }
-
-    pub(crate) fn commit_boundary_for_selected_branch(
-        &self,
-        selected_state: &SelectedRelationalBranchState,
-        proposed_working_state: &crate::storage::overlay::WorkingState,
-        proposed_version_id: crate::identity::data::VersionId,
-        merged_plan: &'runtime MergedCommitPlan,
-        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
-    ) -> InvariantExecutionResult {
-        self.execute_for_selected_branch_plan(
-            InvariantRequestProfile::CommitBoundary,
-            selected_state,
-            proposed_working_state,
-            proposed_version_id,
-            merged_plan,
-            proposal_identity,
-        )
-    }
-
     pub(crate) fn commit_boundary_for_selected_branch_plan(
         &self,
         selected_state: &SelectedRelationalBranchState,
@@ -115,21 +84,6 @@ impl<'runtime> InvariantAccess<'runtime> {
         self.execute_for_selected_branch_committed_plan(
             InvariantRequestProfile::GraphComposition,
             selected_state,
-            merged_plan,
-        )
-    }
-
-    pub(crate) fn snapshot_publication_for_state_with_proposal<'state>(
-        &self,
-        state: crate::storage::overlay::OverlayStateView<'state, crate::runtime::WorkingState>,
-        version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&'state MergedCommitPlan>,
-        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
-    ) -> InvariantExecutionResult {
-        self.execute_for_state(
-            InvariantRequestProfile::SnapshotPublication,
-            InvariantObservation::speculative_with_proposal(state, proposal_identity.cloned()),
-            version_id,
             merged_plan,
         )
     }

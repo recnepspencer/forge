@@ -1,16 +1,24 @@
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 use worth_query_declaration::facade::application_aftermath::DeclaredApplicationAftermathContract;
 use worth_query_declaration::facade::application_schema::{
-    ApplicationExternalEffectProtocol, ApplicationOperationRef, ApplicationSchema,
-    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
-    WorthQueryExternalEffectCorrelationFamily,
+    ApplicationExternalEffectProtocol, ApplicationOperationMarkerIdentity, ApplicationOperationRef,
+    ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+    ApplicationSchemaMember, WorthQueryExternalEffectCorrelationFamily,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity;
 
 use super::{
     operation_aftermath, operation_external_effect, WorthQueryOperationContractCardinalityDenial,
 };
 
 struct Schema;
+struct ResolutionOperation;
+
+impl ApplicationOperationMarkerIdentity for ResolutionOperation {
+    type Schema = Schema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "ResolutionOperation";
+}
 
 impl ApplicationSchema for Schema {
     const OWNER: &'static str = "worth-query-installation-tests";
@@ -66,7 +74,7 @@ fn external_effect(operation: &str, effect: &str) -> ApplicationSchemaMember {
     ApplicationSchemaMember::OperationExternalEffect {
         operation: operation.to_owned(),
         effect: effect.to_owned(),
-        rust_payload_type: "Payload".to_owned(),
+        rust_payload_type: WorthQueryPortableTypeIdentity::declared("Payload"),
         protocol: ApplicationExternalEffectProtocol::new(
             BoundaryProtocolIdentity::new("test.external-payload"),
             BoundaryProtocolVersion::new(1),
@@ -78,7 +86,7 @@ fn external_effect(operation: &str, effect: &str) -> ApplicationSchemaMember {
 }
 
 fn aftermath(operation: &'static str) -> ApplicationSchemaMember {
-    let definition = ApplicationOperationRef::<Schema, (), ()>::from_schema_identifier(operation)
+    let definition = ApplicationOperationRef::<Schema, ResolutionOperation, ()>::from_declaration()
         .definition()
         .no_external_effect()
         .aftermath(DeclaredApplicationAftermathContract::not_correctable())
@@ -87,11 +95,20 @@ fn aftermath(operation: &'static str) -> ApplicationSchemaMember {
         .operation(definition)
         .build()
         .expect("the matching operation builder associates the aftermath");
-    declaration
+    let mut member = declaration
         .erased()
         .members()
         .iter()
         .find(|member| matches!(member, ApplicationSchemaMember::OperationAftermath { .. }))
         .expect("the matching operation emits its portable aftermath member")
-        .clone()
+        .clone();
+    let ApplicationSchemaMember::OperationAftermath {
+        operation: installed,
+        ..
+    } = &mut member
+    else {
+        unreachable!()
+    };
+    *installed = operation.to_owned();
+    member
 }

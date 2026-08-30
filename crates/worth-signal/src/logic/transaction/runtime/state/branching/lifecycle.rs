@@ -12,7 +12,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn create_branch(
+    pub(crate) fn create_branch(
         &mut self,
         name: impl Into<String>,
     ) -> Result<SignalBranchHandle, SignalError> {
@@ -58,11 +58,7 @@ where
             );
             telemetry.transaction.move_transfer_count += 2;
         });
-        self.graph
-            .diagnostics_state_mut()
-            .set_active_branch(branch.id);
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.project_branch_catalog();
         crate::diagnostics::recorder::record_snapshot_event(
             &mut self.graph,
             crate::diagnostics::replay::ReplayEventKind::BranchSwitched,
@@ -84,27 +80,19 @@ where
     }
 
     pub fn known_branches(&self) -> Vec<SignalBranchHandle> {
-        self.graph.known_branches()
+        self.branches.known_branches()
     }
 
     pub fn branch_handle(&self, branch_id: SignalBranchId) -> Option<SignalBranchHandle> {
-        self.graph
-            .branch_handle(branch_id)
-            .or_else(|| self.branches.branch_handle(branch_id))
+        self.branches.branch_handle(branch_id)
     }
 
     pub fn branch_ancestry(&self, branch_id: SignalBranchId) -> Vec<SignalBranchHandle> {
-        if self.graph.branch_handle(branch_id).is_some() {
-            self.graph.branch_ancestry(branch_id)
-        } else {
-            self.branches.branch_ancestry(branch_id)
-        }
+        self.branches.branch_ancestry(branch_id)
     }
 
     pub fn branch_head_snapshot_id(&self, branch_id: SignalBranchId) -> Option<SignalSnapshotId> {
-        self.graph
-            .branch_head_snapshot_id(branch_id)
-            .or_else(|| self.branches.branch_head_snapshot_id(branch_id))
+        self.branches.branch_head_snapshot_id(branch_id)
     }
 
     fn replay_graph_for_branch(
@@ -152,6 +140,12 @@ where
 {
     pub(super) fn fork_denial_to_signal_error(denial: SignalBranchForkDenial) -> SignalError {
         match denial {
+            SignalBranchForkDenial::InvalidBranchIdentity => {
+                SignalError::invalid_input("invalid Signal branch identity")
+            }
+            SignalBranchForkDenial::BranchIdentityExhausted => {
+                SignalError::internal("Signal branch identity exhausted")
+            }
             SignalBranchForkDenial::UnknownParentBranch { parent_branch_id } => {
                 SignalError::unknown_branch(Some(parent_branch_id), "fork-parent")
             }

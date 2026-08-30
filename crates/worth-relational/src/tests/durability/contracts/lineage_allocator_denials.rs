@@ -2,10 +2,10 @@ use super::*;
 
 #[test]
 fn tail_created_lineage_allocator_exhaustion_denies_before_replay() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "lineage-overflow-checkpoint");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "lineage-overflow-checkpoint");
     runtime.durability_authority().checkpoint().unwrap();
-    create_entity_outcome(&mut runtime, "lineage-overflow-tail");
+    create_entity_outcome(&runtime, "lineage-overflow-tail");
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -20,7 +20,7 @@ fn tail_created_lineage_allocator_exhaustion_denies_before_replay() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("tail lineage allocator exhaustion must deny");
 
@@ -31,21 +31,27 @@ fn tail_created_lineage_allocator_exhaustion_denies_before_replay() {
 
 #[test]
 fn live_lineage_allocator_exhaustion_denies_before_public_effects() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "lineage-exhaustion-baseline");
+    let runtime = persisted_runtime_with_test_schema();
+    let baseline = create_entity_outcome(&runtime, "lineage-exhaustion-baseline");
     let baseline_entities = runtime.storage_access().storage_stats().live_entities;
-    let event_frontier = runtime.lineage.next_event_id;
-    runtime.lineage.next_lineage_id = u64::MAX - 1;
+    let (_, event_frontier) = runtime.lineage.identity_frontiers();
+    runtime
+        .lineage
+        .set_identity_frontiers(u64::MAX - 1, event_frontier);
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("lineage-exhaustion-denied"));
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(batch_create("lineage-exhaustion-denied"))
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("lineage reservation must deny at the allocator boundary");
 
     assert!(format!("{error:?}").contains("lineage id allocator exhausted"));
-    assert_eq!(runtime.lineage.next_lineage_id, u64::MAX - 1);
-    assert_eq!(runtime.lineage.next_event_id, event_frontier);
+    assert_eq!(
+        runtime.lineage.identity_frontiers(),
+        (u64::MAX - 1, event_frontier)
+    );
     assert_eq!(
         runtime
             .history()

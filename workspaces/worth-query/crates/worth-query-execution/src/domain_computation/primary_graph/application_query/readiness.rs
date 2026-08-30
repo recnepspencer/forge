@@ -38,7 +38,7 @@ where
         let basis_identity = basis.identity().clone();
         let schema_binding = self.installed_schema().binding_identity();
         let basis_token = basis_token(
-            &schema_binding,
+            &self.application_readiness_schema_token,
             basis_identity.runtime_instance_id(),
             basis_identity.descriptor(),
         );
@@ -68,7 +68,7 @@ where
             "application query basis",
         )?;
         Ok(basis_token(
-            &self.installed_schema().binding_identity(),
+            &self.application_readiness_schema_token,
             basis.runtime_instance_id(),
             basis.descriptor(),
         ))
@@ -87,7 +87,7 @@ where
             "application commit basis",
         )?;
         Ok(basis_token(
-            &self.installed_schema().binding_identity(),
+            &self.application_readiness_schema_token,
             receipt.provider_runtime_instance_id(),
             descriptor,
         ))
@@ -126,17 +126,15 @@ impl WorthQueryPrimaryGraphApplicationReadinessSnapshot {
 }
 
 fn basis_token(
-    schema: &ApplicationSchemaBindingIdentity,
+    schema_token: &str,
     runtime_instance_id: u64,
     descriptor: &worth_relational::facade::branch::RelationalBranchBasisDescriptor,
 ) -> String {
     format!(
-        "basis:query-primary-graph-v2:{}:{}:{}:{}:{}:{}",
+        "basis:query-primary-graph-v2:{}:{}:{}:{}",
         runtime_instance_id,
         descriptor.truth_version().as_u64(),
         descriptor.root_identity(),
-        schema.generation(),
-        schema.package_identity().render_hex(),
-        schema.schema_identity().render_hex(),
+        schema_token,
     )
 }

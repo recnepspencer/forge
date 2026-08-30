@@ -45,8 +45,11 @@ pub(crate) fn create_entity(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
+    let identity = runtime
+        .branch_identity(&branch)
+        .expect("fixture branch identity remains owner-issued");
     let options = runtime
-        .admit_named_branch_basis(&branch)
+        .admit_branch_basis(&identity)
         .expect("fixture branch remains owner-admissible");
     let mut txn = runtime
         .begin_branch_transaction(
@@ -64,16 +67,22 @@ pub(crate) fn create_entity(
                     .expect("seed name aspect patch"),
             }),
         )),
-    );
+    )
+    .expect("phase-six effect fixture staging fits the configured transaction budget");
     let outcome = txn.commit(runtime).expect("seed commit should succeed");
-    outcome
+    let entity_id = outcome
         .changed_records
         .iter()
         .find_map(|record| match record {
             RecordRef::Entity(entity_id) => Some(*entity_id),
             RecordRef::Relation(_) => None,
         })
-        .expect("seed commit should touch one entity")
+        .expect("seed commit should touch one entity");
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("phase-six seed snapshot should close exactly once");
+    entity_id
 }
 
 pub(crate) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
@@ -109,6 +118,7 @@ pub(crate) fn exact_branch_snapshot_identity(
 ) -> WorthQuerySnapshotIdentity {
     crate::memory_workspace::snapshot_identity_from_branch(runtime, &BranchId(branch.to_string()))
         .expect("exact branch fixture requires a current owner basis")
+        .expect("exact branch fixture requires a current head")
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {

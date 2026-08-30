@@ -15,13 +15,13 @@ fn guided_and_explicit_full_branch_requests_lower_to_identical_foundational_scop
     let main = runtime.current_branch();
 
     let default_scope = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .build_lowered_foundational_request()
         .expect("default guided merge should lower to foundational full-branch scope");
     let explicit_scope = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .full_branch()
@@ -72,7 +72,7 @@ fn selected_node_scope_lowers_identically_across_guided_and_proof_visible_lanes(
     let node_b = NodeId::new(3, 2);
 
     let guided_scope = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([node_a, node_b, node_a])
@@ -126,7 +126,7 @@ fn selected_aspect_scope_lowers_identically_across_guided_and_proof_visible_lane
     let node = NodeId::new(7, 1);
 
     let guided_scope = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects([
@@ -190,7 +190,7 @@ fn scoped_requests_keep_foundational_family_visible_when_planning_narrows_candid
     let main = runtime.current_branch();
 
     let lowered_request = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([scoped_node])
@@ -202,7 +202,7 @@ fn scoped_requests_keep_foundational_family_visible_when_planning_narrows_candid
     );
 
     let err = match runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_nodes([scoped_node])
@@ -255,7 +255,7 @@ fn compatibility_merge_branch_uses_the_same_foundational_full_branch_lowering_bo
     let main = runtime.current_branch();
 
     runtime
-        .merge_branch(feature, main)
+        .merge_branch_raw(feature, main)
         .expect("compatibility merge should still lower through foundational full-branch scope");
 
     assert_eq!(
@@ -290,7 +290,7 @@ fn malformed_scoped_requests_fail_before_foundational_lowering_and_distinct_fami
         .transaction
         .foundational_scope_lowering_count;
     let err = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes(Vec::<NodeId>::new())
@@ -311,14 +311,14 @@ fn malformed_scoped_requests_fail_before_foundational_lowering_and_distinct_fami
     );
 
     let selected_nodes = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([node])
         .build_lowered_foundational_request()
         .expect("selected-node request should lower");
     let selected_aspects = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_aspects([SignalSelectedAspectRequestEntry::new(node, ASPECT_A)])

@@ -15,14 +15,14 @@ use crate::authority::commit::preparation::proofs::locality::{
 use crate::authority::commit::preparation::proofs::validity::PreparationProofValidity;
 use crate::authority::commit::preparation::reduction::keys::ValidationReductionKey;
 use crate::config::data::RelationalExecutionModel;
-use crate::runtime::RelationalRuntime;
 use crate::validation::engine::InvariantExecutionRequest;
+use crate::validation::engine::InvariantRuntimeView;
 
 use super::packet_scope::packet_partition_scope;
 use super::packet_selection::eligible_registrations;
 
 pub(crate) fn plan_invariant_execution<'runtime, 'state>(
-    runtime: &'runtime RelationalRuntime,
+    runtime: &'runtime InvariantRuntimeView,
     request: &'state InvariantExecutionRequest<'state>,
 ) -> PreparedInvariantExecution<'state>
 where
@@ -49,7 +49,7 @@ where
 }
 
 fn planning_context(
-    runtime: &RelationalRuntime,
+    runtime: &InvariantRuntimeView,
     request: &InvariantExecutionRequest<'_>,
 ) -> PreparationPlanningContext {
     PreparationPlanningContext {
@@ -75,7 +75,7 @@ fn planning_context(
     }
 }
 
-fn proof_kind_for_runtime(runtime: &RelationalRuntime) -> PreparationProofKind {
+fn proof_kind_for_runtime(runtime: &InvariantRuntimeView) -> PreparationProofKind {
     if matches!(
         runtime.config.execution.execution_model,
         RelationalExecutionModel::ParallelPreparation
@@ -87,7 +87,7 @@ fn proof_kind_for_runtime(runtime: &RelationalRuntime) -> PreparationProofKind {
 }
 
 fn preparation_strategy_for_runtime(
-    runtime: &RelationalRuntime,
+    runtime: &InvariantRuntimeView,
     packet_count: usize,
     proof_kind: PreparationProofKind,
 ) -> PreparationStrategy {

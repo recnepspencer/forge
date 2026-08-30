@@ -16,6 +16,10 @@ pub enum WorthQueryPrincipalResolutionDenialKind {
     AmbiguousPrincipalTarget,
     WrongPrincipalTargetKind,
     StalePrincipalProof,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    SnapshotIdentityExhausted,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

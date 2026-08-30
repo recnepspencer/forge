@@ -12,38 +12,38 @@ use crate::authorization::{
 
 #[test]
 fn field_comparison_cannot_join_values_from_different_path_witnesses() {
-    let mut runtime = runtime_with_test_schema();
-    let principal = create_entity(&mut runtime, "witness-principal");
-    let left_a = create_entity(&mut runtime, "A");
-    let right_b = create_entity(&mut runtime, "B");
-    let left_b = create_entity(&mut runtime, "B");
-    let right_a = create_entity(&mut runtime, "A");
-    let scope = create_entity(&mut runtime, "witness-scope");
-    connect_branch(&mut runtime, principal, left_a, right_b, scope, "first");
-    connect_branch(&mut runtime, principal, left_b, right_a, scope, "second");
+    let runtime = runtime_with_test_schema();
+    let principal = create_entity(&runtime, "witness-principal");
+    let left_a = create_entity(&runtime, "A");
+    let right_b = create_entity(&runtime, "B");
+    let left_b = create_entity(&runtime, "B");
+    let right_a = create_entity(&runtime, "A");
+    let scope = create_entity(&runtime, "witness-scope");
+    connect_branch(&runtime, principal, left_a, right_b, scope, "first");
+    connect_branch(&runtime, principal, left_b, right_a, scope, "second");
 
-    let evidence = observe_same_witness_names(&mut runtime, principal, scope);
+    let evidence = observe_same_witness_names(&runtime, principal, scope);
     assert!(
         !evidence.paths()[0].matched(),
         "cross-branch A/A and B/B values must not form a synthetic witness"
     );
 
-    let matching_left = create_entity(&mut runtime, "same");
-    let matching_right = create_entity(&mut runtime, "same");
+    let matching_left = create_entity(&runtime, "same");
+    let matching_right = create_entity(&runtime, "same");
     connect_branch(
-        &mut runtime,
+        &runtime,
         principal,
         matching_left,
         matching_right,
         scope,
         "matching",
     );
-    let evidence = observe_same_witness_names(&mut runtime, principal, scope);
+    let evidence = observe_same_witness_names(&runtime, principal, scope);
     assert!(evidence.paths()[0].matched());
 }
 
 fn observe_same_witness_names(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     principal: crate::identity::data::EntityId,
     scope: crate::identity::data::EntityId,
 ) -> crate::authorization::RelationalAuthorizationObservationEvidence {
@@ -77,7 +77,7 @@ fn observe_same_witness_names(
 }
 
 fn connect_branch(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     principal: crate::identity::data::EntityId,
     left: crate::identity::data::EntityId,
     right: crate::identity::data::EntityId,

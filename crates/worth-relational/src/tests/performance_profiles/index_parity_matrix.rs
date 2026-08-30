@@ -7,9 +7,9 @@ fn perf_index_parity_matrix() {
 
     let warm_generation_samples =
         capture_perf_samples(suite, "entity_field_equals_warm_generation", || {
-            let mut runtime = runtime_with_test_schema();
-            let alpha = create_entity_outcome(&mut runtime, "alpha");
-            let _beta = create_entity_outcome(&mut runtime, "beta");
+            let runtime = runtime_with_test_schema();
+            let alpha = create_entity_outcome(&runtime, "alpha");
+            let _beta = create_entity_outcome(&runtime, "beta");
             let index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "entity.name.lookup".to_string(),
@@ -101,8 +101,8 @@ fn perf_index_parity_matrix() {
         suite,
         "entity_field_equals_build_failed_storage_read",
         || {
-            let mut runtime = runtime_with_test_schema();
-            let alpha = create_entity_outcome(&mut runtime, "alpha");
+            let runtime = runtime_with_test_schema();
+            let alpha = create_entity_outcome(&runtime, "alpha");
             let index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "entity.name.lookup".to_string(),
@@ -121,12 +121,10 @@ fn perf_index_parity_matrix() {
             assert!(build.failed_indexes.is_empty());
             runtime
                 .indexes
-                .generations
-                .get_mut(&index.index_id)
-                .expect("index generations")
-                .last_mut()
-                .expect("built generation")
-                .status = crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
+                .corrupt_latest_generation(index.index_id, |generation| {
+                    generation.status =
+                        crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
+                });
 
             runtime.performance_access().reset_counters();
             let query_started_at = Instant::now();
@@ -196,8 +194,8 @@ fn perf_index_parity_matrix() {
 
     let persisted_recovery_samples =
         capture_perf_samples(suite, "persisted_recovery_generation_parity", || {
-            let mut runtime = persisted_runtime_with_test_schema();
-            let alpha = create_entity_outcome(&mut runtime, "alpha");
+            let runtime = persisted_runtime_with_test_schema();
+            let alpha = create_entity_outcome(&runtime, "alpha");
             let index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "entity.name.lookup".to_string(),
@@ -235,8 +233,8 @@ fn perf_index_parity_matrix() {
                 .expect("original persisted query outcome");
 
             let recover_started_at = Instant::now();
-            let (_recovery, mut recovered) =
-                checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+            let (_recovery, recovered) =
+                checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
             let recover_micros = recover_started_at.elapsed().as_micros();
             let recovered_snapshot = recovered.visibility_authority().snapshot();
 

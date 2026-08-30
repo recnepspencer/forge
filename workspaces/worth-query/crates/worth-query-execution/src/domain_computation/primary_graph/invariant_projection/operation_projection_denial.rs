@@ -5,6 +5,7 @@ use super::super::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryOperationProjectionDenialKind {
     Authorization(WorthQueryOperationAuthorizationDenialKind),
+    InvariantAdmission(super::WorthQueryInvariantProjectionDenialKind),
     WorkBudgetExceeded,
 }
 
@@ -19,6 +20,23 @@ impl WorthQueryOperationProjectionDenial {
     pub(super) fn work_budget_exceeded(subject: impl Into<String>) -> Self {
         Self {
             kind: WorthQueryOperationProjectionDenialKind::WorkBudgetExceeded,
+            authorization_denial: None,
+            subject: subject.into(),
+        }
+    }
+
+    pub(super) fn from_invariant(
+        denial: super::WorthQueryInvariantProjectionDenial,
+        subject: impl Into<String>,
+    ) -> Self {
+        let kind = match denial.kind() {
+            super::WorthQueryInvariantProjectionDenialKind::WorkBudgetExceeded => {
+                WorthQueryOperationProjectionDenialKind::WorkBudgetExceeded
+            }
+            kind => WorthQueryOperationProjectionDenialKind::InvariantAdmission(kind),
+        };
+        Self {
+            kind,
             authorization_denial: None,
             subject: subject.into(),
         }

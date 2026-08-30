@@ -9,12 +9,12 @@ use crate::tests::support::*;
 
 #[test]
 fn concurrent_snapshot_and_version_reads_match_serial_truth() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
-    let created = create_entity_outcome(&mut runtime, "before");
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let created = create_entity_outcome(&runtime, "before");
     let created_version_id = created.version_id;
     let entity = changed_entities(&created)[0];
     let explicit_snapshot = runtime.visibility_authority().snapshot();
-    let updated = update_entity(&mut runtime, entity, "after");
+    let updated = update_entity(&runtime, entity, "after");
     let serial_snapshot_name = {
         let read = runtime
             .read_truth()
@@ -83,15 +83,15 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
 
 #[test]
 fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let created = create_entity_outcome(&mut runtime, "baseline");
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let created = create_entity_outcome(&runtime, "baseline");
     let created_version_id = created.version_id;
     let entity = changed_entities(&created)[0];
     let explicit_snapshot = runtime.visibility_authority().snapshot();
-    let updated = update_entity(&mut runtime, entity, "mutated");
-    let _ = create_entity_outcome(&mut runtime, "churn-1");
-    let _ = create_entity_outcome(&mut runtime, "churn-2");
-    let _ = create_entity_outcome(&mut runtime, "churn-3");
+    let updated = update_entity(&runtime, entity, "mutated");
+    let _ = create_entity_outcome(&runtime, "churn-1");
+    let _ = create_entity_outcome(&runtime, "churn-2");
+    let _ = create_entity_outcome(&runtime, "churn-3");
     runtime.performance_access().reset_counters();
     let runtime = Arc::new(runtime);
 
@@ -137,10 +137,10 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
 
 #[test]
 fn published_snapshot_read_diagnostics_use_authoritative_binding_version() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let created = create_entity_outcome(&mut runtime, "baseline");
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let created = create_entity_outcome(&runtime, "baseline");
     let entity = changed_entities(&created)[0];
-    let updated = update_entity(&mut runtime, entity, "mutated");
+    let updated = update_entity(&runtime, entity, "mutated");
     let mut stale_handle = updated.snapshot.clone();
     stale_handle.version_id = created.snapshot.version_id;
 
@@ -164,7 +164,7 @@ fn published_snapshot_read_diagnostics_use_authoritative_binding_version() {
 
 #[test]
 fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pressure() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::GeometryKernel)
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
@@ -172,22 +172,22 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
         .execution_model(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation)
         .build();
     let seeds = vec![
-        create_entity_in_partition(&mut runtime, "s0", PartitionId(7)),
-        create_entity_in_partition(&mut runtime, "s1", PartitionId(11)),
-        create_entity_in_partition(&mut runtime, "s2", PartitionId(13)),
-        create_entity_in_partition(&mut runtime, "s3", PartitionId(17)),
-        create_entity_in_partition(&mut runtime, "s4", PartitionId(19)),
+        create_entity_in_partition(&runtime, "s0", PartitionId(7)),
+        create_entity_in_partition(&runtime, "s1", PartitionId(11)),
+        create_entity_in_partition(&runtime, "s2", PartitionId(13)),
+        create_entity_in_partition(&runtime, "s3", PartitionId(17)),
+        create_entity_in_partition(&runtime, "s4", PartitionId(19)),
     ];
     let neighbors = vec![
-        create_entity_in_partition(&mut runtime, "n0", PartitionId(23)),
-        create_entity_in_partition(&mut runtime, "n1", PartitionId(29)),
-        create_entity_in_partition(&mut runtime, "n2", PartitionId(31)),
-        create_entity_in_partition(&mut runtime, "n3", PartitionId(37)),
-        create_entity_in_partition(&mut runtime, "n4", PartitionId(41)),
+        create_entity_in_partition(&runtime, "n0", PartitionId(23)),
+        create_entity_in_partition(&runtime, "n1", PartitionId(29)),
+        create_entity_in_partition(&runtime, "n2", PartitionId(31)),
+        create_entity_in_partition(&runtime, "n3", PartitionId(37)),
+        create_entity_in_partition(&runtime, "n4", PartitionId(41)),
     ];
     for (index, (seed, neighbor)) in seeds.iter().zip(neighbors.iter()).enumerate() {
         create_relation_in_partition(
-            &mut runtime,
+            &runtime,
             *seed,
             *neighbor,
             &format!("edge-{index}"),
@@ -225,11 +225,11 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
         .expect("baseline query outcome")
         .result;
 
-    let churn_entity = create_entity_in_partition(&mut runtime, "rewrite-anchor", PartitionId(53));
-    let _ = update_entity(&mut runtime, churn_entity, "rewrite-anchor-2");
-    let extra_neighbor = create_entity_in_partition(&mut runtime, "late-neighbor", PartitionId(59));
+    let churn_entity = create_entity_in_partition(&runtime, "rewrite-anchor", PartitionId(53));
+    let _ = update_entity(&runtime, churn_entity, "rewrite-anchor-2");
+    let extra_neighbor = create_entity_in_partition(&runtime, "late-neighbor", PartitionId(59));
     let _ = create_relation_in_partition(
-        &mut runtime,
+        &runtime,
         seeds[0],
         extra_neighbor,
         "late-edge",
@@ -267,26 +267,26 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
 
 #[test]
 fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_pressure() {
-    let mut runtime = runtime_with_test_schema_execution_model(
+    let runtime = runtime_with_test_schema_execution_model(
         crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
-    let source = create_entity_outcome(&mut runtime, "source");
+    let source = create_entity_outcome(&runtime, "source");
     let source_id = changed_entities(&source)[0];
     let targets = [
-        create_entity_in_partition(&mut runtime, "r0", PartitionId(7)),
-        create_entity_in_partition(&mut runtime, "r1", PartitionId(11)),
-        create_entity_in_partition(&mut runtime, "r2", PartitionId(13)),
+        create_entity_in_partition(&runtime, "r0", PartitionId(7)),
+        create_entity_in_partition(&runtime, "r1", PartitionId(11)),
+        create_entity_in_partition(&runtime, "r2", PartitionId(13)),
     ];
     for (index, target) in targets.into_iter().enumerate() {
         create_relation_in_partition(
-            &mut runtime,
+            &runtime,
             source_id,
             target,
             if index < 2 { "fast" } else { "slow" },
             PartitionId(23 + index as u32),
         );
     }
-    let commit = create_entity_outcome(&mut runtime, "anchor");
+    let commit = create_entity_outcome(&runtime, "anchor");
     let relation_index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "relation.name".to_string(),

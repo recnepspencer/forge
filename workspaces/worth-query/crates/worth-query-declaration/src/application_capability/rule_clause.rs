@@ -6,6 +6,15 @@ use worth_foundational::facade::AspectValue;
 
 use super::{ApplicationCapabilityFieldBinding, ApplicationCapabilityPathContextAnchor};
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityAcceptedValuesParts,
+    WorthQueryPortableApplicationCapabilityGraphClauseParts,
+    WorthQueryPortableApplicationCapabilityGraphRequirementParts,
+    WorthQueryPortableApplicationCapabilityGraphRuleParts,
+    WorthQueryPortableApplicationCapabilityScopeGuardParts,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityAcceptedValues {
     field: ApplicationCapabilityFieldBinding,

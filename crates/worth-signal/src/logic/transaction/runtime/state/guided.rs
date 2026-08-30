@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::data::aspect::Aspect;
 use crate::data::error::SignalError;
 use crate::diagnostics::{LineageEvent, ReplayView, SynthesizedLineageChain};
-use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotV1};
+use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::merge::{
     AspectMergePolicyBinding, AspectMergePolicyName, BranchMergeRequest, BranchMergeRequestDenial,
@@ -14,7 +14,7 @@ use super::merge::{
 };
 use super::runtime_state::SignalRuntime;
 
-pub struct PlannedRuntimeMerge<'a, D, I, E, Ctx, T>
+pub(crate) struct RawPlannedRuntimeMerge<'a, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -26,7 +26,7 @@ where
     plan: crate::logic::transaction::runtime::BranchMergePlan,
 }
 
-impl<'a, D, I, E, Ctx, T> PlannedRuntimeMerge<'a, D, I, E, Ctx, T>
+impl<'a, D, I, E, Ctx, T> RawPlannedRuntimeMerge<'a, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -55,6 +55,19 @@ where
     pub fn execute(self) -> Result<BranchMergeResult, SignalError> {
         self.runtime
             .execute_branch_merge_request_plan(&self.lowered_request, &self.plan)
+    }
+
+    pub(crate) fn execute_admitted(
+        self,
+        source: &crate::branch::AdmittedSignalBranchBasis,
+        target: &crate::branch::AdmittedSignalBranchBasis,
+    ) -> Result<crate::branch::SignalBranchMergeOutcome, SignalError> {
+        self.runtime.execute_admitted_branch_merge_request_plan(
+            source,
+            target,
+            &self.lowered_request,
+            &self.plan,
+        )
     }
 }
 
@@ -93,17 +106,6 @@ where
         self.runtime.branch_ancestry(branch_id)
     }
 
-    pub fn snapshot(&mut self) -> Result<SignalSnapshotV1, SignalError> {
-        self.runtime.capture_snapshot()
-    }
-
-    pub fn branch_snapshot(
-        &mut self,
-        branch: SignalBranchHandle,
-    ) -> Result<SignalSnapshotV1, SignalError> {
-        self.runtime.capture_branch_snapshot(branch)
-    }
-
     pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplayView {
         self.runtime.replay_for_branch(branch_id)
     }
@@ -121,7 +123,7 @@ where
     }
 }
 
-pub struct RuntimeMerge<'a, D, I, E, Ctx, T>
+pub(crate) struct RawRuntimeMerge<'a, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -130,19 +132,19 @@ where
     runtime: &'a mut SignalRuntime<D, I, E, Ctx, T>,
     source: Option<SignalBranchHandle>,
     target: Option<SignalBranchHandle>,
-    strategy_name: Option<MergeStrategyName>,
-    strategy_hint: Option<BranchMergeStrategy>,
-    merge_base_name: Option<MergeBaseStrategyName>,
-    conflict_policy_name: Option<ConflictPolicyName>,
-    conflict_isolation_policy_name: Option<ConflictIsolationPolicyName>,
-    identity_matcher_name: Option<IdentityMatcherName>,
-    source_only_policy_name: Option<SourceOnlyPolicyName>,
-    deletion_policy_name: Option<DeletionPolicyName>,
-    aspect_policy_bindings: Vec<AspectMergePolicyBinding>,
-    scope: Option<BranchMergeRequestScope>,
+    pub(super) strategy_name: Option<MergeStrategyName>,
+    pub(super) strategy_hint: Option<BranchMergeStrategy>,
+    pub(super) merge_base_name: Option<MergeBaseStrategyName>,
+    pub(super) conflict_policy_name: Option<ConflictPolicyName>,
+    pub(super) conflict_isolation_policy_name: Option<ConflictIsolationPolicyName>,
+    pub(super) identity_matcher_name: Option<IdentityMatcherName>,
+    pub(super) source_only_policy_name: Option<SourceOnlyPolicyName>,
+    pub(super) deletion_policy_name: Option<DeletionPolicyName>,
+    pub(super) aspect_policy_bindings: Vec<AspectMergePolicyBinding>,
+    pub(super) scope: Option<BranchMergeRequestScope>,
 }
 
-impl<'a, D, I, E, Ctx, T> RuntimeMerge<'a, D, I, E, Ctx, T>
+impl<'a, D, I, E, Ctx, T> RawRuntimeMerge<'a, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -290,12 +292,12 @@ where
         self.runtime.lower_foundational_merge_request(&request)
     }
 
-    pub fn plan(self) -> Result<PlannedRuntimeMerge<'a, D, I, E, Ctx, T>, SignalError> {
+    pub fn plan(self) -> Result<RawPlannedRuntimeMerge<'a, D, I, E, Ctx, T>, SignalError> {
         let request = self.build_normalized_request()?;
         let lowered_request = self.runtime.lower_foundational_merge_request(&request)?;
         let request = lowered_request.normalized_request().clone();
         let plan = self.runtime.plan_branch_merge_request(&lowered_request)?;
-        Ok(PlannedRuntimeMerge {
+        Ok(RawPlannedRuntimeMerge {
             runtime: self.runtime,
             request,
             lowered_request,

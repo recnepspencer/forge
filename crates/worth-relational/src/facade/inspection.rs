@@ -1,3 +1,4 @@
+pub use crate::history::retention::RelationalRetentionCostCounters;
 pub use crate::inspection::data::{
     CommitInspection, ConnectivityComponentSummary, ConnectivityInspectionBudget,
     ConnectivityInspectionRequest, ConnectivityInspectionSummary, GraphInspectionBudget,
@@ -21,7 +22,9 @@ pub use crate::inspection::mvcc::allocation_ledger::{
     RelationalCanonicalPayloadObservation, RelationalExcludedAllocationLane,
     RelationalOwnerAllocationLedgerObservation, RelationalOwnerExcludedAllocationObservation,
 };
-pub use crate::inspection::mvcc::cost::{RelationalMvccCostObservation, RelationalMvccCostScope};
+pub use crate::inspection::mvcc::cost::{
+    RelationalMvccCostObservation, RelationalMvccCostScope, RelationalMvccCounterObservation,
+};
 pub use crate::inspection::mvcc::sharing::{
     RelationalAuthoritativeAllocationKind, RelationalAuthoritativeAllocationLocator,
     RelationalAuthoritativeAllocationObservation, RelationalBranchSharingInspectionDenial,

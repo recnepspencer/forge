@@ -1117,6 +1117,12 @@ Use it when multiple crates need to agree about:
   and trust-boundary readmission
 - milestone closure truth for transition surfaces through readiness artifacts
 
+The canonical exact-reference guide is
+[Exact Branch References](./branching-merging-and-commit-vocabulary/branch-references.md).
+Its target/identity/generation grammar is descriptive and portable. It neither
+reuses nor upgrades Milestone 5's epoch/equivalence candidate bases, and it
+never moves component currentness, retention, or authority into Foundational.
+
 The actual capability inventory is much larger than "branch, merge, commit":
 
 - branch-local authoring through `foundational_branch_candidate()`

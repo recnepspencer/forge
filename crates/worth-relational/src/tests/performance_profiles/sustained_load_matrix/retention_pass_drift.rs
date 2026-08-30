@@ -3,7 +3,7 @@ use super::*;
 pub(super) fn certify_retention_pass_drift_stability(suite: &'static str) {
     let retention_pass_drift_samples =
         capture_perf_samples(suite, "retention_pass_drift_stability", || {
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
             const ITERATIONS: usize = 48;
             let mut total_inspect_micros = 0u128;
@@ -14,16 +14,17 @@ pub(super) fn certify_retention_pass_drift_stability(suite: &'static str) {
 
             runtime.performance_access().reset_counters();
             for index in 0..ITERATIONS {
-                let created =
-                    create_entity_outcome(&mut runtime, &format!("retention-drift-{index}"));
+                let created = create_entity_outcome(&runtime, &format!("retention-drift-{index}"));
                 let entity = changed_entities(&created)[0];
-                let deleted = delete_entity(&mut runtime, entity);
+                let deleted = delete_entity(&runtime, entity);
                 assert!(runtime
                     .visibility_authority()
-                    .release_snapshot(&created.snapshot));
+                    .release_snapshot(&created.snapshot)
+                    .is_ok());
                 assert!(runtime
                     .visibility_authority()
-                    .release_snapshot(&deleted.snapshot));
+                    .release_snapshot(&deleted.snapshot)
+                    .is_ok());
 
                 let inspect_started_at = Instant::now();
                 let plan = runtime.retention().inspect_plan();

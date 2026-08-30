@@ -10,7 +10,7 @@ use crate::tests::support::*;
 #[test]
 fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_contract() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.geometry.v3".to_string(),
         accepted_upgrade_classes: SubscriberContinuationClassSet::new([
@@ -41,8 +41,10 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
             )
             .expect("owner-admitted transaction context")
     };
-    visible_txn.push_batch(batch_create("b"));
-    visible_txn.commit(&mut runtime).unwrap();
+    visible_txn
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    visible_txn.commit(&runtime).unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
     let mut upgrade_txn = {
@@ -58,8 +60,10 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
             )
             .expect("owner-admitted transaction context")
     };
-    upgrade_txn.push_batch(batch_create("c"));
-    upgrade_txn.commit(&mut runtime).unwrap();
+    upgrade_txn
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
+    upgrade_txn.commit(&runtime).unwrap();
 
     let resumed = runtime
         .publication()

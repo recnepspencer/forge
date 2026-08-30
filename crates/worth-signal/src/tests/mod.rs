@@ -42,6 +42,8 @@ mod branch_merge_scoped_denial_support;
 mod branch_merge_scoped_proof;
 mod branch_merge_strategy_identity;
 mod branch_restore;
+mod branch_snapshot_budget;
+mod branch_snapshot_retirement;
 mod branch_targeted_transactions;
 mod canonicalization;
 mod comparator_policy;

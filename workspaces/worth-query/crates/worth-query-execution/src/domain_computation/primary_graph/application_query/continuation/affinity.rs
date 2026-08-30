@@ -22,8 +22,8 @@ pub(super) struct WorthQueryValidatedContinuationAffinity {
     pub(super) index_generation: DerivedIndexGenerationId,
     pub(super) boundary: RelatedEntityOrderingBoundary,
     pub(super) page_ordinal: u64,
-    pub(super) _basis_retention:
-        worth_relational::facade::branch::RelationalComponentBasisRetentionLease,
+    pub(super) basis_retention:
+        Option<worth_relational::facade::branch::RelationalBranchRetentionLease>,
 }
 
 pub(super) fn validate_continuation_affinity<Schema, Query, Parameters, QueryResult, Scope>(
@@ -85,7 +85,7 @@ where
         index_generation: continuation.index_generation,
         boundary: continuation.boundary,
         page_ordinal: continuation.page_ordinal,
-        _basis_retention: continuation.basis_retention,
+        basis_retention: Some(continuation.basis_retention),
     })
 }
 

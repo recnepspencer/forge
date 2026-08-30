@@ -6,11 +6,13 @@ pub(super) fn certify_merge_execution_zero_diagnostics_budget(suite: &'static st
         "merge_execution_feature_adoption_zero_diagnostics_budget",
         || {
             let mut runtime = persisted_runtime_with_test_schema();
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
-            create_entity(&mut runtime, "main-anchor");
-            create_branch_from_main(&mut runtime, "feature");
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.max_entries_per_artifact = 0;
+            });
+            create_entity(&runtime, "main-anchor");
+            create_branch_from_main(&runtime, "feature");
             let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-                &mut runtime,
+                &runtime,
                 BranchId("feature".to_string()),
             );
             txn.push_batch(
@@ -29,9 +31,9 @@ pub(super) fn certify_merge_execution_zero_diagnostics_budget(suite: &'static st
                     ))
                     .into(),
                 ),
-            );
-            let _feature_only =
-                changed_entities(&txn.commit(&mut runtime).expect("feature create"))[0];
+            )
+            .expect("test staging stays within configured resource budgets");
+            let _feature_only = changed_entities(&txn.commit(&runtime).expect("feature create"))[0];
 
             let prepared = runtime
                 .prepare_merge_execution(MergeExecutionRequest {

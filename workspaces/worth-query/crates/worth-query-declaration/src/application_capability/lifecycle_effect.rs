@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 
 use crate::application_schema::{ApplicationEffectPayload, ApplicationEffectRef, OperationEmits};
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 
 /// Typed derivation of the one effect caused by an elevation lifecycle input.
 ///
@@ -11,7 +12,7 @@ use crate::application_schema::{ApplicationEffectPayload, ApplicationEffectRef, 
 /// independently authored emission to the framework-owned lifecycle program.
 pub trait ApplicationCapabilityLifecycleEffect<Schema, Operation>: 'static {
     type Effect: OperationEmits<Operation>;
-    type Payload: ApplicationEffectPayload;
+    type Payload: ApplicationEffectPayload + WorthQueryPortableType;
 
     fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload>;
 
@@ -22,8 +23,16 @@ pub trait ApplicationCapabilityLifecycleEffect<Schema, Operation>: 'static {
 pub struct ApplicationCapabilityLifecycleEffectBinding {
     effect: String,
     effect_type: String,
-    payload_type: String,
-    derive: fn(&dyn Any) -> Option<DerivedApplicationCapabilityLifecycleEffect>,
+    payload_type: WorthQueryPortableTypeIdentity,
+    derive: Option<fn(&dyn Any) -> Option<DerivedApplicationCapabilityLifecycleEffect>>,
+}
+
+/// Callback-free lifecycle-effect meaning retained by a portable package.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct WorthQueryPortableApplicationCapabilityLifecycleEffectParts {
+    pub effect: String,
+    pub effect_type: String,
+    pub payload_type: WorthQueryPortableTypeIdentity,
 }
 
 impl ApplicationCapabilityLifecycleEffectBinding {
@@ -33,9 +42,9 @@ impl ApplicationCapabilityLifecycleEffectBinding {
     {
         Self {
             effect: Input::effect().name().to_string(),
-            effect_type: std::any::type_name::<Input::Effect>().to_string(),
-            payload_type: std::any::type_name::<Input::Payload>().to_string(),
-            derive: derive_from_input::<Schema, Operation, Input>,
+            effect_type: Input::effect().name().to_string(),
+            payload_type: Input::Payload::PORTABLE_TYPE_IDENTITY,
+            derive: Some(derive_from_input::<Schema, Operation, Input>),
         }
     }
 
@@ -48,19 +57,38 @@ impl ApplicationCapabilityLifecycleEffectBinding {
     }
 
     pub fn payload_type(&self) -> &str {
-        &self.payload_type
+        self.payload_type.as_str()
+    }
+
+    pub fn from_untrusted_parts(
+        parts: WorthQueryPortableApplicationCapabilityLifecycleEffectParts,
+    ) -> Self {
+        Self {
+            effect: parts.effect,
+            effect_type: parts.effect_type,
+            payload_type: parts.payload_type,
+            derive: None,
+        }
+    }
+
+    pub fn parts(&self) -> WorthQueryPortableApplicationCapabilityLifecycleEffectParts {
+        WorthQueryPortableApplicationCapabilityLifecycleEffectParts {
+            effect: self.effect.clone(),
+            effect_type: self.effect_type.clone(),
+            payload_type: self.payload_type.clone(),
+        }
     }
 
     pub(crate) fn derive_from_retained_input(
         &self,
         input: &dyn Any,
     ) -> Option<DerivedApplicationCapabilityLifecycleEffect> {
-        (self.derive)(input).filter(|derived| {
-            derived.effect() == self.effect && derived.payload_type() == self.payload_type
+        (self.derive?)(input).filter(|derived| {
+            derived.effect() == self.effect && derived.payload_type() == self.payload_type.as_str()
         })
     }
 
-    fn meaning(&self) -> (&str, &str, &str) {
+    fn meaning(&self) -> (&str, &str, &WorthQueryPortableTypeIdentity) {
         (&self.effect, &self.effect_type, &self.payload_type)
     }
 }
@@ -100,7 +128,7 @@ impl Ord for ApplicationCapabilityLifecycleEffectBinding {
 #[derive(Clone)]
 pub struct DerivedApplicationCapabilityLifecycleEffect {
     effect: &'static str,
-    payload_type: &'static str,
+    payload_type: WorthQueryPortableTypeIdentity,
     payload_type_id: TypeId,
     payload: Arc<dyn Any + Send + Sync>,
     retained_bytes: u64,
@@ -112,8 +140,12 @@ impl DerivedApplicationCapabilityLifecycleEffect {
         self.effect
     }
 
-    pub fn payload_type(&self) -> &'static str {
-        self.payload_type
+    pub fn payload_type(&self) -> &str {
+        self.payload_type.as_str()
+    }
+
+    pub fn payload_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.payload_type.clone()
     }
 
     pub fn payload_type_id(&self) -> TypeId {
@@ -159,7 +191,7 @@ where
     let retained_bytes = payload.retained_bytes();
     Some(DerivedApplicationCapabilityLifecycleEffect {
         effect: Input::effect().name(),
-        payload_type: std::any::type_name::<Input::Payload>(),
+        payload_type: Input::Payload::PORTABLE_TYPE_IDENTITY,
         payload_type_id: TypeId::of::<Input::Payload>(),
         payload: Arc::new(payload),
         retained_bytes,

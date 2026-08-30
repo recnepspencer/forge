@@ -46,7 +46,7 @@ fn dependency_collection_mechanism_does_not_change_authorization_meaning() {
 
 #[test]
 fn exact_authorization_observation_stales_after_membership_revocation() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let admitted_snapshot = fixture.runtime.visibility_authority().snapshot();
     let admitted = fixture
         .runtime
@@ -66,7 +66,7 @@ fn exact_authorization_observation_stales_after_membership_revocation() {
     );
 
     let revoked = delete_relation_on_branch(
-        &mut fixture.runtime,
+        &fixture.runtime,
         fixture.role_scope_relation,
         BranchId("main".to_string()),
     );
@@ -80,7 +80,7 @@ fn exact_authorization_observation_stales_after_membership_revocation() {
 
 #[test]
 fn unrelated_relation_kind_does_not_widen_authorization_causality() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let admitted_snapshot = fixture.runtime.visibility_authority().snapshot();
     let admitted = fixture
         .runtime
@@ -91,13 +91,8 @@ fn unrelated_relation_kind_does_not_widen_authorization_causality() {
             [],
         ))
         .unwrap();
-    let unrelated = create_entity(&mut fixture.runtime, "unrelated-kind-target");
-    create_relation_of_kind(
-        &mut fixture.runtime,
-        fixture.principal,
-        unrelated,
-        KindId(99),
-    );
+    let unrelated = create_entity(&fixture.runtime, "unrelated-kind-target");
+    create_relation_of_kind(&fixture.runtime, fixture.principal, unrelated, KindId(99));
     let current = fixture.runtime.visibility_authority().snapshot();
 
     assert_eq!(
@@ -110,7 +105,7 @@ fn unrelated_relation_kind_does_not_widen_authorization_causality() {
 
 #[test]
 fn newly_matching_parallel_path_stales_the_exact_observation() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let admitted_snapshot = fixture.runtime.visibility_authority().snapshot();
     let admitted = fixture
         .runtime
@@ -123,7 +118,7 @@ fn newly_matching_parallel_path_stales_the_exact_observation() {
     assert!(!admitted.paths()[1].matched());
 
     create_relation(
-        &mut fixture.runtime,
+        &fixture.runtime,
         fixture.principal,
         fixture.scope,
         "newly-matching-deny",
@@ -138,24 +133,25 @@ fn newly_matching_parallel_path_stales_the_exact_observation() {
 }
 
 fn create_relation_of_kind(
-    mut runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
     kind_id: KindId,
 ) {
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(
-        WorkerIntentBatch::new("unrelated-kind").push(MutationIntent::Create(
-            CreateIntent::Relation(RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id,
-                client_key: crate::symbols::data::ClientKey::raw("unrelated-kind"),
-                source: EntityReference::Existing(source),
-                target: EntityReference::Existing(target),
-                fields: AspectFieldPatch::default(),
-            }),
-        )),
-    );
-    transaction.commit(&mut runtime).unwrap();
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("unrelated-kind").push(MutationIntent::Create(
+                CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id,
+                    client_key: crate::symbols::data::ClientKey::raw("unrelated-kind"),
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
+                    fields: AspectFieldPatch::default(),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    transaction.commit(runtime).unwrap();
 }

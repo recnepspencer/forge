@@ -6,7 +6,7 @@ use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{CommitLog, TransactionCommitError};
 
 pub(super) struct PreparedPublicationPhase {
@@ -68,6 +68,10 @@ impl PreparedPublicationPhase {
         self.record_allocations.reservation_count()
     }
 
+    pub(super) fn prepared_root(&self) -> &Arc<crate::branch::RelationalBranchRoot> {
+        self.prepared_history.root()
+    }
+
     #[cfg(test)]
     pub(super) fn materialization_counts(&self) -> (u64, u64) {
         self.prepared_history.materialization_counts()
@@ -126,7 +130,7 @@ pub(super) struct PreparePublicationPhaseInput<'a> {
 }
 
 pub(super) fn prepare_publication_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     input: PreparePublicationPhaseInput<'_>,
 ) -> Result<PreparedPublicationPhase, TransactionCommitError> {
     let PreparePublicationPhaseInput {
@@ -151,6 +155,7 @@ pub(super) fn prepare_publication_phase(
         adjacency_deltas,
         lineage_nodes,
         deferred_diagnostic_artifacts,
+        target_schema_registry,
     ) = publication.into_finalize().into_parts();
     let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
     let mut working_state = working_state;
@@ -171,6 +176,13 @@ pub(super) fn prepare_publication_phase(
         crate::storage::RelationalPublishedPartitionDelta::from_committed_partitions(
             &committed_partitions,
         );
+    let publication_schema_registry = target_schema_registry
+        .or_else(|| {
+            selected_branch_state
+                .root()
+                .map(|root| root.schema_authority().registry_arc())
+        })
+        .unwrap_or_else(|| std::sync::Arc::new(runtime.config.schema.registry.clone()));
     let prepared_history = runtime
         .mvcc_publication_authority()
         .prepare_commit(
@@ -180,6 +192,7 @@ pub(super) fn prepare_publication_phase(
             &selected_branch_state,
             published_partition_delta,
             Arc::clone(&canonical_commit_envelope),
+            publication_schema_registry.as_ref(),
         )
         .map_err(|detail| {
             TransactionCommitError::publication(PublicationError::new(
@@ -189,11 +202,14 @@ pub(super) fn prepare_publication_phase(
             .with_commit_log(commit_log.clone())
         })?;
     let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
-        super::CommitDurableAppendAdmission::new(runtime, commit_id, &branch_id),
+        super::CommitDurableAppendAdmission::new(
+            runtime.runtime_instance_id(),
+            commit_id,
+            &branch_id,
+        ),
     );
-    let validated_lineage_events = runtime
-        .lineage
-        .validate_live_event_batch(canonical_commit_envelope.lineage_events())
+    runtime
+        .validate_reserved_lineage_events(canonical_commit_envelope.lineage_events())
         .map_err(|detail| {
             TransactionCommitError::publication(PublicationError::new(
                 PublicationStage::BundleAssembly,
@@ -201,6 +217,9 @@ pub(super) fn prepare_publication_phase(
             ))
             .with_commit_log(commit_log.clone())
         })?;
+    let validated_lineage_events = crate::runtime::ValidatedLineageEventBatch::from_reserved(
+        canonical_commit_envelope.lineage_events().to_vec(),
+    );
     let canonical_publication_route = runtime
         .history
         .reserve_canonical_publication_route(

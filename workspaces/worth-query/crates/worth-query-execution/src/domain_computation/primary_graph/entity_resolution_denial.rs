@@ -9,6 +9,10 @@ pub enum WorthQueryEntityResolutionDenialKind {
     AmbiguousEntity,
     CorruptIdentityIndex,
     ProjectionWorkBudgetExceeded,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    SnapshotIdentityExhausted,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
     ForeignResolutionTruth,
 }
 

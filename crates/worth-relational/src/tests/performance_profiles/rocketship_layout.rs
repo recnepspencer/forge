@@ -130,12 +130,12 @@ pub(super) fn rocketship_query_target_count(node_count: usize) -> usize {
 }
 
 pub(super) fn seed_rocketship_world(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     node_count: usize,
 ) -> RocketshipSeedOutcome {
     let entity_commit_started_at = Instant::now();
     let entity_outcome = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
         let mut batch = WorkerIntentBatch::new("rocketship-entities-bulk");
         let mut entity_specs = Vec::with_capacity(node_count);
         for index in 0..node_count {
@@ -163,9 +163,9 @@ pub(super) fn seed_rocketship_world(
         for intent in bulk_entity_create_intents(&entity_specs) {
             batch = batch.push(intent);
         }
-        txn.push_batch(batch);
-        txn.commit(&mut runtime)
-            .expect("rocketship entity seed commit")
+        txn.push_batch(batch)
+            .expect("test staging stays within configured resource budgets");
+        txn.commit(runtime).expect("rocketship entity seed commit")
     };
     let entity_commit_micros = entity_commit_started_at.elapsed().as_micros();
     let entities = changed_entities(&entity_outcome);
@@ -207,15 +207,15 @@ pub(super) fn seed_rocketship_world(
     {
         let relation_commit_started_at = Instant::now();
         let outcome = {
-            let mut txn =
-                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
             let mut batch =
                 WorkerIntentBatch::new(format!("rocketship-relations-bulk-{chunk_index}"));
             for intent in bulk_relation_create_intents(relation_chunk) {
                 batch = batch.push(intent);
             }
-            txn.push_batch(batch);
-            txn.commit(&mut runtime)
+            txn.push_batch(batch)
+                .expect("test staging stays within configured resource budgets");
+            txn.commit(runtime)
                 .expect("rocketship relation seed commit chunk")
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();

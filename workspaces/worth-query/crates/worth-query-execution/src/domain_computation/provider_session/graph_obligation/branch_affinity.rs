@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn equal_version_snapshot_from_another_branch_cannot_satisfy_affinity() {
-        let mut runtime = RelationalRuntimeApi::builder()
+        let runtime = RelationalRuntimeApi::builder()
             .schema_registry(
                 RelationalSchemaRegistry::new()
                     .register_entity_kind(EntityKindRegistration {
@@ -78,7 +78,7 @@ mod tests {
             .build();
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -87,18 +87,23 @@ mod tests {
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("branch-affinity-fixture").push(
-            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: ClientKey::raw("branch-affinity-root"),
-                fields: AspectFieldPatch::new(BTreeMap::new()),
-            })),
-        ));
+        transaction
+            .push_batch(WorkerIntentBatch::new("branch-affinity-fixture").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::raw("branch-affinity-root"),
+                    fields: AspectFieldPatch::new(BTreeMap::new()),
+                })),
+            ))
+            .expect("test staging stays within configured resource budgets");
         let committed = transaction
-            .commit(&mut runtime)
+            .commit(&runtime)
             .expect("branch-affinity fixture root commits");
-        assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+        assert!(runtime
+            .snapshots()
+            .release_snapshot(&committed.snapshot)
+            .is_ok());
         let admitted_branch = BranchId("main".to_owned());
         let substitute_branch = BranchId("hostile".to_owned());
         let (_, fork_basis) = runtime
@@ -128,7 +133,7 @@ mod tests {
             affinity.truth(),
             &TruthBranchIdentity::from_relational_branch_id(admitted.branch_id().0.clone())
         );
-        assert!(runtime.snapshots().release_snapshot(&admitted));
-        assert!(runtime.snapshots().release_snapshot(&substitute));
+        assert!(runtime.snapshots().release_snapshot(&admitted).is_ok());
+        assert!(runtime.snapshots().release_snapshot(&substitute).is_ok());
     }
 }

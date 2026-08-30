@@ -1,145 +1,111 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::{EntityId, LineageId};
 use crate::lineage::data::{LineageEventRecord, LineageNode};
-use crate::runtime::state::subsystems::RuntimeSubsystem;
+use crate::runtime::state::subsystems::{RuntimeOwnedState, RuntimeSubsystem};
 
 mod resolution_indexes;
+mod state;
 
-use resolution_indexes::LineageResolutionIndexes;
+pub(crate) use state::{LineageState, ValidatedLineageEventBatch};
 
-#[derive(Debug, Clone, Default)]
+/// The runtime's lineage authority, owned behind its own lock so lineage
+/// installation during settlement never demands exclusive access to the runtime.
+#[derive(Debug, Default)]
 pub(crate) struct LineageSubsystem {
-    pub(crate) nodes: BTreeMap<crate::identity::data::LineageId, LineageNode>,
-    published_events: Vec<PublishedLineageEvent>,
-    published_event_ids: BTreeSet<u64>,
-    resolution_indexes: LineageResolutionIndexes,
-    pub(crate) next_lineage_id: u64,
-    pub(crate) next_event_id: u64,
-}
-
-#[derive(Debug, Clone)]
-struct PublishedLineageEvent {
-    event: LineageEventRecord,
-    publication_commit_id: CommitId,
-}
-
-pub(crate) struct ValidatedLineageEventBatch {
-    events: Vec<LineageEventRecord>,
+    state: RuntimeOwnedState<LineageState>,
 }
 
 impl LineageSubsystem {
-    fn empty() -> Self {
-        Self {
-            nodes: BTreeMap::new(),
-            published_events: Vec::new(),
-            published_event_ids: BTreeSet::new(),
-            resolution_indexes: LineageResolutionIndexes::default(),
-            next_lineage_id: 1,
-            next_event_id: 1,
-        }
+    /// Replace the whole subsystem, for checkpoint restore.
+    pub(crate) fn install(&self, state: LineageState) {
+        *self.state.write() = state;
     }
 
-    fn record_event(&mut self, event: LineageEventRecord, publication_commit_id: CommitId) {
-        let event_position = self.published_events.len();
-        assert!(
-            self.published_event_ids.insert(event.event_id()),
-            "validated lineage event id must remain unique until installation"
-        );
-        self.resolution_indexes.append_event(event_position, &event);
-        self.published_events.push(PublishedLineageEvent {
-            event,
-            publication_commit_id,
-        });
+    pub(crate) fn snapshot(&self) -> LineageState {
+        self.state.read().clone()
     }
 
-    pub(crate) fn validate_live_event_batch(
+    pub(crate) fn identity_allocator(&self) -> super::LineageIdentityAllocator {
+        self.state.read().identity_allocator.clone()
+    }
+
+    pub(crate) fn identity_frontiers(&self) -> (u64, u64) {
+        self.state.read().identity_allocator.frontiers()
+    }
+
+    pub(crate) fn set_identity_frontiers(&self, next_lineage_id: u64, next_event_id: u64) {
+        self.state
+            .write()
+            .identity_allocator
+            .set_frontiers(next_lineage_id, next_event_id);
+    }
+
+    pub(crate) fn advance_identity_to(
         &self,
-        events: &[LineageEventRecord],
-    ) -> Result<ValidatedLineageEventBatch, String> {
-        let mut previous_event_id = None;
-        for event in events {
-            if previous_event_id.is_some_and(|previous| event.event_id() <= previous) {
-                return Err(
-                    "live lineage event ids must advance within their reserved batch".to_owned(),
-                );
-            }
-            if event.event_id() >= self.next_event_id {
-                return Err(format!(
-                    "live lineage event {} was not reserved by this allocator",
-                    event.event_id()
-                ));
-            }
-            if self.published_event_ids.contains(&event.event_id()) {
-                return Err(format!(
-                    "live lineage event id {} was already published",
-                    event.event_id()
-                ));
-            }
-            previous_event_id = Some(event.event_id());
-        }
-        Ok(ValidatedLineageEventBatch {
-            events: events.to_vec(),
-        })
+        next_lineage_id: Option<u64>,
+        next_event_id: Option<u64>,
+    ) {
+        self.state
+            .write()
+            .identity_allocator
+            .advance_to(next_lineage_id, next_event_id);
+    }
+
+    /// The highest lineage identity currently published, for recovery floors.
+    pub(crate) fn maximum_node_id(&self) -> Option<u64> {
+        self.state
+            .read()
+            .nodes
+            .last_key_value()
+            .map(|(lineage_id, _)| lineage_id.0)
+    }
+
+    /// The highest lineage event identity currently published, for recovery floors.
+    pub(crate) fn maximum_event_id(&self) -> Option<u64> {
+        self.state
+            .read()
+            .events()
+            .map(|event| event.event_id())
+            .max()
     }
 
     pub(crate) fn install_validated_event_batch(
-        &mut self,
+        &self,
         batch: ValidatedLineageEventBatch,
         publication_commit_id: CommitId,
     ) {
-        for event in batch.events {
-            self.record_event(event, publication_commit_id);
-        }
+        self.state
+            .write()
+            .install_validated_event_batch(batch, publication_commit_id);
     }
 
     pub(crate) fn install_recovered_event_batch(
-        &mut self,
+        &self,
         events: &[LineageEventRecord],
         publication_commit_id: CommitId,
     ) -> Result<(), String> {
-        let mut previous_event_id = None;
-        for event in events {
-            if previous_event_id.is_some_and(|previous| event.event_id() <= previous) {
-                return Err(
-                    "recovered lineage event ids must advance within their durable batch"
-                        .to_owned(),
-                );
-            }
-            if self.published_event_ids.contains(&event.event_id()) {
-                return Err(format!(
-                    "recovered lineage event id {} was already installed",
-                    event.event_id()
-                ));
-            }
-            previous_event_id = Some(event.event_id());
-        }
-        let next_event_id = previous_event_id
-            .map(|event_id| {
-                event_id
-                    .checked_add(1)
-                    .ok_or_else(|| "recovered lineage event exhausted the allocator".to_owned())
-            })
-            .transpose()?;
-        for event in events.iter().cloned() {
-            self.record_event(event, publication_commit_id);
-        }
-        if let Some(next_event_id) = next_event_id {
-            self.next_event_id = self.next_event_id.max(next_event_id);
-        }
-        Ok(())
+        self.state
+            .write()
+            .install_recovered_event_batch(events, publication_commit_id)
+    }
+
+    pub(crate) fn record_node(&self, node: LineageNode) {
+        self.state.write().record_node(node);
+    }
+
+    pub(crate) fn node(&self, lineage_id: LineageId) -> Option<LineageNode> {
+        self.state.read().nodes.get(&lineage_id).cloned()
+    }
+
+    pub(crate) fn nodes_snapshot(&self) -> Vec<LineageNode> {
+        self.state.read().nodes.values().cloned().collect()
     }
 
     #[cfg(test)]
-    pub(crate) fn branch_events(
-        &self,
-        branch_id: &BranchId,
-    ) -> impl Iterator<Item = &LineageEventRecord> {
-        self.resolution_indexes
-            .branch_event_positions(branch_id)
-            .iter()
-            .map(|position| &self.published_events[*position].event)
+    pub(crate) fn node_count(&self) -> usize {
+        self.state.read().nodes.len()
     }
 
     pub(crate) fn branch_event_positions_for_sources(
@@ -147,16 +113,9 @@ impl LineageSubsystem {
         branch_id: &BranchId,
         lineage_ids: &BTreeSet<LineageId>,
     ) -> BTreeSet<usize> {
-        self.resolution_indexes
+        self.state
+            .read()
             .branch_event_positions_for_sources(branch_id, lineage_ids)
-    }
-
-    pub(crate) fn record_node(&mut self, node: LineageNode) {
-        if self.nodes.contains_key(&node.lineage_id()) {
-            return;
-        }
-        self.resolution_indexes.record_node(&node);
-        self.nodes.insert(node.lineage_id(), node);
     }
 
     pub(crate) fn branch_event_positions_for_lineages(
@@ -165,18 +124,16 @@ impl LineageSubsystem {
         lineage_ids: &BTreeSet<LineageId>,
         sources_only: bool,
     ) -> (BTreeSet<usize>, usize) {
-        self.resolution_indexes.branch_event_positions_for_lineages(
-            branch_ids,
-            lineage_ids,
-            sources_only,
-        )
+        self.state
+            .read()
+            .branch_event_positions_for_lineages(branch_ids, lineage_ids, sources_only)
     }
 
     pub(crate) fn indexed_lineage_for_entity(
         &self,
         entity_id: EntityId,
     ) -> (Option<LineageId>, usize) {
-        self.resolution_indexes.lineage_for_entity(entity_id)
+        self.state.read().indexed_lineage_for_entity(entity_id)
     }
 
     pub(crate) fn indexed_lineages_are_exclusive_to_branch(
@@ -185,7 +142,7 @@ impl LineageSubsystem {
         branch_id: &BranchId,
         sources_only: bool,
     ) -> (bool, usize) {
-        self.resolution_indexes.lineages_are_exclusive_to_branch(
+        self.state.read().indexed_lineages_are_exclusive_to_branch(
             lineage_ids,
             branch_id,
             sources_only,
@@ -193,53 +150,39 @@ impl LineageSubsystem {
     }
 
     pub(crate) fn event_publication_commit(&self, position: usize) -> Option<CommitId> {
-        self.published_events
-            .get(position)
-            .map(|published| published.publication_commit_id)
+        self.state.read().event_publication_commit(position)
     }
 
-    pub(crate) fn event(&self, position: usize) -> Option<&LineageEventRecord> {
-        self.published_events
-            .get(position)
-            .map(|published| &published.event)
+    pub(crate) fn event(&self, position: usize) -> Option<std::sync::Arc<LineageEventRecord>> {
+        self.state.read().event(position)
     }
 
-    pub(crate) fn events(&self) -> impl DoubleEndedIterator<Item = &LineageEventRecord> {
-        self.published_events
-            .iter()
-            .map(|published| &published.event)
+    /// Every published event, shared rather than copied, for scans that must not
+    /// hold the subsystem lock while they filter.
+    pub(crate) fn shared_events(&self) -> Vec<std::sync::Arc<LineageEventRecord>> {
+        self.state.read().shared_events()
     }
 
-    pub(crate) fn rebuild_derived_indexes(&mut self) {
-        self.published_event_ids = self
-            .published_events
-            .iter()
-            .map(|published| published.event.event_id())
-            .collect();
-        let nodes = self.nodes.values();
-        let events = self
-            .published_events
-            .iter()
-            .map(|published| &published.event);
-        self.resolution_indexes.rebuild(nodes, events);
+    #[cfg(test)]
+    pub(crate) fn event_count(&self) -> usize {
+        self.state.read().events().count()
     }
 
-    pub(crate) fn replace_events(&mut self, events: Vec<(LineageEventRecord, CommitId)>) {
-        self.published_events = events
-            .into_iter()
-            .map(|(event, publication_commit_id)| PublishedLineageEvent {
-                event,
-                publication_commit_id,
-            })
-            .collect();
-        self.rebuild_derived_indexes();
+    #[cfg(test)]
+    pub(crate) fn branch_events_snapshot(&self, branch_id: &BranchId) -> Vec<LineageEventRecord> {
+        self.state
+            .read()
+            .branch_events(branch_id)
+            .cloned()
+            .collect()
     }
 
-    pub(crate) fn drain_events(&mut self) -> impl Iterator<Item = (LineageEventRecord, CommitId)> {
-        self.published_event_ids.clear();
-        std::mem::take(&mut self.published_events)
-            .into_iter()
-            .map(|published| (published.event, published.publication_commit_id))
+    pub(crate) fn replace_events(&self, events: Vec<(LineageEventRecord, CommitId)>) {
+        self.state.write().replace_events(events);
+    }
+
+    pub(crate) fn drain_events(&self) -> Vec<(LineageEventRecord, CommitId)> {
+        self.state.write().drain_events().collect()
     }
 }
 
@@ -247,10 +190,14 @@ impl RuntimeSubsystem for LineageSubsystem {
     type Config = ();
 
     fn new(_: &Self::Config) -> Self {
-        Self::empty()
+        Self {
+            state: RuntimeOwnedState::new(LineageState::empty()),
+        }
     }
 
     fn fork(&self) -> Self {
-        self.clone()
+        Self {
+            state: RuntimeOwnedState::new(self.snapshot()),
+        }
     }
 }

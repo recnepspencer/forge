@@ -204,8 +204,8 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     fn bound_head_commit_id(&self, binding: &AdmittedRelationalBranchBasis) -> Option<CommitId> {
-        self.runtime
-            .admitted_branch_basis_commit(binding)
+        binding
+            .commit_identity()
             .map(|identity| identity.commit_id())
     }
 

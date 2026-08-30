@@ -2,7 +2,7 @@ use std::fmt;
 use std::panic::{catch_unwind, AssertUnwindSafe, RefUnwindSafe, UnwindSafe};
 use std::sync::Arc;
 
-use crate::runtime::RelationalRuntime;
+use crate::validation::engine::InvariantRuntimeView;
 
 use super::execution_context::CustomInvariantExecutionContext;
 use super::scope_planner::CustomInvariantScopePlanner;
@@ -43,7 +43,7 @@ pub(crate) trait PreparedCustomInvariantExecution: Send + Sync {
 pub(crate) trait ErasedCustomInvariantRule: Send + Sync {
     fn prepare_for_execution(
         &self,
-        runtime: &RelationalRuntime,
+        runtime: &InvariantRuntimeView,
         planner: &mut CustomInvariantScopePlanner<'_>,
     ) -> Arc<dyn PreparedCustomInvariantExecution>;
 }
@@ -99,7 +99,7 @@ impl PreparedCustomInvariantExecution for FailedPreparedCustomInvariantExecution
 impl<R: CustomInvariantRule> ErasedCustomInvariantRule for CustomInvariantAdapter<R> {
     fn prepare_for_execution(
         &self,
-        runtime: &RelationalRuntime,
+        runtime: &InvariantRuntimeView,
         planner: &mut CustomInvariantScopePlanner<'_>,
     ) -> Arc<dyn PreparedCustomInvariantExecution> {
         let identity = self.identity.clone();

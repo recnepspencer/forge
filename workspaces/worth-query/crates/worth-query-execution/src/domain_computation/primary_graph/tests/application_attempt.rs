@@ -27,6 +27,8 @@ mod mutation_terminal_lifecycle;
 mod mutation_work_scale;
 #[path = "application_attempt/optional_field_mutation.rs"]
 mod optional_field_mutation;
+#[path = "application_attempt/post_commit_recovery.rs"]
+mod post_commit_recovery;
 #[path = "application_attempt/preimage_evidence.rs"]
 pub(in crate::domain_computation::primary_graph) mod preimage_evidence;
 #[path = "application_attempt/preimage_retention.rs"]

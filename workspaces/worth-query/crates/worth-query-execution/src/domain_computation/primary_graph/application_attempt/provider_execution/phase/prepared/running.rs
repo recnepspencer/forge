@@ -139,11 +139,11 @@ where
     let basis = application
         .relational_source
         .readmit_branch_basis(lease.basis_descriptor())
-        .map_err(|_| denied(DenialStage::BridgePlanning))?;
+        .map_err(bridge_basis_denied)?;
     let bridge_observation = application
         .relational_source
         .retain_branch_basis_for_bridge(&basis)
-        .map_err(|_| denied(DenialStage::BridgePlanning))?;
+        .map_err(bridge_basis_denied)?;
     let bridge_snapshot = bridge_observation.snapshot_identity().clone();
     application
         .bridge
@@ -192,4 +192,29 @@ where
             },
         ),
     )
+}
+
+fn bridge_basis_denied(
+    denial: worth_relational::facade::branch::RelationalBranchBasisDenial,
+) -> WorthQueryApplicationCommitOutcome {
+    use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial;
+    let denial = match denial {
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+            WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                DenialStage::BridgePlanning,
+            )
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+            WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                DenialStage::BridgePlanning,
+            )
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+            WorthQueryApplicationCommitDenial::snapshot_identity_exhausted(
+                DenialStage::BridgePlanning,
+            )
+        }
+        _ => return denied(DenialStage::BridgePlanning),
+    };
+    WorthQueryApplicationCommitOutcome::Denied(denial)
 }

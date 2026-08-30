@@ -33,6 +33,10 @@ pub enum WorthQueryApplicationIdempotencyResolution {
 pub enum WorthQueryApplicationIdempotencyResolutionDenialKind {
     Authorization,
     ForeignAdmission,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     ProviderUnavailable,
 }
 
@@ -68,6 +72,34 @@ impl WorthQueryApplicationIdempotencyResolutionDenial {
     const fn provider_unavailable() -> Self {
         Self {
             kind: WorthQueryApplicationIdempotencyResolutionDenialKind::ProviderUnavailable,
+            authorization: None,
+        }
+    }
+
+    fn from_provider(
+        denial: crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial,
+    ) -> Self {
+        let kind = match denial {
+            crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            } => WorthQueryApplicationIdempotencyResolutionDenialKind::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            },
+            crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionCapacityExhausted => {
+                WorthQueryApplicationIdempotencyResolutionDenialKind::RetentionCapacityExhausted
+            }
+            crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionIdentityExhausted => {
+                WorthQueryApplicationIdempotencyResolutionDenialKind::RetentionIdentityExhausted
+            }
+            crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::SnapshotIdentityExhausted => {
+                WorthQueryApplicationIdempotencyResolutionDenialKind::SnapshotIdentityExhausted
+            }
+            crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::Unavailable => {
+                WorthQueryApplicationIdempotencyResolutionDenialKind::ProviderUnavailable
+            }
+        };
+        Self {
+            kind,
             authorization: None,
         }
     }
@@ -147,7 +179,9 @@ where
                     WorthQueryApplicationIdempotencyResolution::IntentDrift,
                 ))
             }
-            Err(_) => Err(WorthQueryApplicationIdempotencyResolutionDenial::provider_unavailable()),
+            Err(denial) => {
+                Err(WorthQueryApplicationIdempotencyResolutionDenial::from_provider(denial))
+            }
         }
     }
 }

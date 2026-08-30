@@ -8,31 +8,28 @@ pub(super) fn certify_geometry_commit_bridge_wave(suite: &'static str) {
         let samples = capture_perf_samples(suite, case, || {
             let mut relational =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            relational
-                .config
-                .diagnostics
-                .profile
-                .detailed_traces_enabled = development_profile;
-            relational
-                .config
-                .diagnostics
-                .profile
-                .max_entries_per_artifact = if development_profile { 256 } else { 0 };
+            relational.configure_for_test(|config| {
+                config.diagnostics.profile.detailed_traces_enabled = development_profile
+            });
+            relational.configure_for_test(|config| {
+                config.diagnostics.profile.max_entries_per_artifact =
+                    if development_profile { 256 } else { 0 }
+            });
 
-            let source = create_entity_outcome(&mut relational, "merged-geometry-source");
-            let middle = create_entity_outcome(&mut relational, "merged-geometry-middle");
-            let target = create_entity_outcome(&mut relational, "merged-geometry-target");
+            let source = create_entity_outcome(&relational, "merged-geometry-source");
+            let middle = create_entity_outcome(&relational, "merged-geometry-middle");
+            let target = create_entity_outcome(&relational, "merged-geometry-target");
             let source_entity = changed_entities(&source)[0];
             let middle_entity = changed_entities(&middle)[0];
             let target_entity = changed_entities(&target)[0];
             create_relation_outcome(
-                &mut relational,
+                &relational,
                 source_entity,
                 middle_entity,
                 "merged-geometry-link-a",
             );
             create_relation_outcome(
-                &mut relational,
+                &relational,
                 middle_entity,
                 target_entity,
                 "merged-geometry-link-b",
@@ -41,11 +38,8 @@ pub(super) fn certify_geometry_commit_bridge_wave(suite: &'static str) {
             let mut bridge_runtime = build_mock_bridge_runtime(development_profile, 4);
 
             let relational_commit_started_at = Instant::now();
-            let update = update_entity(
-                &mut relational,
-                middle_entity,
-                "merged-geometry-middle-updated",
-            );
+            let update =
+                update_entity(&relational, middle_entity, "merged-geometry-middle-updated");
             let relational_commit_micros = relational_commit_started_at.elapsed().as_micros();
 
             let snapshot = relational.visibility_authority().snapshot();

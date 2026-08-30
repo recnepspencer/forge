@@ -5,12 +5,12 @@ pub(super) fn certify_mixed_topology_query_churn_stability(suite: &'static str) 
         suite,
         "mixed_topology_query_churn_stability",
         || {
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let entities = (0..24)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("mixed-topology-{index}"),
                         PartitionId((index % 6) as u32 + 1),
                     )
@@ -18,7 +18,7 @@ pub(super) fn certify_mixed_topology_query_churn_stability(suite: &'static str) 
                 .collect::<Vec<_>>();
             for index in 0..24 {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     entities[index],
                     entities[(index + 1) % 24],
                     &format!("mixed-ring-{index}"),
@@ -26,7 +26,7 @@ pub(super) fn certify_mixed_topology_query_churn_stability(suite: &'static str) 
                 );
                 if index % 4 == 0 {
                     create_relation_in_partition(
-                        &mut runtime,
+                        &runtime,
                         entities[index],
                         entities[(index + 6) % 24],
                         &format!("mixed-brace-{index}"),
@@ -48,11 +48,7 @@ pub(super) fn certify_mixed_topology_query_churn_stability(suite: &'static str) 
             for index in 0..ITERATIONS {
                 let hot_entity = entities[(index * 3) % entities.len()];
                 let update_started_at = Instant::now();
-                let _ = update_entity(
-                    &mut runtime,
-                    hot_entity,
-                    &format!("mixed-topology-hot-{index}"),
-                );
+                let _ = update_entity(&runtime, hot_entity, &format!("mixed-topology-hot-{index}"));
                 total_update_micros += update_started_at.elapsed().as_micros();
 
                 let snapshot = runtime.visibility_authority().snapshot();

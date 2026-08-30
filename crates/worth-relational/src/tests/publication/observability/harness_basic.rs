@@ -129,8 +129,8 @@ fn harness_fixture_loads_declared_aspect_field_patches() {
 
 #[test]
 fn runtime_packet_execution_and_storage_stats_are_readable() {
-    let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let entity = create_entity(&runtime, "first");
     let snapshot = runtime.visibility_authority().snapshot();
     let result = execute_explicit_query(
         &runtime,

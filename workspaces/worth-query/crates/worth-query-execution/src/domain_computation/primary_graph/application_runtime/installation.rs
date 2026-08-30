@@ -213,11 +213,20 @@ where
     let relational_source = graph.relational_bridge_source();
     graph
         .bind_current_truth_head(&super::super::application_branch::primary_relational_branch_id())
-        .map_err(|detail| {
-            WorthQueryPrimaryGraphInstallationDenial::new(
-                WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
-                detail,
-            )
+        .map_err(|denial| {
+            let kind = match denial {
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+                    WorthQueryPrimaryGraphInstallationDenialKind::RetentionCapacityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+                    WorthQueryPrimaryGraphInstallationDenialKind::RetentionIdentityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+                    WorthQueryPrimaryGraphInstallationDenialKind::SnapshotIdentityExhausted
+                }
+                _ => WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
+            };
+            WorthQueryPrimaryGraphInstallationDenial::new(kind, format!("{denial:?}"))
         })?;
     let relational_branch_identity = graph.with_runtime(|runtime| {
         runtime
@@ -282,8 +291,15 @@ where
     Schema: worth_query_installation::facade::ApplicationSchema,
 {
     let runtime_authority = graph.runtime.authority_identity();
+    let schema_binding = installed_schema.binding_identity();
+    let application_readiness_schema_token = format!(
+        "{}:{}:{}",
+        schema_binding.generation(),
+        schema_binding.package_identity().render_hex(),
+        schema_binding.schema_identity().render_hex(),
+    );
     let granular_invalidation = super::super::WorthQueryGranularInvalidationInstallation::new(
-        installed_schema.binding_identity().clone(),
+        schema_binding.clone(),
         graph.primary_provider.graph.clone(),
     );
     // One clock, shared. The registry hands it back to any handle that needs to
@@ -299,6 +315,7 @@ where
     WorthQueryPrimaryGraphApplicationRuntime {
         runtime: graph.runtime,
         installed_schema,
+        application_readiness_schema_token,
         publication: graph.publication,
         authorization,
         authorization_clock,

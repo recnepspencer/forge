@@ -34,6 +34,11 @@ impl ConflictClass {
             Self::InvalidMergeParent { .. } => DiagnosticCode::InvalidMergeParent,
             Self::StaleValidationBasis { .. } => DiagnosticCode::StaleHandle,
             Self::ForeignRuntime { .. } => DiagnosticCode::StaleHandle,
+            Self::TransactionFootprintBudgetExceeded { .. }
+            | Self::TransactionOverlayBudgetExceeded { .. }
+            | Self::TransactionSavepointBudgetExceeded { .. }
+            | Self::TransactionSavepointFootprintBudgetExceeded { .. }
+            | Self::TransactionSavepointIdentityExhausted => DiagnosticCode::PreparationFailure,
             Self::MergeConflictOverlap { .. } => DiagnosticCode::MergeConflictOverlap,
             Self::MissingMergeBase { .. } => DiagnosticCode::MissingMergeBase,
             Self::UndeclaredSchemaTransition { .. }
@@ -75,6 +80,30 @@ impl ConflictClass {
             } => format!(
                 "transaction belongs to Relational runtime {actual_runtime_instance_id}, not supplied runtime {expected_runtime_instance_id}"
             ),
+            Self::TransactionFootprintBudgetExceeded {
+                maximum_loci,
+                required_loci,
+            } => format!(
+                "transaction footprint requires {required_loci} loci but the owner limit is {maximum_loci}"
+            ),
+            Self::TransactionOverlayBudgetExceeded {
+                maximum_bytes,
+                required_bytes,
+            } => format!(
+                "transaction overlay requires {required_bytes} bytes but the owner limit is {maximum_bytes}"
+            ),
+            Self::TransactionSavepointBudgetExceeded { maximum_savepoints } => format!(
+                "transaction savepoints reached the owner limit of {maximum_savepoints}"
+            ),
+            Self::TransactionSavepointFootprintBudgetExceeded {
+                maximum_loci,
+                required_loci,
+            } => format!(
+                "transaction savepoint footprints require {required_loci} loci but the owner limit is {maximum_loci}"
+            ),
+            Self::TransactionSavepointIdentityExhausted => {
+                "transaction savepoint identity space exhausted".to_owned()
+            }
             Self::RecordAllocationDenied { denial } => denial.detail(),
             Self::InvariantViolation { detail, .. } => detail.clone(),
             Self::InvalidSchemaTransitionShape { detail } => detail.clone(),

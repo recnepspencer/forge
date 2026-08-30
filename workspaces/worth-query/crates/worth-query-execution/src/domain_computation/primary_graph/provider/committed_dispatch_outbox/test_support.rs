@@ -6,6 +6,7 @@ use worth_relational::facade::transactions::{
 };
 
 use super::super::{WorthQueryCommittedDispatchOutboxObservation, WorthQueryPrimaryGraphProvider};
+use super::owner_test_support::{release_commit_snapshot, retain_commit_basis};
 use crate::domain_computation::application_aftermath::{
     bind_dispatch_outbox_create_intent, WorthQueryDispatchOutboxRecord,
 };
@@ -83,9 +84,9 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
                 kind_id: second_spec.kind_id,
                 client_key: second_spec.client_key.clone(),
             };
-            let mut transaction: BranchBoundRelationalTransaction ={
+            let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                    .admit_main_branch_basis()
+                    .admit_branch_basis(&runtime.main_branch_identity())
                     .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -98,7 +99,7 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
                 WorkerIntentBatch::new("same-value-distinct-record-causal-twin")
                     .push(first_intent)
                     .push(MutationIntent::Create(CreateIntent::Entity(second_spec))),
-            );
+            ).expect("test staging stays within configured resource budgets");
             let committed = transaction.commit(runtime).expect("both outboxes commit");
             let first_binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
                 provider.graph.layout.provider_dispatch_outbox(),
@@ -114,14 +115,17 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
             );
             let second_binding =
                 WorthQueryCommittedDispatchOutboxBinding::fixture(record.clone(), second_ref);
+            let commit = committed.outcome().commit.clone();
+            retain_commit_basis(provider, runtime, &committed);
+            release_commit_snapshot(runtime, &committed);
             let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
                 .unwrap();
             let runtime_id = snapshot.runtime_instance_id();
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             (
                 first_binding,
                 second_binding,
-                committed.outcome().commit.clone(),
+                commit,
                 runtime_id,
             )
         });
@@ -155,9 +159,9 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
             Some(record),
         )
         .expect("declared fixture outbox binds a create intent");
-        let mut transaction: BranchBoundRelationalTransaction ={
+        let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -166,7 +170,7 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
         )
         .expect("owner-admitted transaction context")
 };
-        transaction.push_batch(WorkerIntentBatch::new("committed-outbox-real-test").push(intent));
+        transaction.push_batch(WorkerIntentBatch::new("committed-outbox-real-test").push(intent)).expect("test staging stays within configured resource budgets");
         let committed = transaction.commit(runtime).expect("fixture outbox commits");
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
             provider.graph.layout.provider_dispatch_outbox(),
@@ -180,11 +184,14 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
             )
         })
         .expect("declared outbox has a binding");
+        let commit = committed.outcome().commit.clone();
+        retain_commit_basis(provider, runtime, &committed);
+        release_commit_snapshot(runtime, &committed);
         let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
             .expect("fixture branch has a snapshot");
         let runtime_id = snapshot.runtime_instance_id();
-        runtime.snapshots().release_snapshot(&snapshot);
-        (binding, committed.outcome().commit.clone(), runtime_id)
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        (binding, commit, runtime_id)
     });
     provider
         .observe_expected(&binding, &commit, runtime_id)

@@ -9,7 +9,7 @@ use super::super::seed_catalog::FintechCaseSeed;
 use super::super::{FintechCaseRole, LEDGER_PARTITION};
 use super::bulk_create::bulk_create_entities;
 
-pub(super) fn seed_desks(runtime: &mut RelationalRuntime, desk_names: &[String]) -> Vec<EntityId> {
+pub(super) fn seed_desks(runtime: &RelationalRuntime, desk_names: &[String]) -> Vec<EntityId> {
     bulk_create_entities(
         runtime,
         "seed-desks",
@@ -40,7 +40,7 @@ pub(super) fn seed_desks(runtime: &mut RelationalRuntime, desk_names: &[String])
 }
 
 pub(super) fn seed_books(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
     book_names: &[String],
 ) -> Vec<EntityId> {
@@ -85,7 +85,7 @@ pub(super) fn seed_books(
 }
 
 pub(super) fn seed_accounts(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(
@@ -123,7 +123,7 @@ pub(super) fn seed_accounts(
 }
 
 pub(super) fn seed_counterparties(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(
@@ -161,7 +161,7 @@ pub(super) fn seed_counterparties(
 }
 
 pub(super) fn seed_trades(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(
@@ -217,7 +217,7 @@ pub(super) fn seed_trades(
 }
 
 pub(super) fn seed_settlements(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(
@@ -250,7 +250,7 @@ pub(super) fn seed_settlements(
 }
 
 pub(super) fn seed_cash_events(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(
@@ -283,7 +283,7 @@ pub(super) fn seed_cash_events(
 }
 
 pub(super) fn seed_audit_records(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     case_seeds: &[FintechCaseSeed],
 ) -> Vec<EntityId> {
     bulk_create_entities(

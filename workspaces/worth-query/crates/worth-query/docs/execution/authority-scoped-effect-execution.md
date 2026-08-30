@@ -79,8 +79,8 @@ use worth_query::facade::foundation::{
     EffectExecutionAuthority, EffectExecutionStop,
 };
 
-match lowered.execute_with(EffectExecutionAuthority::relational(&mut relational)) {
-    Ok(executed) => consume(executed.receipt()),
+match lowered.execute_receipt_with(EffectExecutionAuthority::relational(&mut relational)) {
+    Ok(receipt) => consume(receipt),
     Err(EffectExecutionStop::SettlementDeferred(deferred)) => {
         let receipt = deferred.repair_with(
             EffectExecutionAuthority::relational(&mut relational),
@@ -103,10 +103,10 @@ use worth_query::facade::foundation::{
     EffectBatchExecutionStop, EffectExecutionAuthority,
 };
 
-match lowered_batch.execute_with(
+match lowered_batch.execute_receipt_with(
     EffectExecutionAuthority::relational(&mut relational),
 ) {
-    Ok(batch) => record_batch(batch),
+    Ok(receipt) => record_batch(receipt),
     Err(EffectBatchExecutionStop::SettlementDeferred(deferred)) => {
         audit(deferred.batch_identity(), deferred.counters());
         deferred.repair_with(

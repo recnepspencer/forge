@@ -5,9 +5,11 @@ pub(super) fn certify_event_wave_compile_churn_window(suite: &'static str) {
         capture_perf_samples(suite, "event_wave_compile_churn_window", || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
-            let source = create_entity_in_partition(&mut runtime, "event-driver", PartitionId(7));
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
+            let source = create_entity_in_partition(&runtime, "event-driver", PartitionId(7));
             let sinks = (0..16)
                 .map(|index| {
                     let partition_id = match index % 4 {
@@ -17,7 +19,7 @@ pub(super) fn certify_event_wave_compile_churn_window(suite: &'static str) {
                         _ => PartitionId(19),
                     };
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("event-sink-{index}"),
                         partition_id,
                     )
@@ -25,7 +27,7 @@ pub(super) fn certify_event_wave_compile_churn_window(suite: &'static str) {
                 .collect::<Vec<_>>();
             for (index, sink) in sinks.iter().enumerate() {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     source,
                     *sink,
                     &format!("event-link-{index}"),
@@ -43,7 +45,7 @@ pub(super) fn certify_event_wave_compile_churn_window(suite: &'static str) {
             runtime.performance_access().reset_counters();
             for step in 0..ITERATIONS {
                 let update_started_at = Instant::now();
-                let _ = update_entity(&mut runtime, source, &format!("event-driver-step-{step}"));
+                let _ = update_entity(&runtime, source, &format!("event-driver-step-{step}"));
                 total_update_micros += update_started_at.elapsed().as_micros();
 
                 let commit = runtime

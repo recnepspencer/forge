@@ -61,13 +61,17 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after execution");
     assert_eq!(entity_name(updated), Some("authority-plan".to_string()));
-    assert!(runtime.snapshots().release_snapshot(&snapshot));
+    assert!(runtime.snapshots().release_snapshot(&snapshot).is_ok());
 }
 
 #[test]
 fn performed_mutation_returns_settlement_deferred_without_denial_telemetry() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    let baseline_published_snapshots = runtime
+        .storage_access()
+        .storage_stats()
+        .published_snapshot_handle_count;
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime)),
         entity_id,
@@ -98,6 +102,72 @@ fn performed_mutation_returns_settlement_deferred_without_denial_telemetry() {
     deferred
         .repair_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect("exact owner repairs the performed mutation");
+    deferred
+        .repair_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect("the sole-owner pending record is gone, so a second repair removes no handle");
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .published_snapshot_handle_count,
+        baseline_published_snapshots
+    );
+}
+
+#[test]
+fn dropped_mutation_settlement_recovers_by_commit_id_and_reopens_the_route() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "abandon-before", BranchId("main".to_string()));
+    let baseline = runtime
+        .storage_access()
+        .storage_stats()
+        .published_snapshot_handle_count;
+    let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
+        runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime)),
+        entity_id,
+        native_name_patch("abandoned-settlement"),
+    ))
+    .lower()
+    .unwrap();
+    runtime.fail_next_durable_append_for_test();
+
+    let stop = lowered
+        .execute_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect_err("performed mutation exposes deferred settlement");
+    let commit_id = stop
+        .settlement_deferred()
+        .expect("performed mutation retains recovery identity")
+        .commit_id();
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .published_snapshot_handle_count,
+        baseline + 1
+    );
+    drop(stop);
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .published_snapshot_handle_count,
+        baseline + 1
+    );
+    EffectExecutionAuthority::relational(&mut runtime)
+        .repair_pending_settlement(commit_id)
+        .expect("effect authority recovers after the external token is dropped");
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .published_snapshot_handle_count,
+        baseline
+    );
+    create_entity(
+        &mut runtime,
+        "after-dropped-settlement-repair",
+        BranchId("main".to_string()),
+    );
 }
 
 #[test]

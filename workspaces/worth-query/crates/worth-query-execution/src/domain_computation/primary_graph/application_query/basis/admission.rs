@@ -2,7 +2,8 @@ use std::marker::PhantomData;
 use std::time::Instant;
 
 use super::{
-    authority::WorthQueryApplicationPinnedBasisParts, WorthQueryApplicationPinnedBasis,
+    admission_denial, authority::WorthQueryApplicationPinnedBasisParts, map_basis_denial,
+    map_index_currency_denial, map_registration_denial, WorthQueryApplicationPinnedBasis,
     WorthQueryApplicationPinnedBasisDenial, WorthQueryApplicationPinnedBasisDenialKind,
 };
 use crate::domain_computation::primary_graph::application_query::{
@@ -30,6 +31,20 @@ where
                 match denial.kind() {
                     WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable => {
                         WorthQueryApplicationPinnedBasisDenialKind::BasisUnavailable
+                    }
+                    WorthQueryApplicationQueryAdmissionDenialKind::ActiveSnapshotCapacityExhausted {
+                        maximum_active_snapshots,
+                    } => WorthQueryApplicationPinnedBasisDenialKind::ActiveSnapshotCapacityExhausted {
+                        maximum_active_snapshots,
+                    },
+                    WorthQueryApplicationQueryAdmissionDenialKind::RetentionCapacityExhausted => {
+                        WorthQueryApplicationPinnedBasisDenialKind::RetentionCapacityExhausted
+                    }
+                    WorthQueryApplicationQueryAdmissionDenialKind::RetentionIdentityExhausted => {
+                        WorthQueryApplicationPinnedBasisDenialKind::RetentionIdentityExhausted
+                    }
+                    WorthQueryApplicationQueryAdmissionDenialKind::SnapshotIdentityExhausted => {
+                        WorthQueryApplicationPinnedBasisDenialKind::SnapshotIdentityExhausted
                     }
                     _ => WorthQueryApplicationPinnedBasisDenialKind::RuntimeSupportUnavailable,
                 },
@@ -74,8 +89,12 @@ where
         WorthQueryApplicationQueryBasis::Preview(preview) => {
             admit_preview_execution_basis(application, preview)
         }
-        WorthQueryApplicationQueryBasis::Continuation(descriptor) => {
-            let basis = admit_descriptor_execution_basis(application, &descriptor)?;
+        WorthQueryApplicationQueryBasis::Continuation {
+            descriptor,
+            retention,
+        } => {
+            let basis =
+                admit_retained_descriptor_execution_basis(application, &descriptor, &retention)?;
             register_basis(application, basis)
         }
     }
@@ -209,12 +228,7 @@ where
                 application.relational_branch_identity.branch_id(),
             )
         })
-        .map_err(|detail| {
-            admission_denial(
-                WorthQueryApplicationQueryAdmissionDenialKind::RuntimeSupportUnavailable,
-                detail,
-            )
-        })?;
+        .map_err(map_index_currency_denial)?;
     let (_, basis) = application
         .relational_source
         .observe_branch_basis(&application.relational_branch_identity)
@@ -222,9 +236,10 @@ where
     register_basis(application, basis)
 }
 
-fn admit_descriptor_execution_basis<Schema>(
+fn admit_retained_descriptor_execution_basis<Schema>(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     descriptor: &worth_relational::facade::branch::RelationalBranchBasisDescriptor,
+    retention: &worth_relational::facade::branch::RelationalBranchRetentionLease,
 ) -> Result<
     worth_relational::facade::branch::AdmittedRelationalBranchBasis,
     WorthQueryApplicationQueryAdmissionDenial,
@@ -242,8 +257,9 @@ where
         ));
     }
     application
-        .relational_source
-        .readmit_branch_basis(descriptor)
+        .primary_provider
+        .graph
+        .with_runtime(|runtime| runtime.readmit_retained_branch_basis(descriptor, retention))
         .map_err(map_basis_denial)
 }
 
@@ -257,25 +273,11 @@ where
     let graph = application.primary_provider.graph.clone();
     graph
         .with_runtime_mut(|runtime| graph.ensure_primary_indexes_for_basis(runtime, &basis))
-        .map_err(|detail| {
-            admission_denial(
-                WorthQueryApplicationQueryAdmissionDenialKind::RuntimeSupportUnavailable,
-                detail,
-            )
-        })?;
+        .map_err(map_index_currency_denial)?;
     application
         .basis_leases
         .register(basis, graph)
-        .map_err(map_basis_denial)
-}
-
-pub(super) fn map_basis_denial(
-    denial: worth_relational::facade::branch::RelationalBranchBasisDenial,
-) -> WorthQueryApplicationQueryAdmissionDenial {
-    admission_denial(
-        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
-        format!("{denial:?}"),
-    )
+        .map_err(map_registration_denial)
 }
 
 fn admit_pinned_execution_basis<Schema>(
@@ -338,11 +340,4 @@ fn admit_pin_request(
         }
         None => Ok(()),
     }
-}
-
-fn admission_denial(
-    kind: WorthQueryApplicationQueryAdmissionDenialKind,
-    subject: impl Into<String>,
-) -> WorthQueryApplicationQueryAdmissionDenial {
-    WorthQueryApplicationQueryAdmissionDenial::new(kind, subject)
 }

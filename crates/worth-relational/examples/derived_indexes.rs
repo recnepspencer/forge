@@ -7,11 +7,11 @@ use worth_relational::facade::{
 };
 
 fn main() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(support::demo_schema_registry())
         .build();
 
-    let (created, _entity_id) = support::create_entity(&mut runtime, "indexed");
+    let (created, _entity_id) = support::create_entity(&runtime, "indexed");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name".to_string(),

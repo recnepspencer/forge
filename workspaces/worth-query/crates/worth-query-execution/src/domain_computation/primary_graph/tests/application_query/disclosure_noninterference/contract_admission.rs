@@ -34,9 +34,9 @@ fn contract_incompatible_projection_mask_denies_before_result_construction() {
     let field = AccountLabel::reference();
     let field_key = FieldKey::new(field.field()).unwrap();
     let selector = ApplicationQueryDisclosureSelector::InternalField {
-        entity: field.entity(),
-        aspect: field.aspect(),
-        field: field.field(),
+        entity: field.entity().to_owned(),
+        aspect: field.aspect().to_owned(),
+        field: field.field().to_owned(),
         projection_mask: AspectMask::<ProjectionMask>::new([CanonicalFieldPath::single(
             FieldKey::new("not-an-installed-field").unwrap(),
         )]),

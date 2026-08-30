@@ -13,13 +13,12 @@ pub(crate) const fn current_topology_rewire_admission_policy() -> TopologyRewire
 }
 
 pub(super) fn effective_merge_policies_for_record(
-    runtime: &crate::runtime::RelationalRuntime,
+    registry: &crate::schema::data::RelationalSchemaRegistry,
     record: &crate::merge::data::VisibleMergeRecord,
 ) -> Vec<ResolvedAspectMergePolicy> {
     let Some(kind_id) = record.source_kind_id.or(record.kind_id) else {
         return Vec::new();
     };
-    let registry = &runtime.config().schema.registry;
     let declarations = match record.record_kind {
         crate::merge::data::VisibleMergeRecordKind::Entity => {
             registry.entity_merge_policy_declarations(kind_id).ok()

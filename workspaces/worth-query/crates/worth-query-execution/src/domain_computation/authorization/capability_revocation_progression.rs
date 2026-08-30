@@ -101,6 +101,8 @@ where
         WorthQueryOperationAuthorizationDenial,
     >
     where
+        Operation:
+            worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity,
         Input: ApplicationCapabilityRequest<Schema, Capability>
             + ApplicationCapabilityRevocationRequest<Schema, Capability>,
     {
@@ -178,8 +180,8 @@ fn validate_operation<Operation, Input>(
     operation: &WorthQueryInstalledApplicationOperation<impl ApplicationSchema, Operation, Input>,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
     if revocation.operation == operation.operation()
-        && revocation.operation_type == std::any::type_name::<Operation>()
-        && revocation.input_type == std::any::type_name::<Input>()
+        && revocation.operation_type == operation.operation()
+        && revocation.input_type == operation.input_type()
     {
         Ok(())
     } else {

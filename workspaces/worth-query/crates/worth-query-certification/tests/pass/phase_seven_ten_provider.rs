@@ -98,7 +98,7 @@ impl provider::WorthQueryProviderSessionLifecycle for ConsumerCombinedProvider {
         _session: &provider::WorthQueryProviderSessionView<'_>,
     ) -> Result<
         provider::WorthQueryProviderTerminalDescription,
-        provider::WorthQueryProviderSessionFailure,
+        provider::WorthQueryProviderSessionCommitStop,
     > {
         Ok(provider::WorthQueryProviderTerminalDescription::new("consumer-commit").unwrap())
     }

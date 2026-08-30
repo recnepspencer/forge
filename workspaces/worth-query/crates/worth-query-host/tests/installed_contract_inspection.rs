@@ -12,8 +12,9 @@ use worth_query_decl::facade::{
         WorthQueryExternalEffectCorrelationFamily,
     },
     worth_query_application_schema, worth_query_aspect, worth_query_effect, worth_query_entity,
-    worth_query_field, worth_query_operation, worth_query_operation_emits,
-    worth_query_operation_links, worth_query_operation_reads, worth_query_operation_writes,
+    worth_query_field, worth_query_operation, worth_query_operation_creates,
+    worth_query_operation_deletes, worth_query_operation_emits, worth_query_operation_links,
+    worth_query_operation_reads, worth_query_operation_unlinks, worth_query_operation_writes,
     worth_query_relation,
 };
 use worth_query_host::facade::domain::{
@@ -21,11 +22,17 @@ use worth_query_host::facade::domain::{
     WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,
     WorthQueryInstalledApplicationSchema, WorthQueryOperationGraphReadScope,
     WorthQueryOperationTouchScope, WorthQueryPortableDomainIdentity,
-    WorthQueryPortableDomainPackage,
+    WorthQueryPortableDomainPackage, WorthQueryPortableOperationGraphReadScope,
+    WorthQueryPortableOperationTouchScope, WorthQueryValidatedPortableDomainPackage,
 };
 
 const CORRELATION_FAMILY: &str = "contract-inspection-rail";
 const RECONCILIATION_SLOT: &str = "reconcile-contract-inspection";
+
+#[path = "installed_contract_inspection/portable_export.rs"]
+mod portable_export;
+#[path = "installed_contract_inspection/portable_spine.rs"]
+mod portable_spine;
 
 worth_query_application_schema! {
     pub schema ContractInspectionSchema {
@@ -54,9 +61,13 @@ worth_query_application_schema! {
                 .operation_projection_work_budget(UpdateAccount::reference(), 32)
                 .operation_read_entity(UpdateAccount::reference(), Account::reference())
                 .operation_read_field(UpdateAccount::reference(), AccountStatus::reference())
+                .operation_read_field(UpdateAccount::reference(), AccountLimit::reference())
                 .operation_read_relation(UpdateAccount::reference(), ObservedAccount::reference())
+                .operation_create(UpdateAccount::reference(), Account::reference())
+                .operation_delete(UpdateAccount::reference(), Account::reference())
                 .operation_write(UpdateAccount::reference(), AccountBalance::reference())
                 .operation_link(UpdateAccount::reference(), ChangedAccount::reference())
+                .operation_unlink(UpdateAccount::reference(), ChangedAccount::reference())
                 .operation(
                     EmitAccountNotice::reference()
                         .definition()
@@ -89,19 +100,25 @@ worth_query_relation!(pub ChangedAccount in ContractInspectionSchema, Account =>
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UpdateAccountInput;
+worth_query_declaration::worth_query_portable_type!(UpdateAccountInput => "worth.query.test.host.update_account_input.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EmitAccountNoticeInput;
+worth_query_declaration::worth_query_portable_type!(EmitAccountNoticeInput => "worth.query.test.host.emit_account_notice_input.v1");
 
 worth_query_operation!(pub UpdateAccount(UpdateAccountInput) in ContractInspectionSchema);
-worth_query_operation_reads!(UpdateAccount => [Account, AccountStatus, ObservedAccount]);
+worth_query_operation_reads!(UpdateAccount => [Account, AccountStatus, AccountLimit, ObservedAccount]);
+worth_query_operation_creates!(UpdateAccount => [Account]);
+worth_query_operation_deletes!(UpdateAccount => [Account]);
 worth_query_operation_writes!(UpdateAccount => [AccountBalance]);
 worth_query_operation_links!(UpdateAccount => [ChangedAccount]);
+worth_query_operation_unlinks!(UpdateAccount => [ChangedAccount]);
 
 worth_query_operation!(pub EmitAccountNotice(EmitAccountNoticeInput) in ContractInspectionSchema);
 
 #[derive(Clone, Copy)]
 pub struct AccountNotice(u64);
+worth_query_declaration::worth_query_portable_type!(AccountNotice => "worth.query.test.host.account_notice.v1");
 
 impl ApplicationEffectPayload for AccountNotice {
     fn retained_bytes(&self) -> u64 {
@@ -157,6 +174,8 @@ fn host_consumer_inspects_one_exact_typed_installed_contract() {
     .application_schema(declaration.clone())
     .validate()
     .expect("the public package should validate");
+    portable_export::assert_complete_typed_export(&package);
+    portable_spine::assert_portable_contract_spine(&package);
     let admitted = WorthQueryInstallationAdmissionProfile::new("host", "contract-inspection")
         .admit(package)
         .expect("the public package should admit");
@@ -224,9 +243,8 @@ fn assert_mutation_read_contract(
     assert!(!projection.projection().mask().is_whole_aspect());
     assert_eq!(
         projection.projection().mask().paths(),
-        &[CanonicalFieldPath::single(
-            FieldKey::new("AccountStatus").expect("the field key is valid")
-        )]
+        &["AccountLimit", "AccountStatus"]
+            .map(|field| CanonicalFieldPath::single(FieldKey::new(field).unwrap()))
     );
     assert!(reads.iter().any(|scope| matches!(
         scope,
@@ -248,7 +266,7 @@ fn assert_mutation_touch_contract(
         .installed_operation(UpdateAccount::reference())
         .expect("the mutation operation should install");
     let touches = mutation.contracts().touches().scopes();
-    assert_eq!(touches.len(), 2);
+    assert_eq!(touches.len(), 5);
     assert!(touches.iter().any(|scope| matches!(
         scope,
         WorthQueryOperationTouchScope::WriteField(scope)
@@ -264,6 +282,19 @@ fn assert_mutation_touch_contract(
             if scope.relation() == "ChangedAccount"
                 && scope.from() == "Account"
                 && scope.to() == "Account"
+    )));
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        WorthQueryOperationTouchScope::CreateEntity(scope) if scope.entity() == "Account"
+    )));
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        WorthQueryOperationTouchScope::DeleteEntity(scope) if scope.entity() == "Account"
+    )));
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        WorthQueryOperationTouchScope::UnlinkRelation(scope)
+            if scope.relation() == "ChangedAccount"
     )));
 }
 

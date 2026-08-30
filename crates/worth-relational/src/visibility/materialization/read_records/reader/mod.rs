@@ -1,3 +1,4 @@
+mod adjacency_work_ledger;
 mod aspect_catalog;
 mod aspect_versions;
 mod context;

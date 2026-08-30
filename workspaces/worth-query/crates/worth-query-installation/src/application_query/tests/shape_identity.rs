@@ -5,7 +5,7 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryResultFieldRef, ApplicationQueryResultRelationRef,
     ApplicationQueryResultShapeBuilder, ForwardResultTraversal, ManyResults,
 };
-use worth_query_declaration::worth_query_application_query;
+use worth_query_declaration::{worth_query_application_query, worth_query_portable_type};
 
 use super::{
     installed_schema, Account, AccountActivity, AccountId, Activity, ActivityKind,
@@ -21,6 +21,14 @@ struct SecondStatusSlot;
 struct AccountIdSlot;
 struct FirstRelationSlot;
 struct SecondRelationSlot;
+
+worth_query_portable_type!(FirstKindSlot => "worth.query.test.installation.shape.first-kind.v1");
+worth_query_portable_type!(FirstSequenceSlot => "worth.query.test.installation.shape.first-sequence.v1");
+worth_query_portable_type!(SecondSequenceSlot => "worth.query.test.installation.shape.second-sequence.v1");
+worth_query_portable_type!(SecondStatusSlot => "worth.query.test.installation.shape.second-status.v1");
+worth_query_portable_type!(AccountIdSlot => "worth.query.test.installation.shape.account-id.v1");
+worth_query_portable_type!(FirstRelationSlot => "worth.query.test.installation.shape.first-relation.v1");
+worth_query_portable_type!(SecondRelationSlot => "worth.query.test.installation.shape.second-relation.v1");
 
 worth_query_application_query!(
     pub(super) GroupedOneQuery in QueryTestSchema,
@@ -73,7 +81,7 @@ fn installed_identity_preserves_which_nested_branch_owns_each_field() {
     );
 }
 
-fn grouped_shape_definition<Query: 'static, Parameters>(
+fn grouped_shape_definition<Query, Parameters>(
     reference: ApplicationQueryReference<
         QueryTestSchema,
         Query,
@@ -82,7 +90,10 @@ fn grouped_shape_definition<Query: 'static, Parameters>(
         Account,
     >,
     split_after_first: bool,
-) -> ApplicationQueryDefinition<QueryTestSchema, Query, Parameters, ActivityQueryResult, Account> {
+) -> ApplicationQueryDefinition<QueryTestSchema, Query, Parameters, ActivityQueryResult, Account>
+where
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+{
     let first = ApplicationQueryResultShapeBuilder::<QueryTestSchema, Query, Activity, ()>::new(
         Activity::reference(),
     )
