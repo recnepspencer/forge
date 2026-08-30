@@ -3,7 +3,8 @@ use std::sync::Arc;
 use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
 use worth_store_physical_format::{
-    store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity, VerifiedCheckpointStream,
+    store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity,
+    PhysicalRecordFormatDeclaration, VerifiedCheckpointStream,
 };
 use worth_store_wal::{
     LogSequenceNumber, VerifiedWalArtifact, WalLsnRange, WalSegmentArtifactIdentity,
@@ -73,6 +74,7 @@ pub(in crate::physical_runtime) struct StoreRecoveryCleanupRemovalBasis {
     session: [u8; 16],
     plan: [u8; 32],
     published_generation: u64,
+    format: PhysicalRecordFormatDeclaration,
     sealed_publication_basis: [u8; 32],
     checkpoint: PhysicalCheckpointIdentity,
     compaction_generation: u64,
@@ -173,7 +175,9 @@ fn read_current_sample(
     media: &AdmittedRecoveryFilesystemMedia,
     pending: &PendingCleanupSample,
 ) -> Result<StoreRecoveryCleanupFreshnessSample, StoreRecoveryCleanupFreshnessFailure> {
-    let completed = match coordination.read_cleanup_current_selector(media) {
+    let completed = match coordination
+        .read_cleanup_current_selector(media, pending.eligibility.removal.format)
+    {
         PhysicalRecoveryCleanupFreshnessReadOutcome::Completed(completed) => completed,
         PhysicalRecoveryCleanupFreshnessReadOutcome::Denied(denial) => {
             return Err(StoreRecoveryCleanupFreshnessFailure {
@@ -332,6 +336,9 @@ impl StoreRecoveryCleanupRemovalBasis {
     }
     pub(in crate::physical_runtime) const fn published_generation(&self) -> u64 {
         self.published_generation
+    }
+    pub(in crate::physical_runtime) const fn format(&self) -> PhysicalRecordFormatDeclaration {
+        self.format
     }
     pub(in crate::physical_runtime) const fn checkpoint(&self) -> PhysicalCheckpointIdentity {
         self.checkpoint

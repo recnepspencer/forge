@@ -81,6 +81,12 @@ impl ServingPhysicalRuntime {
             .counters()
     }
 
+    pub const fn root_protocol_counters(
+        &self,
+    ) -> crate::physical_runtime::RootProtocolRouteCounters {
+        self.parts.root_protocol_counters
+    }
+
     /// Returns read-only residency evidence for this serving Store generation.
     ///
     /// The observation exposes admitted limits and executed counters, never

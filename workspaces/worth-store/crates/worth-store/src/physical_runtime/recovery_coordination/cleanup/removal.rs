@@ -3,6 +3,7 @@ use std::sync::Arc;
 use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
 use worth_store_physical_format::{
     store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity,
+    PhysicalRecordFormatDeclaration,
 };
 use worth_store_wal::{LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity};
 
@@ -21,6 +22,7 @@ pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand {
     session: [u8; 16],
     plan: [u8; 32],
     published_generation: u64,
+    format: PhysicalRecordFormatDeclaration,
     checkpoint: PhysicalCheckpointIdentity,
     compaction_generation: u64,
     compaction_digest: [u8; 32],
@@ -45,6 +47,7 @@ pub struct PhysicalRecoveryCleanupRemovalDenial {
     work: Option<crate::physical_runtime::PhysicalWorkIdentity>,
     scheduler: Option<PhysicalWorkSchedulerPosture>,
     signal: Option<crate::physical_runtime::PhysicalSignalSettlementOutcome>,
+    integrity: Option<crate::physical_runtime::RootProtocolAdmissionDenial>,
 }
 
 pub enum PhysicalRecoveryCleanupRemovalDenialKind {
@@ -99,6 +102,7 @@ impl PhysicalRecoveryCleanupRemovalCommand {
             session: basis.session(),
             plan: basis.plan(),
             published_generation: basis.published_generation(),
+            format: basis.format(),
             checkpoint: basis.checkpoint(),
             compaction_generation: basis.compaction_generation(),
             compaction_digest: basis.compaction_digest(),
@@ -147,6 +151,9 @@ impl PhysicalRecoveryCleanupRemovalDenial {
     }
     pub const fn signal(&self) -> Option<crate::physical_runtime::PhysicalSignalSettlementOutcome> {
         self.signal
+    }
+    pub const fn integrity(&self) -> Option<crate::physical_runtime::RootProtocolAdmissionDenial> {
+        self.integrity
     }
 }
 

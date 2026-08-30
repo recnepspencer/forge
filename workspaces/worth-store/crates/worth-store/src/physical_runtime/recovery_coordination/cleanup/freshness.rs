@@ -3,7 +3,9 @@ use worth_store_physical_backend::{
     CompletedScheduledRecoveryReopenRead, DeniedScheduledRecoveryReopenRead,
     RecoveryReopenReadOutcome,
 };
-use worth_store_physical_format::{DurableRootSelector, RecordArtifactFile, RootSelectorRole};
+use worth_store_physical_format::{
+    DurableRootSelector, PhysicalRecordFormatDeclaration, RecordArtifactFile,
+};
 
 use crate::physical_runtime::recovery_coordination::settlement::{
     scheduler_posture, settle, signal_completion_is_terminal,
@@ -30,6 +32,7 @@ pub struct CompletedPhysicalRecoveryCleanupFreshnessRead {
 pub struct PhysicalRecoveryCleanupFreshnessReadDenial {
     kind: PhysicalRecoveryCleanupFreshnessReadDenialKind,
     progress: PhysicalRecoveryCleanupFreshnessReadProgress,
+    integrity: Option<crate::physical_runtime::RootProtocolAdmissionDenial>,
 }
 
 #[derive(Default)]
@@ -72,6 +75,7 @@ struct CompletedFreshnessSettlement {
 pub(super) fn read(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+    format: PhysicalRecordFormatDeclaration,
 ) -> PhysicalRecoveryCleanupFreshnessReadOutcome {
     let execution = match admit_execution(coordination) {
         Ok(execution) => execution,
@@ -86,10 +90,10 @@ pub(super) fn read(
             .backend_execution_binding(),
     ) {
         RecoveryReopenReadOutcome::Completed(completed) => {
-            complete_read(coordination, media, execution, completed)
+            complete_read(coordination, media, format, execution, completed)
         }
         RecoveryReopenReadOutcome::Denied(physical) => {
-            deny_media_read(coordination, execution, physical)
+            deny_media_read(coordination, media, format, execution, physical)
         }
     }
 }
@@ -132,6 +136,7 @@ fn admit_execution(
 fn complete_read(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+    format: PhysicalRecordFormatDeclaration,
     execution: FreshnessReadExecution,
     completed: CompletedScheduledRecoveryReopenRead,
 ) -> PhysicalRecoveryCleanupFreshnessReadOutcome {
@@ -148,20 +153,33 @@ fn complete_read(
     if let Some(kind) = kind {
         return denied(kind, settlement.into_progress());
     }
-    let Ok(selector) = DurableRootSelector::decode(settlement.physical.bytes()) else {
-        return denied(
-            PhysicalRecoveryCleanupFreshnessReadDenialKind::InvalidSelector,
-            settlement.into_progress(),
-        );
+    let admitted = match super::super::source_admission::admit_scheduled_current_selector(
+        &settlement.physical,
+        media.store_identity(),
+        format,
+    ) {
+        Ok(admitted) => admitted,
+        Err(integrity) => {
+            return denied_integrity(
+                PhysicalRecoveryCleanupFreshnessReadDenialKind::InvalidSelector,
+                settlement.into_progress(),
+                integrity,
+            )
+        }
     };
-    if selector.store_identity() != media.store_identity()
-        || selector.role() != RootSelectorRole::Current
-    {
-        return denied(
-            PhysicalRecoveryCleanupFreshnessReadDenialKind::InvalidSelector,
-            settlement.into_progress(),
-        );
-    }
+    let selector = match admitted.project() {
+        Ok(selector) => selector,
+        Err(integrity) => {
+            return denied_integrity(
+                PhysicalRecoveryCleanupFreshnessReadDenialKind::InvalidSelector,
+                settlement.into_progress(),
+                integrity,
+            )
+        }
+    };
+    coordination
+        .root_protocol_counters
+        .observe_selector(crate::physical_runtime::PhysicalRootProtocolRoute::CleanupFreshness);
     let wait = coordination
         .pause_at(crate::physical_runtime::PhysicalRecoveryYieldpointStage::CleanupFreshnessRead);
     if wait.is_interrupted() {
@@ -230,9 +248,13 @@ fn settle_completed_read(
 
 fn deny_media_read(
     coordination: &PhysicalRecoveryCoordination,
+    media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+    format: PhysicalRecordFormatDeclaration,
     execution: FreshnessReadExecution,
     physical: DeniedScheduledRecoveryReopenRead,
 ) -> PhysicalRecoveryCleanupFreshnessReadOutcome {
+    let absent =
+        physical.failure().kind() == worth_store_physical_backend::ArtifactTreeFailureKind::Absent;
     let scheduler = physical
         .queue()
         .map(|queue| scheduler_posture(&execute_ready_queue_plan(execution.plan, queue)));
@@ -247,7 +269,7 @@ fn deny_media_read(
             PhysicalEffectRecoveryObligation::Cleared,
         ),
     );
-    denied(
+    let progress = (
         PhysicalRecoveryCleanupFreshnessReadDenialKind::Media,
         PhysicalRecoveryCleanupFreshnessReadProgress {
             denied: Some(physical),
@@ -256,7 +278,20 @@ fn deny_media_read(
             signal: Some(signal),
             ..PhysicalRecoveryCleanupFreshnessReadProgress::default()
         },
-    )
+    );
+    if absent {
+        denied_integrity(
+            progress.0,
+            progress.1,
+            crate::physical_runtime::RootProtocolAdmissionDenial::fixed_selector_absent(
+                media.store_identity(),
+                format,
+                RecordArtifactFile::CurrentRootSelector,
+            ),
+        )
+    } else {
+        denied(progress.0, progress.1)
+    }
 }
 
 fn denied(
@@ -264,7 +299,25 @@ fn denied(
     progress: PhysicalRecoveryCleanupFreshnessReadProgress,
 ) -> PhysicalRecoveryCleanupFreshnessReadOutcome {
     PhysicalRecoveryCleanupFreshnessReadOutcome::Denied(
-        PhysicalRecoveryCleanupFreshnessReadDenial { kind, progress },
+        PhysicalRecoveryCleanupFreshnessReadDenial {
+            kind,
+            progress,
+            integrity: None,
+        },
+    )
+}
+
+fn denied_integrity(
+    kind: PhysicalRecoveryCleanupFreshnessReadDenialKind,
+    progress: PhysicalRecoveryCleanupFreshnessReadProgress,
+    integrity: crate::physical_runtime::RootProtocolAdmissionDenial,
+) -> PhysicalRecoveryCleanupFreshnessReadOutcome {
+    PhysicalRecoveryCleanupFreshnessReadOutcome::Denied(
+        PhysicalRecoveryCleanupFreshnessReadDenial {
+            kind,
+            progress,
+            integrity: Some(integrity),
+        },
     )
 }
 
@@ -316,6 +369,9 @@ impl PhysicalRecoveryCleanupFreshnessReadDenial {
     }
     pub const fn progress(&self) -> &PhysicalRecoveryCleanupFreshnessReadProgress {
         &self.progress
+    }
+    pub const fn integrity(&self) -> Option<crate::physical_runtime::RootProtocolAdmissionDenial> {
+        self.integrity
     }
 }
 

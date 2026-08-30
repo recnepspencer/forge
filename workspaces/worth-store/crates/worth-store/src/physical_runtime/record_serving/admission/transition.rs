@@ -94,6 +94,9 @@ pub(in crate::physical_runtime) fn initialize(
         frame_ports.loader(),
         &bootstrap_allocation,
         bootstrap,
+        runtime.lifecycle_generation(),
+        crate::physical_runtime::PhysicalRootProtocolRoute::Initialization,
+        runtime.root_protocol_counter_cells(),
     ) {
         Ok(state) => initialize_serving(runtime, state, residency, work_profile, durability),
         Err(BootstrapTransitionFailure::Denied(reason)) => initialization_failed(
@@ -171,6 +174,9 @@ pub(in crate::physical_runtime) fn open(
         frame_ports.loader(),
         &bootstrap_allocation,
         bootstrap,
+        runtime.lifecycle_generation(),
+        crate::physical_runtime::PhysicalRootProtocolRoute::OrdinaryOpen,
+        runtime.root_protocol_counter_cells(),
     ) {
         Ok(state) => open_serving(runtime, state, residency, work_profile, durability),
         Err(failure) => open_failure(runtime, failure),

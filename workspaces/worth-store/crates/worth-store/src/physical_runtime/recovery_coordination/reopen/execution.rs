@@ -1,7 +1,4 @@
 use worth_store_physical_backend::CompletedScheduledRecoveryReopenRead;
-use worth_store_physical_format::{
-    DurablePhysicalRootManifest, DurableRootSelector, RootSelectorRole,
-};
 
 use crate::physical_runtime::recovery_coordination::{
     PerformedRecoveryPhysicalEffect, PhysicalRecoveryCoordination, RecoveryFreshReopenOccurrence,
@@ -14,6 +11,8 @@ use super::{
 };
 
 mod read;
+mod root_manifest;
+mod selector;
 
 pub(super) fn execute(
     coordination: &PhysicalRecoveryCoordination,
@@ -21,62 +20,28 @@ pub(super) fn execute(
     command: PhysicalRecoveryFreshReopenCommand,
 ) -> PhysicalRecoveryFreshReopenOutcome {
     let generation = command.expected_root.generation();
-    let selector = match read::execute(
-        coordination,
-        media,
-        PhysicalRecoveryFreshReopenStage::CurrentSelector,
-        generation,
-        worth_store_physical_format::ROOT_SELECTOR_BYTES as u64,
-    ) {
-        Ok(read) => read,
+    let selector = match selector::read_and_admit(coordination, media, &command, generation) {
+        Ok(selector) => selector,
         Err(denial) => return PhysicalRecoveryFreshReopenOutcome::Denied(denial),
     };
-    let observed_selector = match DurableRootSelector::decode(selector.physical.bytes()) {
-        Ok(selector)
-            if selector == command.expected_selector
-                && selector.store_identity() == media.store_identity()
-                && selector.format() == command.format
-                && selector.role() == RootSelectorRole::Current
-                && selector.root_generation() == generation =>
-        {
-            selector
-        }
-        _ => {
-            return denied_binding(
-                selector.physical,
-                None,
-                PhysicalRecoveryFreshReopenDenialKind::InvalidSelector,
-            );
-        }
-    };
-    let root_bytes = command.expected_root.encode(command.format).len() as u64;
-    let root = match read::execute(
+    if selector.observed != command.expected_selector {
+        return denied_binding(
+            selector.physical,
+            None,
+            PhysicalRecoveryFreshReopenDenialKind::BindingMismatch,
+        );
+    }
+    let root = match root_manifest::read_and_admit(
         coordination,
         media,
-        PhysicalRecoveryFreshReopenStage::RootManifest,
-        generation,
-        root_bytes,
+        &command,
+        selector.observed.root_generation(),
+        &selector.physical,
     ) {
-        Ok(read) => read,
-        Err(mut denial) => {
-            denial.selector = Some(selector.physical);
-            return PhysicalRecoveryFreshReopenOutcome::Denied(denial);
-        }
+        Ok(root) => root,
+        Err(denial) => return PhysicalRecoveryFreshReopenOutcome::Denied(denial),
     };
-    let observed_root = match DurablePhysicalRootManifest::decode(
-        root.physical.bytes(),
-        command.expected_root.node_capacity(),
-    ) {
-        Ok((root, format)) if format == command.format => root,
-        _ => {
-            return denied_binding(
-                selector.physical,
-                Some(root.physical),
-                PhysicalRecoveryFreshReopenDenialKind::InvalidRoot,
-            )
-        }
-    };
-    if observed_selector != command.expected_selector || observed_root != command.expected_root {
+    if root.observed != command.expected_root {
         return denied_binding(
             selector.physical,
             Some(root.physical),
@@ -108,7 +73,8 @@ pub(super) fn execute(
             root.signal,
         ));
     PhysicalRecoveryFreshReopenOutcome::Completed(CompletedPhysicalRecoveryFreshReopen::new(
-        observed_root,
+        root.observed,
+        command.format,
         performed,
     ))
 }
@@ -125,4 +91,20 @@ fn denied_binding(
         root,
         None,
     ))
+}
+
+pub(super) fn integrity_denial(
+    selector: CompletedScheduledRecoveryReopenRead,
+    root: Option<CompletedScheduledRecoveryReopenRead>,
+    kind: PhysicalRecoveryFreshReopenDenialKind,
+    integrity: crate::physical_runtime::RootProtocolAdmissionDenial,
+) -> PhysicalRecoveryFreshReopenDenial {
+    PhysicalRecoveryFreshReopenDenial::new(
+        PhysicalRecoveryFreshReopenStage::ExactBinding,
+        kind,
+        Some(selector),
+        root,
+        None,
+    )
+    .with_integrity(integrity)
 }

@@ -71,8 +71,9 @@ impl PhysicalRecoveryCoordination {
     pub(in crate::physical_runtime) fn read_cleanup_current_selector(
         &self,
         media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+        format: worth_store_physical_format::PhysicalRecordFormatDeclaration,
     ) -> PhysicalRecoveryCleanupFreshnessReadOutcome {
-        freshness::read(self, media)
+        freshness::read(self, media, format)
     }
 
     pub fn execute_cleanup_candidate(

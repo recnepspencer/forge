@@ -27,6 +27,7 @@ pub(super) struct InstalledPhysicalRecordServing {
     pub(super) access: crate::physical_runtime::record_serving::AdmittedRecordAccessPolicy,
     pub(super) publication: Arc<RecordPublicationDirector>,
     pub(super) checkpoint: Arc<PhysicalCheckpointRuntimeOwner>,
+    pub(super) root_protocol_counters: crate::physical_runtime::RootProtocolRouteCounters,
 }
 
 impl PhysicalRecordServingAssembly {
@@ -153,6 +154,7 @@ impl PhysicalRecordServingAssembly {
             access: self.state.access,
             publication,
             checkpoint,
+            root_protocol_counters: self.state.root_protocol_counters,
         }
     }
 }

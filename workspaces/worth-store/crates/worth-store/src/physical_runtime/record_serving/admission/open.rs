@@ -25,6 +25,9 @@ struct CurrentRootAdmission<'a> {
     limits: BootstrapCatalogReadLimits,
     generation: u64,
     expected_format: PhysicalRecordFormatDeclaration,
+    lifecycle: crate::physical_runtime::LifecycleGeneration,
+    route: crate::physical_runtime::PhysicalRootProtocolRoute,
+    counters: &'a crate::physical_runtime::RootProtocolRouteCounterCells,
 }
 
 pub(in crate::physical_runtime::record_serving) fn open(
@@ -110,6 +113,9 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
     loader: &(dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     bootstrap: PhysicalRecordBootstrapOwner,
+    lifecycle: crate::physical_runtime::LifecycleGeneration,
+    route: crate::physical_runtime::PhysicalRootProtocolRoute,
+    counters: &crate::physical_runtime::RootProtocolRouteCounterCells,
 ) -> Result<RecordServingState, BootstrapTransitionFailure> {
     let limits = BootstrapCatalogReadLimits::for_format(bootstrap.format, bootstrap.access);
     let generation = bootstrap.current_root.generation().get();
@@ -120,6 +126,9 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
         limits,
         generation,
         expected_format: bootstrap.format.declaration(),
+        lifecycle,
+        route,
+        counters,
     };
     let current_root = load_root_manifest(&admission)?;
     let previous_root = if generation == 1 {
@@ -146,13 +155,14 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
         previous_root,
         publication_residue,
         free_space,
+        root_protocol_counters: counters.snapshot(),
     })
 }
 
 fn load_root_manifest(
     admission: &CurrentRootAdmission<'_>,
 ) -> Result<DurablePhysicalRootManifest, BootstrapTransitionFailure> {
-    let root_bytes = ServingRecordArtifacts::new(admission.media, admission.loader)
+    let root_frame = ServingRecordArtifacts::new(admission.media, admission.loader)
         .load_bounded(
             admission.allocation,
             RecordArtifactFile::RootManifest {
@@ -178,9 +188,16 @@ fn load_root_manifest(
                 _ => RecordBootstrapDenial::CurrentRootDamaged,
             })
         })?;
-    let (current_root, root_format) =
-        DurablePhysicalRootManifest::decode(&root_bytes, admission.limits.current_root_entries())
-            .map_err(classify_root_denial)?;
+    let admitted = crate::physical_runtime::integrity::admit_loaded_root_manifest(
+        root_frame.lease(),
+        admission.lifecycle,
+        admission.media.store_identity(),
+        admission.expected_format,
+        admission.generation,
+    )
+    .map_err(classify_root_integrity_denial)?;
+    let current_root = admitted.project().map_err(classify_root_integrity_denial)?;
+    admission.counters.observe_root(admission.route);
     if !super::super::planning::policy_units::manifest_capacity_can_branch(
         current_root.node_capacity(),
     ) {
@@ -191,14 +208,6 @@ fn load_root_manifest(
     if current_root.generation() != admission.generation {
         return Err(BootstrapTransitionFailure::Stale(
             RecordServingStaleReason::CatalogSelectedRootGenerationMismatch,
-        ));
-    }
-    if root_format != admission.expected_format {
-        return Err(BootstrapTransitionFailure::Denied(
-            RecordBootstrapDenial::PhysicalRecordFormatMismatch(PhysicalRecordFormatMismatch::new(
-                admission.expected_format,
-                root_format,
-            )),
         ));
     }
     Ok(current_root)
@@ -285,20 +294,25 @@ fn classify_catalog_denial(
     }
 }
 
-fn classify_root_denial(
-    denial: worth_store_physical_format::RootManifestDenial,
+fn classify_root_integrity_denial(
+    denial: crate::physical_runtime::RootProtocolAdmissionDenial,
 ) -> BootstrapTransitionFailure {
+    use worth_store_physical_integrity::{
+        PhysicalIntegrityRejection, PhysicalIntegrityVersionAxis,
+    };
+
     match denial {
-        worth_store_physical_format::RootManifestDenial::Frame(
-            worth_store_physical_format::DurableFrameDenial::UnsupportedFormat(reason),
-        ) => BootstrapTransitionFailure::Denied(
-            RecordBootstrapDenial::UnsupportedPhysicalRecordFormat(
-                UnsupportedPhysicalRecordFormat::new(reason),
-            ),
-        ),
-        worth_store_physical_format::RootManifestDenial::IdentityMismatch => {
-            BootstrapTransitionFailure::Stale(
-                RecordServingStaleReason::CatalogSelectedRootGenerationMismatch,
+        crate::physical_runtime::RootProtocolAdmissionDenial::Validation(
+            PhysicalIntegrityRejection::Unsupported(unsupported),
+        ) if unsupported.axis() == PhysicalIntegrityVersionAxis::PhysicalFormat => {
+            BootstrapTransitionFailure::Denied(
+                RecordBootstrapDenial::UnsupportedPhysicalRecordFormat(
+                    UnsupportedPhysicalRecordFormat::new(
+                        worth_store_physical_format::PhysicalRecordFormatDenial::UnsupportedVersion(
+                            unsupported.observed() as u16,
+                        ),
+                    ),
+                ),
             )
         }
         _ => BootstrapTransitionFailure::Denied(RecordBootstrapDenial::CurrentRootDamaged),

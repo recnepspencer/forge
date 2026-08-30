@@ -192,10 +192,17 @@ mod tests {
         RecordFrameCoordinate::new(artifact, 0, length).unwrap()
     }
 
+    fn format() -> worth_store_physical_format::PhysicalRecordFormatDeclaration {
+        worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+            .admit()
+            .unwrap()
+    }
+
     #[test]
     fn resident_owner_mapping_rejects_root_family_substitution() {
         let scope = PhysicalArtifactScope::current_root_selector(
             store(),
+            format(),
             PhysicalByteRange::new(0, 107).unwrap(),
         );
 
@@ -213,6 +220,7 @@ mod tests {
     fn resident_owner_mapping_rejects_root_generation_substitution() {
         let scope = PhysicalArtifactScope::root_manifest(
             store(),
+            format(),
             7,
             PhysicalByteRange::new(0, 368).unwrap(),
         )

@@ -44,6 +44,12 @@ mod tests {
         .published_identity()
     }
 
+    fn format() -> worth_store_physical_format::PhysicalRecordFormatDeclaration {
+        worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+            .admit()
+            .unwrap()
+    }
+
     #[test]
     fn one_window_is_admitted_against_one_bounded_allocation() {
         let store = store(31);
@@ -52,6 +58,7 @@ mod tests {
             1,
             PhysicalArtifactScope::current_root_selector(
                 store,
+                format(),
                 PhysicalByteRange::new(0, 4).unwrap(),
             ),
             UntrustedPhysicalArtifact::from_bounded_bytes(&bytes),

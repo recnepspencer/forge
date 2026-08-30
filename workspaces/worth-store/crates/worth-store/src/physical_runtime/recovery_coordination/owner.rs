@@ -42,6 +42,7 @@ pub struct PhysicalRecoveryCoordination {
     pub(super) bases: [crate::physical_runtime::PhysicalWorkSemanticBasis; 4],
     pub(super) construction: crate::physical_runtime::PhysicalRecoveryConstructionAuthority,
     pub(super) cleanup_capacity: PhysicalRecoveryCoordinationCapacity,
+    pub(super) root_protocol_counters: crate::physical_runtime::RootProtocolRouteCounterCells,
     runtime: RuntimeIdentity,
     yieldpoint: Option<crate::physical_runtime::PhysicalRecoveryProcessYieldpoint>,
     #[cfg(feature = "certification-test-authority")]
@@ -124,6 +125,8 @@ impl PhysicalRecoveryCoordination {
             bases: semantics.bases,
             construction,
             cleanup_capacity,
+            root_protocol_counters: crate::physical_runtime::RootProtocolRouteCounterCells::default(
+            ),
             runtime,
             yieldpoint,
             #[cfg(feature = "certification-test-authority")]
@@ -150,6 +153,10 @@ impl PhysicalRecoveryCoordination {
         &self,
     ) -> PhysicalRecoveryCoordinationCapacity {
         self.cleanup_capacity
+    }
+
+    pub fn root_protocol_counters(&self) -> crate::physical_runtime::RootProtocolRouteCounters {
+        self.root_protocol_counters.snapshot()
     }
 
     pub fn quiescence_observation(&self) -> PhysicalRecoveryQuiescenceObservation {

@@ -136,6 +136,10 @@ pub use instance::{
     PhysicalStoreCloseObservation, PhysicalStoreCloseOutcome, PhysicalStoreClosePhase,
     PhysicalStoreClosePlan, PhysicalWorkExecution,
 };
+pub(in crate::physical_runtime) use integrity::RootProtocolRouteCounterCells;
+pub use integrity::{
+    PhysicalRootProtocolRoute, RootProtocolAdmissionDenial, RootProtocolRouteCounters,
+};
 pub use lifecycle::LifecycleGeneration;
 #[cfg(feature = "recovery-runtime-owner")]
 pub use media_ownership::{

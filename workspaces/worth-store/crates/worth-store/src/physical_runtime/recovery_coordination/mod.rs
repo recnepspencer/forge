@@ -6,6 +6,7 @@ mod publication;
 mod reopen;
 mod semantics;
 mod settlement;
+mod source_admission;
 mod staging;
 
 pub use capacity::PhysicalRecoveryCoordinationCapacity;

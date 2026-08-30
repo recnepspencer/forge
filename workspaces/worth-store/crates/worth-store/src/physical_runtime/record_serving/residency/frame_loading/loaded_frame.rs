@@ -71,6 +71,14 @@ impl LoadedPhysicalFrame {
         self.lease.key().coordinate()
     }
 
+    pub(in crate::physical_runtime::record_serving) const fn lease(&self) -> &PhysicalFrameLease {
+        &self.lease
+    }
+
+    pub(super) fn bytes(&self) -> &[u8] {
+        &self.lease
+    }
+
     pub(in crate::physical_runtime::record_serving) fn reject_projection_failure(mut self) {
         if let Some(projection_failure) = self.projection_failure.take() {
             projection_failure.consume();

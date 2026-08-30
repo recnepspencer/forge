@@ -1,11 +1,18 @@
+mod diagnostics;
 mod recovery_join;
 mod resident_admission;
+mod root_protocol_admission_denial;
 mod scrub;
 
+pub(in crate::physical_runtime) use diagnostics::RootProtocolRouteCounterCells;
+pub use diagnostics::{PhysicalRootProtocolRoute, RootProtocolRouteCounters};
 pub(in crate::physical_runtime) use recovery_join::{
     RecoveryIntegrityHandoffBinding, RecoveryIntegrityRuntimeGeneration,
 };
-pub(in crate::physical_runtime) use resident_admission::ResidentIntegrityRecordBinding;
+pub(in crate::physical_runtime) use resident_admission::{
+    admit_loaded_root_manifest, ResidentIntegrityRecordBinding,
+};
+pub use root_protocol_admission_denial::RootProtocolAdmissionDenial;
 pub(in crate::physical_runtime) use scrub::{
     ManagedPhysicalIntegrityScrubHandle, ManagedPhysicalIntegrityScrubProgress,
     ManagedPhysicalIntegrityScrubRequest,

@@ -95,6 +95,9 @@ mod scenario_configuration;
 mod scenario_evidence;
 #[path = "physical_record_journeys/scenario_process_evidence.rs"]
 mod scenario_process_evidence;
+#[cfg(feature = "recovery-runtime-owner")]
+#[path = "physical_record_journeys/scheduled_reopen_admission.rs"]
+mod scheduled_reopen_admission;
 #[path = "physical_record_journeys/segment_journeys.rs"]
 mod segment_journeys;
 #[path = "physical_record_journeys/segment_truth.rs"]
