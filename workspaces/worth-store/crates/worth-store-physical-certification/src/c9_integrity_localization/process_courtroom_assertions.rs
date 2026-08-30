@@ -128,7 +128,10 @@ fn assert_exact_recovery_damage(
             length: record.exact_length(),
         }
     );
-    assert_ne!(damage.scope.record_format_identity, [0; 10]);
+    assert!(damage
+        .scope
+        .record_format_identity
+        .is_some_and(|identity| identity != [0; 10]));
     assert_eq!(damage.cause, ProcessDamageCause::ChecksumMismatch);
     assert_eq!(
         damage.damaged_range,

@@ -7,13 +7,14 @@ use super::authority::{
     DamagedPhysicalAuthorityObservation, IntactPhysicalAuthorityObservation,
     StoreAuthoritativeArtifactOwnerTruth,
 };
-use super::derived::{RebuildableDerivedArtifactOwnerTruth, RebuildablePhysicalDerivedObservation};
+use super::derived::{DamagedPhysicalDerivedDisposition, IntactPhysicalDerivedObservation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalArtifactRoleDisposition {
     IntactAuthority(IntactPhysicalAuthorityObservation),
+    IntactDerived(IntactPhysicalDerivedObservation),
     DamagedAuthority(DamagedPhysicalAuthorityObservation),
-    RebuildableDerived(RebuildablePhysicalDerivedObservation),
+    DamagedDerived(DamagedPhysicalDerivedDisposition),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,7 +28,6 @@ pub enum OwnerDispositionProjectionDenial {
     ScopeSubstitution,
     DamageRequiresOwnerTruth,
     NonDamageCannotReceiveOwnerRole,
-    AuthoritativeBasisSubstitution,
 }
 
 pub(super) fn project_intact_authority(
@@ -60,28 +60,6 @@ pub(super) fn project_damaged_authority(
         PhysicalIntegrityObservationOutcome::Rejected(rejection),
         PhysicalArtifactRoleDisposition::DamagedAuthority(
             DamagedPhysicalAuthorityObservation::new(localization),
-        ),
-    ))
-}
-
-pub(super) fn project_rebuildable_derived(
-    owner_truth: RebuildableDerivedArtifactOwnerTruth,
-    rejection: PhysicalIntegrityRejection,
-    intact_basis: IntactPhysicalAuthorityObservation,
-) -> Result<PhysicalArtifactDisposition, OwnerDispositionProjectionDenial> {
-    let PhysicalIntegrityRejection::Damaged(localization) = rejection else {
-        return Err(OwnerDispositionProjectionDenial::NonDamageCannotReceiveOwnerRole);
-    };
-    if localization.scope() != owner_truth.derived_scope() {
-        return Err(OwnerDispositionProjectionDenial::ScopeSubstitution);
-    }
-    if intact_basis.scope() != owner_truth.authoritative_basis_scope() {
-        return Err(OwnerDispositionProjectionDenial::AuthoritativeBasisSubstitution);
-    }
-    Ok(PhysicalArtifactDisposition::with_owner_role(
-        PhysicalIntegrityObservationOutcome::Rejected(rejection),
-        PhysicalArtifactRoleDisposition::RebuildableDerived(
-            RebuildablePhysicalDerivedObservation::new(localization.scope(), intact_basis.scope()),
         ),
     ))
 }

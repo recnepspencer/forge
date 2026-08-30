@@ -13,9 +13,11 @@ pub(in crate::physical_runtime) use disposition::{
     StoreOwnerDispositionAdapterDenial,
 };
 pub use disposition::{
-    DamagedPhysicalAuthorityObservation, IntactPhysicalAuthorityObservation,
-    OwnerDispositionProjectionDenial, PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
-    RebuildablePhysicalDerivedObservation,
+    DamagedPhysicalAuthorityObservation, DamagedPhysicalDerivedDisposition,
+    IndeterminateDerivedRebuildability, IntactPhysicalAuthorityObservation,
+    IntactPhysicalDerivedObservation, OwnerDispositionProjectionDenial,
+    PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
+    RebuildablePhysicalDerivedObservation, UnknownDerivedRebuildability,
 };
 pub(in crate::physical_runtime) use recovery_join::{
     RecoveryIntegrityHandoffBinding, RecoveryIntegrityRuntimeGeneration,

@@ -187,7 +187,7 @@ impl PhysicalArtifactScope {
     }
 
     /// Phase 3 durable-frame accessor retained for selector/root callers.
-    pub const fn record_format(self) -> PhysicalRecordFormatDeclaration {
+    pub(crate) const fn record_format(self) -> PhysicalRecordFormatDeclaration {
         match self.durable_frame_record_format() {
             Some(format) => format,
             None => panic!("artifact family has no durable-frame record format"),

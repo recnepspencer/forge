@@ -32,6 +32,8 @@ mod process_courtroom_assertions;
 #[cfg(test)]
 mod process_identity_substitution;
 #[cfg(test)]
+mod process_integrity_vocabulary;
+#[cfg(test)]
 mod process_manifest;
 #[cfg(test)]
 mod process_poison;

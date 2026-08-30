@@ -1,5 +1,6 @@
 use worth_store::physical_runtime::{
-    PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
+    DamagedPhysicalDerivedDisposition, PhysicalArtifactDisposition,
+    PhysicalArtifactRoleDisposition,
 };
 
 fn inspect_owner_observation(disposition: PhysicalArtifactDisposition) {
@@ -11,9 +12,21 @@ fn inspect_owner_observation(disposition: PhysicalArtifactDisposition) {
         Some(PhysicalArtifactRoleDisposition::DamagedAuthority(observation)) => {
             let _ = observation.localization();
         }
-        Some(PhysicalArtifactRoleDisposition::RebuildableDerived(observation)) => {
-            let _ = observation.damaged_derived_scope();
-            let _ = observation.intact_authoritative_basis_scope();
+        Some(PhysicalArtifactRoleDisposition::IntactDerived(observation)) => {
+            let _ = observation.derived_scope();
+            let _ = observation.authoritative_basis_scope();
+        }
+        Some(PhysicalArtifactRoleDisposition::DamagedDerived(disposition)) => match disposition {
+            DamagedPhysicalDerivedDisposition::RebuildableDerived(observation) => {
+                let _ = observation.damaged_derived_scope();
+                let _ = observation.intact_authoritative_basis_scope();
+            }
+            DamagedPhysicalDerivedDisposition::Unknown(observation) => {
+                let _ = observation.damaged_derived_scope();
+            }
+            DamagedPhysicalDerivedDisposition::Indeterminate(observation) => {
+                let _ = observation.damaged_derived_scope();
+            }
         }
         None => {}
     }

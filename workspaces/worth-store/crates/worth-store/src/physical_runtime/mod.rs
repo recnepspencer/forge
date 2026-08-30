@@ -138,10 +138,12 @@ pub use instance::{
 };
 pub(in crate::physical_runtime) use integrity::RootProtocolRouteCounterCells;
 pub use integrity::{
-    DamagedPhysicalAuthorityObservation, IntactPhysicalAuthorityObservation,
-    OwnerDispositionProjectionDenial, PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
-    PhysicalRootProtocolRoute, RebuildablePhysicalDerivedObservation, RootProtocolAdmissionDenial,
-    RootProtocolRouteCounters,
+    DamagedPhysicalAuthorityObservation, DamagedPhysicalDerivedDisposition,
+    IndeterminateDerivedRebuildability, IntactPhysicalAuthorityObservation,
+    IntactPhysicalDerivedObservation, OwnerDispositionProjectionDenial,
+    PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition, PhysicalRootProtocolRoute,
+    RebuildablePhysicalDerivedObservation, RootProtocolAdmissionDenial, RootProtocolRouteCounters,
+    UnknownDerivedRebuildability,
 };
 pub use lifecycle::LifecycleGeneration;
 #[cfg(feature = "recovery-runtime-owner")]

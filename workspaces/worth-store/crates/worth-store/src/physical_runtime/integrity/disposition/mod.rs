@@ -11,7 +11,11 @@ pub use authority::{DamagedPhysicalAuthorityObservation, IntactPhysicalAuthority
 pub use classification::{
     OwnerDispositionProjectionDenial, PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
 };
-pub use derived::RebuildablePhysicalDerivedObservation;
+pub use derived::{
+    DamagedPhysicalDerivedDisposition, IndeterminateDerivedRebuildability,
+    IntactPhysicalDerivedObservation, RebuildablePhysicalDerivedObservation,
+    UnknownDerivedRebuildability,
+};
 
 #[cfg(test)]
 mod tests;

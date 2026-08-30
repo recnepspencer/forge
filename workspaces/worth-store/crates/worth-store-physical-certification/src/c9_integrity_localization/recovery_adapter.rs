@@ -1,10 +1,9 @@
 use std::path::Path;
 
-use worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily;
 use worth_store_physical_integrity::{
     IndeterminatePhysicalIntegrityCause, PhysicalArtifactScope, PhysicalBlastRadius,
-    PhysicalByteRange, PhysicalDamageCause, PhysicalDamageLocalization, PhysicalFormatField,
-    PhysicalIntegrityRejection, PhysicalIntegrityVersionAxis, UnknownPhysicalIntegrityCause,
+    PhysicalByteRange, PhysicalDamageLocalization, PhysicalIntegrityRejection,
+    PhysicalIntegrityVersionAxis, UnknownPhysicalIntegrityCause,
 };
 use worth_store_recovery_runtime::{
     PhysicalRecoveryBlockKind, PhysicalRecoveryOutcome, PhysicalRecoveryRefusalKind,
@@ -12,14 +11,16 @@ use worth_store_recovery_runtime::{
     PhysicalRecoveryRootProtocolDenial, PhysicalRecoverySourceDenial, WorthStoreRecovery,
 };
 
+use super::process_integrity_vocabulary::{
+    project_artifact_family, project_damage_cause, project_format_field,
+};
 use super::process_recovery_observation::{
-    ProcessBlastRadius, ProcessByteRange, ProcessDamageCause, ProcessDamageLocalization,
-    ProcessFormatField, ProcessIndeterminateIntegrityCause, ProcessIntegrityArtifactFamily,
-    ProcessIntegrityRejection, ProcessIntegrityScope, ProcessIntegrityVersionAxis,
-    ProcessRecoveryBlockCause, ProcessRecoveryDiscoveryCounters, ProcessRecoveryObservation,
-    ProcessRecoveryPosture, ProcessRecoveryRefusalCause, ProcessRecoveryRootProtocolCounters,
-    ProcessRootProtocolArtifact, ProcessRootProtocolDenial, ProcessRootProtocolDenialKind,
-    ProcessUnknownIntegrityCause,
+    ProcessBlastRadius, ProcessByteRange, ProcessDamageLocalization,
+    ProcessIndeterminateIntegrityCause, ProcessIntegrityRejection, ProcessIntegrityScope,
+    ProcessIntegrityVersionAxis, ProcessRecoveryBlockCause, ProcessRecoveryDiscoveryCounters,
+    ProcessRecoveryObservation, ProcessRecoveryPosture, ProcessRecoveryRefusalCause,
+    ProcessRecoveryRootProtocolCounters, ProcessRootProtocolArtifact, ProcessRootProtocolDenial,
+    ProcessRootProtocolDenialKind, ProcessUnknownIntegrityCause,
 };
 use super::recovery_request::open_request;
 
@@ -222,6 +223,13 @@ fn project_integrity_rejection(rejection: PhysicalIntegrityRejection) -> Process
                     PhysicalIntegrityVersionAxis::PhysicalFormat => {
                         ProcessIntegrityVersionAxis::PhysicalFormat
                     }
+                    PhysicalIntegrityVersionAxis::PhysicalWorkObligation => {
+                        ProcessIntegrityVersionAxis::PhysicalWorkObligation
+                    }
+                    PhysicalIntegrityVersionAxis::WalFrame => ProcessIntegrityVersionAxis::WalFrame,
+                    PhysicalIntegrityVersionAxis::CheckpointRecordSchema => {
+                        ProcessIntegrityVersionAxis::CheckpointRecordSchema
+                    }
                 },
                 observed: posture.observed(),
             }
@@ -283,7 +291,9 @@ fn project_integrity_scope(scope: PhysicalArtifactScope) -> ProcessIntegrityScop
         family: project_artifact_family(scope.artifact_family()),
         root_generation: scope.root_generation(),
         byte_range: project_byte_range(scope.byte_range()),
-        record_format_identity: scope.record_format().canonical_identity_bytes(),
+        record_format_identity: scope
+            .durable_frame_record_format()
+            .map(|format| format.canonical_identity_bytes()),
     }
 }
 
@@ -291,78 +301,5 @@ fn project_byte_range(range: PhysicalByteRange) -> ProcessByteRange {
     ProcessByteRange {
         offset: range.offset(),
         length: range.length(),
-    }
-}
-
-fn project_damage_cause(cause: PhysicalDamageCause) -> ProcessDamageCause {
-    match cause {
-        PhysicalDamageCause::WrongMagic => ProcessDamageCause::WrongMagic,
-        PhysicalDamageCause::FamilyMismatch => ProcessDamageCause::FamilyMismatch,
-        PhysicalDamageCause::FramingLengthMismatch => ProcessDamageCause::FramingLengthMismatch,
-        PhysicalDamageCause::ChecksumMismatch => ProcessDamageCause::ChecksumMismatch,
-        PhysicalDamageCause::FormatMismatch => ProcessDamageCause::FormatMismatch,
-        PhysicalDamageCause::StoreIdentityMismatch => ProcessDamageCause::StoreIdentityMismatch,
-        PhysicalDamageCause::ArtifactIdentityMismatch => {
-            ProcessDamageCause::ArtifactIdentityMismatch
-        }
-        PhysicalDamageCause::PhysicalGenerationMismatch => {
-            ProcessDamageCause::PhysicalGenerationMismatch
-        }
-        PhysicalDamageCause::SelectorRoleMismatch => ProcessDamageCause::SelectorRoleMismatch,
-        PhysicalDamageCause::ChildReferenceMismatch => ProcessDamageCause::ChildReferenceMismatch,
-        PhysicalDamageCause::MalformedStructure => ProcessDamageCause::MalformedStructure,
-        PhysicalDamageCause::Truncated => ProcessDamageCause::Truncated,
-        PhysicalDamageCause::MissingArtifact => ProcessDamageCause::MissingArtifact,
-        PhysicalDamageCause::DuplicateArtifact => ProcessDamageCause::DuplicateArtifact,
-    }
-}
-
-fn project_format_field(field: PhysicalFormatField) -> ProcessFormatField {
-    match field {
-        PhysicalFormatField::Magic => ProcessFormatField::Magic,
-        PhysicalFormatField::EnvelopeSchema => ProcessFormatField::EnvelopeSchema,
-        PhysicalFormatField::FormatVersion => ProcessFormatField::FormatVersion,
-        PhysicalFormatField::FormatDeclaration => ProcessFormatField::FormatDeclaration,
-        PhysicalFormatField::EncodedLength => ProcessFormatField::EncodedLength,
-        PhysicalFormatField::Checksum => ProcessFormatField::Checksum,
-        PhysicalFormatField::StoreIdentity => ProcessFormatField::StoreIdentity,
-        PhysicalFormatField::ArtifactFamily => ProcessFormatField::ArtifactFamily,
-        PhysicalFormatField::ArtifactIdentity => ProcessFormatField::ArtifactIdentity,
-        PhysicalFormatField::PhysicalGeneration => ProcessFormatField::PhysicalGeneration,
-        PhysicalFormatField::SelectorRole => ProcessFormatField::SelectorRole,
-        PhysicalFormatField::RootGeneration => ProcessFormatField::RootGeneration,
-        PhysicalFormatField::LinkedSelector => ProcessFormatField::LinkedSelector,
-        PhysicalFormatField::ChildReference => ProcessFormatField::ChildReference,
-        PhysicalFormatField::Reserved => ProcessFormatField::Reserved,
-        PhysicalFormatField::Payload => ProcessFormatField::Payload,
-    }
-}
-
-fn project_artifact_family(
-    family: PhysicalIntegrityArtifactFamily,
-) -> ProcessIntegrityArtifactFamily {
-    use PhysicalIntegrityArtifactFamily as Source;
-    use ProcessIntegrityArtifactFamily as Target;
-
-    match family {
-        Source::NamespaceIdentity => Target::NamespaceIdentity,
-        Source::PhysicalWorkObligation => Target::PhysicalWorkObligation,
-        Source::PageFrame => Target::PageFrame,
-        Source::ExtentChunk => Target::ExtentChunk,
-        Source::WalFrame => Target::WalFrame,
-        Source::CheckpointStreamHeader => Target::CheckpointStreamHeader,
-        Source::CheckpointDirtyBasis => Target::CheckpointDirtyBasis,
-        Source::CheckpointBindingCompaction => Target::CheckpointBindingCompaction,
-        Source::CheckpointBinding => Target::CheckpointBinding,
-        Source::CheckpointFooter => Target::CheckpointFooter,
-        Source::BootstrapCatalog => Target::BootstrapCatalog,
-        Source::CurrentRootSelector => Target::CurrentRootSelector,
-        Source::PreviousRootSelector => Target::PreviousRootSelector,
-        Source::RootManifest => Target::RootManifest,
-        Source::RootRoutingBlock => Target::RootRoutingBlock,
-        Source::SegmentMembership => Target::SegmentMembership,
-        Source::ExtentManifest => Target::ExtentManifest,
-        Source::FreeSpaceHeader => Target::FreeSpaceHeader,
-        Source::FreeSpaceMembershipBlock => Target::FreeSpaceMembershipBlock,
     }
 }
