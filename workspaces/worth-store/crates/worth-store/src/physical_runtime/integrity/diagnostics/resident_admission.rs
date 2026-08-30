@@ -4,7 +4,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 pub(in crate::physical_runtime) struct ResidentAdmissionCounterCells {
     fresh_validations: AtomicU64,
     exact_record_reuses: AtomicU64,
-    rejections_before_decoder: AtomicU64,
+    refusals_before_owner_entry: AtomicU64,
+    failed_rechecks_after_owner_entry: AtomicU64,
     owner_decoder_entries: AtomicU64,
     owner_projection_entries: AtomicU64,
 }
@@ -13,7 +14,8 @@ pub(in crate::physical_runtime) struct ResidentAdmissionCounterCells {
 pub struct ResidentAdmissionCounters {
     fresh_validations: u64,
     exact_record_reuses: u64,
-    rejections_before_decoder: u64,
+    refusals_before_owner_entry: u64,
+    failed_rechecks_after_owner_entry: u64,
     owner_decoder_entries: u64,
     owner_projection_entries: u64,
 }
@@ -27,8 +29,13 @@ impl ResidentAdmissionCounterCells {
         self.exact_record_reuses.fetch_add(1, Ordering::Relaxed);
     }
 
-    pub(in crate::physical_runtime) fn observe_rejection_before_decoder(&self) {
-        self.rejections_before_decoder
+    pub(in crate::physical_runtime) fn observe_refusal_before_owner_entry(&self) {
+        self.refusals_before_owner_entry
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(in crate::physical_runtime) fn observe_failed_recheck_after_owner_entry(&self) {
+        self.failed_rechecks_after_owner_entry
             .fetch_add(1, Ordering::Relaxed);
     }
 
@@ -45,7 +52,10 @@ impl ResidentAdmissionCounterCells {
         ResidentAdmissionCounters {
             fresh_validations: self.fresh_validations.load(Ordering::Relaxed),
             exact_record_reuses: self.exact_record_reuses.load(Ordering::Relaxed),
-            rejections_before_decoder: self.rejections_before_decoder.load(Ordering::Relaxed),
+            refusals_before_owner_entry: self.refusals_before_owner_entry.load(Ordering::Relaxed),
+            failed_rechecks_after_owner_entry: self
+                .failed_rechecks_after_owner_entry
+                .load(Ordering::Relaxed),
             owner_decoder_entries: self.owner_decoder_entries.load(Ordering::Relaxed),
             owner_projection_entries: self.owner_projection_entries.load(Ordering::Relaxed),
         }
@@ -61,8 +71,12 @@ impl ResidentAdmissionCounters {
         self.exact_record_reuses
     }
 
-    pub const fn rejections_before_decoder(self) -> u64 {
-        self.rejections_before_decoder
+    pub const fn refusals_before_owner_entry(self) -> u64 {
+        self.refusals_before_owner_entry
+    }
+
+    pub const fn failed_rechecks_after_owner_entry(self) -> u64 {
+        self.failed_rechecks_after_owner_entry
     }
 
     pub const fn owner_decoder_entries(self) -> u64 {

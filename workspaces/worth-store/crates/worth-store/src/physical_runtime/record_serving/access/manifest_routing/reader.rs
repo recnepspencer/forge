@@ -32,6 +32,9 @@ pub(in crate::physical_runtime::record_serving) enum ManifestLookupFailure {
     Backend(ArtifactTreeFailure),
     Residency(worth_store_buffer_pool::PhysicalResidencyDenial),
     Frame(crate::physical_runtime::record_serving::residency::frame_loading::FrameLoadFailureKind),
+    ResidentAdmission(
+        crate::physical_runtime::integrity::resident_admission::denial::ResidentIntegrityAdmissionDenial,
+    ),
     Damaged,
 }
 
@@ -174,9 +177,15 @@ impl<'media> ManifestReader<'media> {
         });
         match decoded {
             Ok(Ok((block, _))) => Ok(block),
-            Ok(Err(_)) | Err(_) => {
+            Ok(Err(_)) => {
                 bytes.reject_projection_failure();
                 Err(ManifestLookupFailure::Damaged)
+            }
+            Err(denial) => {
+                if !denial.preserves_resident_bytes() {
+                    bytes.reject_projection_failure();
+                }
+                Err(ManifestLookupFailure::ResidentAdmission(denial))
             }
         }
     }

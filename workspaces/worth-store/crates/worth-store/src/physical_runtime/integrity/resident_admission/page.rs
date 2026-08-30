@@ -35,7 +35,7 @@ pub(in crate::physical_runtime) fn admit_resident_page<'frame>(
     context: ResidentAdmissionContext<'_>,
 ) -> Result<IntegrityAdmittedResidentPage<'frame>, ResidentIntegrityAdmissionDenial> {
     require_exact_page_source(lease, scope, expected_segment)
-        .map_err(|denial| context.reject_source(denial))?;
+        .map_err(|denial| context.refuse_source(denial))?;
     if let Some(source) = context.reuse(lease, scope)? {
         return Ok(IntegrityAdmittedResidentPage { source });
     }

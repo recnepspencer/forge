@@ -11,6 +11,7 @@ use worth_store_physical_integrity::{
 };
 
 mod bootstrap_catalog;
+mod counter_semantics;
 mod support;
 use support::*;
 
@@ -59,7 +60,8 @@ fn exact_same_generation_hit_reuses_record_without_fresh_validation() {
     assert_eq!(observed.fresh_validations(), 1);
     assert_eq!(observed.exact_record_reuses(), 1);
     assert_eq!(observed.owner_decoder_entries(), 2);
-    assert_eq!(observed.rejections_before_decoder(), 0);
+    assert_eq!(observed.refusals_before_owner_entry(), 0);
+    assert_eq!(observed.failed_rechecks_after_owner_entry(), 0);
 }
 
 #[test]
@@ -106,7 +108,8 @@ fn invalidation_forces_rehash_and_stale_admission_cannot_enter_decoder() {
     let observed = counters.snapshot();
     assert_eq!(observed.fresh_validations(), 2);
     assert_eq!(observed.exact_record_reuses(), 1);
-    assert_eq!(observed.rejections_before_decoder(), 0);
+    assert_eq!(observed.refusals_before_owner_entry(), 0);
+    assert_eq!(observed.failed_rechecks_after_owner_entry(), 1);
     assert_eq!(observed.owner_decoder_entries(), 3);
 }
 
@@ -145,7 +148,8 @@ fn artifact_and_lifecycle_substitution_reject_before_decoder_entry() {
 
     let observed = counters.snapshot();
     assert_eq!(observed.fresh_validations(), 1);
-    assert_eq!(observed.rejections_before_decoder(), 2);
+    assert_eq!(observed.refusals_before_owner_entry(), 2);
+    assert_eq!(observed.failed_rechecks_after_owner_entry(), 0);
     assert_eq!(observed.owner_decoder_entries(), 0);
 }
 
@@ -172,7 +176,8 @@ fn corrupt_fresh_bytes_reject_before_any_owner_decoder_entry() {
     let observed = counters.snapshot();
     assert_eq!(observed.fresh_validations(), 1);
     assert_eq!(observed.exact_record_reuses(), 0);
-    assert_eq!(observed.rejections_before_decoder(), 1);
+    assert_eq!(observed.refusals_before_owner_entry(), 1);
+    assert_eq!(observed.failed_rechecks_after_owner_entry(), 0);
     assert_eq!(observed.owner_decoder_entries(), 0);
 }
 
@@ -298,5 +303,6 @@ fn terminal_runtime_rejects_before_hashing_an_otherwise_live_frame() {
     assert_eq!(lease.integrity_validation(), None);
     let observed = counters.snapshot();
     assert_eq!(observed.fresh_validations(), 0);
-    assert_eq!(observed.rejections_before_decoder(), 1);
+    assert_eq!(observed.refusals_before_owner_entry(), 1);
+    assert_eq!(observed.failed_rechecks_after_owner_entry(), 0);
 }

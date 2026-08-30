@@ -36,11 +36,12 @@ pub(in crate::physical_runtime) fn admit_resident_extent_manifest<'frame>(
     context: ResidentAdmissionContext<'_>,
 ) -> Result<IntegrityAdmittedResidentExtentManifest<'frame>, ResidentIntegrityAdmissionDenial> {
     if let Some(source) = context.reuse(lease, scope)? {
-        let membership = IntegrityValidatedExtentMembership::from_validation_record(
+        let Some(membership) = IntegrityValidatedExtentMembership::from_validation_record(
             source.validation_record(),
             scope,
-        )
-        .ok_or(ResidentIntegrityAdmissionDenial::RetainedRecordChanged)?;
+        ) else {
+            return context.deny(ResidentIntegrityAdmissionDenial::RetainedRecordChanged);
+        };
         return Ok(IntegrityAdmittedResidentExtentManifest { source, membership });
     }
     let input = context.exact_input(lease, scope)?;

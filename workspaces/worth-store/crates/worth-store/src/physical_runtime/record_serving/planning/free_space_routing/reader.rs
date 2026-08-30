@@ -161,9 +161,15 @@ impl<'media> FreeSpaceReader<'media> {
         });
         match decoded {
             Ok(Ok((block, _))) => Ok(block),
-            Ok(Err(_)) | Err(_) => {
+            Ok(Err(_)) => {
                 bytes.reject_projection_failure();
                 Err(ManifestLookupFailure::Damaged)
+            }
+            Err(denial) => {
+                if !denial.preserves_resident_bytes() {
+                    bytes.reject_projection_failure();
+                }
+                Err(ManifestLookupFailure::ResidentAdmission(denial))
             }
         }
     }

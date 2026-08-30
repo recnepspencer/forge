@@ -68,7 +68,8 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         ResidentIntegrityAdmissionDenial,
     > {
         self.require_live()?;
-        require_exact_resident_source(lease, scope).map_err(|denial| self.reject(denial))
+        require_exact_resident_source(lease, scope)
+            .map_err(|denial| self.refuse_before_owner_entry(denial))
     }
 
     pub(super) fn reuse<'lease>(
@@ -89,7 +90,7 @@ impl<'counter> ResidentAdmissionContext<'counter> {
                 Ok(Some(binding))
             }
             Ok(None) => Ok(None),
-            Err(denial) => Err(self.reject(denial)),
+            Err(denial) => Err(self.refuse_before_owner_entry(denial)),
         }
     }
 
@@ -107,7 +108,7 @@ impl<'counter> ResidentAdmissionContext<'counter> {
             scope,
             record,
         )
-        .map_err(|denial| self.reject(denial))
+        .map_err(|denial| self.refuse_before_owner_entry(denial))
     }
 
     pub(super) fn observe_fresh_validation(&self) {
@@ -118,21 +119,21 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         &self,
         rejection: PhysicalIntegrityRejection,
     ) -> Result<T, ResidentIntegrityAdmissionDenial> {
-        Err(self.reject(ResidentIntegrityAdmissionDenial::Validation(rejection)))
+        Err(self.refuse_before_owner_entry(ResidentIntegrityAdmissionDenial::Validation(rejection)))
     }
 
     pub(super) fn deny<T>(
         &self,
         denial: ResidentIntegrityAdmissionDenial,
     ) -> Result<T, ResidentIntegrityAdmissionDenial> {
-        Err(self.reject(denial))
+        Err(self.refuse_before_owner_entry(denial))
     }
 
-    pub(super) fn reject_source(
+    pub(super) fn refuse_source(
         &self,
         denial: ResidentIntegrityAdmissionDenial,
     ) -> ResidentIntegrityAdmissionDenial {
-        self.reject(denial)
+        self.refuse_before_owner_entry(denial)
     }
 
     pub(super) fn with_owner_decoder<'lease, T, F>(
@@ -146,11 +147,16 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         self.require_live()?;
         let lease = match binding.enter_owner_decoder() {
             Ok(lease) => lease,
-            Err(denial) => return Err(self.reject(denial)),
+            Err(denial) => return Err(self.refuse_before_owner_entry(denial)),
         };
         self.counters.cells().observe_owner_decoder_entry();
         let result = decoder(lease, binding.scope());
-        binding.enter_owner_decoder()?;
+        if let Err(denial) = binding.enter_owner_decoder() {
+            self.counters
+                .cells()
+                .observe_failed_recheck_after_owner_entry();
+            return Err(denial);
+        }
         Ok(result)
     }
 
@@ -165,12 +171,15 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         self.require_live()?;
         binding
             .require_current_binding()
-            .map_err(|denial| self.reject(denial))?;
+            .map_err(|denial| self.refuse_before_owner_entry(denial))?;
         self.counters.cells().observe_owner_projection_entry();
         let result = projection();
-        binding
-            .require_current_binding()
-            .map_err(|denial| self.reject(denial))?;
+        if let Err(denial) = binding.require_current_binding() {
+            self.counters
+                .cells()
+                .observe_failed_recheck_after_owner_entry();
+            return Err(denial);
+        }
         Ok(result)
     }
 
@@ -183,12 +192,17 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         {
             Ok(())
         } else {
-            Err(self.reject(ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged))
+            Err(self.refuse_before_owner_entry(
+                ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged,
+            ))
         }
     }
 
-    fn reject(&self, denial: ResidentIntegrityAdmissionDenial) -> ResidentIntegrityAdmissionDenial {
-        self.counters.cells().observe_rejection_before_decoder();
+    fn refuse_before_owner_entry(
+        &self,
+        denial: ResidentIntegrityAdmissionDenial,
+    ) -> ResidentIntegrityAdmissionDenial {
+        self.counters.cells().observe_refusal_before_owner_entry();
         denial
     }
 }

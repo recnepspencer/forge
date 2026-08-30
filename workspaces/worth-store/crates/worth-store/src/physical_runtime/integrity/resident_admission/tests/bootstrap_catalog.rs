@@ -45,7 +45,8 @@ fn wrong_scope_bootstrap_resident_rejects_before_owner_projection() {
     .is_err());
     let observed = counters.snapshot();
     assert_eq!(observed.fresh_validations(), 0);
-    assert_eq!(observed.rejections_before_decoder(), 1);
+    assert_eq!(observed.refusals_before_owner_entry(), 1);
+    assert_eq!(observed.failed_rechecks_after_owner_entry(), 0);
     assert_eq!(observed.owner_projection_entries(), 0);
     assert_eq!(observed.owner_decoder_entries(), 0);
 }
@@ -79,7 +80,8 @@ fn admitted_bootstrap_projects_without_raw_owner_decoder_entry() {
 fn assert_rejected_before_projection(counters: &ResidentAdmissionCounterCells) {
     let observed = counters.snapshot();
     assert_eq!(observed.fresh_validations(), 1);
-    assert_eq!(observed.rejections_before_decoder(), 1);
+    assert_eq!(observed.refusals_before_owner_entry(), 1);
+    assert_eq!(observed.failed_rechecks_after_owner_entry(), 0);
     assert_eq!(observed.owner_projection_entries(), 0);
     assert_eq!(observed.owner_decoder_entries(), 0);
 }

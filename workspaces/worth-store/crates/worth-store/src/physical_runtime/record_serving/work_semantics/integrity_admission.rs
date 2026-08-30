@@ -16,11 +16,20 @@ use crate::physical_runtime::integrity::{
     IntegrityAdmittedResidentPageBasis, ResidentAdmissionContext, ResidentIntegrityAdmissionDenial,
 };
 
+#[path = "integrity_admission/denial_projection.rs"]
+mod denial_projection;
+#[cfg(test)]
+#[path = "integrity_admission/tests.rs"]
+pub(in crate::physical_runtime) mod tests;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime::record_serving) enum CleanInlineAdmissionDenial {
     PageIdentity,
     SlotGeneration,
     Format,
+    Unavailable,
+    RuntimeReleased,
+    Residency(worth_store_buffer_pool::PhysicalResidencyDenial),
     Damaged,
 }
 
@@ -28,6 +37,9 @@ pub(in crate::physical_runtime::record_serving) enum CleanInlineAdmissionDenial 
 pub(in crate::physical_runtime::record_serving) enum CleanExtentAdmissionDenial {
     ExtentMembership,
     Format,
+    Unavailable,
+    RuntimeReleased,
+    Residency(worth_store_buffer_pool::PhysicalResidencyDenial),
     Damaged,
 }
 
@@ -188,7 +200,16 @@ fn coordinate_range(
 fn classify_inline_integrity(
     denial: ResidentIntegrityAdmissionDenial,
 ) -> CleanInlineAdmissionDenial {
+    if let Some(residency) = denial.residency_unavailability() {
+        return CleanInlineAdmissionDenial::Residency(residency);
+    }
     match denial {
+        ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged => {
+            CleanInlineAdmissionDenial::RuntimeReleased
+        }
+        ResidentIntegrityAdmissionDenial::SourceScopeMismatch => {
+            CleanInlineAdmissionDenial::PageIdentity
+        }
         ResidentIntegrityAdmissionDenial::Validation(PhysicalIntegrityRejection::Damaged(
             value,
         )) if (value.cause() == PhysicalDamageCause::PhysicalGenerationMismatch
@@ -203,7 +224,26 @@ fn classify_inline_integrity(
         {
             CleanInlineAdmissionDenial::PageIdentity
         }
-        _ => CleanInlineAdmissionDenial::Damaged,
+        ResidentIntegrityAdmissionDenial::Validation(PhysicalIntegrityRejection::Damaged(_)) => {
+            CleanInlineAdmissionDenial::Damaged
+        }
+        ResidentIntegrityAdmissionDenial::Validation(PhysicalIntegrityRejection::Unsupported(
+            _,
+        ))
+        | ResidentIntegrityAdmissionDenial::BootstrapUnsupportedFormat(_) => {
+            CleanInlineAdmissionDenial::Format
+        }
+        ResidentIntegrityAdmissionDenial::Validation(
+            PhysicalIntegrityRejection::Unknown(_) | PhysicalIntegrityRejection::Indeterminate(_),
+        ) => CleanInlineAdmissionDenial::Unavailable,
+        ResidentIntegrityAdmissionDenial::BootstrapScopeMismatch(_) => {
+            CleanInlineAdmissionDenial::Format
+        }
+        ResidentIntegrityAdmissionDenial::SourceIncarnationMismatch
+        | ResidentIntegrityAdmissionDenial::FrameGenerationChanged
+        | ResidentIntegrityAdmissionDenial::RetainedRecordInvalidated
+        | ResidentIntegrityAdmissionDenial::RetainedRecordChanged
+        | ResidentIntegrityAdmissionDenial::Frame(_) => CleanInlineAdmissionDenial::Unavailable,
     }
 }
 
@@ -223,7 +263,16 @@ fn classify_inline_projection(denial: InlineRecordProjectionDenial) -> CleanInli
 fn classify_extent_integrity(
     denial: ResidentIntegrityAdmissionDenial,
 ) -> CleanExtentAdmissionDenial {
+    if let Some(residency) = denial.residency_unavailability() {
+        return CleanExtentAdmissionDenial::Residency(residency);
+    }
     match denial {
+        ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged => {
+            CleanExtentAdmissionDenial::RuntimeReleased
+        }
+        ResidentIntegrityAdmissionDenial::SourceScopeMismatch => {
+            CleanExtentAdmissionDenial::ExtentMembership
+        }
         ResidentIntegrityAdmissionDenial::Validation(PhysicalIntegrityRejection::Damaged(
             value,
         )) if value.cause() == PhysicalDamageCause::PhysicalGenerationMismatch
@@ -236,7 +285,26 @@ fn classify_extent_integrity(
         )) if value.cause() == PhysicalDamageCause::FormatMismatch => {
             CleanExtentAdmissionDenial::Format
         }
-        _ => CleanExtentAdmissionDenial::Damaged,
+        ResidentIntegrityAdmissionDenial::Validation(PhysicalIntegrityRejection::Damaged(_)) => {
+            CleanExtentAdmissionDenial::Damaged
+        }
+        ResidentIntegrityAdmissionDenial::Validation(PhysicalIntegrityRejection::Unsupported(
+            _,
+        ))
+        | ResidentIntegrityAdmissionDenial::BootstrapUnsupportedFormat(_) => {
+            CleanExtentAdmissionDenial::Format
+        }
+        ResidentIntegrityAdmissionDenial::Validation(
+            PhysicalIntegrityRejection::Unknown(_) | PhysicalIntegrityRejection::Indeterminate(_),
+        ) => CleanExtentAdmissionDenial::Unavailable,
+        ResidentIntegrityAdmissionDenial::BootstrapScopeMismatch(_) => {
+            CleanExtentAdmissionDenial::Format
+        }
+        ResidentIntegrityAdmissionDenial::SourceIncarnationMismatch
+        | ResidentIntegrityAdmissionDenial::FrameGenerationChanged
+        | ResidentIntegrityAdmissionDenial::RetainedRecordInvalidated
+        | ResidentIntegrityAdmissionDenial::RetainedRecordChanged
+        | ResidentIntegrityAdmissionDenial::Frame(_) => CleanExtentAdmissionDenial::Unavailable,
     }
 }
 

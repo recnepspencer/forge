@@ -13,6 +13,8 @@ mod record_queue_policy;
 pub(in crate::physical_runtime) mod residency;
 pub(in crate::physical_runtime) mod work_semantics;
 
+#[cfg(test)]
+pub(in crate::physical_runtime) use access::locate::assert_actual_lifecycle_manifest_denial_maps_without_damage;
 pub use access::locate::{PhysicalRecordReader, RecordReadCancellation, RecordReadSession};
 pub use access::read_observation::{
     RecordReadDenial, RecordReadError, RecordReadLimits, RecordReadObservation,

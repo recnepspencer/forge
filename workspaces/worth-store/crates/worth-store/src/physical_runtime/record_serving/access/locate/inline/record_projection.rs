@@ -6,7 +6,7 @@ use crate::physical_runtime::record_serving::work_semantics::integrity_admission
 };
 use crate::physical_runtime::record_serving::{
     residency::frame_loading::LoadedPhysicalFrame, PhysicalRecordId, RecordReadDenial,
-    RecordReadObservation, StalePhysicalRecordPlacement,
+    RecordReadObservation,
 };
 use worth_store_physical_format::DurableInlineRecordPlacement;
 
@@ -44,8 +44,10 @@ pub(super) fn project_inline_record(
         Ok(admitted) => admitted,
         Err(denial) => {
             observe_denial(observation, denial);
-            page.reject_projection_failure();
-            return Err(classify_denial(denial));
+            if !denial.preserves_resident_bytes() {
+                page.reject_projection_failure();
+            }
+            return Err(denial.read_denial());
         }
     };
     observation.check_page_identity_generation(true);
@@ -57,19 +59,6 @@ pub(super) fn project_inline_record(
     })
 }
 
-fn classify_denial(denial: CleanInlineAdmissionDenial) -> RecordReadDenial {
-    match denial {
-        CleanInlineAdmissionDenial::PageIdentity => {
-            RecordReadDenial::StalePlacement(StalePhysicalRecordPlacement::PageIdentity)
-        }
-        CleanInlineAdmissionDenial::SlotGeneration => {
-            RecordReadDenial::StalePlacement(StalePhysicalRecordPlacement::SlotGeneration)
-        }
-        CleanInlineAdmissionDenial::Format => RecordReadDenial::FormatMismatch,
-        CleanInlineAdmissionDenial::Damaged => RecordReadDenial::ArtifactDamaged,
-    }
-}
-
 fn observe_denial(observation: &mut RecordReadObservation, denial: CleanInlineAdmissionDenial) {
     match denial {
         CleanInlineAdmissionDenial::PageIdentity => {
@@ -79,6 +68,10 @@ fn observe_denial(observation: &mut RecordReadObservation, denial: CleanInlineAd
             observation.check_page_identity_generation(true);
             observation.check_slot_generation(false);
         }
-        CleanInlineAdmissionDenial::Format | CleanInlineAdmissionDenial::Damaged => {}
+        CleanInlineAdmissionDenial::Format
+        | CleanInlineAdmissionDenial::Unavailable
+        | CleanInlineAdmissionDenial::RuntimeReleased
+        | CleanInlineAdmissionDenial::Residency(_)
+        | CleanInlineAdmissionDenial::Damaged => {}
     }
 }

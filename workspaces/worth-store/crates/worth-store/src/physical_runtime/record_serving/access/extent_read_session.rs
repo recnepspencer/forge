@@ -226,15 +226,11 @@ impl ExtentReadState {
                 if stale {
                     observation.check_generation(false);
                 }
-                frame.reject_projection_failure();
+                if !denial.preserves_resident_bytes() {
+                    frame.reject_projection_failure();
+                }
                 return Err(RecordStreamFailure::during_read(
-                    if stale {
-                        RecordStreamFailureKind::StalePlacement
-                    } else if denial == CleanExtentAdmissionDenial::Format {
-                        RecordStreamFailureKind::FormatMismatch
-                    } else {
-                        RecordStreamFailureKind::ArtifactDamaged
-                    },
+                    denial.stream_failure_kind(),
                     plan.completed,
                 ));
             }
@@ -302,9 +298,15 @@ fn frame_load_stream_failure(
         super::super::RecordReadDenial::StalePlacement(_) => {
             RecordStreamFailureKind::StalePlacement
         }
-        super::super::RecordReadDenial::ArtifactUnavailable
-        | super::super::RecordReadDenial::ArtifactDamaged => {
-            RecordStreamFailureKind::ArtifactDamaged
+        super::super::RecordReadDenial::ArtifactUnavailable => {
+            RecordStreamFailureKind::ArtifactUnavailable
+        }
+        super::super::RecordReadDenial::ArtifactDamaged => RecordStreamFailureKind::ArtifactDamaged,
+        super::super::RecordReadDenial::PhysicalWork(
+            super::super::RecordReadWorkDenial::RuntimeReleased,
+        ) => RecordStreamFailureKind::RuntimeReleased,
+        super::super::RecordReadDenial::ResidencyUnavailable(residency) => {
+            RecordStreamFailureKind::ResidencyUnavailable(residency)
         }
         _ => RecordStreamFailureKind::Backend,
     };

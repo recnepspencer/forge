@@ -89,7 +89,7 @@ pub(in crate::physical_runtime) fn admit_loaded_root_manifest<'frame>(
     let source = match BoundResidentRootManifestSource::bind(lease, store, format, generation) {
         Ok(source) => source,
         Err(denial) => {
-            counters.observe_rejection_before_decoder();
+            counters.observe_refusal_before_owner_entry();
             return Err(denial);
         }
     };
@@ -137,6 +137,8 @@ impl<'frame> BoundResidentRootManifestSource<'frame> {
         context: ResidentAdmissionContext<'_>,
     ) -> Result<IntegrityAdmittedResidentRootManifest<'frame>, RootProtocolAdmissionDenial> {
         if !validated.matches_input(input) {
+            let _refusal =
+                context.refuse_source(ResidentIntegrityAdmissionDenial::SourceIncarnationMismatch);
             return Err(RootProtocolAdmissionDenial::SourceIncarnationMismatch);
         }
         let projection = AdmittedRootManifestProjection::from_validated(&validated);

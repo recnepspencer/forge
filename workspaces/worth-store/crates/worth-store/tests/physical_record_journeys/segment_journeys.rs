@@ -359,8 +359,8 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
         before_admission.owner_decoder_entries() + 7,
     );
     assert_eq!(
-        after_admission.rejections_before_decoder(),
-        before_admission.rejections_before_decoder(),
+        after_admission.refusals_before_owner_entry(),
+        before_admission.refusals_before_owner_entry(),
     );
     let new_page = std::fs::read(
         root.join("families/records/segments/segment-0000000000000001-0000000000000002.pages"),

@@ -5,7 +5,7 @@ use crate::physical_runtime::record_serving::work_semantics::integrity_admission
 };
 use crate::physical_runtime::record_serving::{
     residency::record_frame_reader::RecordFrameReader, PhysicalRecordId, RecordReadDenial,
-    RecordReadObservation, StalePhysicalRecordPlacement,
+    RecordReadObservation,
 };
 use worth_store_physical_format::{
     DurableExtentManifest, DurableExtentRecordPlacement, RecordArtifactFile,
@@ -80,7 +80,9 @@ impl ExtentManifestAdmission<'_, '_> {
         match self.project_manifest(&bytes) {
             Ok(manifest) => Ok(manifest),
             Err(denial) => {
-                bytes.reject_projection_failure();
+                if !preserves_resident_bytes(denial) {
+                    bytes.reject_projection_failure();
+                }
                 Err(denial)
             }
         }
@@ -103,7 +105,12 @@ impl ExtentManifestAdmission<'_, '_> {
             self.reader.format.declaration(),
             self.placement,
         )
-        .map_err(|denial| classify_denial(denial, self.observation))?;
+        .map_err(|denial| {
+            if denial == CleanExtentAdmissionDenial::ExtentMembership {
+                self.observation.check_generation(false);
+            }
+            denial.read_denial()
+        })?;
         let manifest = admitted.manifest;
         if manifest.record() != self.record.persisted()
             || manifest.logical_bytes() != self.placement.payload_bytes()
@@ -115,17 +122,29 @@ impl ExtentManifestAdmission<'_, '_> {
     }
 }
 
-fn classify_denial(
-    denial: CleanExtentAdmissionDenial,
-    observation: &mut RecordReadObservation,
-) -> RecordReadDenial {
-    match denial {
-        CleanExtentAdmissionDenial::ExtentMembership => {
-            observation.check_generation(false);
-            RecordReadDenial::StalePlacement(StalePhysicalRecordPlacement::ExtentMembership)
-        }
-        CleanExtentAdmissionDenial::Format => RecordReadDenial::FormatMismatch,
-        CleanExtentAdmissionDenial::Damaged => RecordReadDenial::ArtifactDamaged,
+fn preserves_resident_bytes(denial: RecordReadDenial) -> bool {
+    matches!(
+        denial,
+        RecordReadDenial::ArtifactUnavailable
+            | RecordReadDenial::PhysicalWork(
+                crate::physical_runtime::record_serving::RecordReadWorkDenial::RuntimeReleased
+            )
+            | RecordReadDenial::ResidencyUnavailable(_)
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn proof_unavailability_preserves_extent_manifest_resident_bytes() {
+        assert!(preserves_resident_bytes(
+            CleanExtentAdmissionDenial::Unavailable.read_denial()
+        ));
+        assert!(!preserves_resident_bytes(
+            CleanExtentAdmissionDenial::Damaged.read_denial()
+        ));
     }
 }
 
