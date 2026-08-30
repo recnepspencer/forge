@@ -9,6 +9,7 @@ use worth_store_physical_integrity::{
     validate_free_space_header, validate_free_space_membership_block, PhysicalArtifactScope,
 };
 
+use super::membership_budget::{admit_membership_entries, MembershipProjectionFailure};
 use super::{expected_range, source_input, source_range};
 use crate::integrity_ingress::{
     IntegrityAdmittedRecoveryArtifact, RecoveryIntegrityIngressRejection,
@@ -72,8 +73,9 @@ pub(crate) fn free_space_membership_block(
     tree: PhysicalTreeIdentity,
     reference: FreeSpaceBlockReference,
     capacity: u16,
+    remaining_entries: u64,
     trace: &mut RecoveryIntegrityIngressTrace,
-) -> Result<PhysicalFreeSpaceMembershipBlock, RecoveryIntegrityIngressRejection> {
+) -> Result<PhysicalFreeSpaceMembershipBlock, MembershipProjectionFailure> {
     let identity = FreeSpaceMembershipBlockScopeIdentity::new(tree, reference);
     let expected_scope = PhysicalArtifactScope::free_space_membership_block(
         store,
@@ -97,6 +99,10 @@ pub(crate) fn free_space_membership_block(
         unreachable!("free-space-membership admission preserves its family")
     };
     let projection = admitted.project(trace.counters_mut());
+    let entry_count = projection
+        .entries
+        .map_or_else(|| projection.children.map_or(0, <[_]>::len), <[_]>::len);
+    admit_membership_entries(entry_count, capacity, remaining_entries)?;
     let block = if let Some(entries) = projection.entries {
         PhysicalFreeSpaceMembershipBlock::leaf(
             projection.identity.tree().get(),
@@ -115,5 +121,5 @@ pub(crate) fn free_space_membership_block(
             capacity,
         )
     };
-    block.ok_or(RecoveryIntegrityIngressRejection::NonCanonicalEncoding)
+    block.ok_or_else(|| RecoveryIntegrityIngressRejection::NonCanonicalEncoding.into())
 }

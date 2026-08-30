@@ -1,8 +1,10 @@
 mod free_space;
+mod membership_budget;
 mod root_routing;
 mod segment_membership;
 
 pub(crate) use free_space::{free_space_header, free_space_membership_block};
+pub(crate) use membership_budget::MembershipProjectionFailure;
 pub(crate) use root_routing::{root_routing_block, AdmittedRootRoutingProjection};
 pub(crate) use segment_membership::segment_membership_block;
 

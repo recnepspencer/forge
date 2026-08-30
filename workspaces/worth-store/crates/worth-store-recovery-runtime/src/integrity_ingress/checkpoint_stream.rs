@@ -6,8 +6,8 @@ use worth_store_physical_integrity::{
 };
 
 use super::{
-    IntegrityAdmittedRecoveryArtifact, RecoveryIntegrityIngressCounters,
-    RecoveryIntegrityIngressObservation, RecoveryIntegrityIngressRejection,
+    IntegrityAdmittedRecoveryArtifact, RecoveryIntegrityIngressObservation,
+    RecoveryIntegrityIngressRejection, RecoveryIntegrityIngressTrace,
 };
 
 mod body;
@@ -18,6 +18,7 @@ pub(crate) enum CheckpointStreamAdmissionFailure {
     Integrity(RecoveryIntegrityIngressRejection),
     DirtyRecordLimit { observed: u64, admitted: u64 },
     BindingRecordLimit { observed: u64, admitted: u64 },
+    AllocationRejected,
 }
 
 pub(crate) fn admit_observed_checkpoint_stream(
@@ -25,20 +26,20 @@ pub(crate) fn admit_observed_checkpoint_stream(
     store: StableStoreIdentity,
     maximum_dirty_records: u64,
     maximum_binding_records: u64,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut RecoveryIntegrityIngressTrace,
 ) -> Result<Option<OwnerCheckpointProjection>, CheckpointStreamAdmissionFailure> {
     let Some(envelope) = envelope::CheckpointEnvelopeAdmission::admit(
         observed,
         store,
         maximum_dirty_records,
         maximum_binding_records,
-        counters,
+        trace,
     )?
     else {
         return Ok(None);
     };
-    let body = body::CheckpointBodyAdmission::admit(envelope, counters)?;
-    body.finish(counters).map(Some)
+    let body = body::CheckpointBodyAdmission::admit(envelope, trace)?;
+    body.finish(trace).map(Some)
 }
 
 pub(super) fn physical_range(
@@ -63,13 +64,13 @@ pub(super) fn bounded<'media>(
     bytes: &'media [u8],
     range: PhysicalByteRange,
     scope: PhysicalArtifactScope,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut RecoveryIntegrityIngressTrace,
 ) -> Result<UntrustedPhysicalArtifact<'media>, CheckpointStreamAdmissionFailure> {
     let Some(selected) = bytes.get(range.offset() as usize..range.end_exclusive() as usize) else {
         return Err(record_recovery_rejection(
             scope,
             RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation,
-            counters,
+            trace,
         ));
     };
     Ok(UntrustedPhysicalArtifact::from_bounded_bytes(selected))
@@ -78,21 +79,21 @@ pub(super) fn bounded<'media>(
 pub(super) fn record_integrity_rejection(
     scope: PhysicalArtifactScope,
     rejection: PhysicalIntegrityRejection,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut RecoveryIntegrityIngressTrace,
 ) -> CheckpointStreamAdmissionFailure {
     record_recovery_rejection(
         scope,
         RecoveryIntegrityIngressRejection::Integrity(rejection),
-        counters,
+        trace,
     )
 }
 
 pub(super) fn record_recovery_rejection(
     scope: PhysicalArtifactScope,
     rejection: RecoveryIntegrityIngressRejection,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut RecoveryIntegrityIngressTrace,
 ) -> CheckpointStreamAdmissionFailure {
-    counters.record(RecoveryIntegrityIngressObservation::rejected(
+    trace.record(RecoveryIntegrityIngressObservation::rejected(
         scope, rejection,
     ));
     CheckpointStreamAdmissionFailure::Integrity(rejection)
@@ -105,17 +106,19 @@ macro_rules! bind_record {
             scope: PhysicalArtifactScope,
             range: PhysicalByteRange,
             validated: worth_store_physical_integrity::$validated<'media>,
-            counters: &mut RecoveryIntegrityIngressCounters,
+            trace: &mut RecoveryIntegrityIngressTrace,
         ) -> Result<$output, CheckpointStreamAdmissionFailure> {
-            match IntegrityAdmittedRecoveryArtifact::$method(
+            let attempt = IntegrityAdmittedRecoveryArtifact::$method(
                 observed,
                 scope,
                 range,
                 worth_store_physical_integrity::$validation::Intact(validated),
-                counters,
-            )
-            .into_outcome()
-            .map_err(CheckpointStreamAdmissionFailure::Integrity)?
+                trace.counters_mut(),
+            );
+            trace.retain(attempt.observation());
+            match attempt
+                .into_outcome()
+                .map_err(CheckpointStreamAdmissionFailure::Integrity)?
             {
                 IntegrityAdmittedRecoveryArtifact::$variant(admitted) => Ok(admitted),
                 _ => unreachable!("checkpoint record binding preserves its concrete family"),

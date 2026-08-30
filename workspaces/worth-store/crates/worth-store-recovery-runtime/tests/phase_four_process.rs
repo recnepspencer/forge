@@ -98,6 +98,10 @@ fn phase_four_planner_process() {
         .unwrap();
 
     let fates = planned.operation_fates().operations();
+    // The parent added a poisoned terminal frame after writer process death.
+    // C.8 still selects its admissible prefix, with no raw WAL owner decoder entry.
+    assert_eq!(planned.discovery_counters().wal_owner_decoder_entries, 0);
+    assert!(planned.discovery_counters().wal_integrity_rejections > 0);
     assert_eq!(fates.len(), 3);
     assert_eq!(fates[0].fate(), RecoveryOperationFate::AcknowledgedDurable);
     assert_eq!(
@@ -204,6 +208,14 @@ fn phase_four_planner_process() {
         handoff.core().recovery_runtime_identity()
     );
     assert_eq!(handoff.operation_fates().operations().len(), 3);
+    assert_eq!(handoff.discovery_counters().wal_owner_decoder_entries, 0);
+    assert_eq!(
+        handoff.integrity_observation_count() as usize,
+        handoff.integrity_observations().len()
+    );
+    assert!(handoff.integrity_observations().iter().any(|observation|
+        observation.scope().artifact_family()
+            == worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily::CheckpointFooter));
     assert!(handoff
         .wal_integrity_observations()
         .iter()

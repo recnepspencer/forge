@@ -10,6 +10,7 @@ use worth_store_physical_format::{
 
 use super::manifest_entry_budget::ManifestEntryBudget;
 use super::page_observation::{required_source, PageObservationFailure};
+use crate::integrity_ingress::projection::MembershipProjectionFailure;
 use crate::progression::{RecoverySelectedSegmentPage, RecoverySelectedSourceInventory};
 
 type SelectedSegmentTopologyObservation = (
@@ -149,12 +150,10 @@ fn read_segment_pages(
             tree,
             reference,
             root.node_capacity(),
+            budget.remaining(),
             integrity_trace,
         )
-        .map_err(|rejection| PageObservationFailure::Integrity {
-            artifact,
-            denial: rejection.diagnostic(),
-        })?;
+        .map_err(|failure| membership_failure(artifact, failure))?;
         topology.insert((reference.generation(), reference.block()), block.clone());
         if let Some(entries) = block.entries() {
             budget.consume(entries.len())?;
@@ -225,12 +224,10 @@ fn read_free_entries(
             tree,
             reference,
             header.node_capacity(),
+            budget.remaining(),
             integrity_trace,
         )
-        .map_err(|rejection| PageObservationFailure::Integrity {
-            artifact,
-            denial: rejection.diagnostic(),
-        })?;
+        .map_err(|failure| membership_failure(artifact, failure))?;
         topology.insert((reference.generation(), reference.block()), block.clone());
         if let Some(found) = block.entries() {
             budget.consume(found.len())?;
@@ -282,5 +279,20 @@ const fn invalid(artifact: RecordArtifactFile) -> PageObservationFailure {
     PageObservationFailure::InvalidManifest {
         target: None,
         artifact,
+    }
+}
+
+fn membership_failure(
+    artifact: RecordArtifactFile,
+    failure: MembershipProjectionFailure,
+) -> PageObservationFailure {
+    match failure {
+        MembershipProjectionFailure::EntryLimit { .. } => {
+            PageObservationFailure::ManifestEntryLimit
+        }
+        MembershipProjectionFailure::Integrity(rejection) => PageObservationFailure::Integrity {
+            artifact,
+            denial: rejection.diagnostic(),
+        },
     }
 }

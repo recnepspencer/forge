@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use worth_store_physical_format::{
     CheckpointRootBasis, CheckpointStreamFooter, CheckpointWalSourceRange,
     PersistedCompactionProductRole, PhysicalCheckpointIdentity, PhysicalCheckpointSource,
@@ -107,7 +106,9 @@ impl VerifiedCheckpointStream {
             source,
             footer: footer.footer(),
             encoded_bytes: complete_stream.byte_count(),
-            encoded_digest: Sha256::digest(complete_stream.bytes()).into(),
+            encoded_digest: worth_store_physical_format::checkpoint_stream_encoded_digest(
+                complete_stream.bytes(),
+            ),
             compaction_cutover,
         })
     }

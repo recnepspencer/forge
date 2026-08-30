@@ -13,8 +13,8 @@ use super::{
     IntegrityAdmittedCheckpointStreamHeader,
 };
 use crate::integrity_ingress::{
-    ObservedRecoverySource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressObservation,
-    RecoveryIntegrityIngressRejection,
+    ObservedRecoverySource, RecoveryIntegrityIngressObservation, RecoveryIntegrityIngressRejection,
+    RecoveryIntegrityIngressTrace,
 };
 
 pub(crate) struct IntegrityAdmittedCheckpointStream<'media> {
@@ -73,7 +73,7 @@ impl<'media> IntegrityAdmittedCheckpointStream<'media> {
     pub(crate) fn into_owner_checkpoint(
         self,
         maximum_binding_records: u64,
-        counters: &mut RecoveryIntegrityIngressCounters,
+        trace: &mut RecoveryIntegrityIngressTrace,
     ) -> Result<OwnerCheckpointProjection, RecoveryIntegrityIngressRejection> {
         let footer_scope = self.footer.scope();
         let bytes = self
@@ -125,7 +125,8 @@ impl<'media> IntegrityAdmittedCheckpointStream<'media> {
                 RecoveryIntegrityIngressRejection::Integrity(rejection)
             }
         })?;
-        counters.record(RecoveryIntegrityIngressObservation::admitted(footer_scope));
+        trace.record(RecoveryIntegrityIngressObservation::admitted(footer_scope));
+        let counters = trace.counters_mut();
         counters.record_owner_projection();
         for _ in &self.dirty {
             counters.record_owner_projection();

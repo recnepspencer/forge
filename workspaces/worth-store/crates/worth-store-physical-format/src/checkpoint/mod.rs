@@ -3,6 +3,7 @@ mod backup_artifact_decode;
 mod binding_compaction;
 mod compaction_cutover_record;
 mod dirty_basis;
+mod encoded_digest;
 mod footer;
 mod identity;
 #[cfg(test)]
@@ -13,6 +14,7 @@ mod source;
 mod stream;
 
 pub use dirty_basis::{CheckpointDirtyFrameBasis, CHECKPOINT_DIRTY_FRAME_RECORD_BYTES};
+pub use encoded_digest::checkpoint_stream_encoded_digest;
 pub use footer::{CheckpointStreamFooter, CHECKPOINT_STREAM_FOOTER_RECORD_BYTES};
 pub use identity::PhysicalCheckpointIdentity;
 #[cfg(test)]

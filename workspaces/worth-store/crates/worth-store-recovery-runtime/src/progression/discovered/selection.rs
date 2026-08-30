@@ -23,6 +23,7 @@ mod root;
 use failure::SelectionFailure;
 
 pub(super) struct SelectionInput {
+    pub(super) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
     pub(super) current: PhysicalRootSlotObservation,
     pub(super) previous: PhysicalRootSlotObservation,
     pub(super) bootstrap: BootstrapDiscovery,
@@ -68,7 +69,10 @@ pub(super) fn select_sources(
     limits: PhysicalRecoveryLimits,
 ) -> Result<SelectionOutput, SelectionFailure> {
     let mut counters = input.counters;
-    let (current_manifest_facts, mut integrity_trace) = input.current_manifest_facts.into_parts();
+    let mut integrity_trace = input.integrity_trace;
+    let (current_manifest_facts, current_integrity_trace) =
+        input.current_manifest_facts.into_parts();
+    integrity_trace.append(current_integrity_trace);
     let (previous_manifest_facts, previous_integrity_trace) =
         input.previous_manifest_facts.into_parts();
     integrity_trace.append(previous_integrity_trace);

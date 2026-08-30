@@ -2,6 +2,7 @@ use worth_store_physical_format::RecordArtifactFile;
 
 use super::artifact_generation;
 use crate::entry::PhysicalRecoverySuccessorCandidateDenial;
+use crate::integrity_ingress::projection::MembershipProjectionFailure;
 use crate::orchestration::planning::manifest_entry_budget::ManifestEntryBudget;
 
 pub(super) const fn invalid(
@@ -43,4 +44,24 @@ pub(super) fn consume_successor(
     budget
         .consume_with_evidence(entries)
         .map_err(|(observed, admitted)| limit(artifact, observed, admitted))
+}
+
+pub(super) fn membership_failure(
+    budget: &ManifestEntryBudget,
+    artifact: RecordArtifactFile,
+    failure: MembershipProjectionFailure,
+) -> PhysicalRecoverySuccessorCandidateDenial {
+    match failure {
+        MembershipProjectionFailure::EntryLimit { observed } => {
+            let (observed, admitted) = budget.crossing_evidence(observed);
+            limit(artifact, observed, admitted)
+        }
+        MembershipProjectionFailure::Integrity(rejection) => {
+            PhysicalRecoverySuccessorCandidateDenial::RootProtocol {
+                artifact,
+                generation: artifact_generation(artifact),
+                denial: rejection.diagnostic(),
+            }
+        }
+    }
 }

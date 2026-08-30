@@ -1,7 +1,8 @@
 use worth_store::physical_runtime::ObservedRecoveryArtifact;
 use worth_store_physical_format::{
     store_namespace::StableStoreIdentity, CheckpointStreamFooter,
-    CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES, CHECKPOINT_STREAM_FOOTER_RECORD_BYTES,
+    CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES, CHECKPOINT_BINDING_RECORD_PREFIX_BYTES,
+    CHECKPOINT_DIRTY_FRAME_RECORD_BYTES, CHECKPOINT_STREAM_FOOTER_RECORD_BYTES,
     CHECKPOINT_STREAM_HEADER_RECORD_BYTES,
 };
 use worth_store_physical_integrity::{
@@ -13,8 +14,8 @@ use worth_store_physical_integrity::{
 
 use crate::integrity_ingress::{
     families::checkpoint::IntegrityAdmittedCheckpointStreamHeader,
-    RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressObservation,
-    RecoveryIntegrityIngressRejection,
+    RecoveryIntegrityIngressObservation, RecoveryIntegrityIngressRejection,
+    RecoveryIntegrityIngressTrace,
 };
 
 use super::{
@@ -38,7 +39,7 @@ impl<'media> CheckpointEnvelopeAdmission<'media> {
         store: StableStoreIdentity,
         maximum_dirty_records: u64,
         maximum_binding_records: u64,
-        counters: &mut RecoveryIntegrityIngressCounters,
+        trace: &mut RecoveryIntegrityIngressTrace,
     ) -> Result<Option<Self>, CheckpointStreamAdmissionFailure> {
         let Some(bytes) = observed.bytes() else {
             return Ok(None);
@@ -51,7 +52,7 @@ impl<'media> CheckpointEnvelopeAdmission<'media> {
         let header_input = if bytes.len() < CHECKPOINT_STREAM_HEADER_RECORD_BYTES {
             UntrustedPhysicalArtifact::from_bounded_bytes(bytes)
         } else {
-            bounded(bytes, header_range, header_scope, counters)?
+            bounded(bytes, header_range, header_scope, trace)?
         };
         let header_validation = validate_checkpoint_stream_header(header_input, header_scope).0;
         let CheckpointStreamHeaderIntegrityValidation::Intact(validated) = header_validation else {
@@ -59,13 +60,9 @@ impl<'media> CheckpointEnvelopeAdmission<'media> {
             else {
                 unreachable!()
             };
-            return Err(record_integrity_rejection(
-                header_scope,
-                rejection,
-                counters,
-            ));
+            return Err(record_integrity_rejection(header_scope, rejection, trace));
         };
-        let header = bind_header(observed, header_scope, header_range, validated, counters)?;
+        let header = bind_header(observed, header_scope, header_range, validated, trace)?;
         let identity = header.checkpoint_identity();
 
         let minimum = CHECKPOINT_STREAM_HEADER_RECORD_BYTES
@@ -81,14 +78,14 @@ impl<'media> CheckpointEnvelopeAdmission<'media> {
             return Err(record_recovery_rejection(
                 scope,
                 RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation,
-                counters,
+                trace,
             ));
         }
         let footer_offset = bytes.len() - CHECKPOINT_STREAM_FOOTER_RECORD_BYTES;
         let footer_range = physical_range(footer_offset, CHECKPOINT_STREAM_FOOTER_RECORD_BYTES)?;
         let footer_scope = PhysicalArtifactScope::checkpoint_footer(identity, footer_range);
         let validation = validate_checkpoint_footer_envelope(
-            bounded(bytes, footer_range, footer_scope, counters)?,
+            bounded(bytes, footer_range, footer_scope, trace)?,
             footer_scope,
         )
         .0;
@@ -97,14 +94,19 @@ impl<'media> CheckpointEnvelopeAdmission<'media> {
             else {
                 unreachable!()
             };
-            return Err(record_integrity_rejection(
-                footer_scope,
-                rejection,
-                counters,
-            ));
+            return Err(record_integrity_rejection(footer_scope, rejection, trace));
         };
-        counters.record(RecoveryIntegrityIngressObservation::admitted(footer_scope));
+        trace.record(RecoveryIntegrityIngressObservation::admitted(footer_scope));
         let footer = envelope.routing_projection().footer();
+        // A valid footer CRC admits its bytes, not its counts. Bound retained
+        // evidence against this observed body before any count-sized allocation.
+        if !counts_fit_observed_body(footer, footer_offset as u64) {
+            return Err(record_recovery_rejection(
+                footer_scope,
+                RecoveryIntegrityIngressRejection::ScopeMismatch,
+                trace,
+            ));
+        }
         enforce_record_limits(
             footer.dirty_record_count(),
             footer.binding_record_count(),
@@ -121,6 +123,27 @@ impl<'media> CheckpointEnvelopeAdmission<'media> {
             maximum_binding_records,
         }))
     }
+}
+
+fn counts_fit_observed_body(footer: CheckpointStreamFooter, footer_offset: u64) -> bool {
+    let Some(compaction_offset) = footer
+        .dirty_record_count()
+        .checked_mul(CHECKPOINT_DIRTY_FRAME_RECORD_BYTES as u64)
+        .and_then(|bytes| bytes.checked_add(CHECKPOINT_STREAM_HEADER_RECORD_BYTES as u64))
+    else {
+        return false;
+    };
+    let Some(binding_bytes) = compaction_offset
+        .checked_add(CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES as u64)
+        .and_then(|offset| footer_offset.checked_sub(offset))
+    else {
+        return false;
+    };
+    // Prefix + nonempty payload + CRC, independent of the footer's claimed bytes.
+    let minimum_binding_bytes = (CHECKPOINT_BINDING_RECORD_PREFIX_BYTES + 1 + 4) as u64;
+    compaction_offset == footer.binding_compaction_header_offset()
+        && binding_bytes == footer.binding_record_bytes()
+        && footer.binding_record_count() <= binding_bytes / minimum_binding_bytes
 }
 
 fn enforce_record_limits(

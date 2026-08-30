@@ -2,7 +2,9 @@ use worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifa
 
 use super::super::{IntegrityAdmittedRecoveryArtifact, RecoveryIntegrityIngressCounters};
 
-#[test]
+// Compile-time exhaustiveness contract, deliberately not counted as a runtime
+// test: adding an admitted family requires its projection to be classified.
+#[allow(dead_code)]
 fn routing_is_exhaustive_over_every_current_recovery_family() {
     fn family(artifact: &IntegrityAdmittedRecoveryArtifact<'_>) -> PhysicalIntegrityArtifactFamily {
         match artifact {

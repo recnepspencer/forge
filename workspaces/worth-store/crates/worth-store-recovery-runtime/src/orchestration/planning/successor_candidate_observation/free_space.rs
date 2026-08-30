@@ -7,7 +7,7 @@ use worth_store_physical_format::{
 };
 
 use super::artifact_read::{observed, required_source, retain_successor};
-use super::denial::{admit_successor_read, consume_successor, invalid};
+use super::denial::{admit_successor_read, consume_successor, invalid, membership_failure};
 use super::materialization::CandidateMaterialization;
 use crate::entry::PhysicalRecoverySuccessorCandidateDenial;
 use crate::orchestration::planning::manifest_entry_budget::ManifestEntryBudget;
@@ -89,15 +89,10 @@ pub(super) fn read(
             tree,
             reference,
             header.node_capacity(),
+            budget.remaining(),
             integrity_trace,
         )
-        .map_err(
-            |rejection| PhysicalRecoverySuccessorCandidateDenial::RootProtocol {
-                artifact,
-                generation: reference.generation(),
-                denial: rejection.diagnostic(),
-            },
-        )?;
+        .map_err(|failure| membership_failure(budget, artifact, failure))?;
         if let Some(found) = block.entries() {
             consume_successor(budget, found.len(), artifact)?;
             materialization.retain_free_entries(found.len());

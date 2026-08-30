@@ -23,6 +23,11 @@ impl RecoveryIntegrityIngressTrace {
         self.observations.push(observation);
     }
 
+    pub(crate) fn record(&mut self, observation: RecoveryIntegrityIngressObservation) {
+        self.counters.record(observation);
+        self.retain(observation);
+    }
+
     pub(crate) fn reject(
         &mut self,
         scope: PhysicalArtifactScope,

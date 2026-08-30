@@ -16,7 +16,7 @@ use crate::integrity_ingress::{
         IntegrityAdmittedCheckpointBinding, IntegrityAdmittedCheckpointBindingCompaction,
         IntegrityAdmittedCheckpointDirtyBasis, IntegrityAdmittedCheckpointStream,
     },
-    RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
+    RecoveryIntegrityIngressRejection, RecoveryIntegrityIngressTrace,
 };
 
 use super::envelope::CheckpointEnvelopeAdmission;
@@ -36,19 +36,16 @@ pub(super) struct CheckpointBodyAdmission<'media> {
 impl<'media> CheckpointBodyAdmission<'media> {
     pub(super) fn admit(
         envelope: CheckpointEnvelopeAdmission<'media>,
-        counters: &mut RecoveryIntegrityIngressCounters,
+        trace: &mut RecoveryIntegrityIngressTrace,
     ) -> Result<Self, CheckpointStreamAdmissionFailure> {
         let identity = envelope.header.checkpoint_identity();
         let mut offset = CHECKPOINT_STREAM_HEADER_RECORD_BYTES;
-        let mut dirty = Vec::with_capacity(
-            usize::try_from(envelope.footer.dirty_record_count())
-                .map_err(|_| layout_rejection(&envelope, counters))?,
-        );
+        let mut dirty = reserve_record_evidence(envelope.footer.dirty_record_count())?;
         for _ in 0..envelope.footer.dirty_record_count() {
             let range = physical_range(offset, CHECKPOINT_DIRTY_FRAME_RECORD_BYTES)?;
             let scope = PhysicalArtifactScope::checkpoint_dirty_basis(identity, range);
             let validation = validate_checkpoint_dirty_basis(
-                bounded(envelope.bytes, range, scope, counters)?,
+                bounded(envelope.bytes, range, scope, trace)?,
                 scope,
             )
             .0;
@@ -57,14 +54,14 @@ impl<'media> CheckpointBodyAdmission<'media> {
                 else {
                     unreachable!()
                 };
-                return Err(record_integrity_rejection(scope, rejection, counters));
+                return Err(record_integrity_rejection(scope, rejection, trace));
             };
             dirty.push(bind_dirty(
                 envelope.observed,
                 scope,
                 range,
                 validated,
-                counters,
+                trace,
             )?);
             offset = range.end_exclusive() as usize;
         }
@@ -74,7 +71,7 @@ impl<'media> CheckpointBodyAdmission<'media> {
         let compaction_scope =
             PhysicalArtifactScope::checkpoint_binding_compaction(identity, compaction_range);
         let validation = validate_checkpoint_binding_compaction(
-            bounded(envelope.bytes, compaction_range, compaction_scope, counters)?,
+            bounded(envelope.bytes, compaction_range, compaction_scope, trace)?,
             compaction_scope,
         )
         .0;
@@ -86,7 +83,7 @@ impl<'media> CheckpointBodyAdmission<'media> {
             return Err(record_integrity_rejection(
                 compaction_scope,
                 rejection,
-                counters,
+                trace,
             ));
         };
         let compaction = bind_compaction(
@@ -94,49 +91,43 @@ impl<'media> CheckpointBodyAdmission<'media> {
             compaction_scope,
             compaction_range,
             validated,
-            counters,
+            trace,
         )?;
         offset = compaction_range.end_exclusive() as usize;
 
-        let mut bindings = Vec::with_capacity(
-            usize::try_from(envelope.footer.binding_record_count())
-                .map_err(|_| layout_rejection(&envelope, counters))?,
-        );
+        let mut bindings = reserve_record_evidence(envelope.footer.binding_record_count())?;
         for _ in 0..envelope.footer.binding_record_count() {
             let prefix_range = physical_range(offset, CHECKPOINT_BINDING_RECORD_PREFIX_BYTES)?;
             let prefix_scope = PhysicalArtifactScope::checkpoint_binding(identity, prefix_range);
             let frame = project_checkpoint_binding_frame_length(
-                bounded(envelope.bytes, prefix_range, prefix_scope, counters)?,
+                bounded(envelope.bytes, prefix_range, prefix_scope, trace)?,
                 prefix_scope,
             )
-            .map_err(|rejection| record_integrity_rejection(prefix_scope, rejection, counters))?;
+            .map_err(|rejection| record_integrity_rejection(prefix_scope, rejection, trace))?;
             let range = physical_range_u64(offset as u64, frame.encoded_bytes())?;
             if range.end_exclusive() > envelope.footer_range.offset() {
-                return Err(layout_rejection(&envelope, counters));
+                return Err(layout_rejection(&envelope, trace));
             }
             let scope = PhysicalArtifactScope::checkpoint_binding(identity, range);
-            let validation = validate_checkpoint_binding(
-                bounded(envelope.bytes, range, scope, counters)?,
-                scope,
-            )
-            .0;
+            let validation =
+                validate_checkpoint_binding(bounded(envelope.bytes, range, scope, trace)?, scope).0;
             let CheckpointBindingIntegrityValidation::Intact(validated) = validation else {
                 let CheckpointBindingIntegrityValidation::Rejected(rejection) = validation else {
                     unreachable!()
                 };
-                return Err(record_integrity_rejection(scope, rejection, counters));
+                return Err(record_integrity_rejection(scope, rejection, trace));
             };
             bindings.push(bind_binding(
                 envelope.observed,
                 scope,
                 range,
                 validated,
-                counters,
+                trace,
             )?);
             offset = range.end_exclusive() as usize;
         }
         if offset as u64 != envelope.footer_range.offset() {
-            return Err(layout_rejection(&envelope, counters));
+            return Err(layout_rejection(&envelope, trace));
         }
         Ok(Self {
             envelope,
@@ -148,25 +139,27 @@ impl<'media> CheckpointBodyAdmission<'media> {
 
     pub(super) fn finish(
         self,
-        counters: &mut RecoveryIntegrityIngressCounters,
+        trace: &mut RecoveryIntegrityIngressTrace,
     ) -> Result<OwnerCheckpointProjection, CheckpointStreamAdmissionFailure> {
         let maximum_binding_records = self.envelope.maximum_binding_records;
-        let dirty = self
-            .dirty
-            .iter()
-            .map(IntegrityAdmittedCheckpointDirtyBasis::validated)
-            .collect::<Vec<_>>();
-        let bindings = self
-            .bindings
-            .iter()
-            .map(IntegrityAdmittedCheckpointBinding::validated)
-            .collect::<Vec<_>>();
+        let mut dirty = reserve_record_evidence(self.dirty.len() as u64)?;
+        dirty.extend(
+            self.dirty
+                .iter()
+                .map(IntegrityAdmittedCheckpointDirtyBasis::validated),
+        );
+        let mut bindings = reserve_record_evidence(self.bindings.len() as u64)?;
+        bindings.extend(
+            self.bindings
+                .iter()
+                .map(IntegrityAdmittedCheckpointBinding::validated),
+        );
         let validation = validate_checkpoint_footer(
             bounded(
                 self.envelope.bytes,
                 self.envelope.footer_range,
                 self.envelope.footer_scope,
-                counters,
+                trace,
             )?,
             self.envelope.footer_scope,
             CheckpointFooterValidationBasis::from_record_references(
@@ -184,7 +177,7 @@ impl<'media> CheckpointBodyAdmission<'media> {
             return Err(record_integrity_rejection(
                 self.envelope.footer_scope,
                 rejection,
-                counters,
+                trace,
             ));
         };
         let footer = bind_footer(
@@ -192,7 +185,7 @@ impl<'media> CheckpointBodyAdmission<'media> {
             self.envelope.footer_scope,
             self.envelope.footer_range,
             validated,
-            counters,
+            trace,
         )?;
         let admitted = IntegrityAdmittedCheckpointStream::assemble(
             self.envelope.header,
@@ -202,23 +195,41 @@ impl<'media> CheckpointBodyAdmission<'media> {
             footer,
         )
         .map_err(|rejection| {
-            record_recovery_rejection(self.envelope.footer_scope, rejection, counters)
+            record_recovery_rejection(self.envelope.footer_scope, rejection, trace)
         })?;
         admitted
-            .into_owner_checkpoint(maximum_binding_records, counters)
+            .into_owner_checkpoint(maximum_binding_records, trace)
             .map_err(|rejection| {
-                record_recovery_rejection(self.envelope.footer_scope, rejection, counters)
+                record_recovery_rejection(self.envelope.footer_scope, rejection, trace)
             })
     }
 }
 
+fn reserve_record_evidence<T>(count: u64) -> Result<Vec<T>, CheckpointStreamAdmissionFailure> {
+    let count =
+        usize::try_from(count).map_err(|_| CheckpointStreamAdmissionFailure::AllocationRejected)?;
+    let mut records = Vec::new();
+    records
+        .try_reserve_exact(count)
+        .map_err(|_| CheckpointStreamAdmissionFailure::AllocationRejected)?;
+    Ok(records)
+}
+
+#[test]
+fn record_evidence_capacity_overflow_is_a_typed_resource_refusal() {
+    assert!(matches!(
+        reserve_record_evidence::<[u8; 2]>(u64::MAX),
+        Err(CheckpointStreamAdmissionFailure::AllocationRejected)
+    ));
+}
+
 fn layout_rejection(
     envelope: &CheckpointEnvelopeAdmission<'_>,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut RecoveryIntegrityIngressTrace,
 ) -> CheckpointStreamAdmissionFailure {
     record_recovery_rejection(
         envelope.footer_scope,
         RecoveryIntegrityIngressRejection::ScopeMismatch,
-        counters,
+        trace,
     )
 }

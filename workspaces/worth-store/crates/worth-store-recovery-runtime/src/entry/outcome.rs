@@ -1,6 +1,6 @@
 use worth_store::physical_runtime::{
     RecoveredPhysicalRuntimeConstructionDenial, RecoveryDiscoveryFailure,
-    RecoveryFilesystemQualificationError, StoreRecoveryBindingSampleDenial,
+    StoreRecoveryBindingSampleDenial,
 };
 use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordArtifactFile};
 use worth_store_recovery_physics::{
@@ -8,7 +8,6 @@ use worth_store_recovery_physics::{
     RecoveryPlanCostDenial, RecoveryPlanningCounters,
 };
 
-use super::PhysicalRecoveryEntryBindingDrift;
 use crate::progression::PhysicalRecoveryDiscoveryCounters;
 
 #[derive(Debug)]
@@ -48,95 +47,8 @@ pub struct PhysicalRecoveryPublicationIndeterminate {
     integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PhysicalRecoveryRefusal {
-    pub kind: PhysicalRecoveryRefusalKind,
-    root_protocol_denials: Vec<super::PhysicalRecoverySourceDenial>,
-    root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters,
-    integrity_observations: super::PhysicalRecoveryIntegrityObservations,
-    recovery_effects: u64,
-    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
-}
-
-impl PhysicalRecoveryRefusal {
-    pub(crate) fn new(kind: PhysicalRecoveryRefusalKind, recovery_effects: u64) -> Self {
-        Self {
-            kind,
-            root_protocol_denials: Vec::new(),
-            root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters::default(),
-            integrity_observations: super::PhysicalRecoveryIntegrityObservations::new(Vec::new()),
-            recovery_effects,
-            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
-        }
-    }
-
-    pub const fn recovery_effects(&self) -> u64 {
-        self.recovery_effects
-    }
-
-    pub(crate) fn with_root_protocol_denials(
-        mut self,
-        denials: Vec<super::PhysicalRecoverySourceDenial>,
-    ) -> Self {
-        self.root_protocol_denials = denials;
-        self
-    }
-
-    pub fn root_protocol_denials(&self) -> &[super::PhysicalRecoverySourceDenial] {
-        &self.root_protocol_denials
-    }
-
-    pub(crate) const fn with_root_protocol_counters(
-        mut self,
-        counters: super::PhysicalRecoveryRootProtocolCounters,
-    ) -> Self {
-        self.root_protocol_counters = counters;
-        self
-    }
-
-    pub const fn root_protocol_counters(&self) -> super::PhysicalRecoveryRootProtocolCounters {
-        self.root_protocol_counters
-    }
-    pub const fn integrity_observation_count(&self) -> u64 {
-        self.integrity_trace.counters().attempted
-    }
-
-    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
-        self.integrity_trace.observations()
-    }
-
-    pub(crate) fn with_integrity_trace(
-        mut self,
-        trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
-    ) -> Self {
-        self.integrity_trace = trace;
-        self
-    }
-
-    pub(crate) fn with_integrity_observations(
-        mut self,
-        observations: super::PhysicalRecoveryIntegrityObservations,
-    ) -> Self {
-        self.integrity_observations = observations;
-        self
-    }
-
-    pub const fn wal_integrity_observations(
-        &self,
-    ) -> &super::PhysicalRecoveryIntegrityObservations {
-        &self.integrity_observations
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalRecoveryRefusalKind {
-    CancelledBeforeDiscovery,
-    CancelledBeforeReconstruction,
-    CancelledBeforeExecution,
-    EntryBindingDrift(PhysicalRecoveryEntryBindingDrift),
-    PersistedStoreAdmission(RecoveryFilesystemQualificationError),
-    CoordinationUnavailable,
-}
+mod refusal;
+pub use refusal::{PhysicalRecoveryRefusal, PhysicalRecoveryRefusalKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalRecoveryBlockKind {

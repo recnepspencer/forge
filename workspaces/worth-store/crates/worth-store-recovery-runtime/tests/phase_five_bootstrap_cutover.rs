@@ -35,6 +35,14 @@ fn corrupt_bootstrap_is_rejected_before_owner_projection() {
     assert_bootstrap_damage(blocked.evidence().source_denials.as_slice(), |cause| {
         cause == PhysicalDamageCause::ChecksumMismatch
     });
+    let observations = blocked.evidence().integrity_observations();
+    assert_eq!(observations.len(), 1);
+    assert_eq!(observations[0].scope().store_identity(), store);
+    assert_eq!(observations[0].scope().artifact_family(), worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily::BootstrapCatalog);
+    assert!(matches!(
+        observations[0].outcome(),
+        worth_store_recovery_runtime::PhysicalRecoveryIntegrityObservationOutcome::Rejected(_)
+    ));
 }
 
 #[test]

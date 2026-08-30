@@ -98,6 +98,7 @@ impl DiscoveredPhysicalRecovery {
             residue,
             root_protocol_denials,
             counters,
+            integrity_trace,
         } = self.material;
         let input = SelectionInput {
             current,
@@ -110,6 +111,7 @@ impl DiscoveredPhysicalRecovery {
             residue,
             root_protocol_denials,
             counters,
+            integrity_trace,
         };
         match select_sources(input, authority.limits) {
             Ok(selected) => {

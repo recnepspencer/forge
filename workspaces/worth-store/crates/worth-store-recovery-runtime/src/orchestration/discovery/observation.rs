@@ -5,12 +5,11 @@ use worth_store_recovery_physics::{
 };
 
 use crate::entry::{
-    PhysicalRecoveryBlockKind as PhysicalRecoveryBlock, PhysicalRecoveryCheckpointIntegrityDenial,
-    PhysicalRecoveryLimitDimension, PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
+    PhysicalRecoveryBlockKind as PhysicalRecoveryBlock, PhysicalRecoveryLimitDimension,
+    PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
 };
 use crate::integrity_ingress::{
-    admit_observed_bootstrap_catalog, admit_observed_checkpoint_stream,
-    CheckpointStreamAdmissionFailure, IntegrityAdmittedRecoveryArtifact,
+    admit_observed_bootstrap_catalog, IntegrityAdmittedRecoveryArtifact,
     RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
 };
 use crate::progression::PhysicalRecoveryDiscoveryCounters;
@@ -23,9 +22,11 @@ use super::{
     DiscoveryFailure, WalDiscovery,
 };
 
+mod checkpoint;
 mod counters;
 mod root_observation;
 
+use checkpoint::observe_checkpoint;
 use counters::{record_checkpoint_counters, record_wal_counters};
 use root_observation::{observe_root_slots, RootObservations};
 
@@ -47,14 +48,16 @@ pub(super) fn observe_all(
     limits: PhysicalRecoveryLimits,
     record_format: PhysicalRecordFormatDeclaration,
     counters: &mut PhysicalRecoveryDiscoveryCounters,
+    ingress_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<ObservedSources, DiscoveryFailure> {
     let declaration = limits.declaration();
     let mut roots = observe_root_slots(discovery, limits, record_format, counters)?;
     let root_protocol_denials = roots.denials.clone();
     let preserve_root_denials =
         |failure: DiscoveryFailure| failure.with_root_protocol_denials(&root_protocol_denials);
-    let bootstrap = observe_fallback_anchor(discovery, &roots, record_format, counters)
-        .map_err(&preserve_root_denials)?;
+    let bootstrap =
+        observe_fallback_anchor(discovery, &roots, record_format, counters, ingress_trace)
+            .map_err(&preserve_root_denials)?;
     let (current_manifest_facts, previous_manifest_facts) =
         observe_root_manifest_facts(discovery, limits, &mut roots, counters)
             .map_err(&preserve_root_denials)?;
@@ -66,8 +69,8 @@ pub(super) fn observe_all(
             &previous_manifest_facts,
         )
     };
-    let checkpoint =
-        observe_checkpoint(discovery, limits, counters).map_err(&preserve_manifest_observations)?;
+    let checkpoint = observe_checkpoint(discovery, limits, counters, ingress_trace)
+        .map_err(&preserve_manifest_observations)?;
     record_checkpoint_counters(counters, &checkpoint);
     let (wal, residue, wal_entries) = observe_wal(discovery, coordination, limits, counters)
         .map_err(&preserve_manifest_observations)?;
@@ -112,6 +115,7 @@ fn observe_fallback_anchor(
     roots: &RootObservations,
     record_format: PhysicalRecordFormatDeclaration,
     counters: &mut PhysicalRecoveryDiscoveryCounters,
+    ingress_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<BootstrapDiscovery, DiscoveryFailure> {
     if !current_requires_fallback_anchor(&roots.current)
         || !matches!(roots.previous, PhysicalRootSlotObservation::Candidate(_))
@@ -121,16 +125,17 @@ fn observe_fallback_anchor(
     let artifact = discovery
         .read_bootstrap_catalog(BOOTSTRAP_CATALOG_BYTES as u64)
         .map_err(map_selector_discovery_failure)?;
-    let mut ingress_counters = RecoveryIntegrityIngressCounters::default();
+    let mut ingress = crate::integrity_ingress::RecoveryIntegrityIngressTrace::new();
     let attempt = admit_observed_bootstrap_catalog(
         &artifact,
         discovery.store_identity(),
         record_format,
-        &mut ingress_counters,
+        ingress.counters_mut(),
     );
+    ingress.retain(attempt.observation());
     let discovery = match attempt.into_outcome() {
         Ok(IntegrityAdmittedRecoveryArtifact::BootstrapCatalog(admitted)) => {
-            let projection = admitted.project(&mut ingress_counters);
+            let projection = admitted.project(ingress.counters_mut());
             BootstrapDiscovery::Admitted(
                 worth_store_recovery_physics::PhysicalBootstrapFallbackAnchor::from_integrity_projection(
                     admitted.scope().store_identity(),
@@ -143,7 +148,8 @@ fn observe_fallback_anchor(
         Err(RecoveryIntegrityIngressRejection::Absent) => BootstrapDiscovery::Absent,
         Err(rejection) => BootstrapDiscovery::Rejected(rejection),
     };
-    record_bootstrap_counters(counters, ingress_counters);
+    record_bootstrap_counters(counters, ingress.counters());
+    ingress_trace.append(ingress);
     Ok(discovery)
 }
 
@@ -249,79 +255,6 @@ fn observe_root_manifest_facts(
     counters.manifest_blocks =
         current_manifest_facts.block_count() + previous_manifest_facts.block_count();
     Ok((current_manifest_facts, previous_manifest_facts))
-}
-
-fn observe_checkpoint(
-    discovery: &mut BoundedRecoveryFilesystemDiscovery,
-    limits: PhysicalRecoveryLimits,
-    counters: &mut PhysicalRecoveryDiscoveryCounters,
-) -> Result<CheckpointDiscovery, DiscoveryFailure> {
-    let declaration = limits.declaration();
-    let artifact = discovery
-        .read_current_checkpoint(declaration.observation_bytes)
-        .map_err(|failure| {
-            map_discovery_failure(
-                failure,
-                PhysicalRecoveryLimitDimension::ObservationBytes,
-                PhysicalRecoveryLimitDimension::ObservationBytes,
-            )
-        })?;
-    let mut ingress = RecoveryIntegrityIngressCounters::default();
-    let checkpoint = match admit_observed_checkpoint_stream(
-        &artifact,
-        discovery.store_identity(),
-        declaration.dirty_frames,
-        declaration.operation_bindings,
-        &mut ingress,
-    ) {
-        Ok(Some(checkpoint)) => CheckpointDiscovery::Admitted(checkpoint),
-        Ok(None) => CheckpointDiscovery::Absent,
-        Err(CheckpointStreamAdmissionFailure::Integrity(rejection)) => {
-            CheckpointDiscovery::Rejected(checkpoint_denial(rejection))
-        }
-        Err(CheckpointStreamAdmissionFailure::DirtyRecordLimit { observed, admitted }) => {
-            CheckpointDiscovery::Rejected(
-                PhysicalRecoveryCheckpointIntegrityDenial::DirtyRecordLimit { observed, admitted },
-            )
-        }
-        Err(CheckpointStreamAdmissionFailure::BindingRecordLimit { observed, admitted }) => {
-            CheckpointDiscovery::Rejected(
-                PhysicalRecoveryCheckpointIntegrityDenial::BindingRecordLimit {
-                    observed,
-                    admitted,
-                },
-            )
-        }
-    };
-    counters.checkpoint_integrity_attempts = ingress.attempted;
-    counters.checkpoint_integrity_admissions = ingress.admitted;
-    counters.checkpoint_integrity_rejections = ingress.attempted - ingress.admitted;
-    counters.checkpoint_owner_projections = ingress.owner_projection_entries;
-    counters.checkpoint_owner_decoder_entries = ingress.owner_decoder_entries;
-    Ok(checkpoint)
-}
-
-fn checkpoint_denial(
-    rejection: RecoveryIntegrityIngressRejection,
-) -> PhysicalRecoveryCheckpointIntegrityDenial {
-    match rejection {
-        RecoveryIntegrityIngressRejection::Integrity(rejection) => {
-            PhysicalRecoveryCheckpointIntegrityDenial::Integrity(rejection)
-        }
-        RecoveryIntegrityIngressRejection::NonCanonicalEncoding => {
-            PhysicalRecoveryCheckpointIntegrityDenial::NonCanonicalEncoding
-        }
-        RecoveryIntegrityIngressRejection::ScopeMismatch
-        | RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation => {
-            PhysicalRecoveryCheckpointIntegrityDenial::ScopeMismatch
-        }
-        RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
-        | RecoveryIntegrityIngressRejection::Absent
-        | RecoveryIntegrityIngressRejection::MissingBoundedArtifact
-        | RecoveryIntegrityIngressRejection::ConflictingDuplication { .. } => {
-            PhysicalRecoveryCheckpointIntegrityDenial::SourceIncarnationMismatch
-        }
-    }
 }
 
 fn observe_wal(

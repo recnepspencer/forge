@@ -32,6 +32,7 @@ pub(crate) struct DiscoveryMaterial {
     pub(crate) residue: Vec<PhysicalRecoveryResidue>,
     pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(crate) counters: crate::progression::PhysicalRecoveryDiscoveryCounters,
+    pub(crate) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 pub(crate) enum CheckpointDiscovery {
@@ -195,12 +196,14 @@ pub(crate) fn discover_sources(
         .bounded_discovery(maximum_entries, declaration.observation_bytes)
         .expect("a nonzero admitted discovery limit constructs a bounded observer");
     let mut counters = crate::progression::PhysicalRecoveryDiscoveryCounters::default();
+    let mut ingress_trace = crate::integrity_ingress::RecoveryIntegrityIngressTrace::new();
     let result = observe_all(
         &mut discovery,
         &coordination,
         limits,
         record_format,
         &mut counters,
+        &mut ingress_trace,
     );
     counters.bytes_observed = discovery.counters().bytes_read;
     counters.wal_entries = discovery.counters().directory_entries_observed;
@@ -227,15 +230,17 @@ pub(crate) fn discover_sources(
             residue: observed.residue,
             root_protocol_denials: observed.root_protocol_denials,
             counters,
+            integrity_trace: ingress_trace,
         }),
         Err(failure) => {
             let DiscoveryFailure {
                 kind,
                 limit,
                 source_denials,
-                integrity_trace,
+                mut integrity_trace,
                 integrity_observations,
             } = failure;
+            integrity_trace.append(ingress_trace);
             Err((
                 authority,
                 coordination,
