@@ -40,7 +40,7 @@ pub(super) struct UiPreparedMountedProjectionInput {
 
 #[derive(Clone)]
 pub struct UiProjectedMountedFrameCandidate {
-    pub(in crate::mounting) frame: std::sync::Arc<UiMountedProjectionFrame>,
+    pub(in crate::mounting) frame: std::rc::Rc<UiMountedProjectionFrame>,
     pub(in crate::mounting) identity_candidate:
         super::super::identity_state::UiMountedIdentityFrameCandidate,
     pub(in crate::mounting) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
@@ -99,7 +99,7 @@ impl UiProjectedMountedFrameCandidate {
             crate::mounting::UiSurfaceBindingIdentityView,
         )],
     ) -> Result<(), UiMountedProjectionDenial> {
-        let frame = std::sync::Arc::make_mut(&mut self.frame);
+        let frame = std::rc::Rc::make_mut(&mut self.frame);
         frame.rebind_retained_mechanics(replacements)?;
         self.presentation_changed_instances = frame.mounted_instances().collect::<Vec<_>>().into();
         self.presentation_node_changed_instances = self.presentation_changed_instances.clone();
@@ -134,7 +134,7 @@ impl UiProjectedMountedFrameCandidate {
     pub(crate) fn into_parts(
         self,
     ) -> (
-        std::sync::Arc<UiMountedProjectionFrame>,
+        std::rc::Rc<UiMountedProjectionFrame>,
         super::super::identity_state::UiMountedIdentityFrameCandidate,
         super::super::UiMountedProjectionChangeSnapshot,
     ) {
@@ -268,7 +268,7 @@ impl UiPreparedMountedProjection {
         frame.complete_presentation_effects(&presentation_node_changed_instances);
         frame.complete_diagnostics(&presentation_node_changed_instances);
         Ok(UiProjectedMountedFrameCandidate {
-            frame: std::sync::Arc::new(frame),
+            frame: std::rc::Rc::new(frame),
             identity_candidate,
             projection_changes: self.projection_changes,
             presentation_predecessor,

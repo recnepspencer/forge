@@ -1,12 +1,4 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum UiScrollRevealAlignment {
-    Nearest,
-    Start,
-    Center,
-    End,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct UiScrollRevealInterval {
     start_subpixels: i64,
     end_subpixels: i64,
@@ -29,7 +21,7 @@ pub(crate) struct UiScrollProgrammaticRevealRequest {
     chain: Vec<super::UiScrollChainEntry>,
     target: UiScrollRevealTarget,
     viewport: UiScrollViewportExtent,
-    alignment: UiScrollRevealAlignment,
+    alignment: crate::declaration::UiScrollRevealAlignment,
 }
 
 impl UiScrollRevealInterval {
@@ -69,7 +61,7 @@ impl UiScrollProgrammaticRevealRequest {
         chain: Vec<super::UiScrollChainEntry>,
         target: UiScrollRevealTarget,
         viewport: UiScrollViewportExtent,
-        alignment: UiScrollRevealAlignment,
+        alignment: crate::declaration::UiScrollRevealAlignment,
     ) -> Result<Self, super::UiScrollRouteDenial> {
         super::UiScrollDeltaRequest::new(
             chain.clone(),
@@ -122,7 +114,7 @@ fn desired_offset(
     axes: super::UiScrollAxes,
     target: UiScrollRevealTarget,
     viewport: UiScrollViewportExtent,
-    alignment: UiScrollRevealAlignment,
+    alignment: crate::declaration::UiScrollRevealAlignment,
 ) -> super::UiScrollOffset {
     let inline = if axes.accepts_inline() {
         aligned_axis(
@@ -151,16 +143,13 @@ fn aligned_axis(
     current: i64,
     target: UiScrollRevealInterval,
     viewport: i64,
-    alignment: UiScrollRevealAlignment,
+    alignment: crate::declaration::UiScrollRevealAlignment,
 ) -> i64 {
     match alignment {
-        UiScrollRevealAlignment::Start => target.start_subpixels,
-        UiScrollRevealAlignment::End => target.end_subpixels.saturating_sub(viewport),
-        UiScrollRevealAlignment::Center => {
-            let center = i128::from(target.start_subpixels) + i128::from(target.end_subpixels);
-            clamp_i128(center / 2 - i128::from(viewport) / 2)
+        crate::declaration::UiScrollRevealAlignment::End => {
+            target.end_subpixels.saturating_sub(viewport)
         }
-        UiScrollRevealAlignment::Nearest => {
+        crate::declaration::UiScrollRevealAlignment::Nearest => {
             let viewport_end = current.saturating_add(viewport);
             if target.start_subpixels < current {
                 target.start_subpixels
@@ -171,8 +160,4 @@ fn aligned_axis(
             }
         }
     }
-}
-
-fn clamp_i128(value: i128) -> i64 {
-    value.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
 }

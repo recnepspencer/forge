@@ -115,15 +115,19 @@ impl super::UiPortalRuntimeState {
         &self,
         trigger: UiPortalDismissalTrigger,
     ) -> Option<(super::UiPortalIdentity, &super::state::UiPortalRecord)> {
+        if let UiPortalDismissalTrigger::AnchorLoss(anchor) = trigger {
+            return self
+                .records
+                .get_key_value(&anchor)
+                .map(|(portal, record)| (*portal, record));
+        }
         self.records
             .iter()
-            .filter(|(portal, _)| match trigger {
-                UiPortalDismissalTrigger::AnchorLoss(anchor) => {
-                    **portal == anchor || self.portal_descends_from(**portal, anchor)
-                }
+            .filter(|_| match trigger {
                 UiPortalDismissalTrigger::Escape
                 | UiPortalDismissalTrigger::OutsidePress { .. }
                 | UiPortalDismissalTrigger::AcceptedSelection => true,
+                UiPortalDismissalTrigger::AnchorLoss(_) => unreachable!(),
             })
             .max_by_key(|(portal, record)| {
                 (

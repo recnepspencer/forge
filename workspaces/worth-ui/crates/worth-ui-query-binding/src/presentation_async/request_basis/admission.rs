@@ -37,11 +37,10 @@ impl WorthUiPresentationRequestBasis {
         if removed_mechanics.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(WorthUiPresentationRequestBasisDenial::DuplicateRemovedMechanic);
         }
-        if mechanics.iter().any(|mechanic| {
-            removed_mechanics
-                .iter()
-                .any(|removed| *removed == mechanic.mechanic)
-        }) {
+        if mechanics
+            .iter()
+            .any(|mechanic| removed_mechanics.contains(&mechanic.mechanic))
+        {
             return Err(WorthUiPresentationRequestBasisDenial::MechanicAlsoRemoved);
         }
         let mut pin_additions = input.pin_additions.into_vec();

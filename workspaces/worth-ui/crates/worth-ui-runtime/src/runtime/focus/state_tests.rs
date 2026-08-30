@@ -4,6 +4,8 @@ use crate::runtime::focus::{
     UiFocusTraversalDirection,
 };
 
+#[path = "state_tests/container_navigation.rs"]
+mod container_navigation;
 #[path = "state_tests/policy_defaults.rs"]
 mod policy_defaults;
 #[path = "state_tests/prepared_reconciliation.rs"]
@@ -17,7 +19,7 @@ fn scoped_traversal_wraps_in_mounted_order_with_constant_route_visits() {
         .reconcile_mounted_participation(&world.snapshot)
         .unwrap();
     assert_eq!(reconciliation.participants_installed(), 3);
-    assert_eq!(reconciliation.mounted_nodes_visited(), 4);
+    assert_eq!(reconciliation.mounted_nodes_visited(), 3);
     state.observe_window_focus(true);
 
     let first = state
@@ -79,53 +81,6 @@ fn scoped_traversal_wraps_in_mounted_order_with_constant_route_visits() {
         wrapped.current().unwrap().participant(),
         world.identities[2].0
     );
-}
-
-#[test]
-fn active_descendant_moves_without_moving_semantic_focus_and_clears_on_composite_exit() {
-    let world = World::new(3);
-    let mut state = UiFocusRuntimeState::new_session_restore_candidate();
-    state
-        .reconcile_mounted_participation(&world.snapshot)
-        .unwrap();
-    state
-        .commit(state.plan(first_request(world.scope)).unwrap())
-        .unwrap();
-
-    let receipt = state
-        .move_active_descendant(
-            world.identities[0].0,
-            world.identities[1].0,
-            world.identities[1].1,
-        )
-        .unwrap();
-    assert_eq!(
-        receipt.current().unwrap().descendant(),
-        world.identities[1].0
-    );
-    assert_eq!(
-        state.inspect().current().unwrap().participant(),
-        world.identities[0].0
-    );
-    assert_eq!(state.inspect().active_descendant(), receipt.current());
-    assert_eq!(
-        state.inspect().accessibility_focus(),
-        crate::runtime::focus::UiAccessibilityFocusHookSupport::UnsupportedUntilMilestone13
-    );
-
-    state
-        .commit(
-            state
-                .plan(UiFocusRequest::Direct {
-                    scope: world.scope,
-                    participant: world.identities[2].0,
-                    incarnation: world.identities[2].1,
-                    cause: UiFocusCause::Direct,
-                })
-                .unwrap(),
-        )
-        .unwrap();
-    assert_eq!(state.inspect().active_descendant(), None);
 }
 
 #[test]
@@ -332,22 +287,11 @@ impl World {
                 index as u32,
             ));
         }
-        let container = worth_ui_host_contract::UiMountedInstanceIdentity::mint_unbound().unwrap();
-        participants.push(crate::mounting::UiMountedFocusParticipant::new(
-            crate::graph::UiGraphNodeIdentity::new(9_999),
-            surface,
-            container,
-            worth_ui_host_contract::UiMountIncarnation::mint_unbound().unwrap(),
-            issuer.receipt_for(container),
-            crate::capability::ComponentFocusSupport::focus_container(),
-            crate::mounting::UiMountedFocusScope::ActiveSurface,
-            focusable_count as u32,
-        ));
         Self {
             snapshot: crate::mounting::UiMountedFocusParticipationSnapshot::new(
                 frame,
                 participants,
-                u32::try_from(focusable_count + 1).unwrap(),
+                u32::try_from(focusable_count).unwrap(),
             ),
             scope: UiFocusScopeIdentity::for_surface(surface),
             identities,

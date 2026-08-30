@@ -263,7 +263,7 @@ impl super::UiServiceProposalCompiler {
             .map_err(|(parts, denial)| {
                 (
                     super::UiReservedServiceProposal::from_parts(
-                        parts.candidate,
+                        *parts.candidate,
                         parts.leases,
                         displacement,
                     ),
@@ -336,11 +336,6 @@ impl UiServiceProposalTerminalReceipt {
             released_leases,
             released_receipts,
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::runtime) const fn proposal(self) -> super::UiServiceProposalIdentity {
-        self.proposal
     }
 
     #[cfg(test)]

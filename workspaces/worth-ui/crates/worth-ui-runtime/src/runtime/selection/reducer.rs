@@ -12,9 +12,6 @@ pub(super) fn validate_request(
     request: super::UiSelectionRequest,
 ) -> Result<u32, super::UiSelectionRequestDenial> {
     match request {
-        super::UiSelectionRequest::Clear => {
-            Ok(u32::try_from(record.selected.len()).unwrap_or(u32::MAX))
-        }
         super::UiSelectionRequest::SelectSingle(key) => {
             require_key(record, key)?;
             Ok(u32::try_from(record.selected.len().saturating_add(1)).unwrap_or(u32::MAX))
@@ -43,13 +40,6 @@ pub(super) fn validate_request(
                 .saturating_add(record.selected.len());
             Ok(u32::try_from(visited).unwrap_or(u32::MAX))
         }
-        super::UiSelectionRequest::SelectAll => {
-            require_multiple(record)?;
-            if record.catalog_posture == super::UiSelectionCatalogPosture::Partial {
-                return Err(super::UiSelectionRequestDenial::PartialCatalogSelectAllDenied);
-            }
-            Ok(u32::try_from(record.catalog.len()).unwrap_or(u32::MAX))
-        }
     }
 }
 
@@ -58,7 +48,6 @@ pub(super) fn apply_request(
     request: super::UiSelectionRequest,
 ) -> Result<UiSelectionMutation, super::UiSelectionRequestDenial> {
     match request {
-        super::UiSelectionRequest::Clear => Ok(clear_selection(record)),
         super::UiSelectionRequest::SelectSingle(key) => select_single(record, key),
         super::UiSelectionRequest::ToggleMultiple(key) => toggle_selection(record, key),
         super::UiSelectionRequest::Add(key) => add_selection(record, key),
@@ -66,16 +55,7 @@ pub(super) fn apply_request(
         super::UiSelectionRequest::SelectRange { target, extend } => {
             select_range(record, target, extend)
         }
-        super::UiSelectionRequest::SelectAll => select_all(record),
     }
-}
-
-fn clear_selection(record: &mut UiSelectionOwnerRecord) -> UiSelectionMutation {
-    let removed = record.selected.iter().copied().collect::<Vec<_>>();
-    record.selected.clear();
-    record.anchor = None;
-    record.cursor = None;
-    mutation(Vec::new(), removed)
 }
 
 fn select_single(
@@ -188,21 +168,6 @@ fn select_range(
     record.selected.extend(range);
     record.cursor = Some(target);
     Ok(mutation(added, removed))
-}
-
-fn select_all(
-    record: &mut UiSelectionOwnerRecord,
-) -> Result<UiSelectionMutation, super::UiSelectionRequestDenial> {
-    let added = record
-        .catalog
-        .iter()
-        .filter(|key| !record.selected.contains(key))
-        .copied()
-        .collect();
-    record.selected = record.catalog.iter().copied().collect();
-    record.anchor = record.catalog.first().copied();
-    record.cursor = record.catalog.last().copied();
-    Ok(mutation(added, Vec::new()))
 }
 
 fn require_multiple(

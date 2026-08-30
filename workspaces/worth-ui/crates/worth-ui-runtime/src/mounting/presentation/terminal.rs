@@ -8,7 +8,11 @@ use super::outcome::{
     UiMountedSurfacePresentationReceipt, UiMountedSurfacePresentationRejection,
 };
 
-pub(super) struct UiIndeterminatePresentationEvidence {
+pub(super) struct UiIndeterminatePresentationEvidence(
+    Box<UiIndeterminatePresentationEvidenceInner>,
+);
+
+struct UiIndeterminatePresentationEvidenceInner {
     affected: Vec<UiSurfaceBindingGeneration>,
     completed: Vec<UiMountedSurfacePresentationReceipt>,
     semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
@@ -22,21 +26,21 @@ impl UiIndeterminatePresentationEvidence {
         affected: Vec<UiSurfaceBindingGeneration>,
         completed: Vec<UiMountedSurfacePresentationReceipt>,
     ) -> Self {
-        Self {
+        Self(Box::new(UiIndeterminatePresentationEvidenceInner {
             affected,
             completed,
             semantic_receipts: Vec::new(),
             recovery_required: Vec::new(),
             additional_adapter_cost: None,
             physical_recovery_bindings: Vec::new(),
-        }
+        }))
     }
 
     pub(super) fn with_recovery_required(
         mut self,
         recovery_required: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
     ) -> Self {
-        self.recovery_required = recovery_required;
+        self.0.recovery_required = recovery_required;
         self
     }
 
@@ -44,7 +48,7 @@ impl UiIndeterminatePresentationEvidence {
         mut self,
         bindings: Vec<UiSurfaceBindingGeneration>,
     ) -> Self {
-        self.physical_recovery_bindings.extend(bindings);
+        self.0.physical_recovery_bindings.extend(bindings);
         self
     }
 
@@ -52,7 +56,7 @@ impl UiIndeterminatePresentationEvidence {
         mut self,
         semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
     ) -> Self {
-        self.semantic_receipts = semantic_receipts;
+        self.0.semantic_receipts = semantic_receipts;
         self
     }
 
@@ -60,7 +64,7 @@ impl UiIndeterminatePresentationEvidence {
         mut self,
         cost: worth_ui_host_contract::UiHostPresentationCostReport,
     ) -> Self {
-        self.additional_adapter_cost = Some(cost);
+        self.0.additional_adapter_cost = Some(cost);
         self
     }
 
@@ -74,8 +78,9 @@ impl UiIndeterminatePresentationEvidence {
         Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
         Vec<UiSurfaceBindingGeneration>,
     ) {
-        let composed = UiMountedPresentationReceipt::compose_cost(mounting_cost, &self.completed)
-            .and_then(|cost| match self.additional_adapter_cost {
+        let inner = *self.0;
+        let composed = UiMountedPresentationReceipt::compose_cost(mounting_cost, &inner.completed)
+            .and_then(|cost| match inner.additional_adapter_cost {
                 Some(additional) => cost.with_adapter(additional),
                 None => Ok(cost),
             });
@@ -90,11 +95,11 @@ impl UiIndeterminatePresentationEvidence {
                     .expect("one cost overflow marker fits accounting")
             });
         (
-            self.affected,
+            inner.affected,
             cost,
-            self.semantic_receipts,
-            self.recovery_required,
-            self.physical_recovery_bindings,
+            inner.semantic_receipts,
+            inner.recovery_required,
+            inner.physical_recovery_bindings,
         )
     }
 }

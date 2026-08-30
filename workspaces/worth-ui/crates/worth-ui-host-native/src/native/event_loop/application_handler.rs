@@ -318,9 +318,9 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             .borrow()
             .window
             .as_ref()
-            .map(|window| std::sync::Arc::clone(&*window));
+            .map(|window| std::sync::Arc::clone(window));
         match crate::native::readiness::signal_level_ready(
-            &mut self.readiness,
+            &self.readiness,
             self.input_readiness_owner,
             has_ready_work,
             || {

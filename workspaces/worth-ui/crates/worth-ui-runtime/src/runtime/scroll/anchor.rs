@@ -17,8 +17,6 @@ pub(crate) enum UiScrollAnchorPolicy {
     Preserve,
     Rebase,
     Clamp,
-    Replace,
-    Drop,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -134,10 +132,12 @@ impl UiScrollAnchorReconciliationReceipt {
         Self { outcome, offset }
     }
 
+    #[cfg(test)]
     pub(crate) const fn outcome(self) -> UiScrollAnchorReconciliationOutcome {
         self.outcome
     }
 
+    #[cfg(test)]
     pub(crate) const fn offset(self) -> super::UiScrollOffset {
         self.offset
     }

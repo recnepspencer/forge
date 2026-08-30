@@ -64,6 +64,76 @@ fn escape_and_anchor_loss_dismiss_nested_portals_in_topmost_order() {
 }
 
 #[test]
+fn anchor_loss_targets_the_exact_anchor_and_closes_its_descendant_chain() {
+    let mut state = state();
+    let parent = portal(223, 233);
+    let child = portal(224, 234);
+    let parent_open = state.prepare(open_request(parent, 245)).unwrap();
+    state.commit_published(parent_open).unwrap();
+    let geometry = presented_geometry(5);
+    let child_open = state
+        .prepare(UiPortalServiceRequest::open_nested(
+            child,
+            idempotency(246),
+            geometry,
+            viewport_bounds(geometry),
+            semantic_surface(),
+            parent,
+            UiPortalInputShielding::ModalSurface,
+        ))
+        .unwrap();
+    state.commit_published(child_open).unwrap();
+
+    let UiPortalDismissalPreparation::Prepared(dismiss_parent) = state
+        .prepare_dismissal(
+            UiPortalDismissalTrigger::AnchorLoss(parent),
+            None,
+            idempotency(247),
+        )
+        .unwrap()
+    else {
+        panic!("anchor loss must prepare the exact lost anchor")
+    };
+    assert_eq!(dismiss_parent.portal(), parent);
+    state
+        .commit_published(dismiss_parent.into_transition())
+        .unwrap();
+
+    assert_eq!(state.active_count(), 0);
+    let closed = state.last_closed().expect("anchor closure is inspected");
+    assert_eq!(closed.portal(), parent);
+    assert_eq!(closed.cause(), UiPortalDismissalCause::AnchorLoss);
+}
+
+#[test]
+fn non_interaction_dismissal_causes_remain_typed_and_inspectable() {
+    for (offset, cause) in [
+        UiPortalDismissalCause::OwnerLoss,
+        UiPortalDismissalCause::WindowFocusPolicy,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut state = state();
+        let identity = portal(230 + offset as u64, 240 + offset as u64);
+        let open = state
+            .prepare(open_request(identity, 250 + offset as u64))
+            .unwrap();
+        state.commit_published(open).unwrap();
+        let close = state
+            .prepare(UiPortalServiceRequest::close(
+                identity,
+                idempotency(260 + offset as u64),
+                cause,
+                semantic_surface(),
+            ))
+            .unwrap();
+        state.commit_published(close).unwrap();
+        assert_eq!(state.last_closed().unwrap().cause(), cause);
+    }
+}
+
+#[test]
 fn explicit_parent_close_atomically_closes_its_descendant_chain() {
     let mut state = state();
     let parent = portal(225, 235);
@@ -212,4 +282,31 @@ fn accepted_selection_and_anchor_loss_respect_the_declared_policy() {
         ));
     }
     assert_eq!(state.active_count(), 1);
+}
+
+#[test]
+fn accepted_selection_closes_the_topmost_portal_with_its_typed_cause() {
+    let mut state = state();
+    let identity = portal(312, 322);
+    let opened = state.prepare(open_request(identity, 333)).unwrap();
+    state.commit_published(opened).unwrap();
+
+    let UiPortalDismissalPreparation::Prepared(dismissal) = state
+        .prepare_dismissal(
+            UiPortalDismissalTrigger::AcceptedSelection,
+            None,
+            idempotency(334),
+        )
+        .unwrap()
+    else {
+        panic!("the dropdown policy admits accepted-selection dismissal")
+    };
+    assert_eq!(dismissal.portal(), identity);
+    state.commit_published(dismissal.into_transition()).unwrap();
+
+    let closed = state
+        .last_closed()
+        .expect("accepted selection publishes inspectable close truth");
+    assert_eq!(closed.portal(), identity);
+    assert_eq!(closed.cause(), UiPortalDismissalCause::AcceptedSelection);
 }

@@ -1,5 +1,7 @@
+#[cfg(test)]
 mod accessibility_focus_hook;
 mod active_descendant;
+mod container_navigation;
 mod identity;
 mod inspection;
 mod modality;
@@ -18,10 +20,14 @@ mod state;
 #[cfg(test)]
 mod state_tests;
 
+#[cfg(test)]
 pub(in crate::runtime) use accessibility_focus_hook::{
     UiAccessibilityFocusHook, UiAccessibilityFocusHookSupport,
 };
 pub(in crate::runtime) use active_descendant::UiActiveDescendant;
+pub(crate) use container_navigation::{
+    UiFocusContainerNavigationKey, UiFocusContainerNavigationReceipt,
+};
 pub(in crate::runtime) use identity::UiFocusParticipantIdentity;
 pub(crate) use identity::UiFocusScopeIdentity;
 pub(in crate::runtime) use inspection::UiFocusInspectionSnapshot;
@@ -40,6 +46,7 @@ pub(in crate::runtime) use request::{UiFocusRequest, UiFocusTraversalDirection};
 pub(in crate::runtime) use restoration::UiFocusRestorationToken;
 pub(in crate::runtime) use routing::UiFocusPlan;
 pub(crate) use routing::UiFocusRoutingDenial;
+pub(crate) use routing::UiHostFocusTraversalDirection;
 #[cfg(feature = "certification-support")]
 pub(crate) use scale_certification::focus_scale_evidence;
 pub(crate) use semantic_focus::UiSemanticKeyboardFocus;

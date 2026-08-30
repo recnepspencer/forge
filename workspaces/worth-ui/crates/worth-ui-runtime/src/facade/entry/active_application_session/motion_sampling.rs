@@ -50,17 +50,6 @@ impl super::WorthUiActiveApplicationSession {
         self.mounted.prepare_motion_tick(tick, presentation)
     }
 
-    pub(in crate::facade::entry) fn commit_prepared_motion_tick(
-        &mut self,
-        prepared: crate::mounting::presentation::motion_sampling::UiPreparedMotionSampling,
-    ) -> crate::mounting::presentation::motion_sampling::UiPresentationMotionSamplingReceipt {
-        let sampling = self.mounted.commit_prepared_motion_tick(prepared);
-        for terminal in sampling.terminals().iter().copied() {
-            self.settle_motion_terminal_request(terminal);
-        }
-        sampling
-    }
-
     pub(in crate::facade::entry) fn present_prepared_motion_tick(
         &mut self,
         prepared: crate::mounting::presentation::motion_sampling::UiPreparedMotionSampling,

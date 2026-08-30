@@ -32,7 +32,7 @@ pub(super) fn unicode_opportunities(source: &str) -> Box<[u32]> {
 
 fn unicode_opportunities_for_units(source: &str, units: &[LineUnit]) -> Box<[u32]> {
     let mut boundaries = (1..units.len())
-        .filter(|right| rules::break_before(&units, *right))
+        .filter(|right| rules::break_before(units, *right))
         .map(|right| u32::try_from(units[right].start).expect("admitted text fits u32"))
         .collect::<Vec<_>>();
     boundaries.push(u32::try_from(source.len()).expect("admitted text fits u32"));

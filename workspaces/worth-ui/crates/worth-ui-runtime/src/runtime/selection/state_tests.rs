@@ -275,7 +275,7 @@ fn range_requires_owner_held_anchor_and_declared_range_policy() {
 }
 
 #[test]
-fn add_remove_and_bounded_select_all_obey_declared_collection_posture() {
+fn add_and_remove_obey_declared_multiple_policy() {
     let owner = owner();
     let keys = vec![key(41), key(42), key(43)];
     let mut state = UiSelectionRuntimeState::new_session_restore_candidate();
@@ -300,22 +300,6 @@ fn add_remove_and_bounded_select_all_obey_declared_collection_posture() {
             .unwrap()
             .removed(),
         &[keys[1]]
-    );
-    let all = state
-        .apply(owner, incarnation(), UiSelectionRequest::SelectAll)
-        .unwrap();
-    assert_eq!(all.added(), keys.as_slice());
-    state
-        .synchronize(registration(
-            owner,
-            UiSelectionPolicy::Multiple,
-            vec![keys[0]],
-            UiSelectionCatalogPosture::Partial,
-        ))
-        .unwrap();
-    assert_eq!(
-        state.apply(owner, incarnation(), UiSelectionRequest::SelectAll),
-        Err(UiSelectionRequestDenial::PartialCatalogSelectAllDenied)
     );
 }
 
@@ -391,7 +375,7 @@ fn failed_combined_rebind_and_action_preserves_predecessor_selection() {
     )
     .unwrap();
     assert_eq!(
-        state.synchronize_and_apply(replacement, UiSelectionRequest::SelectAll),
+        state.synchronize_and_apply(replacement, UiSelectionRequest::Add(key(61))),
         Err(UiSelectionRequestDenial::MultipleNotSupported)
     );
     assert!(state.selected(owner).unwrap().contains(&key(62)));

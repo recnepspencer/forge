@@ -42,7 +42,7 @@ impl<Client: super::UiNativeEventLoopClient> super::UiNativeEventLoopApplication
             .as_ref()
             .map(|window| Arc::clone(window));
         match crate::native::readiness::signal_committed(
-            &mut self.readiness,
+            &self.readiness,
             self.readiness_owner,
             || {
                 if let Some(window) = &window {

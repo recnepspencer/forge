@@ -23,6 +23,10 @@ impl UiSelectionStableKey {
     pub(in crate::runtime) const fn application_value(self) -> core::num::NonZeroU64 {
         self.0.value()
     }
+
+    pub(in crate::runtime) const fn application_key(self) -> crate::runtime::UiApplicationItemKey {
+        self.0
+    }
 }
 
 impl UiSelectionOwnerIdentity {

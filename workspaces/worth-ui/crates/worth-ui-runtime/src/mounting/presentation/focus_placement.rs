@@ -51,6 +51,7 @@ pub struct UiFocusHostPlacementShutdownReport {
 }
 
 pub(super) struct UiMountedFocusPlacementState {
+    persistence: crate::runtime::UiServiceStatePersistencePosture,
     next_identity: u64,
     last: Option<worth_ui_host_contract::UiHostFocusPlacementAcknowledgement>,
     reconciliation: Option<UiFocusHostPlacementReconciliationReceipt>,
@@ -59,6 +60,7 @@ pub(super) struct UiMountedFocusPlacementState {
 impl Default for UiMountedFocusPlacementState {
     fn default() -> Self {
         Self {
+            persistence: crate::runtime::UiServiceStatePersistencePosture::Effecting,
             next_identity: 1,
             last: None,
             reconciliation: None,
@@ -218,6 +220,10 @@ impl UiMountedFocusPlacementState {
     }
 
     fn shutdown(&mut self) -> UiFocusHostPlacementShutdownReport {
+        debug_assert_eq!(
+            self.persistence,
+            crate::runtime::UiServiceStatePersistencePosture::Effecting
+        );
         let abandoned_indeterminate_request = self
             .require_available()
             .err()

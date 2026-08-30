@@ -279,9 +279,7 @@ impl UiDraftRuntimeState {
             return None;
         }
         let binding = lease.binding();
-        let Some(expected) = binding.text_profile() else {
-            return None;
-        };
+        let expected = binding.text_profile()?;
         let target = self
             .active_context()
             .expect("live input affinity has an active recipient")

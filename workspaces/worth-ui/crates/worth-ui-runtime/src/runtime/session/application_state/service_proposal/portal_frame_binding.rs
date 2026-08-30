@@ -49,10 +49,17 @@ impl WorthUiApplicationSessionState {
                 }
             };
         let staged_reveal = match reveal_requirement {
-            Some(requirement) => {
+            Some(mut requirement) => {
                 // The Scroll participant is compiled into every portal proposal,
                 // so a reveal requirement always has an owner to carry it. Only a
                 // missing runtime owner is still a typed denial.
+                if let Some(anchor) = preparation
+                    .selection
+                    .as_ref()
+                    .and_then(|selection| selection.scroll_anchor_key_for(requirement.target()))
+                {
+                    requirement = requirement.with_application_item_anchor(anchor);
+                }
                 preparation.scroll = preparation.scroll.with_requirement(requirement);
                 let Some(scroll_state) = scroll_state else {
                     focus
@@ -70,7 +77,7 @@ impl WorthUiApplicationSessionState {
                     return Err(UiPortalProposalPreparationDenial::MissingScrollOwner);
                 };
                 match self.stage_focus_reveal(
-                    requirement,
+                    preparation.scroll.requirement(),
                     mounted,
                     scroll_state,
                     surface_incarnation,

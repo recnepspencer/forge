@@ -42,16 +42,17 @@ fn payload_and_outcome_schema_mismatches_remain_distinct() {
     let mismatch = component_with_routes([]).with_intent_declaration(mismatch);
     let error = freeze_error(mismatch);
     match error {
-        WorthUiApplicationPreparationDenial::IntentCatalog(
+        WorthUiApplicationPreparationDenial::IntentCatalog(denial) => match *denial {
             UiIntentCatalogPreparationDenial::PayloadSchemaMismatch {
                 declaration,
                 registered,
                 ..
-            },
-        ) => {
-            assert_eq!(&*declaration, DECLARATION);
-            assert_eq!(registered, AdvancePayload::SCHEMA);
-        }
+            } => {
+                assert_eq!(&*declaration, DECLARATION);
+                assert_eq!(registered, AdvancePayload::SCHEMA);
+            }
+            other => panic!("expected payload-schema denial, got {other:?}"),
+        },
         other => panic!("expected payload-schema denial, got {other:?}"),
     }
 
@@ -70,9 +71,8 @@ fn payload_and_outcome_schema_mismatches_remain_distinct() {
     let error = freeze_error(mismatch);
     assert!(matches!(
         error,
-        WorthUiApplicationPreparationDenial::IntentCatalog(
-            UiIntentCatalogPreparationDenial::OutcomeSchemaMismatch { .. }
-        )
+        WorthUiApplicationPreparationDenial::IntentCatalog(denial)
+            if matches!(*denial, UiIntentCatalogPreparationDenial::OutcomeSchemaMismatch { .. })
     ));
 }
 
@@ -118,9 +118,8 @@ fn product_ambiguity_and_route_kind_crossover_remain_distinct() {
     let duplicate_error = freeze_error(duplicate);
     assert!(matches!(
         duplicate_error,
-        WorthUiApplicationPreparationDenial::IntentCatalog(
-            UiIntentCatalogPreparationDenial::AmbiguousProductRoute { .. }
-        )
+        WorthUiApplicationPreparationDenial::IntentCatalog(denial)
+            if matches!(*denial, UiIntentCatalogPreparationDenial::AmbiguousProductRoute { .. })
     ));
 
     let crossover = component_with_routes([
@@ -138,9 +137,8 @@ fn product_ambiguity_and_route_kind_crossover_remain_distinct() {
     let crossover_error = freeze_error(crossover);
     assert!(matches!(
         crossover_error,
-        WorthUiApplicationPreparationDenial::IntentCatalog(
-            UiIntentCatalogPreparationDenial::RouteKindCrossover { .. }
-        )
+        WorthUiApplicationPreparationDenial::IntentCatalog(denial)
+            if matches!(*denial, UiIntentCatalogPreparationDenial::RouteKindCrossover { .. })
     ));
 }
 
@@ -179,9 +177,8 @@ fn product_family_mismatch_and_confirmation_ambiguity_stop_distinctly() {
     let error = freeze_error(mismatched_route);
     assert!(matches!(
         error,
-        WorthUiApplicationPreparationDenial::IntentCatalog(
-            UiIntentCatalogPreparationDenial::ProductInteractionMismatch { .. }
-        )
+        WorthUiApplicationPreparationDenial::IntentCatalog(denial)
+            if matches!(*denial, UiIntentCatalogPreparationDenial::ProductInteractionMismatch { .. })
     ));
 
     let confirmation = WorthUiIntentInteractionRoute::confirmation(DECLARATION);
@@ -194,9 +191,8 @@ fn product_family_mismatch_and_confirmation_ambiguity_stop_distinctly() {
     let error = freeze_error(duplicate_confirmation);
     assert!(matches!(
         error,
-        WorthUiApplicationPreparationDenial::IntentCatalog(
-            UiIntentCatalogPreparationDenial::AmbiguousConfirmationRoute { .. }
-        )
+        WorthUiApplicationPreparationDenial::IntentCatalog(denial)
+            if matches!(*denial, UiIntentCatalogPreparationDenial::AmbiguousConfirmationRoute { .. })
     ));
 }
 
@@ -207,7 +203,7 @@ fn assert_catalog_denial(
     let error = freeze_error(module);
     assert_eq!(
         error,
-        WorthUiApplicationPreparationDenial::IntentCatalog(expected)
+        WorthUiApplicationPreparationDenial::IntentCatalog(Box::new(expected))
     );
 }
 

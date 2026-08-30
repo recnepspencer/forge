@@ -13,7 +13,7 @@ impl UiMountedIdentityState {
         )?;
         let mut successor = projection.as_ref().clone();
         let lost = successor.require_qualified_layout_reconstruction()?;
-        *projection = std::sync::Arc::new(successor);
+        *projection = std::rc::Rc::new(successor);
         Ok(lost)
     }
 
@@ -32,7 +32,7 @@ impl UiMountedIdentityState {
         )?;
         let mut successor = projection.as_ref().clone();
         let reconstructed = successor.reconstruct_qualified_layouts()?;
-        *projection = std::sync::Arc::new(successor);
+        *projection = std::rc::Rc::new(successor);
         Ok(reconstructed)
     }
 }

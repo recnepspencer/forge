@@ -66,16 +66,16 @@ impl super::UiFocusRuntimeState {
     }
 
     pub(crate) fn inspect(&self) -> crate::runtime::focus::UiFocusInspectionSnapshot {
-        crate::runtime::focus::UiFocusInspectionSnapshot::new(
+        #[cfg(not(test))]
+        return crate::runtime::focus::UiFocusInspectionSnapshot::new(self.current, self.revision);
+
+        #[cfg(test)]
+        return crate::runtime::focus::UiFocusInspectionSnapshot::for_test(
             self.current,
             self.active_descendant,
             crate::runtime::focus::UiAccessibilityFocusHook.support(),
-            self.window_focus,
-            self.modality,
             self.current.is_some() && self.window_focus.is_focused() && self.modality.is_keyboard(),
-            self.participants.len(),
-            self.participant_index.len(),
             self.revision,
-        )
+        );
     }
 }

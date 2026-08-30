@@ -19,6 +19,7 @@ pub(in crate::intent) use intent_types::{
 pub(in crate::intent) use portal_topology::{
     build_open_portal_application, build_open_portal_application_with_host,
     build_open_portal_projection_application_with_host,
+    build_open_portal_two_focus_application_with_host,
 };
 pub(in crate::intent) use route_scale_world::{last_route_graph_node, MountedRouteScaleWorld};
 pub(in crate::intent) use topology::{

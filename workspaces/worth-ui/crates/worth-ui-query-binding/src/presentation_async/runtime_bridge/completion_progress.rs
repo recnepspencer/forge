@@ -22,7 +22,7 @@ impl WorthUiPresentationRuntimeAdmission {
         let raw = self.owner_completion_envelope(payload_byte_len);
         let report = workspace
             .admit_owned_bridge_async_completion(&self.request, raw)
-            .map_err(WorthUiPresentationCompletionDenial::QueryOwned)?;
+            .map_err(|error| WorthUiPresentationCompletionDenial::QueryOwned(Box::new(error)))?;
         Ok(WorthUiPresentationCompletionProgress::new(report))
     }
 
@@ -34,7 +34,7 @@ impl WorthUiPresentationRuntimeAdmission {
         let observation = self.effects_indeterminate_issuer.certify(payload_byte_len);
         let report = workspace
             .admit_owned_bridge_async_effects_indeterminate(observation)
-            .map_err(WorthUiPresentationCompletionDenial::QueryOwned)?;
+            .map_err(|error| WorthUiPresentationCompletionDenial::QueryOwned(Box::new(error)))?;
         Ok(WorthUiPresentationCompletionProgress::new(report))
     }
 
@@ -47,7 +47,9 @@ impl WorthUiPresentationRuntimeAdmission {
             progress.ordering = Some(
                 workspace
                     .order_owned_bridge_async_completion(&progress.report)
-                    .map_err(WorthUiPresentationCompletionDenial::QueryOwned)?,
+                    .map_err(|error| {
+                        WorthUiPresentationCompletionDenial::QueryOwned(Box::new(error))
+                    })?,
             );
         }
         if progress.batch.is_none() {
@@ -59,14 +61,15 @@ impl WorthUiPresentationRuntimeAdmission {
                         .as_ref()
                         .expect("completion ordering is retained before transition admission"),
                 )
-                .map_err(WorthUiPresentationCompletionDenial::QueryTransition)?,
+                .map_err(|error| {
+                    WorthUiPresentationCompletionDenial::QueryTransition(Box::new(error))
+                })?,
             );
         }
         if progress.observation.is_none() {
-            progress.observation = Some(
-                self.observation(workspace)
-                    .map_err(WorthUiPresentationCompletionDenial::Observation)?,
-            );
+            progress.observation = Some(self.observation(workspace).map_err(|error| {
+                WorthUiPresentationCompletionDenial::Observation(Box::new(error))
+            })?);
         }
         Ok(WorthUiPresentationCompletionAdvance {
             observation: progress

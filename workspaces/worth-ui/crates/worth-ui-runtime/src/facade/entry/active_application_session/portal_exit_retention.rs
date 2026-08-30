@@ -242,7 +242,7 @@ impl UiPortalExitTerminalPending {
                     }
                 };
                 in_flight.awaits_progress_class(progress_class)
-                    && presentation.map_or(true, |presentation| {
+                    && presentation.is_none_or(|presentation| {
                         presentation.attempt() == in_flight.attempt()
                             && in_flight
                                 .pending_bindings()
@@ -251,6 +251,16 @@ impl UiPortalExitTerminalPending {
             }
             Self::Retry(_) => false,
         }
+    }
+}
+
+impl UiPortalMotionExitRetention {
+    pub(super) const fn portal(&self) -> crate::runtime::portal::UiPortalExitRetentionReceipt {
+        self.portal
+    }
+
+    pub(super) const fn motion(&self) -> crate::runtime::motion::UiMotionExitRetentionReceipt {
+        self.motion
     }
 }
 
@@ -300,21 +310,5 @@ mod tests {
 
         assert!(!coordinator.awaits_physical_progress());
         assert_eq!(coordinator.resource_counts(), (0, 1));
-    }
-}
-
-impl UiPortalMotionExitRetention {
-    pub(super) const fn portal(&self) -> crate::runtime::portal::UiPortalExitRetentionReceipt {
-        self.portal
-    }
-
-    pub(super) const fn motion(&self) -> crate::runtime::motion::UiMotionExitRetentionReceipt {
-        self.motion
-    }
-
-    #[cfg(test)]
-    pub(super) const fn terminal(&self) -> crate::runtime::motion::UiMotionTerminalReceipt {
-        self.terminal
-            .expect("terminal exit-retention selection requires terminal Motion evidence")
     }
 }

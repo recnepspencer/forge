@@ -35,6 +35,9 @@ fn project_transition(
             crate::runtime::focus::UiFocusCause::KeyboardTraversal => {
                 worth_ui_inspection::UiFocusMoveInspectionCause::KeyboardTraversal
             }
+            crate::runtime::focus::UiFocusCause::RovingMovement => {
+                worth_ui_inspection::UiFocusMoveInspectionCause::RovingMovement
+            }
             crate::runtime::focus::UiFocusCause::PortalInitial => {
                 worth_ui_inspection::UiFocusMoveInspectionCause::PortalInitial
             }

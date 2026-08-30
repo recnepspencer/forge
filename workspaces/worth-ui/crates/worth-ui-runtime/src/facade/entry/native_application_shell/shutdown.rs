@@ -45,23 +45,7 @@ pub struct WorthUiNativeApplicationCleanup {
     pub(super) host_cleanup: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
     pub(super) presentation_async_cleanup:
         Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup>,
-    pub(super) closed_query_resources: u64,
-    pub(super) query_close_complete: bool,
-    pub(super) query_transitions:
-        Box<[worth_ui_query_binding::WorthUiPresentationTransitionObservation]>,
-    pub(super) query_transition_trace_complete: bool,
-    pub(super) query_semantic_frontiers:
-        Box<[worth_ui_query_binding::WorthUiPresentationSemanticFrontierObservation]>,
-    pub(super) query_semantic_frontier_trace_complete: bool,
-    pub(super) text_presentation_work:
-        Box<[crate::native_platform::text_presentation::UiNativeTextPresentationWorkObservation]>,
-    pub(super) text_presentation_work_trace_complete: bool,
-    pub(super) authored_mounted_instances:
-        Box<[worth_ui_host_native::UiNativeClientAuthoredMountedInstanceObservation]>,
-    pub(super) client_resource_peaks: [usize; 2],
-    pub(super) mounted_shutdown_attempts:
-        Box<[crate::mounting::UiMountedPresentationShutdownAttempt]>,
-    pub(super) intent_resources_empty: bool,
+    pub(super) query_close: Box<super::query_close::UiNativeApplicationQueryCloseInput>,
 }
 
 impl WorthUiNativeApplicationShell {
@@ -155,12 +139,6 @@ impl WorthUiNativeApplicationShutdownReceipt {
         self.mounted_shutdown_attempts.len()
     }
 
-    pub(crate) fn mounted_shutdown_attempts(
-        &self,
-    ) -> &[crate::mounting::UiMountedPresentationShutdownAttempt] {
-        &self.mounted_shutdown_attempts
-    }
-
     pub const fn intent_resources_empty(&self) -> bool {
         self.intent_resources_empty
     }
@@ -243,26 +221,6 @@ impl WorthUiNativeApplicationShutdownReceipt {
         self.query_semantic_frontier_trace_complete
     }
 
-    pub(crate) fn text_presentation_work(
-        &self,
-    ) -> &[crate::native_platform::text_presentation::UiNativeTextPresentationWorkObservation] {
-        &self.text_presentation_work
-    }
-
-    pub(crate) const fn text_presentation_work_trace_complete(&self) -> bool {
-        self.text_presentation_work_trace_complete
-    }
-
-    pub(crate) fn authored_mounted_instances(
-        &self,
-    ) -> &[worth_ui_host_native::UiNativeClientAuthoredMountedInstanceObservation] {
-        &self.authored_mounted_instances
-    }
-
-    pub(crate) const fn client_resource_peaks(&self) -> [usize; 2] {
-        self.client_resource_peaks
-    }
-
     pub(crate) fn into_query_close_observation(self) -> UiNativeApplicationQueryCloseObservation {
         UiNativeApplicationQueryCloseObservation::from_runtime(
             super::query_close::UiNativeApplicationQueryCloseInput {
@@ -309,18 +267,20 @@ impl WorthUiNativeApplicationShutdownReceipt {
         Some(WorthUiNativeApplicationCleanup {
             host_cleanup: self.host_cleanup,
             presentation_async_cleanup: self.presentation_async_cleanup,
-            closed_query_resources: self.closed_query_resources,
-            query_close_complete: self.query_close_complete,
-            query_transitions: self.query_transitions,
-            query_transition_trace_complete: self.query_transition_trace_complete,
-            query_semantic_frontiers: self.query_semantic_frontiers,
-            query_semantic_frontier_trace_complete: self.query_semantic_frontier_trace_complete,
-            text_presentation_work: self.text_presentation_work,
-            text_presentation_work_trace_complete: self.text_presentation_work_trace_complete,
-            authored_mounted_instances: self.authored_mounted_instances,
-            client_resource_peaks: self.client_resource_peaks,
-            mounted_shutdown_attempts: self.mounted_shutdown_attempts,
-            intent_resources_empty: self.intent_resources_empty,
+            query_close: Box::new(super::query_close::UiNativeApplicationQueryCloseInput {
+                closed_resources: self.closed_query_resources,
+                transitions: self.query_transitions,
+                semantic_frontiers: self.query_semantic_frontiers,
+                semantic_frontier_trace_complete: self.query_semantic_frontier_trace_complete,
+                text_work: self.text_presentation_work,
+                text_work_trace_complete: self.text_presentation_work_trace_complete,
+                authored_mounted_instances: self.authored_mounted_instances,
+                client_resource_peaks: self.client_resource_peaks,
+                mounted_shutdown_attempts: self.mounted_shutdown_attempts,
+                intent_resources_empty: self.intent_resources_empty,
+                query_close_complete: self.query_close_complete,
+                transition_trace_complete: self.query_transition_trace_complete,
+            }),
         })
     }
 }
@@ -330,13 +290,15 @@ impl WorthUiNativeApplicationCleanup {
         if let Some(cleanup) = self.presentation_async_cleanup.take() {
             match cleanup.retry() {
                 Ok(receipt) => {
-                    self.closed_query_resources = receipt.closed_query_resources();
-                    self.query_close_complete = true;
-                    self.query_transitions = receipt.transitions().to_vec().into_boxed_slice();
-                    self.query_transition_trace_complete = receipt.transition_trace_complete();
-                    self.query_semantic_frontiers =
+                    self.query_close.closed_resources = receipt.closed_query_resources();
+                    self.query_close.query_close_complete = true;
+                    self.query_close.transitions =
+                        receipt.transitions().to_vec().into_boxed_slice();
+                    self.query_close.transition_trace_complete =
+                        receipt.transition_trace_complete();
+                    self.query_close.semantic_frontiers =
                         receipt.settled_frontiers().to_vec().into_boxed_slice();
-                    self.query_semantic_frontier_trace_complete =
+                    self.query_close.semantic_frontier_trace_complete =
                         receipt.settled_frontier_trace_complete();
                 }
                 Err(cleanup) => {
@@ -352,20 +314,7 @@ impl WorthUiNativeApplicationCleanup {
             }
         }
         Ok(UiNativeApplicationQueryCloseObservation::from_runtime(
-            super::query_close::UiNativeApplicationQueryCloseInput {
-                closed_resources: self.closed_query_resources,
-                transitions: self.query_transitions,
-                semantic_frontiers: self.query_semantic_frontiers,
-                semantic_frontier_trace_complete: self.query_semantic_frontier_trace_complete,
-                text_work: self.text_presentation_work,
-                text_work_trace_complete: self.text_presentation_work_trace_complete,
-                authored_mounted_instances: self.authored_mounted_instances,
-                client_resource_peaks: self.client_resource_peaks,
-                mounted_shutdown_attempts: self.mounted_shutdown_attempts,
-                intent_resources_empty: self.intent_resources_empty,
-                query_close_complete: self.query_close_complete,
-                transition_trace_complete: self.query_transition_trace_complete,
-            },
+            *self.query_close,
         ))
     }
 }

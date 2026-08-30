@@ -50,11 +50,6 @@ impl UiCommittedViewportGeometry {
     pub(crate) const fn mounted_box(self) -> UiMountedCanonicalBox {
         self.0
     }
-
-    #[cfg(test)]
-    pub(crate) const fn for_test(bounds: UiMountedCanonicalBox) -> Self {
-        Self(bounds)
-    }
 }
 
 fn project_viewport_bounds(

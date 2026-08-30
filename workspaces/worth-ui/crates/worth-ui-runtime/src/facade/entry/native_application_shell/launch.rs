@@ -39,7 +39,7 @@ impl WorthUiApp {
                 ..
             }
             | crate::runtime::WorthUiRuntimeLaunchDenial::HostSessionReleaseMismatch { .. } => {
-                WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunchCleanup(denial)
+                WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunchCleanup(Box::new(denial))
             }
             _ => WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunch,
         })?;
@@ -52,51 +52,57 @@ impl WorthUiApp {
                     if launch_cleanup_complete(&cleanup, failure.expected_released_surface_count) {
                         failure.cause
                     } else {
-                        WorthUiNativeApplicationShellLaunchDenial::ApplicationCleanup(
+                        WorthUiNativeApplicationShellLaunchDenial::ApplicationCleanup(Box::new(
                             WorthUiNativeApplicationCleanup {
                                 host_cleanup: cleanup.take_host_session_recovery(),
                                 presentation_async_cleanup: cleanup
                                     .take_presentation_async_cleanup(),
-                                closed_query_resources: cleanup
-                                    .mounted_presentation()
-                                    .closed_query_resources(),
-                                query_close_complete: cleanup
-                                    .mounted_presentation()
-                                    .query_close_complete(),
-                                query_transitions: cleanup
-                                    .mounted_presentation()
-                                    .query_transitions()
-                                    .to_vec()
-                                    .into_boxed_slice(),
-                                query_transition_trace_complete: cleanup
-                                    .mounted_presentation()
-                                    .query_transition_trace_complete(),
-                                query_semantic_frontiers: cleanup
-                                    .mounted_presentation()
-                                    .query_semantic_frontiers()
-                                    .to_vec()
-                                    .into_boxed_slice(),
-                                query_semantic_frontier_trace_complete: cleanup
-                                    .mounted_presentation()
-                                    .query_semantic_frontier_trace_complete(),
-                                text_presentation_work: cleanup
-                                    .mounted_presentation()
-                                    .text_presentation_work()
-                                    .to_vec()
-                                    .into_boxed_slice(),
-                                text_presentation_work_trace_complete: cleanup
-                                    .mounted_presentation()
-                                    .text_presentation_work_trace_complete(),
-                                authored_mounted_instances: Box::new([]),
-                                client_resource_peaks,
-                                mounted_shutdown_attempts: cleanup
-                                    .mounted_presentation()
-                                    .attempts()
-                                    .to_vec()
-                                    .into_boxed_slice(),
-                                intent_resources_empty: cleanup.intent_resource_census().is_empty(),
+                                query_close: Box::new(
+                                    super::query_close::UiNativeApplicationQueryCloseInput {
+                                        closed_resources: cleanup
+                                            .mounted_presentation()
+                                            .closed_query_resources(),
+                                        transitions: cleanup
+                                            .mounted_presentation()
+                                            .query_transitions()
+                                            .to_vec()
+                                            .into_boxed_slice(),
+                                        semantic_frontiers: cleanup
+                                            .mounted_presentation()
+                                            .query_semantic_frontiers()
+                                            .to_vec()
+                                            .into_boxed_slice(),
+                                        semantic_frontier_trace_complete: cleanup
+                                            .mounted_presentation()
+                                            .query_semantic_frontier_trace_complete(),
+                                        text_work: cleanup
+                                            .mounted_presentation()
+                                            .text_presentation_work()
+                                            .to_vec()
+                                            .into_boxed_slice(),
+                                        text_work_trace_complete: cleanup
+                                            .mounted_presentation()
+                                            .text_presentation_work_trace_complete(),
+                                        authored_mounted_instances: Box::new([]),
+                                        client_resource_peaks,
+                                        mounted_shutdown_attempts: cleanup
+                                            .mounted_presentation()
+                                            .attempts()
+                                            .to_vec()
+                                            .into_boxed_slice(),
+                                        intent_resources_empty: cleanup
+                                            .intent_resource_census()
+                                            .is_empty(),
+                                        query_close_complete: cleanup
+                                            .mounted_presentation()
+                                            .query_close_complete(),
+                                        transition_trace_complete: cleanup
+                                            .mounted_presentation()
+                                            .query_transition_trace_complete(),
+                                    },
+                                ),
                             },
-                        )
+                        ))
                     },
                 );
             }
@@ -114,6 +120,7 @@ impl WorthUiApp {
             runtime_derived_state_reconstruction: None,
             pending_managed_rebind: None,
             retained_portal_dismissal: None,
+            pending_component_presence: None,
             managed_rebind_completion_tick: 0,
             reduced_motion_posture: super::WorthUiNativeReducedMotionPosture::Unavailable,
         })
@@ -213,7 +220,7 @@ fn configure_native_surface(
         .establish_native_viewport_allocation()
         .map_err(|denial| {
             configuration_failure(
-                WorthUiNativeApplicationShellLaunchDenial::ViewportAllocation(denial),
+                WorthUiNativeApplicationShellLaunchDenial::ViewportAllocation(Box::new(denial)),
                 1,
             )
         })?;

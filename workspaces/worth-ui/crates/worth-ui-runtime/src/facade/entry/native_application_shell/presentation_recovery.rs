@@ -5,10 +5,10 @@ pub enum WorthUiNativePresentationRecoveryDenial {
     LayoutReconstructionObservationUnavailable,
     CurrentPublicationUnavailable,
     SurfaceRebindUnavailable,
-    ViewportSettlementPublicationLease(crate::mounting::UiMountedPublicationLeaseDenial),
-    ViewportSettlementEvidence(crate::facade::host::UiHostMeasurementEvidenceDenial),
+    ViewportSettlementPublicationLease(Box<crate::mounting::UiMountedPublicationLeaseDenial>),
+    ViewportSettlementEvidence(Box<crate::facade::host::UiHostMeasurementEvidenceDenial>),
     ViewportSettlementTransition(
-        crate::facade::entry::mounted_application_presentation::UiMountedHostMeasurementTransitionDenial,
+        Box<crate::facade::entry::mounted_application_presentation::UiMountedHostMeasurementTransitionDenial>,
     ),
     FramePreparationUnavailable,
     FramePresentationUnavailable,
@@ -145,7 +145,9 @@ impl super::WorthUiNativeApplicationShell {
         self.settle_pending_native_viewport_measurements()
             .map_err(|stop| match stop {
                 crate::facade::entry::mounted_application_presentation::UiMountedHostMeasurementSettlementStop::PublicationLease(denial) => {
-                    WorthUiNativePresentationRecoveryDenial::ViewportSettlementPublicationLease(denial)
+                    WorthUiNativePresentationRecoveryDenial::ViewportSettlementPublicationLease(
+                        Box::new(denial),
+                    )
                 }
                 crate::facade::entry::mounted_application_presentation::UiMountedHostMeasurementSettlementStop::Evidence(denial) => {
                     WorthUiNativePresentationRecoveryDenial::ViewportSettlementEvidence(denial)

@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub(in crate::runtime) struct UiServiceProposalSettlement {
-    batch: super::UiServiceProposalStagedBatch,
+    batch: Box<super::UiServiceProposalStagedBatch>,
     publication: super::UiServiceProposalPublicationReceipt,
     acknowledged: super::super::UiServiceFamilyParticipation,
     retained_receipts: u16,
@@ -52,7 +52,7 @@ impl UiServiceProposalSettlement {
         retained_receipts: u16,
     ) -> Self {
         Self {
-            batch,
+            batch: Box::new(batch),
             publication,
             acknowledged: super::super::UiServiceFamilyParticipation::EMPTY,
             retained_receipts,
@@ -124,7 +124,7 @@ impl UiServiceProposalSettlement {
         if !self.is_complete() {
             return Err(UiServiceProposalSettlementDenial::IncompleteOwnerSettlement);
         }
-        let mut parts = self.batch.into_terminal_parts();
+        let mut parts = (*self.batch).into_terminal_parts();
         parts.retained_receipts = self.retained_receipts;
         Ok(parts)
     }
@@ -139,7 +139,7 @@ impl UiServiceProposalSettlement {
             .demand()
             .participating_families()
             .without(self.acknowledged);
-        let mut parts = self.batch.into_terminal_parts();
+        let mut parts = (*self.batch).into_terminal_parts();
         parts.retained_receipts = self.retained_receipts;
         parts.owners_requiring_discard = owners_requiring_discard;
         parts

@@ -74,6 +74,10 @@ fn retired_visual_pulse_rebases_without_inventing_a_predecessor_retirement() {
         PlatformPulseVisualObservationState::Retired.after_content_publication(21),
         Ok(PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 21 })
     );
+    assert_eq!(
+        PlatformPulseVisualObservationState::Retired.after_replacement(22),
+        Ok(PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 22 })
+    );
 }
 
 #[test]

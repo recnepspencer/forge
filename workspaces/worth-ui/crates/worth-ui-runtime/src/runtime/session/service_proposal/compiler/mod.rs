@@ -4,7 +4,7 @@ mod conflict_tests;
 mod coordination_tests;
 mod dependency;
 #[cfg(test)]
-mod evidence;
+mod evidence_tests;
 mod family_proposal;
 mod preflight;
 mod proposal;

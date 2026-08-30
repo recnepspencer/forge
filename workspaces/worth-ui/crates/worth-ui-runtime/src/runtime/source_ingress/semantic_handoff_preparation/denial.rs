@@ -33,7 +33,7 @@ pub enum WorthUiSemanticHandoffPreparationStop {
 /// Typed runtime-owned stop after DSL sealing and before candidate mutation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiSemanticHandoffPreparationDenial {
-    handoff: WorthUiSemanticHandoffEvidence,
+    handoff: Box<WorthUiSemanticHandoffEvidence>,
     stop: WorthUiSemanticHandoffPreparationStop,
 }
 
@@ -42,7 +42,10 @@ impl WorthUiSemanticHandoffPreparationDenial {
         handoff: WorthUiSemanticHandoffEvidence,
         stop: WorthUiSemanticHandoffPreparationStop,
     ) -> Self {
-        Self { handoff, stop }
+        Self {
+            handoff: Box::new(handoff),
+            stop,
+        }
     }
 
     pub fn handoff(&self) -> &WorthUiSemanticHandoffEvidence {

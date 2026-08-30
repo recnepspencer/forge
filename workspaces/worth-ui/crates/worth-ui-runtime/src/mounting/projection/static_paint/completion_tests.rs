@@ -133,6 +133,7 @@ impl CompletionFixture {
                 hit_test: None,
                 focus_support: crate::capability::ComponentFocusSupport::not_focusable(),
                 focus_scope: None,
+                focus_container_owner: None,
                 component_id: None,
                 portal_child_owner: None,
             }],

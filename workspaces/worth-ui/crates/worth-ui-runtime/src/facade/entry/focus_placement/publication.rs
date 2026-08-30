@@ -8,6 +8,7 @@ pub struct UiSemanticFocusParticipantObservation {
 pub enum UiSemanticFocusPublicationCause {
     Direct,
     KeyboardTraversal,
+    RovingMovement,
     PortalInitial,
     PortalRestoration,
     RebindPreserved,
@@ -158,6 +159,9 @@ const fn map_cause(cause: crate::runtime::focus::UiFocusCause) -> UiSemanticFocu
         crate::runtime::focus::UiFocusCause::Direct => UiSemanticFocusPublicationCause::Direct,
         crate::runtime::focus::UiFocusCause::KeyboardTraversal => {
             UiSemanticFocusPublicationCause::KeyboardTraversal
+        }
+        crate::runtime::focus::UiFocusCause::RovingMovement => {
+            UiSemanticFocusPublicationCause::RovingMovement
         }
         crate::runtime::focus::UiFocusCause::PortalInitial => {
             UiSemanticFocusPublicationCause::PortalInitial

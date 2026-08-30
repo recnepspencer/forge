@@ -9,10 +9,7 @@ pub(crate) enum UiMotionProducedFactKind {
 pub(crate) struct UiMotionProducedFact {
     publication_sequence: u64,
     track: super::UiMotionTrackIdentity,
-    target: super::UiMotionTargetIdentity,
-    predecessor_revision: u64,
     successor_revision: u64,
-    channels: super::UiMotionPropertyChannels,
     kind: UiMotionProducedFactKind,
 }
 
@@ -26,10 +23,7 @@ impl UiMotionProducedFact {
         Self {
             publication_sequence,
             track,
-            target: request.successor().target(),
-            predecessor_revision: request.predecessor().owner_revision(),
             successor_revision: request.successor().owner_revision(),
-            channels: request.declaration().channels(),
             kind,
         }
     }
@@ -42,20 +36,8 @@ impl UiMotionProducedFact {
         self.track
     }
 
-    pub(crate) const fn target(self) -> super::UiMotionTargetIdentity {
-        self.target
-    }
-
-    pub(crate) const fn predecessor_revision(self) -> u64 {
-        self.predecessor_revision
-    }
-
     pub(crate) const fn successor_revision(self) -> u64 {
         self.successor_revision
-    }
-
-    pub(crate) const fn channels(self) -> super::UiMotionPropertyChannels {
-        self.channels
     }
 
     pub(crate) const fn kind(self) -> UiMotionProducedFactKind {

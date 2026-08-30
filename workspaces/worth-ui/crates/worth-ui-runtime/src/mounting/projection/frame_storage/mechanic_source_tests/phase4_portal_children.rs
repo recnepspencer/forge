@@ -246,6 +246,7 @@ fn node(
         hit_test: Some(UiMountedHitTestSeed::for_test((graph - 4_151) as u32)),
         focus_support: crate::capability::ComponentFocusSupport::not_focusable(),
         focus_scope: None,
+        focus_container_owner: None,
         component_id,
         portal_child_owner,
     }

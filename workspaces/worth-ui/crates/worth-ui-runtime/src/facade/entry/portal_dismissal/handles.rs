@@ -20,38 +20,7 @@ impl UiPortalDismissalPublicationCompletion<'_> {
     }
 }
 
-impl<'session> UiPortalDismissalPublicationCompletion<'session> {
-    #[cfg(test)]
-    pub(in crate::facade::entry) fn complete(
-        mut self,
-        now_tick: u64,
-    ) -> UiPortalDismissalPublicationOutcome<'session> {
-        let state = self
-            .state
-            .take()
-            .expect("live dismissal completion owns state");
-        let outcome = state
-            .admitted
-            .session
-            .complete_mounted_presentation(state.mounted, now_tick);
-        finish(state.admitted, outcome)
-    }
-}
-
 impl DetachedUiPortalDismissalInFlight {
-    #[cfg(test)]
-    pub(in crate::facade::entry) fn from_parts(
-        session: crate::facade::WorthUiActiveApplicationSessionIdentity,
-        proposal: crate::runtime::session::UiStagedPortalProposalTransaction,
-        mounted: crate::mounting::UiMountedPresentationInFlight,
-    ) -> Self {
-        Self {
-            session,
-            proposal,
-            mounted,
-        }
-    }
-
     pub(in crate::facade::entry) const fn session_identity(
         &self,
     ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
@@ -82,7 +51,7 @@ impl DetachedUiPortalDismissalInFlight {
             }
         };
         self.mounted.awaits_progress_class(class)
-            && presentation.map_or(true, |presentation| {
+            && presentation.is_none_or(|presentation| {
                 presentation.attempt() == self.mounted.attempt()
                     && self
                         .mounted
@@ -163,34 +132,6 @@ impl<'session> UiPortalDismissalPublicationRecovery<'session> {
             frame: state.frame,
             proposal: state.proposal,
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::facade::entry) fn into_session_for_shutdown(
-        mut self,
-    ) -> &'session mut WorthUiActiveApplicationSession {
-        let state = self
-            .state
-            .take()
-            .expect("live dismissal recovery owns state");
-        drop(state.frame);
-        state
-            .session
-            .application
-            .abandon_indeterminate_portal_service_proposal_for_shutdown(
-                state.proposal,
-                state
-                    .session
-                    .focus
-                    .as_mut()
-                    .expect("retained proposal owns Focus"),
-                state
-                    .session
-                    .motion
-                    .as_mut()
-                    .expect("retained proposal owns Motion"),
-            );
-        state.session
     }
 }
 

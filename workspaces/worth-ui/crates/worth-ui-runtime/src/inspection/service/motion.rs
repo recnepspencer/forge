@@ -6,13 +6,11 @@ pub(crate) fn why_motion_interrupted(
     else {
         return None;
     };
-    let reason = match disposition {
-        crate::runtime::motion::UiMotionRetargetDisposition::Install { predecessor: crate::runtime::motion::UiMotionRetargetPredecessor::CurrentPresentationSample } => worth_ui_inspection::UiMotionInterruptedInspectionReason::RetargetedFromCurrentPresentation,
-        crate::runtime::motion::UiMotionRetargetDisposition::Install { predecessor: crate::runtime::motion::UiMotionRetargetPredecessor::CommittedSemanticPredecessor } => worth_ui_inspection::UiMotionInterruptedInspectionReason::RestartedFromSemanticPredecessor,
-        crate::runtime::motion::UiMotionRetargetDisposition::FinishThenApply => worth_ui_inspection::UiMotionInterruptedInspectionReason::FinishThenApply,
-        crate::runtime::motion::UiMotionRetargetDisposition::SnapToTarget => worth_ui_inspection::UiMotionInterruptedInspectionReason::SnappedToTarget,
-        crate::runtime::motion::UiMotionRetargetDisposition::CancelDrop => worth_ui_inspection::UiMotionInterruptedInspectionReason::CancelledAndDropped,
-    };
+    let crate::runtime::motion::UiMotionRetargetDisposition::Install {
+        predecessor: crate::runtime::motion::UiMotionRetargetPredecessor::CurrentPresentationSample,
+    } = disposition;
+    let reason =
+        worth_ui_inspection::UiMotionInterruptedInspectionReason::RetargetedFromCurrentPresentation;
     Some(
         worth_ui_inspection::UiMotionInterruptedInspectionSummary::new(
             worth_ui_inspection::UiRuntimeServiceInspectionSource::new(

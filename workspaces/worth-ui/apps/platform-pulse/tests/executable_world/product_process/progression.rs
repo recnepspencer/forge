@@ -159,6 +159,7 @@ pub(crate) struct PreservedPredecessorEvidence {
 pub(crate) struct RecoveredBlue {
     pub(super) preserved: PreservedPredecessorEvidence,
     pub(super) evidence: ExecutableReplacementEvidence<CanonicalBlueRecoverySourceDelta>,
+    pub(super) rebase_snapshot: ExecutableVisualSnapshotEvidence,
 }
 
 pub(crate) struct AwaitingSchemaStop {
@@ -171,6 +172,7 @@ pub(crate) struct SchemaStopped {
     pub(super) recovered: RecoveredBlue,
     pub(super) evidence:
         crate::adjudication::ExecutableSchemaTransitionEvidence<RevisionSchemaSourceDelta>,
+    pub(super) retirement: ExecutableVisualRetirementEvidence,
 }
 
 pub(crate) struct AwaitingStatusRecovery {
@@ -183,6 +185,7 @@ pub(crate) struct FinalRecovered {
     pub(super) stopped: SchemaStopped,
     pub(super) evidence:
         crate::adjudication::ExecutableSchemaTransitionEvidence<StatusSchemaRecoverySourceDelta>,
+    pub(super) rebase_snapshot: ExecutableVisualSnapshotEvidence,
 }
 
 pub(crate) struct Closed {
@@ -300,6 +303,10 @@ impl PulseExecutableWorld<Published<RecoveredBlue>> {
         &self.state.stage.preserved.evidence
     }
 
+    pub(crate) fn rebase_snapshot_evidence(&self) -> &ExecutableVisualSnapshotEvidence {
+        &self.state.stage.rebase_snapshot
+    }
+
     pub(crate) fn query_basis(
         &self,
     ) -> &worth_ui_platform_pulse::observation_contract::PlatformPulseQueryProjectionEvidence {
@@ -319,6 +326,10 @@ impl PulseExecutableWorld<Published<SchemaStopped>> {
         &self,
     ) -> &crate::adjudication::ExecutableSchemaTransitionEvidence<RevisionSchemaSourceDelta> {
         &self.state.stage.evidence
+    }
+
+    pub(crate) fn retirement_evidence(&self) -> ExecutableVisualRetirementEvidence {
+        self.state.stage.retirement
     }
 }
 

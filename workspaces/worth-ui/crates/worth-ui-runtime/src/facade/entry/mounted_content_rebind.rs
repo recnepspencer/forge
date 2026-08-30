@@ -14,7 +14,6 @@ pub(crate) struct WorthUiMountedContentRebindInFlight<'session> {
 
 pub(crate) struct WorthUiDetachedPreparedMountedContentRebind {
     session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
-    frame: crate::mounting::UiPreparedMountedFrame,
     publication: WorthUiMountedContentPublication,
 }
 
@@ -94,12 +93,11 @@ impl<'session> WorthUiPreparedMountedContentRebind<'session> {
     pub(crate) fn detach(self: Box<Self>) -> WorthUiDetachedPreparedMountedContentRebind {
         let Self {
             session,
-            frame,
+            frame: _,
             publication,
         } = *self;
         WorthUiDetachedPreparedMountedContentRebind {
             session_identity: session.session_identity(),
-            frame,
             publication,
         }
     }
@@ -170,17 +168,6 @@ impl WorthUiDetachedPreparedMountedContentRebind {
         &self,
     ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
         self.session_identity
-    }
-
-    pub(crate) fn attach<'session>(
-        self,
-        session: &'session mut WorthUiActiveApplicationSession,
-    ) -> Box<WorthUiPreparedMountedContentRebind<'session>> {
-        Box::new(WorthUiPreparedMountedContentRebind {
-            session,
-            frame: self.frame,
-            publication: self.publication,
-        })
     }
 
     pub(crate) fn rebase<'session>(

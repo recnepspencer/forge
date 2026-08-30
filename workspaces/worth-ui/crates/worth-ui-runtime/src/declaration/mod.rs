@@ -93,7 +93,8 @@ pub(crate) use service::UiServicePolicyDefaults;
 pub use service::{
     UiCommandRoutingPolicy, UiFocusPolicy, UiFocusScopePolicy, UiMotionPolicy,
     UiNormalizedServicePolicyPlan, UiPortalPolicy, UiPortalPolicyKind, UiReducedMotionBehavior,
-    UiScrollAnchorBehavior, UiScrollPolicy, UiSelectionMode, UiSelectionPolicy,
+    UiScrollAnchorBehavior, UiScrollPolicy, UiScrollRevealAlignment, UiSelectionMode,
+    UiSelectionPolicy,
 };
 pub use structural_semantics::{
     UiDeclarationContainmentIntent, UiDeclarationOrderingGuarantee,

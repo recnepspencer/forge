@@ -1,4 +1,5 @@
 impl super::WorthUiRuntimeShutdownReceipt {
+    #[cfg(test)]
     pub(in crate::runtime) const fn service_proposal_shutdown(
         &self,
     ) -> crate::runtime::session::service_proposal::UiServiceProposalCompilerShutdownReceipt {

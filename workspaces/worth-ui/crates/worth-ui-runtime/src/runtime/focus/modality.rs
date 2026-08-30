@@ -20,13 +20,15 @@ impl UiWindowFocus {
         }
     }
 
-    pub(in crate::runtime) const fn is_focused(self) -> bool {
+    #[cfg(test)]
+    pub(crate) const fn is_focused(self) -> bool {
         matches!(self, Self::Focused)
     }
 }
 
 impl UiFocusVisibleModality {
-    pub(in crate::runtime) const fn is_keyboard(self) -> bool {
+    #[cfg(test)]
+    pub(crate) const fn is_keyboard(self) -> bool {
         matches!(self, Self::Keyboard)
     }
 }

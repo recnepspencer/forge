@@ -27,8 +27,12 @@ mod drop_cleanup;
 mod exit_retention;
 #[path = "portal_service/motion_sampling.rs"]
 mod motion_sampling;
+#[path = "portal_service/native_anchor_loss.rs"]
+mod native_anchor_loss;
 #[path = "portal_service/native_duplicate_dismissal.rs"]
 mod native_duplicate_dismissal;
+#[path = "portal_service/native_focus_navigation.rs"]
+mod native_focus_navigation;
 #[path = "portal_service/native_recovery.rs"]
 mod native_recovery;
 #[path = "portal_service/support.rs"]

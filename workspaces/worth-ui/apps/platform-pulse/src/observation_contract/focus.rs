@@ -10,6 +10,7 @@ pub struct PlatformPulseSemanticFocusParticipant {
 pub enum PlatformPulseSemanticFocusCause {
     Direct,
     KeyboardTraversal,
+    RovingMovement,
     PortalInitial,
     PortalRestoration,
     RebindPreserved,
@@ -196,6 +197,7 @@ const fn map_inspection_cause(
     match cause {
         Cause::Direct => PlatformPulseSemanticFocusCause::Direct,
         Cause::KeyboardTraversal => PlatformPulseSemanticFocusCause::KeyboardTraversal,
+        Cause::RovingMovement => PlatformPulseSemanticFocusCause::RovingMovement,
         Cause::PortalInitial => PlatformPulseSemanticFocusCause::PortalInitial,
         Cause::PortalRestoration => PlatformPulseSemanticFocusCause::PortalRestoration,
         Cause::RebindPreserved => PlatformPulseSemanticFocusCause::RebindPreserved,
@@ -224,6 +226,9 @@ const fn map_cause(
         }
         worth_ui::facade::app::UiSemanticFocusPublicationCause::KeyboardTraversal => {
             PlatformPulseSemanticFocusCause::KeyboardTraversal
+        }
+        worth_ui::facade::app::UiSemanticFocusPublicationCause::RovingMovement => {
+            PlatformPulseSemanticFocusCause::RovingMovement
         }
         worth_ui::facade::app::UiSemanticFocusPublicationCause::PortalInitial => {
             PlatformPulseSemanticFocusCause::PortalInitial

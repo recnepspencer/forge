@@ -1,11 +1,11 @@
 use crate::capability::{
     CommandId, UiCommandContextConsumption, UiCommandKeyCode, UiCommandModifierSet,
-    UiCommandRouteDeclaration, UiCommandRouteDestination,
-    UiCommandRoutePriority, UiCommandRouteScope, UiCommandShortcutSequence,
-    UiCommandShortcutStroke, UiCommandTextInputPolicy, UiIntent, UiIntentAcceptedInteractions,
-    UiIntentId, UiIntentPayload, UiIntentPayloadFieldSet, UiIntentPayloadProjection,
-    UiIntentPayloadProjectionViolation, UiIntentProductConsequenceFamilies,
-    UiIntentProductConsequences, UiIntentProductOutcome, UiIntentSchema,
+    UiCommandRouteDeclaration, UiCommandRouteDestination, UiCommandRoutePriority,
+    UiCommandRouteScope, UiCommandShortcutSequence, UiCommandShortcutStroke,
+    UiCommandTextInputPolicy, UiIntent, UiIntentAcceptedInteractions, UiIntentId, UiIntentPayload,
+    UiIntentPayloadFieldSet, UiIntentPayloadProjection, UiIntentPayloadProjectionViolation,
+    UiIntentProductConsequenceFamilies, UiIntentProductConsequences, UiIntentProductOutcome,
+    UiIntentSchema,
 };
 
 pub(super) struct FixturePayload;

@@ -176,7 +176,7 @@ fn deliver_change(
     match delivery {
         worth_proof::TransitionOutcome::Success(receipt) => Ok(receipt),
         worth_proof::TransitionOutcome::Denied(denial) => Err(
-            WorthUiPresentationSemanticExecutionDenial::DeliveryDenied(denial),
+            WorthUiPresentationSemanticExecutionDenial::DeliveryDenied(Box::new(denial)),
         ),
         worth_proof::TransitionOutcome::Deferred(denial) => {
             Err(WorthUiPresentationSemanticExecutionDenial::DeliveryDeferred(denial))
@@ -206,13 +206,15 @@ fn execute_instance(
         .map_err(WorthUiPresentationSemanticExecutionDenial::Domain)?;
     let bound = workspace
         .observe_operating_world()
-        .map_err(WorthUiPresentationSemanticExecutionDenial::OperatingWorld)?
+        .map_err(|error| {
+            WorthUiPresentationSemanticExecutionDenial::OperatingWorld(Box::new(error))
+        })?
         .family(super::super::semantic_invalidation::WorthUiPresentationAsyncOperationFamily)
         .bind(
             &domain,
             super::super::semantic_invalidation::WorthUiPresentationAsyncOperation,
         )
-        .map_err(WorthUiPresentationSemanticExecutionDenial::Binding)?;
+        .map_err(|error| WorthUiPresentationSemanticExecutionDenial::Binding(Box::new(error)))?;
     let admitted = match bound.admit_execution_resources(
         (),
         crate::installed_domain::execution_resources::operation_execution_resource_request(),
@@ -231,5 +233,5 @@ fn execute_instance(
     };
     admitted
         .execute_owned_conditional_instance(instance, attempt, workspace)
-        .map_err(WorthUiPresentationSemanticExecutionDenial::Query)
+        .map_err(|error| WorthUiPresentationSemanticExecutionDenial::Query(Box::new(error)))
 }

@@ -217,9 +217,6 @@ const fn support(
         crate::runtime::intent_execution::UiIntentExecutionBindingSupport::Supported => {
             UiIntentSupportPosture::Supported
         }
-        crate::runtime::intent_execution::UiIntentExecutionBindingSupport::Unsupported => {
-            UiIntentSupportPosture::Unsupported
-        }
     }
 }
 

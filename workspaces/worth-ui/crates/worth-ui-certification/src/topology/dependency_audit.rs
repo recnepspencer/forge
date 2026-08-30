@@ -332,7 +332,7 @@ pub fn audit_host_adapter_dependency_boundary(inventory: &WorkspaceSourceInvento
         "crates/worth-ui-host-native",
         "crates/worth-ui-host-headless",
     ] {
-        let cargo_toml = inventory.absolute_path(&format!("{root}/Cargo.toml"));
+        let cargo_toml = inventory.absolute_path(format!("{root}/Cargo.toml"));
         if !cargo_toml.exists() {
             continue;
         }

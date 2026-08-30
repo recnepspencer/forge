@@ -8,6 +8,7 @@ pub(in crate::runtime) enum UiFocusTraversalDirection {
 pub(crate) enum UiFocusCause {
     Direct,
     KeyboardTraversal,
+    RovingMovement,
     PortalInitial,
     PortalRestoration,
     RebindPreserved,
@@ -27,16 +28,11 @@ pub(in crate::runtime) enum UiFocusRequest {
         direction: UiFocusTraversalDirection,
         wrap: bool,
     },
+    #[cfg(test)]
     First {
         scope: super::UiFocusScopeIdentity,
         cause: UiFocusCause,
     },
-    Last {
-        scope: super::UiFocusScopeIdentity,
-        cause: UiFocusCause,
-    },
+    #[cfg(test)]
     Restore(super::UiFocusRestorationToken),
-    Clear {
-        cause: UiFocusCause,
-    },
 }

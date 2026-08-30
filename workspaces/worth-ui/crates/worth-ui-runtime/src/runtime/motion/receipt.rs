@@ -19,9 +19,6 @@ pub(crate) enum UiMotionGeometryDenial {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct UiCommittedMotionPredecessorReceipt {
-    target: UiMotionTargetIdentity,
-    owner_revision: u64,
-    presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
     geometry: Option<UiMotionSemanticGeometry>,
     visible: bool,
 }
@@ -29,7 +26,6 @@ pub(in crate::runtime) struct UiCommittedMotionPredecessorReceipt {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct UiPreparedMotionSuccessorReceipt {
     target: UiMotionTargetIdentity,
-    expected_owner_revision: u64,
     owner_revision: u64,
     presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
     geometry: Option<UiMotionSemanticGeometry>,
@@ -68,6 +64,7 @@ impl UiMotionTargetIdentity {
         }
     }
 
+    #[cfg(test)]
     pub(crate) const fn semantic_surface(
         self,
     ) -> worth_ui_host_contract::UiSemanticSurfaceIdentity {
@@ -217,15 +214,11 @@ impl UiMotionTransitionRequest {
         }
         Ok(Self {
             predecessor: UiCommittedMotionPredecessorReceipt {
-                target,
-                owner_revision: predecessor_revision,
-                presentation: predecessor_presentation,
                 geometry: predecessor_geometry,
                 visible: predecessor_visible,
             },
             successor: UiPreparedMotionSuccessorReceipt {
                 target,
-                expected_owner_revision: predecessor_revision,
                 owner_revision: successor_revision,
                 presentation: successor_presentation,
                 geometry: successor_geometry,
@@ -262,36 +255,37 @@ impl UiMotionTransitionRequest {
     }
 }
 
-macro_rules! receipt_accessors {
-    ($name:ident) => {
-        impl $name {
-            pub(in crate::runtime) const fn target(self) -> UiMotionTargetIdentity {
-                self.target
-            }
-            pub(in crate::runtime) const fn owner_revision(self) -> u64 {
-                self.owner_revision
-            }
-            pub(in crate::runtime) const fn presentation(
-                self,
-            ) -> worth_ui_host_contract::UiHostObservationPresentationBasis {
-                self.presentation
-            }
-            pub(in crate::runtime) const fn geometry(self) -> Option<UiMotionSemanticGeometry> {
-                self.geometry
-            }
-            pub(in crate::runtime) const fn visible(self) -> bool {
-                self.visible
-            }
-        }
-    };
+impl UiCommittedMotionPredecessorReceipt {
+    pub(in crate::runtime) const fn geometry(self) -> Option<UiMotionSemanticGeometry> {
+        self.geometry
+    }
+
+    pub(in crate::runtime) const fn visible(self) -> bool {
+        self.visible
+    }
 }
 
-receipt_accessors!(UiCommittedMotionPredecessorReceipt);
-receipt_accessors!(UiPreparedMotionSuccessorReceipt);
-
 impl UiPreparedMotionSuccessorReceipt {
-    pub(in crate::runtime) const fn expected_owner_revision(self) -> u64 {
-        self.expected_owner_revision
+    pub(in crate::runtime) const fn target(self) -> UiMotionTargetIdentity {
+        self.target
+    }
+
+    pub(in crate::runtime) const fn owner_revision(self) -> u64 {
+        self.owner_revision
+    }
+
+    pub(in crate::runtime) const fn presentation(
+        self,
+    ) -> worth_ui_host_contract::UiHostObservationPresentationBasis {
+        self.presentation
+    }
+
+    pub(in crate::runtime) const fn geometry(self) -> Option<UiMotionSemanticGeometry> {
+        self.geometry
+    }
+
+    pub(in crate::runtime) const fn visible(self) -> bool {
+        self.visible
     }
 }
 

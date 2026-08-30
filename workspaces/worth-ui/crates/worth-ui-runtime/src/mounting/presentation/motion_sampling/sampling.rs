@@ -109,34 +109,6 @@ impl UiMountedMotionSampler {
                     sample, None,
                 ))
             }
-            super::interruption::UiPresentationMotionInstallation::FinishThenApply => {
-                if let Some(current) = self.tracks.get_mut(&target).filter(|state| state.active) {
-                    current.queued = Some(track);
-                    return Ok(super::UiPresentationMotionInstallationReceipt::new(
-                        current.current,
-                        None,
-                    ));
-                }
-                let state = match super::track_sampling::UiPresentationTrackState::new(
-                    track,
-                    None,
-                    super::interruption::semantic_predecessor(track),
-                    super::interruption::predecessor_opacity(track),
-                    track.declaration().duration_ticks(),
-                ) {
-                    Ok(state) => state,
-                    Err(denial) => {
-                        return self.deny(
-                            UiPresentationMotionSamplingDenial::InvalidSampleGeometry(denial),
-                        )
-                    }
-                };
-                let sample = state.current;
-                self.tracks.insert(target, state);
-                Ok(super::UiPresentationMotionInstallationReceipt::new(
-                    sample, None,
-                ))
-            }
             super::interruption::UiPresentationMotionInstallation::SnapToTarget => {
                 let state = match super::track_sampling::UiPresentationTrackState::terminal(
                     track,
@@ -156,16 +128,6 @@ impl UiMountedMotionSampler {
                     Some(super::UiPresentationMotionTerminalRequest::new(
                         track.identity(),
                         crate::runtime::motion::UiMotionTerminalCause::SnappedToTarget,
-                    )),
-                ))
-            }
-            super::interruption::UiPresentationMotionInstallation::CancelDrop => {
-                self.tracks.remove(&target);
-                Ok(super::UiPresentationMotionInstallationReceipt::new(
-                    None,
-                    Some(super::UiPresentationMotionTerminalRequest::new(
-                        track.identity(),
-                        crate::runtime::motion::UiMotionTerminalCause::Cancelled,
                     )),
                 ))
             }
@@ -212,7 +174,6 @@ impl UiMountedMotionSampler {
         let mut samples = Vec::new();
         let mut terminals = Vec::new();
         let mut considered = 0;
-        let mut damage_regions = 0;
         for state in self.tracks.values_mut().filter(|state| state.active) {
             considered += 1;
             if !same_surface_binding(state.track.successor_presentation(), presentation) {
@@ -231,7 +192,6 @@ impl UiMountedMotionSampler {
                     let sample = state
                         .snap_system_reduced_motion(tick, presentation)
                         .map_err(UiPresentationMotionSamplingDenial::InvalidSampleGeometry)?;
-                    damage_regions += sample.damage().region_count();
                     samples.push(sample);
                     terminals.push(super::UiPresentationMotionTerminalRequest::new(
                         sample.track(),
@@ -249,7 +209,6 @@ impl UiMountedMotionSampler {
                     ));
                 }
             };
-            damage_regions += sample.damage().region_count();
             samples.push(sample);
             if sample.posture() == super::UiPresentationMotionSamplePosture::Terminal {
                 if let Some(queued) = state.queued.take() {
@@ -264,10 +223,7 @@ impl UiMountedMotionSampler {
             }
         }
         Ok(super::UiPresentationMotionSamplingReceipt::new(
-            samples,
-            terminals,
-            considered,
-            damage_regions,
+            samples, terminals, considered,
         ))
     }
 

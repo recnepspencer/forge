@@ -4,15 +4,16 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct UiFocusRevealRequirement {
     target: worth_ui_host_contract::UiMountedInstanceIdentity,
+    application_item_anchor: Option<crate::runtime::UiApplicationItemKey>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) enum UiSelectionInvocationCause {
     #[cfg(test)]
-    DeclaredPointerActivation,
+    Pointer,
     #[cfg(test)]
-    DeclaredKeyboardActivation,
-    DeclaredIntentActivation,
+    Keyboard,
+    Intent,
 }
 
 /// Declared action that may accompany focus only inside one compiled proposal.
@@ -29,13 +30,30 @@ impl UiFocusRevealRequirement {
     pub(in crate::runtime) const fn new(
         target: worth_ui_host_contract::UiMountedInstanceIdentity,
     ) -> Self {
-        Self { target }
+        Self {
+            target,
+            application_item_anchor: None,
+        }
+    }
+
+    pub(in crate::runtime) const fn with_application_item_anchor(
+        mut self,
+        anchor: crate::runtime::UiApplicationItemKey,
+    ) -> Self {
+        self.application_item_anchor = Some(anchor);
+        self
     }
 
     pub(in crate::runtime) const fn target(
         self,
     ) -> worth_ui_host_contract::UiMountedInstanceIdentity {
         self.target
+    }
+
+    pub(in crate::runtime) const fn application_item_anchor(
+        self,
+    ) -> Option<crate::runtime::UiApplicationItemKey> {
+        self.application_item_anchor
     }
 
     #[cfg(test)]
@@ -107,8 +125,17 @@ impl UiDeclaredFocusSelectionAction {
             ),
             crate::runtime::selection::UiSelectionOwnerIncarnation::new(1)
                 .expect("recorded selection incarnation"),
-            crate::runtime::selection::UiSelectionRequest::Clear,
-            UiSelectionInvocationCause::DeclaredKeyboardActivation,
+            crate::runtime::selection::UiSelectionRequest::SelectSingle(
+                crate::runtime::selection::UiSelectionStableKey::new(
+                    crate::runtime::UiApplicationItemKey::new(
+                        crate::runtime::UiApplicationItemKeyFamily::new(
+                            core::num::NonZeroU64::new(1).expect("recorded item-key family"),
+                        ),
+                        core::num::NonZeroU64::new(1).expect("recorded item-key value"),
+                    ),
+                ),
+            ),
+            UiSelectionInvocationCause::Keyboard,
         )
     }
 }

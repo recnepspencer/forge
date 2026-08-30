@@ -44,7 +44,7 @@ pub enum SignalError {
     BranchMergeFailed {
         kind: BranchMergeFailureKind,
         message: String,
-        evidence: Option<BranchMergeFailureEvidence>,
+        evidence: Option<Box<BranchMergeFailureEvidence>>,
     },
     ManagedQueueBranchTransferDenied {
         bound_queue_count: u32,
@@ -130,7 +130,7 @@ impl SignalError {
         Self::BranchMergeFailed {
             kind,
             message: message.into(),
-            evidence: Some(evidence),
+            evidence: Some(Box::new(evidence)),
         }
     }
 
@@ -200,7 +200,7 @@ impl fmt::Display for SignalError {
                 evidence,
             } => {
                 if let Some(evidence) = evidence {
-                    match evidence {
+                    match evidence.as_ref() {
                         BranchMergeFailureEvidence::Conflict(evidence) => write!(
                             f,
                             "branch merge failed ({kind:?}): {message} [{} conflict record(s), primary={:?}]",

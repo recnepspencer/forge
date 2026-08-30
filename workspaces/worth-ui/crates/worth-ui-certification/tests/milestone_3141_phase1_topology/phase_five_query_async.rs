@@ -45,7 +45,7 @@ fn phase_five_query_async_dependency_direction_is_explicit_and_enforced() {
     for root in ["crates/worth-ui-runtime/src"] {
         for source in inventory.rust_files_under(root) {
             let path = source.relative_path().to_string_lossy();
-            if !gate_e_active && is_test_source(&path) {
+            if is_test_source(&path) {
                 continue;
             }
             for forbidden in ["worth_query", "worth_signal"] {
@@ -206,13 +206,13 @@ fn assert_complete_future_binding_or_absent() {
     if present == paths.len() {
         let inventory = workspace_source_inventory();
         let operational = inventory
-            .source(&format!("{QUERY_BINDING_ROOT}/runtime_bridge.rs"))
+            .source(format!("{QUERY_BINDING_ROOT}/runtime_bridge.rs"))
             .expect("complete presentation_async runtime bridge owner");
         assert!(!operational
             .text()
             .contains("WorthQueryAsyncRequestIdentityPart::text"));
         let terminal = inventory
-            .source(&format!("{QUERY_BINDING_ROOT}/terminal_projection.rs"))
+            .source(format!("{QUERY_BINDING_ROOT}/terminal_projection.rs"))
             .expect("complete presentation_async terminal projection owner");
         assert!(!terminal.text().contains("pub fn prepare"));
         assert!(!terminal.text().contains("pub fn settle"));

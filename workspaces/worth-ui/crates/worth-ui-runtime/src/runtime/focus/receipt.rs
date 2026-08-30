@@ -78,7 +78,8 @@ impl UiFocusReconciliationReceipt {
     pub(crate) const fn transition(self) -> Option<UiFocusTransitionReceipt> {
         self.transition
     }
-    pub(in crate::runtime) const fn mounted_nodes_visited(self) -> u32 {
+    #[cfg(test)]
+    pub(crate) const fn mounted_nodes_visited(self) -> u32 {
         self.mounted_nodes_visited
     }
     pub(in crate::runtime) const fn participants_installed(self) -> u32 {

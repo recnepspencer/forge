@@ -42,13 +42,6 @@ impl WorthUiMountedSessionState {
         self.motion_sampling.prepare_tick(tick, presentation)
     }
 
-    pub(crate) fn commit_prepared_motion_tick(
-        &mut self,
-        prepared: crate::mounting::presentation::motion_sampling::UiPreparedMotionSampling,
-    ) -> crate::mounting::presentation::motion_sampling::UiPresentationMotionSamplingReceipt {
-        self.motion_sampling.commit_prepared(prepared)
-    }
-
     pub(crate) fn present_prepared_motion_tick(
         &mut self,
         host: &crate::facade::WorthUiHostSessionAuthority,

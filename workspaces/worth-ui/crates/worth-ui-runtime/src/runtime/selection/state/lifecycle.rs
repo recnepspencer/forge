@@ -89,7 +89,7 @@ impl super::UiSelectionRuntimeState {
     pub(crate) fn suspend_projection_catalogs(&mut self) -> usize {
         let families = self.projection_families();
         let mut suspended = 0;
-        for family in families.iter().copied() {
+        for &family in &families {
             let owners = self.family_owners.get(&family).cloned().unwrap_or_default();
             for owner in owners {
                 let Some(record) = self.owners.get_mut(&owner) else {

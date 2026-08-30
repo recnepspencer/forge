@@ -32,7 +32,7 @@ fn inactive_sampling_has_zero_work_and_rejects_a_repeated_tick() {
 }
 
 #[test]
-fn current_sample_and_semantic_predecessor_retargeting_are_distinct() {
+fn retargeting_continues_from_the_current_presentation_sample() {
     let world = World::new();
     let mut current_sampler = UiMountedMotionSampler::default();
     current_sampler
@@ -57,105 +57,6 @@ fn current_sample_and_semantic_predecessor_retargeting_are_distinct() {
         installed.sample().unwrap().geometry().unwrap().components(),
         mid
     );
-
-    let mut semantic_sampler = UiMountedMotionSampler::default();
-    semantic_sampler
-        .install(world.receipt(3, 0.0, None))
-        .unwrap();
-    commit_tick(&mut semantic_sampler, 70, world.presentation);
-    let semantic = world.receipt(
-        4,
-        100.0,
-        Some(crate::runtime::motion::UiMotionRetargetDisposition::Install {
-            predecessor:
-                crate::runtime::motion::UiMotionRetargetPredecessor::CommittedSemanticPredecessor,
-        }),
-    );
-    let installed = semantic_sampler.install(semantic).unwrap();
-    assert_eq!(
-        installed.sample().unwrap().geometry().unwrap().components()[0],
-        100.0
-    );
-}
-
-#[test]
-fn finish_snap_and_cancel_have_explicit_non_aliasing_outcomes() {
-    let world = World::new();
-    let mut finish = UiMountedMotionSampler::default();
-    finish.install(world.receipt(10, 0.0, None)).unwrap();
-    commit_tick(&mut finish, 1, world.presentation);
-    let queued = finish
-        .install(world.receipt(
-            11,
-            40.0,
-            Some(crate::runtime::motion::UiMotionRetargetDisposition::FinishThenApply),
-        ))
-        .unwrap();
-    assert_eq!(queued.sample().unwrap().track().diagnostic_value(), 10);
-    let first_terminal = commit_tick(&mut finish, 200, world.presentation);
-    assert!(first_terminal.terminals().is_empty());
-    assert!(finish.has_active_tracks());
-    let queued_sample = commit_tick(&mut finish, 201, world.presentation);
-    assert_eq!(queued_sample.samples()[0].track().diagnostic_value(), 11);
-
-    let mut snap = UiMountedMotionSampler::default();
-    snap.install(world.receipt(20, 0.0, None)).unwrap();
-    let snapped = snap
-        .install(world.receipt(
-            21,
-            40.0,
-            Some(crate::runtime::motion::UiMotionRetargetDisposition::SnapToTarget),
-        ))
-        .unwrap();
-    assert_eq!(
-        snapped.terminal().unwrap().cause(),
-        crate::runtime::motion::UiMotionTerminalCause::SnappedToTarget
-    );
-    assert_eq!(
-        snapped.sample().unwrap().posture(),
-        UiPresentationMotionSamplePosture::Terminal
-    );
-    assert!(!snap.has_active_tracks());
-
-    let mut cancel = UiMountedMotionSampler::default();
-    cancel.install(world.receipt(30, 0.0, None)).unwrap();
-    let cancelled = cancel
-        .install(world.receipt(
-            31,
-            40.0,
-            Some(crate::runtime::motion::UiMotionRetargetDisposition::CancelDrop),
-        ))
-        .unwrap();
-    assert!(cancelled.sample().is_none());
-    assert_eq!(
-        cancelled.terminal().unwrap().cause(),
-        crate::runtime::motion::UiMotionTerminalCause::Cancelled
-    );
-    assert!(!cancel.has_active_tracks());
-}
-
-#[test]
-fn rebind_while_finish_then_apply_is_queued_terminals_the_canonical_queued_track() {
-    let world = World::new();
-    let mut sampler = UiMountedMotionSampler::default();
-    sampler.install(world.receipt(60, 0.0, None)).unwrap();
-    commit_tick(&mut sampler, 1, world.presentation);
-    sampler
-        .install(world.receipt(
-            61,
-            40.0,
-            Some(crate::runtime::motion::UiMotionRetargetDisposition::FinishThenApply),
-        ))
-        .unwrap();
-
-    let rebound = commit_tick(&mut sampler, 2, world.rebound_presentation());
-    assert_eq!(rebound.terminals().len(), 1);
-    assert_eq!(rebound.terminals()[0].track().diagnostic_value(), 61);
-    assert_eq!(
-        rebound.terminals()[0].cause(),
-        crate::runtime::motion::UiMotionTerminalCause::ReboundAway
-    );
-    assert!(!sampler.has_active_tracks());
 }
 
 #[test]
@@ -335,15 +236,6 @@ impl World {
             predecessor_x,
             crate::runtime::motion::UiMotionDeclaration::portal_entrance(),
             retarget,
-        )
-    }
-
-    fn rebound_presentation(&self) -> worth_ui_host_contract::UiHostObservationPresentationBasis {
-        worth_ui_host_contract::UiHostObservationPresentationBasis::new(
-            self.presentation.host_surface(),
-            worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap(),
-            worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap(),
-            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(2),
         )
     }
 

@@ -46,7 +46,7 @@ pub enum UiMountedFramePreparationDenial {
 #[derive(Clone)]
 pub struct UiMountedSurfaceReceipt {
     requirement: UiMountedSurfaceBindingRequirement,
-    projection_frame: std::sync::Arc<super::UiMountedProjectionFrame>,
+    projection_frame: std::rc::Rc<super::UiMountedProjectionFrame>,
     projection: std::cell::OnceCell<UiMountedProjectionView>,
 }
 
@@ -227,8 +227,8 @@ impl UiMountedSurfaceReceipt {
         })
     }
 
-    pub(crate) fn projection_owner(&self) -> std::sync::Arc<super::UiMountedProjectionFrame> {
-        std::sync::Arc::clone(&self.projection_frame)
+    pub(crate) fn projection_owner(&self) -> std::rc::Rc<super::UiMountedProjectionFrame> {
+        std::rc::Rc::clone(&self.projection_frame)
     }
 
     pub(crate) fn presentation_effects(

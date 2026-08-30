@@ -256,7 +256,7 @@ guidance = "Milestone 3.15: the common service request/proposal foundation carri
 [[source_identifier_denials]]
 root = "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/session/service_proposal/compiler"
 exclude_paths = [
-  "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/session/service_proposal/compiler/evidence.rs",
+  "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/session/service_proposal/compiler/evidence_tests.rs",
 ]
 forbidden_identifiers = [
   "WorthUiPreparedApplicationPublication",

@@ -38,7 +38,7 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
             UiMountedRgba8::new(50, 60, 70, 255),
         ),
     ];
-    let initial = world.initial(initial_frame, initial_rows.clone());
+    let initial = world.initial(initial_frame, initial_rows);
     let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let successor_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
     let replaced = world.rect(

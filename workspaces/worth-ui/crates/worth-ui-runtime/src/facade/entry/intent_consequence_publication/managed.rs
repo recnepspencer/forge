@@ -93,10 +93,6 @@ impl DetachedUiIntentConsequenceIndeterminate {
         self.session_identity
     }
 
-    pub(in crate::facade::entry) fn frame(&self) -> &crate::mounting::UiMountedIndeterminateFrame {
-        &self.frame
-    }
-
     pub(in crate::facade::entry) fn into_parts(
         self,
     ) -> (
@@ -226,7 +222,7 @@ impl DetachedUiIntentConsequenceInFlight {
             }
         };
         self.mounted.awaits_progress_class(class)
-            && progress.presentation().map_or(true, |presentation| {
+            && progress.presentation().is_none_or(|presentation| {
                 presentation.attempt() == self.mounted.attempt()
                     && self
                         .mounted

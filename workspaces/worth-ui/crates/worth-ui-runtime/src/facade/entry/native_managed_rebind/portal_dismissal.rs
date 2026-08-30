@@ -74,6 +74,42 @@ enum NormalizedPortalDismissal {
 }
 
 impl super::super::WorthUiNativeApplicationShell {
+    pub(in crate::facade::entry) fn begin_managed_anchor_loss_dismissal(
+        &mut self,
+        portal: crate::runtime::portal::UiPortalIdentity,
+        now_tick: u64,
+    ) -> WorthUiNativeManagedPortalDismissalOutcome {
+        if self.pending_managed_rebind.is_some() {
+            return WorthUiNativeManagedPortalDismissalOutcome::Stopped(
+                WorthUiNativePortalDismissalStop::Busy,
+            );
+        }
+        match normalize(
+            self.session
+                .publish_anchor_loss_portal_dismissal(portal, now_tick),
+        ) {
+            NormalizedPortalDismissal::Ignored => {
+                WorthUiNativeManagedPortalDismissalOutcome::Ignored
+            }
+            NormalizedPortalDismissal::Published(receipt) => {
+                WorthUiNativeManagedPortalDismissalOutcome::Published(receipt)
+            }
+            NormalizedPortalDismissal::Pending(pending) => {
+                self.pending_managed_rebind =
+                    Some(WorthUiNativePendingManagedRebind::PortalDismissal(pending));
+                WorthUiNativeManagedPortalDismissalOutcome::Pending
+            }
+            NormalizedPortalDismissal::Indeterminate(pending) => {
+                self.pending_managed_rebind =
+                    Some(WorthUiNativePendingManagedRebind::PortalDismissalIndeterminate(pending));
+                WorthUiNativeManagedPortalDismissalOutcome::Pending
+            }
+            NormalizedPortalDismissal::Stopped(stop) => {
+                WorthUiNativeManagedPortalDismissalOutcome::Stopped(stop)
+            }
+        }
+    }
+
     pub fn begin_managed_portal_dismissal(
         &mut self,
         interaction: crate::facade::interaction::UiDismissInteraction,

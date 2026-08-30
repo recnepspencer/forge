@@ -198,15 +198,15 @@ fn invalid_declared_posture_denies_before_runtime_or_host_promotion() {
     );
     assert_eq!(
         denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
+        WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(
             UiDeclarationGraphHandoffDenial::DeclaredPostureNotAdmitted {
                 denial: UiDeclaredPostureAdmissionDenial::ContradictoryLaneClaims {
                     family: UiDeclarationFamilyKind::Control,
                     lane: UiDeclaredPostureLaneKind::ServiceUsage,
                     observed: vec!["service:portal".to_owned(), "service:scroll".to_owned()],
                 },
-            },
-        )
+            }
+        ),)
     );
 }
 

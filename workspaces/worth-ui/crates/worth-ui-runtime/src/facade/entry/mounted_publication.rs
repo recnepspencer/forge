@@ -151,25 +151,6 @@ impl WorthUiActiveApplicationSession {
         outcome
     }
 
-    pub(super) fn reconcile_focus_after_published_frame(
-        &mut self,
-        publication: &crate::mounting::UiMountedFramePublicationReceipt,
-    ) {
-        let active_generation = self.active_generation_identity();
-        reconcile_focus_after_published_frame_with_ports(
-            &mut UiMountedPublicationSettlementPorts {
-                mounted: &mut self.mounted,
-                focus: self.focus.as_mut(),
-                portal: self.portal.as_mut(),
-                interaction: &mut self.interaction,
-                host_session: &self.host_session,
-                active_generation,
-                host_exchange: &mut self.host_exchange,
-            },
-            publication,
-        );
-    }
-
     pub(super) fn reconcile_prepared_focus_after_published_frame(
         &mut self,
         prepared: crate::runtime::focus::UiPreparedFocusMountedReconciliation,

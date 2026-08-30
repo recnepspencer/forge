@@ -86,7 +86,15 @@ impl WorthUiActiveApplicationSession {
                                 core.presentation(),
                             );
                         }
-                        self.observe_command_report(report.report(), core.presentation())
+                        let focus_navigated = self.observe_focus_navigation_report(
+                            report.report().payload(),
+                            core.presentation(),
+                        );
+                        (!focus_navigated)
+                            .then(|| {
+                                self.observe_command_report(report.report(), core.presentation())
+                            })
+                            .flatten()
                     })
                     .collect();
                 let motion_tick = batch

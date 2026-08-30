@@ -88,15 +88,20 @@ pub(crate) fn rewrite_identity_scoped_admission_error(
     }
     let scoped = match &error {
         SignalError::BranchMergeFailed {
-            evidence: Some(BranchMergeFailureEvidence::Identity(identity)),
+            evidence: Some(evidence),
             ..
-        } if identity.correspondence.records.iter().any(|record| {
-            matches!(
-                record.status,
-                IdentityCorrespondenceStatus::AmbiguousCandidates
-            )
-        }) =>
+        } if matches!(
+            evidence.as_ref(),
+            BranchMergeFailureEvidence::Identity(identity)
+                if identity.correspondence.records.iter().any(|record| matches!(
+                    record.status,
+                    IdentityCorrespondenceStatus::AmbiguousCandidates
+                ))
+        ) =>
         {
+            let BranchMergeFailureEvidence::Identity(identity) = evidence.as_ref() else {
+                unreachable!()
+            };
             Some(deny_selected_target_correspondence_ambiguous(
                 request,
                 identity.source_node,

@@ -34,10 +34,13 @@ fn complete_open_with_causal_actions(
     first_frame_deadline: Duration,
     installation_path: Option<&crate::installation::PulseInstallationPath>,
 ) -> OpenPlatformPulseJourney {
+    let report_cost = cursor.is_some();
     advance(&mut cursor, &["launch"]);
     let initial = launch_initial(deltas.canonical, first_frame_deadline, installation_path);
+    let journey_started = initial.native_journey_started();
     advance(&mut cursor, &["observe-first-frame"]);
     let first_publication = initial.launch_to_first_publication();
+    report_checkpoint(report_cost, "first-publication", journey_started);
     let mut native_captures = initial.evidence().capture_count();
     let window_lookups = initial.evidence().client_area().window_lookup_count();
     let input_reached = super::super::platform_pulse_input::reach_native_input_observed(
@@ -64,24 +67,37 @@ fn complete_open_with_causal_actions(
     advance(&mut cursor, &["edit-malformed-source"]);
     let preserved = preserve_green(green, deltas.malformed);
     advance(&mut cursor, &["observe-predecessor-preserved"]);
+    report_checkpoint(report_cost, "visual-source-denied", journey_started);
     native_captures += preserved.evidence().capture_count();
     advance(&mut cursor, &["edit-canonical-blue-recovery"]);
     let recovered = recover_blue(preserved, deltas.recovery);
     advance(&mut cursor, &["observe-blue-recovery"]);
+    report_checkpoint(report_cost, "visual-source-recovered", journey_started);
     native_captures += recovered.evidence().capture_count();
     advance(&mut cursor, &["edit-revision-schema"]);
     let stopped = stop_on_revision_schema(recovered, deltas.revision_schema);
     advance(&mut cursor, &["observe-schema-stop"]);
+    report_checkpoint(report_cost, "revision-schema-denied", journey_started);
     native_captures += stopped.evidence().replacement().capture_count();
     advance(&mut cursor, &["edit-status-schema-recovery"]);
     let recovered = recover_status_schema(stopped, deltas.status_schema_recovery);
     advance(&mut cursor, &["observe-status-schema-recovery"]);
+    report_checkpoint(report_cost, "revision-schema-recovered", journey_started);
     native_captures += recovered.evidence().replacement().capture_count();
     OpenPlatformPulseJourney {
         recovered,
         first_publication,
         native_captures,
         window_lookups,
+    }
+}
+
+fn report_checkpoint(enabled: bool, phase: &str, journey_started: Instant) {
+    if enabled {
+        eprintln!(
+            "WORTH_UI_EXECUTABLE_WORLD_PHASE phase={phase} elapsed_ms={}",
+            journey_started.elapsed().as_millis()
+        );
     }
 }
 

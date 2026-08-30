@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+mod declared_activation;
 mod inspection;
 mod lifecycle;
 mod record;
@@ -295,6 +296,7 @@ impl UiSelectionRuntimeState {
         Ok(delta)
     }
 
+    #[cfg(test)]
     pub(crate) fn selected(
         &self,
         owner: super::UiSelectionOwnerIdentity,

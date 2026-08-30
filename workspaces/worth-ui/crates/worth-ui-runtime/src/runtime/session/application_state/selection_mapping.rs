@@ -69,51 +69,59 @@ impl WorthUiApplicationSessionState {
             basis.mount_incarnation().diagnostic_value(),
         )
         .ok_or(UiDeclaredSelectionMappingDenial::SelectionInputUnavailable)?;
-        let action =
-            crate::runtime::session::service_proposal::UiDeclaredFocusSelectionAction::new(
-                target.mounted_instance(),
-                owner,
-                incarnation,
-                crate::runtime::selection::UiSelectionRequest::SelectSingle(key),
-                crate::runtime::session::service_proposal::UiSelectionInvocationCause::DeclaredIntentActivation,
-            );
         let catalog_revision = collection.revision().observation_order();
-        if selection.catalog_is_current(owner, incarnation, catalog_revision) {
-            return Ok(Some(
-                crate::runtime::selection::UiDeclaredSelectionBinding::current(action),
-            ));
-        }
-        let catalog = collection
-            .current_application_item_keys()
-            .ok_or(UiDeclaredSelectionMappingDenial::SelectionInputUnavailable)?
-            .iter()
-            .copied()
-            .map(|value| {
-                crate::runtime::selection::UiSelectionStableKey::new(
-                    crate::runtime::UiApplicationItemKey::from_projection_mapping(family, value),
+        let registration = if selection.catalog_is_current(owner, incarnation, catalog_revision) {
+            None
+        } else {
+            let catalog = collection
+                .current_application_item_keys()
+                .ok_or(UiDeclaredSelectionMappingDenial::SelectionInputUnavailable)?
+                .iter()
+                .copied()
+                .map(|value| {
+                    crate::runtime::selection::UiSelectionStableKey::new(
+                        crate::runtime::UiApplicationItemKey::from_projection_mapping(
+                            family, value,
+                        ),
+                    )
+                })
+                .collect();
+            let catalog_posture = match collection.completeness() {
+                Some(worth_ui_query_binding::UiCollectionCompleteness::Complete) => {
+                    crate::runtime::selection::UiSelectionCatalogPosture::Complete
+                }
+                Some(worth_ui_query_binding::UiCollectionCompleteness::Partial) => {
+                    crate::runtime::selection::UiSelectionCatalogPosture::Partial
+                }
+                None => return Err(UiDeclaredSelectionMappingDenial::SelectionInputUnavailable),
+            };
+            Some(
+                crate::runtime::selection::UiSelectionRegistration::new(
+                    owner,
+                    incarnation,
+                    selection.default_owner_policy(),
+                    catalog,
+                    catalog_posture,
                 )
-            })
-            .collect();
-        let catalog_posture = match collection.completeness() {
-            Some(worth_ui_query_binding::UiCollectionCompleteness::Complete) => {
-                crate::runtime::selection::UiSelectionCatalogPosture::Complete
-            }
-            Some(worth_ui_query_binding::UiCollectionCompleteness::Partial) => {
-                crate::runtime::selection::UiSelectionCatalogPosture::Partial
-            }
-            None => return Err(UiDeclaredSelectionMappingDenial::SelectionInputUnavailable),
+                .map_err(UiDeclaredSelectionMappingDenial::Selection)?
+                .with_catalog_revision(catalog_revision),
+            )
         };
-        let registration = crate::runtime::selection::UiSelectionRegistration::new(
+        let request = selection
+            .request_for_declared_activation(owner, incarnation, key, registration.as_ref())
+            .map_err(UiDeclaredSelectionMappingDenial::Selection)?;
+        let action = crate::runtime::session::service_proposal::UiDeclaredFocusSelectionAction::new(
+            target.mounted_instance(),
             owner,
             incarnation,
-            selection.default_owner_policy(),
-            catalog,
-            catalog_posture,
-        )
-        .map_err(UiDeclaredSelectionMappingDenial::Selection)?
-        .with_catalog_revision(catalog_revision);
-        Ok(Some(
-            crate::runtime::selection::UiDeclaredSelectionBinding::new(action, registration),
-        ))
+            request,
+            crate::runtime::session::service_proposal::UiSelectionInvocationCause::Intent,
+        );
+        Ok(Some(match registration {
+            Some(registration) => {
+                crate::runtime::selection::UiDeclaredSelectionBinding::new(action, registration)
+            }
+            None => crate::runtime::selection::UiDeclaredSelectionBinding::current(action),
+        }))
     }
 }

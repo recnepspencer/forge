@@ -4,6 +4,7 @@ use super::{UiRuntimeServiceInspectionCost, UiRuntimeServiceInspectionSource};
 pub enum UiFocusMoveInspectionCause {
     Direct,
     KeyboardTraversal,
+    RovingMovement,
     PortalInitial,
     PortalRestoration,
     RebindPreserved,

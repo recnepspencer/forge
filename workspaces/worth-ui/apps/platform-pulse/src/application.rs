@@ -55,7 +55,7 @@ pub(crate) struct PreparedPlatformPulseComposition {
 pub(crate) enum PlatformPulsePreparationDenial {
     WatcherStart(WorthUiFilesystemWatcherDenial),
     InitialSourceSettlement(WorthUiFilesystemWatcherDenial),
-    CapabilityApplication(WorthUiApplicationPreparationDenial),
+    CapabilityApplication(Box<WorthUiApplicationPreparationDenial>),
     InitialSourceLowering(UiSourceRebindAttemptFailure),
     QueryInstallation(Box<PlatformPulseQueryInstallationDenial>),
     QueryRegistration(WorthUiProjectionRegistrationError),
@@ -110,9 +110,9 @@ pub(crate) fn prepare_composition(
             &intent_initial,
             intent_provider.clone(),
         )?;
-        let capability_app = capability_builder
-            .freeze()
-            .map_err(PlatformPulsePreparationDenial::CapabilityApplication)?;
+        let capability_app = capability_builder.freeze().map_err(|denial| {
+            PlatformPulsePreparationDenial::CapabilityApplication(Box::new(denial))
+        })?;
         let submission = snapshot
             .attempt_source_rebind(capability_app.capabilities())
             .into_candidate_submission()

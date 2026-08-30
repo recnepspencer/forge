@@ -24,27 +24,28 @@ impl UiMountedProjectionFrame {
         };
         changed_instances
             .iter()
-            .filter_map(|instance| match self.semantic.nodes.get(instance) {
+            .map(|instance| match self.semantic.nodes.get(instance) {
                 Some(node) if node.receipt.semantic_surface() == surface.surface => match self
                     .portal_child_presentation(*instance, surface.surface, surface.binding)
                     .expect("prepared Portal children retain an unambiguous mounted owner")
                 {
                     super::portal_child_view::UiMountedPortalChildPresentation::Ordinary => {
-                        Some(UiMountedPresentationNodeChange::Upsert(
+                        UiMountedPresentationNodeChange::Upsert(
                             self.presentation_node_state(node, surface, None),
-                        ))
+                        )
                     }
                     super::portal_child_view::UiMountedPortalChildPresentation::Suppressed => {
-                        Some(UiMountedPresentationNodeChange::Remove(*instance))
+                        UiMountedPresentationNodeChange::Remove(*instance)
                     }
                     super::portal_child_view::UiMountedPortalChildPresentation::Presented(
                         portal,
-                    ) => Some(UiMountedPresentationNodeChange::Upsert(
-                        self.presentation_node_state(node, surface, Some(portal)),
+                    ) => UiMountedPresentationNodeChange::Upsert(self.presentation_node_state(
+                        node,
+                        surface,
+                        Some(portal),
                     )),
                 },
-                Some(_) => Some(UiMountedPresentationNodeChange::Remove(*instance)),
-                None => Some(UiMountedPresentationNodeChange::Remove(*instance)),
+                Some(_) | None => UiMountedPresentationNodeChange::Remove(*instance),
             })
             .collect()
     }

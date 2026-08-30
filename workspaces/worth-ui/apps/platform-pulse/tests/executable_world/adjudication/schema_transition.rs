@@ -39,7 +39,7 @@ pub(crate) enum ExecutableSchemaTransitionFailure {
     ControlPointManifest,
     StableControlRegionChanged { differing_bytes: usize },
     PostureRegionDidNotChange,
-    CanonicalCurrentPixelsNotRestored,
+    CanonicalCurrentPostureNotRestored,
 }
 
 pub(crate) fn adjudicate_schema_transition<Kind>(
@@ -60,16 +60,13 @@ pub(crate) fn adjudicate_schema_transition<Kind>(
         require_visible_preservation(predecessor_pixels, replacement.pixels())?;
     let canonical_current_restored = match (expected, canonical_current_pixels) {
         (ExpectedSchemaTransition::Recovered, Some(canonical)) => {
-            if canonical.width() != replacement.pixels().width()
-                || canonical.height() != replacement.pixels().height()
-                || canonical.rgba() != replacement.pixels().rgba()
-            {
-                return Err(ExecutableSchemaTransitionFailure::CanonicalCurrentPixelsNotRestored);
+            if !schema_posture_matches(canonical, replacement.pixels())? {
+                return Err(ExecutableSchemaTransitionFailure::CanonicalCurrentPostureNotRestored);
             }
             true
         }
         (ExpectedSchemaTransition::Recovered, None) => {
-            return Err(ExecutableSchemaTransitionFailure::CanonicalCurrentPixelsNotRestored)
+            return Err(ExecutableSchemaTransitionFailure::CanonicalCurrentPostureNotRestored)
         }
         (ExpectedSchemaTransition::Stopped, _) => false,
     };
@@ -145,11 +142,6 @@ fn require_visible_preservation(
         manifest.logical_client_extent(),
         successor,
     )?;
-    let posture_region = scaled_region(
-        manifest.schema_posture_region(),
-        manifest.logical_client_extent(),
-        successor,
-    )?;
     let predecessor_control = region_bytes(predecessor, stable_control_region)?;
     let successor_control = region_bytes(successor, stable_control_region)?;
     let differing_control_bytes = predecessor_control
@@ -164,17 +156,51 @@ fn require_visible_preservation(
             },
         );
     }
-    let predecessor_posture = region_bytes(predecessor, posture_region)?;
-    let successor_posture = region_bytes(successor, posture_region)?;
-    let changed_posture_pixel_bytes = predecessor_posture
-        .iter()
-        .zip(&successor_posture)
-        .filter(|(predecessor, successor)| predecessor != successor)
-        .count();
+    let changed_posture_pixel_bytes = schema_posture_changed_pixel_bytes(predecessor, successor)?;
     if changed_posture_pixel_bytes == 0 {
         return Err(ExecutableSchemaTransitionFailure::PostureRegionDidNotChange);
     }
     Ok((successor_control.len(), changed_posture_pixel_bytes))
+}
+
+pub(crate) fn schema_posture_changed_pixel_bytes(
+    predecessor: &NativeClientPixelCapture,
+    successor: &NativeClientPixelCapture,
+) -> Result<usize, ExecutableSchemaTransitionFailure> {
+    if predecessor.width() != successor.width() || predecessor.height() != successor.height() {
+        return Err(ExecutableSchemaTransitionFailure::CaptureExtentChanged);
+    }
+    let manifest = super::platform_pulse_control_points::checked_in()
+        .map_err(|_| ExecutableSchemaTransitionFailure::ControlPointManifest)?;
+    let posture_region = scaled_region(
+        manifest.schema_posture_region(),
+        manifest.logical_client_extent(),
+        successor,
+    )?;
+    let predecessor_posture = region_bytes(predecessor, posture_region)?;
+    let successor_posture = region_bytes(successor, posture_region)?;
+    Ok(predecessor_posture
+        .iter()
+        .zip(&successor_posture)
+        .filter(|(predecessor, successor)| predecessor != successor)
+        .count())
+}
+
+pub(crate) fn schema_posture_matches(
+    expected: &NativeClientPixelCapture,
+    observed: &NativeClientPixelCapture,
+) -> Result<bool, ExecutableSchemaTransitionFailure> {
+    if expected.width() != observed.width() || expected.height() != observed.height() {
+        return Err(ExecutableSchemaTransitionFailure::CaptureExtentChanged);
+    }
+    let manifest = super::platform_pulse_control_points::checked_in()
+        .map_err(|_| ExecutableSchemaTransitionFailure::ControlPointManifest)?;
+    let posture_region = scaled_region(
+        manifest.schema_posture_region(),
+        manifest.logical_client_extent(),
+        observed,
+    )?;
+    Ok(region_bytes(expected, posture_region)? == region_bytes(observed, posture_region)?)
 }
 
 fn scaled_region(
@@ -275,8 +301,8 @@ impl fmt::Display for ExecutableSchemaTransitionFailure {
             Self::PostureRegionDidNotChange => {
                 "schema transition did not visibly change the native posture region"
             }
-            Self::CanonicalCurrentPixelsNotRestored => {
-                "schema recovery did not restore canonical current pixels"
+            Self::CanonicalCurrentPostureNotRestored => {
+                "schema recovery did not restore the canonical current posture pixels"
             }
         })
     }

@@ -12,6 +12,17 @@ use crate::runtime::{
     WorthUiVirtualizedPlanSummaryRequest,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiSemanticTextCertificationDenial {
+    Registration,
+    Admission,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiPresentationFrameCertificationDenial {
+    Preparation,
+}
+
 /// Certification-only observation of raw runtime plans and host capability authority.
 pub trait WorthUiActiveSessionCertificationExt {
     fn inspect_runtime(&self) -> WorthUiActiveRuntimeObservation;
@@ -82,12 +93,15 @@ pub trait WorthUiActiveSessionCertificationExt {
     fn register_and_apply_component_semantic_text(
         &mut self,
         changes: &[crate::facade::entry::UiNativeComponentSemanticTextChange],
-    ) -> Result<(), ()>;
+    ) -> Result<(), WorthUiSemanticTextCertificationDenial>;
 
     fn prepare_application_presentation_frame(
         &mut self,
         request: crate::facade::mounted::UiMountedFrameRequest,
-    ) -> Result<crate::facade::mounted::UiPreparedMountedFrame, ()>;
+    ) -> Result<
+        crate::facade::mounted::UiPreparedMountedFrame,
+        WorthUiPresentationFrameCertificationDenial,
+    >;
 }
 
 impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
@@ -195,7 +209,7 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
     fn register_and_apply_component_semantic_text(
         &mut self,
         changes: &[crate::facade::entry::UiNativeComponentSemanticTextChange],
-    ) -> Result<(), ()> {
+    ) -> Result<(), WorthUiSemanticTextCertificationDenial> {
         let graph_nodes = {
             let graph = self.graph();
             graph
@@ -218,16 +232,21 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
                 self,
                 authored_semantic_identity,
                 graph_node,
-            )?;
+            )
+            .map_err(|_| WorthUiSemanticTextCertificationDenial::Registration)?;
         }
         WorthUiActiveApplicationSession::admit_application_semantic_text(self, changes)
+            .map_err(|_| WorthUiSemanticTextCertificationDenial::Admission)
     }
 
     fn prepare_application_presentation_frame(
         &mut self,
         request: crate::facade::mounted::UiMountedFrameRequest,
-    ) -> Result<crate::facade::mounted::UiPreparedMountedFrame, ()> {
+    ) -> Result<
+        crate::facade::mounted::UiPreparedMountedFrame,
+        WorthUiPresentationFrameCertificationDenial,
+    > {
         self.prepare_mounted_frame_with_application_presentation(request, |_| {})
-            .map_err(|_| ())
+            .map_err(|_| WorthUiPresentationFrameCertificationDenial::Preparation)
     }
 }

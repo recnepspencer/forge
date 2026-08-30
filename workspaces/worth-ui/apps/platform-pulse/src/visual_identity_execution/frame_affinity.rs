@@ -45,7 +45,7 @@ mod tests {
     use super::{snapshot_affinity_is_current, UiVisualSnapshotRelation};
 
     #[test]
-    fn stale_completed_frame_cannot_satisfy_current_frame_affinity() {
+    fn completed_capture_is_revalidated_against_the_current_mounted_frame() {
         assert!(!snapshot_affinity_is_current(
             UiVisualSnapshotRelation::Current,
             41,

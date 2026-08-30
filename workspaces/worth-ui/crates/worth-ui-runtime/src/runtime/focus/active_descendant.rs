@@ -10,18 +10,12 @@ pub(in crate::runtime) struct UiActiveDescendant {
 pub(in crate::runtime) enum UiActiveDescendantDenial {
     NoSemanticFocus,
     CompositeMismatch,
+    CompositePolicyMismatch,
     CompositeCannotBeItsOwnDescendant,
     UnknownDescendant,
     StaleDescendantIncarnation,
     ForeignScope,
     RevisionExhausted,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::runtime) struct UiActiveDescendantTransitionReceipt {
-    previous: Option<UiActiveDescendant>,
-    current: Option<UiActiveDescendant>,
-    revision: u64,
 }
 
 impl super::UiFocusRuntimeState {
@@ -30,12 +24,21 @@ impl super::UiFocusRuntimeState {
         composite: super::UiFocusParticipantIdentity,
         descendant: super::UiFocusParticipantIdentity,
         descendant_incarnation: worth_ui_host_contract::UiMountIncarnation,
-    ) -> Result<UiActiveDescendantTransitionReceipt, UiActiveDescendantDenial> {
+    ) -> Result<(), UiActiveDescendantDenial> {
         let current = self
             .current
             .ok_or(UiActiveDescendantDenial::NoSemanticFocus)?;
         if current.participant() != composite {
             return Err(UiActiveDescendantDenial::CompositeMismatch);
+        }
+        let composite_participant = self
+            .exact_current_successor(current)
+            .ok_or(UiActiveDescendantDenial::CompositeMismatch)?;
+        if !matches!(
+            composite_participant.container_policy(),
+            Some(crate::capability::ComponentFocusContainerPolicy::ActiveDescendant { .. })
+        ) {
+            return Err(UiActiveDescendantDenial::CompositePolicyMismatch);
         }
         if composite == descendant {
             return Err(UiActiveDescendantDenial::CompositeCannotBeItsOwnDescendant);
@@ -60,40 +63,12 @@ impl super::UiFocusRuntimeState {
             descendant: descendant.identity(),
             descendant_incarnation: descendant.incarnation(),
         };
-        let previous = self.active_descendant;
         self.revision = self
             .revision
             .checked_add(1)
             .ok_or(UiActiveDescendantDenial::RevisionExhausted)?;
         self.active_descendant = Some(next);
-        Ok(UiActiveDescendantTransitionReceipt {
-            previous,
-            current: Some(next),
-            revision: self.revision,
-        })
-    }
-
-    pub(in crate::runtime) fn clear_active_descendant(
-        &mut self,
-        composite: super::UiFocusParticipantIdentity,
-    ) -> Result<UiActiveDescendantTransitionReceipt, UiActiveDescendantDenial> {
-        let current = self
-            .current
-            .ok_or(UiActiveDescendantDenial::NoSemanticFocus)?;
-        if current.participant() != composite {
-            return Err(UiActiveDescendantDenial::CompositeMismatch);
-        }
-        let previous = self.active_descendant;
-        self.revision = self
-            .revision
-            .checked_add(1)
-            .ok_or(UiActiveDescendantDenial::RevisionExhausted)?;
-        self.active_descendant = None;
-        Ok(UiActiveDescendantTransitionReceipt {
-            previous,
-            current: None,
-            revision: self.revision,
-        })
+        Ok(())
     }
 }
 
@@ -114,19 +89,5 @@ impl UiActiveDescendant {
         self,
     ) -> worth_ui_host_contract::UiMountIncarnation {
         self.descendant_incarnation
-    }
-}
-
-impl UiActiveDescendantTransitionReceipt {
-    pub(in crate::runtime) const fn previous(self) -> Option<UiActiveDescendant> {
-        self.previous
-    }
-
-    pub(in crate::runtime) const fn current(self) -> Option<UiActiveDescendant> {
-        self.current
-    }
-
-    pub(in crate::runtime) const fn revision(self) -> u64 {
-        self.revision
     }
 }

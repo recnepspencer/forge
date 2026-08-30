@@ -150,32 +150,32 @@ fn assert_membership_shift_transcripts(
     assert_eq!(transcripts.len(), 5);
     assert_collection_transcript(
         &transcripts[0],
-        &mounted_instances,
-        &entities,
+        mounted_instances,
+        entities,
         &["Alpha", "Bravo"],
     );
     assert_collection_transcript(
         &transcripts[1],
-        &mounted_instances,
+        mounted_instances,
         &entities[1..],
         &["Bravo"],
     );
     assert_collection_transcript(
         &transcripts[2],
-        &mounted_instances,
+        mounted_instances,
         &entities[1..],
         &["Bravo updated"],
     );
     let inserted_entities = [inserted, entities[1].clone()];
     assert_collection_transcript(
         &transcripts[3],
-        &mounted_instances,
+        mounted_instances,
         &inserted_entities,
         &["Aaron", "Bravo updated"],
     );
     assert_collection_transcript(
         &transcripts[4],
-        &mounted_instances,
+        mounted_instances,
         &inserted_entities,
         &["Aaron", "Bravo final"],
     );

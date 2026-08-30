@@ -1,6 +1,20 @@
 use super::WorthUiApplicationSessionState;
 
 impl WorthUiApplicationSessionState {
+    pub(crate) fn scroll_bounds_for_chain(
+        &self,
+        chain: &[crate::runtime::scroll::UiScrollChainEntry],
+        target: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<
+        Vec<crate::runtime::scroll::UiScrollBounds>,
+        crate::runtime::scroll::UiScrollBoundsResolutionDenial,
+    > {
+        chain
+            .iter()
+            .map(|entry| self.scroll_bounds_for(entry.owner(), target))
+            .collect()
+    }
+
     pub(crate) fn scroll_bounds_for(
         &self,
         owner: crate::runtime::scroll::UiScrollOwnerIdentity,
@@ -127,18 +141,6 @@ impl WorthUiApplicationSessionState {
             .find(|artifact| artifact.identity() == declaration)
             .and_then(|artifact| artifact.graph_handoff().ok())
             .and_then(|handoff| handoff.measurement_policy().admitted().cloned())
-    }
-
-    pub(crate) fn service_usage_for(
-        &self,
-        declaration: &crate::declaration::UiDeclarationIdentity,
-    ) -> Option<crate::declaration::UiDeclaredServiceUsagePosture> {
-        self.app
-            .declaration_artifacts()
-            .iter()
-            .find(|artifact| artifact.identity() == declaration)
-            .and_then(|artifact| artifact.graph_handoff().ok())
-            .and_then(|handoff| handoff.service_usage().admitted().copied())
     }
 
     pub(crate) fn activate_initial_mounted_allocation_catalog(

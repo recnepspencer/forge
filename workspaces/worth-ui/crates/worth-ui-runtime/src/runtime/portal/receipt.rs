@@ -33,11 +33,6 @@ impl UiPortalServiceReceipt {
     }
 
     #[cfg(test)]
-    pub(crate) const fn portal(self) -> super::UiPortalIdentity {
-        self.portal
-    }
-
-    #[cfg(test)]
     pub(crate) const fn posture(self) -> super::UiPortalLifecyclePosture {
         self.posture
     }

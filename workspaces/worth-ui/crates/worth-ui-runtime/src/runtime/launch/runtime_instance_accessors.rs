@@ -16,7 +16,7 @@ pub enum WorthUiRuntimeShutdownBlocker {
 }
 
 pub struct WorthUiRuntimeShutdownRecovery {
-    runtime: WorthUiRuntime,
+    runtime: Box<WorthUiRuntime>,
     blocker: WorthUiRuntimeShutdownBlocker,
 }
 
@@ -26,11 +26,11 @@ impl WorthUiRuntimeShutdownRecovery {
     }
 
     pub fn into_runtime(self) -> WorthUiRuntime {
-        self.runtime
+        *self.runtime
     }
 
     pub fn retry(self) -> Result<WorthUiRuntimeShutdownReceipt, Self> {
-        self.runtime.shutdown()
+        (*self.runtime).shutdown()
     }
 }
 
@@ -96,7 +96,7 @@ impl WorthUiRuntime {
                     _ => WorthUiRuntimeShutdownBlocker::ServiceProposalInvariant,
                 };
                 return Err(WorthUiRuntimeShutdownRecovery {
-                    runtime: self,
+                    runtime: Box::new(self),
                     blocker,
                 });
             }

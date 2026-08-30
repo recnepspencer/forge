@@ -122,11 +122,11 @@ impl UiProtocolResources {
 
 impl UiProtocolQueuedReadiness {
     fn queued() -> Result<Self, ()> {
-        let mut registry = UiNativeReadinessRegistry::new();
+        let registry = UiNativeReadinessRegistry::new();
         let owner = registry.register()?;
         registry.commit_latest(owner, 1_000, [160, 96])?;
         let mut redraw_requests = 0;
-        signal_committed(&mut registry, owner, || redraw_requests += 1)?;
+        signal_committed(&registry, owner, || redraw_requests += 1)?;
         (redraw_requests == 1)
             .then_some(Self { registry, owner })
             .ok_or(())

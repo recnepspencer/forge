@@ -32,9 +32,6 @@ impl UiActivatedScrollProjectionTarget {
     pub fn target(self) -> crate::graph::UiGraphNodeIdentity {
         self.target
     }
-    pub(crate) fn owner_identity(self) -> UiScrollProjectionOwnerIdentity {
-        UiScrollProjectionOwnerIdentity(self.contract_identity_digest)
-    }
 }
 
 impl UiActivatedScrollOwner {

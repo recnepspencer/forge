@@ -35,15 +35,15 @@ pub(crate) fn plan_glyph_commands(
         .iter()
         .copied()
         .enumerate()
-        .filter_map(|(ordinal, run)| {
+        .map(|(ordinal, run)| {
             let entry = atlas
                 .entry_view(run.raster_key())
                 .ok_or(UiNativeGlyphCommandDenial::MissingAtlasEntry);
-            Some(entry.and_then(|entry| {
+            entry.and_then(|entry| {
                 command_for_run(run, entry, target_extent).map(|value| {
                     value.map(|command| (run.layer_semantic_order(), ordinal, command))
                 })
-            }))
+            })
         })
         .collect::<Result<Vec<_>, _>>()?;
     commands.sort_by_key(|command| {

@@ -41,11 +41,11 @@ pub struct UiNativeApplicationObservationProgress {
 }
 
 pub struct UiNativeApplicationRuntimeActivationStopped {
-    application: crate::facade::WorthUiNativeApplicationShell,
+    application: Box<crate::facade::WorthUiNativeApplicationShell>,
 }
 
 pub struct UiNativeApplicationRuntimeProgressStopped {
-    application: crate::facade::WorthUiNativeApplicationShell,
+    application: Box<crate::facade::WorthUiNativeApplicationShell>,
 }
 
 pub struct UiNativeApplicationRuntimeClosed {
@@ -54,7 +54,7 @@ pub struct UiNativeApplicationRuntimeClosed {
 
 pub struct UiNativeApplicationRuntimeCloseIncomplete {
     runtime: Box<dyn UiNativeApplicationRuntime>,
-    application: crate::facade::WorthUiNativeApplicationShell,
+    application: Box<crate::facade::WorthUiNativeApplicationShell>,
 }
 
 pub trait UiNativeApplicationRuntime: 'static {
@@ -137,6 +137,10 @@ impl UiNativeApplicationPhysicalProgress {
         Self { host }
     }
 
+    pub(crate) fn into_host(self) -> worth_ui_host_native::UiNativePhysicalProgressGrant {
+        self.host
+    }
+
     #[cfg(any(test, feature = "certification-support"))]
     #[doc(hidden)]
     pub fn from_certification(host: worth_ui_host_native::UiNativePhysicalProgressGrant) -> Self {
@@ -210,21 +214,25 @@ impl UiNativeApplicationObservationProgress {
 
 impl UiNativeApplicationRuntimeActivationStopped {
     pub fn retain(application: crate::facade::WorthUiNativeApplicationShell) -> Self {
-        Self { application }
+        Self {
+            application: Box::new(application),
+        }
     }
 
     pub(crate) fn into_application(self) -> crate::facade::WorthUiNativeApplicationShell {
-        self.application
+        *self.application
     }
 }
 
 impl UiNativeApplicationRuntimeProgressStopped {
     pub fn retain(application: crate::facade::WorthUiNativeApplicationShell) -> Self {
-        Self { application }
+        Self {
+            application: Box::new(application),
+        }
     }
 
     pub(crate) fn into_application(self) -> crate::facade::WorthUiNativeApplicationShell {
-        self.application
+        *self.application
     }
 }
 
@@ -252,7 +260,7 @@ impl UiNativeApplicationRuntimeCloseIncomplete {
     {
         Self {
             runtime,
-            application,
+            application: Box::new(application),
         }
     }
 
@@ -263,7 +271,7 @@ impl UiNativeApplicationRuntimeCloseIncomplete {
     pub(crate) fn retry(
         self,
     ) -> Result<UiNativeApplicationRuntimeClosed, UiNativeApplicationRuntimeCloseIncomplete> {
-        self.runtime.close(self.application)
+        self.runtime.close(*self.application)
     }
 }
 

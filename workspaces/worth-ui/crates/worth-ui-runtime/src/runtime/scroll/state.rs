@@ -28,7 +28,6 @@ struct UiScrollOwnershipCatalogRecord {
 /// Query- or host-provided extents establish bounds; only this state changes offsets.
 #[derive(Clone)]
 pub(crate) struct UiScrollRuntimeState {
-    persistence: crate::runtime::UiServiceStatePersistencePosture,
     policy: crate::declaration::UiScrollPolicy,
     owners: BTreeMap<super::UiScrollOwnerIdentity, UiScrollOwnerRecord>,
     ownership_catalog:
@@ -52,27 +51,7 @@ impl UiScrollRuntimeState {
     pub(crate) const fn new_session_restore_candidate_with_policy(
         policy: crate::declaration::UiScrollPolicy,
     ) -> Self {
-        Self::new_with_policy(
-            crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
-            policy,
-        )
-    }
-
-    pub(in crate::runtime) const fn new(
-        persistence: crate::runtime::UiServiceStatePersistencePosture,
-    ) -> Self {
-        Self::new_with_policy(
-            persistence,
-            crate::declaration::UiScrollPolicy::nested_region(),
-        )
-    }
-
-    const fn new_with_policy(
-        persistence: crate::runtime::UiServiceStatePersistencePosture,
-        policy: crate::declaration::UiScrollPolicy,
-    ) -> Self {
         Self {
-            persistence,
             policy,
             owners: BTreeMap::new(),
             ownership_catalog: BTreeMap::new(),
@@ -90,10 +69,10 @@ impl UiScrollRuntimeState {
         self.policy = policy;
     }
 
-    pub(in crate::runtime) const fn persistence(
+    pub(in crate::runtime) const fn reveal_alignment(
         &self,
-    ) -> crate::runtime::UiServiceStatePersistencePosture {
-        self.persistence
+    ) -> crate::declaration::UiScrollRevealAlignment {
+        self.policy.reveal_alignment()
     }
 
     pub(in crate::runtime) fn register(
@@ -117,49 +96,6 @@ impl UiScrollRuntimeState {
             },
         );
         Ok(())
-    }
-
-    pub(crate) fn synchronize(
-        &mut self,
-        registration: super::UiScrollOwnerRegistration,
-    ) -> Result<super::UiScrollOffset, super::UiScrollRouteDenial> {
-        if !registration
-            .bounds()
-            .contains(registration.initial_offset())
-        {
-            return Err(super::UiScrollRouteDenial::InitialOffsetOutOfBounds);
-        }
-        if let Some(record) = self.owners.get_mut(&registration.identity()) {
-            if record.incarnation == registration.incarnation() {
-                record.axes = registration.axes();
-                record.bounds = registration.bounds();
-                record.offset = record.bounds.clamp(record.offset);
-                return Ok(record.offset);
-            }
-        }
-        self.owners.insert(
-            registration.identity(),
-            UiScrollOwnerRecord {
-                incarnation: registration.incarnation(),
-                axes: registration.axes(),
-                bounds: registration.bounds(),
-                offset: registration.initial_offset(),
-                anchor: None,
-            },
-        );
-        Ok(registration.initial_offset())
-    }
-
-    pub(in crate::runtime) fn reconcile_bounds(
-        &mut self,
-        owner: super::UiScrollOwnerIdentity,
-        incarnation: super::UiScrollOwnerIncarnation,
-        bounds: super::UiScrollBounds,
-    ) -> Result<super::UiScrollOffset, super::UiScrollRouteDenial> {
-        let record = self.exact_owner_mut(owner, incarnation)?;
-        record.bounds = bounds;
-        record.offset = bounds.clamp(record.offset);
-        Ok(record.offset)
     }
 
     pub(crate) fn reconcile_rebind(
@@ -187,8 +123,19 @@ impl UiScrollRuntimeState {
         }
         let previous = self.owners.get(&registration.identity()).copied();
         let successor_anchor = request.successor_anchor();
+        let policy = match (request.policy(), previous, successor_anchor) {
+            (super::UiScrollAnchorPolicy::Rebase, Some(previous), Some(successor))
+                if previous.incarnation == registration.incarnation()
+                    && previous
+                        .anchor
+                        .is_some_and(|anchor| anchor.exact_basis(successor)) =>
+            {
+                super::UiScrollAnchorPolicy::Preserve
+            }
+            (policy, _, _) => policy,
+        };
         let (outcome, offset, anchor) =
-            reconcile_owner_record(previous, registration, successor_anchor, request.policy());
+            reconcile_owner_record(previous, registration, successor_anchor, policy);
         self.owners.insert(
             registration.identity(),
             UiScrollOwnerRecord {
@@ -204,6 +151,7 @@ impl UiScrollRuntimeState {
         ))
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn offset(
         &self,
         owner: super::UiScrollOwnerIdentity,
@@ -232,7 +180,27 @@ impl UiScrollRuntimeState {
         &mut self,
         request: super::UiScrollDeltaRequest,
     ) -> Result<super::UiScrollRouteReceipt, super::UiScrollRouteDenial> {
-        let result = self.route_prevalidated(request);
+        let result = self.route_prevalidated(request, None);
+        if result.is_err() {
+            self.counters.reject();
+        }
+        result
+    }
+
+    /// Applies allocation-derived bounds and the matching host delta as one
+    /// owner transition. Bounds are ordered by the already-resolved chain, so
+    /// no partially reconciled owner can escape a denied route.
+    pub(crate) fn route_with_reconciled_bounds(
+        &mut self,
+        request: super::UiScrollDeltaRequest,
+        bounds: &[super::UiScrollBounds],
+    ) -> Result<super::UiScrollRouteReceipt, super::UiScrollRouteDenial> {
+        assert_eq!(
+            request.chain().len(),
+            bounds.len(),
+            "current Scroll bounds must cover the exact resolved owner chain"
+        );
+        let result = self.route_prevalidated(request, Some(bounds));
         if result.is_err() {
             self.counters.reject();
         }
@@ -242,6 +210,7 @@ impl UiScrollRuntimeState {
     fn route_prevalidated(
         &mut self,
         request: super::UiScrollDeltaRequest,
+        reconciled_bounds: Option<&[super::UiScrollBounds]>,
     ) -> Result<super::UiScrollRouteReceipt, super::UiScrollRouteDenial> {
         let surface = request.chain()[0].owner().semantic_surface();
         for entry in request.chain() {
@@ -256,11 +225,13 @@ impl UiScrollRuntimeState {
             .ok_or(super::UiScrollRouteDenial::RevisionExhausted)?;
         let mut remainder = request.delta();
         let mut transitions = Vec::with_capacity(request.chain().len());
-        for entry in request.chain() {
+        for (index, entry) in request.chain().iter().enumerate() {
             let record = self.exact_owner(entry.owner(), entry.incarnation())?;
             let previous = record.offset;
+            let bounds = reconciled_bounds.map_or(record.bounds, |bounds| bounds[index]);
+            let reconciled = bounds.clamp(previous);
             let (current, consumed) =
-                super::routing::consume_delta(previous, record.bounds, record.axes, remainder);
+                super::routing::consume_delta(reconciled, bounds, record.axes, remainder);
             remainder = remainder.subtract(consumed);
             transitions.push(super::UiScrollChainTransition::new(
                 entry.owner(),
@@ -279,9 +250,12 @@ impl UiScrollRuntimeState {
             .filter(|transition| transition.previous() != transition.current())
             .count();
         let next_counters = self.counters.after_admission(owners_visited, changed)?;
-        for (entry, transition) in request.chain().iter().zip(&transitions) {
-            self.exact_owner_mut(entry.owner(), entry.incarnation())?
-                .offset = transition.current();
+        for (index, (entry, transition)) in request.chain().iter().zip(&transitions).enumerate() {
+            let record = self.exact_owner_mut(entry.owner(), entry.incarnation())?;
+            if let Some(bounds) = reconciled_bounds {
+                record.bounds = bounds[index];
+            }
+            record.offset = transition.current();
         }
         self.counters = next_counters;
         self.revision = next_revision;
@@ -296,6 +270,7 @@ impl UiScrollRuntimeState {
         Ok(receipt)
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) const fn counters(&self) -> super::UiScrollCounters {
         self.counters
     }

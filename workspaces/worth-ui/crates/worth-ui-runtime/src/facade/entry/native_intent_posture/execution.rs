@@ -167,7 +167,7 @@ impl DetachedNativeIntentPostureInFlight {
             }
         };
         self.mounted.awaits_progress_class(class)
-            && progress.presentation().map_or(true, |presentation| {
+            && progress.presentation().is_none_or(|presentation| {
                 presentation.attempt() == self.mounted.attempt()
                     && self
                         .mounted

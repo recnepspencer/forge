@@ -59,10 +59,6 @@ impl UiNativeTextAtlas {
         true
     }
 
-    #[allow(
-        dead_code,
-        reason = "host-state recovery is the event-loop lifecycle boundary"
-    )]
     pub(crate) fn recover(&self, recovery: &UiNativeTextAtlasRecovery) -> bool {
         let Ok(mut core) = self.core.try_borrow_mut() else {
             return false;

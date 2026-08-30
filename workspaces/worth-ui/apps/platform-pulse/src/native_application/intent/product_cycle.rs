@@ -1,19 +1,26 @@
 use super::super::PlatformPulseApplicationRuntime;
 
-const MAX_LOCAL_PRODUCT_CYCLE_ROUNDS: u8 = 8;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(in crate::native_application) enum PlatformPulseIntentExecutionProgress {
+    Idle,
+    Progressed,
+    AwaitingExternal,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::native_application) enum PlatformPulseIntentProductCycleOutcome {
-    Quiescent { rounds: u8 },
-    Interrupted { rounds: u8 },
-    Saturated { rounds: u8 },
+    Quiescent { rounds: usize },
+    AwaitingExternal { rounds: usize },
+    Interrupted { rounds: usize },
 }
 
 impl PlatformPulseApplicationRuntime {
     pub(in crate::native_application) fn drain_intent_product_cycle(
         &mut self,
     ) -> PlatformPulseIntentProductCycleOutcome {
-        for round in 1..=MAX_LOCAL_PRODUCT_CYCLE_ROUNDS {
+        let mut round = 0_usize;
+        loop {
+            round = round.saturating_add(1);
             let execution_progress = self.advance_intent_execution();
             let product_progress = self.poll_intent_action_port();
             if self.terminal_error.is_some()
@@ -22,15 +29,63 @@ impl PlatformPulseApplicationRuntime {
             {
                 return PlatformPulseIntentProductCycleOutcome::Interrupted { rounds: round };
             }
-            if execution_progress == 0 && product_progress == 0 {
-                return PlatformPulseIntentProductCycleOutcome::Quiescent { rounds: round };
+            if let Some(completed) = execution_progress.complete_cycle(product_progress, round) {
+                return completed;
             }
         }
-        self.fail_intent_settlement(format!(
-            "local intent product cycle exceeded {MAX_LOCAL_PRODUCT_CYCLE_ROUNDS} rounds"
-        ));
-        PlatformPulseIntentProductCycleOutcome::Saturated {
-            rounds: MAX_LOCAL_PRODUCT_CYCLE_ROUNDS,
+    }
+}
+
+impl PlatformPulseIntentExecutionProgress {
+    pub(super) const fn from_transitions(transitions: usize, locally_progressed: bool) -> Self {
+        match (transitions, locally_progressed) {
+            (0, _) => Self::Idle,
+            (_, true) => Self::Progressed,
+            (_, false) => Self::AwaitingExternal,
         }
+    }
+
+    const fn complete_cycle(
+        self,
+        product_progress: usize,
+        rounds: usize,
+    ) -> Option<PlatformPulseIntentProductCycleOutcome> {
+        if product_progress != 0 {
+            return None;
+        }
+        match self {
+            Self::Idle => Some(PlatformPulseIntentProductCycleOutcome::Quiescent { rounds }),
+            Self::AwaitingExternal => {
+                Some(PlatformPulseIntentProductCycleOutcome::AwaitingExternal { rounds })
+            }
+            Self::Progressed => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PlatformPulseIntentExecutionProgress, PlatformPulseIntentProductCycleOutcome};
+
+    #[test]
+    fn pending_only_execution_is_typed_as_external_wait_instead_of_local_progress() {
+        let progress = PlatformPulseIntentExecutionProgress::from_transitions(8, false);
+        assert_eq!(
+            progress,
+            PlatformPulseIntentExecutionProgress::AwaitingExternal
+        );
+        assert_eq!(
+            progress.complete_cycle(0, 1),
+            Some(PlatformPulseIntentProductCycleOutcome::AwaitingExternal { rounds: 1 })
+        );
+        assert_eq!(progress.complete_cycle(1, 1), None);
+    }
+
+    #[test]
+    fn terminal_or_started_execution_remains_local_progress() {
+        assert_eq!(
+            PlatformPulseIntentExecutionProgress::from_transitions(1, true),
+            PlatformPulseIntentExecutionProgress::Progressed
+        );
     }
 }

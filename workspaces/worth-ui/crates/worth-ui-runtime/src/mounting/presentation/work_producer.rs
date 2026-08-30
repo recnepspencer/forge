@@ -134,7 +134,7 @@ impl UiMountedPresentationState {
         &self,
         request: SuccessorIssueRequest<'_>,
     ) -> Result<UiMountedPresentationWork, UiMountedPresentationWorkProductionDenial> {
-        let cloned = self.commands().iter().cloned().collect::<Vec<_>>();
+        let cloned = self.commands().to_vec();
         let traversed = cloned.len();
         std::hint::black_box(&cloned);
         successor_issue::SuccessorIssue {

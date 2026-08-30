@@ -16,7 +16,9 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied
         let intent_execution_bindings = self
             .intent_execution_bindings
             .freeze(capability_snapshot.intent_definitions())
-            .map_err(WorthUiApplicationPreparationDenial::IntentExecutionBinding)?;
+            .map_err(|denial| {
+                WorthUiApplicationPreparationDenial::IntentExecutionBinding(Box::new(denial))
+            })?;
         let preparation_source = match self.preparation_source {
             WorthUiApplicationBuilderPreparationSource::RustAuthored(input) => {
                 WorthUiApplicationPreparationSource::rust_authored(&input, &capability_snapshot)?

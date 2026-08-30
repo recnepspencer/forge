@@ -35,9 +35,9 @@ pub use component_prop_schema::ComponentPropSchema;
 pub(crate) use component_registry::ComponentRegistry;
 pub use component_rendering_contracts::{
     ComponentAccessibilitySupport, ComponentCanvasSpatialContract, ComponentExecutionLane,
-    ComponentFocusSupport, ComponentRealtimeOverlayContract,
-    ComponentRealtimeOverlayContractDenial, ComponentRealtimeOverlayContractDenialReason,
-    ComponentRealtimeOverlayPriority,
+    ComponentFocusContainerPolicy, ComponentFocusNavigationAxis, ComponentFocusSupport,
+    ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
+    ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
 };
 pub use component_semantic_text_contract::{
     ComponentSemanticTextContract, ComponentSemanticTextContractDenial,

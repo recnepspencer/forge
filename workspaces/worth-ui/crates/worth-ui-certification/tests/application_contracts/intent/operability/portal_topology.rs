@@ -1,3 +1,8 @@
+use worth_ui::facade::declaration::{
+    ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
+    ComponentFocusSupport, ComponentHitTestContract, ComponentHitTestOrder, ComponentId,
+    ComponentPropSchema, ComponentStateOwnership, ComponentViewportInset,
+};
 use worth_ui::facade::intent::{
     UiIntentConcurrencyScope, UiIntentConfirmationContract, UiIntentConsequenceContract,
     UiIntentDeclaration, UiIntentDefinition, UiIntentMutabilitySource, UiIntentOperabilityContract,
@@ -22,6 +27,7 @@ const PROJECTION: &str = "platform.pulse.status";
 const PAINT_ONLY: &str = "visual.identity.component.paint_only";
 const HIT_ONLY: &str = "visual.identity.component.hit_only";
 const PAINT_AND_HIT: &str = "visual.identity.component.paint_and_hit";
+const SECOND_FOCUS: &str = "phase3.portal.component.second_focus";
 const NEITHER: &str = "visual.identity.component.neither";
 const SURFACE: &str = "visual.identity.surface.main";
 const PAINT_ONLY_TOKEN: &str = "theme.visual_identity.paint_only";
@@ -77,6 +83,66 @@ where
         .with_rust_authored_input(input)
         .freeze()
         .expect("the real portal-service definition freezes through production preparation");
+    (app, facts)
+}
+
+pub(in crate::intent) fn build_open_portal_two_focus_application_with_host<Host>(
+    host: Host,
+) -> (worth_ui::facade::app::WorthUiApp, OperabilityFacts)
+where
+    Host: worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding,
+{
+    let facts = OperabilityFacts::new();
+    let route = WorthUiIntentInteractionRoute::product(
+        WorthUiIntentInteractionFamily::Activate,
+        PRIMARY_DECLARATION,
+    );
+    let input = WorthUiRustAuthoredArtifactInput::from_modules([
+        WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+            .with_component(PAINT_ONLY)
+            .with_control_routes(HIT_ONLY, [route.clone()])
+            .with_control_routes(PAINT_AND_HIT, [route.clone()])
+            .with_control_routes(SECOND_FOCUS, [route])
+            .with_component(NEITHER)
+            .with_surface(SURFACE)
+            .with_token(PAINT_ONLY_TOKEN, "theme.visual_identity.red")
+            .with_token(PAINT_AND_HIT_TOKEN, "theme.visual_identity.purple")
+            .with_intent_declaration(declaration(&facts)),
+    ]);
+    let app = FilesystemApplicationLifecycleScenario::new("phase-3-portal-two-focus-world")
+        .portal_semantic_text_action_application_builder(host)
+        .register_component(
+            ComponentDescriptor::new(
+                ComponentId::new(SECOND_FOCUS).expect("valid second focus component id"),
+                ComponentPropSchema::named("phase3.portal.second-focus.props"),
+                ComponentChildPolicy::no_children(),
+                ComponentStateOwnership::runtime_owned(),
+            )
+            .with_hit_test(ComponentHitTestContract::allocation_bounds(
+                ComponentHitTestOrder::front_to_back(2),
+                ComponentAllocationMeasurementContract::viewport_inset(
+                    ComponentViewportInset::symmetric(24, 20),
+                ),
+            ))
+            .with_focus(ComponentFocusSupport::focusable()),
+        )
+        .register_intent_boolean_fact(facts.mutability.clone(), true)
+        .unwrap()
+        .register_intent_boolean_fact(facts.readiness.clone(), true)
+        .unwrap()
+        .register_intent_boolean_fact(facts.policy.clone(), true)
+        .unwrap()
+        .register_intent_boolean_fact(facts.confirmation.clone(), false)
+        .unwrap()
+        .register_runtime_service_intent_definition(
+            UiIntentDefinition::<PrimaryIntent>::runtime_service(
+                UiIntentRuntimeServiceDestination::OpenPortal,
+            ),
+        )
+        .unwrap()
+        .with_rust_authored_input(input)
+        .freeze()
+        .expect("the two-focus portal definition freezes through production preparation");
     (app, facts)
 }
 

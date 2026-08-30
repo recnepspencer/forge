@@ -41,22 +41,12 @@ pub(crate) struct UiNativeRecoveryLineage {
     host_surface: u64,
 }
 
+#[derive(Default)]
 pub(crate) struct UiNativeRecoveryRegistry {
     required: BTreeMap<u64, UiNativeBindingRecovery>,
     in_flight: BTreeMap<u64, UiNativeBindingRecovery>,
     parked: BTreeMap<UiNativeRecoveryLineage, UiNativeBindingRecovery>,
     physical: UiNativePhysicalRecoveryOwner,
-}
-
-impl Default for UiNativeRecoveryRegistry {
-    fn default() -> Self {
-        Self {
-            required: BTreeMap::new(),
-            in_flight: BTreeMap::new(),
-            parked: BTreeMap::new(),
-            physical: UiNativePhysicalRecoveryOwner::default(),
-        }
-    }
 }
 
 impl UiNativeRecoveryRegistry {

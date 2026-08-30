@@ -2,11 +2,11 @@ use super::retained_draw_list::UiNativeRetainedDeltaUndo;
 use super::UiNativeRetainedDrawList;
 
 pub(crate) enum UiNativePendingSurfaceSettlement {
-    Initial(UiNativeRetainedDrawList),
+    Initial(Box<UiNativeRetainedDrawList>),
     Delta(UiNativePendingDeltaSettlement),
     Sample(super::retained_draw_list::UiNativeRetainedSampleUndo),
     Reconstruction {
-        retained: UiNativeRetainedDrawList,
+        retained: Box<UiNativeRetainedDrawList>,
         recovery: crate::native::UiNativeRecoveryRequirement,
     },
     SupersededDeltaResolved,
@@ -170,12 +170,12 @@ impl UiNativePendingSurfaceSettlement {
         let key = basis.binding().diagnostic_value();
         let resolve_required = match self {
             Self::Initial(retained) => {
-                state.retained_draw_lists.insert(key, retained);
+                state.retained_draw_lists.insert(key, *retained);
                 true
             }
             Self::Reconstruction { retained, recovery } => {
                 debug_assert_eq!(recovery.binding(), key);
-                state.retained_draw_lists.insert(key, retained);
+                state.retained_draw_lists.insert(key, *retained);
                 let _current_recovery = state.lifecycle.settle_recovery(recovery);
                 false
             }

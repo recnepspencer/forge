@@ -11,9 +11,19 @@ impl UiNativeApplicationProgramProgress {
             return Err(());
         }
 
-        self.apply_staged_frame_changes(shell, predecessor_index)?;
-        let predecessor = shell.prepare_frame().map_err(|_| ())?;
-        self.apply_staged_frame_changes(shell, successor_index)?;
+        let predecessor = match self.staged_superseding_predecessor.take() {
+            Some(predecessor) => predecessor,
+            None => {
+                if !self.apply_staged_frame_changes(shell, predecessor_index)? {
+                    return Ok(());
+                }
+                shell.prepare_frame().map_err(|_| ())?
+            }
+        };
+        if !self.apply_staged_frame_changes(shell, successor_index)? {
+            self.staged_superseding_predecessor = Some(predecessor);
+            return Ok(());
+        }
         let successor = shell
             .prepare_superseding_frame(&predecessor)
             .map_err(|_| ())?;
@@ -47,14 +57,19 @@ impl UiNativeApplicationProgramProgress {
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
         frame_index: usize,
-    ) -> Result<(), ()> {
+    ) -> Result<bool, ()> {
         if frame_index != self.next_change_frame {
             return Err(());
         }
         let frame = &self.program.frames()[frame_index];
-        shell
+        let presence = shell
             .apply_component_presence(frame.component_presence())
             .map_err(|_| ())?;
+        if presence
+            == crate::facade::entry::UiNativeComponentPresenceProgress::AwaitingPortalDismissal
+        {
+            return Ok(false);
+        }
         shell
             .apply_component_semantic_text(frame.semantic_text())
             .map_err(|_| ())?;
@@ -62,7 +77,7 @@ impl UiNativeApplicationProgramProgress {
             .apply_theme_token_values(frame.theme_values())
             .map_err(|_| ())?;
         self.next_change_frame = self.next_change_frame.checked_add(1).ok_or(())?;
-        Ok(())
+        Ok(true)
     }
 
     fn present_staged_frame(

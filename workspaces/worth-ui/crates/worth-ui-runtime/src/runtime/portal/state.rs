@@ -20,8 +20,6 @@ pub(super) const fn duplicate_request_capacity_for_test() -> usize {
 /// routing work stays proportional to the currently active portals rather than
 /// to every portal the session ever opened.
 pub(crate) struct UiPortalRuntimeState {
-    #[cfg(test)]
-    persistence: crate::runtime::UiServiceStatePersistencePosture,
     pub(super) policy: crate::declaration::UiPortalPolicy,
     pub(super) records: BTreeMap<super::UiPortalIdentity, UiPortalRecord>,
     closed_requests: duplicate_request::UiPortalClosedRequestWindow,
@@ -50,8 +48,6 @@ impl UiPortalRuntimeState {
         policy: crate::declaration::UiPortalPolicy,
     ) -> Self {
         Self {
-            #[cfg(test)]
-            persistence: _persistence,
             policy,
             records: BTreeMap::new(),
             closed_requests: duplicate_request::UiPortalClosedRequestWindow::new(),
@@ -66,9 +62,23 @@ impl UiPortalRuntimeState {
         self.policy = policy;
     }
 
-    #[cfg(test)]
-    pub(crate) const fn persistence(&self) -> crate::runtime::UiServiceStatePersistencePosture {
-        self.persistence
+    pub(crate) fn committed_presentation_for(
+        &self,
+        portal: super::UiPortalIdentity,
+    ) -> Option<worth_ui_host_contract::UiHostObservationPresentationBasis> {
+        self.records
+            .get(&portal)?
+            .placement
+            .map(|placement| placement.prepared().presentation())
+    }
+
+    pub(crate) fn anchor_requires_dismissal(&self, portal: super::UiPortalIdentity) -> bool {
+        self.records.get(&portal).is_some_and(|record| {
+            matches!(
+                record.posture,
+                super::UiPortalLifecyclePosture::Open | super::UiPortalLifecyclePosture::Visible
+            )
+        })
     }
 
     pub(crate) fn prepare(

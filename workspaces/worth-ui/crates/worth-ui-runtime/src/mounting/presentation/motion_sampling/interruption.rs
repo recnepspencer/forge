@@ -5,9 +5,7 @@ pub(super) enum UiPresentationMotionInstallation {
         opacity: f32,
         duration_ticks: u32,
     },
-    FinishThenApply,
     SnapToTarget,
-    CancelDrop,
 }
 
 pub(super) fn resolve(
@@ -47,23 +45,6 @@ pub(super) fn resolve(
                 opacity,
                 duration_ticks,
             }
-        }
-        Some(crate::runtime::motion::UiMotionRetargetDisposition::Install {
-            predecessor:
-                crate::runtime::motion::UiMotionRetargetPredecessor::CommittedSemanticPredecessor,
-        }) => UiPresentationMotionInstallation::Install {
-            geometry: semantic_predecessor(track),
-            opacity: predecessor_opacity(track),
-            duration_ticks,
-        },
-        Some(crate::runtime::motion::UiMotionRetargetDisposition::FinishThenApply) => {
-            UiPresentationMotionInstallation::FinishThenApply
-        }
-        Some(crate::runtime::motion::UiMotionRetargetDisposition::SnapToTarget) => {
-            UiPresentationMotionInstallation::SnapToTarget
-        }
-        Some(crate::runtime::motion::UiMotionRetargetDisposition::CancelDrop) => {
-            UiPresentationMotionInstallation::CancelDrop
         }
     }
 }

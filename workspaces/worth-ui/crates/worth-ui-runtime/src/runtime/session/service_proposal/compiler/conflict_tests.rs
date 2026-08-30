@@ -82,6 +82,61 @@ fn cancel_before_effect_is_an_explicit_aba_safe_displacement() {
 }
 
 #[test]
+fn displacement_evidence_survives_family_staging_until_terminal_settlement() {
+    let mut compiler = UiServiceProposalCompiler::new();
+    let coherence = fixture_service_request_coherence(212);
+    let incumbent = reserve(
+        &mut compiler,
+        &coherence,
+        212,
+        UiServiceProposalConflictPolicy::RejectOccupied,
+    );
+    let successor = reserve(
+        &mut compiler,
+        &coherence,
+        213,
+        UiServiceProposalConflictPolicy::SupersedeBeforeEffect,
+    );
+    assert!(compiler.cancel_before_effect(incumbent).is_err());
+
+    let mut staging = compiler.begin_staging(successor).unwrap();
+    record_first_portal_effect(&mut compiler, &mut staging, 213);
+    compiler
+        .advance_staging(
+            &mut staging,
+            super::UiServiceProposalStageReceipt::recorded_stage_fixture(
+                super::UiServiceProposalIdentity::for_test(213),
+                super::UiServiceProposalStage::AssembleSuccessor,
+                super::UiServiceProposalStageIssuer::ExistingPreparation,
+            ),
+        )
+        .unwrap();
+    let batch = compiler.finish_staging(staging).unwrap();
+    assert_eq!(
+        batch.displacement().unwrap().disposition(),
+        UiServiceProposalConflictDisposition::Superseded
+    );
+
+    let proposal = batch.identity();
+    let mut teardown = compiler.cancel_staged(batch);
+    let owner = UiRecordedServiceProposalOwnerPort::recorded_fixture(
+        crate::capability::UiRuntimeServiceFamily::Portal,
+        super::super::UiServiceProposalOccupancyScopeIdentity::for_test(1),
+    );
+    compiler
+        .acknowledge_terminal_owner(
+            &mut teardown,
+            owner.terminal_outcome(
+                proposal,
+                UiServiceProposalTerminalReason::CancelledBeforePublication,
+            ),
+        )
+        .unwrap();
+    compiler.finish_teardown(teardown).unwrap();
+    assert!(compiler.census().is_zero());
+}
+
+#[test]
 fn coalesce_exact_rejects_a_non_equivalent_demand() {
     let mut compiler = UiServiceProposalCompiler::new();
     let coherence = fixture_service_request_coherence(220);

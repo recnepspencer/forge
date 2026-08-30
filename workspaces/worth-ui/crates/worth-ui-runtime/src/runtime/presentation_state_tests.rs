@@ -95,7 +95,7 @@ fn theme_update_is_transactional_and_fans_out_to_alias_consumers() {
         crate::facade::entry::UiNativeThemeTokenValueChange::new(root.clone(), successor.clone())
             .expect("valid successor");
     let update = state
-        .prepare_theme_values(&[change.clone()])
+        .prepare_theme_values(std::slice::from_ref(&change))
         .expect("current revision prepares");
     assert_eq!(update.changed_tokens(), &[alias.clone(), root.clone()]);
     state

@@ -174,22 +174,10 @@ impl UiServiceProposalOccupancyNeighborhoodIndex {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        NeighborhoodIndexKey, UiServiceProposalOccupancyNeighborhood,
-        UiServiceProposalOccupancyNeighborhoodIndex,
-    };
-    use std::collections::HashMap;
+    use super::NeighborhoodIndexKey;
 
     #[test]
     fn index_key_is_compile_time_exact_application_generation_and_surface() {
-        fn require_exact_key(
-            _: &HashMap<NeighborhoodIndexKey, UiServiceProposalOccupancyNeighborhood>,
-        ) {
-        }
-
-        let index = UiServiceProposalOccupancyNeighborhoodIndex::new();
-        require_exact_key(&index.neighborhoods);
-
         fn require_axes(
             _: &(
                 crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,

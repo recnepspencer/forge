@@ -202,7 +202,7 @@ fn matches_reconstruction_progress(
         worth_ui_host_native::UiNativePhysicalProgressClass::PresentationRecovery => return false,
     };
     in_flight.awaits_progress_class(class)
-        && progress.presentation().map_or(true, |presentation| {
+        && progress.presentation().is_none_or(|presentation| {
             presentation.attempt() == in_flight.attempt()
                 && in_flight
                     .pending_bindings()

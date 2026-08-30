@@ -113,11 +113,8 @@ impl UiMountedPresentationCoordinator {
                         requirement.binding(),
                     ),
                 )
-            } else if let Some(denial) = baseline_requirement_denial(&self.host_truth, requirement)
-            {
-                Some(denial)
             } else {
-                None
+                baseline_requirement_denial(&self.host_truth, requirement)
             };
             if let Some(denial) = denial {
                 return Err(rejected(frame, denial));

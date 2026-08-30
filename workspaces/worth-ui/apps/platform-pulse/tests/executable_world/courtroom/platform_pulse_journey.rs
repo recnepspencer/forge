@@ -280,6 +280,7 @@ fn recover_blue(
         PulseSourceDeltaIdentity::CanonicalBlueRecovery,
     );
     assert_eq!(evidence.sequence(), 23);
+    assert_eq!(recovered.rebase_snapshot_evidence().sequence(), 24);
     assert_eq!(recovered.preservation_evidence().sequence(), 22);
     assert_eq!(evidence.identity().process_id(), process);
     assert_eq!(evidence.identity().window(), window);
@@ -309,7 +310,8 @@ fn stop_on_revision_schema(
         evidence.replacement().action(),
         PulseSourceDeltaIdentity::RevisionSchema,
     );
-    assert_eq!(evidence.replacement().sequence(), 24);
+    assert_eq!(evidence.replacement().sequence(), 25);
+    assert_eq!(stopped.retirement_evidence().sequence(), 28);
     assert_eq!(evidence.query_basis(), &prior_query);
     assert_eq!(
         evidence.transition().kind(),
@@ -340,7 +342,8 @@ fn recover_status_schema(
         evidence.replacement().action(),
         PulseSourceDeltaIdentity::StatusSchemaRecovery,
     );
-    assert_eq!(evidence.replacement().sequence(), 25);
+    assert_eq!(evidence.replacement().sequence(), 29);
+    assert_eq!(recovered.rebase_snapshot_evidence().sequence(), 30);
     assert_eq!(evidence.query_basis(), &stopped_query);
     assert_eq!(
         evidence.transition().kind(),

@@ -29,10 +29,7 @@ pub(super) fn present(
     let preparation = prepare_mounted_semantic_text(presentation_work.view(), dpi, |identity| {
         presentation_work.resolve_layout(identity)
     });
-    let preparation = match preparation {
-        Some(preparation) => preparation,
-        None => return None,
-    };
+    let preparation = preparation?;
     let prepared = match preparation {
         UiNativeTextPresentationPreparation::Prepared(prepared) => prepared,
         UiNativeTextPresentationPreparation::Denied(denial) => {

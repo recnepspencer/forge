@@ -38,13 +38,7 @@ impl UiFocusScopeIdentity {
         self.semantic_surface
     }
 
-    pub(in crate::runtime) const fn mosaic_owner(
-        self,
-    ) -> Option<crate::graph::UiGraphNodeIdentity> {
-        self.mosaic_owner
-    }
-
-    pub(in crate::runtime) const fn kind(self) -> crate::capability::MosaicFocusScopeKind {
+    pub(crate) const fn kind(self) -> crate::capability::MosaicFocusScopeKind {
         self.kind
     }
 }

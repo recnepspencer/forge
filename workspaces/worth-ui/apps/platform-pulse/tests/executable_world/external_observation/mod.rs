@@ -26,5 +26,5 @@ pub(crate) use native_input_delivery::{
 };
 #[cfg(target_os = "windows")]
 pub(crate) use process_liveness::{
-    observe_stable_process_liveness, StableProcessLivenessFailure, StableProcessLivenessObservation,
+    begin_stable_process_liveness, StableProcessLivenessFailure, StableProcessLivenessObservation,
 };

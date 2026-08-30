@@ -28,10 +28,6 @@ impl UiPresentationMotionDamage {
         [self.predecessor, self.successor]
             .map(|region| region.and_then(|bounds| intersect(bounds, clip.0)))
     }
-
-    pub(super) const fn region_count(self) -> usize {
-        self.predecessor.is_some() as usize + self.successor.is_some() as usize
-    }
 }
 
 impl UiPresentationSampledClipGeometry {

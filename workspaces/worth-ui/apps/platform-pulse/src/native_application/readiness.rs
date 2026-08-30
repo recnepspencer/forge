@@ -43,15 +43,26 @@ impl PlatformPulseApplicationRuntime {
         }
         self.poll_query();
         self.poll_intent_input();
-        if !matches!(
-            self.drain_intent_product_cycle(),
+        match self.drain_intent_product_cycle() {
             intent::PlatformPulseIntentProductCycleOutcome::Quiescent { .. }
-        ) {
-            return;
+            | intent::PlatformPulseIntentProductCycleOutcome::AwaitingExternal { .. } => {}
+            intent::PlatformPulseIntentProductCycleOutcome::Interrupted { .. } => return,
         }
         self.poll_source();
         self.present();
         self.advance_visual_identity();
+    }
+
+    fn advance_after_visual_readiness(&mut self) {
+        self.advance_visual_identity();
+        if product_turn_admitted_after_visual_readiness(
+            self.terminal_error.is_some(),
+            self.pending_managed_rebind.is_some(),
+            self.pending_frame_presentation.is_some(),
+            self.visual_identity.retains_rebind_receipt(),
+        ) {
+            self.advance_native_product_turn();
+        }
     }
 
     fn native_runtime_directive(
@@ -161,7 +172,7 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
                 }
             }
         } else if owner_ordinal == 4 {
-            self.advance_visual_identity();
+            self.advance_after_visual_readiness();
         } else {
             self.advance_native_product_turn();
         }
@@ -223,6 +234,7 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
         worth_ui_native_platform::UiNativeApplicationRuntimeProgressStopped,
     > {
         self.progress_native_physical_work(application, progress)
+            .map_err(|stopped| *stopped)
     }
 
     fn close(
@@ -241,5 +253,41 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
                 shutdown,
             ),
         )
+    }
+}
+
+const fn product_turn_admitted_after_visual_readiness(
+    terminal: bool,
+    managed_rebind_pending: bool,
+    frame_presentation_pending: bool,
+    visual_rebind_receipt_retained: bool,
+) -> bool {
+    !terminal
+        && !managed_rebind_pending
+        && !frame_presentation_pending
+        && !visual_rebind_receipt_retained
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn visual_settlement_wakes_ordinary_product_progress_without_bypassing_blockers() {
+        assert!(
+            super::product_turn_admitted_after_visual_readiness(false, false, false, false),
+            "visual retirement releases the receipt and wakes ordinary product progress"
+        );
+        assert!(!super::product_turn_admitted_after_visual_readiness(
+            true, false, false, false
+        ));
+        assert!(!super::product_turn_admitted_after_visual_readiness(
+            false, true, false, false
+        ));
+        assert!(!super::product_turn_admitted_after_visual_readiness(
+            false, false, true, false
+        ));
+        assert!(
+            !super::product_turn_admitted_after_visual_readiness(false, false, false, true),
+            "successor capture and comparison retain the receipt and cannot wake product early"
+        );
     }
 }

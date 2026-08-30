@@ -11,7 +11,6 @@ pub(crate) struct UiMotionPropertyChannels(u8);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiMotionEasing {
-    Linear,
     EaseOutCubic,
 }
 
@@ -24,16 +23,11 @@ pub(crate) enum UiMotionFillPolicy {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiMotionInterruptionPolicy {
     RetargetFromCurrentSample,
-    RestartFromSemanticPredecessor,
-    FinishThenApply,
-    SnapToTarget,
-    CancelDrop,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiMotionReducedMotionPolicy {
     SystemRespecting,
-    PreserveNecessary,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -60,10 +54,6 @@ impl UiMotionPropertyChannels {
 
     pub(crate) const fn contains(self, channel: UiMotionPropertyChannel) -> bool {
         self.0 & bit(channel) != 0
-    }
-
-    pub(in crate::runtime) const fn bits(self) -> u8 {
-        self.0
     }
 }
 
@@ -149,15 +139,6 @@ impl UiMotionDeclaration {
         {
             self.decorative = false;
         }
-        self
-    }
-
-    #[cfg(test)]
-    pub(crate) const fn with_interruption(
-        mut self,
-        interruption: UiMotionInterruptionPolicy,
-    ) -> Self {
-        self.interruption = interruption;
         self
     }
 }

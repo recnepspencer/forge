@@ -27,7 +27,8 @@ impl super::UiFocusRuntimeState {
                     .participants()
                     .iter()
                     .filter(|participant| {
-                        participant.support() == crate::capability::ComponentFocusSupport::Focusable
+                        participant.support()
+                            != crate::capability::ComponentFocusSupport::NotFocusable
                     })
                     .count(),
             )

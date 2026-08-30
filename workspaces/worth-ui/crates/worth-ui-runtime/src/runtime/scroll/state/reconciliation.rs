@@ -34,6 +34,17 @@ pub(super) fn reconcile_owner_record(
             (outcome, offset, successor_anchor)
         }
         super::super::UiScrollAnchorPolicy::Rebase => match previous.anchor.zip(successor_anchor) {
+            Some((old, new))
+                if previous.incarnation == registration.incarnation() && old.exact_basis(new) =>
+            {
+                let offset = registration.bounds().clamp(previous.offset);
+                let outcome = if offset == previous.offset {
+                    super::super::UiScrollAnchorReconciliationOutcome::Preserved
+                } else {
+                    super::super::UiScrollAnchorReconciliationOutcome::Clamped
+                };
+                (outcome, offset, successor_anchor)
+            }
             Some((old, new)) if old.same_identity(new) => {
                 let offset = registration
                     .bounds()
@@ -51,14 +62,7 @@ pub(super) fn reconcile_owner_record(
             registration.bounds().clamp(previous.offset),
             successor_anchor.or(previous.anchor),
         ),
-        super::super::UiScrollAnchorPolicy::Replace => (
-            super::super::UiScrollAnchorReconciliationOutcome::Replaced,
-            registration.initial_offset(),
-            successor_anchor,
-        ),
-        super::super::UiScrollAnchorPolicy::Preserve | super::super::UiScrollAnchorPolicy::Drop => {
-            dropped(registration)
-        }
+        super::super::UiScrollAnchorPolicy::Preserve => dropped(registration),
     }
 }
 

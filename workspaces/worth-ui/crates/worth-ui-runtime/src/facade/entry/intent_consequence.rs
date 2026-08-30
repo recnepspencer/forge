@@ -9,6 +9,10 @@ use crate::runtime::intent_execution::{
     UiIntentConsequenceHandoff, UiIntentConsequenceStopReason,
 };
 
+#[path = "intent_consequence/portal_service_request.rs"]
+mod portal_service_request;
+use portal_service_request::{portal_placement_stop_reason, portal_service_request};
+
 impl WorthUiActiveApplicationSession {
     pub fn publish_intent_consequences(
         &mut self,
@@ -70,7 +74,7 @@ impl WorthUiActiveApplicationSession {
         policy: crate::runtime::rebind::UiRebindExecutionPolicy,
         execution: crate::runtime::rebind::UiRebindExecutionRequest,
     ) -> UiIntentConsequencePublicationOutcome<'_> {
-        let portal_transition = match handoff.runtime_service_destination() {
+        let explicit_portal_transition = match handoff.runtime_service_destination() {
             Some(crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand) => {
                 if handoff.command_route().is_none() {
                     return self.stop_intent_consequence(
@@ -153,6 +157,49 @@ impl WorthUiActiveApplicationSession {
                 }
             }
             None => None,
+        };
+        let portal_transition = if explicit_portal_transition.is_none()
+            && handoff.interaction_family()
+                == crate::capability::UiSemanticInteractionFamily::SelectionCommit
+        {
+            match self.portal.as_ref().map(|portal| {
+                portal.prepare_dismissal(
+                    crate::runtime::portal::UiPortalDismissalTrigger::AcceptedSelection,
+                    None,
+                    handoff.idempotency(),
+                )
+            }) {
+                None
+                | Some(Ok(crate::runtime::portal::UiPortalDismissalPreparation::Ignored(_))) => {
+                    None
+                }
+                Some(Ok(crate::runtime::portal::UiPortalDismissalPreparation::Prepared(
+                    dismissal,
+                ))) => Some(dismissal.into_transition()),
+                Some(Err(
+                    crate::runtime::portal::UiPortalServiceTransitionDenial::RevisionExhausted,
+                )) => {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceTransitionExhausted,
+                    )
+                }
+                Some(Err(crate::runtime::portal::UiPortalServiceTransitionDenial::StalePlan)) => {
+                    unreachable!("portal dismissal preparation does not mutate its revision")
+                }
+                Some(Err(crate::runtime::portal::UiPortalServiceTransitionDenial::Placement(
+                    denial,
+                ))) => {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServicePortalPlacement(
+                            portal_placement_stop_reason(denial),
+                        ),
+                    )
+                }
+            }
+        } else {
+            explicit_portal_transition
         };
         let observed = handoff.consequence_count();
         let limit = self.application.intent_consequence_fact_capacity();
@@ -292,79 +339,6 @@ impl WorthUiActiveApplicationSession {
     ) -> UiIntentConsequencePublicationOutcome<'_> {
         restore_query_from_facts(&mut handoff, facts);
         self.stop_intent_consequence(handoff, reason)
-    }
-}
-
-pub(super) fn portal_service_request(
-    handoff: &UiIntentConsequenceHandoff,
-    destination: crate::capability::UiIntentRuntimeServiceDestination,
-    presented_viewport: Option<crate::runtime::interaction::UiPresentedViewportGeometry>,
-    resolved_owner: Option<(
-        crate::graph::UiGraphNodeIdentity,
-        worth_ui_host_contract::UiMountedInstanceIdentity,
-    )>,
-) -> crate::runtime::portal::UiPortalServiceRequest {
-    let owner = resolved_owner.map_or_else(
-        || {
-            crate::runtime::portal::UiPortalOwnerIdentity::from_target(
-                handoff.graph_node(),
-                handoff.target(),
-            )
-        },
-        |(graph_node, mounted_instance)| {
-            crate::runtime::portal::UiPortalOwnerIdentity::from_mounted_owner(
-                graph_node,
-                mounted_instance,
-            )
-        },
-    );
-    let portal = crate::runtime::portal::UiPortalIdentity::for_owner(owner);
-    match destination {
-        crate::capability::UiIntentRuntimeServiceDestination::OpenPortal => {
-            crate::runtime::portal::UiPortalServiceRequest::open(
-                portal,
-                handoff.idempotency(),
-                handoff.target().geometry(),
-                presented_viewport,
-                handoff.target().surface(),
-            )
-        }
-        crate::capability::UiIntentRuntimeServiceDestination::ClosePortal => {
-            crate::runtime::portal::UiPortalServiceRequest::close(
-                portal,
-                handoff.idempotency(),
-                crate::runtime::portal::UiPortalDismissalCause::ExplicitOwnerRequest,
-                handoff.target().surface(),
-            )
-        }
-        crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand => {
-            unreachable!("command consequences never construct mounted portal service requests")
-        }
-    }
-}
-
-fn portal_placement_stop_reason(
-    denial: crate::runtime::portal::UiPortalPlacementDenial,
-) -> crate::runtime::intent_execution::UiIntentPortalPlacementStopReason {
-    use crate::runtime::intent_execution::UiIntentPortalPlacementStopReason as Stop;
-    match denial {
-        crate::runtime::portal::UiPortalPlacementDenial::MissingPresentedAnchor => {
-            Stop::MissingPresentedAnchor
-        }
-        crate::runtime::portal::UiPortalPlacementDenial::MissingPresentedViewport => {
-            Stop::MissingPresentedViewport
-        }
-        crate::runtime::portal::UiPortalPlacementDenial::IncompatibleCoordinateSpace => {
-            Stop::IncompatibleCoordinateSpace
-        }
-        crate::runtime::portal::UiPortalPlacementDenial::EmptyAnchor => Stop::EmptyAnchor,
-        crate::runtime::portal::UiPortalPlacementDenial::InsufficientViewport => {
-            Stop::InsufficientViewport
-        }
-        crate::runtime::portal::UiPortalPlacementDenial::UnknownParent => Stop::UnknownPortalParent,
-        crate::runtime::portal::UiPortalPlacementDenial::LayerDepthExhausted => {
-            Stop::PortalLayerDepthExhausted
-        }
     }
 }
 

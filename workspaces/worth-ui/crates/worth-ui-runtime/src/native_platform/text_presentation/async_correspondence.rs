@@ -19,7 +19,7 @@ pub(crate) enum UiPresentationAsyncPresentedAdmission {
 }
 
 pub(crate) struct UiPresentationAsyncTerminalCleanup {
-    runtime: UiPresentationAsyncRuntime,
+    runtime: Box<UiPresentationAsyncRuntime>,
 }
 
 pub(crate) struct UiPresentationAsyncTerminalCloseReceipt {
@@ -38,7 +38,7 @@ impl std::fmt::Debug for UiPresentationAsyncTerminalCleanup {
 #[derive(Debug)]
 pub(crate) enum UiPresentationAsyncPendingDenial {
     Issuance,
-    Admission(worth_ui_query_binding::WorthUiPresentationPendingAdmissionDenial),
+    Admission(Box<worth_ui_query_binding::WorthUiPresentationPendingAdmissionDenial>),
 }
 
 impl UiPresentationAsyncPendingDenial {
@@ -46,7 +46,7 @@ impl UiPresentationAsyncPendingDenial {
         self,
     ) -> Option<worth_ui_query_binding::WorthUiPresentationAdmissionRecovery> {
         match self {
-            Self::Admission(denial) => denial.into_recovery_receipt(),
+            Self::Admission(denial) => (*denial).into_recovery_receipt(),
             Self::Issuance => None,
         }
     }
@@ -79,7 +79,7 @@ impl UiPresentationAsyncRuntime {
             .map_err(|_| UiPresentationAsyncPendingDenial::Issuance)?;
         self.owner
             .admit_pending(correspondence)
-            .map_err(UiPresentationAsyncPendingDenial::Admission)
+            .map_err(|denial| UiPresentationAsyncPendingDenial::Admission(Box::new(denial)))
     }
 
     pub(crate) fn admit_presented_after_validation(
@@ -279,7 +279,9 @@ impl UiPresentationAsyncRuntime {
                 settled_frontiers: self.settled_frontiers.into_boxed_slice(),
                 settled_frontier_trace_complete: !self.settled_frontier_trace_overflowed,
             }),
-            Err(_) => Err(UiPresentationAsyncTerminalCleanup { runtime: self }),
+            Err(_) => Err(UiPresentationAsyncTerminalCleanup {
+                runtime: Box::new(self),
+            }),
         }
     }
 }
@@ -288,7 +290,7 @@ impl UiPresentationAsyncTerminalCleanup {
     pub(crate) fn retry(
         self,
     ) -> Result<UiPresentationAsyncTerminalCloseReceipt, UiPresentationAsyncTerminalCleanup> {
-        self.runtime.into_terminal_close()
+        (*self.runtime).into_terminal_close()
     }
 }
 

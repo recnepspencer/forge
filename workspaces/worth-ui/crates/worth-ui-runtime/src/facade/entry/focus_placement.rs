@@ -84,6 +84,8 @@ fn focus_input_recipient_disposition(
         transition.cause(),
         crate::runtime::focus::UiFocusCause::PortalInitial
             | crate::runtime::focus::UiFocusCause::PortalRestoration
+            | crate::runtime::focus::UiFocusCause::KeyboardTraversal
+            | crate::runtime::focus::UiFocusCause::RovingMovement
             | crate::runtime::focus::UiFocusCause::RebindPreserved
             | crate::runtime::focus::UiFocusCause::RebindFallback
     ) {

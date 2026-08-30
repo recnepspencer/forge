@@ -1,7 +1,7 @@
 #[must_use]
 #[derive(Debug)]
 pub(in crate::runtime) struct UiReservedServiceProposal {
-    candidate: super::UiServiceProposalCandidate,
+    candidate: Box<super::UiServiceProposalCandidate>,
     leases: Box<[super::super::UiServiceProposalOccupancyLease]>,
     displacement: Option<super::super::UiServiceProposalDisplacement>,
 }
@@ -52,7 +52,7 @@ impl UiReservedServiceProposal {
         displacement: Option<super::super::UiServiceProposalDisplacement>,
     ) -> Self {
         Self {
-            candidate,
+            candidate: Box::new(candidate),
             leases,
             displacement,
         }
@@ -61,7 +61,7 @@ impl UiReservedServiceProposal {
     pub(super) fn into_parts(
         self,
     ) -> (
-        super::UiServiceProposalCandidate,
+        Box<super::UiServiceProposalCandidate>,
         Box<[super::super::UiServiceProposalOccupancyLease]>,
         Option<super::super::UiServiceProposalDisplacement>,
     ) {
@@ -70,11 +70,6 @@ impl UiReservedServiceProposal {
 }
 
 impl UiServiceProposalBeforeEffectCancellationReceipt {
-    #[cfg(test)]
-    pub(in crate::runtime) const fn proposal(self) -> super::UiServiceProposalIdentity {
-        self.proposal
-    }
-
     #[cfg(test)]
     pub(in crate::runtime) const fn released_leases(self) -> u16 {
         self.released_leases

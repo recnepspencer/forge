@@ -172,7 +172,9 @@ pub(crate) fn present_initial<Port: UiNativePresentationPort>(
         Ok(external) => external,
         Err(UiNativePresentationFailure::Pending(pending)) => {
             return Err(UiNativePresentationFailure::Pending(
-                pending.with_settlement(UiNativePendingSurfaceSettlement::Initial(retained)),
+                pending.with_settlement(UiNativePendingSurfaceSettlement::Initial(Box::new(
+                    retained,
+                ))),
             ));
         }
         Err(failure) => return Err(failure),

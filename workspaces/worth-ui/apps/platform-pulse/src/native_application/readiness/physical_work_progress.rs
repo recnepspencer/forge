@@ -10,7 +10,7 @@ impl PlatformPulseApplicationRuntime {
             worth_ui::facade::app::WorthUiNativeApplicationShell,
             worth_ui_native_platform::UiNativeApplicationRuntimeDirective,
         ),
-        worth_ui_native_platform::UiNativeApplicationRuntimeProgressStopped,
+        Box<worth_ui_native_platform::UiNativeApplicationRuntimeProgressStopped>,
     > {
         self.shell = Some(application);
         if self.progress_pending_frame_presentation(&progress) {

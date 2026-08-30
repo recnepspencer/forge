@@ -4,14 +4,12 @@ pub(crate) enum UiPortalFocusTransitionDenial {
     UnknownProposal,
     ForeignPreparedFrame,
     StaleFocusRevision,
-    Routing(super::UiFocusRoutingDenial),
+    Routing,
 }
 
 #[must_use = "a prepared portal focus transition changes no focus truth until publication settles"]
 pub(super) struct UiPreparedPortalFocusTransition {
-    proposal: crate::runtime::session::service_proposal::UiServiceProposalIdentity,
     boundary: super::UiPortalFocusBoundaryIdentity,
-    portal_owner: worth_ui_host_contract::UiMountedInstanceIdentity,
     opening: bool,
     expected_revision: u64,
     snapshot: crate::mounting::UiMountedFocusParticipationSnapshot,
@@ -22,9 +20,7 @@ pub(super) struct UiPreparedPortalFocusTransition {
 
 impl UiPreparedPortalFocusTransition {
     pub(super) fn new(
-        proposal: crate::runtime::session::service_proposal::UiServiceProposalIdentity,
         boundary: super::UiPortalFocusBoundaryIdentity,
-        portal_owner: worth_ui_host_contract::UiMountedInstanceIdentity,
         opening: bool,
         expected_revision: u64,
         snapshot: crate::mounting::UiMountedFocusParticipationSnapshot,
@@ -33,9 +29,7 @@ impl UiPreparedPortalFocusTransition {
         closed_descendants: Box<[super::UiPortalFocusBoundaryIdentity]>,
     ) -> Self {
         Self {
-            proposal,
             boundary,
-            portal_owner,
             opening,
             expected_revision,
             snapshot,
@@ -45,22 +39,12 @@ impl UiPreparedPortalFocusTransition {
         }
     }
 
-    pub(super) const fn proposal(
-        &self,
-    ) -> crate::runtime::session::service_proposal::UiServiceProposalIdentity {
-        self.proposal
-    }
-
     pub(super) const fn frame(&self) -> worth_ui_host_contract::UiMountedFrameIdentity {
         self.snapshot.frame()
     }
 
     pub(super) const fn boundary(&self) -> super::UiPortalFocusBoundaryIdentity {
         self.boundary
-    }
-
-    pub(super) const fn portal_owner(&self) -> worth_ui_host_contract::UiMountedInstanceIdentity {
-        self.portal_owner
     }
 
     pub(super) const fn opening(&self) -> bool {

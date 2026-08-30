@@ -8,6 +8,7 @@ pub(crate) enum UiServiceStatePersistencePosture {
 }
 
 impl UiServiceStatePersistencePosture {
+    #[cfg(test)]
     pub(in crate::runtime) const ALL: [Self; 3] = [
         Self::Ephemeral,
         Self::SessionRestoreCandidate,

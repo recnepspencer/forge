@@ -14,7 +14,6 @@ pub(crate) enum UiScrollDeltaCause {
         precision: worth_ui_host_contract::UiHostScrollDeltaPrecision,
     },
     ProgrammaticReveal,
-    AnchorReconciliation,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

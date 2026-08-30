@@ -184,9 +184,8 @@ impl UiNativeHostState {
     ) -> Option<crate::UiNativeDerivedStateReconstructionObservation> {
         #[cfg(feature = "certification-support")]
         {
-            return self
-                .qualification
-                .derived_state_reconstruction_observation();
+            self.qualification
+                .derived_state_reconstruction_observation()
         }
         #[cfg(not(feature = "certification-support"))]
         {

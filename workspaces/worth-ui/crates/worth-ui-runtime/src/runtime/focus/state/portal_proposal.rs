@@ -29,9 +29,7 @@ impl super::UiFocusRuntimeState {
         self.pending_portal.insert(
             owner.proposal(),
             crate::runtime::focus::portal_transition::UiPreparedPortalFocusTransition::new(
-                owner.proposal(),
                 requirement.boundary(),
-                requirement.owner(),
                 requirement.opening(),
                 self.revision,
                 snapshot,
@@ -93,7 +91,7 @@ impl super::UiFocusRuntimeState {
             .remove(&proposal)
             .expect("validated Focus proposal remains staged");
         self.install_mounted_participation(transition.snapshot())
-            .map_err(crate::runtime::focus::UiPortalFocusTransitionDenial::Routing)?;
+            .map_err(|_| crate::runtime::focus::UiPortalFocusTransitionDenial::Routing)?;
         if transition.opening() {
             self.portal_restorations
                 .insert(transition.boundary(), transition.restoration());
@@ -112,7 +110,7 @@ impl super::UiFocusRuntimeState {
             },
             u32::from(transition.next().is_some()),
         )
-        .map_err(crate::runtime::focus::UiPortalFocusTransitionDenial::Routing)
+        .map_err(|_| crate::runtime::focus::UiPortalFocusTransitionDenial::Routing)
     }
 
     pub(in crate::runtime) fn discard_portal_proposal(

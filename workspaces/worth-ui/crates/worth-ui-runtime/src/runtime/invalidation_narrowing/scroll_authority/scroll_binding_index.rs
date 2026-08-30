@@ -110,35 +110,6 @@ impl UiScrollInvalidationBindingIndex {
         let mismatch = rows.and_then(|rows| rows.classify(&requested));
         acquire_exact(exact, requested, mismatch, probes)
     }
-    pub(crate) fn projection(
-        &self,
-        owner: crate::runtime::UiScrollProjectionOwnerIdentity,
-    ) -> Option<crate::runtime::UiActivatedScrollProjectionTarget> {
-        self.projection_contracts
-            .get(&owner)
-            .map(|(contract, node, _)| {
-                crate::runtime::UiActivatedScrollProjectionTarget::new(
-                    *node,
-                    contract.graph_generation(),
-                    contract.identity_digest(),
-                )
-            })
-    }
-    pub(crate) fn validate_projection_receipt(
-        &self,
-        target: crate::runtime::UiActivatedScrollProjectionTarget,
-        key: &crate::runtime::UiScrollReceiptActivationKey,
-    ) -> Result<(), crate::runtime::UiScrollOwnerAcquisitionDenial> {
-        let (_, _, active_key) = self
-            .projection_contracts
-            .get(&target.owner_identity())
-            .ok_or(crate::runtime::UiScrollOwnerAcquisitionDenial::OwnerNotActive)?;
-        if active_key == key {
-            Ok(())
-        } else {
-            Err(active_key.mismatch_denial(key))
-        }
-    }
 }
 
 fn record_acquisition_lookup(

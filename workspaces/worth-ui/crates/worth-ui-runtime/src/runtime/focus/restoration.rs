@@ -26,6 +26,7 @@ impl UiFocusRestorationToken {
 }
 
 impl super::UiFocusRuntimeState {
+    #[cfg(test)]
     pub(super) fn plan_restoration(
         &self,
         token: UiFocusRestorationToken,

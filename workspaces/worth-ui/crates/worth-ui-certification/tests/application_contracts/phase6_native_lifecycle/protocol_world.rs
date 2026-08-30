@@ -10,8 +10,8 @@ use super::NativeFaultContractEvidence;
 
 #[test]
 fn native_lifecycle_protocol_world_matches_independent_oracle_for_all_schedules() {
-    for state in STATES.iter().copied() {
-        for event in EVENTS.iter().copied() {
+    for &state in STATES {
+        for &event in EVENTS {
             run_schedule("single-state-event", state, std::slice::from_ref(&event));
         }
     }
@@ -21,8 +21,8 @@ fn native_lifecycle_protocol_world_matches_independent_oracle_for_all_schedules(
 }
 
 pub(super) fn verify_native_fault_contract() -> NativeFaultContractEvidence {
-    for state in STATES.iter().copied() {
-        for event in EVENTS.iter().copied() {
+    for &state in STATES {
+        for &event in EVENTS {
             run_schedule("phase7-state-event", state, std::slice::from_ref(&event));
         }
     }

@@ -143,27 +143,6 @@ impl UiAllocationInvalidationAuthority {
     > {
         self.portal_bindings.movement(result)
     }
-    #[cfg(test)]
-    pub(crate) fn scroll_binding_counters(&self) -> crate::runtime::UiScrollBindingCatalogCounters {
-        self.scroll_bindings
-            .catalog_receipt
-            .as_ref()
-            .map_or_else(Default::default, |receipt| receipt.counters())
-    }
-    pub(crate) fn scroll_projection_target(
-        &self,
-        owner: crate::runtime::UiScrollProjectionOwnerIdentity,
-    ) -> Option<crate::runtime::UiActivatedScrollProjectionTarget> {
-        self.scroll_bindings.projection(owner)
-    }
-    pub(crate) fn validate_scroll_projection_receipt(
-        &self,
-        target: crate::runtime::UiActivatedScrollProjectionTarget,
-        key: &crate::runtime::UiScrollReceiptActivationKey,
-    ) -> Result<(), crate::runtime::UiScrollOwnerAcquisitionDenial> {
-        self.scroll_bindings
-            .validate_projection_receipt(target, key)
-    }
     pub(crate) fn acquire_host_scroll_projection(
         &self,
         witness: crate::evidence::UiHostMeasurementAuthorityWitness,

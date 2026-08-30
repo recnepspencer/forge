@@ -16,6 +16,7 @@ pub(in crate::mounting) struct UiMountedProjectionNodeRecord {
         Option<super::super::hit_test::UiMountedHitTestSeed>,
     pub(in crate::mounting) focus_support: crate::capability::ComponentFocusSupport,
     pub(in crate::mounting) focus_scope: Option<super::super::UiMountedFocusScope>,
+    pub(in crate::mounting) focus_container_owner: Option<crate::graph::UiGraphNodeIdentity>,
     pub(in crate::mounting::projection) component_id: Option<crate::capability::ComponentId>,
     pub(in crate::mounting::projection) portal_child_owner: Option<crate::capability::ComponentId>,
 }

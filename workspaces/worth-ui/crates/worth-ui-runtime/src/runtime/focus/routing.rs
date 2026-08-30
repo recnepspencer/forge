@@ -9,6 +9,12 @@ pub(crate) enum UiFocusRoutingDenial {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum UiHostFocusTraversalDirection {
+    Forward,
+    Backward,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct UiFocusPlan {
     expected_revision: u64,
     next: Option<super::UiSemanticKeyboardFocus>,
@@ -43,9 +49,6 @@ impl UiFocusPlan {
     pub(super) const fn cause(self) -> super::UiFocusCause {
         self.cause
     }
-    pub(super) const fn outcome(self) -> super::UiFocusOutcome {
-        self.outcome
-    }
     pub(super) const fn participants_visited(self) -> u32 {
         self.participants_visited
     }
@@ -71,15 +74,27 @@ impl super::UiFocusRuntimeState {
                 direction,
                 wrap,
             } => self.plan_traversal(scope, direction, wrap),
+            #[cfg(test)]
             super::UiFocusRequest::First { scope, cause } => {
                 Ok(self.plan_for(self.first_in_scope(scope), cause, 1))
             }
-            super::UiFocusRequest::Last { scope, cause } => {
-                Ok(self.plan_for(self.last_in_scope(scope), cause, 1))
-            }
+            #[cfg(test)]
             super::UiFocusRequest::Restore(token) => self.plan_restoration(token),
-            super::UiFocusRequest::Clear { cause } => Ok(self.plan_for(None, cause, 0)),
         }
+    }
+
+    pub(crate) fn commit_host_traversal(
+        &mut self,
+        scope: super::UiFocusScopeIdentity,
+        direction: UiHostFocusTraversalDirection,
+        wrap: bool,
+    ) -> Result<super::UiFocusTransitionReceipt, UiFocusRoutingDenial> {
+        let direction = match direction {
+            UiHostFocusTraversalDirection::Forward => super::UiFocusTraversalDirection::Forward,
+            UiHostFocusTraversalDirection::Backward => super::UiFocusTraversalDirection::Backward,
+        };
+        let plan = self.plan_traversal(scope, direction, wrap)?;
+        self.commit(plan)
     }
 
     fn plan_traversal(
@@ -92,26 +107,33 @@ impl super::UiFocusRuntimeState {
             .participants
             .get(&scope)
             .ok_or(UiFocusRoutingDenial::UnknownScope)?;
+        let tab_stops = scoped
+            .iter()
+            .copied()
+            .filter(|participant| participant.container().is_none())
+            .collect::<Vec<_>>();
         let current_index = self.current.and_then(|current| {
             (current.scope() == scope)
                 .then(|| {
-                    self.participant_index
-                        .get(&current.participant())
-                        .map(|entry| entry.1)
+                    let participant = self.exact_current_successor(current)?;
+                    let tab_identity = participant.container().unwrap_or(participant.identity());
+                    tab_stops
+                        .iter()
+                        .position(|candidate| candidate.identity() == tab_identity)
                 })
                 .flatten()
         });
         let next = match (direction, current_index) {
-            (super::UiFocusTraversalDirection::Forward, Some(index)) => scoped
+            (super::UiFocusTraversalDirection::Forward, Some(index)) => tab_stops
                 .get(index + 1)
                 .copied()
-                .or_else(|| wrap.then(|| scoped.first().copied()).flatten()),
+                .or_else(|| wrap.then(|| tab_stops.first().copied()).flatten()),
             (super::UiFocusTraversalDirection::Backward, Some(index)) => index
                 .checked_sub(1)
-                .and_then(|previous| scoped.get(previous).copied())
-                .or_else(|| wrap.then(|| scoped.last().copied()).flatten()),
-            (super::UiFocusTraversalDirection::Forward, None) => scoped.first().copied(),
-            (super::UiFocusTraversalDirection::Backward, None) => scoped.last().copied(),
+                .and_then(|previous| tab_stops.get(previous).copied())
+                .or_else(|| wrap.then(|| tab_stops.last().copied()).flatten()),
+            (super::UiFocusTraversalDirection::Forward, None) => tab_stops.first().copied(),
+            (super::UiFocusTraversalDirection::Backward, None) => tab_stops.last().copied(),
         };
         Ok(self.plan_for(
             next,
@@ -124,14 +146,21 @@ impl super::UiFocusRuntimeState {
         &self,
         scope: super::UiFocusScopeIdentity,
     ) -> Option<super::UiFocusParticipant> {
-        self.participants.get(&scope)?.first().copied()
+        self.participants
+            .get(&scope)?
+            .iter()
+            .find(|participant| participant.container().is_none())
+            .copied()
     }
 
-    fn last_in_scope(
+    pub(crate) fn default_scope_for_surface(
         &self,
-        scope: super::UiFocusScopeIdentity,
-    ) -> Option<super::UiFocusParticipant> {
-        self.participants.get(&scope)?.last().copied()
+        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    ) -> Option<super::UiFocusScopeIdentity> {
+        self.participants
+            .keys()
+            .copied()
+            .find(|scope| scope.semantic_surface() == surface)
     }
 
     pub(super) fn plan_for(

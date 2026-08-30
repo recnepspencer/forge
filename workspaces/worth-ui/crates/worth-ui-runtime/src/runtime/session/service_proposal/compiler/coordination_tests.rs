@@ -65,7 +65,7 @@ fn prove_focus_selection_settlement(
     let selection = crate::runtime::selection::UiStagedDeclaredSelectionTransition::prepare(
         proposal,
         action,
-        Some(registration),
+        Some(registration.clone()),
         &selection_state,
     )
     .unwrap();
@@ -134,6 +134,7 @@ fn prove_focus_selection_settlement(
         .unwrap();
     compiler.finish_settlement(settlement).unwrap();
     if accepted {
+        prove_same_owner_drift_rejects_commit(proposal, action, registration, &selection_state);
         let unrelated =
             install_unrelated_selection(&mut selection_state, action.owner().semantic_surface());
         selection.commit(&mut selection_state);
@@ -144,6 +145,36 @@ fn prove_focus_selection_settlement(
         assert!(selection_state.selected(action.owner()).is_none());
     }
     assert!(compiler.census().is_zero());
+}
+
+fn prove_same_owner_drift_rejects_commit(
+    proposal: super::UiServiceProposalIdentity,
+    action: super::super::UiDeclaredFocusSelectionAction,
+    registration: crate::runtime::selection::UiSelectionRegistration,
+    predecessor: &crate::runtime::selection::UiSelectionRuntimeState,
+) {
+    let mut drifted = predecessor.clone();
+    let staged = crate::runtime::selection::UiStagedDeclaredSelectionTransition::prepare(
+        proposal,
+        action,
+        Some(registration.clone()),
+        &drifted,
+    )
+    .unwrap();
+    drifted
+        .synchronize_and_apply(registration, action.request())
+        .unwrap();
+    let selected_before_rejected_commit = drifted.selected(action.owner()).cloned();
+
+    let rejection = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        staged.commit(&mut drifted);
+    }));
+
+    assert!(rejection.is_err());
+    assert_eq!(
+        drifted.selected(action.owner()).cloned(),
+        selected_before_rejected_commit
+    );
 }
 
 fn install_unrelated_selection(
@@ -201,7 +232,22 @@ fn declared_selection(
         owner,
         incarnation,
         crate::runtime::selection::UiSelectionRequest::SelectSingle(key),
-        super::super::UiSelectionInvocationCause::DeclaredKeyboardActivation,
+        super::super::UiSelectionInvocationCause::Keyboard,
+    );
+    assert_eq!(
+        action.cause(),
+        super::super::UiSelectionInvocationCause::Keyboard
+    );
+    let pointer = super::super::UiDeclaredFocusSelectionAction::new(
+        target,
+        owner,
+        incarnation,
+        crate::runtime::selection::UiSelectionRequest::SelectSingle(key),
+        super::super::UiSelectionInvocationCause::Pointer,
+    );
+    assert_eq!(
+        pointer.cause(),
+        super::super::UiSelectionInvocationCause::Pointer
     );
     let registration = crate::runtime::selection::UiSelectionRegistration::new(
         owner,

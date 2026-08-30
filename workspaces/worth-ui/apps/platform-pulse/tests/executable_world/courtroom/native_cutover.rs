@@ -18,7 +18,14 @@ fn pulse_native_cutover_runs_the_complete_causal_journey() {
         &manifest,
         &installation_path,
     );
-    assert!(native.cost().full_journey() <= manifest.host_journey_deadline());
+    let cost = native.cost();
+    let observed = cost.full_journey();
+    let deadline = manifest.host_journey_deadline();
+    cost.report();
+    assert!(
+        observed <= deadline,
+        "native journey cost {observed:?} exceeded host deadline {deadline:?}"
+    );
     let verdict = native
         .evidence()
         .validate()
@@ -27,5 +34,4 @@ fn pulse_native_cutover_runs_the_complete_causal_journey() {
     assert_ne!(verdict.process_id(), 0);
     assert_ne!(verdict.exit_poll_count(), 0);
     assert!(native.closed().evidence().installation_removed());
-    native.cost().report();
 }

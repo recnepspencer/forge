@@ -2,9 +2,7 @@ pub(super) fn settle_published_portal_proposal(
     admitted: &mut super::UiIntentConsequenceAdmitted<'_>,
     mounted: &crate::mounting::UiMountedFramePublicationReceipt,
 ) -> Option<crate::facade::entry::focus_placement::UiSemanticFocusPublicationReceipt> {
-    let Some(transaction) = admitted.transfer.portal_proposal.take() else {
-        return None;
-    };
+    let transaction = admitted.transfer.portal_proposal.take()?;
     let (focus, motion, exit_retention) = admitted
         .session
         .application
@@ -47,9 +45,7 @@ pub(super) fn settle_published_portal_proposal(
 pub(super) fn settle_indeterminate_portal_proposal(
     admitted: &mut super::UiIntentConsequenceAdmitted<'_>,
 ) -> Option<crate::runtime::session::UiIndeterminatePortalProposalTransaction> {
-    let Some(transaction) = admitted.transfer.portal_proposal.take() else {
-        return None;
-    };
+    let transaction = admitted.transfer.portal_proposal.take()?;
     Some(
         admitted
             .session

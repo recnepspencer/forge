@@ -184,14 +184,14 @@ fn unsupported_authored_aspects_deny_through_public_freeze_path() {
     );
     assert_eq!(
         denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
+        WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(
             UiDeclarationGraphHandoffDenial::AspectContractNotAdmitted {
                 denial: UiAspectContractAdmissionDenial::UnsupportedAspectSemanticSlice {
                     family: worth_ui::facade::declaration::UiAspectFamily::Appearance,
                     canonical_label: "appearance.border".to_string(),
                 },
-            },
-        )
+            }
+        ),)
     );
 }
 

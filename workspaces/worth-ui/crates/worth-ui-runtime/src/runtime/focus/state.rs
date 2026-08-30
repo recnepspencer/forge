@@ -44,12 +44,6 @@ impl UiFocusRuntimeState {
         )
     }
 
-    pub(in crate::runtime) const fn new(
-        persistence: crate::runtime::UiServiceStatePersistencePosture,
-    ) -> Self {
-        Self::new_with_policy(persistence, crate::declaration::UiFocusPolicy::workbench())
-    }
-
     const fn new_with_policy(
         persistence: crate::runtime::UiServiceStatePersistencePosture,
         policy: crate::declaration::UiFocusPolicy,
@@ -76,6 +70,10 @@ impl UiFocusRuntimeState {
     }
 
     pub(crate) fn shutdown(&mut self) -> usize {
+        debug_assert_eq!(
+            self.persistence,
+            crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate
+        );
         let released = self.participant_index.len()
             + self.pending_portal.len()
             + self.portal_restorations.len()
@@ -90,12 +88,6 @@ impl UiFocusRuntimeState {
         self.last_transition = None;
         self.last_restoration_failure = None;
         released
-    }
-
-    pub(in crate::runtime) const fn persistence(
-        &self,
-    ) -> crate::runtime::UiServiceStatePersistencePosture {
-        self.persistence
     }
 
     pub(in crate::runtime) fn commit(
@@ -157,7 +149,10 @@ impl UiFocusRuntimeState {
         }) {
             self.active_descendant = None;
         }
-        if cause == super::UiFocusCause::KeyboardTraversal {
+        if matches!(
+            cause,
+            super::UiFocusCause::KeyboardTraversal | super::UiFocusCause::RovingMovement
+        ) {
             self.modality = super::UiFocusVisibleModality::Keyboard;
         }
         let receipt = super::UiFocusTransitionReceipt::new(

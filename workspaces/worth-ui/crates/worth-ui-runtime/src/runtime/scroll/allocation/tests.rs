@@ -21,8 +21,8 @@ fn admitted_extent_evidence_can_be_acquired_without_offset_authority() {
     assert_eq!(host_owner.authority_probes(), 2);
     assert_eq!(query_owner.target().target(), host_owner.target().target());
     assert_ne!(
-        query_owner.target().owner_identity(),
-        host_owner.target().owner_identity()
+        query_owner.receipt_key().source(),
+        host_owner.receipt_key().source()
     );
     assert_eq!(
         runtime

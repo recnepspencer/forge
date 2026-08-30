@@ -241,6 +241,12 @@ impl ScriptedPresentationHost {
         self.state.lock().unwrap().last_focus_placement
     }
 
+    pub fn input_recipient(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiHostInputRecipientBindingReceipt> {
+        self.state.lock().unwrap().input_recipient
+    }
+
     pub fn reconstruction_portal_overlay_counts(&self) -> Vec<usize> {
         self.state
             .lock()

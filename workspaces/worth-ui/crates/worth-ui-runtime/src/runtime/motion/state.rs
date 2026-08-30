@@ -57,12 +57,6 @@ impl UiMotionRuntimeState {
         self.policy = policy;
     }
 
-    pub(in crate::runtime) const fn persistence(
-        &self,
-    ) -> crate::runtime::UiServiceStatePersistencePosture {
-        self.persistence
-    }
-
     pub(in crate::runtime) fn stage(
         &mut self,
         proposal: crate::runtime::session::service_proposal::UiServiceProposalIdentity,
@@ -100,13 +94,13 @@ impl UiMotionRuntimeState {
         })
     }
 
-    pub(in crate::runtime) const fn derive(
+    pub(in crate::runtime) fn derive(
         &self,
         staged: super::UiStagedMotionServiceProposal,
         prepared_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     ) -> super::UiDerivedMotionServiceProposal {
         super::UiDerivedMotionServiceProposal {
-            staged,
+            staged: Box::new(staged),
             prepared_frame,
         }
     }
@@ -292,6 +286,7 @@ impl UiMotionRuntimeState {
         self.publication_sequence
     }
 
+    #[cfg(test)]
     pub(crate) const fn last_fact(&self) -> Option<super::UiMotionProducedFact> {
         self.last_fact
     }
@@ -301,6 +296,10 @@ impl UiMotionRuntimeState {
     }
 
     pub(crate) fn shutdown(&mut self) -> super::UiMotionShutdownReport {
+        debug_assert_eq!(
+            self.persistence,
+            crate::runtime::UiServiceStatePersistencePosture::Ephemeral
+        );
         let census_before_shutdown = self.census;
         let targets: Vec<_> = self.tracks.keys().copied().collect();
         for target in targets {

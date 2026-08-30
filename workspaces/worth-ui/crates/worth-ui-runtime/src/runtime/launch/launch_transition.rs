@@ -71,8 +71,10 @@ impl WorthUiRuntime {
                     ) => Err(
                         WorthUiRuntimeLaunchDenial::HostSessionReleaseIndeterminate {
                             cause: Box::new(cause),
-                            recovery: crate::facade::WorthUiHostSessionReleaseRecovery::retain(
-                                host_session,
+                            recovery: Box::new(
+                                crate::facade::WorthUiHostSessionReleaseRecovery::retain(
+                                    host_session,
+                                ),
                             ),
                         },
                     ),

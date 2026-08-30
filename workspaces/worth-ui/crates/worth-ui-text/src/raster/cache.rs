@@ -23,20 +23,11 @@ struct UiCachedGlyphRaster {
 
 /// Text-owned bounded cache of renderer output. It carries no atlas placement,
 /// pin, upload, or presentation authority.
+#[derive(Default)]
 pub struct UiGlyphRasterCache {
     entries: HashMap<UiGlyphRasterKey, UiCachedGlyphRaster>,
     insertion_order: VecDeque<UiGlyphRasterKey>,
     retained_bytes: usize,
-}
-
-impl Default for UiGlyphRasterCache {
-    fn default() -> Self {
-        Self {
-            entries: HashMap::new(),
-            insertion_order: VecDeque::new(),
-            retained_bytes: 0,
-        }
-    }
 }
 
 impl UiGlyphRasterCache {
@@ -61,7 +52,7 @@ impl UiGlyphRasterCache {
         demand: UiGlyphRasterDemandRecord,
     ) -> Option<Result<UiGlyphRasterRecord<UiAlphaRasterKind>, UiGlyphRasterAdmissionDenial>> {
         self.record(demand)
-            .map(|input| UiGlyphRasterRecord::<UiAlphaRasterKind>::from_text_mechanics(input))
+            .map(UiGlyphRasterRecord::<UiAlphaRasterKind>::from_text_mechanics)
     }
 
     pub(crate) fn color_record(
@@ -69,7 +60,7 @@ impl UiGlyphRasterCache {
         demand: UiGlyphRasterDemandRecord,
     ) -> Option<Result<UiGlyphRasterRecord<UiColorRasterKind>, UiGlyphRasterAdmissionDenial>> {
         self.record(demand)
-            .map(|input| UiGlyphRasterRecord::<UiColorRasterKind>::from_text_mechanics(input))
+            .map(UiGlyphRasterRecord::<UiColorRasterKind>::from_text_mechanics)
     }
 
     fn record(&self, demand: UiGlyphRasterDemandRecord) -> Option<UiGlyphRasterRecordInput> {

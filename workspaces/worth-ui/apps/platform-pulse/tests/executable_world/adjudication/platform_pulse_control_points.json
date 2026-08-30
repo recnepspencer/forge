@@ -17,7 +17,7 @@
   "portal_primary_region": [664, 336, 784, 376],
   "portal_primary_label_region": [682, 346, 770, 366],
   "schema_stable_control_region": [888, 194, 912, 214],
-  "schema_posture_region": [704, 214, 912, 242],
+  "schema_posture_region": [704, 214, 912, 270],
   "blue_rgba": [47, 129, 247, 255],
   "green_rgba": [63, 185, 80, 255],
   "canvas_rgba": [11, 15, 20, 255],

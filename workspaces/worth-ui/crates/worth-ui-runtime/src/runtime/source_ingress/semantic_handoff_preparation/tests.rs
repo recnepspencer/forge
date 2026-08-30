@@ -338,9 +338,11 @@ fn scoped_command_package(
     binding: &str,
     declare_component: bool,
 ) -> worth_ui_dsl::WorthUiSealedSemanticPackage {
-    let component = declare_component
-        .then(|| format!("component {binding} {{}}"))
-        .unwrap_or_default();
+    let component = if declare_component {
+        format!("component {binding} {{}}")
+    } else {
+        String::new()
+    };
     WorthUiDslCompiler::compile_source(
         WorthUiAuthoredSourceInput::rooted_at(PathBuf::from("workspace")).with_module(
             "app/main.wui",

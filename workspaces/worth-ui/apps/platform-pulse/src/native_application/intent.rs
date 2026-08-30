@@ -18,7 +18,9 @@ pub(super) use native_ingress::{
     PlatformPulseIntentPosturePublicationDisposition, PlatformPulseIntentPostureSettlement,
     PlatformPulsePendingIntentPosture, PlatformPulsePreparedIntentPosture,
 };
-pub(super) use product_cycle::PlatformPulseIntentProductCycleOutcome;
+pub(super) use product_cycle::{
+    PlatformPulseIntentExecutionProgress, PlatformPulseIntentProductCycleOutcome,
+};
 
 pub(super) enum PlatformPulseIntentPosturePublicationDenial {
     Managed(worth_ui::facade::app::WorthUiNativeManagedIntentPosturePublicationDenial),

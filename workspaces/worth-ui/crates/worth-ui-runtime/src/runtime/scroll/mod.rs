@@ -32,8 +32,8 @@ pub(crate) use ownership_chain::{
     UiResolvedScrollOwnershipChain, UiScrollOwnershipResolutionDenial,
 };
 pub(crate) use programmatic_reveal::{
-    UiScrollProgrammaticRevealRequest, UiScrollRevealAlignment, UiScrollRevealInterval,
-    UiScrollRevealTarget, UiScrollViewportExtent,
+    UiScrollProgrammaticRevealRequest, UiScrollRevealInterval, UiScrollRevealTarget,
+    UiScrollViewportExtent,
 };
 pub(in crate::runtime) use proposal::UiStagedScrollServiceProposal;
 pub(crate) use receipt::{

@@ -75,8 +75,7 @@ impl UiNativeRetainedDrawList {
                 })
                 .collect(),
         };
-        let mut applied = 0;
-        for change in sample.changes() {
+        for (applied, change) in sample.changes().iter().enumerate() {
             let command = self
                 .commands
                 .get(&change.command())
@@ -95,7 +94,6 @@ impl UiNativeRetainedDrawList {
                 return Err(denial);
             }
             self.sample_overrides.insert(change.command(), *change);
-            applied += 1;
         }
         match self.replay_plan(sample.damage(), sample.changes().len(), 0) {
             Ok(plan) => Ok((plan, undo)),

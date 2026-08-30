@@ -1,4 +1,11 @@
 impl super::UiSelectionRuntimeState {
+    pub(in crate::runtime::selection) fn owner_record_for_staging(
+        &self,
+        owner: super::super::UiSelectionOwnerIdentity,
+    ) -> Option<&super::UiSelectionOwnerRecord> {
+        self.owners.get(&owner)
+    }
+
     pub(super) fn record_drop(
         &mut self,
         owner: super::super::UiSelectionOwnerIdentity,

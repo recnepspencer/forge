@@ -99,8 +99,9 @@ pub(crate) use runtime_service_story_pixels::{
 };
 #[cfg(target_os = "windows")]
 pub(crate) use schema_transition::{
-    adjudicate_schema_transition, ExecutableSchemaTransitionEvidence,
-    ExecutableSchemaTransitionFailure, ExpectedSchemaTransition,
+    adjudicate_schema_transition, schema_posture_changed_pixel_bytes, schema_posture_matches,
+    ExecutableSchemaTransitionEvidence, ExecutableSchemaTransitionFailure,
+    ExpectedSchemaTransition,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use source_to_pixel::{

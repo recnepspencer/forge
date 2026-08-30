@@ -293,7 +293,7 @@ fn eight_owner_high_precision_chain_cost_is_bounded_by_visited_depth() {
 }
 
 #[test]
-fn extent_reconciliation_clamps_current_offset_but_cannot_supply_new_offset() {
+fn extent_reconciliation_and_host_delta_commit_as_one_owner_transition() {
     let owner = UiScrollOwnerIdentity::viewport(surface());
     let mut state = UiScrollRuntimeState::new_session_restore_candidate();
     register(
@@ -304,10 +304,29 @@ fn extent_reconciliation_clamps_current_offset_but_cannot_supply_new_offset() {
         bounds(0, 200),
         UiScrollOffset::new(0, 150).unwrap(),
     );
-    let reconciled = state
-        .reconcile_bounds(owner, incarnation(1), bounds(0, 80))
+    let receipt = state
+        .route_with_reconciled_bounds(
+            UiScrollDeltaRequest::new(
+                vec![UiScrollChainEntry::new(owner, incarnation(1))],
+                UiScrollDelta::new(0, -10),
+                host_cause(),
+            )
+            .unwrap(),
+            &[bounds(0, 80)],
+        )
         .unwrap();
-    assert_eq!(reconciled, UiScrollOffset::new(0, 80).unwrap());
+    assert_eq!(
+        receipt.transitions()[0].previous(),
+        UiScrollOffset::new(0, 150).unwrap()
+    );
+    assert_eq!(
+        receipt.transitions()[0].current(),
+        UiScrollOffset::new(0, 70).unwrap()
+    );
+    assert_eq!(
+        state.offset(owner, incarnation(1)).unwrap(),
+        UiScrollOffset::new(0, 70).unwrap()
+    );
 }
 
 #[test]
@@ -332,7 +351,7 @@ fn programmatic_reveal_uses_current_viewport_and_scroll_owner_bounds() {
                     UiScrollRevealInterval::new(180, 220).unwrap(),
                 ),
                 UiScrollViewportExtent::new(100, 100).unwrap(),
-                UiScrollRevealAlignment::Nearest,
+                crate::declaration::UiScrollRevealAlignment::Nearest,
             )
             .unwrap(),
         )
@@ -366,7 +385,7 @@ fn reveal_respects_declared_axis_and_clamps_alignment_to_bounds() {
                     UiScrollRevealInterval::new(120, 180).unwrap(),
                 ),
                 UiScrollViewportExtent::new(40, 40).unwrap(),
-                UiScrollRevealAlignment::End,
+                crate::declaration::UiScrollRevealAlignment::End,
             )
             .unwrap(),
         )

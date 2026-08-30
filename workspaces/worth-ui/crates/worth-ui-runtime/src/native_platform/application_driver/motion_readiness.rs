@@ -138,6 +138,12 @@ impl UiNativeMotionReadinessLane {
     }
 }
 
+fn state_lock(
+    schedule: &Arc<(Mutex<UiNativeMotionReadinessSchedule>, Condvar)>,
+) -> Result<std::sync::MutexGuard<'_, UiNativeMotionReadinessSchedule>, ()> {
+    schedule.0.lock().map_err(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,10 +175,4 @@ mod tests {
         ));
         assert!(lane.worker.is_none());
     }
-}
-
-fn state_lock(
-    schedule: &Arc<(Mutex<UiNativeMotionReadinessSchedule>, Condvar)>,
-) -> Result<std::sync::MutexGuard<'_, UiNativeMotionReadinessSchedule>, ()> {
-    schedule.0.lock().map_err(|_| ())
 }

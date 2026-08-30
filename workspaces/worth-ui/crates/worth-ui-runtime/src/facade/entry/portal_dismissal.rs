@@ -84,25 +84,6 @@ impl WorthUiActiveApplicationSession {
         if !self.portal.is_installed() {
             return UiPortalDismissalPublicationOutcome::IgnoredNoMatchingPortal;
         }
-        if !self.focus.is_installed() || !self.motion.is_installed() {
-            return UiPortalDismissalPublicationOutcome::Stopped(
-                UiPortalDismissalPublicationStop::Proposal,
-            );
-        }
-        let lineage = self.next_portal_service_event_identity;
-        self.next_portal_service_event_identity = match lineage.checked_add(1) {
-            Some(next) => next,
-            None => {
-                return UiPortalDismissalPublicationOutcome::Stopped(
-                    UiPortalDismissalPublicationStop::IdentityExhausted,
-                )
-            }
-        };
-        let idempotency =
-            crate::runtime::intent_execution::UiIntentExecutionIdempotencyIdentity::issued(
-                self.session_identity().as_u64(),
-                lineage,
-            );
         let trigger = match dismissal_trigger(interaction) {
             Some(trigger) => trigger,
             None => {
@@ -147,6 +128,74 @@ impl WorthUiActiveApplicationSession {
         } else {
             None
         };
+        self.publish_portal_dismissal_trigger(
+            trigger,
+            sampled_bounds,
+            Some(interaction.presentation()),
+            now_tick,
+        )
+    }
+
+    pub(in crate::facade::entry) fn publish_anchor_loss_portal_dismissal(
+        &mut self,
+        portal: crate::runtime::portal::UiPortalIdentity,
+        now_tick: u64,
+    ) -> UiPortalDismissalPublicationOutcome<'_> {
+        let Some(presentation) = self
+            .portal
+            .as_ref()
+            .and_then(|state| state.committed_presentation_for(portal))
+        else {
+            return UiPortalDismissalPublicationOutcome::IgnoredNoMatchingPortal;
+        };
+        self.publish_portal_dismissal_trigger(
+            crate::runtime::portal::UiPortalDismissalTrigger::AnchorLoss(portal),
+            None,
+            Some(presentation),
+            now_tick,
+        )
+    }
+
+    fn publish_portal_dismissal_trigger(
+        &mut self,
+        trigger: crate::runtime::portal::UiPortalDismissalTrigger,
+        sampled_bounds: Option<worth_ui_host_contract::UiMountedCanonicalBox>,
+        expected_presentation: Option<worth_ui_host_contract::UiHostObservationPresentationBasis>,
+        now_tick: u64,
+    ) -> UiPortalDismissalPublicationOutcome<'_> {
+        if !self.portal.is_installed() {
+            return UiPortalDismissalPublicationOutcome::IgnoredNoMatchingPortal;
+        }
+        if !self.focus.is_installed() || !self.motion.is_installed() {
+            return UiPortalDismissalPublicationOutcome::Stopped(
+                UiPortalDismissalPublicationStop::Proposal,
+            );
+        }
+        if expected_presentation.is_some_and(|presentation| {
+            crate::runtime::interaction::targeting::require_current_presentation(
+                &self.mounted,
+                presentation,
+            )
+            .is_err()
+        }) {
+            return UiPortalDismissalPublicationOutcome::Stopped(
+                UiPortalDismissalPublicationStop::Transition,
+            );
+        }
+        let lineage = self.next_portal_service_event_identity;
+        self.next_portal_service_event_identity = match lineage.checked_add(1) {
+            Some(next) => next,
+            None => {
+                return UiPortalDismissalPublicationOutcome::Stopped(
+                    UiPortalDismissalPublicationStop::IdentityExhausted,
+                )
+            }
+        };
+        let idempotency =
+            crate::runtime::intent_execution::UiIntentExecutionIdempotencyIdentity::issued(
+                self.session_identity().as_u64(),
+                lineage,
+            );
         let dismissal = match self
             .portal
             .as_ref()
@@ -172,11 +221,7 @@ impl WorthUiActiveApplicationSession {
                 )
             }
         };
-        if matches!(
-            trigger,
-            crate::runtime::portal::UiPortalDismissalTrigger::OutsidePress { .. }
-        ) && dismissal.presentation() != interaction.presentation()
-        {
+        if expected_presentation.is_some_and(|expected| dismissal.presentation() != expected) {
             return UiPortalDismissalPublicationOutcome::Stopped(
                 UiPortalDismissalPublicationStop::Transition,
             );

@@ -1,7 +1,7 @@
 use super::WorthUiApp;
 
 pub(crate) enum WorthUiPresentationAsyncInstallationDenial {
-    AlreadyInstalled(worth_ui_query_binding::WorthUiPresentationAsyncInstallation),
+    AlreadyInstalled(Box<worth_ui_query_binding::WorthUiPresentationAsyncInstallation>),
 }
 
 impl std::fmt::Debug for WorthUiPresentationAsyncInstallationDenial {
@@ -17,7 +17,7 @@ impl WorthUiPresentationAsyncInstallationDenial {
         self,
     ) -> worth_ui_query_binding::WorthUiPresentationAsyncInstallation {
         match self {
-            Self::AlreadyInstalled(installation) => installation,
+            Self::AlreadyInstalled(installation) => *installation,
         }
     }
 }
@@ -28,7 +28,11 @@ impl WorthUiApp {
         installation: worth_ui_query_binding::WorthUiPresentationAsyncInstallation,
     ) -> Result<(), WorthUiPresentationAsyncInstallationDenial> {
         if self.presentation_async.is_some() {
-            return Err(WorthUiPresentationAsyncInstallationDenial::AlreadyInstalled(installation));
+            return Err(
+                WorthUiPresentationAsyncInstallationDenial::AlreadyInstalled(Box::new(
+                    installation,
+                )),
+            );
         }
         self.presentation_async = Some(
             crate::native_platform::text_presentation::UiPresentationAsyncRuntime::from_installation(

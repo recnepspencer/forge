@@ -12,6 +12,7 @@ use super::native_observation_settlement::UiNativeObservationIngressSettlement;
 mod certification;
 #[path = "native_application_shell/component_presence.rs"]
 mod component_presence;
+pub(crate) use component_presence::UiNativeComponentPresenceProgress;
 #[path = "native_application_shell/launch.rs"]
 mod launch;
 #[path = "native_application_shell/motion_sampling.rs"]
@@ -52,6 +53,7 @@ pub struct WorthUiNativeApplicationShell {
         Option<super::native_managed_rebind::WorthUiNativePendingManagedRebind>,
     pub(super) retained_portal_dismissal:
         Option<super::native_managed_rebind::UiRetainedPortalDismissalRequest>,
+    pending_component_presence: Option<component_presence::UiNativePendingComponentPresence>,
     pub(super) managed_rebind_completion_tick: u64,
     reduced_motion_posture: WorthUiNativeReducedMotionPosture,
 }
@@ -65,12 +67,12 @@ struct NativeMountedRow {
 #[derive(Debug)]
 pub enum WorthUiNativeApplicationShellLaunchDenial {
     RuntimeLaunch,
-    RuntimeLaunchCleanup(crate::runtime::WorthUiRuntimeLaunchDenial),
+    RuntimeLaunchCleanup(Box<crate::runtime::WorthUiRuntimeLaunchDenial>),
     SemanticSurfaceCreation,
     HostSurfaceRegistration,
     MountedInstanceCreation,
-    ViewportAllocation(super::WorthUiMountedAllocationEstablishmentDenial),
-    ApplicationCleanup(WorthUiNativeApplicationCleanup),
+    ViewportAllocation(Box<super::WorthUiMountedAllocationEstablishmentDenial>),
+    ApplicationCleanup(Box<WorthUiNativeApplicationCleanup>),
 }
 
 impl WorthUiNativeApplicationShell {

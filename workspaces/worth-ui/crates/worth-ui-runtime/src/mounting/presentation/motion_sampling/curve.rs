@@ -24,7 +24,6 @@ pub(super) fn interpolate_geometry(
 
 pub(super) fn ease(easing: crate::runtime::motion::UiMotionEasing, progress: f32) -> f32 {
     match easing {
-        crate::runtime::motion::UiMotionEasing::Linear => progress,
         crate::runtime::motion::UiMotionEasing::EaseOutCubic => 1.0 - (1.0 - progress).powi(3),
     }
 }

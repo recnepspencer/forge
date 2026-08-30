@@ -281,7 +281,7 @@ fn assert_independent_rgi_glyph_mapping(source: &str, layout: &crate::UiQualifie
         .artifact()
         .face_resource(run.face())
         .expect("qualified run retains its exact face bytes");
-    let face_index = u32::try_from(run.face().face_index()).expect("face index is u32");
+    let face_index = run.face().face_index();
     let face = rustybuzz::Face::from_slice(resource.bytes(), face_index)
         .expect("qualified profile face is independently parseable");
     let mut buffer = rustybuzz::UnicodeBuffer::new();

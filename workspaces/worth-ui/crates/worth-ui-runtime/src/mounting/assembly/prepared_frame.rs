@@ -31,7 +31,7 @@ impl UiPreparedMountedFrame {
             .map(|requirement| {
                 Ok(UiMountedSurfaceReceipt {
                     requirement: *requirement,
-                    projection_frame: std::sync::Arc::clone(&candidate.frame),
+                    projection_frame: std::rc::Rc::clone(&candidate.frame),
                     projection: std::cell::OnceCell::new(),
                 })
             })

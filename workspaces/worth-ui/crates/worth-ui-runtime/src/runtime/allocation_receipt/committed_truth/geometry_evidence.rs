@@ -210,44 +210,6 @@ fn resolve_viewport_axis(
         .then_some((origin, extent))
 }
 
-#[cfg(test)]
-mod viewport_region_tests {
-    use super::resolve_viewport_axis;
-    use crate::capability::ComponentViewportAxisPlacement as Placement;
-
-    #[test]
-    fn viewport_axes_preserve_fixed_rail_and_stretch_stage() {
-        assert_eq!(
-            resolve_viewport_axis(Placement::fixed_from_start(24, 216).unwrap(), 960.0),
-            Some((24.0, 216.0)),
-        );
-        assert_eq!(
-            resolve_viewport_axis(Placement::stretch_between(264, 24), 960.0),
-            Some((264.0, 672.0)),
-        );
-        assert_eq!(
-            resolve_viewport_axis(Placement::stretch_between(264, 24), 1_120.0),
-            Some((264.0, 832.0)),
-        );
-        assert_eq!(
-            resolve_viewport_axis(Placement::fixed_from_end(24, 24).unwrap(), 600.0),
-            Some((552.0, 24.0)),
-        );
-    }
-
-    #[test]
-    fn viewport_axes_fail_closed_when_constraints_consume_the_viewport() {
-        assert_eq!(
-            resolve_viewport_axis(Placement::stretch_between(264, 24), 280.0),
-            None,
-        );
-        assert_eq!(
-            resolve_viewport_axis(Placement::fixed_from_end(24, 56).unwrap(), 64.0),
-            None,
-        );
-    }
-}
-
 impl UiAllocationAxisAlignedBounds {
     pub fn x(self) -> f32 {
         self.x
@@ -331,4 +293,42 @@ fn portal_anchor_observation(
             },
         })
     })
+}
+
+#[cfg(test)]
+mod viewport_region_tests {
+    use super::resolve_viewport_axis;
+    use crate::capability::ComponentViewportAxisPlacement as Placement;
+
+    #[test]
+    fn viewport_axes_preserve_fixed_rail_and_stretch_stage() {
+        assert_eq!(
+            resolve_viewport_axis(Placement::fixed_from_start(24, 216).unwrap(), 960.0),
+            Some((24.0, 216.0)),
+        );
+        assert_eq!(
+            resolve_viewport_axis(Placement::stretch_between(264, 24), 960.0),
+            Some((264.0, 672.0)),
+        );
+        assert_eq!(
+            resolve_viewport_axis(Placement::stretch_between(264, 24), 1_120.0),
+            Some((264.0, 832.0)),
+        );
+        assert_eq!(
+            resolve_viewport_axis(Placement::fixed_from_end(24, 24).unwrap(), 600.0),
+            Some((552.0, 24.0)),
+        );
+    }
+
+    #[test]
+    fn viewport_axes_fail_closed_when_constraints_consume_the_viewport() {
+        assert_eq!(
+            resolve_viewport_axis(Placement::stretch_between(264, 24), 280.0),
+            None,
+        );
+        assert_eq!(
+            resolve_viewport_axis(Placement::fixed_from_end(24, 56).unwrap(), 64.0),
+            None,
+        );
+    }
 }

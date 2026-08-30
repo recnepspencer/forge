@@ -113,15 +113,6 @@ impl UiServiceProposalOwnerAcknowledgement {
     pub(in crate::runtime) const fn disposition(self) -> UiServiceProposalPublicationDisposition {
         self.disposition
     }
-
-    #[cfg(test)]
-    pub(in crate::runtime) const fn recorded_foreign_fixture(
-        receipt: UiServiceProposalPublicationReceipt,
-        family: crate::capability::UiRuntimeServiceFamily,
-        scope: super::super::UiServiceProposalOccupancyScopeIdentity,
-    ) -> Self {
-        Self::from_family_owner(receipt, family, scope)
-    }
 }
 
 #[cfg(test)]

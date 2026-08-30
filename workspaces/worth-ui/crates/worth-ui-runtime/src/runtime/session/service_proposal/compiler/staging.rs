@@ -26,22 +26,27 @@ pub(in crate::runtime) struct UiServiceProposalStageReceipt {
 #[must_use]
 #[derive(Debug)]
 pub(in crate::runtime) struct UiServiceProposalStaging {
-    candidate: super::UiServiceProposalCandidate,
+    candidate: Box<super::UiServiceProposalCandidate>,
     leases: Box<[super::super::UiServiceProposalOccupancyLease]>,
     #[cfg(test)]
     displacement: Option<super::super::UiServiceProposalDisplacement>,
     next_stage: usize,
     staged_families: super::super::UiServiceFamilyParticipation,
-    fact_references: Vec<super::UiServiceProducedFactReference>,
-    mounted_work_references: Vec<super::UiServiceMountedWorkReference>,
+    references: Box<UiServiceProposalStagingReferences>,
     retained_receipts: u16,
     reveal_refinement: Option<super::super::UiServiceProposalOccupancyScopeIdentity>,
+}
+
+#[derive(Debug, Default)]
+struct UiServiceProposalStagingReferences {
+    fact: Vec<super::UiServiceProducedFactReference>,
+    mounted_work: Vec<super::UiServiceMountedWorkReference>,
 }
 
 #[must_use]
 #[derive(Debug)]
 pub(in crate::runtime) struct UiServiceProposalStagedBatch {
-    candidate: super::UiServiceProposalCandidate,
+    candidate: Box<super::UiServiceProposalCandidate>,
     leases: Box<[super::super::UiServiceProposalOccupancyLease]>,
     #[cfg(test)]
     displacement: Option<super::super::UiServiceProposalDisplacement>,
@@ -91,8 +96,7 @@ impl UiServiceProposalStaging {
             displacement: _displacement,
             next_stage: super::UiServiceProposalStage::FamilyOwnedStaging.ordinal(),
             staged_families: super::super::UiServiceFamilyParticipation::EMPTY,
-            fact_references: Vec::new(),
-            mounted_work_references: Vec::new(),
+            references: Box::new(UiServiceProposalStagingReferences::default()),
             retained_receipts: 0,
             reveal_refinement: None,
         }
@@ -240,8 +244,9 @@ impl UiServiceProposalStaging {
             .staged_families
             .with_family(family)
             .map_err(|_| UiServiceProposalStagingDenial::DuplicateFamilyWitness)?;
-        self.fact_references.extend(receipt.fact_references);
-        self.mounted_work_references
+        self.references.fact.extend(receipt.fact_references);
+        self.references
+            .mounted_work
             .extend(receipt.mounted_work_references);
         Ok(())
     }
@@ -256,24 +261,30 @@ impl UiServiceProposalStaging {
                 UiServiceProposalStagingDenial::Incomplete { expected },
             ));
         }
-        self.fact_references
+        self.references
+            .fact
             .sort_by_key(|reference| (reference.family().index(), reference.diagnostic_value()));
-        self.mounted_work_references
+        self.references
+            .mounted_work
             .sort_by_key(|reference| (reference.family().index(), reference.diagnostic_value()));
         let digest = staged_batch_digest(
             self.candidate.identity(),
-            &self.fact_references,
-            &self.mounted_work_references,
+            &self.references.fact,
+            &self.references.mounted_work,
         );
+        #[cfg(test)]
+        let references = *self.references;
+        #[cfg(not(test))]
+        drop(self.references);
         Ok(UiServiceProposalStagedBatch {
             candidate: self.candidate,
             leases: self.leases,
             #[cfg(test)]
             displacement: self.displacement,
             #[cfg(test)]
-            fact_references: self.fact_references.into_boxed_slice(),
+            fact_references: references.fact.into_boxed_slice(),
             #[cfg(test)]
-            mounted_work_references: self.mounted_work_references.into_boxed_slice(),
+            mounted_work_references: references.mounted_work.into_boxed_slice(),
             digest,
             retained_receipts: self.retained_receipts,
             reveal_refinement: self.reveal_refinement,
@@ -348,7 +359,7 @@ impl UiServiceProposalStagedBatch {
 
 #[derive(Debug)]
 pub(super) struct UiServiceProposalTerminalParts {
-    pub(super) candidate: super::UiServiceProposalCandidate,
+    pub(super) candidate: Box<super::UiServiceProposalCandidate>,
     pub(super) leases: Box<[super::super::UiServiceProposalOccupancyLease]>,
     pub(super) retained_receipts: u16,
     pub(super) owners_requiring_discard: super::super::UiServiceFamilyParticipation,

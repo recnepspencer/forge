@@ -12,15 +12,13 @@ pub(crate) enum UiPresentationGeometrySamplingDenial {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct UiPresentationSampledGeometry {
     components: [f32; 4],
-    target: crate::runtime::motion::UiMotionTargetIdentity,
-    owner_revision: u64,
     presentation_basis: worth_ui_host_contract::UiHostObservationPresentationBasis,
 }
 
 impl UiPresentationSampledGeometry {
     pub(crate) fn from_motion_sample(
-        target: crate::runtime::motion::UiMotionTargetIdentity,
-        owner_revision: u64,
+        _target: crate::runtime::motion::UiMotionTargetIdentity,
+        _owner_revision: u64,
         expected_presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
         _semantic_basis: crate::runtime::motion::UiMotionSemanticGeometry,
         components: [f32; 4],
@@ -40,22 +38,12 @@ impl UiPresentationSampledGeometry {
         }
         Ok(Self {
             components,
-            target,
-            owner_revision,
             presentation_basis,
         })
     }
 
     pub(crate) const fn components(self) -> [f32; 4] {
         self.components
-    }
-
-    pub(crate) const fn target(self) -> crate::runtime::motion::UiMotionTargetIdentity {
-        self.target
-    }
-
-    pub(crate) const fn owner_revision(self) -> u64 {
-        self.owner_revision
     }
 
     pub(crate) const fn presentation_basis(
@@ -76,17 +64,5 @@ impl UiPresentationSampledGeometry {
         }
         self.presentation_basis = presentation_basis;
         Ok(self)
-    }
-
-    pub(crate) fn project_to_host_surface(
-        self,
-    ) -> Result<
-        worth_ui_host_contract::UiHostSurfaceLogicalGeometry,
-        worth_ui_host_contract::UiHostServiceGeometryDenial,
-    > {
-        worth_ui_host_contract::UiHostSurfaceLogicalGeometry::from_sampled_logical_projection(
-            self.presentation_basis,
-            self.components,
-        )
     }
 }

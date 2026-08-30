@@ -13,7 +13,7 @@ use super::lease::UiMountedPresentationLease;
 pub(crate) struct UiMountedPresentationWork {
     authority: Rc<()>,
     kind: UiMountedPresentationWorkKind,
-    layout_owner: Option<std::sync::Arc<crate::mounting::UiMountedProjectionFrame>>,
+    layout_owner: Option<std::rc::Rc<crate::mounting::UiMountedProjectionFrame>>,
 }
 
 enum UiMountedPresentationWorkKind {
@@ -58,7 +58,7 @@ impl UiMountedPresentationWork {
 
     pub(crate) fn bind_layout_owner(
         &mut self,
-        owner: std::sync::Arc<crate::mounting::UiMountedProjectionFrame>,
+        owner: std::rc::Rc<crate::mounting::UiMountedProjectionFrame>,
     ) {
         assert!(
             self.layout_owner.is_none(),

@@ -150,9 +150,9 @@ impl UiSourceRebindAttemptFailure {
     ) -> super::super::WorthUiWatchedCandidateSubmissionDenial {
         match self {
             Self::CompilationDenied(receipt) => {
-                super::super::WorthUiWatchedCandidateSubmissionDenial::DslCompilation(
+                super::super::WorthUiWatchedCandidateSubmissionDenial::DslCompilation(Box::new(
                     receipt.report,
-                )
+                ))
             }
             Self::Denied(receipt) => match receipt.denial {
                 UiSourceRebindAttemptDenial::SourceIngress(denial) => {
@@ -160,11 +160,13 @@ impl UiSourceRebindAttemptFailure {
                 }
                 UiSourceRebindAttemptDenial::RuntimePreparation(denial) => {
                     super::super::WorthUiWatchedCandidateSubmissionDenial::RuntimePreparation(
-                        denial,
+                        Box::new(denial),
                     )
                 }
                 UiSourceRebindAttemptDenial::Candidate(denial) => {
-                    super::super::WorthUiWatchedCandidateSubmissionDenial::Candidate(denial)
+                    super::super::WorthUiWatchedCandidateSubmissionDenial::Candidate(Box::new(
+                        denial,
+                    ))
                 }
             },
         }

@@ -19,7 +19,7 @@ pub(crate) use portal::UiDeclaredPortalPlacementGeometry;
 pub(super) use portal::UiDeclaredPortalSurfaceContract;
 pub use portal::{UiPortalPolicy, UiPortalPolicyKind};
 pub(super) use scroll::UiDeclaredScrollOwnershipContract;
-pub use scroll::{UiScrollAnchorBehavior, UiScrollPolicy};
+pub use scroll::{UiScrollAnchorBehavior, UiScrollPolicy, UiScrollRevealAlignment};
 pub(super) use selection::UiDeclaredSelectionIdentityContract;
 pub use selection::{UiSelectionMode, UiSelectionPolicy};
 

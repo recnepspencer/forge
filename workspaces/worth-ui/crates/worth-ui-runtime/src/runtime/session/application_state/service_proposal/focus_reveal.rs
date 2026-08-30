@@ -55,7 +55,10 @@ impl super::super::WorthUiApplicationSessionState {
                 target.mount_incarnation(),
             );
         let anchor = crate::runtime::scroll::UiScrollAnchor::new(
-            crate::runtime::scroll::UiScrollAnchorIdentity::mounted(requirement.target()),
+            requirement.application_item_anchor().map_or_else(
+                || crate::runtime::scroll::UiScrollAnchorIdentity::mounted(requirement.target()),
+                crate::runtime::scroll::UiScrollAnchorIdentity::application_item,
+            ),
             presentation.binding(),
             signed_subpixels(row.bounds().x())?.max(0),
             signed_subpixels(row.bounds().y())?.max(0),
@@ -114,7 +117,7 @@ impl super::super::WorthUiApplicationSessionState {
             entries,
             crate::runtime::scroll::UiScrollRevealTarget::new(target_inline, target_block),
             viewport,
-            crate::runtime::scroll::UiScrollRevealAlignment::Nearest,
+            scroll.reveal_alignment(),
         )
         .map_err(UiFocusRevealStagingDenial::Route)?;
         let receipt = successor

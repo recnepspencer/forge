@@ -171,7 +171,9 @@ pub use native_application_program::{
     UiNativeComponentPresenceChange, UiNativeComponentSemanticTextChange,
     UiNativeThemeTokenValueChange,
 };
-pub(crate) use native_application_shell::UiNativeApplicationQueryCloseObservation;
+pub(crate) use native_application_shell::{
+    UiNativeApplicationQueryCloseObservation, UiNativeComponentPresenceProgress,
+};
 pub use native_application_shell::{
     WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
     WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,

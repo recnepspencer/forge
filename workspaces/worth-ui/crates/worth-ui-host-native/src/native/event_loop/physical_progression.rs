@@ -166,7 +166,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         }
         let shared = Rc::clone(&self.shared);
         let _ = crate::native::readiness::signal_level_ready(
-            &mut self.readiness,
+            &self.readiness,
             self.physical_readiness_owner,
             ready,
             || {

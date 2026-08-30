@@ -11,11 +11,11 @@ pub(crate) fn register_platform_owners(
     registry: &mut UiNativeResourceRegistry,
 ) -> Result<
     (UiNativeOwnedDevice, UiNativeOwnedPresentationSurface),
-    (UiNativeDeviceState, UiNativePresentationSurface),
+    Box<(UiNativeDeviceState, UiNativePresentationSurface)>,
 > {
     let retains_target = surface.has_retained_target();
     let Some((device_owners, surface_owners)) = reserve_owners(registry, retains_target) else {
-        return Err((device, surface));
+        return Err(Box::new((device, surface)));
     };
     Ok((
         UiNativeOwnedDevice::new(device, device_owners),
@@ -27,9 +27,9 @@ pub(crate) fn close_platform_owners(
     mut device: UiNativeOwnedDevice,
     surface: UiNativeOwnedPresentationSurface,
     registry: &mut UiNativeResourceRegistry,
-) -> Result<(), (UiNativeOwnedDevice, UiNativeOwnedPresentationSurface)> {
+) -> Result<(), Box<(UiNativeOwnedDevice, UiNativeOwnedPresentationSurface)>> {
     if device.collect_settled(registry).is_err() || !device.can_close() {
-        return Err((device, surface));
+        return Err(Box::new((device, surface)));
     }
     surface.close(registry);
     if device.close(registry).is_err() {

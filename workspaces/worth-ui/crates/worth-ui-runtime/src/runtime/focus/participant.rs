@@ -6,16 +6,15 @@ pub(in crate::runtime) struct UiFocusParticipant {
     incarnation: worth_ui_host_contract::UiMountIncarnation,
     node_receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
     mounted_order: u32,
+    container: Option<super::UiFocusParticipantIdentity>,
+    container_policy: Option<crate::capability::ComponentFocusContainerPolicy>,
 }
 
 impl UiFocusParticipant {
-    pub(super) const fn from_mounted(
+    pub(super) fn from_mounted(
         mounted: crate::mounting::UiMountedFocusParticipant,
     ) -> Option<Self> {
-        if !matches!(
-            mounted.support(),
-            crate::capability::ComponentFocusSupport::Focusable
-        ) {
+        if mounted.support() == crate::capability::ComponentFocusSupport::NotFocusable {
             return None;
         }
         Some(Self {
@@ -30,6 +29,10 @@ impl UiFocusParticipant {
             incarnation: mounted.incarnation(),
             node_receipt: mounted.node_receipt(),
             mounted_order: mounted.mounted_order(),
+            container: mounted
+                .container()
+                .map(super::UiFocusParticipantIdentity::for_mounted_instance),
+            container_policy: mounted.support().container_policy(),
         })
     }
 
@@ -59,5 +62,15 @@ impl UiFocusParticipant {
 
     pub(in crate::runtime) const fn mounted_order(self) -> u32 {
         self.mounted_order
+    }
+
+    pub(super) const fn container(self) -> Option<super::UiFocusParticipantIdentity> {
+        self.container
+    }
+
+    pub(super) const fn container_policy(
+        self,
+    ) -> Option<crate::capability::ComponentFocusContainerPolicy> {
+        self.container_policy
     }
 }

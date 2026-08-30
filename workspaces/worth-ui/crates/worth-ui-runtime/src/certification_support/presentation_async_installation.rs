@@ -1,7 +1,7 @@
 use crate::facade::entry::WorthUiApp;
 
 pub enum WorthUiPresentationAsyncInstallationCertificationDenial {
-    AlreadyInstalled(worth_ui_query_binding::WorthUiPresentationAsyncInstallation),
+    AlreadyInstalled(Box<worth_ui_query_binding::WorthUiPresentationAsyncInstallation>),
 }
 
 impl std::fmt::Debug for WorthUiPresentationAsyncInstallationCertificationDenial {
@@ -26,9 +26,9 @@ impl WorthUiPresentationAsyncInstallationCertificationExt for WorthUiApp {
     ) -> Result<(), WorthUiPresentationAsyncInstallationCertificationDenial> {
         self.install_presentation_async(installation)
             .map_err(|denial| {
-                WorthUiPresentationAsyncInstallationCertificationDenial::AlreadyInstalled(
+                WorthUiPresentationAsyncInstallationCertificationDenial::AlreadyInstalled(Box::new(
                     denial.into_installation(),
-                )
+                ))
             })
     }
 }

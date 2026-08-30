@@ -141,17 +141,6 @@ pub(crate) enum UiServiceRequestBasisDenial {
 }
 
 impl UiServiceSurfaceBasis {
-    #[cfg(test)]
-    pub(in crate::runtime) fn from_mounted_binding(
-        binding: crate::mounting::UiSurfaceBindingIdentityView,
-    ) -> Self {
-        Self {
-            semantic_surface: binding.semantic_surface_identity(),
-            host_surface: binding.host_surface_identity(),
-            binding: binding.binding_generation(),
-        }
-    }
-
     pub(in crate::runtime) fn from_coherence(coherence: &UiServiceRequestCoherence) -> Self {
         Self {
             semantic_surface: coherence.axes().semantic_surface,
@@ -235,11 +224,6 @@ where
         self.authority.service_request_origin()
     }
 
-    #[cfg(test)]
-    pub(in crate::runtime) const fn source_order(&self) -> UiServiceSourceOrder {
-        self.source_order
-    }
-
     pub(in crate::runtime) fn coherence(&self) -> UiServiceRequestCoherence {
         worth_proof::Binding::new(UiServiceRequestCoherenceAxes {
             application: self.application.clone(),
@@ -289,10 +273,10 @@ fn validate_presentation_binding(
 mod tests;
 
 #[cfg(feature = "certification-support")]
-mod certification_fixture;
+mod fixture_certification_support;
 
 #[cfg(feature = "certification-support")]
-pub(super) use certification_fixture::{
+pub(super) use fixture_certification_support::{
     fixture_application_generation, fixture_service_request_coherence_in,
 };
 

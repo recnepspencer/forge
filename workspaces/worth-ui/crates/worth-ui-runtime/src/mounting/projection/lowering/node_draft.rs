@@ -23,6 +23,7 @@ impl UiMountedProjectionNodeDraft {
             hit_test: self.hit_test,
             focus_support: self.focus_support,
             focus_scope: self.focus_scope,
+            focus_container_owner: self.focus_container_owner,
             component_id: self.component_id,
             portal_child_owner: self.portal_child_owner,
         }

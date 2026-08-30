@@ -6,6 +6,7 @@ pub(crate) struct UiMountedFocusParticipant {
     incarnation: worth_ui_host_contract::UiMountIncarnation,
     node_receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
     support: crate::capability::ComponentFocusSupport,
+    container: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
     scope: super::projection::UiMountedFocusScope,
     mounted_order: u32,
 }
@@ -35,6 +36,7 @@ impl UiMountedFocusParticipant {
             incarnation,
             node_receipt,
             support,
+            container: None,
             scope,
             mounted_order,
         }
@@ -62,11 +64,25 @@ impl UiMountedFocusParticipant {
     pub(crate) const fn support(self) -> crate::capability::ComponentFocusSupport {
         self.support
     }
+    pub(crate) const fn container(
+        self,
+    ) -> Option<worth_ui_host_contract::UiMountedInstanceIdentity> {
+        self.container
+    }
     pub(crate) const fn scope(self) -> super::projection::UiMountedFocusScope {
         self.scope
     }
     pub(crate) const fn mounted_order(self) -> u32 {
         self.mounted_order
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn with_container(
+        mut self,
+        container: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Self {
+        self.container = Some(container);
+        self
     }
 }
 
@@ -75,6 +91,16 @@ impl UiMountedFocusParticipationSnapshot {
         projection: &super::UiMountedProjectionFrame,
         receipts: &super::UiMountedNodeReceiptBasis,
     ) -> Self {
+        let mounted_by_graph = projection
+            .semantic_projection()
+            .nodes_in_mounted_order()
+            .map(|node| {
+                (
+                    node.receipt().graph_node(),
+                    node.receipt().mounted_instance(),
+                )
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
         let mut nodes_visited = 0_u32;
         let participants = projection
             .semantic_projection()
@@ -90,7 +116,11 @@ impl UiMountedFocusParticipationSnapshot {
                 }
                 let scope = node.focus_scope?;
                 let mounted_instance = node.receipt().mounted_instance();
-                Some(UiMountedFocusParticipant::new(
+                let container = match node.focus_container_owner {
+                    Some(owner) => Some(*mounted_by_graph.get(&owner)?),
+                    None => None,
+                };
+                let mut participant = UiMountedFocusParticipant::new(
                     node.receipt().graph_node(),
                     node.receipt().semantic_surface(),
                     mounted_instance,
@@ -99,7 +129,9 @@ impl UiMountedFocusParticipationSnapshot {
                     node.focus_support,
                     scope,
                     u32::try_from(order).ok()?,
-                ))
+                );
+                participant.container = container;
+                Some(participant)
             })
             .collect::<Vec<_>>();
         Self::new(receipts.frame(), participants, nodes_visited)

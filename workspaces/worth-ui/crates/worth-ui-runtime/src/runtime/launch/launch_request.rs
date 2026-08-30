@@ -37,7 +37,7 @@ pub enum WorthUiRuntimeLaunchDenial {
     HostObservationSession(worth_ui_host_contract::UiHostObservationSessionRegistrationDenial),
     HostSessionReleaseIndeterminate {
         cause: Box<WorthUiRuntimeLaunchDenial>,
-        recovery: crate::facade::WorthUiHostSessionReleaseRecovery,
+        recovery: Box<crate::facade::WorthUiHostSessionReleaseRecovery>,
     },
     HostSessionReleaseMismatch {
         cause: Box<WorthUiRuntimeLaunchDenial>,
@@ -84,9 +84,12 @@ impl WorthUiRuntimeLaunchDenial {
         let Self::HostSessionReleaseIndeterminate { cause, recovery } = self else {
             return Ok(self);
         };
-        match recovery.retry() {
+        match (*recovery).retry() {
             Ok(_) => Ok(*cause),
-            Err(recovery) => Err(Self::HostSessionReleaseIndeterminate { cause, recovery }),
+            Err(recovery) => Err(Self::HostSessionReleaseIndeterminate {
+                cause,
+                recovery: Box::new(recovery),
+            }),
         }
     }
 }

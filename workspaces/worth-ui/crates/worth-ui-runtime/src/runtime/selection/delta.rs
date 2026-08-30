@@ -31,6 +31,7 @@ impl UiSelectionDelta {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn added(&self) -> &[super::UiSelectionStableKey] {
         &self.added
     }
@@ -45,6 +46,13 @@ impl UiSelectionDelta {
     }
     pub(crate) const fn revision(&self) -> u64 {
         self.revision
+    }
+
+    pub(in crate::runtime::selection) fn has_same_effect_as(&self, staged: &Self) -> bool {
+        self.added == staged.added
+            && self.removed == staged.removed
+            && self.selected_count == staged.selected_count
+            && self.candidates_visited == staged.candidates_visited
     }
 }
 
@@ -64,9 +72,18 @@ impl UiSelectionReconciliationReceipt {
     pub(crate) const fn delta(&self) -> &UiSelectionDelta {
         &self.delta
     }
+
+    pub(in crate::runtime::selection) fn has_same_effect_as(&self, staged: &Self) -> bool {
+        self.delta.has_same_effect_as(&staged.delta)
+            && self.order_changed == staged.order_changed
+            && self.missing_keys_preserved_for_partial_catalog
+                == staged.missing_keys_preserved_for_partial_catalog
+    }
+    #[cfg(test)]
     pub(crate) const fn order_changed(&self) -> bool {
         self.order_changed
     }
+    #[cfg(test)]
     pub(crate) const fn missing_keys_preserved_for_partial_catalog(&self) -> usize {
         self.missing_keys_preserved_for_partial_catalog
     }

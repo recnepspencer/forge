@@ -46,7 +46,7 @@ impl WorthUiActiveApplicationSession {
         let surface_incarnation = self.scroll_owner_incarnation();
         let scroll = self
             .scroll
-            .as_mut()
+            .as_ref()
             .ok_or(UiHostScrollObservationDenial::NoDeclaredScrollOwner)?;
         let chain = scroll
             .ownership_chain(mounted_instance)
@@ -82,6 +82,10 @@ impl WorthUiActiveApplicationSession {
                     .ok_or(UiHostScrollObservationDenial::DeltaOutOfRange)?,
             )
         };
+        let bounds = self
+            .application
+            .scroll_bounds_for_chain(&entries, mounted.graph_node_identity())
+            .map_err(map_bounds_denial)?;
         let request = crate::runtime::scroll::UiScrollDeltaRequest::new(
             entries,
             delta,
@@ -92,8 +96,10 @@ impl WorthUiActiveApplicationSession {
             },
         )
         .map_err(UiHostScrollObservationDenial::Route)?;
-        scroll
-            .route(request)
+        self.scroll
+            .as_mut()
+            .expect("Scroll installation was proven before bounds preflight")
+            .route_with_reconciled_bounds(request, &bounds)
             .map_err(UiHostScrollObservationDenial::Route)
     }
 
@@ -166,6 +172,22 @@ impl WorthUiActiveApplicationSession {
             worth_ui_host_contract::UiHostScrollDeltaTargetAffinity::PresentedSurfaceFallback {
                 ..
             } => Err(UiHostScrollObservationDenial::PresentedSurfaceFallbackIsAmbiguous),
+        }
+    }
+}
+
+fn map_bounds_denial(
+    denial: crate::runtime::scroll::UiScrollBoundsResolutionDenial,
+) -> UiHostScrollObservationDenial {
+    match denial {
+        crate::runtime::scroll::UiScrollBoundsResolutionDenial::AllocationUnavailable => {
+            UiHostScrollObservationDenial::AllocationUnavailable
+        }
+        crate::runtime::scroll::UiScrollBoundsResolutionDenial::ViewportUnavailable => {
+            UiHostScrollObservationDenial::ViewportUnavailable
+        }
+        crate::runtime::scroll::UiScrollBoundsResolutionDenial::OutOfRange => {
+            UiHostScrollObservationDenial::BoundsOutOfRange
         }
     }
 }

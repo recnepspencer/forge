@@ -20,8 +20,6 @@ pub(crate) struct UiPresentationMotionTerminalRequest {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct UiPresentationMotionSamplingCost {
     tracks_considered: u64,
-    samples_produced: u64,
-    damage_regions_produced: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -32,7 +30,6 @@ pub(crate) struct UiPresentationMotionSampleReceipt {
     base_geometry: Option<crate::runtime::motion::UiMotionSemanticGeometry>,
     geometry: Option<super::UiPresentationSampledGeometry>,
     opacity: f32,
-    visual_visible: bool,
     hit_test_visible: bool,
     damage: super::UiPresentationMotionDamage,
     posture: UiPresentationMotionSamplePosture,
@@ -69,24 +66,14 @@ impl UiPresentationMotionTerminalRequest {
 }
 
 impl UiPresentationMotionSamplingCost {
-    pub(super) const fn new(tracks: usize, samples: usize, damage: usize) -> Self {
+    pub(super) const fn new(tracks: usize) -> Self {
         Self {
             tracks_considered: tracks as u64,
-            samples_produced: samples as u64,
-            damage_regions_produced: damage as u64,
         }
     }
 
     pub(crate) const fn tracks_considered(self) -> u64 {
         self.tracks_considered
-    }
-
-    pub(crate) const fn samples_produced(self) -> u64 {
-        self.samples_produced
-    }
-
-    pub(crate) const fn damage_regions_produced(self) -> u64 {
-        self.damage_regions_produced
     }
 }
 
@@ -99,7 +86,6 @@ impl UiPresentationMotionSampleReceipt {
         base_geometry: Option<crate::runtime::motion::UiMotionSemanticGeometry>,
         geometry: Option<super::UiPresentationSampledGeometry>,
         opacity: f32,
-        visual_visible: bool,
         hit_test_visible: bool,
         damage: super::UiPresentationMotionDamage,
         posture: UiPresentationMotionSamplePosture,
@@ -111,7 +97,6 @@ impl UiPresentationMotionSampleReceipt {
             base_geometry,
             geometry,
             opacity,
-            visual_visible,
             hit_test_visible,
             damage,
             posture,
@@ -153,7 +138,6 @@ impl UiPresentationMotionSampleReceipt {
             semantic_basis,
             geometry,
             opacity,
-            visual_visible,
             track.successor_visible() && visual_visible,
             damage,
             posture,
@@ -179,9 +163,6 @@ impl UiPresentationMotionSampleReceipt {
     }
     pub(crate) const fn opacity(self) -> f32 {
         self.opacity
-    }
-    pub(crate) const fn visual_visible(self) -> bool {
-        self.visual_visible
     }
     pub(crate) const fn hit_test_visible(self) -> bool {
         self.hit_test_visible
@@ -210,10 +191,8 @@ impl UiPresentationMotionSamplingReceipt {
         samples: Vec<UiPresentationMotionSampleReceipt>,
         terminals: Vec<UiPresentationMotionTerminalRequest>,
         tracks_considered: usize,
-        damage_regions: usize,
     ) -> Self {
-        let cost =
-            UiPresentationMotionSamplingCost::new(tracks_considered, samples.len(), damage_regions);
+        let cost = UiPresentationMotionSamplingCost::new(tracks_considered);
         Self {
             samples: samples.into_boxed_slice(),
             terminals: terminals.into_boxed_slice(),
@@ -240,6 +219,7 @@ impl UiPresentationMotionInstallationReceipt {
         Self { sample, terminal }
     }
 
+    #[cfg(test)]
     pub(crate) const fn sample(self) -> Option<UiPresentationMotionSampleReceipt> {
         self.sample
     }

@@ -62,18 +62,18 @@ pub enum WorthUiPresentationSemanticExecutionDenial {
     ScopeCounterOverflow,
     MissingSourceInstance,
     Delivery(runtime::WorthQueryOwnedConditionalInstanceDenial),
-    DeliveryDenied(worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryDenial),
+    DeliveryDenied(Box<worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryDenial>),
     DeliveryDeferred(worth_runtime_bridge::facade::BridgeCorrespondenceDeferred),
     DeliveryStale(worth_runtime_bridge::facade::BridgeCorrespondenceStale),
     DeliveryRebindRequired(worth_runtime_bridge::facade::BridgeCorrespondenceRebindRequired),
     DeliveryFailed(worth_runtime_bridge::facade::BridgeCorrespondenceAdmissionFailure),
     Domain(worth_query::facade::domain::WorthQueryDomainHandleDenial),
-    OperatingWorld(worth_query::facade::installed::WorthQueryOperatingWorldEntryDenial),
-    Binding(worth_query::facade::domain::WorthQueryOperationBindingDenial),
+    OperatingWorld(Box<worth_query::facade::installed::WorthQueryOperatingWorldEntryDenial>),
+    Binding(Box<worth_query::facade::domain::WorthQueryOperationBindingDenial>),
     Resources(
         worth_query::facade::installed::operation::WorthQueryExecutionResourceAdmissionDenial,
     ),
-    Query(worth_query::facade::domain::WorthQueryOwnedConditionalExecutionDenial),
+    Query(Box<worth_query::facade::domain::WorthQueryOwnedConditionalExecutionDenial>),
 }
 
 #[derive(Clone)]
@@ -88,6 +88,7 @@ struct AdmissionSemanticRegistration {
     partitions: [PresentationSemanticPartition; DEPENDENCY_COUNT],
 }
 
+#[derive(Default)]
 pub struct WorthUiPresentationAsyncRegistry {
     next_partition_identity: u64,
     next_semantic_version: u64,
@@ -99,23 +100,6 @@ pub struct WorthUiPresentationAsyncRegistry {
     semantic_retirements: HashMap<SemanticExecutionKey, usize>,
     admissions: HashMap<SemanticExecutionKey, Vec<AdmissionSemanticRegistration>>,
     instances: SemanticSubscriberIndex,
-}
-
-impl Default for WorthUiPresentationAsyncRegistry {
-    fn default() -> Self {
-        Self {
-            next_partition_identity: 0,
-            next_semantic_version: 0,
-            next_execution_attempt: 0,
-            partitions: HashMap::new(),
-            partition_references: HashMap::new(),
-            execution_attempts: HashMap::new(),
-            semantic_executions: HashMap::new(),
-            semantic_retirements: HashMap::new(),
-            admissions: HashMap::new(),
-            instances: SemanticSubscriberIndex::default(),
-        }
-    }
 }
 
 impl PresentationSemanticPublication {

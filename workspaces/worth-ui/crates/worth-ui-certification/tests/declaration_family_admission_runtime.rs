@@ -161,14 +161,14 @@ fn caller_authored_freeze_exposes_typed_family_denials_on_public_artifacts() {
     );
     assert_eq!(
         contradictory_denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
+        WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(
             UiDeclarationGraphHandoffDenial::FamilyNotAdmitted {
                 denial: UiDeclarationFamilyAdmissionDenial::ContradictoryStructuralClaims {
                     family: UiDeclarationFamilyKind::Control,
                     observed: vec!["control:save".to_owned(), "region:sidebar".to_owned()],
                 },
-            },
-        )
+            }
+        ),)
     );
 
     let invalid_attached_intent_denial = freeze_denial(
@@ -177,15 +177,15 @@ fn caller_authored_freeze_exposes_typed_family_denials_on_public_artifacts() {
     );
     assert_eq!(
         invalid_attached_intent_denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
+        WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(
             UiDeclarationGraphHandoffDenial::FamilyNotAdmitted {
                 denial: UiDeclarationFamilyAdmissionDenial::InvalidAttachedRoleClaim {
                     family: UiDeclarationFamilyKind::Control,
                     expected_prefix: "intent:attached:",
                     observed: vec!["intent:attached".to_owned()],
                 },
-            },
-        )
+            }
+        ),)
     );
 }
 

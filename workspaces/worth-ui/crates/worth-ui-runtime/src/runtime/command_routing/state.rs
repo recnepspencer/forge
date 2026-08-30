@@ -31,10 +31,6 @@ impl UiCommandRoutingRuntimeState {
         }
     }
 
-    pub(crate) const fn persistence(&self) -> crate::runtime::UiServiceStatePersistencePosture {
-        self.persistence
-    }
-
     pub(crate) fn route_stroke(
         &mut self,
         stroke: crate::capability::UiCommandShortcutStroke,
@@ -107,6 +103,10 @@ impl UiCommandRoutingRuntimeState {
     }
 
     pub(crate) fn shutdown(&mut self) -> usize {
+        debug_assert_eq!(
+            self.persistence,
+            crate::runtime::UiServiceStatePersistencePosture::Ephemeral
+        );
         self.cancel_prefix();
         let released = self.plan.len();
         self.plan = super::plan::UiCommandRoutingPlan::default();

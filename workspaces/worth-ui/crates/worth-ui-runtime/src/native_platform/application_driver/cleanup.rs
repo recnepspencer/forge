@@ -5,12 +5,12 @@ use worth_ui_host_native::{
 use super::{shutdown_observation::UiNativeDriverShutdownEvidence, UiNativeApplicationDriver};
 
 pub(super) enum UiNativeApplicationDriverCleanup {
-    RuntimeLaunch(crate::runtime::WorthUiRuntimeLaunchDenial),
+    RuntimeLaunch(Box<crate::runtime::WorthUiRuntimeLaunchDenial>),
     Application {
-        cleanup: crate::facade::WorthUiNativeApplicationCleanup,
-        evidence: UiNativeDriverShutdownEvidence,
+        cleanup: Box<crate::facade::WorthUiNativeApplicationCleanup>,
+        evidence: Box<UiNativeDriverShutdownEvidence>,
     },
-    HostSession(crate::facade::WorthUiHostSessionReleaseRecovery),
+    HostSession(Box<crate::facade::WorthUiHostSessionReleaseRecovery>),
     UnresolvedApplication,
 }
 
@@ -44,13 +44,16 @@ impl UiNativeApplicationDriverCleanup {
                         crate::facade::entry::UiNativeApplicationQueryCloseObservation::empty_complete(),
                     evidence: UiNativeDriverShutdownEvidence::empty(),
                 })
-                .map_err(Self::RuntimeLaunch),
-            Self::Application { cleanup, evidence } => match cleanup.retry() {
+                .map_err(|cleanup| Self::RuntimeLaunch(Box::new(cleanup))),
+            Self::Application { cleanup, evidence } => match (*cleanup).retry() {
                 Ok(query_close) => Ok(UiNativeApplicationDriverCleanupCompletion {
                     query_close,
+                    evidence: *evidence,
+                }),
+                Err(cleanup) => Err(Self::Application {
+                    cleanup: Box::new(cleanup),
                     evidence,
                 }),
-                Err(cleanup) => Err(Self::Application { cleanup, evidence }),
             },
             Self::HostSession(cleanup) => cleanup
                 .retry()
@@ -59,7 +62,7 @@ impl UiNativeApplicationDriverCleanup {
                         crate::facade::entry::UiNativeApplicationQueryCloseObservation::empty_complete(),
                     evidence: UiNativeDriverShutdownEvidence::empty(),
                 })
-                .map_err(Self::HostSession),
+                .map_err(|cleanup| Self::HostSession(Box::new(cleanup))),
             Self::UnresolvedApplication => Err(Self::UnresolvedApplication),
         }
     }

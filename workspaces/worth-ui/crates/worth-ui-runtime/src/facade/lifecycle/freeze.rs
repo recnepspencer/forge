@@ -54,13 +54,13 @@ pub(crate) fn prepare_application_authority(
         declaration_artifacts,
     ) = preparation_source.into_prepared_parts();
     let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
-        .map_err(WorthUiApplicationPreparationDenial::GraphHandoff)?;
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(denial)))?;
     let graph_handoffs =
         expand_runtime_instance_handoffs(&graph_handoffs, &runtime_instance_basis_admissions);
     let graph_snapshot = admit_graph_handoffs(&graph_handoffs, &runtime_instance_basis_admissions)
-        .map_err(WorthUiApplicationPreparationDenial::GraphAdmission)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphAdmission(Box::new(denial)))?
         .commit_initial_generation(graph_world_profile)
-        .map_err(WorthUiApplicationPreparationDenial::GraphCommit)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphCommit(Box::new(denial)))?
         .into_committed_snapshot();
     let intent_catalog = crate::declaration::UiIntentCatalog::prepare(
         semantic_handoff.intent_material(),
@@ -69,7 +69,7 @@ pub(crate) fn prepare_application_authority(
         &query_binding_plan,
         &intent_application_facts,
     )
-    .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
+    .map_err(|denial| WorthUiApplicationPreparationDenial::IntentCatalog(Box::new(denial)))?;
     let retained_measurement_inspection_evidence = measurement_inspection_evidence.clone();
     let lifecycle = WorthUiFacadeLifecycleBootstrap::bootstrap_with_inspection_scope_inventory(
         &declaration_artifacts,
@@ -126,15 +126,15 @@ pub(crate) fn prepare_successor_application_authority(
         .into_replacement_parts();
     let (declaration_artifacts, declaration_source_identity) = declaration_material.into_parts();
     let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
-        .map_err(WorthUiApplicationPreparationDenial::GraphHandoff)?;
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(denial)))?;
     let admissions = current.runtime_instance_basis_admissions();
     let graph_handoffs = expand_runtime_instance_handoffs(&graph_handoffs, admissions);
     let graph_snapshot = admit_graph_handoffs(&graph_handoffs, admissions)
-        .map_err(WorthUiApplicationPreparationDenial::GraphAdmission)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphAdmission(Box::new(denial)))?
         .commit_successor_generation(crate::graph::UiGraphAuthority::new(
             current.graph_snapshot(),
         ))
-        .map_err(WorthUiApplicationPreparationDenial::GraphCommit)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphCommit(Box::new(denial)))?
         .into_committed_snapshot();
     let intent_catalog = crate::declaration::UiIntentCatalog::prepare(
         semantic_handoff.intent_material(),
@@ -143,7 +143,7 @@ pub(crate) fn prepare_successor_application_authority(
         current.query_binding_plan(),
         current.intent_application_fact_plan(),
     )
-    .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
+    .map_err(|denial| WorthUiApplicationPreparationDenial::IntentCatalog(Box::new(denial)))?;
     let measurement_inspection_evidence = current
         .measurement_inspection_evidence()
         .to_vec()

@@ -97,7 +97,7 @@ pub(crate) fn present_cold_reconstruction<Port: UiNativePresentationPort>(
         Err(UiNativePresentationFailure::Pending(pending)) => {
             return Err(UiNativeReconstructionFailure::Pending(
                 pending.with_settlement(super::UiNativePendingSurfaceSettlement::Reconstruction {
-                    retained,
+                    retained: Box::new(retained),
                     recovery,
                 }),
             ));

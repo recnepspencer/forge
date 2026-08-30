@@ -21,9 +21,9 @@ use worth_ui_text::{UiGlyphRasterDemandBatch, UiGlyphRasterDemandDenial, UiGlyph
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiNativeTextPresentationReadiness {
-    SemanticTextLayoutMismatch,
-    SemanticTextSourceMismatch,
-    SemanticTextDemandDenied(UiGlyphRasterDemandDenial),
+    LayoutMismatch,
+    SourceMismatch,
+    DemandDenied(UiGlyphRasterDemandDenial),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

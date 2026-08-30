@@ -88,11 +88,6 @@ fn validate_family_support(
 }
 
 impl UiPreflightedServiceProposal {
-    #[cfg(test)]
-    pub(in crate::runtime) const fn identity(&self) -> super::UiServiceProposalIdentity {
-        self.candidate.identity()
-    }
-
     pub(super) fn into_candidate(self) -> super::UiServiceProposalCandidate {
         self.candidate
     }

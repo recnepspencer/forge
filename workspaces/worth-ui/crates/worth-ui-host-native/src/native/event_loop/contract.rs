@@ -45,39 +45,41 @@ pub trait UiNativeEventLoopClient {
     }
     fn install_application_readiness(
         &mut self,
-        ports: Box<[crate::UiNativeApplicationReadinessPort]>,
-    ) -> Result<(), ()> {
+        ports: Vec<crate::UiNativeApplicationReadinessPort>,
+    ) -> Result<(), UiNativeEventLoopClientFailure> {
         if ports.is_empty() {
             Ok(())
         } else {
-            Err(())
+            Err(UiNativeEventLoopClientFailure::Rejected)
         }
     }
     fn application_readiness_ready(
         &mut self,
         _grant: UiNativeApplicationReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
-        Err(())
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
+        Err(UiNativeEventLoopClientFailure::Rejected)
     }
     fn native_surface_ready(
         &mut self,
         grant: UiNativeReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()>;
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure>;
     fn redraw_ready(
         &mut self,
         grant: UiNativeReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()>;
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure>;
     fn physical_work_progressed(
         &mut self,
         _grant: UiNativePhysicalProgressGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
         Ok(UiNativeEventLoopDirective::Continue)
     }
     fn native_observations_ready(
         &mut self,
         grant: UiNativeObservationReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()>;
-    fn external_close_requested(&mut self) -> Result<UiNativeEventLoopDirective, ()> {
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure>;
+    fn external_close_requested(
+        &mut self,
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
         Ok(UiNativeEventLoopDirective::Close)
     }
     fn presentation_attribution(&self) -> Option<UiNativeClientPresentationAttribution>;
@@ -90,6 +92,11 @@ pub struct UiNativePhysicalProgressGrant {
     presentation: Option<super::UiNativePhysicalPresentationCorrelation>,
     originating_presentation: Option<super::UiNativePhysicalPresentationCorrelation>,
     duplicate_presentation_observed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiNativeEventLoopClientFailure {
+    Rejected,
 }
 
 impl UiNativePhysicalProgressGrant {
@@ -209,12 +216,12 @@ pub enum UiNativeEventLoopRunDenial {
 pub struct UiNativeEventLoopStopReport {
     pub(super) cause: UiNativeEventLoopRunDenial,
     pub(super) effect_posture: UiNativeEffectPosture,
-    pub(super) peak_census: UiNativeResourceCensus,
-    pub(super) terminal_census: UiNativeResourceCensus,
+    pub(super) peak_census: Box<UiNativeResourceCensus>,
+    pub(super) terminal_census: Box<UiNativeResourceCensus>,
     pub(super) client_cleanup_complete: bool,
     pub(super) cleanup: Option<UiNativeEventLoopCleanup>,
     pub(super) peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
-    pub(super) input_observations: UiNativeInputObservationReport,
+    pub(super) input_observations: Box<UiNativeInputObservationReport>,
     pub(super) shutdown_overlap: UiNativeEventLoopShutdownOverlapObservation,
 }
 

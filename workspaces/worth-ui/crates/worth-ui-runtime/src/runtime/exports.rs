@@ -71,8 +71,6 @@ pub use super::allocation_receipt::{
 };
 pub(crate) use super::invalidation_narrowing::UiAdmittedAllocationPlanReference;
 pub use super::invalidation_narrowing::UiAdmittedPortalMovement;
-#[cfg(test)]
-pub use super::invalidation_narrowing::UiScrollBindingCatalogCounters;
 pub use super::invalidation_narrowing::{
     UiAllocationActivationCatalogDenial, UiAllocationInvalidationNarrowingDenial,
     UiAllocationInvalidationNarrowingRejection, UiAllocationInvalidationTarget,

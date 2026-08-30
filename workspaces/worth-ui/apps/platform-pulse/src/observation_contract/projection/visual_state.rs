@@ -155,7 +155,9 @@ impl PlatformPulseVisualObservationState {
                 predecessor_frame: frame,
                 successor_frame,
             }),
-            Self::Retired => Ok(Self::Retired),
+            Self::Retired => Ok(Self::AwaitingRefreshSnapshot {
+                refresh_frame: successor_frame,
+            }),
             Self::AwaitingFirstFrame
             | Self::SnapshotCaptured { .. }
             | Self::IdentityTraced { .. }

@@ -332,6 +332,7 @@ fn semantic_projection_with_static_color(
             hit_test: Some(UiMountedHitTestSeed::for_test(0)),
             focus_support: crate::capability::ComponentFocusSupport::not_focusable(),
             focus_scope: None,
+            focus_container_owner: None,
             component_id: None,
             portal_child_owner: None,
         }],

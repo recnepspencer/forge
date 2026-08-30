@@ -30,23 +30,23 @@ pub struct WorthUiPresentationCompletionAdvance {
 
 #[derive(Debug)]
 pub enum WorthUiPresentationCompletionDenial {
-    QueryOwned(runtime::WorthQueryOwnedAsyncRuntimeDenial),
-    QueryTransition(runtime::WorthQueryAsyncSourceBindingError),
-    Observation(WorthUiPresentationRuntimeAdmissionDenial),
+    QueryOwned(Box<runtime::WorthQueryOwnedAsyncRuntimeDenial>),
+    QueryTransition(Box<runtime::WorthQueryAsyncSourceBindingError>),
+    Observation(Box<WorthUiPresentationRuntimeAdmissionDenial>),
 }
 
 #[derive(Debug)]
 pub(crate) enum WorthUiPresentationRuntimeAdmissionDenial {
-    QueryOwned(runtime::WorthQueryOwnedAsyncRuntimeDenial),
-    QueryLive(runtime::WorthQueryRuntimeError),
+    QueryOwned(Box<runtime::WorthQueryOwnedAsyncRuntimeDenial>),
+    QueryLive(Box<runtime::WorthQueryRuntimeError>),
     MissingAsyncResultState,
     MissingSemanticRuntime,
     QueryDeclarationMismatch,
-    SemanticInstallation(runtime::WorthQueryOwnedConditionalInstanceDenial),
+    SemanticInstallation(Box<runtime::WorthQueryOwnedConditionalInstanceDenial>),
     CleanupRequired {
         cause: Box<WorthUiPresentationRuntimeAdmissionDenial>,
         recovery: Box<WorthUiPresentationRuntimeCleanup>,
-        last_denial: WorthUiPresentationRuntimeCleanupDenial,
+        last_denial: Box<WorthUiPresentationRuntimeCleanupDenial>,
     },
 }
 
@@ -93,7 +93,9 @@ impl WorthUiPresentationRuntimeAdmission {
                 }
                 Err(denial) if semantic_instances.is_empty() => {
                     return Err(
-                        WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(denial),
+                        WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(Box::new(
+                            denial,
+                        )),
                     );
                 }
                 Err(denial) => {
@@ -101,7 +103,9 @@ impl WorthUiPresentationRuntimeAdmission {
                         workspace,
                         semantic_instances.into_boxed_slice(),
                         None,
-                        WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(denial),
+                        WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(Box::new(
+                            denial,
+                        )),
                     ));
                 }
             }
@@ -114,7 +118,7 @@ impl WorthUiPresentationRuntimeAdmission {
                         workspace,
                         semantic_instances.into_boxed_slice(),
                         None,
-                        WorthUiPresentationRuntimeAdmissionDenial::QueryOwned(denial),
+                        WorthUiPresentationRuntimeAdmissionDenial::QueryOwned(Box::new(denial)),
                     ));
                 }
             };
@@ -136,7 +140,7 @@ impl WorthUiPresentationRuntimeAdmission {
                         workspace,
                         semantic_instances.into_boxed_slice(),
                         None,
-                        WorthUiPresentationRuntimeAdmissionDenial::QueryOwned(denial),
+                        WorthUiPresentationRuntimeAdmissionDenial::QueryOwned(Box::new(denial)),
                     ));
                 }
             };
@@ -154,7 +158,7 @@ impl WorthUiPresentationRuntimeAdmission {
                     workspace,
                     semantic_instances.into_boxed_slice(),
                     Some(request),
-                    WorthUiPresentationRuntimeAdmissionDenial::QueryLive(denial),
+                    WorthUiPresentationRuntimeAdmissionDenial::QueryLive(Box::new(denial)),
                 ));
             }
         };
@@ -200,7 +204,9 @@ impl WorthUiPresentationRuntimeAdmission {
                 &self.query_declaration,
                 &displacing.query_declaration,
             )
-            .map_err(WorthUiPresentationCompletionDenial::QueryTransition)?;
+            .map_err(|error| {
+                WorthUiPresentationCompletionDenial::QueryTransition(Box::new(error))
+            })?;
         Ok(())
     }
 
@@ -210,7 +216,9 @@ impl WorthUiPresentationRuntimeAdmission {
     ) -> Result<(), WorthUiPresentationCompletionDenial> {
         let _denial = workspace
             .deny_owned_bridge_async_live_view(&self.view, &self.query_declaration)
-            .map_err(WorthUiPresentationCompletionDenial::QueryTransition)?;
+            .map_err(|error| {
+                WorthUiPresentationCompletionDenial::QueryTransition(Box::new(error))
+            })?;
         Ok(())
     }
 
@@ -220,7 +228,9 @@ impl WorthUiPresentationRuntimeAdmission {
     ) -> Result<(), WorthUiPresentationCompletionDenial> {
         let _cancellation = workspace
             .cancel_owned_bridge_async_live_view(&self.view, &self.query_declaration)
-            .map_err(WorthUiPresentationCompletionDenial::QueryTransition)?;
+            .map_err(|error| {
+                WorthUiPresentationCompletionDenial::QueryTransition(Box::new(error))
+            })?;
         Ok(())
     }
 
@@ -231,10 +241,12 @@ impl WorthUiPresentationRuntimeAdmission {
     {
         workspace
             .retire_owned_bridge_async_request(&self.request)
-            .map_err(WorthUiPresentationRuntimeAdmissionDenial::QueryOwned)?;
+            .map_err(|error| {
+                WorthUiPresentationRuntimeAdmissionDenial::QueryOwned(Box::new(error))
+            })?;
         workspace
             .close_owned_bridge_async_live_view(&self.view)
-            .map_err(WorthUiPresentationRuntimeAdmissionDenial::QueryLive)
+            .map_err(|error| WorthUiPresentationRuntimeAdmissionDenial::QueryLive(Box::new(error)))
     }
 
     pub fn observation(
@@ -244,7 +256,7 @@ impl WorthUiPresentationRuntimeAdmission {
     {
         let posture = workspace
             .state_live(&self.view)
-            .map_err(WorthUiPresentationRuntimeAdmissionDenial::QueryLive)?
+            .map_err(|error| WorthUiPresentationRuntimeAdmissionDenial::QueryLive(Box::new(error)))?
             .async_result_state()
             .ok_or(WorthUiPresentationRuntimeAdmissionDenial::MissingAsyncResultState)?
             .kind();
@@ -286,7 +298,7 @@ fn cleanup_after_admission_failure(
         Err(last_denial) => WorthUiPresentationRuntimeAdmissionDenial::CleanupRequired {
             cause: Box::new(denial),
             recovery: Box::new(recovery),
-            last_denial,
+            last_denial: Box::new(last_denial),
         },
     }
 }
@@ -332,7 +344,7 @@ impl WorthUiPresentationRuntimeAdmissionDenial {
                 cause,
                 recovery,
                 last_denial,
-            } => Ok((*recovery, *cause, last_denial)),
+            } => Ok((*recovery, *cause, *last_denial)),
             denial => Err(denial),
         }
     }

@@ -7,12 +7,12 @@ pub(crate) fn transparent_and_bordered_bitmap_alpha_has_exact_support() {
     alpha[6] = 255;
     alpha[9] = 127;
     alpha[10] = 1;
-    let expected = Some(PixelBounds {
+    let expected = PixelBounds {
         left: 1,
         top: 1,
         right: 3,
         bottom: 3,
-    });
+    };
     let transparent = rgba_png(&[0; 16]);
     assert_eq!(
         alpha_bounds(&BitmapData::Png(&transparent), 4, 4),
@@ -21,17 +21,20 @@ pub(crate) fn transparent_and_bordered_bitmap_alpha_has_exact_support() {
     let bordered = rgba_png(&alpha);
     assert_eq!(
         alpha_bounds(&BitmapData::Png(&bordered), 4, 4),
-        Some(expected)
+        Some(Some(expected))
     );
     let bgra = alpha
         .iter()
         .flat_map(|alpha| [0, 0, 0, *alpha])
         .collect::<Vec<_>>();
-    assert_eq!(alpha_bounds(&BitmapData::Bgra(&bgra), 4, 4), Some(expected));
+    assert_eq!(
+        alpha_bounds(&BitmapData::Bgra(&bgra), 4, 4),
+        Some(Some(expected))
+    );
     assert_eq!(
         union_placed_bounds(
             None,
-            expected.unwrap(),
+            expected,
             CompositePlacement {
                 offset_x: -1,
                 offset_y: 2,

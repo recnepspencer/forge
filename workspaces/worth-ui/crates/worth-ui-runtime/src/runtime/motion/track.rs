@@ -15,16 +15,14 @@ pub(in crate::runtime) struct UiStagedMotionServiceProposal {
 
 #[must_use = "a derived Motion proposal must settle with existing mounted publication"]
 pub(in crate::runtime) struct UiDerivedMotionServiceProposal {
-    pub(super) staged: UiStagedMotionServiceProposal,
+    pub(super) staged: Box<UiStagedMotionServiceProposal>,
     pub(super) prepared_frame: worth_ui_host_contract::UiMountedFrameIdentity,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct UiCommittedMotionTrack {
     identity: UiMotionTrackIdentity,
-    proposal: crate::runtime::session::service_proposal::UiServiceProposalIdentity,
     request: super::UiMotionTransitionRequest,
-    prepared_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     retarget: Option<super::UiMotionRetargetDisposition>,
 }
 
@@ -45,10 +43,7 @@ pub(crate) struct UiMotionExitRetentionReceipt {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiMotionTerminalCause {
     Completed,
-    Superseded,
     SnappedToTarget,
-    Cancelled,
-    OwnerUnloaded,
     ReboundAway,
     ApplicationShutdown,
 }
@@ -85,12 +80,6 @@ impl UiStagedMotionServiceProposal {
                 request.successor().target().mounted_instance(),
             );
         crate::runtime::session::service_proposal::UiServiceFamilyProposal::motion(scope)
-    }
-
-    pub(in crate::runtime) const fn proposal(
-        &self,
-    ) -> crate::runtime::session::service_proposal::UiServiceProposalIdentity {
-        self.proposal
     }
 
     pub(in crate::runtime) const fn scope(
@@ -135,9 +124,7 @@ impl UiCommittedMotionTrack {
     ) -> Self {
         Self {
             identity: derived.staged.identity,
-            proposal: derived.staged.proposal,
             request: derived.staged.request,
-            prepared_frame: derived.prepared_frame,
             retarget,
         }
     }
@@ -146,20 +133,8 @@ impl UiCommittedMotionTrack {
         self.identity
     }
 
-    pub(in crate::runtime) const fn proposal(
-        self,
-    ) -> crate::runtime::session::service_proposal::UiServiceProposalIdentity {
-        self.proposal
-    }
-
     pub(in crate::runtime) const fn request(self) -> super::UiMotionTransitionRequest {
         self.request
-    }
-
-    pub(in crate::runtime) const fn prepared_frame(
-        self,
-    ) -> worth_ui_host_contract::UiMountedFrameIdentity {
-        self.prepared_frame
     }
 
     pub(crate) const fn retarget(self) -> Option<super::UiMotionRetargetDisposition> {
@@ -208,12 +183,7 @@ impl UiCommittedMotionTrack {
     ) -> Self {
         Self {
             identity: UiMotionTrackIdentity::allocate(identity).expect("non-zero test identity"),
-            proposal:
-                crate::runtime::session::service_proposal::UiServiceProposalIdentity::for_test(
-                    identity,
-                ),
             request,
-            prepared_frame: request.successor().presentation().frame(),
             retarget,
         }
     }
@@ -238,7 +208,8 @@ impl UiMotionCommitReceipt {
         self.track
     }
 
-    pub(in crate::runtime) const fn fact(self) -> super::UiMotionProducedFact {
+    #[cfg(test)]
+    pub(crate) const fn fact(self) -> super::UiMotionProducedFact {
         self.fact
     }
 
@@ -325,16 +296,14 @@ impl UiMotionTerminalReceipt {
         self.track.identity()
     }
 
-    pub(in crate::runtime) const fn cause(self) -> UiMotionTerminalCause {
+    #[cfg(test)]
+    pub(crate) const fn cause(self) -> UiMotionTerminalCause {
         self.cause
     }
 
-    pub(in crate::runtime) const fn fact(self) -> super::UiMotionProducedFact {
+    #[cfg(test)]
+    pub(crate) const fn fact(self) -> super::UiMotionProducedFact {
         self.fact
-    }
-
-    pub(crate) const fn committed_track(self) -> UiCommittedMotionTrack {
-        self.track
     }
 
     pub(crate) const fn exit_retention(self) -> Option<UiMotionExitRetentionReceipt> {

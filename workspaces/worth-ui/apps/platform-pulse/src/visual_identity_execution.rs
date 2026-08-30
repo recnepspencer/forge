@@ -25,9 +25,7 @@ use state_progression::{
     replacement_frame_deadline,
 };
 
-const INITIAL_NATIVE_SETTLEMENT: Duration = Duration::from_secs(1);
 const NATIVE_CAPTURE_POLL_INTERVAL: Duration = Duration::from_millis(1);
-const REPLACEMENT_NATIVE_SETTLEMENT: Duration = Duration::from_secs(1);
 const REPLACEMENT_FRAME_DEADLINE: Duration = Duration::from_secs(5);
 
 pub(crate) struct PlatformPulseVisualIdentityExecution {
@@ -114,6 +112,18 @@ impl PlatformPulseVisualIdentityExecution {
         self.readiness = Some(readiness::PlatformPulseVisualReadiness::install(signal));
     }
 
+    pub(crate) fn retains_rebind_receipt(&self) -> bool {
+        self.queued_rebind.is_some()
+            || matches!(
+                self.state.as_ref(),
+                Some(
+                    PlatformPulseVisualIdentityState::DeferredComparison { .. }
+                        | PlatformPulseVisualIdentityState::AwaitingComparison { .. }
+                        | PlatformPulseVisualIdentityState::Comparing(_)
+                )
+            )
+    }
+
     pub(crate) fn shutdown_quiescent(
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
@@ -171,10 +181,8 @@ impl PlatformPulseVisualIdentityExecution {
             self.state = Some(state);
             return Err(PlatformPulseVisualExecutionDenial::InitialFrameAlreadyArmed);
         }
-        let begin_at = now
-            .checked_add(INITIAL_NATIVE_SETTLEMENT)
-            .ok_or(PlatformPulseVisualExecutionDenial::ClockOverflow)?;
-        let deadline = begin_at
+        let begin_at = now;
+        let deadline = now
             .checked_add(REPLACEMENT_FRAME_DEADLINE)
             .ok_or(PlatformPulseVisualExecutionDenial::ClockOverflow)?;
         self.state = Some(PlatformPulseVisualIdentityState::Settling { begin_at, deadline });
@@ -366,22 +374,4 @@ impl PlatformPulseVisualIdentityExecution {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn capture_failure_cannot_strand_visual_state_as_transitioning() {
-        let mut execution = PlatformPulseVisualIdentityExecution::new();
-        execution.state = Some(PlatformPulseVisualIdentityState::Transitioning);
-
-        assert!(execution
-            .install_advance_result(Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline(
-                PlatformPulseVisualCapturePhase::Initial,
-            )))
-            .is_err());
-        assert!(matches!(
-            execution.state,
-            Some(PlatformPulseVisualIdentityState::Failed)
-        ));
-    }
-}
+mod tests;

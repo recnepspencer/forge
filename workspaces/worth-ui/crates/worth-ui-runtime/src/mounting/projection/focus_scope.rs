@@ -64,6 +64,47 @@ pub(super) fn resolve(
     Ok(Some(UiMountedFocusScope::ActiveSurface))
 }
 
+pub(super) fn container_owner(
+    graph: crate::graph::UiGraphAuthority<'_>,
+    plan: super::super::UiMountedPlanProjectionSource<'_>,
+    graph_node: crate::graph::UiGraphNodeIdentity,
+) -> Result<Option<crate::graph::UiGraphNodeIdentity>, super::UiMountedProjectionDenial> {
+    let mut cursor = graph
+        .lookup()
+        .topology_node(graph_node)
+        .ok_or(super::UiMountedProjectionDenial::UnknownGraphNode)?
+        .value()
+        .parent_node_identity();
+    while let Some(node) = cursor {
+        let record = graph
+            .lookup()
+            .graph_node(node)
+            .ok_or(super::UiMountedProjectionDenial::UnknownGraphNode)?
+            .value();
+        let index = plan
+            .plan_index(record.authored_provenance_digest())
+            .map_err(|_| super::UiMountedProjectionDenial::ForeignPlan)?;
+        let focus = index
+            .and_then(|index| plan.ordinary_meaning(index))
+            .and_then(|meaning| match meaning.as_ref() {
+                crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning::Component(
+                    component,
+                ) => Some(component.focus_support()),
+                _ => None,
+            });
+        if focus.is_some_and(|support| support.container_policy().is_some()) {
+            return Ok(Some(node));
+        }
+        cursor = graph
+            .lookup()
+            .topology_node(node)
+            .ok_or(super::UiMountedProjectionDenial::UnknownGraphNode)?
+            .value()
+            .parent_node_identity();
+    }
+    Ok(None)
+}
+
 fn region_kind(
     graph: crate::graph::UiGraphAuthority<'_>,
     plan: super::super::UiMountedPlanProjectionSource<'_>,

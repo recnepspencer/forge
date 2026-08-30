@@ -1,7 +1,8 @@
 use crate::facade::{WorthUiApp, WorthUiNativeApplicationShell};
 use worth_ui_host_native::{
-    UiNativeEventLoopClient, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
-    UiNativeObservationReadinessGrant, UiNativeReadinessGrant, WorthUiNativeEventLoop,
+    UiNativeEventLoopClient, UiNativeEventLoopClientClose, UiNativeEventLoopClientFailure,
+    UiNativeEventLoopDirective, UiNativeObservationReadinessGrant, UiNativeReadinessGrant,
+    WorthUiNativeEventLoop,
 };
 
 #[path = "application_driver/application_runtime.rs"]
@@ -133,162 +134,181 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
 
     fn install_application_readiness(
         &mut self,
-        ports: Box<[worth_ui_host_native::UiNativeApplicationReadinessPort]>,
-    ) -> Result<(), ()> {
-        self.install_application_readiness(ports)
+        ports: Vec<worth_ui_host_native::UiNativeApplicationReadinessPort>,
+    ) -> Result<(), UiNativeEventLoopClientFailure> {
+        self.install_application_readiness(ports.into_boxed_slice())
+            .map_err(|()| UiNativeEventLoopClientFailure::Rejected)
     }
 
     fn application_readiness_ready(
         &mut self,
         grant: worth_ui_host_native::UiNativeApplicationReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
         self.progress_application_runtime(grant)
+            .map_err(|()| UiNativeEventLoopClientFailure::Rejected)
     }
 
     fn native_surface_ready(
         &mut self,
         grant: UiNativeReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
-        if grant.generation() != 0 || self.shell.is_some() {
-            return Err(());
-        }
-        let application = self.application.take().ok_or(())?;
-        self.shell = match application.launch_native_surface_at_scale(grant.scale_factor_milli()) {
-            Ok(shell) => Some(shell),
-            Err(
-                crate::facade::WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunchCleanup(
-                    cleanup,
-                ),
-            ) => {
-                self.pending_cleanup =
-                    Some(UiNativeApplicationDriverCleanup::RuntimeLaunch(cleanup));
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
+        (|| -> Result<UiNativeEventLoopDirective, ()> {
+            if grant.generation() != 0 || self.shell.is_some() {
                 return Err(());
             }
-            Err(crate::facade::WorthUiNativeApplicationShellLaunchDenial::ApplicationCleanup(
-                cleanup,
-            )) => {
-                self.pending_cleanup = Some(UiNativeApplicationDriverCleanup::Application {
-                    cleanup,
-                    evidence: UiNativeDriverShutdownEvidence::empty(),
-                });
-                return Err(());
-            }
-            Err(denial) => {
-                let _ = denial;
-                self.consumed_application_cleanup_complete = true;
-                return Err(());
-            }
-        };
-        self.shell
-            .as_mut()
-            .ok_or(())?
-            .observe_native_viewport_readiness(
-                grant.client_physical_size(),
-                grant.scale_factor_milli(),
-                false,
-            );
-        self.scale_factor_milli = Some(grant.scale_factor_milli());
-        self.activate_application_runtime()?;
-        Ok(UiNativeEventLoopDirective::Continue)
+            let application = self.application.take().ok_or(())?;
+            self.shell = match application
+                .launch_native_surface_at_scale(grant.scale_factor_milli())
+            {
+                Ok(shell) => Some(shell),
+                Err(
+                    crate::facade::WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunchCleanup(
+                        cleanup,
+                    ),
+                ) => {
+                    self.pending_cleanup =
+                        Some(UiNativeApplicationDriverCleanup::RuntimeLaunch(cleanup));
+                    return Err(());
+                }
+                Err(
+                    crate::facade::WorthUiNativeApplicationShellLaunchDenial::ApplicationCleanup(
+                        cleanup,
+                    ),
+                ) => {
+                    self.pending_cleanup = Some(UiNativeApplicationDriverCleanup::Application {
+                        cleanup,
+                        evidence: Box::new(UiNativeDriverShutdownEvidence::empty()),
+                    });
+                    return Err(());
+                }
+                Err(denial) => {
+                    let _ = denial;
+                    self.consumed_application_cleanup_complete = true;
+                    return Err(());
+                }
+            };
+            self.shell
+                .as_mut()
+                .ok_or(())?
+                .observe_native_viewport_readiness(
+                    grant.client_physical_size(),
+                    grant.scale_factor_milli(),
+                    false,
+                );
+            self.scale_factor_milli = Some(grant.scale_factor_milli());
+            self.activate_application_runtime()?;
+            Ok(UiNativeEventLoopDirective::Continue)
+        })()
+        .map_err(|()| UiNativeEventLoopClientFailure::Rejected)
     }
 
     fn redraw_ready(
         &mut self,
         grant: UiNativeReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
-        if grant.generation() <= self.last_ready_generation {
-            return Err(());
-        }
-        let shell = self.shell.as_mut().ok_or(())?;
-        if self.scale_factor_milli != Some(grant.scale_factor_milli()) {
-            if shell
-                .rebind_native_surface_scale(grant.scale_factor_milli())
-                .is_err()
-            {
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
+        (|| -> Result<UiNativeEventLoopDirective, ()> {
+            if grant.generation() <= self.last_ready_generation {
                 return Err(());
             }
-            self.scale_factor_milli = Some(grant.scale_factor_milli());
-        }
-        shell.observe_native_viewport_readiness(
-            grant.client_physical_size(),
-            grant.scale_factor_milli(),
-            true,
-        );
-        self.progress
-            .observe_readiness(grant.generation(), grant.surface_basis_generation());
-        if self.progress.advance(shell).is_err() {
-            eprintln!("native-driver-diagnostic: redraw program progress denied");
-            return Err(());
-        }
-        self.last_ready_generation = grant.generation();
-        if self.application_runtime_active
-            && self
-                .shell
-                .as_ref()
-                .is_some_and(WorthUiNativeApplicationShell::native_viewport_presentation_pending)
-        {
-            return self.progress_application_runtime_viewport();
-        }
-        Ok(self.next_directive())
+            let shell = self.shell.as_mut().ok_or(())?;
+            if self.scale_factor_milli != Some(grant.scale_factor_milli()) {
+                if shell
+                    .rebind_native_surface_scale(grant.scale_factor_milli())
+                    .is_err()
+                {
+                    return Err(());
+                }
+                self.scale_factor_milli = Some(grant.scale_factor_milli());
+            }
+            shell.observe_native_viewport_readiness(
+                grant.client_physical_size(),
+                grant.scale_factor_milli(),
+                true,
+            );
+            self.progress
+                .observe_readiness(grant.generation(), grant.surface_basis_generation());
+            if self.progress.advance(shell).is_err() {
+                eprintln!("native-driver-diagnostic: redraw program progress denied");
+                return Err(());
+            }
+            self.last_ready_generation = grant.generation();
+            if self.application_runtime_active
+                && self.shell.as_ref().is_some_and(
+                    WorthUiNativeApplicationShell::native_viewport_presentation_pending,
+                )
+            {
+                return self.progress_application_runtime_viewport();
+            }
+            Ok(self.next_directive())
+        })()
+        .map_err(|()| UiNativeEventLoopClientFailure::Rejected)
     }
 
     fn physical_work_progressed(
         &mut self,
         grant: worth_ui_host_native::UiNativePhysicalProgressGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
-        if self.progress_motion_physical(&grant)? {
-            return Ok(UiNativeEventLoopDirective::Continue);
-        }
-        if self.application_runtime_active {
-            return self
-                .progress_application_runtime_physical(grant)
-                .map_err(|()| {
-                    eprintln!("native-driver-diagnostic: application physical progress denied");
-                });
-        }
-        let shell = self.shell.as_mut().ok_or(())?;
-        self.progress.physical_work_progressed(shell, grant)?;
-        Ok(self.next_directive())
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
+        (|| -> Result<UiNativeEventLoopDirective, ()> {
+            if self.progress_motion_physical(&grant)? {
+                return Ok(UiNativeEventLoopDirective::Continue);
+            }
+            if self.application_runtime_active {
+                return self
+                    .progress_application_runtime_physical(grant)
+                    .map_err(|()| {
+                        eprintln!("native-driver-diagnostic: application physical progress denied");
+                    });
+            }
+            let shell = self.shell.as_mut().ok_or(())?;
+            self.progress.physical_work_progressed(shell, grant)?;
+            Ok(self.next_directive())
+        })()
+        .map_err(|()| UiNativeEventLoopClientFailure::Rejected)
     }
 
     fn native_observations_ready(
         &mut self,
         grant: UiNativeObservationReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
-        if grant.generation() <= self.last_observation_ready_generation {
-            return Err(());
-        }
-        let shell = self.shell.as_mut().ok_or(())?;
-        let settlement = shell.admit_native_observation_batches(grant.reachability());
-        let (applied, duplicate, quarantined, denied) = settlement.counts();
-        for (total, observed) in self.observation_ingress_counts[..4].iter_mut().zip([
-            applied,
-            duplicate,
-            quarantined,
-            denied,
-        ]) {
-            *total = total.saturating_add(observed as u64);
-        }
-        if settlement.drain_denial().is_some() {
-            eprintln!("native-driver-diagnostic: observation drain denied");
-            self.observation_ingress_counts[4] =
-                self.observation_ingress_counts[4].saturating_add(1);
-            return Err(());
-        }
-        self.last_observation_ready_generation = grant.generation();
-        let directive = self
-            .progress_application_runtime_observations(settlement)
-            .map_err(|()| {
-                eprintln!("native-driver-diagnostic: application observation progress denied");
-            })?;
-        if matches!(directive, UiNativeEventLoopDirective::Close) {
-            Ok(directive)
-        } else {
-            Ok(self.next_directive())
-        }
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
+        (|| -> Result<UiNativeEventLoopDirective, ()> {
+            if grant.generation() <= self.last_observation_ready_generation {
+                return Err(());
+            }
+            let shell = self.shell.as_mut().ok_or(())?;
+            let settlement = shell.admit_native_observation_batches(grant.reachability());
+            let (applied, duplicate, quarantined, denied) = settlement.counts();
+            for (total, observed) in self.observation_ingress_counts[..4].iter_mut().zip([
+                applied,
+                duplicate,
+                quarantined,
+                denied,
+            ]) {
+                *total = total.saturating_add(observed as u64);
+            }
+            if settlement.drain_denial().is_some() {
+                eprintln!("native-driver-diagnostic: observation drain denied");
+                self.observation_ingress_counts[4] =
+                    self.observation_ingress_counts[4].saturating_add(1);
+                return Err(());
+            }
+            self.last_observation_ready_generation = grant.generation();
+            let directive = self
+                .progress_application_runtime_observations(settlement)
+                .map_err(|()| {
+                    eprintln!("native-driver-diagnostic: application observation progress denied");
+                })?;
+            if matches!(directive, UiNativeEventLoopDirective::Close) {
+                Ok(directive)
+            } else {
+                Ok(self.next_directive())
+            }
+        })()
+        .map_err(|()| UiNativeEventLoopClientFailure::Rejected)
     }
 
-    fn external_close_requested(&mut self) -> Result<UiNativeEventLoopDirective, ()> {
+    fn external_close_requested(
+        &mut self,
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
         self.progress.request_external_close();
         Ok(self.next_directive())
     }
@@ -350,7 +370,10 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             UiNativeEventLoopClientClose::CompleteWithObservation(evidence.finalize(&query_close))
         } else if let Some(cleanup) = shutdown.into_application_cleanup() {
             UiNativeEventLoopClientClose::Incomplete(Box::new(
-                UiNativeApplicationDriverCleanup::Application { cleanup, evidence },
+                UiNativeApplicationDriverCleanup::Application {
+                    cleanup: Box::new(cleanup),
+                    evidence: Box::new(evidence),
+                },
             ))
         } else {
             UiNativeEventLoopClientClose::Incomplete(Box::new(
