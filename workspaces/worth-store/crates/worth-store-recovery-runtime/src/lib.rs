@@ -25,11 +25,12 @@ pub use entry::{
     PhysicalRecoveryPublicationDenial, PhysicalRecoveryPublicationIndeterminate,
     PhysicalRecoveryPublicationSettlement, PhysicalRecoveryPublicationSettlementLedger,
     PhysicalRecoveryRefusal, PhysicalRecoveryRefusalKind, PhysicalRecoveryReopenCounters,
-    PhysicalRecoveryReopenFailure, PhysicalRecoverySessionIdentity, PhysicalRecoverySourceDenial,
-    PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingDenial,
-    PhysicalRecoveryStagingSettlement, PhysicalRecoveryStagingSettlementLedger,
-    PhysicalRecoveryStaticConfiguration, PhysicalRecoverySuccessorCandidateDenial,
-    PhysicalRecoverySuccessorCandidateMismatch,
+    PhysicalRecoveryReopenFailure, PhysicalRecoveryRootProtocolArtifact,
+    PhysicalRecoveryRootProtocolCounters, PhysicalRecoveryRootProtocolDenial,
+    PhysicalRecoverySessionIdentity, PhysicalRecoverySourceDenial, PhysicalRecoveryStagingCounters,
+    PhysicalRecoveryStagingDenial, PhysicalRecoveryStagingSettlement,
+    PhysicalRecoveryStagingSettlementLedger, PhysicalRecoveryStaticConfiguration,
+    PhysicalRecoverySuccessorCandidateDenial, PhysicalRecoverySuccessorCandidateMismatch,
 };
 pub use handoff::{
     RecoveredPhysicalRuntimeHandoff, RecoveryCleanupCounters, RecoveryCleanupDeferralEvidence,

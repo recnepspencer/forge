@@ -14,6 +14,21 @@ fn bounded_genesis_discovery_selects_only_the_fixed_current_root() {
     publish_synthetic_genesis(&root, store);
     let discovered = admitted_recovery(&root).discover().unwrap();
     assert_eq!(discovered.counters().selector_slots, 2);
+    assert_eq!(
+        discovered.counters().current_selector_integrity_admissions,
+        1
+    );
+    assert_eq!(discovered.counters().current_selector_interpretations, 1);
+    assert_eq!(discovered.counters().current_root_integrity_admissions, 1);
+    assert_eq!(
+        discovered.counters().current_root_candidate_interpretations,
+        1
+    );
+    assert_eq!(
+        discovered.counters().previous_selector_integrity_admissions,
+        0
+    );
+    assert_eq!(discovered.counters().previous_selector_interpretations, 0);
     assert_eq!(discovered.counters().root_candidates, 1);
     assert_eq!(discovered.counters().checkpoint_candidates, 0);
     assert_eq!(discovered.counters().wal_segments, 0);
@@ -204,12 +219,16 @@ fn absent_and_rejected_checkpoints_have_distinct_terminal_evidence() {
     assert_eq!(blocked.kind, PhysicalRecoveryBlockKind::Checkpoint);
     assert_eq!(blocked.store_identity(), rejected_store);
     assert_eq!(blocked.evidence().counters.checkpoints_rejected, 1);
-    assert!(matches!(
-        blocked.evidence().source_denials.as_slice(),
-        [PhysicalRecoverySourceDenial::CheckpointFormat(
-            worth_store_physical_format::CheckpointStreamDecodeDenial::Truncated
-        )]
-    ));
+    assert!(blocked
+        .evidence()
+        .source_denials
+        .iter()
+        .any(|denial| matches!(
+            denial,
+            PhysicalRecoverySourceDenial::CheckpointFormat(
+                worth_store_physical_format::CheckpointStreamDecodeDenial::Truncated
+            )
+        )));
     assert_eq!(
         blocked.evidence().artifact.as_deref(),
         Some("families/checkpoint.current")

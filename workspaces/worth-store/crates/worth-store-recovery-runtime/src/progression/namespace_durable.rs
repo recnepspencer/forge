@@ -4,8 +4,8 @@ use worth_store_recovery_physics::{PhysicalSourceSelection, RecoveryPlanningCoun
 
 use crate::entry::{
     AdmittedPlatformAuthority, PhysicalRecoveryPublicationCounters,
-    PhysicalRecoveryPublicationSettlementLedger, PhysicalRecoveryStagingCounters,
-    PhysicalRecoveryStagingSettlementLedger,
+    PhysicalRecoveryPublicationSettlementLedger, PhysicalRecoverySourceDenial,
+    PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingSettlementLedger,
 };
 use crate::handoff::RecoveryOperationFateSet;
 use crate::orchestration::RecoveryCoordination;
@@ -27,9 +27,11 @@ pub(crate) struct NamespaceDurableState {
     pub(crate) coordination: RecoveryCoordination,
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery_counters: PhysicalRecoveryDiscoveryCounters,
+    pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning_counters: RecoveryPlanningCounters,
+    pub(crate) root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     pub(crate) base: RecoveryBaseImagePlan,
     pub(crate) quiescence: RecoveryQuiescencePlan,
     pub(crate) closed: ClosedRecoveryStagingGeneration,
@@ -76,11 +78,19 @@ impl NamespaceDurablePhysicalRecovery {
     pub const fn discovery_counters(&self) -> PhysicalRecoveryDiscoveryCounters {
         self.state.discovery_counters
     }
+    pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
+        &self.state.root_protocol_denials
+    }
     pub const fn freshness_sample(&self) -> &StoreRecoveryBindingFreshnessSample {
         &self.state.freshness
     }
     pub const fn planning_counters(&self) -> RecoveryPlanningCounters {
         self.state.planning_counters
+    }
+    pub const fn root_protocol_counters(
+        &self,
+    ) -> crate::entry::PhysicalRecoveryRootProtocolCounters {
+        self.state.root_protocol_counters
     }
     pub const fn base_image(&self) -> &RecoveryBaseImagePlan {
         &self.state.base

@@ -1,15 +1,20 @@
 mod admission;
 mod admitted_artifact;
-mod counters;
+mod namespace_join;
+mod planned_selector;
 mod rejection;
+mod root_protocol;
 mod untrusted_source;
 
 pub(crate) use admission::{
     admit_current_root_selector, admit_previous_root_selector, admit_root_manifest,
 };
-pub(crate) use admitted_artifact::IntegrityAdmittedRecoveryArtifact;
-pub(crate) use counters::RecoveryIntegrityIngressCounters;
+pub(crate) use namespace_join::RecoveryArtifactNamespaceJoin;
+pub(crate) use planned_selector::admit_staged_current_selector;
 pub(crate) use rejection::RecoveryIntegrityIngressRejection;
+pub(crate) use root_protocol::{
+    admit_addressed_root, admit_current_selector, admit_previous_selector,
+};
 pub(crate) use untrusted_source::UntrustedRecoverySource;
 
 #[cfg(test)]

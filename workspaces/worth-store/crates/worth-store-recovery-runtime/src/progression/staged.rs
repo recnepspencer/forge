@@ -3,8 +3,8 @@ use worth_store_physical_format::store_namespace::StableStoreIdentity;
 use worth_store_recovery_physics::{PhysicalSourceSelection, RecoveryPlanningCounters};
 
 use crate::entry::{
-    AdmittedPlatformAuthority, PhysicalRecoveryOutcome, PhysicalRecoveryStagingCounters,
-    PhysicalRecoveryStagingSettlementLedger,
+    AdmittedPlatformAuthority, PhysicalRecoveryOutcome, PhysicalRecoverySourceDenial,
+    PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingSettlementLedger,
 };
 use crate::handoff::RecoveryOperationFateSet;
 use crate::orchestration::RecoveryCoordination;
@@ -27,9 +27,11 @@ pub struct StagedPhysicalRecovery {
     pub(crate) coordination: RecoveryCoordination,
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery_counters: PhysicalRecoveryDiscoveryCounters,
+    pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning_counters: RecoveryPlanningCounters,
+    pub(crate) root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     pub(crate) base: RecoveryBaseImagePlan,
     pub(crate) publication: RecoveryPublicationPlan,
     pub(crate) quiescence: RecoveryQuiescencePlan,
@@ -45,9 +47,11 @@ impl StagedPhysicalRecovery {
         coordination: RecoveryCoordination,
         selection: PhysicalSourceSelection,
         discovery_counters: PhysicalRecoveryDiscoveryCounters,
+        root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
         freshness: StoreRecoveryBindingFreshnessSample,
         fates: RecoveryOperationFateSet,
         planning_counters: RecoveryPlanningCounters,
+        root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
         base: RecoveryBaseImagePlan,
         publication: RecoveryPublicationPlan,
         quiescence: RecoveryQuiescencePlan,
@@ -60,9 +64,11 @@ impl StagedPhysicalRecovery {
             coordination,
             selection,
             discovery_counters,
+            root_protocol_denials,
             freshness,
             fates,
             planning_counters,
+            root_protocol_counters,
             base,
             publication,
             quiescence,
@@ -99,11 +105,19 @@ impl StagedPhysicalRecovery {
     pub const fn discovery_counters(&self) -> PhysicalRecoveryDiscoveryCounters {
         self.discovery_counters
     }
+    pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
+        &self.root_protocol_denials
+    }
     pub const fn freshness_sample(&self) -> &StoreRecoveryBindingFreshnessSample {
         &self.freshness
     }
     pub const fn planning_counters(&self) -> RecoveryPlanningCounters {
         self.planning_counters
+    }
+    pub const fn root_protocol_counters(
+        &self,
+    ) -> crate::entry::PhysicalRecoveryRootProtocolCounters {
+        self.root_protocol_counters
     }
     pub const fn quiescence_plan(&self) -> RecoveryQuiescencePlan {
         self.quiescence
@@ -139,7 +153,9 @@ impl StagedPhysicalRecovery {
             authority,
             coordination,
             discovery_counters,
+            root_protocol_denials,
             planning_counters,
+            root_protocol_counters,
             staging_counters,
             staging_settlements,
             ..
@@ -157,7 +173,9 @@ impl StagedPhysicalRecovery {
             session_identity,
             crate::entry::PhysicalRecoveryBlockEvidence {
                 counters: discovery_counters,
+                source_denials: root_protocol_denials,
                 planning_counters: Some(planning_counters),
+                root_protocol_counters: Some(root_protocol_counters),
                 staging_counters: Some(staging_counters),
                 staging_denial: Some(
                     crate::entry::PhysicalRecoveryStagingDenial::CancelledAfterClosedStaging,

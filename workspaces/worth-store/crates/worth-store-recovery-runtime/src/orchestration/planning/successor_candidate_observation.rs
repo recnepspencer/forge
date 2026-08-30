@@ -12,10 +12,11 @@ mod attempt;
 mod denial;
 mod free_space;
 mod materialization;
+mod root_manifest;
 mod root_routing;
 mod segment_membership;
 
-use artifact_read::{observed, optional};
+use artifact_read::observed;
 pub(super) use attempt::observe;
 use denial::invalid;
 use materialization::CandidateMaterialization;
@@ -25,38 +26,24 @@ fn observe_bounded(
     selected: &DurablePhysicalRootManifest,
     format: PhysicalRecordFormatDeclaration,
     budget: &mut ManifestEntryBudget,
-    maximum_manifest_entries: u64,
     byte_limit: u64,
     materialization: &mut CandidateMaterialization,
+    root_protocol_counters: &mut crate::entry::PhysicalRecoveryRootProtocolCounters,
 ) -> Result<Option<RecoveryObservedSuccessorCandidate>, PhysicalRecoverySuccessorCandidateDenial> {
-    let generation = selected.generation().checked_add(1).ok_or_else(|| {
-        invalid(RecordArtifactFile::RootManifest {
-            generation: selected.generation(),
-        })
-    })?;
-    let root_artifact = RecordArtifactFile::RootManifest { generation };
-    let Some(root_bytes) = optional(
-        discovery.read_root_manifest(generation, byte_limit),
-        root_artifact,
+    let Some(observed_root) = root_manifest::read(
+        discovery,
+        selected,
+        format,
+        byte_limit,
+        materialization,
+        root_protocol_counters,
     )?
     else {
         return Ok(None);
     };
-    let (root, found_format) = DurablePhysicalRootManifest::decode(
-        &root_bytes,
-        u16::try_from(maximum_manifest_entries).unwrap_or(u16::MAX),
-    )
-    .map_err(|_| invalid(root_artifact))?;
-    if found_format != format
-        || root.generation() != generation
-        || root.encode(format) != root_bytes
-    {
-        return Err(invalid(root_artifact));
-    }
-
-    materialization.retain_root(root_bytes.len());
-    materialization.retain_reference();
-    let mut artifacts = vec![observed(root_artifact, root_bytes)];
+    let root = observed_root.manifest;
+    let root_artifact = observed_root.artifact;
+    let mut artifacts = vec![observed(root_artifact, observed_root.bytes)];
     let mut referenced_artifacts = vec![root_artifact];
     let placements = root_routing::read(
         discovery,

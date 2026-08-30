@@ -14,6 +14,14 @@ pub struct DiscoveredPhysicalRecovery {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PhysicalRecoveryDiscoveryCounters {
     pub selector_slots: u64,
+    pub current_selector_integrity_admissions: u64,
+    pub previous_selector_integrity_admissions: u64,
+    pub current_selector_interpretations: u64,
+    pub previous_selector_interpretations: u64,
+    pub current_root_integrity_admissions: u64,
+    pub previous_root_integrity_admissions: u64,
+    pub current_root_candidate_interpretations: u64,
+    pub previous_root_candidate_interpretations: u64,
     pub root_candidates: u64,
     pub current_root_admitted: u64,
     pub current_root_rejected: u64,
@@ -72,6 +80,7 @@ impl DiscoveredPhysicalRecovery {
             checkpoint,
             wal,
             residue,
+            root_protocol_denials,
             counters,
         } = self.material;
         let input = SelectionInput {
@@ -83,6 +92,7 @@ impl DiscoveredPhysicalRecovery {
             checkpoint,
             wal,
             residue,
+            root_protocol_denials,
             counters,
         };
         match select_sources(input, authority.limits) {
@@ -91,6 +101,7 @@ impl DiscoveredPhysicalRecovery {
                 coordination,
                 selected.selection,
                 selected.counters,
+                selected.root_protocol_denials,
             )),
             Err(failure) => blocked(authority, coordination, failure.kind, failure.evidence),
         }

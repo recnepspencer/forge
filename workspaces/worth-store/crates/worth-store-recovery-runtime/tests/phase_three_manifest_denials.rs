@@ -16,23 +16,20 @@ fn missing_and_undecodable_manifest_blocks_retain_distinct_references() {
         std::fs::remove_file(path).unwrap();
     });
     assert!(matches!(
-        missing.evidence().source_denials.as_slice(),
-        [PhysicalRecoverySourceDenial::ManifestObservation(
-            PhysicalManifestObservationDenial::MissingArtifact { reference }
-        )] if reference.generation() == 1 && reference.block() == 1
+        manifest_denial(&missing),
+        PhysicalManifestObservationDenial::MissingArtifact { reference }
+            if reference.generation() == 1 && reference.block() == 1
     ));
 
     let undecodable = manifest_case("undecodable-routing-block", |path| {
         std::fs::write(path, b"not-a-durable-routing-block").unwrap();
     });
     assert!(matches!(
-        undecodable.evidence().source_denials.as_slice(),
-        [PhysicalRecoverySourceDenial::ManifestObservation(
-            PhysicalManifestObservationDenial::Decode {
-                reference,
-                denial: RootRoutingBlockDenial::Frame(_),
-            }
-        )] if reference.generation() == 1 && reference.block() == 1
+        manifest_denial(&undecodable),
+        PhysicalManifestObservationDenial::Decode {
+            reference,
+            denial: RootRoutingBlockDenial::Frame(_),
+        } if reference.generation() == 1 && reference.block() == 1
     ));
 }
 
@@ -47,13 +44,11 @@ fn manifest_format_denial_retains_the_expected_and_observed_declarations() {
             .unwrap();
         std::fs::write(path, block.encode(alternate)).unwrap();
     });
-    let [PhysicalRecoverySourceDenial::ManifestObservation(
-        PhysicalManifestObservationDenial::FormatIdentity {
-            reference,
-            expected,
-            observed,
-        },
-    )] = blocked.evidence().source_denials.as_slice()
+    let PhysicalManifestObservationDenial::FormatIdentity {
+        reference,
+        expected,
+        observed,
+    } = manifest_denial(&blocked)
     else {
         panic!("alternate canonical format must retain format evidence")
     };
@@ -78,14 +73,12 @@ fn tree_and_reference_integrity_denials_preserve_expected_and_observed_values() 
         std::fs::write(path, replacement.encode(format)).unwrap();
     });
     assert!(matches!(
-        wrong_tree.evidence().source_denials.as_slice(),
-        [PhysicalRecoverySourceDenial::ManifestObservation(
-            PhysicalManifestObservationDenial::TreeIdentity {
-                reference,
-                expected: 7,
-                observed: 8,
-            }
-        )] if reference.block() == 1
+        manifest_denial(&wrong_tree),
+        PhysicalManifestObservationDenial::TreeIdentity {
+            reference,
+            expected: 7,
+            observed: 8,
+        } if reference.block() == 1
     ));
 
     let wrong_reference = manifest_case("wrong-routing-reference", |path| {
@@ -114,9 +107,8 @@ fn tree_and_reference_integrity_denials_preserve_expected_and_observed_values() 
         .unwrap();
         std::fs::write(path, replacement.encode(format)).unwrap();
     });
-    let [PhysicalRecoverySourceDenial::ManifestObservation(
-        PhysicalManifestObservationDenial::ReferenceIntegrity { expected, observed },
-    )] = wrong_reference.evidence().source_denials.as_slice()
+    let PhysicalManifestObservationDenial::ReferenceIntegrity { expected, observed } =
+        manifest_denial(&wrong_reference)
     else {
         panic!("changed canonical payload must retain reference-integrity evidence")
     };
@@ -125,6 +117,20 @@ fn tree_and_reference_integrity_denials_preserve_expected_and_observed_values() 
     assert_eq!(expected.first(), observed.first());
     assert_eq!(expected.last(), observed.last());
     assert_ne!(expected.checksum(), observed.checksum());
+}
+
+fn manifest_denial(
+    blocked: &worth_store_recovery_runtime::PhysicalRecoveryBlock,
+) -> &PhysicalManifestObservationDenial {
+    blocked
+        .evidence()
+        .source_denials
+        .iter()
+        .find_map(|denial| match denial {
+            PhysicalRecoverySourceDenial::ManifestObservation(denial) => Some(denial),
+            _ => None,
+        })
+        .expect("the later typed manifest denial must remain present")
 }
 
 fn manifest_case(

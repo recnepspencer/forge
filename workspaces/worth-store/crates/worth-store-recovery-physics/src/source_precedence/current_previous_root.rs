@@ -35,12 +35,15 @@ pub fn select_current_previous_root(
     fallback_anchor: Option<BootstrapCatalog>,
 ) -> Result<SelectedPhysicalRoot, PhysicalRootSelectionDenial> {
     match current {
-        PhysicalRootSlotObservation::Admitted(current) => select_current(current, previous),
-        PhysicalRootSlotObservation::Rejected {
-            selector: Some(_), ..
-        } => Err(PhysicalRootSelectionDenial::CurrentRootRejected),
+        PhysicalRootSlotObservation::Candidate(current) => select_current(current, previous),
+        PhysicalRootSlotObservation::SelectorRejected(
+            super::PhysicalRootSelectorDenial::Conflict,
+        )
+        | PhysicalRootSlotObservation::RootRejected { .. } => {
+            Err(PhysicalRootSelectionDenial::CurrentRootRejected)
+        }
         PhysicalRootSlotObservation::Absent => Err(PhysicalRootSelectionDenial::NoAdmittedRoot),
-        PhysicalRootSlotObservation::Rejected { selector: None, .. } => {
+        PhysicalRootSlotObservation::SelectorRejected(_) => {
             select_previous(previous, fallback_anchor)
         }
     }
@@ -54,7 +57,7 @@ fn select_current(
     let previous_expected_or_observed = current_selector.linked_selector().is_some()
         || !matches!(&previous, PhysicalRootSlotObservation::Absent);
     let retained_previous = match (current_selector.linked_selector(), previous) {
-        (Some(previous_identity), PhysicalRootSlotObservation::Admitted(previous)) => {
+        (Some(previous_identity), PhysicalRootSlotObservation::Candidate(previous)) => {
             let previous_selector = previous.selector();
             let reciprocal = current_selector.linked_root_generation()
                 == Some(previous_selector.root_generation())
@@ -80,7 +83,7 @@ fn select_previous(
     previous: PhysicalRootSlotObservation,
     fallback_anchor: Option<BootstrapCatalog>,
 ) -> Result<SelectedPhysicalRoot, PhysicalRootSelectionDenial> {
-    let PhysicalRootSlotObservation::Admitted(previous) = previous else {
+    let PhysicalRootSlotObservation::Candidate(previous) = previous else {
         return Err(PhysicalRootSelectionDenial::NoAdmittedRoot);
     };
     let selector = previous.selector();
@@ -152,7 +155,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        admit_physical_root_slot, PhysicalRootCandidateDenial, PhysicalRootSlotObservation,
+        observe_structured_physical_root_candidate, PhysicalRootCandidateDenial,
+        PhysicalRootManifestDenial, PhysicalRootSelectorDenial, PhysicalRootSlotObservation,
     };
 
     #[test]
@@ -178,19 +182,34 @@ mod tests {
 
     #[test]
     fn torn_current_uses_only_the_linked_previous_slot() {
-        let mut current_bytes = selector(RootSelectorRole::Current, 20, 2, Some((19, 1))).encode();
-        current_bytes[8] ^= 0xff;
-        let current = admit_physical_root_slot(
-            store(),
-            RootSelectorRole::Current,
-            Some(&current_bytes),
-            None,
-            4,
+        let current =
+            PhysicalRootSlotObservation::SelectorRejected(PhysicalRootSelectorDenial::Integrity);
+        let previous = slot(RootSelectorRole::Previous, 1, 1, Some((2, 2)));
+        let selected = select_current_previous_root(current, previous, Some(catalog(2))).unwrap();
+        assert_eq!(selected.role(), SelectedPhysicalRootRole::PreviousFallback);
+        assert_eq!(selected.selected().manifest().generation(), 1);
+    }
+
+    #[test]
+    fn authority_mismatched_current_preserves_previous_fallback() {
+        let current = PhysicalRootSlotObservation::SelectorRejected(
+            PhysicalRootSelectorDenial::AuthorityMismatch,
         );
         let previous = slot(RootSelectorRole::Previous, 1, 1, Some((2, 2)));
         let selected = select_current_previous_root(current, previous, Some(catalog(2))).unwrap();
         assert_eq!(selected.role(), SelectedPhysicalRootRole::PreviousFallback);
         assert_eq!(selected.selected().manifest().generation(), 1);
+    }
+
+    #[test]
+    fn conflicting_current_blocks_even_with_an_exact_anchored_previous() {
+        let current =
+            PhysicalRootSlotObservation::SelectorRejected(PhysicalRootSelectorDenial::Conflict);
+        let previous = slot(RootSelectorRole::Previous, 1, 1, Some((2, 2)));
+        assert_eq!(
+            select_current_previous_root(current, previous, Some(catalog(2))),
+            Err(PhysicalRootSelectionDenial::CurrentRootRejected)
+        );
     }
 
     #[test]
@@ -205,13 +224,10 @@ mod tests {
     #[test]
     fn valid_current_selector_with_missing_root_never_demotes_to_previous() {
         let current_selector = selector(RootSelectorRole::Current, 20, 2, Some((19, 1)));
-        let current = admit_physical_root_slot(
-            store(),
-            RootSelectorRole::Current,
-            Some(&current_selector.encode()),
-            None,
-            4,
-        );
+        let current = PhysicalRootSlotObservation::RootRejected {
+            denial: PhysicalRootManifestDenial::Integrity,
+            selector: current_selector,
+        };
         let previous = slot(RootSelectorRole::Previous, 19, 1, Some((20, 2)));
         assert_eq!(
             select_current_previous_root(current, previous, None),
@@ -232,59 +248,11 @@ mod tests {
     #[test]
     fn root_generation_mismatch_is_rejected() {
         let selector = selector(RootSelectorRole::Current, 20, 2, None);
-        let manifest = manifest(3).encode(format());
-        let observed = admit_physical_root_slot(
-            store(),
-            RootSelectorRole::Current,
-            Some(&selector.encode()),
-            Some(&manifest),
-            4,
-        );
+        let observed = observe_structured_physical_root_candidate(selector, manifest(3), format());
         assert_eq!(
             observed.rejection().map(|(denial, _)| denial),
             Some(PhysicalRootCandidateDenial::RootGenerationMismatch),
             "MUTANT_PREDICATE:c8-root-generation-binding-ignored"
-        );
-    }
-
-    #[test]
-    fn foreign_store_root_is_rejected() {
-        let foreign = StoreNamespaceIdentityRecord::new(
-            StoreNamespaceVersion::CURRENT,
-            ProposedStoreIdentity::from_nonzero_bytes([8; 16]).unwrap(),
-        )
-        .published_identity();
-        let selector = selector_for_store(foreign, RootSelectorRole::Current, 20, 2, None);
-        let manifest = manifest(2).encode(format());
-        let observed = admit_physical_root_slot(
-            store(),
-            RootSelectorRole::Current,
-            Some(&selector.encode()),
-            Some(&manifest),
-            4,
-        );
-        assert_eq!(
-            observed.rejection().map(|(denial, _)| denial),
-            Some(PhysicalRootCandidateDenial::ForeignStore),
-            "MUTANT_PREDICATE:c8-store-incarnation-binding-ignored"
-        );
-    }
-
-    #[test]
-    fn wrong_role_root_is_rejected() {
-        let selector = selector(RootSelectorRole::Previous, 20, 2, None);
-        let manifest = manifest(2).encode(format());
-        let observed = admit_physical_root_slot(
-            store(),
-            RootSelectorRole::Current,
-            Some(&selector.encode()),
-            Some(&manifest),
-            4,
-        );
-        assert_eq!(
-            observed.rejection().map(|(denial, _)| denial),
-            Some(PhysicalRootCandidateDenial::WrongRole),
-            "MUTANT_PREDICATE:c8-root-selector-role-binding-ignored"
         );
     }
 
@@ -307,8 +275,7 @@ mod tests {
     ) -> PhysicalRootSlotObservation {
         let selector = selector(role, identity, generation, linked);
         let format = format();
-        let manifest = manifest(generation).encode(format);
-        admit_physical_root_slot(store(), role, Some(&selector.encode()), Some(&manifest), 4)
+        observe_structured_physical_root_candidate(selector, manifest(generation), format)
     }
 
     fn selector(

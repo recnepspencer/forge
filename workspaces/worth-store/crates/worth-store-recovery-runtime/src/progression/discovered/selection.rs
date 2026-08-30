@@ -1,10 +1,8 @@
-use worth_store_physical_format::RootSelectorRole;
 use worth_store_recovery_physics::{
-    admit_physical_page_facts, admit_physical_wal_tail, select_current_previous_root,
-    select_physical_recovery_sources, PhysicalCheckpointBase, PhysicalRecoveryResidue,
-    PhysicalRootSlotObservation, PhysicalSourceSelection, SelectedCompactionProduct,
-    SelectedPhysicalPageFacts, SelectedPhysicalRoot, SelectedPhysicalRootRole,
-    SelectedPhysicalWalTail,
+    admit_physical_page_facts, admit_physical_wal_tail, select_physical_recovery_sources,
+    PhysicalCheckpointBase, PhysicalRecoveryResidue, PhysicalRootSlotObservation,
+    PhysicalSourceSelection, SelectedCompactionProduct, SelectedPhysicalPageFacts,
+    SelectedPhysicalRoot, SelectedPhysicalRootRole, SelectedPhysicalWalTail,
 };
 
 use crate::entry::{
@@ -17,6 +15,8 @@ use crate::orchestration::{
 
 use super::PhysicalRecoveryDiscoveryCounters;
 
+mod root;
+
 pub(super) struct SelectionInput {
     pub(super) current: PhysicalRootSlotObservation,
     pub(super) previous: PhysicalRootSlotObservation,
@@ -26,12 +26,14 @@ pub(super) struct SelectionInput {
     pub(super) checkpoint: CheckpointDiscovery,
     pub(super) wal: WalDiscovery,
     pub(super) residue: Vec<PhysicalRecoveryResidue>,
+    pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(super) counters: PhysicalRecoveryDiscoveryCounters,
 }
 
 pub(super) struct SelectionOutput {
     pub(super) selection: PhysicalSourceSelection,
     pub(super) counters: PhysicalRecoveryDiscoveryCounters,
+    pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
 }
 
 pub(super) struct SelectionFailure {
@@ -56,13 +58,18 @@ struct FinalSelectionInput {
     counters: PhysicalRecoveryDiscoveryCounters,
     frontier: u64,
 }
-
 pub(super) fn select_sources(
     input: SelectionInput,
     limits: PhysicalRecoveryLimits,
 ) -> Result<SelectionOutput, SelectionFailure> {
     let mut counters = input.counters;
-    let root = select_root(input.current, input.previous, input.bootstrap, counters)?;
+    let (root, root_protocol_denials) = root::select(
+        input.current,
+        input.previous,
+        input.bootstrap,
+        input.root_protocol_denials,
+        counters,
+    )?;
     let (page_facts, retained_previous_page_facts) = select_manifest_facts(
         &root,
         ManifestSelectionInput {
@@ -71,12 +78,15 @@ pub(super) fn select_sources(
             limits,
         },
         &mut counters,
-    )?;
-    let checkpoint = select_checkpoint(&root, input.checkpoint, counters)?;
+    )
+    .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
+    let checkpoint = select_checkpoint(&root, input.checkpoint, counters)
+        .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
     let frontier = checkpoint
         .as_ref()
         .map_or(0, |checkpoint| checkpoint.wal_tail_begin_lsn());
-    let wal_tail = select_wal(&root, input.wal, frontier, &mut counters)?;
+    let wal_tail = select_wal(&root, input.wal, frontier, &mut counters)
+        .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
     let compaction = checkpoint.as_ref().map(SelectedCompactionProduct::admit);
     let selection = select_final_cut(FinalSelectionInput {
         root,
@@ -88,36 +98,12 @@ pub(super) fn select_sources(
         residue: input.residue,
         counters,
         frontier,
-    })?;
+    })
+    .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
     Ok(SelectionOutput {
         selection,
         counters,
-    })
-}
-
-fn select_root(
-    current: PhysicalRootSlotObservation,
-    previous: PhysicalRootSlotObservation,
-    bootstrap: BootstrapDiscovery,
-    counters: PhysicalRecoveryDiscoveryCounters,
-) -> Result<SelectedPhysicalRoot, SelectionFailure> {
-    let mut source_denials = root_slot_denials(&current, &previous);
-    let (anchor, bootstrap_denial) = match bootstrap {
-        BootstrapDiscovery::Admitted(catalog) => (Some(catalog), None),
-        BootstrapDiscovery::Rejected(denial) => (None, Some(denial)),
-        BootstrapDiscovery::NotRequired | BootstrapDiscovery::Absent => (None, None),
-    };
-    select_current_previous_root(current, previous, anchor).map_err(|denial| {
-        if let Some(denial) = bootstrap_denial {
-            source_denials.push(PhysicalRecoverySourceDenial::BootstrapCatalog(denial));
-        }
-        source_denials.push(PhysicalRecoverySourceDenial::RootSelection(denial));
-        SelectionFailure::new(
-            PhysicalRecoveryBlockKind::RootProtocol,
-            counters,
-            "records/root selectors",
-        )
-        .with_source_denials(source_denials)
+        root_protocol_denials,
     })
 }
 
@@ -297,29 +283,6 @@ fn select_final_cut(
     })
 }
 
-fn root_slot_denials(
-    current: &PhysicalRootSlotObservation,
-    previous: &PhysicalRootSlotObservation,
-) -> Vec<PhysicalRecoverySourceDenial> {
-    [
-        (RootSelectorRole::Current, current),
-        (RootSelectorRole::Previous, previous),
-    ]
-    .into_iter()
-    .filter_map(|(slot, observation)| {
-        observation.rejection().map(
-            |(denial, selector)| PhysicalRecoverySourceDenial::RootSlot {
-                slot,
-                denial,
-                observed_store: selector.map(|value| value.store_identity()),
-                observed_role: selector.map(|value| value.role()),
-                observed_generation: selector.map(|value| value.root_generation()),
-            },
-        )
-    })
-    .collect()
-}
-
 fn manifest_failure(
     denial: worth_store_recovery_physics::PhysicalPageFactDenial,
     generation: u64,
@@ -383,6 +346,13 @@ impl SelectionFailure {
 
     fn with_source_denials(mut self, denials: Vec<PhysicalRecoverySourceDenial>) -> Self {
         self.evidence.source_denials = denials;
+        self
+    }
+
+    fn with_root_protocol_denials(mut self, denials: &[PhysicalRecoverySourceDenial]) -> Self {
+        let mut combined = denials.to_vec();
+        combined.append(&mut self.evidence.source_denials);
+        self.evidence.source_denials = combined;
         self
     }
 }

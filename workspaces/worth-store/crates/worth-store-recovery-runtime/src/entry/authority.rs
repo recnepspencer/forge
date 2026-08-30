@@ -6,6 +6,7 @@ use worth_store::physical_runtime::{
     PhysicalRecoveryRegisteredSessionAuthority, QualifiedPhysicalBackendProfile,
     QualifiedRecoveryFilesystemMedia, RecoveryFilesystemQualificationError,
 };
+use worth_store_physical_format::PhysicalRecordFormatDeclaration;
 
 use super::authority_binding::{
     admitted_world_binding, entry_binding, entry_presentation, AdmittedRecoveryWorldBinding,
@@ -26,6 +27,7 @@ pub struct PhysicalRecoveryPlatformAuthority {
     session: RecoverySession,
     binding: PhysicalRecoveryEntryBinding,
     limits: PhysicalRecoveryLimits,
+    record_format: PhysicalRecordFormatDeclaration,
 }
 
 #[cfg(test)]
@@ -252,6 +254,7 @@ impl PhysicalRecoveryPlatformAuthority {
             &configuration,
             limits,
         );
+        let record_format = configuration.record_format();
         Ok(Self {
             _witness: PhysicalRecoveryPlatformMarker::witness(),
             media,
@@ -259,6 +262,7 @@ impl PhysicalRecoveryPlatformAuthority {
             session,
             binding,
             limits,
+            record_format,
         })
     }
 
@@ -309,6 +313,7 @@ impl PhysicalRecoveryPlatformAuthority {
             registered_session,
             session,
             limits,
+            record_format,
             binding,
             ..
         } = self;
@@ -322,6 +327,7 @@ impl PhysicalRecoveryPlatformAuthority {
                         session,
                         _world_binding: world_binding,
                         limits,
+                        record_format,
                     },
                     registered_session,
                 })
@@ -348,6 +354,7 @@ pub(crate) struct AdmittedPlatformAuthority {
     pub(crate) session: RecoverySession,
     pub(crate) _world_binding: AdmittedRecoveryWorldBinding,
     pub(crate) limits: PhysicalRecoveryLimits,
+    pub(crate) record_format: PhysicalRecordFormatDeclaration,
 }
 
 pub(crate) struct AdmittedPlatformAdmission {

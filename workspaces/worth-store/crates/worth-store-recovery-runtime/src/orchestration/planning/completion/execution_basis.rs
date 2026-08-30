@@ -47,73 +47,93 @@ pub(super) fn derive(
         basis.observed_pages.candidate_bytes_read = attempt.bytes_read;
         basis.observed_pages.candidate_peak_materialization_bytes =
             attempt.peak_materialization_bytes;
+        basis.observed_pages.successor_root_integrity_admissions = attempt
+            .root_protocol_counters
+            .successor_root_integrity_admissions();
+        basis.observed_pages.successor_root_interpretations = attempt
+            .root_protocol_counters
+            .successor_root_interpretations();
+        context.record_successor_root_route(attempt.root_protocol_counters);
         match attempt.result {
             Ok(candidate) => candidate,
             Err(denial) => {
                 let limit = candidate_limit(&context, &denial, remaining_observation_bytes);
                 let artifact = format!("{:?}", denial.artifact());
-                return Err(context.block_with_planning_attempt_denial(
-                    crate::entry::PhysicalRecoveryBlockKind::PageAdmission,
+                return Err(context.successor_candidate_block(
                     basis.planning_counters(),
                     &artifact,
                     limit,
-                    crate::entry::PhysicalRecoveryPlanningDenial::SuccessorCandidate(denial),
+                    denial,
                 ));
             }
         }
     } else {
         None
     };
-    let (staging, publication, quiescence, candidate_materialization) = match derive_execution_basis(
-        context.authority.media.store_identity(),
-        &context.selection,
-        &basis.sample,
-        &basis.fates,
-        &basis.redo,
-        &basis.observed_pages.selected_source,
-        successor_candidate,
-        context.limits.staging_bytes,
-        context.limits.dirty_frames,
-    ) {
-        Ok(execution) => execution,
-        Err(ExecutionBasisDenial::StagingBytes { observed }) => {
-            let admitted = context.limits.staging_bytes;
-            return Err(context.cost_denial_block(
-                basis.planning_counters(),
-                worth_store_recovery_physics::RecoveryPlanCostDenial::StagingBytes,
-                PhysicalRecoveryLimitFailure {
-                    dimension: PhysicalRecoveryLimitDimension::StagingBytes,
-                    observed,
-                    admitted,
-                },
-            ));
-        }
-        Err(ExecutionBasisDenial::DirtyFrames { observed }) => {
-            let admitted = context.limits.dirty_frames;
-            return Err(context.cost_denial_block(
-                basis.planning_counters(),
-                worth_store_recovery_physics::RecoveryPlanCostDenial::DirtyFrames,
-                PhysicalRecoveryLimitFailure {
-                    dimension: PhysicalRecoveryLimitDimension::DirtyFrames,
-                    observed,
-                    admitted,
-                },
-            ));
-        }
-        Err(ExecutionBasisDenial::SuccessorCandidate(denial)) => {
-            let artifact = format!("{:?}", denial.artifact());
-            return Err(context.block_with_planning_attempt_denial(
-                crate::entry::PhysicalRecoveryBlockKind::PageAdmission,
-                basis.planning_counters(),
-                &artifact,
-                None,
-                crate::entry::PhysicalRecoveryPlanningDenial::SuccessorCandidate(denial),
-            ));
-        }
-        Err(ExecutionBasisDenial::Invalid) => {
-            return Err(context.redo_block(basis.planning_counters(), None));
-        }
-    };
+    let (staging, publication, quiescence, candidate_materialization, root_protocol_counters) =
+        match derive_execution_basis(
+            context.authority.media.store_identity(),
+            &context.selection,
+            &basis.sample,
+            &basis.fates,
+            &basis.redo,
+            &basis.observed_pages.selected_source,
+            successor_candidate,
+            context.limits.staging_bytes,
+            context.limits.dirty_frames,
+        ) {
+            Ok(execution) => execution,
+            Err(ExecutionBasisDenial::StagingBytes { observed }) => {
+                let admitted = context.limits.staging_bytes;
+                return Err(context.cost_denial_block(
+                    basis.planning_counters(),
+                    worth_store_recovery_physics::RecoveryPlanCostDenial::StagingBytes,
+                    PhysicalRecoveryLimitFailure {
+                        dimension: PhysicalRecoveryLimitDimension::StagingBytes,
+                        observed,
+                        admitted,
+                    },
+                ));
+            }
+            Err(ExecutionBasisDenial::DirtyFrames { observed }) => {
+                let admitted = context.limits.dirty_frames;
+                return Err(context.cost_denial_block(
+                    basis.planning_counters(),
+                    worth_store_recovery_physics::RecoveryPlanCostDenial::DirtyFrames,
+                    PhysicalRecoveryLimitFailure {
+                        dimension: PhysicalRecoveryLimitDimension::DirtyFrames,
+                        observed,
+                        admitted,
+                    },
+                ));
+            }
+            Err(ExecutionBasisDenial::SuccessorCandidate(denial)) => {
+                let artifact = format!("{:?}", denial.artifact());
+                return Err(context.block_with_planning_attempt_denial(
+                    crate::entry::PhysicalRecoveryBlockKind::PageAdmission,
+                    basis.planning_counters(),
+                    &artifact,
+                    None,
+                    crate::entry::PhysicalRecoveryPlanningDenial::SuccessorCandidate(denial),
+                ));
+            }
+            Err(ExecutionBasisDenial::RootProtocol {
+                artifact,
+                denial,
+                counters,
+            }) => {
+                context.record_staged_selector_route(counters);
+                return Err(context.root_protocol_block(
+                    basis.planning_counters(),
+                    artifact,
+                    denial,
+                ));
+            }
+            Err(ExecutionBasisDenial::Invalid) => {
+                return Err(context.redo_block(basis.planning_counters(), None));
+            }
+        };
+    context.record_staged_selector_route(root_protocol_counters);
     Ok((
         context,
         ExecutionProducts {

@@ -16,6 +16,8 @@ mod phase_six_terminal_isolation;
 mod phase_three_support;
 #[path = "phase_four_planning/publication_assertions.rs"]
 mod publication_assertions;
+#[path = "phase_four_planning/root_protocol_terminal_evidence.rs"]
+mod root_protocol_terminal_evidence;
 
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};

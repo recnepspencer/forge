@@ -28,6 +28,14 @@ fn successor_candidate_denial_is_typed_and_candidate_memory_is_exactly_admitted(
         Err(other) => panic!("successor conflict must block with evidence: {other:?}"),
     };
     assert_eq!(blocked.recovery_effects(), 0);
+    let blocked_counters = blocked
+        .evidence()
+        .root_protocol_counters
+        .expect("successor route counters survive semantic conflict");
+    assert_eq!(blocked_counters.successor_root_integrity_admissions(), 1);
+    assert_eq!(blocked_counters.successor_root_interpretations(), 1);
+    assert_eq!(blocked_counters.staged_selector_integrity_admissions(), 0);
+    assert_eq!(blocked_counters.closeout_selector_interpretations(), 0);
     assert_eq!(
         blocked.evidence().planning_denial,
         Some(PhysicalRecoveryPlanningDenial::SuccessorCandidate(
@@ -44,11 +52,22 @@ fn successor_candidate_denial_is_typed_and_candidate_memory_is_exactly_admitted(
     copy_directory(&world.writer.root, &candidate_root);
     let candidate_plan = plan_with_memory(&candidate_root, 64 * 1024 * 1024).unwrap();
     let candidate_costs = candidate_plan.plan_cost();
-    let counters = candidate_plan.planning_counters();
-    assert_eq!(counters.successor_candidate_reads(), independent.reads);
-    assert_eq!(counters.successor_candidate_bytes(), independent.raw_bytes);
+    let planning_counters = candidate_plan.planning_counters();
     assert_eq!(
-        counters.successor_candidate_peak_bytes(),
+        planning_counters.successor_candidate_reads(),
+        independent.reads
+    );
+    assert_eq!(
+        planning_counters.successor_candidate_bytes(),
+        independent.raw_bytes
+    );
+    let counters = candidate_plan.root_protocol_counters();
+    assert_eq!(counters.successor_root_integrity_admissions(), 1);
+    assert_eq!(counters.successor_root_interpretations(), 1);
+    assert_eq!(counters.staged_selector_integrity_admissions(), 1);
+    assert_eq!(counters.closeout_selector_interpretations(), 1);
+    assert_eq!(
+        planning_counters.successor_candidate_peak_bytes(),
         independent.peak_bytes
     );
     let candidate_publication = publication_materialization(&candidate_plan);
@@ -116,6 +135,14 @@ fn assert_exact_limits(world: &ProcessWorld, exact_peak: u64, exact_observation:
         (limit.observed, limit.admitted),
         (exact_peak, exact_peak - 1)
     );
+    let counters = blocked
+        .evidence()
+        .root_protocol_counters
+        .expect("plan-cost denial retains both completed root-protocol routes");
+    assert_eq!(counters.successor_root_integrity_admissions(), 1);
+    assert_eq!(counters.successor_root_interpretations(), 1);
+    assert_eq!(counters.staged_selector_integrity_admissions(), 1);
+    assert_eq!(counters.closeout_selector_interpretations(), 1);
     assert_exact_observation_limit(world, exact_observation);
 }
 

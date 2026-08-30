@@ -23,6 +23,7 @@ pub(super) struct RecoveryCandidateBasis {
     pub(super) referenced_artifacts: Box<[RecordArtifactFile]>,
     pub(super) artifacts: Box<[RecoveryPublicationCandidateArtifact]>,
     pub(super) materialization_cost: CandidateMaterializationCost,
+    pub(super) staged_current_selector: DurableRootSelector,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -80,7 +81,7 @@ pub(super) fn build(
             (root, build, referenced_artifacts)
         }
     };
-    push_protocol_candidates(
+    let staged_current_selector = push_protocol_candidates(
         &mut build,
         store,
         format,
@@ -99,6 +100,7 @@ pub(super) fn build(
             comparison_scratch_bytes,
             publication_bytes,
         },
+        staged_current_selector,
     })
 }
 
@@ -267,7 +269,7 @@ fn push_protocol_candidates(
     selected: DurableRootSelector,
     generation: u64,
     publication: u64,
-) -> Result<(), CandidateBuildDenial> {
+) -> Result<DurableRootSelector, CandidateBuildDenial> {
     let previous_identity = selected.identity();
     let current_identity =
         RootSelectorIdentity::new(generation).ok_or(CandidateBuildDenial::Invalid)?;
@@ -315,7 +317,8 @@ fn push_protocol_candidates(
     build.push(
         RecordArtifactFile::CatalogCandidate { publication },
         catalog.encode().to_vec(),
-    )
+    )?;
+    Ok(current)
 }
 
 pub(super) struct CandidateBuild {

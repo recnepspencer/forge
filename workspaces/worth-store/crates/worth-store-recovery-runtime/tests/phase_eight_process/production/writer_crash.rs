@@ -1,8 +1,9 @@
 use std::collections::BTreeSet;
 
 use worth_store_physical_format::{DurablePhysicalRootManifest, RecordArtifactFile};
+use worth_store_physical_integrity::PhysicalDamageCause;
 use worth_store_recovery_runtime::{
-    PhysicalRecoveryOutcome, PhysicalRecoveryPlanningDenial,
+    PhysicalRecoveryOutcome, PhysicalRecoveryPlanningDenial, PhysicalRecoveryRootProtocolDenial,
     PhysicalRecoverySuccessorCandidateDenial, PhysicalRecoverySuccessorCandidateMismatch,
     RecoveryReportEnvelope, RecoveryReportOutcome,
 };
@@ -175,7 +176,26 @@ fn hostile_successor_candidates_block_before_recovery_effects() {
             Err(other) => panic!("hostile successor candidate had wrong outcome: {other:?}"),
         };
         assert_eq!(blocked.recovery_effects(), 0);
-        assert_eq!(blocked.evidence().planning_denial, Some(expected));
+        if hostile == "malformed" {
+            assert!(matches!(
+                blocked.evidence().planning_denial,
+                Some(PhysicalRecoveryPlanningDenial::SuccessorCandidate(
+                    PhysicalRecoverySuccessorCandidateDenial::RootProtocol {
+                        artifact: RecordArtifactFile::RootManifest { generation: observed },
+                        generation: denied,
+                        denial: PhysicalRecoveryRootProtocolDenial::Integrity(
+                            worth_store_physical_integrity::PhysicalIntegrityRejection::Damaged(
+                                localization
+                            )
+                        ),
+                    }
+                )) if observed == candidate_generation
+                    && denied == candidate_generation
+                    && localization.cause() == PhysicalDamageCause::WrongMagic
+            ));
+        } else {
+            assert_eq!(blocked.evidence().planning_denial, Some(expected));
+        }
 
         let report_path = world
             .parent_path()

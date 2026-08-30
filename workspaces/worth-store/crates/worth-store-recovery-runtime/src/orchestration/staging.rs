@@ -3,8 +3,9 @@ use worth_store_recovery_physics::{PhysicalSourceSelection, RecoveryPlanningCoun
 
 use crate::entry::{
     AdmittedPlatformAuthority, PhysicalRecoveryBlock, PhysicalRecoveryBlockEvidence,
-    PhysicalRecoveryBlockKind, PhysicalRecoveryOutcome, PhysicalRecoveryStagingCounters,
-    PhysicalRecoveryStagingDenial, PhysicalRecoveryStagingSettlementLedger,
+    PhysicalRecoveryBlockKind, PhysicalRecoveryOutcome, PhysicalRecoverySourceDenial,
+    PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingDenial,
+    PhysicalRecoveryStagingSettlementLedger,
 };
 use crate::handoff::RecoveryOperationFateSet;
 use crate::progression::{
@@ -22,9 +23,11 @@ pub(crate) struct RecoveryStagingInput {
     pub(crate) coordination: RecoveryCoordination,
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery_counters: PhysicalRecoveryDiscoveryCounters,
+    pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning_counters: RecoveryPlanningCounters,
+    pub(crate) root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     pub(crate) staging: RecoveryStagingLayoutPlan,
     pub(crate) publication: RecoveryPublicationPlan,
     pub(crate) quiescence: RecoveryQuiescencePlan,
@@ -75,9 +78,11 @@ fn complete(
         input.coordination,
         input.selection,
         input.discovery_counters,
+        input.root_protocol_denials,
         input.freshness,
         input.fates,
         input.planning_counters,
+        input.root_protocol_counters,
         base,
         input.publication,
         input.quiescence,
@@ -104,7 +109,9 @@ fn block(
         session_identity,
         PhysicalRecoveryBlockEvidence {
             counters: input.discovery_counters,
+            source_denials: input.root_protocol_denials,
             planning_counters: Some(input.planning_counters),
+            root_protocol_counters: Some(input.root_protocol_counters),
             staging_counters: Some(execution.counters),
             staging_denial: execution.denial,
             staging_settlements: Some(execution.settlements),

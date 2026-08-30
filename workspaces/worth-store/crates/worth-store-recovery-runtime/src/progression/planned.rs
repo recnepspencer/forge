@@ -4,7 +4,9 @@ use worth_store_recovery_physics::{
     ImmutablePhysicalRedoPlan, PhysicalSourceSelection, RecoveryPlanCost, RecoveryPlanningCounters,
 };
 
-use crate::entry::{AdmittedPlatformAuthority, PhysicalRecoveryOutcome};
+use crate::entry::{
+    AdmittedPlatformAuthority, PhysicalRecoveryOutcome, PhysicalRecoverySourceDenial,
+};
 use crate::handoff::RecoveryOperationFateSet;
 use crate::orchestration::RecoveryCoordination;
 
@@ -15,11 +17,13 @@ pub struct PlannedPhysicalRecovery {
     coordination: RecoveryCoordination,
     selection: PhysicalSourceSelection,
     discovery_counters: PhysicalRecoveryDiscoveryCounters,
+    root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     freshness: StoreRecoveryBindingFreshnessSample,
     fates: RecoveryOperationFateSet,
     redo: ImmutablePhysicalRedoPlan,
     plan_cost: RecoveryPlanCost,
     planning_counters: RecoveryPlanningCounters,
+    root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     staging: RecoveryStagingLayoutPlan,
     publication: RecoveryPublicationPlan,
     quiescence: RecoveryQuiescencePlan,
@@ -34,11 +38,13 @@ impl PlannedPhysicalRecovery {
         coordination: RecoveryCoordination,
         selection: PhysicalSourceSelection,
         discovery_counters: PhysicalRecoveryDiscoveryCounters,
+        root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
         freshness: StoreRecoveryBindingFreshnessSample,
         fates: RecoveryOperationFateSet,
         redo: ImmutablePhysicalRedoPlan,
         plan_cost: RecoveryPlanCost,
         planning_counters: RecoveryPlanningCounters,
+        root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
         staging: RecoveryStagingLayoutPlan,
         publication: RecoveryPublicationPlan,
         quiescence: RecoveryQuiescencePlan,
@@ -48,11 +54,13 @@ impl PlannedPhysicalRecovery {
             coordination,
             selection,
             discovery_counters,
+            root_protocol_denials,
             freshness,
             fates,
             redo,
             plan_cost,
             planning_counters,
+            root_protocol_counters,
             staging,
             publication,
             quiescence,
@@ -64,6 +72,9 @@ impl PlannedPhysicalRecovery {
     }
     pub const fn discovery_counters(&self) -> PhysicalRecoveryDiscoveryCounters {
         self.discovery_counters
+    }
+    pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
+        &self.root_protocol_denials
     }
     pub const fn freshness_sample(&self) -> &StoreRecoveryBindingFreshnessSample {
         &self.freshness
@@ -79,6 +90,11 @@ impl PlannedPhysicalRecovery {
     }
     pub const fn planning_counters(&self) -> RecoveryPlanningCounters {
         self.planning_counters
+    }
+    pub const fn root_protocol_counters(
+        &self,
+    ) -> crate::entry::PhysicalRecoveryRootProtocolCounters {
+        self.root_protocol_counters
     }
     pub const fn staging_layout(&self) -> &RecoveryStagingLayoutPlan {
         &self.staging
@@ -118,6 +134,8 @@ impl PlannedPhysicalRecovery {
         let Self {
             authority,
             coordination,
+            root_protocol_denials,
+            root_protocol_counters,
             ..
         } = self;
         assert!(coordination.shutdown_is_quiescent());
@@ -125,10 +143,14 @@ impl PlannedPhysicalRecovery {
         let crate::entry::AdmittedPlatformAuthority { media, session, .. } = authority;
         drop(media);
         session.refuse();
-        PhysicalRecoveryOutcome::Refused(crate::entry::PhysicalRecoveryRefusal::new(
-            crate::entry::PhysicalRecoveryRefusalKind::CancelledBeforeExecution,
-            recovery_effects,
-        ))
+        PhysicalRecoveryOutcome::Refused(
+            crate::entry::PhysicalRecoveryRefusal::new(
+                crate::entry::PhysicalRecoveryRefusalKind::CancelledBeforeExecution,
+                recovery_effects,
+            )
+            .with_root_protocol_denials(root_protocol_denials)
+            .with_root_protocol_counters(root_protocol_counters),
+        )
     }
 
     /// Consumes the immutable Phase 4 basis and materializes one closed,
@@ -169,18 +191,22 @@ impl PlannedPhysicalRecovery {
             redo: _,
             plan_cost: _,
             planning_counters,
+            root_protocol_counters,
             staging,
             publication,
             quiescence,
+            root_protocol_denials,
         } = self;
         crate::orchestration::stage_recovery(crate::orchestration::RecoveryStagingInput {
             authority,
             coordination,
             selection,
             discovery_counters,
+            root_protocol_denials,
             freshness,
             fates,
             planning_counters,
+            root_protocol_counters,
             staging,
             publication,
             quiescence,

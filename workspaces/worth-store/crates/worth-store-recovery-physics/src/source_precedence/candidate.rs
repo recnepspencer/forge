@@ -1,6 +1,4 @@
-use worth_store_physical_format::{
-    DurablePhysicalRootManifest, DurableRootSelector, RootManifestDenial, RootSelectorDecodeDenial,
-};
+use worth_store_physical_format::{DurablePhysicalRootManifest, DurableRootSelector};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalRootSourceCandidate {
@@ -11,37 +9,73 @@ pub struct PhysicalRootSourceCandidate {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalRootSlotObservation {
     Absent,
-    Rejected {
-        denial: PhysicalRootCandidateDenial,
-        selector: Option<DurableRootSelector>,
+    SelectorRejected(PhysicalRootSelectorDenial),
+    RootRejected {
+        denial: PhysicalRootManifestDenial,
+        selector: DurableRootSelector,
     },
-    Admitted(PhysicalRootSourceCandidate),
+    Candidate(PhysicalRootSourceCandidate),
 }
 
 impl PhysicalRootSlotObservation {
-    pub const fn rejection(
-        &self,
-    ) -> Option<(PhysicalRootCandidateDenial, Option<DurableRootSelector>)> {
+    pub fn rejection(&self) -> Option<(PhysicalRootCandidateDenial, Option<DurableRootSelector>)> {
         match self {
-            Self::Rejected { denial, selector } => Some((*denial, *selector)),
-            Self::Absent | Self::Admitted(_) => None,
+            Self::SelectorRejected(denial) => Some(((*denial).into(), None)),
+            Self::RootRejected { denial, selector } => Some(((*denial).into(), Some(*selector))),
+            Self::Absent | Self::Candidate(_) => None,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalRootSelectorDenial {
+    Integrity,
+    AuthorityMismatch,
+    Conflict,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalRootManifestDenial {
+    FormatMismatch,
+    GenerationMismatch,
+    Integrity,
+    Conflict,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalRootCandidateDenial {
-    SelectorFormat(RootSelectorDecodeDenial),
-    ForeignStore,
-    WrongRole,
-    RootMissing,
-    RootFormat(RootManifestDenial),
     RootFormatMismatch,
     RootGenerationMismatch,
+    SelectorIntegrity,
+    SelectorAuthorityMismatch,
+    RootIntegrity,
+    SelectorConflict,
+    RootConflict,
+}
+
+impl From<PhysicalRootSelectorDenial> for PhysicalRootCandidateDenial {
+    fn from(denial: PhysicalRootSelectorDenial) -> Self {
+        match denial {
+            PhysicalRootSelectorDenial::Integrity => Self::SelectorIntegrity,
+            PhysicalRootSelectorDenial::AuthorityMismatch => Self::SelectorAuthorityMismatch,
+            PhysicalRootSelectorDenial::Conflict => Self::SelectorConflict,
+        }
+    }
+}
+
+impl From<PhysicalRootManifestDenial> for PhysicalRootCandidateDenial {
+    fn from(denial: PhysicalRootManifestDenial) -> Self {
+        match denial {
+            PhysicalRootManifestDenial::FormatMismatch => Self::RootFormatMismatch,
+            PhysicalRootManifestDenial::GenerationMismatch => Self::RootGenerationMismatch,
+            PhysicalRootManifestDenial::Integrity => Self::RootIntegrity,
+            PhysicalRootManifestDenial::Conflict => Self::RootConflict,
+        }
+    }
 }
 
 impl PhysicalRootSourceCandidate {
-    pub(super) fn admit(
+    pub(super) fn from_structured_observation(
         selector: DurableRootSelector,
         manifest: DurablePhysicalRootManifest,
         manifest_format: worth_store_physical_format::PhysicalRecordFormatDeclaration,

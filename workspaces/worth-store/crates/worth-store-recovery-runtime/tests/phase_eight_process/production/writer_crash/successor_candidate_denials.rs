@@ -29,12 +29,33 @@ fn crc_valid_noncanonical_successor_metadata_is_rejected() {
         mutate_candidate(&root, generation, hostile);
         let blocked = blocked_plan(&root);
         assert_eq!(blocked.recovery_effects(), 0);
-        assert!(matches!(
-            blocked.evidence().planning_denial,
-            Some(PhysicalRecoveryPlanningDenial::SuccessorCandidate(
-                PhysicalRecoverySuccessorCandidateDenial::InvalidArtifact { artifact, .. }
-            )) if artifact == expected
-        ));
+        match hostile {
+            "noncanonical-root" => {
+                assert!(
+                    matches!(
+                        blocked.evidence().planning_denial,
+                        Some(PhysicalRecoveryPlanningDenial::SuccessorCandidate(
+                            PhysicalRecoverySuccessorCandidateDenial::RootProtocol {
+                                artifact,
+                                ..
+                            }
+                        )) if artifact == expected
+                    ),
+                    "unexpected successor-root denial: {:?}",
+                    blocked.evidence().planning_denial
+                );
+                let counters = blocked.evidence().root_protocol_counters.unwrap();
+                assert_eq!(counters.successor_root_integrity_admissions(), 0);
+                assert_eq!(counters.successor_root_interpretations(), 0);
+            }
+            "noncanonical-free-header" => assert!(matches!(
+                blocked.evidence().planning_denial,
+                Some(PhysicalRecoveryPlanningDenial::SuccessorCandidate(
+                    PhysicalRecoverySuccessorCandidateDenial::InvalidArtifact { artifact, .. }
+                )) if artifact == expected
+            )),
+            _ => unreachable!(),
+        }
     }
 }
 

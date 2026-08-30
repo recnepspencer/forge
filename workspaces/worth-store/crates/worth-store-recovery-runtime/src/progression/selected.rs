@@ -5,7 +5,7 @@ use worth_store_recovery_physics::{PhysicalSourceSelection, SelectedPhysicalRoot
 
 use crate::entry::{
     AdmittedPlatformAuthority, PhysicalRecoveryOutcome, PhysicalRecoveryRefusal,
-    PhysicalRecoveryRefusalKind,
+    PhysicalRecoveryRefusalKind, PhysicalRecoverySourceDenial,
 };
 use crate::orchestration::RecoveryCoordination;
 
@@ -16,6 +16,7 @@ pub struct SelectedPhysicalRecovery {
     coordination: RecoveryCoordination,
     selection: PhysicalSourceSelection,
     counters: PhysicalRecoveryDiscoveryCounters,
+    root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
 }
 
 impl SelectedPhysicalRecovery {
@@ -28,12 +29,14 @@ impl SelectedPhysicalRecovery {
         coordination: RecoveryCoordination,
         selection: PhysicalSourceSelection,
         counters: PhysicalRecoveryDiscoveryCounters,
+        root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     ) -> Self {
         Self {
             authority,
             coordination,
             selection,
             counters,
+            root_protocol_denials,
         }
     }
 
@@ -93,10 +96,15 @@ impl SelectedPhysicalRecovery {
         self.counters
     }
 
+    pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
+        &self.root_protocol_denials
+    }
+
     pub fn cancel_before_reconstruction(self) -> PhysicalRecoveryOutcome {
         let Self {
             authority,
             coordination,
+            root_protocol_denials,
             ..
         } = self;
         assert!(coordination.shutdown_is_quiescent());
@@ -104,10 +112,13 @@ impl SelectedPhysicalRecovery {
         let AdmittedPlatformAuthority { media, session, .. } = authority;
         drop(media);
         session.refuse();
-        PhysicalRecoveryOutcome::Refused(PhysicalRecoveryRefusal::new(
-            PhysicalRecoveryRefusalKind::CancelledBeforeReconstruction,
-            recovery_effects,
-        ))
+        PhysicalRecoveryOutcome::Refused(
+            PhysicalRecoveryRefusal::new(
+                PhysicalRecoveryRefusalKind::CancelledBeforeReconstruction,
+                recovery_effects,
+            )
+            .with_root_protocol_denials(root_protocol_denials),
+        )
     }
 
     pub(crate) fn into_parts(
@@ -117,12 +128,14 @@ impl SelectedPhysicalRecovery {
         RecoveryCoordination,
         PhysicalSourceSelection,
         PhysicalRecoveryDiscoveryCounters,
+        Vec<PhysicalRecoverySourceDenial>,
     ) {
         (
             self.authority,
             self.coordination,
             self.selection,
             self.counters,
+            self.root_protocol_denials,
         )
     }
 }

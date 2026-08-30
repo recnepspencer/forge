@@ -15,6 +15,8 @@ pub(in crate::orchestration::planning) struct SuccessorCandidateObservationAttem
     pub(in crate::orchestration::planning) artifact_reads: u64,
     pub(in crate::orchestration::planning) bytes_read: u64,
     pub(in crate::orchestration::planning) peak_materialization_bytes: u64,
+    pub(in crate::orchestration::planning) root_protocol_counters:
+        crate::entry::PhysicalRecoveryRootProtocolCounters,
 }
 
 pub(in crate::orchestration::planning) fn observe(
@@ -59,14 +61,15 @@ pub(in crate::orchestration::planning) fn observe(
         .bounded_discovery(maximum_entries, maximum_bytes)
         .expect("remaining recovery observation limits are nonzero");
     let mut materialization = CandidateMaterialization::default();
+    let mut root_protocol_counters = crate::entry::PhysicalRecoveryRootProtocolCounters::default();
     let result = observe_bounded(
         &mut discovery,
         selected,
         format,
         budget,
-        maximum_manifest_entries,
         maximum_bytes,
         &mut materialization,
+        &mut root_protocol_counters,
     );
     let counters = discovery.counters();
     let peak_materialization_bytes = materialization.peak_bytes();
@@ -77,6 +80,7 @@ pub(in crate::orchestration::planning) fn observe(
             artifact_reads: counters.addressed_artifacts_read,
             bytes_read: counters.bytes_read,
             peak_materialization_bytes,
+            root_protocol_counters,
         },
     )
 }
@@ -95,6 +99,7 @@ fn failed(
             artifact_reads: 0,
             bytes_read: 0,
             peak_materialization_bytes: 0,
+            root_protocol_counters: Default::default(),
         },
     )
 }

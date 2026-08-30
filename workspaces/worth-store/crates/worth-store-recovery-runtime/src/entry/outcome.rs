@@ -25,6 +25,8 @@ pub struct PhysicalRecoveryPublicationIndeterminate {
     session: super::PhysicalRecoverySessionIdentity,
     counters: super::PhysicalRecoveryPublicationCounters,
     settlement: super::PhysicalRecoveryPublicationSettlementLedger,
+    root_protocol_denials: Vec<super::PhysicalRecoverySourceDenial>,
+    root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters,
     reopen: Option<super::PhysicalRecoveryReopenFailure>,
     handoff: Option<RecoveredPhysicalRuntimeConstructionDenial>,
     recovery_effects: u64,
@@ -33,19 +35,47 @@ pub struct PhysicalRecoveryPublicationIndeterminate {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalRecoveryRefusal {
     pub kind: PhysicalRecoveryRefusalKind,
+    root_protocol_denials: Vec<super::PhysicalRecoverySourceDenial>,
+    root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters,
     recovery_effects: u64,
 }
 
 impl PhysicalRecoveryRefusal {
-    pub(crate) const fn new(kind: PhysicalRecoveryRefusalKind, recovery_effects: u64) -> Self {
+    pub(crate) fn new(kind: PhysicalRecoveryRefusalKind, recovery_effects: u64) -> Self {
         Self {
             kind,
+            root_protocol_denials: Vec::new(),
+            root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters::default(),
             recovery_effects,
         }
     }
 
     pub const fn recovery_effects(&self) -> u64 {
         self.recovery_effects
+    }
+
+    pub(crate) fn with_root_protocol_denials(
+        mut self,
+        denials: Vec<super::PhysicalRecoverySourceDenial>,
+    ) -> Self {
+        self.root_protocol_denials = denials;
+        self
+    }
+
+    pub fn root_protocol_denials(&self) -> &[super::PhysicalRecoverySourceDenial] {
+        &self.root_protocol_denials
+    }
+
+    pub(crate) const fn with_root_protocol_counters(
+        mut self,
+        counters: super::PhysicalRecoveryRootProtocolCounters,
+    ) -> Self {
+        self.root_protocol_counters = counters;
+        self
+    }
+
+    pub const fn root_protocol_counters(&self) -> super::PhysicalRecoveryRootProtocolCounters {
+        self.root_protocol_counters
     }
 }
 
@@ -105,6 +135,7 @@ pub struct PhysicalRecoveryLimitFailure {
 pub struct PhysicalRecoveryBlockEvidence {
     pub counters: PhysicalRecoveryDiscoveryCounters,
     pub planning_counters: Option<RecoveryPlanningCounters>,
+    pub root_protocol_counters: Option<super::PhysicalRecoveryRootProtocolCounters>,
     pub limit: Option<PhysicalRecoveryLimitFailure>,
     pub artifact: Option<String>,
     pub source_generation: Option<u64>,
@@ -125,6 +156,8 @@ impl PhysicalRecoveryPublicationIndeterminate {
         session: super::PhysicalRecoverySessionIdentity,
         counters: super::PhysicalRecoveryPublicationCounters,
         settlement: super::PhysicalRecoveryPublicationSettlementLedger,
+        root_protocol_denials: Vec<super::PhysicalRecoverySourceDenial>,
+        root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters,
         recovery_effects: u64,
     ) -> Self {
         Self {
@@ -132,6 +165,8 @@ impl PhysicalRecoveryPublicationIndeterminate {
             session,
             counters,
             settlement,
+            root_protocol_denials,
+            root_protocol_counters,
             reopen: None,
             handoff: None,
             recovery_effects,
@@ -148,6 +183,12 @@ impl PhysicalRecoveryPublicationIndeterminate {
     }
     pub const fn settlement(&self) -> &super::PhysicalRecoveryPublicationSettlementLedger {
         &self.settlement
+    }
+    pub fn root_protocol_denials(&self) -> &[super::PhysicalRecoverySourceDenial] {
+        &self.root_protocol_denials
+    }
+    pub const fn root_protocol_counters(&self) -> super::PhysicalRecoveryRootProtocolCounters {
+        self.root_protocol_counters
     }
     pub const fn recovery_effects(&self) -> u64 {
         self.recovery_effects

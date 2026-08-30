@@ -11,7 +11,7 @@ use worth_store_physical_format::{
     PhysicalSegmentId, RootSelectorIdentity, RootSelectorRole,
 };
 use worth_store_recovery_physics::{
-    admit_physical_page_facts, admit_physical_root_slot, admit_physical_wal_tail,
+    admit_physical_page_facts, admit_physical_wal_tail, observe_structured_physical_root_candidate,
     select_current_previous_root, select_physical_recovery_sources, PhysicalManifestBlockCandidate,
     PhysicalSourceSelection, PhysicalWalSegmentCandidate, SelectedCompactionProduct,
 };
@@ -21,12 +21,12 @@ use worth_store_wal::{
 };
 
 /// Builds the exact current recovery-physics source selection required by the
-/// layout replay fixture. The selected root/checkpoint/tail are real typed
-/// admissions; the replay artifact itself remains owned by the layout fixture.
+/// layout replay fixture. The root is a typed structured physics candidate;
+/// checkpoint and tail admission plus replay ownership remain with the fixture.
 pub fn deterministic_checkpoint_plus_tail_source() -> PhysicalSourceSelection {
     let format = PhysicalRecordFormatDeclaration::builder().admit().unwrap();
     let store = stable_store();
-    let (manifest_bytes, block_reference, block_bytes) = root_manifest(format);
+    let (manifest, block_reference, block_bytes) = root_manifest(format);
     let selector = DurableRootSelector::new(
         store,
         format,
@@ -37,13 +37,7 @@ pub fn deterministic_checkpoint_plus_tail_source() -> PhysicalSourceSelection {
         None,
     )
     .unwrap();
-    let current = admit_physical_root_slot(
-        store,
-        RootSelectorRole::Current,
-        Some(&selector.encode()),
-        Some(&manifest_bytes),
-        64,
-    );
+    let current = observe_structured_physical_root_candidate(selector, manifest, format);
     let root = select_current_previous_root(
         current,
         worth_store_recovery_physics::PhysicalRootSlotObservation::Absent,
@@ -83,7 +77,7 @@ pub fn deterministic_selected_compaction_product() -> SelectedCompactionProduct 
 fn root_manifest(
     format: PhysicalRecordFormatDeclaration,
 ) -> (
-    Vec<u8>,
+    DurablePhysicalRootManifest,
     worth_store_physical_format::ManifestBlockReference,
     Vec<u8>,
 ) {
@@ -129,7 +123,7 @@ fn root_manifest(
         .free_space_root(free_space)
         .admit()
         .unwrap();
-    (manifest.encode(format), block_reference, block_bytes)
+    (manifest, block_reference, block_bytes)
 }
 
 fn checkpoint_base(
@@ -177,13 +171,7 @@ fn root_for_checkpoint(
     )
     .unwrap();
     select_current_previous_root(
-        admit_physical_root_slot(
-            store,
-            RootSelectorRole::Current,
-            Some(&selector.encode()),
-            Some(&manifest),
-            64,
-        ),
+        observe_structured_physical_root_candidate(selector, manifest, format),
         worth_store_recovery_physics::PhysicalRootSlotObservation::Absent,
         None,
     )

@@ -58,3 +58,18 @@ pub(super) fn optional(
         }),
     }
 }
+
+pub(super) fn optional_source(
+    result: Result<ObservedRecoveryArtifact, RecoveryDiscoveryFailure>,
+    artifact: RecordArtifactFile,
+) -> Result<Option<ObservedRecoveryArtifact>, PhysicalRecoverySuccessorCandidateDenial> {
+    match result {
+        Ok(observed) if observed.bytes().is_some() => Ok(Some(observed)),
+        Ok(_) => Ok(None),
+        Err(failure) => Err(PhysicalRecoverySuccessorCandidateDenial::Discovery {
+            artifact,
+            generation: artifact_generation(artifact),
+            failure,
+        }),
+    }
+}

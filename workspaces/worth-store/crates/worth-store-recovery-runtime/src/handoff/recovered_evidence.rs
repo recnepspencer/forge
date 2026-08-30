@@ -3,7 +3,7 @@ use worth_store_recovery_physics::{PhysicalSourceSelection, RecoveryPlanningCoun
 
 use crate::entry::{
     PhysicalRecoveryPublicationCounters, PhysicalRecoveryPublicationSettlementLedger,
-    PhysicalRecoveryReopenCounters, PhysicalRecoveryStagingCounters,
+    PhysicalRecoveryReopenCounters, PhysicalRecoverySourceDenial, PhysicalRecoveryStagingCounters,
     PhysicalRecoveryStagingSettlementLedger, RecoveredRecoverySessionReceipt,
 };
 use crate::progression::{
@@ -17,9 +17,11 @@ pub(crate) struct RecoveredPhysicalRuntimeHandoffEvidence {
     pub(crate) session: RecoveredRecoverySessionReceipt,
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery: PhysicalRecoveryDiscoveryCounters,
+    pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning: RecoveryPlanningCounters,
+    pub(crate) root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     pub(crate) base: RecoveryBaseImagePlan,
     pub(crate) quiescence: RecoveryQuiescencePlan,
     pub(crate) closed: ClosedRecoveryStagingGeneration,

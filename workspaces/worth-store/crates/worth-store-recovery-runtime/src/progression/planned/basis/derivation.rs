@@ -5,6 +5,7 @@ mod closeout;
 mod layout;
 mod materialization;
 mod pending;
+mod selector_closeout;
 
 pub(crate) fn derive_execution_basis(
     store: StableStoreIdentity,
@@ -22,6 +23,7 @@ pub(crate) fn derive_execution_basis(
         RecoveryPublicationPlan,
         RecoveryQuiescencePlan,
         CandidateMaterializationCost,
+        crate::entry::PhysicalRecoveryRootProtocolCounters,
     ),
     ExecutionBasisDenial,
 > {

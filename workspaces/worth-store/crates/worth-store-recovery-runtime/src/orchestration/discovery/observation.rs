@@ -1,29 +1,31 @@
 use worth_store::physical_runtime::{BoundedRecoveryFilesystemDiscovery, ObservedWalArtifact};
 use worth_store_physical_format::{
-    inspect_checkpoint_stream, BootstrapCatalog, DurableRootSelector, RootSelectorRole,
-    BOOTSTRAP_CATALOG_BYTES, ROOT_SELECTOR_BYTES,
+    inspect_checkpoint_stream, BootstrapCatalog, PhysicalRecordFormatDeclaration,
+    BOOTSTRAP_CATALOG_BYTES,
 };
 use worth_store_recovery_physics::{
-    admit_physical_root_slot, inspect_physical_wal_artifacts, InspectedPhysicalWalArtifacts,
-    PhysicalRecoveryResidue, PhysicalRecoveryResidueKind, PhysicalRootSlotObservation,
+    inspect_physical_wal_artifacts, InspectedPhysicalWalArtifacts, PhysicalRecoveryResidue,
+    PhysicalRecoveryResidueKind, PhysicalRootSelectorDenial, PhysicalRootSlotObservation,
 };
 
 use crate::entry::{
     PhysicalRecoveryBlockKind as PhysicalRecoveryBlock, PhysicalRecoveryLimitDimension,
-    PhysicalRecoveryLimits,
+    PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
 };
 use crate::progression::PhysicalRecoveryDiscoveryCounters;
 
 use super::super::manifest_facts::{observe_manifest_facts, ManifestObservationBudget};
 use super::super::ManifestFactsDiscovery;
 use super::{
-    discovery_limit, map_cumulative_discovery_failure, map_discovery_failure, BootstrapDiscovery,
-    CheckpointDiscovery, DiscoveryFailure, WalDiscovery,
+    discovery_limit, map_discovery_failure, BootstrapDiscovery, CheckpointDiscovery,
+    DiscoveryFailure, WalDiscovery,
 };
 
 mod counters;
+mod root_observation;
 
-use counters::{record_checkpoint_counters, record_root_counters, record_wal_counters};
+use counters::{record_checkpoint_counters, record_wal_counters};
+use root_observation::{observe_root_slots, RootObservations};
 
 pub(super) struct ObservedSources {
     pub(super) current: PhysicalRootSlotObservation,
@@ -34,34 +36,35 @@ pub(super) struct ObservedSources {
     pub(super) checkpoint: CheckpointDiscovery,
     pub(super) wal: WalDiscovery,
     pub(super) residue: Vec<PhysicalRecoveryResidue>,
-}
-
-struct RootObservations {
-    current: PhysicalRootSlotObservation,
-    previous: PhysicalRootSlotObservation,
-    remaining_manifest_bytes: u64,
+    pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
 }
 
 pub(super) fn observe_all(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
     limits: PhysicalRecoveryLimits,
+    record_format: PhysicalRecordFormatDeclaration,
     counters: &mut PhysicalRecoveryDiscoveryCounters,
 ) -> Result<ObservedSources, DiscoveryFailure> {
     let declaration = limits.declaration();
-    let mut roots = observe_root_slots(discovery, limits, counters)?;
-    let bootstrap = observe_fallback_anchor(discovery, &roots)?;
+    let mut roots = observe_root_slots(discovery, limits, record_format, counters)?;
+    let root_protocol_denials = roots.denials.clone();
+    let preserve_root_denials =
+        |failure: DiscoveryFailure| failure.with_root_protocol_denials(&root_protocol_denials);
+    let bootstrap = observe_fallback_anchor(discovery, &roots).map_err(&preserve_root_denials)?;
     let (current_manifest_facts, previous_manifest_facts) =
-        observe_root_manifest_facts(discovery, limits, &mut roots, counters)?;
-    let checkpoint = observe_checkpoint(discovery, limits)?;
+        observe_root_manifest_facts(discovery, limits, &mut roots, counters)
+            .map_err(&preserve_root_denials)?;
+    let checkpoint = observe_checkpoint(discovery, limits).map_err(&preserve_root_denials)?;
     record_checkpoint_counters(counters, &checkpoint);
-    let (wal, residue, wal_entries) = observe_wal(discovery, limits)?;
+    let (wal, residue, wal_entries) =
+        observe_wal(discovery, limits).map_err(&preserve_root_denials)?;
     record_wal_counters(counters, &wal, &residue, wal_entries);
     if discovery.counters().bytes_read > declaration.observation_bytes {
-        return Err(discovery_limit(
+        return Err(preserve_root_denials(discovery_limit(
             PhysicalRecoveryLimitDimension::ObservationBytes,
             discovery.counters().bytes_read,
             declaration.observation_bytes,
-        ));
+        )));
     }
     Ok(ObservedSources {
         current: roots.current,
@@ -72,6 +75,7 @@ pub(super) fn observe_all(
         checkpoint,
         wal,
         residue,
+        root_protocol_denials,
     })
 }
 
@@ -79,10 +83,8 @@ fn observe_fallback_anchor(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
     roots: &RootObservations,
 ) -> Result<BootstrapDiscovery, DiscoveryFailure> {
-    if !matches!(
-        roots.current,
-        PhysicalRootSlotObservation::Rejected { selector: None, .. }
-    ) || !matches!(roots.previous, PhysicalRootSlotObservation::Admitted(_))
+    if !current_requires_fallback_anchor(&roots.current)
+        || !matches!(roots.previous, PhysicalRootSlotObservation::Candidate(_))
     {
         return Ok(BootstrapDiscovery::NotRequired);
     }
@@ -98,68 +100,30 @@ fn observe_fallback_anchor(
     })
 }
 
-fn observe_root_slots(
-    discovery: &mut BoundedRecoveryFilesystemDiscovery,
-    limits: PhysicalRecoveryLimits,
-    counters: &mut PhysicalRecoveryDiscoveryCounters,
-) -> Result<RootObservations, DiscoveryFailure> {
-    let declaration = limits.declaration();
-    let current_bytes = read_current_selector(discovery)?;
-    let previous_bytes = read_previous_selector(discovery)?;
-    counters.selector_slots = discovery.counters().fixed_slots_read;
-    let store = discovery.store_identity();
-    let mut remaining_manifest_bytes = declaration.manifest_bytes;
-    let current_manifest = read_addressed_manifest(
-        discovery,
-        current_bytes.as_deref(),
-        &mut remaining_manifest_bytes,
-        declaration.manifest_bytes,
-    )?;
-    let previous_manifest = read_addressed_manifest(
-        discovery,
-        previous_bytes.as_deref(),
-        &mut remaining_manifest_bytes,
-        declaration.manifest_bytes,
-    )?;
-    let maximum_manifest_entries = u16::try_from(declaration.manifest_entries).unwrap_or(u16::MAX);
-    let current = admit_physical_root_slot(
-        store,
-        RootSelectorRole::Current,
-        current_bytes.as_deref(),
-        current_manifest.as_deref(),
-        maximum_manifest_entries,
-    );
-    let previous = admit_physical_root_slot(
-        store,
-        RootSelectorRole::Previous,
-        previous_bytes.as_deref(),
-        previous_manifest.as_deref(),
-        maximum_manifest_entries,
-    );
-    record_root_counters(counters, &current, &previous);
-    Ok(RootObservations {
+fn current_requires_fallback_anchor(current: &PhysicalRootSlotObservation) -> bool {
+    matches!(
         current,
-        previous,
-        remaining_manifest_bytes,
-    })
+        PhysicalRootSlotObservation::SelectorRejected(
+            PhysicalRootSelectorDenial::Integrity | PhysicalRootSelectorDenial::AuthorityMismatch
+        )
+    )
 }
 
-fn read_current_selector(
-    discovery: &mut BoundedRecoveryFilesystemDiscovery,
-) -> Result<Option<Vec<u8>>, DiscoveryFailure> {
-    discovery
-        .read_current_selector(ROOT_SELECTOR_BYTES as u64)
-        .map_err(map_selector_discovery_failure)
-        .map(|artifact| artifact.into_bytes())
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-fn read_previous_selector(
-    discovery: &mut BoundedRecoveryFilesystemDiscovery,
-) -> Result<Option<Vec<u8>>, DiscoveryFailure> {
-    discovery
-        .read_previous_selector(ROOT_SELECTOR_BYTES as u64)
-        .map_err(map_selector_discovery_failure)
-        .map(|artifact| artifact.into_bytes())
+    #[test]
+    fn selector_conflict_never_requests_fallback_anchor_io() {
+        assert!(!current_requires_fallback_anchor(
+            &PhysicalRootSlotObservation::SelectorRejected(PhysicalRootSelectorDenial::Conflict)
+        ));
+        assert!(current_requires_fallback_anchor(
+            &PhysicalRootSlotObservation::SelectorRejected(
+                PhysicalRootSelectorDenial::AuthorityMismatch
+            )
+        ));
+    }
 }
 
 fn map_selector_discovery_failure(
@@ -219,34 +183,6 @@ fn observe_root_manifest_facts(
     counters.manifest_blocks =
         current_manifest_facts.block_count() + previous_manifest_facts.block_count();
     Ok((current_manifest_facts, previous_manifest_facts))
-}
-
-fn read_addressed_manifest(
-    discovery: &mut BoundedRecoveryFilesystemDiscovery,
-    selector_bytes: Option<&[u8]>,
-    remaining_bytes: &mut u64,
-    admitted_bytes: u64,
-) -> Result<Option<Vec<u8>>, DiscoveryFailure> {
-    let Some(selector) = selector_bytes.and_then(|bytes| DurableRootSelector::decode(bytes).ok())
-    else {
-        return Ok(None);
-    };
-    let bytes = discovery
-        .read_root_manifest(selector.root_generation(), *remaining_bytes)
-        .map_err(|failure| {
-            map_cumulative_discovery_failure(
-                failure,
-                PhysicalRecoveryLimitDimension::ManifestEntries,
-                PhysicalRecoveryLimitDimension::ManifestBytes,
-                admitted_bytes,
-                *remaining_bytes,
-            )
-        })
-        .map(|artifact| artifact.into_bytes())?;
-    *remaining_bytes = remaining_bytes
-        .checked_sub(bytes.as_ref().map_or(0, |bytes| bytes.len() as u64))
-        .ok_or(PhysicalRecoveryBlock::DiscoveryLimit)?;
-    Ok(bytes)
 }
 
 fn observe_checkpoint(

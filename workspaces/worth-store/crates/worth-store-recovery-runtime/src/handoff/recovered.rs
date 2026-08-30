@@ -3,7 +3,7 @@ use worth_store_recovery_physics::{PhysicalSourceSelection, RecoveryPlanningCoun
 
 use crate::entry::{
     PhysicalRecoveryPublicationCounters, PhysicalRecoveryPublicationSettlementLedger,
-    PhysicalRecoveryReopenCounters, PhysicalRecoveryStagingCounters,
+    PhysicalRecoveryReopenCounters, PhysicalRecoverySourceDenial, PhysicalRecoveryStagingCounters,
     PhysicalRecoveryStagingSettlementLedger,
 };
 use crate::progression::{
@@ -43,6 +43,9 @@ impl RecoveredPhysicalRuntimeHandoff {
     pub const fn discovery_counters(&self) -> PhysicalRecoveryDiscoveryCounters {
         self.evidence.discovery
     }
+    pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
+        &self.evidence.root_protocol_denials
+    }
     pub const fn freshness_sample(
         &self,
     ) -> &worth_store::physical_runtime::StoreRecoveryBindingFreshnessSample {
@@ -59,6 +62,11 @@ impl RecoveredPhysicalRuntimeHandoff {
     }
     pub const fn planning_counters(&self) -> RecoveryPlanningCounters {
         self.evidence.planning
+    }
+    pub const fn root_protocol_counters(
+        &self,
+    ) -> crate::entry::PhysicalRecoveryRootProtocolCounters {
+        self.evidence.root_protocol_counters
     }
     pub const fn staging_counters(&self) -> PhysicalRecoveryStagingCounters {
         self.evidence.staging

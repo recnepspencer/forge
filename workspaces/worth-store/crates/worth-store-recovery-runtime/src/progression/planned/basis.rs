@@ -30,9 +30,18 @@ pub(crate) use publication_candidate::CandidateMaterializationCost;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ExecutionBasisDenial {
-    StagingBytes { observed: u64 },
-    DirtyFrames { observed: u64 },
+    StagingBytes {
+        observed: u64,
+    },
+    DirtyFrames {
+        observed: u64,
+    },
     SuccessorCandidate(crate::entry::PhysicalRecoverySuccessorCandidateDenial),
+    RootProtocol {
+        artifact: crate::entry::PhysicalRecoveryRootProtocolArtifact,
+        denial: crate::entry::PhysicalRecoveryRootProtocolDenial,
+        counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
+    },
     Invalid,
 }
 

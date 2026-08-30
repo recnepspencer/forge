@@ -37,7 +37,7 @@ pub(super) fn observe_manifest_facts(
     root: &PhysicalRootSlotObservation,
     mut budget: ManifestObservationBudget<'_>,
 ) -> Result<ManifestFactsDiscovery, DiscoveryFailure> {
-    let PhysicalRootSlotObservation::Admitted(root) = root else {
+    let PhysicalRootSlotObservation::Candidate(root) = root else {
         return Ok(ManifestFactsDiscovery::Unavailable);
     };
     let mut pending = root

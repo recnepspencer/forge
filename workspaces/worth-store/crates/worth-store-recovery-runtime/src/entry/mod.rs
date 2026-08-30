@@ -8,6 +8,7 @@ mod outcome;
 mod publication;
 mod reopen;
 mod request;
+mod root_protocol_counters;
 mod session;
 mod source_denial;
 mod staging;
@@ -32,9 +33,11 @@ pub use publication::{
 };
 pub use reopen::{PhysicalRecoveryReopenCounters, PhysicalRecoveryReopenFailure};
 pub use request::PhysicalRecoveryOpenRequest;
+pub use root_protocol_counters::PhysicalRecoveryRootProtocolCounters;
 pub use session::PhysicalRecoverySessionIdentity;
 pub use source_denial::{
     PhysicalManifestObservationDenial, PhysicalRecoveryMediaObservationFailure,
+    PhysicalRecoveryRootProtocolArtifact, PhysicalRecoveryRootProtocolDenial,
     PhysicalRecoverySourceDenial,
 };
 pub use staging::{

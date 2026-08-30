@@ -1,6 +1,33 @@
+use worth_store_physical_integrity::PhysicalIntegrityRejection;
+
+use crate::entry::PhysicalRecoveryRootProtocolDenial;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RecoveryIntegrityIngressRejection {
+    Absent,
+    ConflictingDuplication { observed_sources: u64 },
+    Integrity(PhysicalIntegrityRejection),
+    NonCanonicalEncoding,
     MissingBoundedArtifact,
     ScopeMismatch,
     SourceIncarnationMismatch,
+}
+
+impl RecoveryIntegrityIngressRejection {
+    pub(crate) const fn diagnostic(self) -> PhysicalRecoveryRootProtocolDenial {
+        match self {
+            Self::Absent | Self::MissingBoundedArtifact => {
+                PhysicalRecoveryRootProtocolDenial::Absent
+            }
+            Self::ConflictingDuplication { observed_sources } => {
+                PhysicalRecoveryRootProtocolDenial::ConflictingDuplication { observed_sources }
+            }
+            Self::Integrity(rejection) => PhysicalRecoveryRootProtocolDenial::Integrity(rejection),
+            Self::NonCanonicalEncoding => PhysicalRecoveryRootProtocolDenial::NonCanonicalEncoding,
+            Self::ScopeMismatch => PhysicalRecoveryRootProtocolDenial::ScopeMismatch,
+            Self::SourceIncarnationMismatch => {
+                PhysicalRecoveryRootProtocolDenial::SourceIncarnationMismatch
+            }
+        }
+    }
 }

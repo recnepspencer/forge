@@ -287,6 +287,7 @@ fn cleanup_limits(cleanup_bytes: u64, cleanup_candidates: u64) -> PhysicalRecove
     declaration.distinct_pages_and_extents = 4_096;
     declaration.operation_bindings = 4_096;
     declaration.staging_bytes = 64 * 1024 * 1024;
+    declaration.recovery_memory_bytes = 64 * 1024 * 1024;
     declaration.dirty_frames = 4_096;
     declaration.publication_effects = 64;
     declaration.cleanup_candidates = cleanup_candidates;

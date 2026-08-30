@@ -12,7 +12,7 @@ error[E0308]: mismatched types
 note: method defined here
   --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_coordination/cleanup/mod.rs
    |
-   |     pub fn admit_cleanup_plan<'e>(
+   |     pub fn admit_cleanup_plan(
    |            ^^^^^^^^^^^^^^^^^^
 help: call `Into::into` on this expression to convert `VerifiedCheckpointStream` into `Arc<VerifiedCheckpointStream>`
    |
@@ -33,7 +33,7 @@ error[E0308]: mismatched types
 note: method defined here
   --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_coordination/cleanup/mod.rs
    |
-   |     pub fn admit_cleanup_plan<'e>(
+   |     pub fn admit_cleanup_plan(
    |            ^^^^^^^^^^^^^^^^^^
 help: call `Into::into` on this expression to convert `VerifiedCheckpointStream` into `Arc<VerifiedCheckpointStream>`
    |

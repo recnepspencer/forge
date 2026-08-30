@@ -1,4 +1,3 @@
-mod admission;
 mod candidate;
 mod checkpoint_base;
 mod checkpoint_covered_wal;
@@ -9,12 +8,13 @@ mod page_lsn_skip_apply;
 mod physical_source;
 mod residue;
 mod selection;
+mod structured_observation;
 mod wal_artifacts;
 mod wal_tail;
 
-pub use admission::admit_physical_root_slot;
 pub use candidate::{
-    PhysicalRootCandidateDenial, PhysicalRootSlotObservation, PhysicalRootSourceCandidate,
+    PhysicalRootCandidateDenial, PhysicalRootManifestDenial, PhysicalRootSelectorDenial,
+    PhysicalRootSlotObservation, PhysicalRootSourceCandidate,
 };
 pub use checkpoint_base::{PhysicalCheckpointBase, PhysicalCheckpointBaseDenial};
 pub use checkpoint_covered_wal::CheckpointCoveredWalArtifact;
@@ -34,6 +34,7 @@ pub use selection::{
     select_physical_recovery_sources, PhysicalSourceSelection, PhysicalSourceSelectionDenial,
     PhysicalSourceSelectionTrace,
 };
+pub use structured_observation::observe_structured_physical_root_candidate;
 pub use wal_artifacts::{
     inspect_physical_wal_artifacts, InspectedPhysicalWalArtifacts, PhysicalWalArtifactCorruption,
     PhysicalWalArtifactInspectionDenial,

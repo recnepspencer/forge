@@ -4,7 +4,7 @@ use worth_store_recovery_physics::{PhysicalSourceSelection, RecoveryPlanningCoun
 
 use crate::entry::{
     PhysicalRecoveryPublicationCounters, PhysicalRecoveryPublicationSettlementLedger,
-    PhysicalRecoveryReopenCounters, PhysicalRecoveryStagingCounters,
+    PhysicalRecoveryReopenCounters, PhysicalRecoverySourceDenial, PhysicalRecoveryStagingCounters,
     PhysicalRecoveryStagingSettlementLedger,
 };
 use crate::handoff::RecoveryOperationFateSet;
@@ -73,8 +73,16 @@ impl ReopenedPhysicalRecovery {
     pub const fn selected_sources(&self) -> &PhysicalSourceSelection {
         &self.state.selection
     }
+    pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
+        &self.state.root_protocol_denials
+    }
     pub const fn planning_counters(&self) -> RecoveryPlanningCounters {
         self.state.planning_counters
+    }
+    pub const fn root_protocol_counters(
+        &self,
+    ) -> crate::entry::PhysicalRecoveryRootProtocolCounters {
+        self.state.root_protocol_counters
     }
     pub const fn staging_counters(&self) -> PhysicalRecoveryStagingCounters {
         self.state.staging_counters

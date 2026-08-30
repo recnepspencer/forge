@@ -4,6 +4,26 @@ use worth_store_physical_format::{
     ManifestBlockReference, PhysicalRecordFormatDeclaration, RootRoutingBlockDenial,
     RootSelectorRole,
 };
+use worth_store_physical_integrity::PhysicalIntegrityRejection;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalRecoveryRootProtocolArtifact {
+    CurrentSelector,
+    PreviousSelector,
+    StagedCurrentSelector { publication: u64 },
+    CurrentRoot { generation: u64 },
+    PreviousRoot { generation: u64 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalRecoveryRootProtocolDenial {
+    Absent,
+    ConflictingDuplication { observed_sources: u64 },
+    Integrity(PhysicalIntegrityRejection),
+    NonCanonicalEncoding,
+    ScopeMismatch,
+    SourceIncarnationMismatch,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalManifestObservationDenial {
@@ -50,6 +70,10 @@ pub enum PhysicalRecoverySourceDenial {
         observed_store: Option<StableStoreIdentity>,
         observed_role: Option<RootSelectorRole>,
         observed_generation: Option<u64>,
+    },
+    RootProtocol {
+        artifact: PhysicalRecoveryRootProtocolArtifact,
+        denial: PhysicalRecoveryRootProtocolDenial,
     },
     RootSelection(PhysicalRootSelectionDenial),
     BootstrapCatalog(BootstrapCatalogDenial),

@@ -232,6 +232,7 @@ fn ordinary_limits() -> PhysicalRecoveryLimits {
     declaration.distinct_pages_and_extents = 4_096;
     declaration.operation_bindings = 4_096;
     declaration.staging_bytes = 32 * 1024 * 1024;
+    declaration.recovery_memory_bytes = 32 * 1024 * 1024;
     declaration.dirty_frames = 4_096;
     declaration.publication_effects = 64;
     declaration.observation_bytes = 32 * 1024 * 1024;

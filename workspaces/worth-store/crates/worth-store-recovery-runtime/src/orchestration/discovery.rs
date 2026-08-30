@@ -32,6 +32,7 @@ pub(crate) struct DiscoveryMaterial {
     pub(crate) checkpoint: CheckpointDiscovery,
     pub(crate) wal: WalDiscovery,
     pub(crate) residue: Vec<PhysicalRecoveryResidue>,
+    pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(crate) counters: crate::progression::PhysicalRecoveryDiscoveryCounters,
 }
 
@@ -79,6 +80,18 @@ pub(super) struct DiscoveryFailure {
     kind: PhysicalRecoveryBlock,
     limit: Option<PhysicalRecoveryLimitFailure>,
     source_denials: Vec<PhysicalRecoverySourceDenial>,
+}
+
+impl DiscoveryFailure {
+    pub(super) fn with_root_protocol_denials(
+        mut self,
+        denials: &[PhysicalRecoverySourceDenial],
+    ) -> Self {
+        let mut combined = denials.to_vec();
+        combined.append(&mut self.source_denials);
+        self.source_denials = combined;
+        self
+    }
 }
 
 impl From<PhysicalRecoveryBlock> for DiscoveryFailure {
@@ -141,12 +154,13 @@ pub(crate) fn discover_sources(
         session,
         _world_binding,
         limits,
+        record_format,
     } = authority;
     let mut discovery = media
         .bounded_discovery(maximum_entries, declaration.observation_bytes)
         .expect("a nonzero admitted discovery limit constructs a bounded observer");
     let mut counters = crate::progression::PhysicalRecoveryDiscoveryCounters::default();
-    let result = observe_all(&mut discovery, limits, &mut counters);
+    let result = observe_all(&mut discovery, limits, record_format, &mut counters);
     counters.bytes_observed = discovery.counters().bytes_read;
     counters.wal_entries = discovery.counters().directory_entries_observed;
     counters.wal_bytes = discovery.counters().wal_bytes_read;
@@ -156,6 +170,7 @@ pub(crate) fn discover_sources(
         session,
         _world_binding,
         limits,
+        record_format,
     };
     match result {
         Ok(observed) => Ok(DiscoveryMaterial {
@@ -169,6 +184,7 @@ pub(crate) fn discover_sources(
             checkpoint: observed.checkpoint,
             wal: observed.wal,
             residue: observed.residue,
+            root_protocol_denials: observed.root_protocol_denials,
             counters,
         }),
         Err(failure) => {

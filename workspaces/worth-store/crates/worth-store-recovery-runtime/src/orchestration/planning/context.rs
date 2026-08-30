@@ -6,6 +6,8 @@ use worth_store_recovery_physics::{
 use crate::entry::{
     AdmittedPlatformAuthority, PhysicalRecoveryBlockKind, PhysicalRecoveryLimitDeclaration,
     PhysicalRecoveryLimitFailure, PhysicalRecoveryOutcome, PhysicalRecoveryPlanningDenial,
+    PhysicalRecoveryRootProtocolArtifact, PhysicalRecoveryRootProtocolDenial,
+    PhysicalRecoverySourceDenial,
 };
 use crate::progression::{PhysicalRecoveryDiscoveryCounters, SelectedPhysicalRecovery};
 
@@ -19,13 +21,16 @@ pub(super) struct PlanningContext {
     pub(super) coordination: RecoveryCoordination,
     pub(super) selection: PhysicalSourceSelection,
     pub(super) counters: PhysicalRecoveryDiscoveryCounters,
+    pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    pub(super) root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     pub(super) limits: PhysicalRecoveryLimitDeclaration,
     pub(super) effects_before: u64,
 }
 
 impl PlanningContext {
     pub(super) fn from_selected(selected: SelectedPhysicalRecovery) -> Self {
-        let (authority, coordination, selection, counters) = selected.into_parts();
+        let (authority, coordination, selection, counters, root_protocol_denials) =
+            selected.into_parts();
         let limits = authority.limits.declaration();
         let effects_before = authority.media.recovery_effect_count();
         Self {
@@ -33,6 +38,8 @@ impl PlanningContext {
             coordination,
             selection,
             counters,
+            root_protocol_denials,
+            root_protocol_counters: Default::default(),
             limits,
             effects_before,
         }
@@ -49,8 +56,10 @@ impl PlanningContext {
             self.coordination,
             kind,
             self.counters,
+            self.root_protocol_counters,
             artifact,
             limit,
+            self.root_protocol_denials,
         )
     }
 
@@ -68,9 +77,54 @@ impl PlanningContext {
             kind,
             self.counters,
             planning_counters,
+            self.root_protocol_counters,
             artifact,
             limit,
             denial,
+            self.root_protocol_denials,
+        )
+    }
+
+    pub(super) fn root_protocol_block(
+        mut self,
+        planning_counters: RecoveryPlanningCounters,
+        artifact: PhysicalRecoveryRootProtocolArtifact,
+        denial: PhysicalRecoveryRootProtocolDenial,
+    ) -> PhysicalRecoveryOutcome {
+        self.root_protocol_denials
+            .push(PhysicalRecoverySourceDenial::RootProtocol { artifact, denial });
+        super::denial::block_with_root_protocol_counters(
+            self.authority,
+            self.coordination,
+            PhysicalRecoveryBlockKind::RootProtocol,
+            self.counters,
+            planning_counters,
+            self.root_protocol_counters,
+            "staged current-root selector closeout",
+            None,
+            None,
+            self.root_protocol_denials,
+        )
+    }
+
+    pub(super) fn successor_candidate_block(
+        self,
+        planning_counters: RecoveryPlanningCounters,
+        artifact: &str,
+        limit: Option<PhysicalRecoveryLimitFailure>,
+        denial: crate::entry::PhysicalRecoverySuccessorCandidateDenial,
+    ) -> PhysicalRecoveryOutcome {
+        super::denial::block_with_root_protocol_counters(
+            self.authority,
+            self.coordination,
+            PhysicalRecoveryBlockKind::PageAdmission,
+            self.counters,
+            planning_counters,
+            self.root_protocol_counters,
+            artifact,
+            limit,
+            Some(PhysicalRecoveryPlanningDenial::SuccessorCandidate(denial)),
+            self.root_protocol_denials,
         )
     }
 
@@ -84,7 +138,9 @@ impl PlanningContext {
             self.coordination,
             self.counters,
             planning_counters,
+            self.root_protocol_counters,
             limit,
+            self.root_protocol_denials,
         )
     }
 
@@ -99,8 +155,10 @@ impl PlanningContext {
             self.coordination,
             self.counters,
             planning_counters,
+            self.root_protocol_counters,
             limit,
             denial,
+            self.root_protocol_denials,
         )
     }
 
@@ -115,8 +173,26 @@ impl PlanningContext {
             self.coordination,
             self.counters,
             planning_counters,
+            self.root_protocol_counters,
             denial,
             limit,
+            self.root_protocol_denials,
         )
+    }
+
+    pub(super) fn record_successor_root_route(
+        &mut self,
+        route: crate::entry::PhysicalRecoveryRootProtocolCounters,
+    ) {
+        self.root_protocol_counters = self.root_protocol_counters.with_successor_root_route(route);
+    }
+
+    pub(super) fn record_staged_selector_route(
+        &mut self,
+        route: crate::entry::PhysicalRecoveryRootProtocolCounters,
+    ) {
+        self.root_protocol_counters = self
+            .root_protocol_counters
+            .with_staged_selector_route(route);
     }
 }

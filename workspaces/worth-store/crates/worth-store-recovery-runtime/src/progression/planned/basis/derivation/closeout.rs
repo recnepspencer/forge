@@ -17,6 +17,7 @@ pub(super) fn seal(
         RecoveryPublicationPlan,
         RecoveryQuiescencePlan,
         CandidateMaterializationCost,
+        crate::entry::PhysicalRecoveryRootProtocolCounters,
     ),
     ExecutionBasisDenial,
 > {
@@ -36,6 +37,7 @@ pub(super) fn seal(
             referenced_artifacts: Box::new([]),
             artifacts: Box::new([]),
             materialization_cost: CandidateMaterializationCost::default(),
+            staged_current_selector: selection.root().selected().selector(),
         }
     } else {
         super::super::publication_candidate::build(
@@ -55,7 +57,6 @@ pub(super) fn seal(
             }
         })?
     };
-    let materialization_cost = candidate.materialization_cost;
     let plan_identity = super::super::identity::bind_publication_candidates(
         basis_identity,
         &candidate.root,
@@ -67,22 +68,13 @@ pub(super) fn seal(
     let staging_commands = (staging.commands.len() as u64)
         .checked_mul(2)
         .ok_or(ExecutionBasisDenial::Invalid)?;
-    let current_selector = candidate
-        .artifacts
-        .iter()
-        .find(|candidate| {
-            matches!(
-                candidate.artifact(),
-                RecordArtifactFile::RootSelectorCandidate {
-                    role: worth_store_physical_format::RootSelectorRole::Current,
-                    ..
-                }
-            )
-        })
-        .and_then(|candidate| {
-            worth_store_physical_format::DurableRootSelector::decode(candidate.bytes()).ok()
-        })
-        .unwrap_or_else(|| selection.root().selected().selector());
+    let (current_selector, root_protocol_counters) =
+        super::selector_closeout::select_staged_current(
+            &candidate,
+            store,
+            selection.root().selected().selector().format(),
+        )?;
+    let materialization_cost = candidate.materialization_cost;
     let created_artifacts = created_artifacts(&staging, &candidate.artifacts);
     let publication = RecoveryPublicationPlan {
         store,
@@ -109,7 +101,13 @@ pub(super) fn seal(
         expected_live_commands_after_close: 0,
         expected_live_media_handles_after_close: 0,
     };
-    Ok((staging, publication, quiescence, materialization_cost))
+    Ok((
+        staging,
+        publication,
+        quiescence,
+        materialization_cost,
+        root_protocol_counters,
+    ))
 }
 
 fn created_artifacts(

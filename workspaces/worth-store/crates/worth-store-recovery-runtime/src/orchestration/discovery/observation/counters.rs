@@ -73,7 +73,7 @@ pub(super) fn record_wal_counters(
 fn admitted_root_count(observation: &PhysicalRootSlotObservation) -> u64 {
     u64::from(matches!(
         observation,
-        PhysicalRootSlotObservation::Admitted(_)
+        PhysicalRootSlotObservation::Candidate(_)
     ))
 }
 
@@ -87,10 +87,11 @@ fn root_posture(observation: &PhysicalRootSlotObservation, posture: RootPosture)
     u64::from(matches!(
         (observation, posture),
         (
-            PhysicalRootSlotObservation::Admitted(_),
+            PhysicalRootSlotObservation::Candidate(_),
             RootPosture::Admitted
         ) | (
-            PhysicalRootSlotObservation::Rejected { .. },
+            PhysicalRootSlotObservation::SelectorRejected(_)
+                | PhysicalRootSlotObservation::RootRejected { .. },
             RootPosture::Rejected
         ) | (PhysicalRootSlotObservation::Absent, RootPosture::Absent)
     ))

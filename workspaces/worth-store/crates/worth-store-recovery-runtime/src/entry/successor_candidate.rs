@@ -1,6 +1,8 @@
 use worth_store::physical_runtime::RecoveryDiscoveryFailure;
 use worth_store_physical_format::RecordArtifactFile;
 
+use super::PhysicalRecoveryRootProtocolDenial;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalRecoverySuccessorCandidateDenial {
     Discovery {
@@ -15,6 +17,11 @@ pub enum PhysicalRecoverySuccessorCandidateDenial {
     InvalidArtifact {
         artifact: RecordArtifactFile,
         generation: u64,
+    },
+    RootProtocol {
+        artifact: RecordArtifactFile,
+        generation: u64,
+        denial: PhysicalRecoveryRootProtocolDenial,
     },
     ManifestEntryLimit {
         artifact: RecordArtifactFile,
@@ -35,6 +42,7 @@ impl PhysicalRecoverySuccessorCandidateDenial {
             Self::Discovery { artifact, .. }
             | Self::MissingArtifact { artifact, .. }
             | Self::InvalidArtifact { artifact, .. }
+            | Self::RootProtocol { artifact, .. }
             | Self::ManifestEntryLimit { artifact, .. }
             | Self::Conflict { artifact, .. } => *artifact,
         }

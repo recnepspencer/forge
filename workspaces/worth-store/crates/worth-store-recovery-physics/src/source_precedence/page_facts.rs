@@ -204,7 +204,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::{admit_physical_root_slot, PhysicalRootSlotObservation};
+    use crate::{observe_structured_physical_root_candidate, PhysicalRootSlotObservation};
 
     #[test]
     fn exact_manifest_addressed_fact_set_is_admitted() {
@@ -287,14 +287,8 @@ mod tests {
             None,
         )
         .unwrap();
-        let observation = admit_physical_root_slot(
-            store(),
-            RootSelectorRole::Current,
-            Some(&selector.encode()),
-            Some(&manifest.encode(format)),
-            4,
-        );
-        let PhysicalRootSlotObservation::Admitted(root) = observation else {
+        let observation = observe_structured_physical_root_candidate(selector, manifest, format);
+        let PhysicalRootSlotObservation::Candidate(root) = observation else {
             panic!("root fixture must be admitted")
         };
         (root, PhysicalManifestBlockCandidate::new(reference, bytes))
@@ -336,14 +330,8 @@ mod tests {
             None,
         )
         .unwrap();
-        let observation = admit_physical_root_slot(
-            store(),
-            RootSelectorRole::Current,
-            Some(&selector.encode()),
-            Some(&manifest.encode(format)),
-            3,
-        );
-        let PhysicalRootSlotObservation::Admitted(root) = observation else {
+        let observation = observe_structured_physical_root_candidate(selector, manifest, format);
+        let PhysicalRootSlotObservation::Candidate(root) = observation else {
             panic!("branched root fixture must be admitted")
         };
         (

@@ -25,9 +25,11 @@ pub(crate) fn publish_recovery(
         coordination,
         selection,
         discovery_counters,
+        root_protocol_denials,
         freshness,
         fates,
         planning_counters,
+        root_protocol_counters,
         base,
         publication,
         quiescence,
@@ -51,7 +53,9 @@ pub(crate) fn publish_recovery(
             authority,
             coordination,
             discovery_counters,
+            root_protocol_denials,
             planning_counters,
+            root_protocol_counters,
             staging_counters,
             staging_settlements,
             planned_effects,
@@ -70,7 +74,9 @@ pub(crate) fn publish_recovery(
                 authority,
                 coordination,
                 discovery_counters,
+                root_protocol_denials,
                 planning_counters,
+                root_protocol_counters,
                 staging_counters,
                 staging_settlements,
                 planned_effects,
@@ -82,9 +88,11 @@ pub(crate) fn publish_recovery(
                 coordination,
                 selection,
                 discovery_counters,
+                root_protocol_denials,
                 freshness,
                 fates,
                 planning_counters,
+                root_protocol_counters,
                 base,
                 quiescence,
                 closed,
@@ -108,7 +116,9 @@ pub(crate) fn publish_recovery(
             authority,
             coordination,
             discovery_counters,
+            root_protocol_denials,
             planning_counters,
+            root_protocol_counters,
             staging_counters,
             staging_settlements,
             planned_effects,
@@ -124,6 +134,8 @@ pub(crate) fn publish_recovery(
                 return Err(indeterminate(
                     authority,
                     coordination,
+                    root_protocol_denials,
+                    root_protocol_counters,
                     counters,
                     PhysicalRecoveryPublicationSettlement::Completed(completed),
                 ));
@@ -134,9 +146,11 @@ pub(crate) fn publish_recovery(
                     coordination,
                     selection,
                     discovery_counters,
+                    root_protocol_denials,
                     freshness,
                     fates,
                     planning_counters,
+                    root_protocol_counters,
                     base,
                     quiescence,
                     closed,
@@ -157,13 +171,22 @@ pub(crate) fn publish_recovery(
                 || denial.root_protocol().is_some();
             let settlement = PhysicalRecoveryPublicationSettlement::DeniedBeforeEffect(denial);
             if escaped {
-                Err(indeterminate(authority, coordination, counters, settlement))
+                Err(indeterminate(
+                    authority,
+                    coordination,
+                    root_protocol_denials,
+                    root_protocol_counters,
+                    counters,
+                    settlement,
+                ))
             } else {
                 Err(block_settlement(
                     authority,
                     coordination,
                     discovery_counters,
+                    root_protocol_denials,
                     planning_counters,
+                    root_protocol_counters,
                     staging_counters,
                     staging_settlements,
                     counters,
@@ -176,6 +199,8 @@ pub(crate) fn publish_recovery(
             Err(indeterminate(
                 authority,
                 coordination,
+                root_protocol_denials,
+                root_protocol_counters,
                 counters,
                 PhysicalRecoveryPublicationSettlement::Indeterminate(outcome),
             ))
@@ -187,7 +212,9 @@ fn block_invalid(
     authority: AdmittedPlatformAuthority,
     coordination: super::RecoveryCoordination,
     discovery: crate::progression::PhysicalRecoveryDiscoveryCounters,
+    root_protocol_denials: Vec<crate::entry::PhysicalRecoverySourceDenial>,
     planning: worth_store_recovery_physics::RecoveryPlanningCounters,
+    root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     staging: crate::entry::PhysicalRecoveryStagingCounters,
     staging_settlements: crate::entry::PhysicalRecoveryStagingSettlementLedger,
     planned_effects: u64,
@@ -205,7 +232,9 @@ fn block_invalid(
         session_identity,
         PhysicalRecoveryBlockEvidence {
             counters: discovery,
+            source_denials: root_protocol_denials,
             planning_counters: Some(planning),
+            root_protocol_counters: Some(root_protocol_counters),
             staging_counters: Some(staging),
             staging_settlements: Some(staging_settlements),
             publication_counters: Some(PhysicalRecoveryPublicationCounters {
@@ -224,7 +253,9 @@ fn block_settlement(
     authority: AdmittedPlatformAuthority,
     coordination: super::RecoveryCoordination,
     discovery: crate::progression::PhysicalRecoveryDiscoveryCounters,
+    root_protocol_denials: Vec<crate::entry::PhysicalRecoverySourceDenial>,
     planning: worth_store_recovery_physics::RecoveryPlanningCounters,
+    root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     staging: crate::entry::PhysicalRecoveryStagingCounters,
     staging_settlements: crate::entry::PhysicalRecoveryStagingSettlementLedger,
     counters: PhysicalRecoveryPublicationCounters,
@@ -243,7 +274,9 @@ fn block_settlement(
         session_identity,
         PhysicalRecoveryBlockEvidence {
             counters: discovery,
+            source_denials: root_protocol_denials,
             planning_counters: Some(planning),
+            root_protocol_counters: Some(root_protocol_counters),
             staging_counters: Some(staging),
             staging_settlements: Some(staging_settlements),
             publication_counters: Some(counters),
@@ -259,6 +292,8 @@ fn block_settlement(
 fn indeterminate(
     authority: AdmittedPlatformAuthority,
     coordination: super::RecoveryCoordination,
+    root_protocol_denials: Vec<crate::entry::PhysicalRecoverySourceDenial>,
+    root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     counters: PhysicalRecoveryPublicationCounters,
     settlement: PhysicalRecoveryPublicationSettlement,
 ) -> PhysicalRecoveryOutcome {
@@ -275,6 +310,8 @@ fn indeterminate(
             session_identity,
             counters,
             PhysicalRecoveryPublicationSettlementLedger::new(settlement),
+            root_protocol_denials,
+            root_protocol_counters,
             recovery_effects,
         ),
     )
