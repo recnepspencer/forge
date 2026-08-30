@@ -1,12 +1,11 @@
-use super::{WAL_FRAME_V1_HEADER_BYTES, WAL_FRAME_V1_VERSION};
+use super::{WalSegmentIdentity, WAL_FRAME_V1_HEADER_BYTES, WAL_FRAME_V1_VERSION};
 
 const MAGIC: &[u8; 8] = b"WORTHWAL";
 
 /// Descriptive fields decoded from one WAL v1 header.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WalFrameV1Header {
-    segment_id: u64,
-    generation: u64,
+    identity: WalSegmentIdentity,
     lsn_start: u64,
     lsn_end: u64,
     payload_bytes: u64,
@@ -40,18 +39,16 @@ pub fn decode_wal_frame_v1_header(
     if header_bytes as usize != WAL_FRAME_V1_HEADER_BYTES {
         return Err(WalFrameV1Denial::HeaderLengthMismatch(header_bytes));
     }
+    let identity = WalSegmentIdentity::new(read_u64(header, 12), read_u64(header, 20))
+        .ok_or(WalFrameV1Denial::InvalidIdentity)?;
     let value = WalFrameV1Header {
-        segment_id: read_u64(header, 12),
-        generation: read_u64(header, 20),
+        identity,
         lsn_start: read_u64(header, 28),
         lsn_end: read_u64(header, 36),
         payload_bytes: read_u64(header, 44),
         identity_digest: header[52..84].try_into().expect("fixed identity digest"),
         payload_digest: header[84..116].try_into().expect("fixed payload digest"),
     };
-    if value.segment_id == 0 || value.generation == 0 {
-        return Err(WalFrameV1Denial::InvalidIdentity);
-    }
     if value.lsn_start >= value.lsn_end {
         return Err(WalFrameV1Denial::InvalidLsnRange);
     }
@@ -62,12 +59,16 @@ pub fn decode_wal_frame_v1_header(
 }
 
 impl WalFrameV1Header {
+    pub const fn identity(self) -> WalSegmentIdentity {
+        self.identity
+    }
+
     pub const fn segment_id(self) -> u64 {
-        self.segment_id
+        self.identity.segment().get()
     }
 
     pub const fn generation(self) -> u64 {
-        self.generation
+        self.identity.generation().get()
     }
 
     pub const fn lsn_start(self) -> u64 {

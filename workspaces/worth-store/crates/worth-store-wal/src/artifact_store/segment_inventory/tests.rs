@@ -16,6 +16,19 @@ fn identity() -> WalSegmentArtifactIdentity {
 }
 
 #[test]
+fn artifact_identity_exposes_the_canonical_physical_format_identity() {
+    let identity = identity();
+    assert_eq!(
+        identity.format_identity().segment().get(),
+        identity.segment().get()
+    );
+    assert_eq!(
+        identity.format_identity().generation().get(),
+        identity.generation().get()
+    );
+}
+
+#[test]
 fn frame_cardinality_is_denied_before_the_crossing_frame_is_retained() {
     let bytes = two_frames();
     let exact = inspect_bounded_wal_active_tail_with_evidence(identity(), &bytes, 2).unwrap();

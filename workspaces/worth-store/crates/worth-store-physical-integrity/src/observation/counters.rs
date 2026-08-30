@@ -11,7 +11,7 @@ pub enum PhysicalIntegrityRejectionClass {
     Indeterminate,
 }
 
-const REJECTION_CLASS_COUNT: usize = 17;
+const REJECTION_CLASS_COUNT: usize = 20;
 
 impl PhysicalIntegrityRejectionClass {
     const fn index(self) -> usize {
@@ -25,14 +25,17 @@ impl PhysicalIntegrityRejectionClass {
             Self::Damaged(PhysicalDamageCause::ArtifactIdentityMismatch) => 6,
             Self::Damaged(PhysicalDamageCause::PhysicalGenerationMismatch) => 7,
             Self::Damaged(PhysicalDamageCause::SelectorRoleMismatch) => 8,
-            Self::Damaged(PhysicalDamageCause::ChildReferenceMismatch) => 9,
-            Self::Damaged(PhysicalDamageCause::MalformedStructure) => 10,
-            Self::Damaged(PhysicalDamageCause::Truncated) => 11,
-            Self::Damaged(PhysicalDamageCause::MissingArtifact) => 12,
-            Self::Damaged(PhysicalDamageCause::DuplicateArtifact) => 13,
-            Self::Unsupported => 14,
-            Self::Unknown => 15,
-            Self::Indeterminate => 16,
+            Self::Damaged(PhysicalDamageCause::RecordKindMismatch) => 9,
+            Self::Damaged(PhysicalDamageCause::ChildReferenceMismatch) => 10,
+            Self::Damaged(PhysicalDamageCause::SequenceMismatch) => 11,
+            Self::Damaged(PhysicalDamageCause::AggregateMismatch) => 12,
+            Self::Damaged(PhysicalDamageCause::MalformedStructure) => 13,
+            Self::Damaged(PhysicalDamageCause::Truncated) => 14,
+            Self::Damaged(PhysicalDamageCause::MissingArtifact) => 15,
+            Self::Damaged(PhysicalDamageCause::DuplicateArtifact) => 16,
+            Self::Unsupported => 17,
+            Self::Unknown => 18,
+            Self::Indeterminate => 19,
         }
     }
 }
@@ -192,6 +195,35 @@ mod tests {
         );
         assert_eq!(
             counters.rejected_for(PhysicalIntegrityRejectionClass::Unsupported),
+            0
+        );
+    }
+
+    #[test]
+    fn phase_four_rejection_causes_have_distinct_counter_slots() {
+        let mut counters = PhysicalIntegrityObservationCounters::empty(
+            PhysicalIntegrityArtifactFamily::CheckpointFooter,
+        );
+        let causes = [
+            PhysicalDamageCause::RecordKindMismatch,
+            PhysicalDamageCause::SequenceMismatch,
+            PhysicalDamageCause::AggregateMismatch,
+        ];
+        for cause in causes {
+            counters
+                .record_rejected(64, PhysicalIntegrityRejectionClass::Damaged(cause))
+                .unwrap();
+        }
+        for cause in causes {
+            assert_eq!(
+                counters.rejected_for(PhysicalIntegrityRejectionClass::Damaged(cause)),
+                1
+            );
+        }
+        assert_eq!(
+            counters.rejected_for(PhysicalIntegrityRejectionClass::Damaged(
+                PhysicalDamageCause::ChecksumMismatch
+            )),
             0
         );
     }

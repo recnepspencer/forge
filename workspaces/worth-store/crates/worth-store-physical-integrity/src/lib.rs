@@ -31,10 +31,10 @@ pub use scrub::{
     PhysicalIntegrityScrubWindowOutcome,
 };
 pub use validation::{
-    IndeterminatePhysicalIntegrityCause, IndeterminatePhysicalIntegrityPosture,
-    IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
-    IntegrityValidatedRootManifest, PhysicalArtifactScope, PhysicalArtifactScopeDenial,
-    PhysicalIntegrityRejection, PhysicalIntegrityValidationDigest,
+    CheckpointStreamHeaderScopeIdentity, IndeterminatePhysicalIntegrityCause,
+    IndeterminatePhysicalIntegrityPosture, IntegrityValidatedCurrentRootSelector,
+    IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest, PhysicalArtifactScope,
+    PhysicalArtifactScopeDenial, PhysicalIntegrityRejection, PhysicalIntegrityValidationDigest,
     PhysicalIntegrityValidationMechanism, PhysicalIntegrityValidationRecord,
     PhysicalIntegrityVersionAxis, UnknownPhysicalIntegrityCause, UnknownPhysicalIntegrityPosture,
     UnsupportedPhysicalIntegrityVersion, UntrustedPhysicalArtifact,

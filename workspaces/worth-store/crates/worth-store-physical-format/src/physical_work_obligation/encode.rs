@@ -1,7 +1,8 @@
 use super::checksum::calculate;
 use super::field_code::{artifact_parts, decode_artifact};
+use super::target_shape::valid_target_shape;
 use super::{
-    PhysicalWorkArtifactCode, PhysicalWorkCheckpointActionCode,
+    PhysicalWorkArtifactCode, PhysicalWorkCheckpointActionCode, PhysicalWorkObligationIdentity,
     PhysicalWorkObligationOperationCode, PhysicalWorkObligationTargetCode,
     PHYSICAL_WORK_OBLIGATION_V6_RECORD_BYTES, PHYSICAL_WORK_OBLIGATION_V6_VERSION,
 };
@@ -11,9 +12,7 @@ const MAGIC: &[u8; 8] = b"WPEFFECT";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalWorkObligationV6 {
     store_identity: [u8; 16],
-    runtime: u64,
-    generation: u64,
-    operation: u64,
+    identity: PhysicalWorkObligationIdentity,
     operation_code: PhysicalWorkObligationOperationCode,
     target: PhysicalWorkObligationTargetCode,
     payload_digest: Option<[u8; 32]>,
@@ -41,34 +40,74 @@ impl PhysicalWorkObligationV6 {
         target: PhysicalWorkObligationTargetCode,
         payload_digest: Option<[u8; 32]>,
     ) -> Result<Self, PhysicalWorkObligationV6Denial> {
-        if store_identity == [0; 16] || runtime == 0 || generation == 0 || operation == 0 {
+        use core::num::NonZeroU64;
+
+        if store_identity == [0; 16] {
             return Err(PhysicalWorkObligationV6Denial::InvalidIdentity);
         }
+        let runtime =
+            NonZeroU64::new(runtime).ok_or(PhysicalWorkObligationV6Denial::InvalidIdentity)?;
+        let generation =
+            NonZeroU64::new(generation).ok_or(PhysicalWorkObligationV6Denial::InvalidIdentity)?;
+        let operation =
+            NonZeroU64::new(operation).ok_or(PhysicalWorkObligationV6Denial::InvalidIdentity)?;
+        Self::from_raw_store_and_identity(
+            store_identity,
+            PhysicalWorkObligationIdentity::new(runtime, generation, operation),
+            operation_code,
+            target,
+            payload_digest,
+        )
+    }
+
+    pub fn from_identity(
+        store: crate::store_namespace::StableStoreIdentity,
+        identity: PhysicalWorkObligationIdentity,
+        operation_code: PhysicalWorkObligationOperationCode,
+        target: PhysicalWorkObligationTargetCode,
+        payload_digest: Option<[u8; 32]>,
+    ) -> Result<Self, PhysicalWorkObligationV6Denial> {
+        Self::from_raw_store_and_identity(
+            store.bytes(),
+            identity,
+            operation_code,
+            target,
+            payload_digest,
+        )
+    }
+
+    fn from_raw_store_and_identity(
+        store_identity: [u8; 16],
+        identity: PhysicalWorkObligationIdentity,
+        operation_code: PhysicalWorkObligationOperationCode,
+        target: PhysicalWorkObligationTargetCode,
+        payload_digest: Option<[u8; 32]>,
+    ) -> Result<Self, PhysicalWorkObligationV6Denial> {
         if !valid_target_shape(target, payload_digest.is_some()) {
             return Err(PhysicalWorkObligationV6Denial::InvalidTarget);
         }
         Ok(Self {
             store_identity,
-            runtime,
-            generation,
-            operation,
+            identity,
             operation_code,
             target,
             payload_digest,
         })
     }
-
+    pub const fn identity(self) -> PhysicalWorkObligationIdentity {
+        self.identity
+    }
     pub const fn store_identity(self) -> [u8; 16] {
         self.store_identity
     }
     pub const fn runtime(self) -> u64 {
-        self.runtime
+        self.identity.runtime().get()
     }
     pub const fn generation(self) -> u64 {
-        self.generation
+        self.identity.generation().get()
     }
     pub const fn operation(self) -> u64 {
-        self.operation
+        self.identity.operation().get()
     }
     pub const fn operation_code(self) -> PhysicalWorkObligationOperationCode {
         self.operation_code
@@ -81,64 +120,6 @@ impl PhysicalWorkObligationV6 {
     }
 }
 
-fn valid_target_shape(target: PhysicalWorkObligationTargetCode, has_digest: bool) -> bool {
-    match target {
-        PhysicalWorkObligationTargetCode::Range {
-            artifact,
-            offset,
-            byte_count,
-        } => valid_artifact(artifact) && has_digest && valid_interval(offset, byte_count),
-        PhysicalWorkObligationTargetCode::WalArtifactInterval {
-            segment,
-            generation,
-            offset,
-            byte_count,
-        } => segment > 0 && generation > 0 && has_digest && valid_interval(offset, byte_count),
-        PhysicalWorkObligationTargetCode::Checkpoint { sequence, action } => {
-            sequence > 0 && valid_checkpoint_action(action, has_digest)
-        }
-        PhysicalWorkObligationTargetCode::WalSegmentReclamation {
-            segment,
-            generation,
-        } => segment > 0 && generation > 0 && !has_digest,
-        PhysicalWorkObligationTargetCode::ArtifactFileSynchronization(artifact)
-        | PhysicalWorkObligationTargetCode::ArtifactParentSynchronization(artifact) => {
-            valid_artifact(artifact) && !has_digest
-        }
-        PhysicalWorkObligationTargetCode::CatalogReplacement(
-            PhysicalWorkArtifactCode::CatalogCandidate { .. },
-        ) => !has_digest,
-        PhysicalWorkObligationTargetCode::CatalogReplacement(_) => false,
-        PhysicalWorkObligationTargetCode::RecordNamespaceSynchronization => !has_digest,
-    }
-}
-
-fn valid_artifact(artifact: PhysicalWorkArtifactCode) -> bool {
-    !matches!(
-        artifact,
-        PhysicalWorkArtifactCode::RootSelectorCandidate { role, .. } if role != 1 && role != 2
-    )
-}
-
-fn valid_checkpoint_action(action: PhysicalWorkCheckpointActionCode, has_digest: bool) -> bool {
-    match action {
-        PhysicalWorkCheckpointActionCode::CreateCandidate { byte_count } => {
-            byte_count > 0 && has_digest
-        }
-        PhysicalWorkCheckpointActionCode::AppendCandidate { offset, byte_count } => {
-            has_digest && valid_interval(offset, byte_count)
-        }
-        PhysicalWorkCheckpointActionCode::SynchronizeCandidate
-        | PhysicalWorkCheckpointActionCode::RemoveCandidate
-        | PhysicalWorkCheckpointActionCode::PublishCandidate
-        | PhysicalWorkCheckpointActionCode::SynchronizeNamespace => !has_digest,
-    }
-}
-
-fn valid_interval(offset: u64, byte_count: u64) -> bool {
-    byte_count > 0 && offset.checked_add(byte_count).is_some()
-}
-
 pub fn encode_physical_work_obligation_v6(
     value: PhysicalWorkObligationV6,
 ) -> [u8; PHYSICAL_WORK_OBLIGATION_V6_RECORD_BYTES] {
@@ -147,9 +128,9 @@ pub fn encode_physical_work_obligation_v6(
     record[8] = PHYSICAL_WORK_OBLIGATION_V6_VERSION;
     record[9] = value.operation_code as u8;
     record[16..32].copy_from_slice(&value.store_identity);
-    record[32..40].copy_from_slice(&value.runtime.to_le_bytes());
-    record[40..48].copy_from_slice(&value.generation.to_le_bytes());
-    record[48..56].copy_from_slice(&value.operation.to_le_bytes());
+    record[32..40].copy_from_slice(&value.runtime().to_le_bytes());
+    record[40..48].copy_from_slice(&value.generation().to_le_bytes());
+    record[48..56].copy_from_slice(&value.operation().to_le_bytes());
     encode_target(value.target, &mut record);
     if let Some(digest) = value.payload_digest {
         record[105] = 1;

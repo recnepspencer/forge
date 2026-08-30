@@ -163,22 +163,24 @@ pub use manifest::{
     maximum_current_root_entries, maximum_segment_manifest_pages, AllocationClassManifestEntry,
     BoundedFreeSpaceMembershipBlockDecodeDenial, BoundedRootRoutingBlockDecodeDenial,
     BoundedSegmentMembershipBlockDecodeDenial, CurrentPhysicalRecordPlacement,
-    DurableExtentManifest, DurableExtentRecordPlacement, DurableFreeSpaceManifestHeader,
-    DurableInlineRecordPlacement, DurablePhysicalRootManifest, DurablePhysicalRootManifestBuilder,
-    DurableSegmentManifest, ExtentManifestEntry, ExtentManifestVocabulary, FreeSpaceBlockReference,
-    FreeSpaceKey, FreeSpaceManifestEntry, FreeSpaceMembershipBlockDecodeLimits,
-    FreeSpaceRoutingDenial, ManifestBlockReference, ManifestDiscoveryAuthority,
-    ManifestDiscoveryCounterSnapshot, ManifestDiscoveryDenial, ManifestDiscoveryDenialKind,
-    ManifestDiscoveryReport, ManifestVocabularyKind, MembershipManifestDenial,
-    PhysicalCurrentReachabilitySource, PhysicalFreeSpaceMembershipBlock,
+    DurableArtifactCrc32c, DurableExtentManifest, DurableExtentRecordPlacement,
+    DurableFreeSpaceManifestHeader, DurableInlineRecordPlacement, DurablePhysicalRootManifest,
+    DurablePhysicalRootManifestBuilder, DurableSegmentManifest, ExtentManifestEntry,
+    ExtentManifestVocabulary, FreeSpaceBlockReference, FreeSpaceHeaderScopeIdentity, FreeSpaceKey,
+    FreeSpaceManifestEntry, FreeSpaceMembershipBlockDecodeLimits,
+    FreeSpaceMembershipBlockScopeIdentity, FreeSpaceRoutingDenial, ManifestBlockReference,
+    ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot, ManifestDiscoveryDenial,
+    ManifestDiscoveryDenialKind, ManifestDiscoveryReport, ManifestVocabularyKind,
+    MembershipManifestDenial, PhysicalCurrentReachabilitySource, PhysicalFreeSpaceMembershipBlock,
     PhysicalManifestUniverseBuilder, PhysicalReclaimRegion, PhysicalReclaimRegionDenial,
     PhysicalRootManifest, PhysicalRootManifestRebuildRow, PhysicalRootManifestRebuildSource,
     PhysicalRootManifestRebuildWitness, PhysicalRootManifestVocabulary, PhysicalRootRoutingBlock,
-    PhysicalSegmentMembershipBlock, ReclaimedByteInterpretation, RecordAllocationClass,
-    RecordFreeSpaceManifestEntry, RecordSegmentPageManifestEntry, RootManifestDenial,
-    RootRoutingBlockDecodeLimits, RootRoutingBlockDenial, SegmentManifestBlockReference,
-    SegmentManifestEntry, SegmentManifestVocabulary, SegmentMembershipBlockDecodeLimits,
-    SegmentMembershipBlockDenial, SegmentPageKey, SegmentPageManifestEntry,
+    PhysicalSegmentMembershipBlock, PhysicalTreeIdentity, ReclaimedByteInterpretation,
+    RecordAllocationClass, RecordFreeSpaceManifestEntry, RecordSegmentPageManifestEntry,
+    RootManifestDenial, RootRoutingBlockDecodeLimits, RootRoutingBlockDenial,
+    RootRoutingBlockScopeIdentity, SegmentManifestBlockReference, SegmentManifestEntry,
+    SegmentManifestVocabulary, SegmentMembershipBlockDecodeLimits, SegmentMembershipBlockDenial,
+    SegmentMembershipBlockScopeIdentity, SegmentPageKey, SegmentPageManifestEntry,
 };
 pub use offline_verifier::{
     InMemoryModelLayoutObservation, InMemoryModelLayoutObservationSource, ManifestTraversalReport,
@@ -208,6 +210,7 @@ pub use physical_data_frame_identity::{
     certified_absent_prior_image_digest, write_persisted_physical_data_frame_identity,
     PersistedPhysicalDataFrameSubject,
 };
+pub use physical_work_obligation::PhysicalWorkObligationIdentity;
 pub use placement::{RecordArtifactFile, RecordFrameCoordinate};
 pub use record_framing::{
     decode_data_frame_page_lsn, durable_artifact_checksum, encode_data_frame_page_lsn,
@@ -241,6 +244,7 @@ pub use security_metadata::{
     PhysicalSecurityMetadataEnvelope, PhysicalSecurityMetadataResultExclusion,
     SegmentPageSecurityMetadataEnvelope, SegmentSecurityMetadataEnvelope,
 };
+pub use wal_frame::WalSegmentIdentity;
 
 #[path = "compile_fail/physical_format_compile_fail.rs"]
 #[doc(hidden)]

@@ -4,7 +4,9 @@ mod untrusted_artifact;
 pub(crate) mod validated;
 mod validation_record;
 
-pub use artifact_scope::{PhysicalArtifactScope, PhysicalArtifactScopeDenial};
+pub use artifact_scope::{
+    CheckpointStreamHeaderScopeIdentity, PhysicalArtifactScope, PhysicalArtifactScopeDenial,
+};
 pub use rejection::{
     IndeterminatePhysicalIntegrityCause, IndeterminatePhysicalIntegrityPosture,
     PhysicalIntegrityRejection, PhysicalIntegrityVersionAxis, UnknownPhysicalIntegrityCause,

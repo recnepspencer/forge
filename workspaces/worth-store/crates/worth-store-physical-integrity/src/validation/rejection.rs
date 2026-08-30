@@ -6,6 +6,9 @@ use super::PhysicalArtifactScope;
 pub enum PhysicalIntegrityVersionAxis {
     EnvelopeSchema,
     PhysicalFormat,
+    PhysicalWorkObligation,
+    WalFrame,
+    CheckpointRecordSchema,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
