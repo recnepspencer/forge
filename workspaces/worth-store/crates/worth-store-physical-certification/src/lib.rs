@@ -4,6 +4,8 @@ pub mod harness;
 
 mod actors;
 mod authoring;
+#[cfg(test)]
+mod c9_integrity_localization;
 mod counters;
 mod drivers;
 mod faults;
