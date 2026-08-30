@@ -1,7 +1,9 @@
 mod durable_frame_rejection;
+pub(crate) mod page;
 pub(crate) mod physical_work_obligation;
 pub(crate) mod root;
 
+pub use page::{validate_inline_page, InlinePageIntegrityValidation};
 pub use physical_work_obligation::{
     validate_physical_work_obligation, PhysicalWorkObligationIntegrityValidation,
 };

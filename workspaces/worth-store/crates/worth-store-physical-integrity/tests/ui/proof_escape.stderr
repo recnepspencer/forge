@@ -1,35 +1,44 @@
 error: lifetime may not live long enough
- --> tests/ui/proof_escape.rs:9:5
-  |
-6 | fn escape_current<'media>(
-  |                   ------ lifetime `'media` defined here
-...
-9 |     validation
-  |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
-
-error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:15:5
+  --> tests/ui/proof_escape.rs:10:5
    |
-12 | fn escape_previous<'media>(
-   |                    ------ lifetime `'media` defined here
+ 7 | fn escape_current<'media>(
+   |                   ------ lifetime `'media` defined here
 ...
-15 |     validation
+10 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:21:5
+  --> tests/ui/proof_escape.rs:16:5
    |
-18 | fn escape_manifest<'media>(
+13 | fn escape_previous<'media>(
    |                    ------ lifetime `'media` defined here
 ...
-21 |     validation
+16 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:27:5
+  --> tests/ui/proof_escape.rs:22:5
    |
-24 | fn escape_physical_work<'media>(
+19 | fn escape_manifest<'media>(
+   |                    ------ lifetime `'media` defined here
+...
+22 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:28:5
+   |
+25 | fn escape_physical_work<'media>(
    |                         ------ lifetime `'media` defined here
 ...
-27 |     validation
+28 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:34:5
+   |
+31 | fn escape_page<'media>(
+   |                ------ lifetime `'media` defined here
+...
+34 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
