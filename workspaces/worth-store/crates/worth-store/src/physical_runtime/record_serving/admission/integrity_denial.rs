@@ -52,15 +52,6 @@ pub(super) fn classify_root(
 
     match denial {
         crate::physical_runtime::RootProtocolAdmissionDenial::Validation(
-            PhysicalIntegrityRejection::Damaged(localization),
-        ) if localization.cause()
-            == worth_store_physical_integrity::PhysicalDamageCause::PhysicalGenerationMismatch =>
-        {
-            BootstrapTransitionFailure::Stale(
-                crate::physical_runtime::RecordServingStaleReason::CatalogSelectedRootGenerationMismatch,
-            )
-        }
-        crate::physical_runtime::RootProtocolAdmissionDenial::Validation(
             PhysicalIntegrityRejection::Unsupported(unsupported),
         ) if unsupported.axis() == PhysicalIntegrityVersionAxis::PhysicalFormat => {
             unsupported_format(unsupported.observed())

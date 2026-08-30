@@ -347,13 +347,16 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
         RecordAppendBatch::try_from_iter([b"gamma".as_slice(), b"delta".as_slice()]).unwrap(),
     );
     let after_admission = serving.resident_admission_counters();
+    // The second publication reads one source page and two blocks from each
+    // routing family (record, segment membership, and free space). All seven
+    // reads now cross resident integrity admission.
     assert_eq!(
         after_admission.fresh_validations() + after_admission.exact_record_reuses(),
-        before_admission.fresh_validations() + before_admission.exact_record_reuses() + 1,
+        before_admission.fresh_validations() + before_admission.exact_record_reuses() + 7,
     );
     assert_eq!(
         after_admission.owner_decoder_entries(),
-        before_admission.owner_decoder_entries() + 1,
+        before_admission.owner_decoder_entries() + 7,
     );
     assert_eq!(
         after_admission.rejections_before_decoder(),
