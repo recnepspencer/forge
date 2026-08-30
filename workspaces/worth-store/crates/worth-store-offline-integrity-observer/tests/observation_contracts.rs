@@ -1,3 +1,4 @@
+mod phase_4_literal_vectors;
 mod report_boundary_and_binary;
 mod resource_bounds;
 mod root_protocol_adversarial;
