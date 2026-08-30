@@ -10,9 +10,11 @@ use super::{AdmittedRecoveryFilesystemMedia, RecoveryFilesystemQualificationErro
 mod addressed_payload;
 mod addressed_range;
 mod artifact;
+mod observed_artifact;
 
 pub(crate) use artifact::record_artifact;
 pub use artifact::RecoveryDiscoveryArtifact;
+pub use observed_artifact::ObservedRecoveryArtifact;
 
 pub struct BoundedRecoveryFilesystemDiscovery {
     parts: crate::filesystem_media::recovery_qualification::AdmittedRecoveryParts,
@@ -20,11 +22,6 @@ pub struct BoundedRecoveryFilesystemDiscovery {
     remaining_bytes: u64,
     maximum_bytes: u64,
     counters: RecoveryDiscoveryCounters,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ObservedRecoveryArtifact {
-    bytes: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -193,7 +190,7 @@ impl BoundedRecoveryFilesystemDiscovery {
                     )
                     .map_err(|_| RecoveryDiscoveryFailure::invalid(context.clone()))?;
                 let bytes = match self.read_artifact(file, context, remaining_wal_bytes, false) {
-                    Ok(artifact) => artifact.bytes,
+                    Ok(artifact) => artifact.into_bytes(),
                     Err(RecoveryDiscoveryFailure::ByteLimitExceeded {
                         observed,
                         admitted: _,
@@ -309,11 +306,16 @@ impl BoundedRecoveryFilesystemDiscovery {
                 if !fixed {
                     self.counters.addressed_artifacts_read += 1;
                 }
-                Ok(ObservedRecoveryArtifact { bytes: Some(bytes) })
+                Ok(ObservedRecoveryArtifact::new(
+                    self.parts.store_identity,
+                    context,
+                    0,
+                    Some(bytes),
+                ))
             }
-            Err(failure) if failure.kind() == ArtifactTreeFailureKind::Absent => {
-                Ok(ObservedRecoveryArtifact { bytes: None })
-            }
+            Err(failure) if failure.kind() == ArtifactTreeFailureKind::Absent => Ok(
+                ObservedRecoveryArtifact::new(self.parts.store_identity, context, 0, None),
+            ),
             Err(failure) if failure.kind() == ArtifactTreeFailureKind::AccessLimitExceeded => {
                 let limit = failure.access_limit().unwrap_or(
                     crate::filesystem_media::ArtifactTreeAccessLimit {
@@ -340,16 +342,6 @@ impl BoundedRecoveryFilesystemDiscovery {
                 failure,
             }),
         }
-    }
-}
-
-impl ObservedRecoveryArtifact {
-    pub fn bytes(&self) -> Option<&[u8]> {
-        self.bytes.as_deref()
-    }
-
-    pub fn into_bytes(self) -> Option<Vec<u8>> {
-        self.bytes
     }
 }
 

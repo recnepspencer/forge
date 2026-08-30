@@ -49,8 +49,9 @@ pub(crate) fn observe_inline(
         placement.page_cell(),
         range,
     );
-    let projection = crate::integrity_ingress::admit_page_projection(&page, scope, integrity)
-        .map_err(|_| PageObservationFailure::InvalidPage(target.identity()))?;
+    let projection =
+        crate::integrity_ingress::admit_page_projection(&page, scope, plan.artifact, integrity)
+            .map_err(|_| PageObservationFailure::InvalidPage(target.identity()))?;
     let source = RecordFrameCoordinate::new(plan.artifact, plan.offset, plan.page_bytes)
         .ok_or(PageObservationFailure::InvalidPage(target.identity()))?;
     Ok(RecoveryPageObservation::materialized(

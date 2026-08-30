@@ -1,3 +1,4 @@
+mod artifact_scope;
 mod observed_recovery_artifact;
 mod observed_wal_artifact;
 

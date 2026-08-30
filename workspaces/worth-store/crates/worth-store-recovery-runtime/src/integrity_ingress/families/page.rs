@@ -29,8 +29,14 @@ pub(crate) struct PageFrameProjection {
 pub(crate) fn admit_page_projection(
     observed: &ObservedRecoveryArtifact,
     scope: PhysicalArtifactScope,
+    expected_segment: worth_store_physical_format::RecordArtifactFile,
     trace: &mut super::super::RecoveryIntegrityIngressTrace,
 ) -> Result<PageFrameProjection, RecoveryIntegrityIngressRejection> {
+    if observed.artifact()
+        != &worth_store::physical_runtime::RecoveryDiscoveryArtifact::Record(expected_segment)
+    {
+        return Err(trace.reject(scope, RecoveryIntegrityIngressRejection::ScopeMismatch));
+    }
     let input = ObservedRecoverySource::complete(observed, scope)
         .input()
         .map_err(|rejection| trace.reject(scope, rejection))?;

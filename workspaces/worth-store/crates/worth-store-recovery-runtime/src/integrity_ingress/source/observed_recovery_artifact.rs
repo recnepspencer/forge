@@ -60,14 +60,27 @@ impl<'media> ObservedRecoverySource<'media> {
     pub(in crate::integrity_ingress) fn input(
         &self,
     ) -> Result<UntrustedPhysicalArtifact<'media>, RecoveryIntegrityIngressRejection> {
+        if self.observed.store_identity() != self.scope.store_identity()
+            || !super::artifact_scope::matches_artifact(self.observed.artifact(), self.scope)
+        {
+            return Err(RecoveryIntegrityIngressRejection::ScopeMismatch);
+        }
         let bytes = self
             .observed
             .bytes()
             .ok_or(RecoveryIntegrityIngressRejection::MissingBoundedArtifact)?;
         let inspected = match self.selection {
-            ObservationSelection::Complete => bytes,
+            ObservationSelection::Complete => {
+                if self.observed.offset() != self.scope.byte_range().offset() {
+                    return Err(RecoveryIntegrityIngressRejection::ScopeMismatch);
+                }
+                bytes
+            }
             ObservationSelection::RelativeRange(range) => {
-                if range != self.scope.byte_range() {
+                if self.observed.offset().checked_add(range.offset())
+                    != Some(self.scope.byte_range().offset())
+                    || range.length() != self.scope.byte_range().length()
+                {
                     return Err(RecoveryIntegrityIngressRejection::ScopeMismatch);
                 }
                 bounded_slice(bytes, range)?
