@@ -85,10 +85,10 @@ basis and lifecycle ports without wrapping them. Its exact accessors are
 
 The basis port exposes existing observe, admit/readmit, retain, and release
 operations through `&self`. The lifecycle port exposes existing archive,
-delete, owner-status, and typed pending-deletion behavior through `&self`, with
-target-branch synchronization and short registry updates. Neither port changes
-basis, retention, deletion, or reclamation meaning; cold root reclamation
-remains owner maintenance and is not composition-facing.
+delete, typed pending deletion, and exact
+`RelationalOwnerLifecycleObservation::{Open, Closing, Closed}` through `&self`.
+Weak-owner failure is exactly `OwnerUnavailable` in the existing basis,
+archive, and delete denial enums; cold root reclamation stays owner maintenance.
 
 The bundle and ports are concrete `facade::branch`/`facade::mvcc` exports with
 weak owner connectivity. They cannot keep the owner alive, mint authority,
@@ -480,10 +480,10 @@ or compatibility lanes.
 
 ### Phase 2: Parallel owner foundations
 
-- **Relational lane:** own all `worth-relational/branch/owner_services` files;
-  add only their `pub use` line in `src/branch/mod.rs` and exact bundle/basis/
-  lifecycle entries in `src/facade/branch.rs`; add exactly `#[path = "relational_certification/owner_service_completion.rs"] mod owner_service_completion;`
-  to `tests/relational_certification.rs`; run
+- **Relational lane:** own all `worth-relational/branch/owner_services` files
+  plus causal `OwnerUnavailable` additions to the three existing denial enums;
+  add only their `pub use` line, exact facade entries, and
+  `#[path = "relational_certification/owner_service_completion.rs"] mod owner_service_completion;`; run
   `cargo test -p worth-relational --test relational_certification
   owner_service_completion`;
 - **Signal kernel lane:** own Signal `owner_services/mod.rs`, lifecycle state,
