@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
- --> tests/ui/validated_view_cannot_open_decoder.rs:8:41
+ --> tests/ui/validated_view_cannot_open_decoder.rs:9:41
   |
-8 |     let _ = DurableRootSelector::decode(validated);
+9 |     let _ = DurableRootSelector::decode(validated);
   |             --------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedCurrentRootSelector<'_>`
   |             |
   |             arguments to this function are incorrect
@@ -13,9 +13,9 @@ note: associated function defined here
   |            ^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:12:41
+  --> tests/ui/validated_view_cannot_open_decoder.rs:13:41
    |
-12 |     let _ = DurableRootSelector::decode(validated);
+13 |     let _ = DurableRootSelector::decode(validated);
    |             --------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedPreviousRootSelector<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -27,9 +27,9 @@ note: associated function defined here
    |            ^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:16:49
+  --> tests/ui/validated_view_cannot_open_decoder.rs:17:49
    |
-16 |     let _ = DurablePhysicalRootManifest::decode(validated, 2);
+17 |     let _ = DurablePhysicalRootManifest::decode(validated, 2);
    |             ----------------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedRootManifest<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -39,3 +39,17 @@ note: associated function defined here
    |
    |     pub fn decode(
    |            ^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/validated_view_cannot_open_decoder.rs:21:48
+   |
+21 |     let _ = decode_physical_work_obligation_v6(validated);
+   |             ---------------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedPhysicalWorkObligation<'_>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: function defined here
+  --> $WORKSPACE/crates/worth-store-physical-format/src/physical_work_obligation/encode.rs
+   |
+   | pub fn decode_physical_work_obligation_v6(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

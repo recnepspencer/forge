@@ -1,7 +1,7 @@
 error[E0599]: no method named `with_scope` found for struct `IntegrityValidatedRootManifest<'media>` in the current scope
- --> tests/ui/scope_substitution.rs:4:23
+ --> tests/ui/scope_substitution.rs:7:23
   |
-4 |     let _ = validated.with_scope(other_scope);
+7 |     let _ = validated.with_scope(other_scope);
   |                       ^^^^^^^^^^
   |
 help: there is a method `scope` with a similar name, but with different arguments
@@ -9,3 +9,15 @@ help: there is a method `scope` with a similar name, but with different argument
   |
   |     pub const fn scope(&self) -> PhysicalArtifactScope {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `with_scope` found for struct `IntegrityValidatedPhysicalWorkObligation<'media>` in the current scope
+  --> tests/ui/scope_substitution.rs:14:23
+   |
+14 |     let _ = validated.with_scope(other_scope);
+   |                       ^^^^^^^^^^
+   |
+help: there is a method `scope` with a similar name, but with different arguments
+  --> src/validation/validated/physical_work_obligation.rs
+   |
+   |     pub const fn scope(&self) -> PhysicalArtifactScope {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,6 +1,6 @@
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
-    IntegrityValidatedRootManifest, PhysicalArtifactScope,
+    IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedRootManifest, PhysicalArtifactScope,
 };
 
 fn forge_current(scope: PhysicalArtifactScope) {
@@ -19,6 +19,13 @@ fn forge_previous(scope: PhysicalArtifactScope) {
 
 fn forge_manifest(scope: PhysicalArtifactScope) {
     let _forged = IntegrityValidatedRootManifest {
+        scope,
+        inspected: todo!(),
+    };
+}
+
+fn forge_physical_work(scope: PhysicalArtifactScope) {
+    let _forged = IntegrityValidatedPhysicalWorkObligation {
         scope,
         inspected: todo!(),
     };

@@ -1,6 +1,6 @@
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
-    IntegrityValidatedRootManifest,
+    IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedRootManifest,
 };
 
 fn escape_current<'media>(
@@ -18,6 +18,12 @@ fn escape_previous<'media>(
 fn escape_manifest<'media>(
     validation: IntegrityValidatedRootManifest<'media>,
 ) -> IntegrityValidatedRootManifest<'static> {
+    validation
+}
+
+fn escape_physical_work<'media>(
+    validation: IntegrityValidatedPhysicalWorkObligation<'media>,
+) -> IntegrityValidatedPhysicalWorkObligation<'static> {
     validation
 }
 

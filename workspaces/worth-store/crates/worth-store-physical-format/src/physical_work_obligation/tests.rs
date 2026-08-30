@@ -133,7 +133,7 @@ fn v6_rejects_checksum_reserved_and_target_shape_damage() {
     );
     let mut encoded = encode_physical_work_obligation_v6(value);
     encoded[64] = 1;
-    let checksum = super::checksum::calculate(&encoded[..128]);
+    let checksum = super::checksum::calculate(&encoded);
     encoded[128..].copy_from_slice(&checksum);
     assert_eq!(
         decode_physical_work_obligation_v6(&encoded),

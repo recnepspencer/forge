@@ -136,7 +136,7 @@ pub fn encode_physical_work_obligation_v6(
         record[105] = 1;
         record[72..104].copy_from_slice(&digest);
     }
-    let checksum = calculate(&record[..128]);
+    let checksum = calculate(&record);
     record[128..].copy_from_slice(&checksum);
     record
 }
@@ -160,7 +160,10 @@ pub fn decode_physical_work_obligation_v6(
     {
         return Err(PhysicalWorkObligationV6Denial::ReservedFieldNonZero);
     }
-    if calculate(&record[..128]) != record[128..] {
+    let fixed_record: &[u8; PHYSICAL_WORK_OBLIGATION_V6_RECORD_BYTES] = record
+        .try_into()
+        .expect("physical-work length was checked before checksum validation");
+    if calculate(fixed_record) != record[128..] {
         return Err(PhysicalWorkObligationV6Denial::ChecksumMismatch);
     }
     let operation_code = PhysicalWorkObligationOperationCode::decode(record[9])

@@ -13,9 +13,10 @@ mod scrub;
 mod validation;
 
 pub use artifact::{
-    validate_current_root_selector, validate_previous_root_selector, validate_root_manifest,
-    CurrentRootSelectorIntegrityValidation, PreviousRootSelectorIntegrityValidation,
-    RootManifestIntegrityValidation,
+    validate_current_root_selector, validate_physical_work_obligation,
+    validate_previous_root_selector, validate_root_manifest,
+    CurrentRootSelectorIntegrityValidation, PhysicalWorkObligationIntegrityValidation,
+    PreviousRootSelectorIntegrityValidation, RootManifestIntegrityValidation,
 };
 pub use localization::{
     PhysicalBlastRadius, PhysicalByteRange, PhysicalByteRangeDenial, PhysicalDamageCause,
@@ -33,8 +34,9 @@ pub use scrub::{
 pub use validation::{
     CheckpointStreamHeaderScopeIdentity, IndeterminatePhysicalIntegrityCause,
     IndeterminatePhysicalIntegrityPosture, IntegrityValidatedCurrentRootSelector,
-    IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest, PhysicalArtifactScope,
-    PhysicalArtifactScopeDenial, PhysicalIntegrityRejection, PhysicalIntegrityValidationDigest,
+    IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedPreviousRootSelector,
+    IntegrityValidatedRootManifest, PhysicalArtifactScope, PhysicalArtifactScopeDenial,
+    PhysicalIntegrityRejection, PhysicalIntegrityValidationDigest,
     PhysicalIntegrityValidationMechanism, PhysicalIntegrityValidationRecord,
     PhysicalIntegrityVersionAxis, UnknownPhysicalIntegrityCause, UnknownPhysicalIntegrityPosture,
     UnsupportedPhysicalIntegrityVersion, UntrustedPhysicalArtifact,

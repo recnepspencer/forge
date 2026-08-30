@@ -68,3 +68,26 @@ warning: unreachable expression
    | |                    ------- any code following this expression is unreachable
 24 | |     };
    | |_____^ unreachable expression
+
+error: cannot construct `IntegrityValidatedPhysicalWorkObligation<'_>` with struct literal syntax due to private fields
+  --> tests/ui/proof_construction.rs:28:19
+   |
+28 |     let _forged = IntegrityValidatedPhysicalWorkObligation {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+29 |         scope,
+   |         ----- private field
+30 |         inspected: todo!(),
+   |         ------------------ private field
+   |
+   = note: ...and other private fields `obligation` and `validation_record` that were not provided
+
+warning: unreachable expression
+  --> tests/ui/proof_construction.rs:28:19
+   |
+28 |       let _forged = IntegrityValidatedPhysicalWorkObligation {
+   |  ___________________^
+29 | |         scope,
+30 | |         inspected: todo!(),
+   | |                    ------- any code following this expression is unreachable
+31 | |     };
+   | |_____^ unreachable expression
