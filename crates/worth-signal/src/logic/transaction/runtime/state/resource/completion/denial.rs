@@ -61,7 +61,6 @@ impl ResourceRuntimeState {
             .with_density_strategy(ResourceDensityStrategy::scalar_completion());
         let performance = if count_scalar_boundary {
             telemetry
-                .as_deref_mut()
                 .map(|telemetry| Self::record_boundary_performance(telemetry, performance))
                 .unwrap_or(performance)
         } else {

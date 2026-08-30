@@ -3,15 +3,19 @@ use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub(crate) struct DependencyRevision(pub(crate) u64);
-
-impl Default for DependencyRevision {
-    fn default() -> Self {
-        Self(0)
-    }
-}
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,

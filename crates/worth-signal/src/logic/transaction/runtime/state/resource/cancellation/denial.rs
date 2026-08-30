@@ -21,7 +21,7 @@ impl ResourceRuntimeState {
             }
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::cancellation(0, 1),
         );
         ResourceCancellationReport::denied(

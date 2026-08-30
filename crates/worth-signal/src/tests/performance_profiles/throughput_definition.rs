@@ -154,7 +154,7 @@ pub(super) fn partitioned_world_for_output_floor(
     // generator whose node count only happens to exceed the floor.
     let regions = u16::try_from(min_outputs.saturating_sub(5).div_ceil(2).max(1))
         .expect("throughput output floor must fit the partitioned region axis");
-    FinancialWorldDefinition::partitioned_curve_universe(seed, regions, 1, 1)
+    FinancialWorldDefinition::partitioned_curve_universe_performance(seed, regions, 1, 1)
 }
 
 pub(super) fn operational_digest_for(

@@ -129,6 +129,10 @@ pub use plan::{
     NodeReconciliationShape, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
     RegionIsolationSummary,
 };
+pub(crate) use plan::{
+    LoweredMergePlanConstruction, LoweredMergePlanDecisions, LoweredMergePlanJournals,
+    LoweredMergePlanLineage, LoweredMergePlanNodes, LoweredMergePlanScope, LoweredMergePlanWorld,
+};
 #[allow(unused_imports)]
 pub use policy::{
     AspectMergePolicy, BranchMergeReconciliationPolicy, ConflictIsolationGranularity,

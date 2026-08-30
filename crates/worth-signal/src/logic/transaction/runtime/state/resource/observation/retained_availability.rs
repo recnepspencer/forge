@@ -11,7 +11,7 @@ impl ResourceRuntimeState {
             telemetry.resource_retained_summary_read_count += 1;
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::summary_read(),
         );
         ResourceRuntimeSummaryReadReport::new(self.summary(), performance)

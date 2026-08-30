@@ -90,6 +90,7 @@ fn method_body<'a>(source: &'a str, signature: &str) -> &'a str {
     let body = &source[start..];
     let end = body
         .find("\n    }\n")
+        .or_else(|| body.find("\n    }\r\n"))
         .expect("method body must have a closing brace");
     &body[..end]
 }
@@ -138,7 +139,7 @@ fn execute_observed(
                 .graph_mut()
                 .build_evaluation_plan(&[target], EvaluationRequestMode::ForceOnDemand)?;
             crate::logic::planner::execute_prepared_plan(
-                &mut *runtime.graph_mut(),
+                &mut runtime.graph_mut(),
                 &plan,
                 &(),
                 &|context: &mut crate::logic::context::EvaluationContext<'_, ()>| {

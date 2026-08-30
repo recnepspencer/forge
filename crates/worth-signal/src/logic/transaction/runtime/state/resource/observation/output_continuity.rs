@@ -14,7 +14,7 @@ impl ResourceRuntimeState {
         &self,
         node: ResourceNodeId,
         descriptor_id: ResourceDescriptorId,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceOutputContinuity {
         let continuity = match (
             self.descriptors.get(&descriptor_id),
@@ -34,7 +34,7 @@ impl ResourceRuntimeState {
             }
             _ => ResourceOutputContinuity::NoPriorOutput,
         };
-        self.record_output_continuity_decision_optional(continuity, telemetry.as_deref_mut());
+        self.record_output_continuity_decision_optional(continuity, telemetry);
         continuity
     }
 
@@ -43,7 +43,7 @@ impl ResourceRuntimeState {
         node: ResourceNodeId,
         descriptor_id: ResourceDescriptorId,
         cause: ResourceTerminalVisibilityCause,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> (ResourceOutputContinuity, bool) {
         let prior_output_exists = self
             .current_lifecycle_summary(node)
@@ -76,7 +76,7 @@ impl ResourceRuntimeState {
         } else {
             ResourceOutputContinuity::OutputUnavailableByPolicy
         };
-        self.record_output_continuity_decision_optional(continuity, telemetry.as_deref_mut());
+        self.record_output_continuity_decision_optional(continuity, telemetry);
         (continuity, true)
     }
 

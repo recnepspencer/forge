@@ -74,7 +74,7 @@ impl ResourceRuntimeState {
                 .saturating_add(1);
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::retry_admission(
                 1,
                 0,
@@ -169,7 +169,7 @@ impl ResourceRuntimeState {
         );
         if let Some(wake_id) = timeout_wake_id {
             in_flight.attach_timeout_wake(wake_id);
-            if let Some(telemetry) = telemetry.as_deref_mut() {
+            if let Some(telemetry) = telemetry {
                 telemetry.resource_timeout_temporal_wake_footprint = telemetry
                     .resource_timeout_temporal_wake_footprint
                     .saturating_add(1);

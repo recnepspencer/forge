@@ -129,9 +129,11 @@ fn apply_scoped_change_effect(
     let mut original = BTreeMap::new();
     let mut updated = BTreeMap::new();
     for entry in dirty.as_slice() {
-        if !original.contains_key(&entry.source) {
+        if let std::collections::btree_map::Entry::Vacant(original_entry) =
+            original.entry(entry.source)
+        {
             let current = graph.node_partition_version_map(entry.source)?;
-            original.insert(entry.source, current.clone());
+            original_entry.insert(current.clone());
             updated.insert(entry.source, current);
         }
         let baseline = original

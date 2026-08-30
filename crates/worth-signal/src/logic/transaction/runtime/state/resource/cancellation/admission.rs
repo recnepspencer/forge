@@ -56,7 +56,7 @@ impl ResourceRuntimeState {
             telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::cancellation(cancelled_width, 0)
                 .with_output_continuity_classification_width(cancellation_visibility_width),
         );

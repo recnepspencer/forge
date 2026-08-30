@@ -2,6 +2,11 @@ mod accessors;
 mod candidates;
 mod construction;
 
+pub(crate) use construction::{
+    LoweredMergePlanConstruction, LoweredMergePlanDecisions, LoweredMergePlanJournals,
+    LoweredMergePlanLineage, LoweredMergePlanNodes, LoweredMergePlanScope, LoweredMergePlanWorld,
+};
+
 pub use candidates::{
     AspectMergeDecisionOutcome, ConflictIsolationWitness, ConservativeIsolationExpansion,
     ConservativeOverlapExpansion, IdentityCorrespondenceBasis, IdentityCorrespondenceRecord,

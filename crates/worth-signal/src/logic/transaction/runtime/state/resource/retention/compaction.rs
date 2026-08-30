@@ -68,7 +68,7 @@ impl ResourceRuntimeState {
         let hot_in_flight_width = self.in_flight_by_request.len() as u32;
         let policy_provenance_digest = self.compaction_policy_provenance_digest();
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::lifecycle_retention_compaction(
                 counts.selected_terminal_count,
                 counts.reclaimed_in_flight_count,

@@ -27,15 +27,15 @@ where
         {
             self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Cancelled)?;
         }
-        let mut telemetry = self
+        let telemetry = self
             .graph
             .captures_observation_surface(
                 crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
             )
             .then_some(&mut self.telemetry.resource);
-        let report =
-            self.resource
-                .cancel_resource_request(handle, reason, telemetry.as_deref_mut());
+        let report = self
+            .resource
+            .cancel_resource_request(handle, reason, telemetry);
         Ok(report)
     }
 
@@ -47,15 +47,15 @@ where
         if let Some(wake_id) = self.resource.active_timeout_wake_for_handle(handle) {
             self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
         }
-        let mut telemetry = self
+        let telemetry = self
             .graph
             .captures_observation_surface(
                 crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
             )
             .then_some(&mut self.telemetry.resource);
-        let report =
-            self.resource
-                .reject_resource_request(handle, reason, telemetry.as_deref_mut());
+        let report = self
+            .resource
+            .reject_resource_request(handle, reason, telemetry);
         Ok(report)
     }
 
@@ -72,15 +72,15 @@ where
         {
             self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
         }
-        let mut telemetry = self
+        let telemetry = self
             .graph
             .captures_observation_surface(
                 crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
             )
             .then_some(&mut self.telemetry.resource);
-        let report =
-            self.resource
-                .admit_resource_timeout(handle, ready_wake, telemetry.as_deref_mut());
+        let report = self
+            .resource
+            .admit_resource_timeout(handle, ready_wake, telemetry);
         Ok(report)
     }
 

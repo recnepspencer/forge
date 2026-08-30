@@ -282,7 +282,7 @@ pub(super) fn validate_case_results(
         )));
     }
     require_expected_performed_work(manifest, &observation.performed_work)?;
-    let expected = expected_counters(&manifest);
+    let expected = expected_counters(manifest);
     let drifts = InvalidationPerformedCounter::ALL
         .into_iter()
         .filter_map(|counter| {

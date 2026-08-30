@@ -73,7 +73,7 @@ impl ResourceRuntimeState {
         let propagated_dependents = self.propagate_dependent_cancellations(
             &prepared.policy.declared_dependent_cancellation_nodes,
             visited,
-            telemetry.as_deref_mut(),
+            telemetry,
         );
         Some(AppliedResourceCancellation {
             cancelled,
@@ -107,7 +107,7 @@ impl ResourceRuntimeState {
         in_flight: InFlightResourceRequest,
         reason: ResourceCancellationReason,
         policy: CancellationPolicyBasis,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedCancellationApplication {
         let lifecycle_ordinal = self.issue_lifecycle_ordinal();
         let cancellation_ordinal = self.issue_cancellation_ordinal();
@@ -115,7 +115,7 @@ impl ResourceRuntimeState {
             in_flight.node(),
             in_flight.descriptor_id(),
             ResourceTerminalVisibilityCause::Cancellation,
-            telemetry.as_deref_mut(),
+            telemetry,
         );
         let transition = ResourceLifecycleTransition::new(
             in_flight.node(),

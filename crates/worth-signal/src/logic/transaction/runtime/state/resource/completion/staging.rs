@@ -32,7 +32,6 @@ impl ResourceRuntimeState {
             telemetry.resource_completion_staging_count += 1;
         }
         let performance = telemetry
-            .as_deref_mut()
             .map(|telemetry| {
                 Self::record_boundary_performance(
                     telemetry,
@@ -70,7 +69,6 @@ impl ResourceRuntimeState {
             telemetry.resource_completion_denial_staging_count += 1;
         }
         let performance = telemetry
-            .as_deref_mut()
             .map(|telemetry| {
                 Self::record_boundary_performance(
                     telemetry,
@@ -92,7 +90,6 @@ impl ResourceRuntimeState {
             telemetry.resource_completion_rollback_count += 1;
         }
         let performance = telemetry
-            .as_deref_mut()
             .map(|telemetry| {
                 Self::record_boundary_performance(
                     telemetry,
@@ -114,7 +111,6 @@ impl ResourceRuntimeState {
             telemetry.resource_completion_rollback_count += 1;
         }
         let performance = telemetry
-            .as_deref_mut()
             .map(|telemetry| {
                 Self::record_boundary_performance(
                     telemetry,

@@ -82,7 +82,7 @@ pub(super) fn classify_and_resolve(
             ),
             BranchMergeFailureEvidence::Conflict(BranchMergeConflictEvidence {
                 divergence,
-                reconciliation_policy: input.reconciliation_policy.clone(),
+                reconciliation_policy: *input.reconciliation_policy,
                 summary,
                 resolution_plan: planned_resolution,
                 records,

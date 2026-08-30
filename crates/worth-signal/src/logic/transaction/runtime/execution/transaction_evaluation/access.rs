@@ -53,7 +53,7 @@ where
         for _ in 0..max_passes {
             let mut scheduled = 0_u32;
             let mut executed = 0_u32;
-            for target in requested_dependency_order(&self.graph, node)? {
+            for target in requested_dependency_order(self.graph, node)? {
                 let report = self.evaluate_with_plan_and_executor(
                     target,
                     evaluator,

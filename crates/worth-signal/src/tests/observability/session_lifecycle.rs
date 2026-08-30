@@ -207,7 +207,7 @@ fn public_runtime_session_finishes_real_counter_execution_and_reports_selection(
                 crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand,
             )?;
             crate::logic::planner::execute_prepared_plan(
-                &mut *runtime.graph_mut(),
+                &mut runtime.graph_mut(),
                 &plan,
                 &(),
                 &|context: &mut crate::logic::context::EvaluationContext<'_, ()>| {
@@ -267,7 +267,7 @@ fn selected_surfaces_are_reciprocal_for_counters_and_lineage() {
                 crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand,
             )?;
             crate::logic::planner::execute_prepared_plan(
-                &mut *runtime.graph_mut(),
+                &mut runtime.graph_mut(),
                 &plan,
                 &(),
                 &|context: &mut crate::logic::context::EvaluationContext<'_, ()>| {
@@ -297,7 +297,7 @@ fn selected_surfaces_are_reciprocal_for_counters_and_lineage() {
                 crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand,
             )?;
             crate::logic::planner::execute_prepared_plan(
-                &mut *runtime.graph_mut(),
+                &mut runtime.graph_mut(),
                 &plan,
                 &(),
                 &|context: &mut crate::logic::context::EvaluationContext<'_, ()>| {

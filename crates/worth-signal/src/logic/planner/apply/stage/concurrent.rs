@@ -41,9 +41,9 @@ pub(super) fn run_grouped_concurrent_apply_pass(
             stage_record,
             comparator_resolver,
         );
-        return Err(SignalError::internal(
+        Err(SignalError::internal(
             "grouped concurrent apply requires the `parallel` feature",
-        ));
+        ))
     }
 
     #[cfg(feature = "parallel")]

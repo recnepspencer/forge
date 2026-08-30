@@ -86,7 +86,7 @@ impl ResourceRuntimeState {
         }
         ValidatedResourcePolicyDeclaration::from_declaration(declaration, &self.policy_registry)
             .map_err(|err| {
-                if let Some(telemetry) = telemetry.as_deref_mut() {
+                if let Some(telemetry) = telemetry {
                     telemetry.resource_policy_resolution_denial_count += 1;
                 }
                 resource_policy_resolution_signal_error(err)
@@ -103,7 +103,7 @@ impl ResourceRuntimeState {
         }
         ValidatedResourcePolicyDeclaration::from_declaration(declaration, &self.policy_registry)
             .map_err(|err| {
-                if let Some(telemetry) = telemetry.as_deref_mut() {
+                if let Some(telemetry) = telemetry {
                     telemetry.resource_policy_resolution_denial_count += 1;
                 }
                 resource_policy_resolution_signal_error(err)
@@ -123,7 +123,7 @@ impl ResourceRuntimeState {
             &self.policy_registry,
         )
         .map_err(|err| {
-            if let Some(telemetry) = telemetry.as_deref_mut() {
+            if let Some(telemetry) = telemetry {
                 telemetry.resource_policy_resolution_denial_count += 1;
             }
             resource_policy_resolution_signal_error(err)
@@ -133,14 +133,14 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime) fn freeze_resource_policy_declaration_without_async_accounting(
         &self,
         validated: &ValidatedResourcePolicyDeclaration,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<FrozenResourcePolicyDescriptorSet, crate::data::error::SignalError> {
         FrozenResourcePolicyDescriptorSet::from_validated_declaration(
             validated,
             &self.policy_registry,
         )
         .map_err(|err| {
-            if let Some(telemetry) = telemetry.as_deref_mut() {
+            if let Some(telemetry) = telemetry {
                 telemetry.resource_policy_resolution_denial_count += 1;
             }
             resource_policy_resolution_signal_error(err)

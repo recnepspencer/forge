@@ -32,7 +32,7 @@ impl ResourceRuntimeState {
             self.prepare_rejection_admission(in_flight, handle, reason, telemetry.as_deref_mut());
         self.apply_rejection_admission(&prepared, telemetry.as_deref_mut());
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::rejection_admission(1, 0)
                 .with_output_continuity_classification_width(u32::from(
                     prepared.terminal_visibility_classified,

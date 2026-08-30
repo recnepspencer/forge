@@ -2,10 +2,14 @@ use crate::data::error::SignalError;
 use crate::logic::transaction::runtime::{
     BranchMergeDivergence, BranchMergeKind, BranchMergePlan, BranchMergeStrategy,
     ConflictIsolationGranularity, DeletionMergePolicy, IdentityMatchPolicy,
-    LoweredFoundationalMergeRequest, LoweredMergePlan,
+    LoweredFoundationalMergeRequest, LoweredMergePlan, SelectedMergeSemanticsBundle,
 };
 
-use super::super::super::merge::runtime_proof_report;
+use super::super::super::merge::{
+    runtime_proof_report, LoweredMergePlanConstruction, LoweredMergePlanDecisions,
+    LoweredMergePlanJournals, LoweredMergePlanLineage, LoweredMergePlanNodes,
+    LoweredMergePlanScope, LoweredMergePlanWorld,
+};
 use super::super::super::runtime_state::SignalRuntime;
 use super::aspect_policy;
 use super::candidates;
@@ -204,18 +208,13 @@ where
     };
     let aspect_decision_plan =
         aspect_policy::lower_aspect_decision_plan(&aspect_policy_plan, &node_assembly.node_plan);
-
-    Ok(LoweredMergePlan::new(
-        request.source_branch.id,
-        request.target_branch.id,
-        runtime.schema_registry.registry_digest().to_owned(),
-        runtime_proof.registry_bundle_digest.clone(),
-        conflict_outcome.merge_kind,
-        conflict_outcome.divergence,
-        conflict_outcome.merge_strategy,
+    let selected_semantics = SelectedMergeSemanticsBundle::new(
         resolved_strategy.descriptor.semantic_name().clone(),
         resolved_strategy.descriptor.digest().to_string(),
         resolved_strategy.basis,
+        merge_base.lowered.selected_merge_base_name.clone(),
+        merge_base.lowered.selected_merge_base_digest.clone(),
+        merge_base.lowered.selected_merge_base_basis,
         resolved_conflict_policy.descriptor.semantic_name().clone(),
         resolved_conflict_policy.descriptor.digest().to_string(),
         resolved_conflict_policy.basis,
@@ -237,28 +236,51 @@ where
         resolved_deletion_policy.descriptor.semantic_name().clone(),
         resolved_deletion_policy.descriptor.digest().to_string(),
         resolved_deletion_policy.basis,
-        reconciliation_policy,
-        candidates.boundary_witness,
-        candidates.source_journal,
-        correspondence.target_overlap_journal,
-        correspondence.identity_correspondence,
-        deletion_plan,
-        conflict_isolation_plan,
-        aspect_policy_plan,
-        aspect_decision_plan,
-        candidates.scoped_candidates,
-        candidates.scoped_merge_proof,
-        correspondence.proof_minimal_overlap,
-        correspondence.conservative_overlap,
-        candidates.planned_candidates,
-        candidates.branch_states.source_snapshot_id,
-        candidates.branch_states.target_snapshot_id_before,
-        Some(merge_base.base),
-        Some(merge_base.lowered),
-        conflict_outcome.resolution_plan,
-        node_assembly.node_map,
-        node_assembly.node_plan,
-        node_assembly.adoption_core,
-        node_assembly.adoption_policy,
-    ))
+    );
+
+    Ok(LoweredMergePlan::new(LoweredMergePlanConstruction {
+        world: LoweredMergePlanWorld {
+            source_branch_id: request.source_branch.id,
+            target_branch_id: request.target_branch.id,
+            schema_registry_digest: runtime.schema_registry.registry_digest().to_owned(),
+            registry_bundle_digest: runtime_proof.registry_bundle_digest.clone(),
+            merge_kind: conflict_outcome.merge_kind,
+            divergence: conflict_outcome.divergence,
+            merge_strategy: conflict_outcome.merge_strategy,
+            reconciliation_policy,
+            boundary_witness: candidates.boundary_witness,
+        },
+        selected_semantics,
+        journals: LoweredMergePlanJournals {
+            source: candidates.source_journal,
+            target_overlap: correspondence.target_overlap_journal,
+        },
+        decisions: LoweredMergePlanDecisions {
+            identity_correspondence: correspondence.identity_correspondence,
+            deletion: deletion_plan,
+            conflict_isolation: conflict_isolation_plan,
+            aspect_policy: aspect_policy_plan,
+            aspect: aspect_decision_plan,
+        },
+        scope: LoweredMergePlanScope {
+            candidates: candidates.scoped_candidates,
+            proof: candidates.scoped_merge_proof,
+            proof_minimal_overlap: correspondence.proof_minimal_overlap,
+            conservative_overlap: correspondence.conservative_overlap,
+            planned_candidates: candidates.planned_candidates,
+        },
+        lineage: LoweredMergePlanLineage {
+            source_snapshot_id: candidates.branch_states.source_snapshot_id,
+            target_snapshot_id_before: candidates.branch_states.target_snapshot_id_before,
+            merge_base: Some(merge_base.base),
+            lowered_merge_base: Some(merge_base.lowered),
+            resolution: conflict_outcome.resolution_plan,
+        },
+        nodes: LoweredMergePlanNodes {
+            map: node_assembly.node_map,
+            decisions: node_assembly.node_plan,
+            adoption_core: node_assembly.adoption_core,
+            adoption_policy: node_assembly.adoption_policy,
+        },
+    }))
 }

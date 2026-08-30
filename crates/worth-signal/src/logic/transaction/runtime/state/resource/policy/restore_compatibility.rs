@@ -116,7 +116,7 @@ impl ResourceRuntimeState {
                 .iter()
                 .any(|family| family.class() == ResourcePolicyCompatibilityClass::MissingDescriptor)
             {
-                if let Some(telemetry) = telemetry.as_deref_mut() {
+                if let Some(telemetry) = telemetry {
                     telemetry.resource_replay_missing_policy_count += 1;
                 }
             }
