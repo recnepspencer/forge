@@ -31,7 +31,7 @@ impl<'lease> ResidentIntegrityRecordBinding<'lease> {
             .commit_integrity_validation(record)
             .map_err(ResidentIntegrityAdmissionDenial::Frame)?;
         if lifecycle.snapshot() != lifecycle_snapshot {
-            lease.invalidate_integrity_validation();
+            lease.invalidate_integrity_validation_if(record);
             return Err(ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged);
         }
         Ok(Self::new(

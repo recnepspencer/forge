@@ -270,3 +270,25 @@ fn eviction_reload_gets_new_frame_generation_and_forces_one_new_validation() {
     assert_eq!(observed.fresh_validations(), 2);
     assert_eq!(observed.exact_record_reuses(), 0);
 }
+
+#[test]
+fn closed_pool_and_terminal_runtime_cannot_readmit_a_pinned_frame() {
+    let store = store(77);
+    let format = format();
+    let bytes = manifest_bytes(14, format);
+    let (pool, _allocation, lease) = loaded_manifest(store, 14, &bytes);
+    let lifecycle = lifecycle();
+    let counters = ResidentAdmissionCounterCells::default();
+    pool.close();
+    lifecycle.begin_termination();
+    lifecycle.finish_closed();
+
+    assert!(admit_resident_root_manifest(
+        &lease,
+        scope(store, format, 14, bytes.len()),
+        ResidentAdmissionContext::new(lifecycle.observation_state(), &counters),
+    )
+    .is_err());
+    assert_eq!(lease.integrity_validation(), None);
+    assert_eq!(counters.snapshot().rejections_before_decoder(), 1);
+}

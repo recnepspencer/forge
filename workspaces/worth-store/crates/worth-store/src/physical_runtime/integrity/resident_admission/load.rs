@@ -8,7 +8,7 @@ use super::{
     source_scope::require_exact_resident_source,
 };
 use crate::physical_runtime::{
-    lifecycle::{LifecycleState, LifecycleStateSnapshot},
+    lifecycle::{LifecycleState, LifecycleStateSnapshot, ObservedLifecyclePhase},
     ResidentAdmissionCounterCells,
 };
 
@@ -128,7 +128,12 @@ impl<'counter> ResidentAdmissionContext<'counter> {
     }
 
     fn require_live(&self) -> Result<(), ResidentIntegrityAdmissionDenial> {
-        if self.lifecycle.snapshot() == self.snapshot {
+        if self.lifecycle.snapshot() == self.snapshot
+            && matches!(
+                self.snapshot.phase,
+                ObservedLifecyclePhase::MediaOwned | ObservedLifecyclePhase::RecordServing
+            )
+        {
             Ok(())
         } else {
             Err(self.reject(ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged))

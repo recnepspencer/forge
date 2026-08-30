@@ -50,6 +50,7 @@ impl CleanFrameIntegrityValidationRecord {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CleanFrameIntegrityValidationDenial {
+    PoolClosed,
     FrameNotResident,
     FrameGenerationChanged,
     FrameBytesChanged,

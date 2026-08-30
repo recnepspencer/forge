@@ -41,10 +41,14 @@ impl PhysicalFrameLease {
             .integrity_validation(self.key, &self.bytes, self.resident_generation)
     }
 
-    /// Invalidates validation only when this lease still names the exact resident incarnation.
-    pub fn invalidate_integrity_validation(&self) {
-        self.owner
-            .invalidate_integrity_validation(self.key, &self.bytes, self.resident_generation);
+    /// Invalidates only the expected record on this exact resident incarnation.
+    pub fn invalidate_integrity_validation_if(&self, expected: PhysicalIntegrityValidationRecord) {
+        self.owner.invalidate_integrity_validation_if(
+            self.key,
+            &self.bytes,
+            self.resident_generation,
+            expected,
+        );
     }
 
     pub fn copy_range_into(&self, range: std::ops::Range<usize>, target: &mut [u8]) {

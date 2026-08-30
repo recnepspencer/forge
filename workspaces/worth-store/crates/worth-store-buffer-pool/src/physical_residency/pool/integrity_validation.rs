@@ -20,11 +20,12 @@ impl PoolState {
 }
 
 impl PoolInner {
-    pub(crate) fn invalidate_integrity_validation(
+    pub(crate) fn invalidate_integrity_validation_if(
         &self,
         key: PhysicalFrameKey,
         bytes: &Arc<Vec<u8>>,
         generation: PhysicalResidentFrameGeneration,
+        expected: PhysicalIntegrityValidationRecord,
     ) {
         let mut state = self.lock();
         let Some(entry) = state.frames.get_mut(&key.coordinate) else {
@@ -33,7 +34,13 @@ impl PoolInner {
         if entry.resident_generation != Some(generation) {
             return;
         }
-        if matches!(&entry.state, FrameState::Resident(current) if Arc::ptr_eq(current, bytes)) {
+        let exact_record = entry
+            .integrity_validation
+            .and_then(|record| record.validation_for(generation))
+            == Some(expected);
+        if exact_record
+            && matches!(&entry.state, FrameState::Resident(current) if Arc::ptr_eq(current, bytes))
+        {
             entry.invalidate_integrity_validation();
         }
     }
@@ -48,6 +55,9 @@ impl PoolInner {
         use super::super::integrity_validation::CleanFrameIntegrityValidationDenial as Denial;
 
         let mut state = self.lock();
+        if !state.accepting {
+            return Err(Denial::PoolClosed);
+        }
         let Some(entry) = state.frames.get_mut(&key.coordinate) else {
             return Err(Denial::FrameNotResident);
         };

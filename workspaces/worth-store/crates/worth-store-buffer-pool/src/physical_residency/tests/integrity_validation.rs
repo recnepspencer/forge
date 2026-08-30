@@ -50,11 +50,13 @@ fn exact_lease_can_invalidate_only_its_current_validation_record() {
     let loaded = expect_fault(&pool, &read, key)
         .load(|bytes| fill(bytes, 7))
         .unwrap();
-    loaded
-        .commit_integrity_validation(validation(identity, 8, 11))
-        .unwrap();
+    let stale = validation(identity, 8, 11);
+    let current = validation(identity, 8, 12);
+    loaded.commit_integrity_validation(current).unwrap();
 
-    loaded.invalidate_integrity_validation();
+    loaded.invalidate_integrity_validation_if(stale);
+    assert_eq!(loaded.integrity_validation(), Some(current));
+    loaded.invalidate_integrity_validation_if(current);
 
     assert_eq!(loaded.integrity_validation(), None);
 }
@@ -156,6 +158,11 @@ fn close_invalidates_validation_held_by_a_live_pinned_lease() {
     let shutdown = pool.close();
 
     assert!(shutdown.requires_inspection());
+    assert_eq!(loaded.integrity_validation(), None);
+    assert_eq!(
+        loaded.commit_integrity_validation(validation),
+        Err(CleanFrameIntegrityValidationDenial::PoolClosed),
+    );
     assert_eq!(loaded.integrity_validation(), None);
 }
 
