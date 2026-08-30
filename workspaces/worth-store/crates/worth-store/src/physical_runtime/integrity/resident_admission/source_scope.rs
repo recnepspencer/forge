@@ -96,6 +96,38 @@ pub(super) fn artifact_matches_scope(
     }
 }
 
+pub(super) fn require_exact_page_source<'lease>(
+    lease: &'lease PhysicalFrameLease,
+    scope: PhysicalArtifactScope,
+    expected_segment: RecordArtifactFile,
+) -> Result<UntrustedPhysicalArtifact<'lease>, ResidentIntegrityAdmissionDenial> {
+    if !page_artifact_matches_expected(lease.key().coordinate().artifact(), expected_segment, scope)
+    {
+        return Err(ResidentIntegrityAdmissionDenial::SourceScopeMismatch);
+    }
+    let coordinate = lease.key().coordinate();
+    let range = scope.byte_range();
+    if scope.store_identity() != lease.key().store()
+        || range.offset() != coordinate.offset()
+        || range.length() != u64::from(coordinate.length())
+    {
+        return Err(ResidentIntegrityAdmissionDenial::SourceScopeMismatch);
+    }
+    Ok(UntrustedPhysicalArtifact::from_bounded_bytes(lease))
+}
+
+fn page_artifact_matches_expected(
+    actual: RecordArtifactFile,
+    expected: RecordArtifactFile,
+    scope: PhysicalArtifactScope,
+) -> bool {
+    scope.page_identity().is_some_and(|page| {
+        matches!(expected, RecordArtifactFile::Segment { segment, .. }
+            if segment == page.segment_id().get())
+            && actual == expected
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use worth_store_physical_format::store_namespace::{
@@ -165,13 +197,6 @@ mod tests {
                 ),
             ),
             (
-                RecordArtifactFile::Segment {
-                    segment: 2,
-                    generation: 99,
-                },
-                PhysicalArtifactScope::inline_page(store, format, page(), range),
-            ),
-            (
                 RecordArtifactFile::ExtentManifest {
                     extent: extent.extent_id().get(),
                     generation: extent.generation().get(),
@@ -232,6 +257,37 @@ mod tests {
             };
             assert!(!artifact_matches_scope(substitute, scope));
         }
+
+        let page_scope = PhysicalArtifactScope::inline_page(store, format, page(), range);
+        assert!(artifact_matches_scope(
+            RecordArtifactFile::Segment {
+                segment: 2,
+                generation: 99,
+            },
+            page_scope,
+        ));
+        assert!(page_artifact_matches_expected(
+            RecordArtifactFile::Segment {
+                segment: 2,
+                generation: 4,
+            },
+            RecordArtifactFile::Segment {
+                segment: 2,
+                generation: 4,
+            },
+            page_scope,
+        ));
+        assert!(!page_artifact_matches_expected(
+            RecordArtifactFile::Segment {
+                segment: 2,
+                generation: 99,
+            },
+            RecordArtifactFile::Segment {
+                segment: 2,
+                generation: 4,
+            },
+            page_scope,
+        ));
     }
 
     fn store() -> worth_store_physical_format::store_namespace::StableStoreIdentity {

@@ -104,30 +104,26 @@ fn bind_free_space_membership<'frame>(
 }
 
 impl<'frame> IntegrityAdmittedResidentFreeSpaceHeader<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<
-        IntegrityAdmittedResidentFreeSpaceHeaderView<'frame>,
-        ResidentIntegrityAdmissionDenial,
-    > {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentFreeSpaceHeaderView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentFreeSpaceHeaderView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentFreeSpaceHeaderView { lease, scope })
+        })
     }
 }
 
 impl<'frame> IntegrityAdmittedResidentFreeSpaceMembershipBlock<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<
-        IntegrityAdmittedResidentFreeSpaceMembershipView<'frame>,
-        ResidentIntegrityAdmissionDenial,
-    > {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentFreeSpaceMembershipView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentFreeSpaceMembershipView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentFreeSpaceMembershipView { lease, scope })
+        })
     }
 }
 

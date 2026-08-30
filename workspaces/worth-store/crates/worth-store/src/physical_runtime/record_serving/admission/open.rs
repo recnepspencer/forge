@@ -19,7 +19,7 @@ use super::super::{
     RecordBootstrapDenial, UnsupportedPhysicalRecordFormat,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct CurrentRootAdmission<'a> {
     media: &'a QualifiedFilesystemMedia,
     loader: &'a (dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
@@ -27,7 +27,7 @@ struct CurrentRootAdmission<'a> {
     limits: BootstrapCatalogReadLimits,
     generation: u64,
     expected_format: PhysicalRecordFormatDeclaration,
-    lifecycle: crate::physical_runtime::LifecycleGeneration,
+    lifecycle: std::sync::Arc<crate::physical_runtime::lifecycle::LifecycleState>,
     route: crate::physical_runtime::PhysicalRootProtocolRoute,
     counters: &'a crate::physical_runtime::RootProtocolRouteCounterCells,
     resident_integrity_counters: &'a crate::physical_runtime::ResidentAdmissionCounterCells,
@@ -116,7 +116,7 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
     loader: &(dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     bootstrap: PhysicalRecordBootstrapOwner,
-    lifecycle: crate::physical_runtime::LifecycleGeneration,
+    lifecycle: std::sync::Arc<crate::physical_runtime::lifecycle::LifecycleState>,
     route: crate::physical_runtime::PhysicalRootProtocolRoute,
     counters: &crate::physical_runtime::RootProtocolRouteCounterCells,
     resident_integrity_counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
@@ -141,7 +141,8 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
     } else {
         let previous = CurrentRootAdmission {
             generation: generation - 1,
-            ..admission
+            lifecycle: std::sync::Arc::clone(&admission.lifecycle),
+            ..admission.clone()
         };
         Some(load_root_manifest(&previous)?)
     };
@@ -195,7 +196,7 @@ fn load_root_manifest(
         })?;
     let admitted = admit_loaded_root_manifest(
         root_frame.lease(),
-        admission.lifecycle,
+        std::sync::Arc::clone(&admission.lifecycle),
         admission.media.store_identity(),
         admission.expected_format,
         admission.generation,
@@ -203,7 +204,10 @@ fn load_root_manifest(
     )
     .map_err(classify_root_integrity_denial)?;
     let current_root = admitted
-        .project(admission.lifecycle, admission.resident_integrity_counters)
+        .project(
+            std::sync::Arc::clone(&admission.lifecycle),
+            admission.resident_integrity_counters,
+        )
         .map_err(classify_root_integrity_denial)?;
     admission.counters.observe_root(admission.route);
     if !super::super::planning::policy_units::manifest_capacity_can_branch(

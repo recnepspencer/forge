@@ -146,44 +146,38 @@ fn bind_previous_selector<'frame>(
 }
 
 impl<'frame> IntegrityAdmittedResidentBootstrapCatalog<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<
-        IntegrityAdmittedResidentBootstrapCatalogView<'frame>,
-        ResidentIntegrityAdmissionDenial,
-    > {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentBootstrapCatalogView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentBootstrapCatalogView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentBootstrapCatalogView { lease, scope })
+        })
     }
 }
 
 impl<'frame> IntegrityAdmittedResidentCurrentRootSelector<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<
-        IntegrityAdmittedResidentCurrentRootSelectorView<'frame>,
-        ResidentIntegrityAdmissionDenial,
-    > {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentCurrentRootSelectorView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentCurrentRootSelectorView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentCurrentRootSelectorView { lease, scope })
+        })
     }
 }
 
 impl<'frame> IntegrityAdmittedResidentPreviousRootSelector<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<
-        IntegrityAdmittedResidentPreviousRootSelectorView<'frame>,
-        ResidentIntegrityAdmissionDenial,
-    > {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentPreviousRootSelectorView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentPreviousRootSelectorView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentPreviousRootSelectorView { lease, scope })
+        })
     }
 }
 

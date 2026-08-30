@@ -42,6 +42,24 @@ fn resident_hits_retain_one_byte_image_generation() {
 }
 
 #[test]
+fn exact_lease_can_invalidate_only_its_current_validation_record() {
+    let identity = store(211);
+    let pool = PhysicalResidencyPool::open(identity, limits(32, 2, 1, 32, 2)).unwrap();
+    let read = allocation(&pool, READ_SCOPE);
+    let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
+    let loaded = expect_fault(&pool, &read, key)
+        .load(|bytes| fill(bytes, 7))
+        .unwrap();
+    loaded
+        .commit_integrity_validation(validation(identity, 8, 11))
+        .unwrap();
+
+    loaded.invalidate_integrity_validation();
+
+    assert_eq!(loaded.integrity_validation(), None);
+}
+
+#[test]
 fn dirty_replacement_installs_a_new_byte_image_generation() {
     let identity = store(202);
     let pool = PhysicalResidencyPool::open(identity, limits(32, 2, 1, 32, 2)).unwrap();

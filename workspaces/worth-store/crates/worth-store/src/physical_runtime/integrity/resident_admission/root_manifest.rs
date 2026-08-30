@@ -12,11 +12,43 @@ use super::{
     denial::ResidentIntegrityAdmissionDenial, load::ResidentAdmissionContext,
     record_binding::ResidentIntegrityRecordBinding,
 };
-use crate::physical_runtime::{LifecycleGeneration, RootProtocolAdmissionDenial};
+use crate::physical_runtime::RootProtocolAdmissionDenial;
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentRootManifest<'frame> {
     source: ResidentIntegrityRecordBinding<'frame>,
     projection: Option<AdmittedRootManifestProjection>,
+}
+
+pub(in crate::physical_runtime) fn admit_resident_root_manifest<'frame>(
+    lease: &'frame PhysicalFrameLease,
+    scope: PhysicalArtifactScope,
+    context: ResidentAdmissionContext<'_>,
+) -> Result<IntegrityAdmittedResidentRootManifest<'frame>, ResidentIntegrityAdmissionDenial> {
+    if let Some(source) = context.reuse(lease, scope)? {
+        return Ok(IntegrityAdmittedResidentRootManifest {
+            source,
+            projection: None,
+        });
+    }
+    let input = context.exact_input(lease, scope)?;
+    context.observe_fresh_validation();
+    match validate_root_manifest(input, scope).0 {
+        RootManifestIntegrityValidation::Intact(validated) => {
+            if !validated.matches_input(input) {
+                return context.deny(ResidentIntegrityAdmissionDenial::SourceIncarnationMismatch);
+            }
+            let projection = AdmittedRootManifestProjection::from_validated(&validated);
+            let source =
+                context.bind_validated(lease, scope, validated.into_validation_record())?;
+            Ok(IntegrityAdmittedResidentRootManifest {
+                source,
+                projection: Some(projection),
+            })
+        }
+        RootManifestIntegrityValidation::Rejected(rejection) => {
+            context.validation_rejected(rejection)
+        }
+    }
 }
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentRootManifestView<'frame> {
@@ -47,7 +79,7 @@ struct AdmittedRootManifestProjection {
 
 pub(in crate::physical_runtime) fn admit_loaded_root_manifest<'frame>(
     lease: &'frame PhysicalFrameLease,
-    lifecycle: LifecycleGeneration,
+    lifecycle: std::sync::Arc<crate::physical_runtime::lifecycle::LifecycleState>,
     store: StableStoreIdentity,
     format: PhysicalRecordFormatDeclaration,
     generation: u64,
@@ -61,15 +93,8 @@ pub(in crate::physical_runtime) fn admit_loaded_root_manifest<'frame>(
             return Err(denial);
         }
     };
-    if let Some(source) = context
-        .reuse(lease, source.scope)
-        .map_err(map_resident_denial)?
-    {
-        return Ok(IntegrityAdmittedResidentRootManifest {
-            source,
-            projection: None,
-        });
-    }
+    // The existing bootstrap consumer needs a parsed projection. Its cutover is
+    // deliberately separate from the retained-record decoder seam above.
     let input = context
         .exact_input(lease, source.scope)
         .map_err(map_resident_denial)?;
@@ -126,23 +151,23 @@ impl<'frame> BoundResidentRootManifestSource<'frame> {
 }
 
 impl<'frame> IntegrityAdmittedResidentRootManifest<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
-        current_lifecycle: LifecycleGeneration,
+        current_lifecycle: std::sync::Arc<crate::physical_runtime::lifecycle::LifecycleState>,
         counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
-    ) -> Result<IntegrityAdmittedResidentRootManifestView<'frame>, RootProtocolAdmissionDenial>
-    {
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentRootManifestView<'view>) -> T,
+    ) -> Result<T, RootProtocolAdmissionDenial> {
         let context = ResidentAdmissionContext::new(current_lifecycle, counters);
-        let scope = self.source.scope();
-        let lease = context
-            .enter_owner_decoder(self.source)
-            .map_err(map_resident_denial)?;
-        Ok(IntegrityAdmittedResidentRootManifestView { lease, scope })
+        context
+            .with_owner_decoder(self.source, |lease, scope| {
+                decoder(IntegrityAdmittedResidentRootManifestView { lease, scope })
+            })
+            .map_err(map_resident_denial)
     }
 
     pub(in crate::physical_runtime) fn project(
         self,
-        current_lifecycle: LifecycleGeneration,
+        current_lifecycle: std::sync::Arc<crate::physical_runtime::lifecycle::LifecycleState>,
         counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
     ) -> Result<DurablePhysicalRootManifest, RootProtocolAdmissionDenial> {
         let projection = self
@@ -150,9 +175,8 @@ impl<'frame> IntegrityAdmittedResidentRootManifest<'frame> {
             .ok_or(RootProtocolAdmissionDenial::OwnerProjectionRejected)?;
         let context = ResidentAdmissionContext::new(current_lifecycle, counters);
         context
-            .enter_owner_decoder(self.source)
-            .map_err(map_resident_denial)?;
-        projection.project()
+            .with_owner_decoder(self.source, |_, _| projection.project())
+            .map_err(map_resident_denial)?
     }
 }
 

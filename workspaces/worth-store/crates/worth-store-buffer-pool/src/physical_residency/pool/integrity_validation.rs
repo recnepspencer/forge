@@ -20,6 +20,24 @@ impl PoolState {
 }
 
 impl PoolInner {
+    pub(crate) fn invalidate_integrity_validation(
+        &self,
+        key: PhysicalFrameKey,
+        bytes: &Arc<Vec<u8>>,
+        generation: PhysicalResidentFrameGeneration,
+    ) {
+        let mut state = self.lock();
+        let Some(entry) = state.frames.get_mut(&key.coordinate) else {
+            return;
+        };
+        if entry.resident_generation != Some(generation) {
+            return;
+        }
+        if matches!(&entry.state, FrameState::Resident(current) if Arc::ptr_eq(current, bytes)) {
+            entry.invalidate_integrity_validation();
+        }
+    }
+
     pub(crate) fn commit_integrity_validation(
         &self,
         key: PhysicalFrameKey,

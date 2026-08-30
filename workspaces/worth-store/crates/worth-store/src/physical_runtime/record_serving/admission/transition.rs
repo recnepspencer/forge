@@ -94,7 +94,7 @@ pub(in crate::physical_runtime) fn initialize(
         frame_ports.loader(),
         &bootstrap_allocation,
         bootstrap,
-        runtime.lifecycle_generation(),
+        runtime.lifecycle_state(),
         crate::physical_runtime::PhysicalRootProtocolRoute::Initialization,
         runtime.root_protocol_counter_cells(),
         frame_ports.resident_integrity_counter_cells(),
@@ -175,7 +175,7 @@ pub(in crate::physical_runtime) fn open(
         frame_ports.loader(),
         &bootstrap_allocation,
         bootstrap,
-        runtime.lifecycle_generation(),
+        runtime.lifecycle_state(),
         crate::physical_runtime::PhysicalRootProtocolRoute::OrdinaryOpen,
         runtime.root_protocol_counter_cells(),
         frame_ports.resident_integrity_counter_cells(),
@@ -209,6 +209,9 @@ fn initialize_serving(
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
     core.progress_to_record_serving();
+    residency
+        .ports()
+        .invalidate_integrity_validation_for_runtime_transition();
     match ServingPhysicalRuntime::from_admission(PhysicalStoreInstanceFoundation {
         termination,
         media,
@@ -234,6 +237,9 @@ fn open_serving(
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
     core.progress_to_record_serving();
+    residency
+        .ports()
+        .invalidate_integrity_validation_for_runtime_transition();
     match ServingPhysicalRuntime::from_admission(PhysicalStoreInstanceFoundation {
         termination,
         media,

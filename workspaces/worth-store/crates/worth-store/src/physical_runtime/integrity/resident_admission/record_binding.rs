@@ -3,20 +3,23 @@ use worth_store_physical_integrity::{PhysicalArtifactScope, PhysicalIntegrityVal
 
 use super::denial::ResidentIntegrityAdmissionDenial;
 use super::source_scope::require_exact_resident_source;
-use crate::physical_runtime::LifecycleGeneration;
+use crate::physical_runtime::lifecycle::{LifecycleState, LifecycleStateSnapshot};
 
 /// Private binding of one descriptive C6 record to its live Store incarnation.
 pub(super) struct ResidentIntegrityRecordBinding<'lease> {
     lease: &'lease PhysicalFrameLease,
-    lifecycle_generation: LifecycleGeneration,
+    lifecycle: std::sync::Arc<LifecycleState>,
+    lifecycle_snapshot: LifecycleStateSnapshot,
     frame_generation: PhysicalResidentFrameGeneration,
     scope: PhysicalArtifactScope,
+    record: PhysicalIntegrityValidationRecord,
 }
 
 impl<'lease> ResidentIntegrityRecordBinding<'lease> {
     pub(super) fn bind_fresh(
         lease: &'lease PhysicalFrameLease,
-        lifecycle_generation: LifecycleGeneration,
+        lifecycle: std::sync::Arc<LifecycleState>,
+        lifecycle_snapshot: LifecycleStateSnapshot,
         scope: PhysicalArtifactScope,
         record: PhysicalIntegrityValidationRecord,
     ) -> Result<Self, ResidentIntegrityAdmissionDenial> {
@@ -27,28 +30,45 @@ impl<'lease> ResidentIntegrityRecordBinding<'lease> {
         lease
             .commit_integrity_validation(record)
             .map_err(ResidentIntegrityAdmissionDenial::Frame)?;
-        Ok(Self::new(lease, lifecycle_generation, scope))
+        if lifecycle.snapshot() != lifecycle_snapshot {
+            lease.invalidate_integrity_validation();
+            return Err(ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged);
+        }
+        Ok(Self::new(
+            lease,
+            lifecycle,
+            lifecycle_snapshot,
+            scope,
+            record,
+        ))
     }
 
     pub(super) fn reuse_exact(
         lease: &'lease PhysicalFrameLease,
-        lifecycle_generation: LifecycleGeneration,
+        lifecycle: std::sync::Arc<LifecycleState>,
+        lifecycle_snapshot: LifecycleStateSnapshot,
         scope: PhysicalArtifactScope,
     ) -> Result<Option<Self>, ResidentIntegrityAdmissionDenial> {
         require_exact_resident_source(lease, scope)?;
         let Some(record) = lease.integrity_validation() else {
             return Ok(None);
         };
-        Ok(record
-            .matches_scope(scope)
-            .then(|| Self::new(lease, lifecycle_generation, scope)))
+        if !record.matches_scope(scope) {
+            return Err(ResidentIntegrityAdmissionDenial::RetainedRecordChanged);
+        }
+        Ok(Some(Self::new(
+            lease,
+            lifecycle,
+            lifecycle_snapshot,
+            scope,
+            record,
+        )))
     }
 
     pub(super) fn enter_owner_decoder(
-        self,
-        current_lifecycle: LifecycleGeneration,
+        &self,
     ) -> Result<&'lease PhysicalFrameLease, ResidentIntegrityAdmissionDenial> {
-        if self.lifecycle_generation != current_lifecycle {
+        if self.lifecycle.snapshot() != self.lifecycle_snapshot {
             return Err(ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged);
         }
         if self.lease.resident_generation() != self.frame_generation {
@@ -59,7 +79,7 @@ impl<'lease> ResidentIntegrityRecordBinding<'lease> {
             .lease
             .integrity_validation()
             .ok_or(ResidentIntegrityAdmissionDenial::RetainedRecordInvalidated)?;
-        if !record.matches_scope(self.scope) {
+        if record != self.record {
             return Err(ResidentIntegrityAdmissionDenial::RetainedRecordChanged);
         }
         Ok(self.lease)
@@ -71,14 +91,18 @@ impl<'lease> ResidentIntegrityRecordBinding<'lease> {
 
     fn new(
         lease: &'lease PhysicalFrameLease,
-        lifecycle_generation: LifecycleGeneration,
+        lifecycle: std::sync::Arc<LifecycleState>,
+        lifecycle_snapshot: LifecycleStateSnapshot,
         scope: PhysicalArtifactScope,
+        record: PhysicalIntegrityValidationRecord,
     ) -> Self {
         Self {
             lease,
-            lifecycle_generation,
+            lifecycle,
+            lifecycle_snapshot,
             frame_generation: lease.resident_generation(),
             scope,
+            record,
         }
     }
 }

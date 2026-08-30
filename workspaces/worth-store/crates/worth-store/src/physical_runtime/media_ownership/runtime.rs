@@ -69,6 +69,12 @@ impl MediaOwnedPhysicalRuntime {
         self.core.lifecycle_generation()
     }
 
+    pub(in crate::physical_runtime) fn lifecycle_state(
+        &self,
+    ) -> std::sync::Arc<crate::physical_runtime::lifecycle::LifecycleState> {
+        self.core.lifecycle_state()
+    }
+
     pub(in crate::physical_runtime) const fn root_protocol_counter_cells(
         &self,
     ) -> &crate::physical_runtime::RootProtocolRouteCounterCells {

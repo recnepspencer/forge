@@ -98,26 +98,26 @@ fn bind_extent_chunk<'frame>(
 }
 
 impl<'frame> IntegrityAdmittedResidentExtentManifest<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<IntegrityAdmittedResidentExtentManifestView<'frame>, ResidentIntegrityAdmissionDenial>
-    {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentExtentManifestView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentExtentManifestView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentExtentManifestView { lease, scope })
+        })
     }
 }
 
 impl<'frame> IntegrityAdmittedResidentExtentChunk<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<IntegrityAdmittedResidentExtentChunkView<'frame>, ResidentIntegrityAdmissionDenial>
-    {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentExtentChunkView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentExtentChunkView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentExtentChunkView { lease, scope })
+        })
     }
 }
 

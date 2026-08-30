@@ -56,6 +56,10 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
 #[test]
 fn c9_resident_admission_contracts_are_compile_sealed() {
     let cases = trybuild::TestCases::new();
+    cases.pass("tests/physical_runtime_authority/raw_lease_can_only_observe_descriptive_record.rs");
+    cases.compile_fail(
+        "tests/physical_runtime_authority/raw_lease_cannot_enter_resident_decoder.rs",
+    );
     cases.compile_fail(
         "tests/physical_runtime_authority/resident_admission_internals_are_sealed.rs",
     );

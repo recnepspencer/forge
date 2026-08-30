@@ -7,43 +7,56 @@ use super::{
     denial::ResidentIntegrityAdmissionDenial, record_binding::ResidentIntegrityRecordBinding,
     source_scope::require_exact_resident_source,
 };
-use crate::physical_runtime::{LifecycleGeneration, ResidentAdmissionCounterCells};
+use crate::physical_runtime::{
+    lifecycle::{LifecycleState, LifecycleStateSnapshot},
+    ResidentAdmissionCounterCells,
+};
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(in crate::physical_runtime) struct ResidentAdmissionContext<'counter> {
-    lifecycle: LifecycleGeneration,
+    lifecycle: std::sync::Arc<LifecycleState>,
+    snapshot: LifecycleStateSnapshot,
     counters: &'counter ResidentAdmissionCounterCells,
 }
 
 impl<'counter> ResidentAdmissionContext<'counter> {
-    pub(in crate::physical_runtime) const fn new(
-        lifecycle: LifecycleGeneration,
+    pub(in crate::physical_runtime) fn new(
+        lifecycle: std::sync::Arc<LifecycleState>,
         counters: &'counter ResidentAdmissionCounterCells,
     ) -> Self {
+        let snapshot = lifecycle.snapshot();
         Self {
             lifecycle,
+            snapshot,
             counters,
         }
     }
 
     pub(super) fn exact_input<'lease>(
-        self,
+        &self,
         lease: &'lease PhysicalFrameLease,
         scope: PhysicalArtifactScope,
     ) -> Result<
         worth_store_physical_integrity::UntrustedPhysicalArtifact<'lease>,
         ResidentIntegrityAdmissionDenial,
     > {
+        self.require_live()?;
         require_exact_resident_source(lease, scope).map_err(|denial| self.reject(denial))
     }
 
     pub(super) fn reuse<'lease>(
-        self,
+        &self,
         lease: &'lease PhysicalFrameLease,
         scope: PhysicalArtifactScope,
     ) -> Result<Option<ResidentIntegrityRecordBinding<'lease>>, ResidentIntegrityAdmissionDenial>
     {
-        match ResidentIntegrityRecordBinding::reuse_exact(lease, self.lifecycle, scope) {
+        self.require_live()?;
+        match ResidentIntegrityRecordBinding::reuse_exact(
+            lease,
+            std::sync::Arc::clone(&self.lifecycle),
+            self.snapshot,
+            scope,
+        ) {
             Ok(Some(binding)) => {
                 self.counters.observe_exact_record_reuse();
                 Ok(Some(binding))
@@ -54,47 +67,75 @@ impl<'counter> ResidentAdmissionContext<'counter> {
     }
 
     pub(super) fn bind_validated<'lease>(
-        self,
+        &self,
         lease: &'lease PhysicalFrameLease,
         scope: PhysicalArtifactScope,
         record: PhysicalIntegrityValidationRecord,
     ) -> Result<ResidentIntegrityRecordBinding<'lease>, ResidentIntegrityAdmissionDenial> {
-        ResidentIntegrityRecordBinding::bind_fresh(lease, self.lifecycle, scope, record)
-            .map_err(|denial| self.reject(denial))
+        self.require_live()?;
+        ResidentIntegrityRecordBinding::bind_fresh(
+            lease,
+            std::sync::Arc::clone(&self.lifecycle),
+            self.snapshot,
+            scope,
+            record,
+        )
+        .map_err(|denial| self.reject(denial))
     }
 
-    pub(super) fn observe_fresh_validation(self) {
+    pub(super) fn observe_fresh_validation(&self) {
         self.counters.observe_fresh_validation();
     }
 
     pub(super) fn validation_rejected<T>(
-        self,
+        &self,
         rejection: PhysicalIntegrityRejection,
     ) -> Result<T, ResidentIntegrityAdmissionDenial> {
         Err(self.reject(ResidentIntegrityAdmissionDenial::Validation(rejection)))
     }
 
     pub(super) fn deny<T>(
-        self,
+        &self,
         denial: ResidentIntegrityAdmissionDenial,
     ) -> Result<T, ResidentIntegrityAdmissionDenial> {
         Err(self.reject(denial))
     }
 
-    pub(super) fn enter_owner_decoder<'lease>(
-        self,
+    pub(super) fn reject_source(
+        &self,
+        denial: ResidentIntegrityAdmissionDenial,
+    ) -> ResidentIntegrityAdmissionDenial {
+        self.reject(denial)
+    }
+
+    pub(super) fn with_owner_decoder<'lease, T, F>(
+        &self,
         binding: ResidentIntegrityRecordBinding<'lease>,
-    ) -> Result<&'lease PhysicalFrameLease, ResidentIntegrityAdmissionDenial> {
-        match binding.enter_owner_decoder(self.lifecycle) {
-            Ok(lease) => {
-                self.counters.observe_owner_decoder_entry();
-                Ok(lease)
-            }
-            Err(denial) => Err(self.reject(denial)),
+        decoder: F,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial>
+    where
+        F: for<'view> FnOnce(&'view PhysicalFrameLease, PhysicalArtifactScope) -> T,
+    {
+        self.require_live()?;
+        let lease = match binding.enter_owner_decoder() {
+            Ok(lease) => lease,
+            Err(denial) => return Err(self.reject(denial)),
+        };
+        self.counters.observe_owner_decoder_entry();
+        let result = decoder(lease, binding.scope());
+        binding.enter_owner_decoder()?;
+        Ok(result)
+    }
+
+    fn require_live(&self) -> Result<(), ResidentIntegrityAdmissionDenial> {
+        if self.lifecycle.snapshot() == self.snapshot {
+            Ok(())
+        } else {
+            Err(self.reject(ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged))
         }
     }
 
-    fn reject(self, denial: ResidentIntegrityAdmissionDenial) -> ResidentIntegrityAdmissionDenial {
+    fn reject(&self, denial: ResidentIntegrityAdmissionDenial) -> ResidentIntegrityAdmissionDenial {
         self.counters.observe_rejection_before_decoder();
         denial
     }

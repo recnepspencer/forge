@@ -1,4 +1,5 @@
 use worth_store_buffer_pool::{PhysicalFrameLease, PhysicalResidentFrameGeneration};
+use worth_store_physical_format::RecordArtifactFile;
 use worth_store_physical_integrity::{
     validate_inline_page, InlinePageIntegrityValidation, IntegrityValidatedPageFrame,
     PhysicalArtifactScope,
@@ -6,7 +7,7 @@ use worth_store_physical_integrity::{
 
 use super::{
     denial::ResidentIntegrityAdmissionDenial, load::ResidentAdmissionContext,
-    record_binding::ResidentIntegrityRecordBinding,
+    record_binding::ResidentIntegrityRecordBinding, source_scope::require_exact_page_source,
 };
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentPage<'frame> {
@@ -21,8 +22,11 @@ pub(in crate::physical_runtime) struct IntegrityAdmittedResidentPageView<'frame>
 pub(in crate::physical_runtime) fn admit_resident_page<'frame>(
     lease: &'frame PhysicalFrameLease,
     scope: PhysicalArtifactScope,
+    expected_segment: RecordArtifactFile,
     context: ResidentAdmissionContext<'_>,
 ) -> Result<IntegrityAdmittedResidentPage<'frame>, ResidentIntegrityAdmissionDenial> {
+    require_exact_page_source(lease, scope, expected_segment)
+        .map_err(|denial| context.reject_source(denial))?;
     if let Some(source) = context.reuse(lease, scope)? {
         return Ok(IntegrityAdmittedResidentPage { source });
     }
@@ -53,13 +57,14 @@ fn bind_validated_page<'frame>(
 }
 
 impl<'frame> IntegrityAdmittedResidentPage<'frame> {
-    pub(in crate::physical_runtime) fn enter_owner_decoder(
+    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
         self,
         context: ResidentAdmissionContext<'_>,
-    ) -> Result<IntegrityAdmittedResidentPageView<'frame>, ResidentIntegrityAdmissionDenial> {
-        let scope = self.source.scope();
-        let lease = context.enter_owner_decoder(self.source)?;
-        Ok(IntegrityAdmittedResidentPageView { lease, scope })
+        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentPageView<'view>) -> T,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_decoder(self.source, |lease, scope| {
+            decoder(IntegrityAdmittedResidentPageView { lease, scope })
+        })
     }
 }
 
