@@ -29,17 +29,22 @@ pub(crate) struct PageFrameProjection {
 pub(crate) fn admit_page_projection(
     observed: &ObservedRecoveryArtifact,
     scope: PhysicalArtifactScope,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut super::super::RecoveryIntegrityIngressTrace,
 ) -> Result<PageFrameProjection, RecoveryIntegrityIngressRejection> {
-    let input = ObservedRecoverySource::complete(observed, scope).input()?;
+    let input = ObservedRecoverySource::complete(observed, scope)
+        .input()
+        .map_err(|rejection| trace.reject(scope, rejection))?;
     let validation = validate_inline_page(input, scope).0;
-    match super::super::IntegrityAdmittedRecoveryArtifact::bind_page_frame(
-        observed, scope, validation, counters,
-    )
-    .into_outcome()?
-    {
+    let attempt = super::super::IntegrityAdmittedRecoveryArtifact::bind_page_frame(
+        observed,
+        scope,
+        validation,
+        trace.counters_mut(),
+    );
+    trace.retain(attempt.observation());
+    match attempt.into_outcome()? {
         super::super::IntegrityAdmittedRecoveryArtifact::PageFrame(admitted) => {
-            Ok(admitted.project(counters))
+            Ok(admitted.project(trace.counters_mut()))
         }
         _ => unreachable!("page ingress returns its family-specific admitted variant"),
     }

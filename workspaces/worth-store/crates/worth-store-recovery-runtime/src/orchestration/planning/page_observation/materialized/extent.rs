@@ -34,7 +34,7 @@ pub(crate) fn observe_extent(
     format: PhysicalRecordFormatDeclaration,
     byte_limit: u64,
     manifests: &mut BTreeMap<(u64, u64), RecoveryExtentManifest>,
-    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressCounters,
+    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<RecoveryPageObservation, PageObservationFailure> {
     let key = (placement.extent().get(), placement.extent_generation());
     admit_manifest_once(
@@ -57,7 +57,7 @@ fn admit_manifest_once(
     byte_limit: u64,
     key: (u64, u64),
     manifests: &mut BTreeMap<(u64, u64), RecoveryExtentManifest>,
-    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressCounters,
+    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<(), PageObservationFailure> {
     let std::collections::btree_map::Entry::Vacant(entry) = manifests.entry(key) else {
         return Ok(());
@@ -115,7 +115,7 @@ fn admit_chunk(
     format: PhysicalRecordFormatDeclaration,
     byte_limit: u64,
     admitted: &RecoveryExtentManifest,
-    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressCounters,
+    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<RecoveryPageObservation, PageObservationFailure> {
     let manifest = admitted.manifest;
     let plan = plan_chunk_observation(placement, target, manifest)?;

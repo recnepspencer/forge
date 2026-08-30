@@ -35,36 +35,12 @@ pub(super) fn observed(
     }
 }
 
-pub(super) fn required(
-    result: Result<ObservedRecoveryArtifact, RecoveryDiscoveryFailure>,
-    artifact: RecordArtifactFile,
-) -> Result<Vec<u8>, PhysicalRecoverySuccessorCandidateDenial> {
-    optional(result, artifact)?.ok_or(PhysicalRecoverySuccessorCandidateDenial::MissingArtifact {
-        artifact,
-        generation: artifact_generation(artifact),
-    })
-}
-
 pub(super) fn required_source(
     result: Result<ObservedRecoveryArtifact, RecoveryDiscoveryFailure>,
     artifact: RecordArtifactFile,
 ) -> Result<ObservedRecoveryArtifact, PhysicalRecoverySuccessorCandidateDenial> {
     match result {
         Ok(observed) => Ok(observed),
-        Err(failure) => Err(PhysicalRecoverySuccessorCandidateDenial::Discovery {
-            artifact,
-            generation: artifact_generation(artifact),
-            failure,
-        }),
-    }
-}
-
-pub(super) fn optional(
-    result: Result<ObservedRecoveryArtifact, RecoveryDiscoveryFailure>,
-    artifact: RecordArtifactFile,
-) -> Result<Option<Vec<u8>>, PhysicalRecoverySuccessorCandidateDenial> {
-    match result {
-        Ok(observed) => Ok(observed.into_bytes()),
         Err(failure) => Err(PhysicalRecoverySuccessorCandidateDenial::Discovery {
             artifact,
             generation: artifact_generation(artifact),

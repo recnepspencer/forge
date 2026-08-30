@@ -34,17 +34,22 @@ pub(crate) fn admit_extent_chunk_projection(
     observed: &ObservedRecoveryArtifact,
     scope: PhysicalArtifactScope,
     membership: worth_store_physical_integrity::IntegrityValidatedExtentMembership,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut super::super::super::RecoveryIntegrityIngressTrace,
 ) -> Result<ExtentChunkProjection, RecoveryIntegrityIngressRejection> {
-    let input = ObservedRecoverySource::complete(observed, scope).input()?;
+    let input = ObservedRecoverySource::complete(observed, scope)
+        .input()
+        .map_err(|rejection| trace.reject(scope, rejection))?;
     let validation = validate_extent_chunk_membership(input, scope, membership).0;
-    match super::super::super::IntegrityAdmittedRecoveryArtifact::bind_extent_chunk(
-        observed, scope, validation, counters,
-    )
-    .into_outcome()?
-    {
+    let attempt = super::super::super::IntegrityAdmittedRecoveryArtifact::bind_extent_chunk(
+        observed,
+        scope,
+        validation,
+        trace.counters_mut(),
+    );
+    trace.retain(attempt.observation());
+    match attempt.into_outcome()? {
         super::super::super::IntegrityAdmittedRecoveryArtifact::ExtentChunk(admitted) => {
-            Ok(admitted.project(counters))
+            Ok(admitted.project(trace.counters_mut()))
         }
         _ => unreachable!("extent ingress returns its family-specific admitted variant"),
     }

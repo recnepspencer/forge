@@ -54,6 +54,19 @@ fn page_failures_retain_distinct_exact_phase_four_read_counters() {
     assert_eq!(page_counters.page_extent_integrity_rejections(), 1);
     assert_eq!(page_counters.page_extent_owner_projections(), 0);
     assert_eq!(page_counters.page_extent_owner_decoders(), 0);
+    let rejected = invalid_page
+        .evidence()
+        .integrity_observations()
+        .last()
+        .unwrap();
+    assert_eq!(
+        rejected.scope().artifact_family(),
+        worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily::PageFrame,
+    );
+    assert!(matches!(
+        rejected.outcome(),
+        worth_store_recovery_runtime::PhysicalRecoveryIntegrityObservationOutcome::Rejected(_),
+    ));
     assert_eq!(invalid.recovery_effects(), 0);
     assert_eq!(invalid_page.recovery_effects(), 0);
 }

@@ -53,7 +53,7 @@ pub(super) fn observe_selected_pages(
     let mut discovery = media
         .bounded_discovery(maximum_entries, maximum_bytes)
         .expect("admitted nonzero recovery limits create a bounded planning reader");
-    let mut integrity = crate::integrity_ingress::RecoveryIntegrityIngressCounters::default();
+    let mut integrity = crate::integrity_ingress::RecoveryIntegrityIngressTrace::new();
     let result = observe(
         &mut discovery,
         root_manifest,
@@ -68,13 +68,15 @@ pub(super) fn observe_selected_pages(
         integrity_trace,
     );
     let counters = discovery.counters();
+    let page_counters = integrity.counters();
+    integrity_trace.append(integrity);
     (
         discovery.finish(),
         PageObservationAttempt {
             result,
             artifact_reads: counters.addressed_artifacts_read,
             bytes_read: counters.bytes_read,
-            integrity,
+            integrity: page_counters,
         },
     )
 }
@@ -92,7 +94,7 @@ fn observe(
     admitted_manifest_entries: u64,
     maximum_manifest_entries: u64,
     byte_limit: u64,
-    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressCounters,
+    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
     integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<ObservedPageBasis, PageObservationFailure> {
     let already_observed = admitted_manifest_entries.saturating_sub(maximum_manifest_entries);
@@ -197,25 +199,6 @@ fn observe(
         selected_source,
         manifest_budget: budget,
     })
-}
-
-pub(super) fn required(
-    result: Result<
-        worth_store::physical_runtime::ObservedRecoveryArtifact,
-        worth_store::physical_runtime::RecoveryDiscoveryFailure,
-    >,
-    target: Option<PhysicalRedoTargetIdentity>,
-    artifact: RecordArtifactFile,
-) -> Result<Vec<u8>, PageObservationFailure> {
-    match result {
-        Ok(observed) => observed
-            .into_bytes()
-            .ok_or(PageObservationFailure::MissingArtifact { target, artifact }),
-        Err(worth_store::physical_runtime::RecoveryDiscoveryFailure::ByteLimitExceeded {
-            ..
-        }) => Err(PageObservationFailure::ByteLimit),
-        Err(failure) => Err(PageObservationFailure::Media { target, failure }),
-    }
 }
 
 pub(super) fn required_source(

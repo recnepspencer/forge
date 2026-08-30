@@ -33,19 +33,24 @@ pub(crate) struct AdmittedRecoveryExtentManifest {
 pub(crate) fn admit_extent_manifest_projection(
     observed: &ObservedRecoveryArtifact,
     scope: PhysicalArtifactScope,
-    counters: &mut RecoveryIntegrityIngressCounters,
+    trace: &mut super::super::super::RecoveryIntegrityIngressTrace,
 ) -> Result<AdmittedRecoveryExtentManifest, RecoveryIntegrityIngressRejection> {
-    let input = ObservedRecoverySource::complete(observed, scope).input()?;
+    let input = ObservedRecoverySource::complete(observed, scope)
+        .input()
+        .map_err(|rejection| trace.reject(scope, rejection))?;
     let validation = validate_extent_manifest(input, scope).0;
-    match super::super::super::IntegrityAdmittedRecoveryArtifact::bind_extent_manifest(
-        observed, scope, validation, counters,
-    )
-    .into_outcome()?
-    {
+    let attempt = super::super::super::IntegrityAdmittedRecoveryArtifact::bind_extent_manifest(
+        observed,
+        scope,
+        validation,
+        trace.counters_mut(),
+    );
+    trace.retain(attempt.observation());
+    match attempt.into_outcome()? {
         super::super::super::IntegrityAdmittedRecoveryArtifact::ExtentManifest(admitted) => {
             let membership = admitted.membership();
             Ok(AdmittedRecoveryExtentManifest {
-                projection: admitted.project(counters),
+                projection: admitted.project(trace.counters_mut()),
                 membership,
             })
         }

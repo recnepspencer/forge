@@ -1,4 +1,6 @@
 use super::*;
+use worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily;
+use worth_store_recovery_runtime::PhysicalRecoveryIntegrityObservationOutcome;
 
 #[test]
 fn extent_recovery_planning_admits_manifest_and_chunks_before_redo() {
@@ -16,6 +18,24 @@ fn extent_recovery_planning_admits_manifest_and_chunks_before_redo() {
     assert_eq!(counters.page_extent_integrity_rejections(), 0);
     assert_eq!(counters.page_extent_owner_projections(), 4);
     assert_eq!(counters.page_extent_owner_decoders(), 3);
+    let observations: Vec<_> = planned
+        .integrity_observations()
+        .iter()
+        .filter(|observation| {
+            matches!(
+                observation.scope().artifact_family(),
+                PhysicalIntegrityArtifactFamily::ExtentManifest
+                    | PhysicalIntegrityArtifactFamily::ExtentChunk
+            )
+        })
+        .collect();
+    assert_eq!(observations.len(), 4);
+    assert_eq!(
+        observations[0].scope().artifact_family(),
+        PhysicalIntegrityArtifactFamily::ExtentManifest
+    );
+    assert!(observations.iter().all(|observation| observation.outcome()
+        == PhysicalRecoveryIntegrityObservationOutcome::Admitted));
 }
 
 #[test]
@@ -40,6 +60,24 @@ fn corrupt_extent_recovery_frame_stops_before_owner_projection() {
     assert_eq!(counters.page_extent_integrity_rejections(), 1);
     assert_eq!(counters.page_extent_owner_projections(), 1);
     assert_eq!(counters.page_extent_owner_decoders(), 0);
+    let observations = blocked.evidence().integrity_observations();
+    let rejected = observations
+        .last()
+        .expect("the failed extent attempt survives the block");
+    assert_eq!(
+        rejected.scope().artifact_family(),
+        PhysicalIntegrityArtifactFamily::ExtentChunk
+    );
+    assert!(matches!(
+        rejected.outcome(),
+        PhysicalRecoveryIntegrityObservationOutcome::Rejected(_)
+    ));
+    assert_eq!(
+        observations[observations.len() - 2]
+            .scope()
+            .artifact_family(),
+        PhysicalIntegrityArtifactFamily::ExtentManifest
+    );
     assert_eq!(blocked.recovery_effects(), 0);
 }
 

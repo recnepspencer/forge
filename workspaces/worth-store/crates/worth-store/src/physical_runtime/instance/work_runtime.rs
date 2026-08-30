@@ -47,12 +47,6 @@ pub(in crate::physical_runtime) struct PhysicalExecutionCall {
 }
 
 impl PhysicalStoreWorkRuntime {
-    pub(in crate::physical_runtime) fn lifecycle_state(
-        &self,
-    ) -> Arc<crate::physical_runtime::lifecycle::LifecycleState> {
-        self.submission.lifecycle_state()
-    }
-
     pub(super) fn new(
         submission: PhysicalWorkSubmissionOwner,
         signal: PhysicalWorkSignalOwner,

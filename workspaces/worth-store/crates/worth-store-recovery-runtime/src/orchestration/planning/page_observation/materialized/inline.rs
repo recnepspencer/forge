@@ -27,7 +27,7 @@ pub(crate) fn observe_inline(
     format: PhysicalRecordFormatDeclaration,
     byte_limit: u64,
     entries: &BTreeMap<(u64, u64), RecoverySelectedSegmentPage>,
-    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressCounters,
+    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<RecoveryPageObservation, PageObservationFailure> {
     let plan = plan_inline_observation(placement, target, format, entries)?;
     let page = required_observed(
