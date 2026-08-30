@@ -2,7 +2,7 @@ use std::ffi::OsStr;
 
 use worth_store::physical_runtime::recovery_wal::{LogSequenceNumber, WalLsnRange};
 use worth_store_physical_format::{store_namespace::NamespaceEntryType, WalSegmentIdentity};
-use worth_store_physical_integrity::IntegrityValidatedWalFrame;
+use worth_store_physical_integrity::{IntegrityValidatedWalFrame, WalPayloadProjectionDenial};
 use worth_store_recovery_physics::{
     decode_physical_redo_records, PhysicalRedoPlanningDenial, PhysicalRedoRecord,
 };
@@ -15,6 +15,7 @@ use super::super::{
 pub(crate) struct IntegrityAdmittedWalFrame<'media> {
     source: ObservedWalFrameSource<'media>,
     validated: IntegrityValidatedWalFrame<'media>,
+    payload: &'media [u8],
 }
 
 pub(crate) struct WalFrameProjection<'view> {
@@ -68,7 +69,26 @@ impl<'media> IntegrityAdmittedWalFrame<'media> {
         require_observed_wal_source(&source, validated.scope(), |input| {
             validated.matches_input(input)
         })?;
-        Ok(Self { source, validated })
+        let input = source.input()?;
+        let projection = validated
+            .project_payload(input, validated.segment_identity())
+            .map_err(|denial| match denial {
+                WalPayloadProjectionDenial::InputIncarnationMismatch => {
+                    RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
+                }
+                WalPayloadProjectionDenial::SegmentIdentityMismatch => {
+                    RecoveryIntegrityIngressRejection::ScopeMismatch
+                }
+            })?;
+        let payload = input
+            .bytes()
+            .get(projection.payload_range())
+            .ok_or(RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation)?;
+        Ok(Self {
+            source,
+            validated,
+            payload,
+        })
     }
 
     pub(crate) fn project<'view>(
@@ -85,7 +105,7 @@ impl<'media> IntegrityAdmittedWalFrame<'media> {
             identity_digest: self.validated.identity_digest(),
             payload_digest: self.validated.payload_digest(),
             redo: IntegrityAdmittedWalRedo {
-                payload: self.validated.payload(),
+                payload: self.payload,
                 digest: self.validated.payload_digest(),
                 lsn_start: self.validated.lsn_start(),
                 lsn_end: self.validated.lsn_end(),
