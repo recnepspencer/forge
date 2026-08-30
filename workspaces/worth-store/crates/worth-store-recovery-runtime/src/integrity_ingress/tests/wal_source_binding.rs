@@ -1,0 +1,139 @@
+use worth_proof::TransitionOutcome;
+use worth_store::physical_runtime::{
+    FilesystemAccessPosture, FilesystemMediaAdmission, PhysicalRuntimeAdmission, PhysicalStore,
+    QualifiedRecoveryFilesystemMedia,
+};
+use worth_store_physical_format::wal_frame::{
+    encode_wal_frame_v1, WalFrameV1EncodeRequest, WalSegmentIdentity,
+};
+use worth_store_physical_integrity::{
+    validate_wal_frame, PhysicalArtifactScope, PhysicalByteRange, UntrustedPhysicalArtifact,
+    WalFrameIntegrityValidation,
+};
+
+use super::super::admitted_artifact::IntegrityAdmittedRecoveryArtifact;
+use super::super::{
+    RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressObservationOutcome,
+    RecoveryIntegrityIngressRejection,
+};
+
+#[test]
+fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
+    let parent = tempfile::tempdir().expect("test parent");
+    let root = parent.path().join("wal-source-binding");
+    let runtime =
+        PhysicalStore::admit(PhysicalRuntimeAdmission::new(root.clone()).expect("declared root"))
+            .expect("ordinary runtime admission");
+    let admission =
+        FilesystemMediaAdmission::production(FilesystemAccessPosture::CoordinatedServiceAccount);
+    let media = match runtime.try_admit_filesystem_media(admission).into_raw() {
+        TransitionOutcome::Success(media) => media,
+        _ => panic!("ordinary media initialization failed"),
+    };
+    let store = media.store_identity();
+    let _ = media.close();
+    let identity = WalSegmentIdentity::new(1, 2).unwrap();
+    let frame = encode_wal_frame_v1(
+        WalFrameV1EncodeRequest::from_segment_identity(
+            identity,
+            3,
+            4,
+            b"c9-ingress-wal",
+            b"typed-redo-payload",
+        )
+        .unwrap(),
+    );
+    let wal = root.join("families").join("wal");
+    std::fs::create_dir_all(&wal).unwrap();
+    std::fs::write(wal.join("a.wal"), &frame).unwrap();
+    std::fs::write(wal.join("b.wal"), &frame).unwrap();
+
+    let media = QualifiedRecoveryFilesystemMedia::qualify_existing(&root)
+        .unwrap()
+        .admit_persisted_store()
+        .unwrap();
+    let mut discovery = media.bounded_discovery(4, 4096).unwrap();
+    let observed = discovery.read_wal_artifacts(2, 4096).unwrap();
+    assert_eq!(observed.len(), 2);
+    let scope = PhysicalArtifactScope::wal_frame(
+        store,
+        identity,
+        PhysicalByteRange::new(0, frame.len() as u64).unwrap(),
+    );
+    let frame_range = PhysicalByteRange::new(0, frame.len() as u64).unwrap();
+    let validated = validate(&observed[0], scope);
+    let mut counters = RecoveryIntegrityIngressCounters::default();
+    let admitted = IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
+        &observed[0],
+        frame_range,
+        validated,
+        &mut counters,
+    );
+    assert_eq!(
+        admitted.observation().outcome(),
+        RecoveryIntegrityIngressObservationOutcome::Admitted
+    );
+    let IntegrityAdmittedRecoveryArtifact::WalFrame(admitted) = admitted.into_outcome().unwrap()
+    else {
+        panic!("WAL admission routed to the wrong family")
+    };
+    let projection = admitted.project(&mut counters);
+    assert_eq!(projection.segment_identity, identity);
+    assert_eq!((projection.lsn_start, projection.lsn_end), (3, 4));
+    assert_eq!(projection.source_entry_type, observed[0].entry_type());
+    assert_eq!(projection.source_name, observed[0].name());
+
+    let validated = validate(&observed[0], scope);
+    let substituted = IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
+        &observed[1],
+        frame_range,
+        validated,
+        &mut counters,
+    );
+    assert_eq!(
+        substituted.observation().outcome(),
+        RecoveryIntegrityIngressObservationOutcome::Rejected(
+            RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
+        )
+    );
+
+    let validated = validate(&observed[0], scope);
+    let shifted = IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
+        &observed[0],
+        PhysicalByteRange::new(1, frame.len() as u64).unwrap(),
+        validated,
+        &mut counters,
+    );
+    assert_eq!(
+        shifted.observation().outcome(),
+        RecoveryIntegrityIngressObservationOutcome::Rejected(
+            RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation
+        )
+    );
+    assert_eq!(
+        (
+            counters.attempted,
+            counters.admitted,
+            counters.rejected_source_binding
+        ),
+        (3, 1, 2)
+    );
+    assert_eq!(counters.owner_projection_entries, 1);
+    drop(discovery.finish());
+}
+
+fn validate<'media>(
+    observed: &'media worth_store::physical_runtime::ObservedWalArtifact,
+    scope: PhysicalArtifactScope,
+) -> worth_store_physical_integrity::IntegrityValidatedWalFrame<'media> {
+    let input = UntrustedPhysicalArtifact::from_bounded_bytes(
+        observed
+            .bytes()
+            .expect("regular WAL entry has bounded bytes"),
+    );
+    let (validation, _) = validate_wal_frame(input, scope);
+    let WalFrameIntegrityValidation::Intact(validated) = validation else {
+        panic!("canonical WAL frame must validate")
+    };
+    validated
+}

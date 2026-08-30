@@ -9,6 +9,7 @@ pub(crate) enum RecoveryIntegrityIngressRejection {
     Integrity(PhysicalIntegrityRejection),
     NonCanonicalEncoding,
     MissingBoundedArtifact,
+    SourceRangeOutsideObservation,
     ScopeMismatch,
     SourceIncarnationMismatch,
 }
@@ -24,7 +25,9 @@ impl RecoveryIntegrityIngressRejection {
             }
             Self::Integrity(rejection) => PhysicalRecoveryRootProtocolDenial::Integrity(rejection),
             Self::NonCanonicalEncoding => PhysicalRecoveryRootProtocolDenial::NonCanonicalEncoding,
-            Self::ScopeMismatch => PhysicalRecoveryRootProtocolDenial::ScopeMismatch,
+            Self::ScopeMismatch | Self::SourceRangeOutsideObservation => {
+                PhysicalRecoveryRootProtocolDenial::ScopeMismatch
+            }
             Self::SourceIncarnationMismatch => {
                 PhysicalRecoveryRootProtocolDenial::SourceIncarnationMismatch
             }

@@ -7,13 +7,13 @@ use worth_store_physical_integrity::{
     PreviousRootSelectorIntegrityValidation, RootManifestIntegrityValidation,
 };
 
-use super::admitted_artifact::{
+use super::families::root::{
     IntegrityAdmittedCurrentRootSelector, IntegrityAdmittedPreviousRootSelector,
     IntegrityAdmittedRootManifest,
 };
 use super::{
     admit_current_root_selector, admit_previous_root_selector, admit_root_manifest,
-    RecoveryArtifactNamespaceJoin, RecoveryIntegrityIngressRejection, UntrustedRecoverySource,
+    ObservedRecoverySource, RecoveryArtifactNamespaceJoin, RecoveryIntegrityIngressRejection,
 };
 
 pub(crate) fn admit_current_selector<'media>(
@@ -28,10 +28,8 @@ pub(crate) fn admit_current_selector<'media>(
         PhysicalByteRange::new(0, ROOT_SELECTOR_BYTES as u64)
             .expect("the selector declaration has a nonzero fixed width"),
     );
-    let source = UntrustedRecoverySource::new(observed, scope);
-    let input = source
-        .input()
-        .ok_or(RecoveryIntegrityIngressRejection::MissingBoundedArtifact)?;
+    let source = ObservedRecoverySource::complete(observed, scope);
+    let input = source.input()?;
     let (validation, _) = validate_current_root_selector(input, scope);
     match validation {
         CurrentRootSelectorIntegrityValidation::Intact(validated) => {
@@ -55,10 +53,8 @@ pub(crate) fn admit_previous_selector<'media>(
         PhysicalByteRange::new(0, ROOT_SELECTOR_BYTES as u64)
             .expect("the selector declaration has a nonzero fixed width"),
     );
-    let source = UntrustedRecoverySource::new(observed, scope);
-    let input = source
-        .input()
-        .ok_or(RecoveryIntegrityIngressRejection::MissingBoundedArtifact)?;
+    let source = ObservedRecoverySource::complete(observed, scope);
+    let input = source.input()?;
     let (validation, _) = validate_previous_root_selector(input, scope);
     match validation {
         PreviousRootSelectorIntegrityValidation::Intact(validated) => {
@@ -86,10 +82,8 @@ pub(crate) fn admit_addressed_root<'media>(
             .expect("a present root observation has a bounded validation range"),
     )
     .map_err(|_| RecoveryIntegrityIngressRejection::ScopeMismatch)?;
-    let source = UntrustedRecoverySource::new(observed, scope);
-    let input = source
-        .input()
-        .ok_or(RecoveryIntegrityIngressRejection::MissingBoundedArtifact)?;
+    let source = ObservedRecoverySource::complete(observed, scope);
+    let input = source.input()?;
     let (validation, _) = validate_root_manifest(input, scope);
     match validation {
         RootManifestIntegrityValidation::Intact(validated) => {

@@ -1,0 +1,38 @@
+mod checkpoint;
+mod data;
+mod root_tree;
+mod wal;
+
+use super::admitted_artifact::IntegrityAdmittedRecoveryArtifact;
+use super::observation::RecoveryIntegrityIngressObservation;
+use super::{RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection};
+use worth_store_physical_integrity::PhysicalArtifactScope;
+
+pub(crate) struct RecoveryIntegrityIngressAttempt<'media> {
+    outcome: Result<IntegrityAdmittedRecoveryArtifact<'media>, RecoveryIntegrityIngressRejection>,
+    observation: RecoveryIntegrityIngressObservation,
+}
+
+impl<'media> RecoveryIntegrityIngressAttempt<'media> {
+    pub(crate) fn into_outcome(
+        self,
+    ) -> Result<IntegrityAdmittedRecoveryArtifact<'media>, RecoveryIntegrityIngressRejection> {
+        self.outcome
+    }
+
+    pub(crate) const fn observation(&self) -> RecoveryIntegrityIngressObservation {
+        self.observation
+    }
+}
+
+fn recorded<'media>(
+    scope: PhysicalArtifactScope,
+    outcome: Result<IntegrityAdmittedRecoveryArtifact<'media>, RecoveryIntegrityIngressRejection>,
+    counters: &mut RecoveryIntegrityIngressCounters,
+) -> RecoveryIntegrityIngressAttempt<'media> {
+    let observation = super::counters::record_admission(scope, &outcome, counters);
+    RecoveryIntegrityIngressAttempt {
+        outcome,
+        observation,
+    }
+}

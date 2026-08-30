@@ -6,7 +6,7 @@ use worth_store_physical_integrity::{
     PhysicalByteRange, UntrustedPhysicalArtifact,
 };
 
-use super::admitted_artifact::IntegrityAdmittedStagedCurrentSelector;
+use super::families::root::IntegrityAdmittedStagedCurrentSelector;
 use super::RecoveryIntegrityIngressRejection;
 
 pub(crate) fn admit_staged_current_selector(
