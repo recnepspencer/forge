@@ -41,11 +41,11 @@ pub struct UiNativeApplicationObservationProgress {
 }
 
 pub struct UiNativeApplicationRuntimeActivationStopped {
-    application: crate::facade::WorthUiNativeApplicationShell,
+    application: Box<crate::facade::WorthUiNativeApplicationShell>,
 }
 
 pub struct UiNativeApplicationRuntimeProgressStopped {
-    application: crate::facade::WorthUiNativeApplicationShell,
+    application: Box<crate::facade::WorthUiNativeApplicationShell>,
 }
 
 pub struct UiNativeApplicationRuntimeClosed {
@@ -54,7 +54,7 @@ pub struct UiNativeApplicationRuntimeClosed {
 
 pub struct UiNativeApplicationRuntimeCloseIncomplete {
     runtime: Box<dyn UiNativeApplicationRuntime>,
-    application: crate::facade::WorthUiNativeApplicationShell,
+    application: Box<crate::facade::WorthUiNativeApplicationShell>,
 }
 
 pub trait UiNativeApplicationRuntime: 'static {
@@ -96,6 +96,22 @@ pub trait UiNativeApplicationRuntime: 'static {
         Ok((application, UiNativeApplicationRuntimeDirective::Continue))
     }
 
+    /// Progress one host-owned viewport successor after the native driver has
+    /// installed its exact physical basis in the runtime shell. The callback
+    /// carries no copied extent and is not measurement authority.
+    fn native_viewport_ready(
+        &mut self,
+        application: crate::facade::WorthUiNativeApplicationShell,
+    ) -> Result<
+        (
+            crate::facade::WorthUiNativeApplicationShell,
+            UiNativeApplicationRuntimeDirective,
+        ),
+        UiNativeApplicationRuntimeProgressStopped,
+    > {
+        Ok((application, UiNativeApplicationRuntimeDirective::Continue))
+    }
+
     fn physical_work_progressed(
         &mut self,
         application: crate::facade::WorthUiNativeApplicationShell,
@@ -121,6 +137,16 @@ impl UiNativeApplicationPhysicalProgress {
         Self { host }
     }
 
+    pub(crate) fn into_host(self) -> worth_ui_host_native::UiNativePhysicalProgressGrant {
+        self.host
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    #[doc(hidden)]
+    pub fn from_certification(host: worth_ui_host_native::UiNativePhysicalProgressGrant) -> Self {
+        Self::from_host(host)
+    }
+
     pub(crate) fn class(&self) -> worth_ui_host_native::UiNativePhysicalProgressClass {
         self.host.class()
     }
@@ -129,6 +155,14 @@ impl UiNativeApplicationPhysicalProgress {
         &self,
     ) -> Option<worth_ui_host_native::UiNativePhysicalPresentationCorrelation> {
         self.host.presentation()
+    }
+
+    pub(crate) fn recovery_presentation(
+        &self,
+    ) -> Option<worth_ui_host_native::UiNativePhysicalPresentationCorrelation> {
+        self.host
+            .presentation()
+            .or_else(|| self.host.originating_presentation())
     }
 }
 
@@ -180,21 +214,25 @@ impl UiNativeApplicationObservationProgress {
 
 impl UiNativeApplicationRuntimeActivationStopped {
     pub fn retain(application: crate::facade::WorthUiNativeApplicationShell) -> Self {
-        Self { application }
+        Self {
+            application: Box::new(application),
+        }
     }
 
     pub(crate) fn into_application(self) -> crate::facade::WorthUiNativeApplicationShell {
-        self.application
+        *self.application
     }
 }
 
 impl UiNativeApplicationRuntimeProgressStopped {
     pub fn retain(application: crate::facade::WorthUiNativeApplicationShell) -> Self {
-        Self { application }
+        Self {
+            application: Box::new(application),
+        }
     }
 
     pub(crate) fn into_application(self) -> crate::facade::WorthUiNativeApplicationShell {
-        self.application
+        *self.application
     }
 }
 
@@ -222,7 +260,7 @@ impl UiNativeApplicationRuntimeCloseIncomplete {
     {
         Self {
             runtime,
-            application,
+            application: Box::new(application),
         }
     }
 
@@ -233,13 +271,15 @@ impl UiNativeApplicationRuntimeCloseIncomplete {
     pub(crate) fn retry(
         self,
     ) -> Result<UiNativeApplicationRuntimeClosed, UiNativeApplicationRuntimeCloseIncomplete> {
-        self.runtime.close(self.application)
+        self.runtime.close(*self.application)
     }
 }
 
 impl UiNativeApplicationReadinessOwnerCount {
+    pub const MAXIMUM: u8 = 5;
+
     pub const fn new(count: u8) -> Result<Self, UiNativeApplicationReadinessOwnerCountDenial> {
-        if count <= worth_ui_host_native::UiNativeApplicationReadinessOwnerCount::MAXIMUM {
+        if count <= Self::MAXIMUM {
             Ok(Self { count })
         } else {
             Err(UiNativeApplicationReadinessOwnerCountDenial::CapacityExceeded)
@@ -252,11 +292,6 @@ impl UiNativeApplicationReadinessOwnerCount {
 
     pub const fn get(self) -> u8 {
         self.count
-    }
-
-    pub(crate) fn into_host(self) -> worth_ui_host_native::UiNativeApplicationReadinessOwnerCount {
-        worth_ui_host_native::UiNativeApplicationReadinessOwnerCount::new(self.count)
-            .expect("runtime admission preserves the host readiness capacity")
     }
 }
 
@@ -301,7 +336,7 @@ mod tests {
     };
 
     #[test]
-    fn runtime_owner_count_preserves_the_native_host_capacity() {
+    fn public_runtime_owner_count_preserves_five_slots_beneath_host_internal_capacity() {
         assert_eq!(UiNativeApplicationReadinessOwnerCount::none().get(), 0);
         assert_eq!(
             UiNativeApplicationReadinessOwnerCount::new(5)
@@ -312,6 +347,10 @@ mod tests {
         assert_eq!(
             UiNativeApplicationReadinessOwnerCount::new(6),
             Err(UiNativeApplicationReadinessOwnerCountDenial::CapacityExceeded)
+        );
+        assert_eq!(
+            worth_ui_host_native::UiNativeApplicationReadinessOwnerCount::MAXIMUM,
+            6
         );
     }
 }

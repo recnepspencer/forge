@@ -31,6 +31,10 @@ fn every_non_authored_fact_family_has_an_explicit_subsystem_rule() {
         UiProducedFactFamily::Query,
         UiProducedFactFamily::CommittedScrollExtent,
         UiProducedFactFamily::CommittedPortalAnchor,
+        UiProducedFactFamily::CommittedFocus,
+        UiProducedFactFamily::CommittedSelection,
+        UiProducedFactFamily::CommittedMotionTrack,
+        UiProducedFactFamily::CommittedCommandRoute,
     ] {
         assert!(UiSubsystemConsumedFactRule::all().any(|rule| rule.fact_family() == family));
     }

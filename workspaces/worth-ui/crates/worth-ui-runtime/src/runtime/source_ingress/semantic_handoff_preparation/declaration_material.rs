@@ -93,6 +93,15 @@ fn runtime_component_measurement_claims(
                         },
                     )
                 }
+                crate::capability::ComponentAllocationMeasurementContract::ViewportRegion(
+                    region,
+                ) => (
+                    Some(UiDeclaredMeasurementBasisSource::ViewportExtent),
+                    crate::declaration::UiDeclaredMeasurementMode::ViewportRegion {
+                        horizontal: region.horizontal(),
+                        vertical: region.vertical(),
+                    },
+                ),
                 crate::capability::ComponentAllocationMeasurementContract::FixedLogicalSize {
                     width,
                     height,

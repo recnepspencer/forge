@@ -86,6 +86,8 @@ impl super::PlatformPulseApplicationRuntime {
             intent_gate: Some(intent_gate),
             intent_action_owner: Some(intent_action_owner),
             pending_query_actions: Vec::new(),
+            pending_query_denial_story: None,
+            pending_frame_presentation: None,
             pending_managed_rebind: None,
             pending_intent_postures: std::collections::VecDeque::new(),
             pending_intent_execution_transitions: std::collections::VecDeque::new(),
@@ -98,6 +100,7 @@ impl super::PlatformPulseApplicationRuntime {
             visual_identity: PlatformPulseVisualIdentityExecution::new(),
             intent_clock: super::intent::PlatformPulseIntentClock::new(),
             presentation_tick: 0,
+            product_story: super::product_story::PlatformPulseProductStory::default(),
         };
         (builder, runtime)
     }

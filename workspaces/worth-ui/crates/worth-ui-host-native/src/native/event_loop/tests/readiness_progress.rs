@@ -17,7 +17,7 @@ fn delayed_physical_wake_settles_without_an_ordinary_redraw_grant() {
     let physical = readiness.register_level().unwrap();
     let mut redraw_requests = 0;
     assert_eq!(
-        crate::native::readiness::signal_level_ready(&mut readiness, physical, true, || {
+        crate::native::readiness::signal_level_ready(&readiness, physical, true, || {
             redraw_requests += 1
         }),
         Ok(crate::native::readiness::UiNativeReadinessSignalDisposition::RedrawRequested)

@@ -124,8 +124,8 @@ impl CompiledFinancialLocalityWorld {
                         semantic_segment_id: task.semantic_segment_id.0,
                         scheduled_reason: task.scheduled_reason,
                         outcome: task.outcome,
-                        memoized_origin: task.memoized_origin.clone(),
-                        reuse_origin: task.reuse_origin.clone(),
+                        memoized_origin: task.memoized_origin,
+                        reuse_origin: task.reuse_origin,
                         readiness_epoch: self
                             .runtime
                             .graph()

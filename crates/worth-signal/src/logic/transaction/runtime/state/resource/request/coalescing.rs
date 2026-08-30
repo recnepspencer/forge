@@ -121,7 +121,7 @@ impl ResourceRuntimeState {
         &mut self,
         input: &RequestIntentCoalescingInput,
         active_in_flight: &InFlightResourceRequest,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedRequestIntentCoalescing {
         let request_id = self.issue_request_id();
         let generation = self.issue_generation();
@@ -139,7 +139,7 @@ impl ResourceRuntimeState {
                 input.node,
                 input.descriptor_id,
                 ResourceTerminalVisibilityCause::Supersession,
-                telemetry.as_deref_mut(),
+                telemetry,
             );
         let transition = ResourceLifecycleTransition::new(
             input.node,
@@ -178,12 +178,12 @@ impl ResourceRuntimeState {
         &mut self,
         coalesced_request: AdmittedResourceRequest,
         coalesced_in_flight: InFlightResourceRequest,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
         self.in_flight_by_request
             .insert(coalesced_request.handle().request_id(), coalesced_in_flight);
         self.mark_terminal_in_flight(coalesced_request.handle().request_id());
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.resource_request_admission_count += 1;
             telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
             telemetry.resource_in_flight_frontier_width = telemetry

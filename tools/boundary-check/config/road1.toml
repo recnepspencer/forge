@@ -139,6 +139,8 @@ root = "workspaces/worth-ui/apps/platform-pulse/tests/executable_world"
 forbidden_identifiers = [
   "eframe",
   "egui",
+  "PlatformPulseCompositionLayout",
+  "product_world",
   "worth_ui_certification",
   "worth_ui_dsl",
   "worth_ui_runtime",
@@ -146,6 +148,19 @@ forbidden_identifiers = [
 ]
 forbidden_identifier_fragments = []
 guidance = "Milestones 3.10.3 and 3.14.1: the executable runner observes the Cargo-built product through typed stdout, PID-bound native APIs, and independently qualified pixel adapters; it cannot import product internals, certification authority, or adapter mechanics"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/apps/platform-pulse/src/product_world"
+forbidden_identifiers = [
+  "include_bytes",
+  "include_str",
+  "platform_pulse_visual_contract",
+  "serde_json",
+  "worth_ui_runtime",
+  "worth_ui_test_support",
+]
+forbidden_identifier_fragments = []
+guidance = "Milestone 3.15 Phase 1: the Pulse product composition is fixed typed application data and cannot derive its design contract from the independent executable-world manifest or runtime/test mechanics"
 
 [[source_identifier_denials]]
 root = "workspaces/worth-ui/apps/platform-pulse/src"
@@ -207,6 +222,8 @@ guidance = "C5.1's complete physical runtime may own physical tree branches and 
 [[source_identifier_denials]]
 root = "workspaces/worth-ui/crates/worth-ui-runtime/src"
 forbidden_identifiers = [
+  "portal_anchored_allocation",
+  "scroll_owned_allocation",
   "tokenize_module_source",
   "WorthUiArtifactInput",
   "WorthUiArtifactInputNormalizer",
@@ -224,7 +241,127 @@ forbidden_identifiers = [
   "WorthUiSourceTokenKind",
   "WorthUiStructuralBodyParser",
 ]
-guidance = "Milestone 3.10.1: runtime may transport sealed source and admit runtime capabilities, but authored text, syntax trees, language normalization, and sealing belong only to worth-ui-dsl"
+guidance = "Milestones 3.10.1 and 3.15: runtime may transport sealed source and admit runtime capabilities, but authored text, syntax trees, language normalization, and sealing belong only to worth-ui-dsl; portal-anchor and scroll-allocation imports use their canonical family axes with no legacy module lane"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/session/service_proposal"
+forbidden_identifiers = [
+  "AuthorityMarker",
+  "String",
+  "serde_json",
+  "worth_query",
+]
+guidance = "Milestone 3.15: the common service request/proposal foundation carries exact concrete origin authority and explicitly bounded typed axes; it cannot use an open authority marker, string/JSON payload bag, or Query lane"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/session/service_proposal/compiler"
+exclude_paths = [
+  "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/session/service_proposal/compiler/evidence_tests.rs",
+]
+forbidden_identifiers = [
+  "WorthUiPreparedApplicationPublication",
+  "WorthUiHostMechanicsAdapter",
+  "mint_unbound",
+]
+guidance = "Milestone 3.15: the proposal compiler orders and validates typed semantic stages; it cannot publish successor truth, perform host effects, or reconstruct authority. Exhaustive family-switch absence is enforced by compiler source evidence because the closed family identity itself is legitimate compiler vocabulary"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt"
+exclude_paths = [
+  "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/equivalence_basis.rs",
+  "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/geometry_evidence.rs",
+  "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/mounted_projection/row.rs",
+]
+forbidden_identifiers = [
+  "UiMountedCanonicalBox",
+  "UiMountedCoordinateSpace",
+  "UiMeasurementCoordinateSpace",
+  "UiHostSurfaceCoordinateUnit",
+]
+guidance = "Milestone 3.15: admitted, committed, presentation-sampled, and host geometry are distinct compiler types; a generic rectangle plus a runtime coordinate-kind field is not a phase brand"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/motion_sampling"
+forbidden_identifiers = [
+  "UiMountedCanonicalBox",
+  "UiMountedCoordinateSpace",
+  "UiMeasurementCoordinateSpace",
+  "UiHostSurfaceCoordinateUnit",
+]
+guidance = "Milestone 3.15: presentation-sampled geometry remains a distinct phase brand and cannot collapse back into a generic coordinate-kind rectangle"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation"
+forbidden_identifiers = [
+  "UiMotionProducedFact",
+  "UiMotionRuntimeState",
+  "UiStagedMotionServiceProposal",
+  "UiDerivedMotionServiceProposal",
+]
+guidance = "Milestone 3.15 Phase 4: presentation may sample committed Motion track copies, but it cannot own semantic Motion state, stage or derive tracks, or publish semantic Motion facts"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/motion_sampling"
+forbidden_identifiers = [
+  "UiMotionTransitionRequest",
+  "UiMotionTerminalReceipt",
+]
+guidance = "Milestone 3.15 Phase 4: the sampler consumes committed tracks and emits presentation samples; it cannot construct semantic transition requests or terminalize canonical tracks"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-host-contract/src/runtime"
+exclude_paths = [
+  "workspaces/worth-ui/crates/worth-ui-host-contract/src/runtime/measurement_context.rs",
+  "workspaces/worth-ui/crates/worth-ui-host-contract/src/runtime/mod.rs",
+]
+forbidden_identifiers = [
+  "UiMountedCanonicalBox",
+  "UiMountedCoordinateSpace",
+  "UiMeasurementCoordinateSpace",
+  "UiHostSurfaceCoordinateUnit",
+]
+guidance = "Milestone 3.15: host logical and physical geometry are protocol types, not aliases of runtime allocation or measurement rectangles"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates"
+exclude_paths = [
+  "workspaces/worth-ui/crates/worth-ui-host-contract/src/runtime/service_geometry.rs",
+  "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/motion_sampling/sampled_geometry.rs",
+]
+forbidden_identifiers = ["from_sampled_logical_projection"]
+guidance = "Milestone 3.15: only the presentation-sampled geometry projection may invoke the narrow host logical-geometry constructor"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/apps"
+forbidden_identifiers = ["from_sampled_logical_projection"]
+guidance = "Milestone 3.15: applications cannot mint host logical geometry; only runtime presentation sampling owns that projection"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-host-contract/src/runtime/solicited_effect"
+forbidden_identifiers = [
+  "UiRuntimeServiceFamily",
+  "UiServiceRequest",
+  "String",
+  "Vec",
+  "serde_json",
+  "worth_query",
+]
+guidance = "Milestone 3.15: the host solicited-effect contract is a narrow protocol family with exact host, presentation, binding, and mounted-target coordinates; runtime proposal policy, dynamic payloads, and Query authority cannot leak into it"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-host-contract/src/observation_report"
+forbidden_identifiers = ["Focus"]
+guidance = "Milestone 3.15: host observation reports name window-focus state explicitly; semantic focus placement is a separate solicited-effect protocol and cannot reappear as an ambiguous observation payload"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-host-contract/src/runtime"
+forbidden_identifiers = ["NativeFocus", "ServiceMechanics"]
+guidance = "Milestone 3.15: legacy native-focus capability naming and catch-all service-mechanics ownership are forbidden; use semantic focus placement and one owner per service family"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src"
+forbidden_identifiers = ["NativeFocus", "ServiceMechanics"]
+guidance = "Milestone 3.15: legacy native-focus capability naming and catch-all service-mechanics ownership are forbidden; use semantic focus placement and one owner per service family"
 
 [[source_identifier_denials]]
 root = "workspaces/worth-ui/crates/worth-ui-dsl/src"

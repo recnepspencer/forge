@@ -3,6 +3,7 @@ use std::fmt;
 pub(super) enum PlatformPulseTerminalError {
     SourceWatcher(worth_ui::facade::source::WorthUiFilesystemWatcherDenial),
     FrameExecution(String),
+    ProductCopy(worth_ui_native_platform::UiNativeApplicationProgramDenial),
     UnexpectedInitialFrame,
     NativeRebind(worth_ui::facade::app::WorthUiNativeSourceRebindDenial),
     NativeManagedSourceRebind(worth_ui::facade::app::WorthUiNativeManagedRebindStop),
@@ -27,6 +28,9 @@ impl fmt::Display for PlatformPulseTerminalError {
             Self::SourceWatcher(denial) => write!(formatter, "source watcher: {denial:?}"),
             Self::FrameExecution(detail) => {
                 write!(formatter, "mounted frame execution: {detail}")
+            }
+            Self::ProductCopy(denial) => {
+                write!(formatter, "initial product semantic copy: {denial:?}")
             }
             Self::UnexpectedInitialFrame => formatter.write_str("initial frame did not publish"),
             Self::NativeRebind(denial) => write!(formatter, "native source rebind: {denial:?}"),

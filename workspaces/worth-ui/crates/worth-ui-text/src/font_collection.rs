@@ -273,6 +273,7 @@ impl UiGlobalFontCollection {
 }
 
 impl UiFontCollectionCapacityBound {
+    #[cfg(test)]
     pub(super) const fn qualified_profile() -> Self {
         Self {
             max_glyphs_per_input_byte:

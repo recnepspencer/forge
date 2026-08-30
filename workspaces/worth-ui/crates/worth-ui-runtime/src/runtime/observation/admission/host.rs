@@ -13,7 +13,9 @@ use super::super::UiObservationFamily;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiHostObservationSuccessorOwner {
     Intent,
-    Service,
+    Focus,
+    Scroll,
+    PresentationSampling,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -176,7 +178,7 @@ const fn map_supported(family: MechanicalFamily) -> Option<UiObservationFamily> 
         MechanicalFamily::PointerMotion
         | MechanicalFamily::PointerButton
         | MechanicalFamily::Keyboard
-        | MechanicalFamily::Focus
+        | MechanicalFamily::WindowFocus
         | MechanicalFamily::ScrollDelta
         | MechanicalFamily::Clock
         | MechanicalFamily::Tick
@@ -193,10 +195,11 @@ const fn unavailable(family: MechanicalFamily) -> Option<UiHostObservationUnavai
         | MechanicalFamily::Keyboard
         | MechanicalFamily::TextComposition
         | MechanicalFamily::ImeComposition => UiHostObservationSuccessorOwner::Intent,
-        MechanicalFamily::Focus
-        | MechanicalFamily::ScrollDelta
-        | MechanicalFamily::Clock
-        | MechanicalFamily::Tick => UiHostObservationSuccessorOwner::Service,
+        MechanicalFamily::WindowFocus => UiHostObservationSuccessorOwner::Focus,
+        MechanicalFamily::ScrollDelta => UiHostObservationSuccessorOwner::Scroll,
+        MechanicalFamily::Clock | MechanicalFamily::Tick => {
+            UiHostObservationSuccessorOwner::PresentationSampling
+        }
     };
     Some(UiHostObservationUnavailable { family, successor })
 }

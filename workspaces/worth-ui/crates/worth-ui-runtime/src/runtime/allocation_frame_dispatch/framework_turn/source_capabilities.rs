@@ -1,7 +1,7 @@
 use super::{
     WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn, WorthUiHostMeasurementTurnSource,
     WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource, WorthUiResizePreviewTurnSource,
-    WorthUiScrollOffsetTurnSource,
+    WorthUiScrollExtentTurnSource,
 };
 use crate::runtime::UiAllocationFrameGatewayOutcome;
 
@@ -43,14 +43,16 @@ impl WorthUiFrameworkTurn<'_> {
             runtime: self.runtime,
         });
     }
-    pub fn scroll_offset(&mut self, project: impl FnOnce(&mut WorthUiScrollOffsetTurnSource<'_>)) {
-        project(&mut WorthUiScrollOffsetTurnSource {
+    /// Acquire admitted extent/allocation evidence. This lane cannot project
+    /// or mutate semantic scroll offsets.
+    pub fn scroll_extent(&mut self, collect: impl FnOnce(&mut WorthUiScrollExtentTurnSource<'_>)) {
+        collect(&mut WorthUiScrollExtentTurnSource {
             runtime: self.runtime,
         });
     }
 }
 
-impl WorthUiScrollOffsetTurnSource<'_> {
+impl WorthUiScrollExtentTurnSource<'_> {
     pub fn acquire_host_owner(
         &self,
         result: &crate::evidence::UiMeasurementResult,
@@ -76,61 +78,6 @@ impl WorthUiScrollOffsetTurnSource<'_> {
             .allocation_invalidation_index
             .borrow()
             .acquire_settled_query_scroll_projection(query, allocation_receipt)
-    }
-    pub fn project(
-        &mut self,
-        offset: crate::runtime::UiProjectedScrollOffset,
-    ) -> Result<
-        crate::runtime::UiProjectedScrollOffsetOutcome,
-        crate::runtime::UiProjectedScrollOffsetDenial,
-    > {
-        let Some(active) = self
-            .runtime
-            .allocation_invalidation_index
-            .borrow()
-            .scroll_projection_target(offset.capability().owner_identity())
-        else {
-            return Err(crate::runtime::UiProjectedScrollOffsetDenial::TargetNotActivated);
-        };
-        if active != offset.capability() {
-            return Err(crate::runtime::UiProjectedScrollOffsetDenial::ScrollOwnershipNotAdmitted);
-        }
-        if self
-            .runtime
-            .allocation_invalidation_index
-            .borrow()
-            .validate_scroll_projection_receipt(offset.capability(), offset.receipt_key())
-            .is_err()
-        {
-            return Err(crate::runtime::UiProjectedScrollOffsetDenial::ScrollOwnershipNotAdmitted);
-        }
-        let ingress_before = self
-            .runtime
-            .allocation_frame_dispatcher_counters()
-            .ingress_count();
-        let truth_before = self.runtime.allocation_receipt_ledger.truth_revision();
-        let projection_generation = self
-            .runtime
-            .scroll_offset_projection
-            .record(offset.clone())?;
-        let ingress_after = self
-            .runtime
-            .allocation_frame_dispatcher_counters()
-            .ingress_count();
-        let truth_after = self.runtime.allocation_receipt_ledger.truth_revision();
-        let allocation_invalidations = ingress_after.checked_sub(ingress_before).ok_or(
-            crate::runtime::UiProjectedScrollOffsetDenial::AllocationIngressCounterRegressed,
-        )?;
-        let committed_receipts = truth_after
-            .delta_since(truth_before)
-            .ok_or(crate::runtime::UiProjectedScrollOffsetDenial::AllocationTruthRevisionRegressed)?
-            .committed_receipt_publications();
-        Ok(crate::runtime::UiProjectedScrollOffsetOutcome::seal(
-            offset,
-            projection_generation,
-            allocation_invalidations,
-            committed_receipts,
-        ))
     }
 }
 

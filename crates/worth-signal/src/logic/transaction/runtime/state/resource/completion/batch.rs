@@ -87,7 +87,6 @@ impl ResourceRuntimeState {
         )
         .with_density_strategy(density_strategy);
         let performance = telemetry
-            .as_deref_mut()
             .map(|telemetry| Self::record_boundary_performance(telemetry, envelope))
             .unwrap_or(envelope);
         ResourceCompletionBatchAdmissionReport::new(

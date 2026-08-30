@@ -32,7 +32,8 @@ pub use intent_input::{
     UiCollectionProjectionInputFact, UiProjectionInputCollectionRow,
     UiProjectionInputFactReference, UiProjectionInputFactTransition, UiProjectionInputPosture,
     UiProjectionInputRevision, UiProjectionInputSlot, UiProjectionInputTransitionStopKind,
-    UiProjectionInputTransitionWork, UiProjectionOptionReference, UiScalarProjectionInputFact,
+    UiProjectionInputTransitionWork, UiProjectionOptionReference, UiProjectionOptionStableKey,
+    UiScalarProjectionInputFact,
 };
 pub use native_value::UiNativeTextValue;
 pub use posture::{

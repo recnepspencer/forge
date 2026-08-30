@@ -15,7 +15,7 @@ pub(super) fn reach_native_input_observed(
             panic!("real native input reaches the production adapter: {failure}")
         });
     let evidence = reached.evidence();
-    assert_eq!(evidence.sequences(), (5, 6));
+    assert_eq!(evidence.sequences(), (5, 6, 7));
     assert_eq!(evidence.delivered_event_count(), 4);
     assert!(evidence.pointer_button_events() > 0);
     assert!(evidence.keyboard_events() > 0);

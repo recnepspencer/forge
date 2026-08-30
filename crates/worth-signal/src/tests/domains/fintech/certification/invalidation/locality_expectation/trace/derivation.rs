@@ -186,10 +186,11 @@ fn trace_dependency_outputs(
         let readiness_epoch = trace.allocate_readiness_epoch();
         let stage_generations = triggered_outputs
             .iter()
-            .filter_map(|(output, _)| {
-                (!structural_origin.is_some_and(|origin| origin.target == output.id))
-                    .then(|| (output.id, trace.pending_cause_generation(output.id)))
+            .filter(|(output, _)| match structural_origin {
+                Some(origin) => origin.target != output.id,
+                None => true,
             })
+            .map(|(output, _)| (output.id, trace.pending_cause_generation(output.id)))
             .collect::<BTreeMap<_, _>>();
         for (output, triggering) in triggered_outputs {
             let is_structural = structural_origin.is_some_and(|origin| origin.target == output.id);

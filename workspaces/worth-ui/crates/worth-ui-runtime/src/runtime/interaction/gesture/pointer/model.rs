@@ -34,6 +34,7 @@ pub struct UiPointerGesturePressReceipt {
     pub(super) button: UiHostPointerButton,
     pub(super) sequence: UiHostObservationSequence,
     pub(super) time_basis: UiHostObservationTimeBasis,
+    pub(super) position: worth_ui_host_contract::UiHostSurfacePosition,
     pub(super) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
 }
 

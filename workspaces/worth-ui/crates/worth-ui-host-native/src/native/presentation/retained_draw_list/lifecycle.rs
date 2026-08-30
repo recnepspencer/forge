@@ -18,6 +18,7 @@ impl UiNativeRetainedDrawList {
         self.regions
             .rebind_receipt_affinity(affinity.receipt_affinity());
         self.frame = affinity.successor();
+        self.content = affinity.content();
         Ok(())
     }
 

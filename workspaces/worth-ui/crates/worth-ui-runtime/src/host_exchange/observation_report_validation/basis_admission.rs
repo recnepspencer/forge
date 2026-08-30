@@ -137,6 +137,9 @@ fn classify_presented_basis(
         Err(crate::mounting::UiPresentedFrameBasisDenial::PresentationEpochMismatch) => {
             Err(UiHostObservationReportDenial::PresentationEpochMismatch)
         }
+        Err(crate::mounting::UiPresentedFrameBasisDenial::PresentationTruthUnavailable) => {
+            unreachable!("retention classification does not own host-truth reconstruction state")
+        }
         Err(crate::mounting::UiPresentedFrameBasisDenial::InstanceNotPresented) => {
             Err(UiHostObservationReportDenial::MountedInstanceNotPresented)
         }

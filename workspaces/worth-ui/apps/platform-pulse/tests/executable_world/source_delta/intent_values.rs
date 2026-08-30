@@ -11,6 +11,15 @@ const READY_RELEASED: &[u8] = br#"{
   "executor_gate": "released"
 }
 "#;
+const QUERY_DENIAL_REQUESTED: &[u8] = br#"{
+  "protocol": "worth-ui.platform-pulse.intent-source",
+  "schema_version": 1,
+  "revision": 2,
+  "operability": "ready",
+  "executor_gate": "released",
+  "query_denial_requested": true
+}
+"#;
 const CONFIRMATION_HELD: &[u8] = br#"{
   "protocol": "worth-ui.platform-pulse.intent-source",
   "schema_version": 1,
@@ -56,6 +65,9 @@ const FINAL_HELD: &[u8] = br#"{
 pub(crate) struct ReadyReleasedIntentDelta;
 
 #[derive(Clone, Copy, Debug)]
+pub(crate) struct QueryDenialRequestedIntentDelta;
+
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct ConfirmationHeldIntentDelta;
 
 #[derive(Clone, Copy, Debug)]
@@ -91,6 +103,11 @@ intent_delta!(
     ReadyReleasedIntentDelta,
     IntentReadyReleased,
     READY_RELEASED
+);
+intent_delta!(
+    QueryDenialRequestedIntentDelta,
+    IntentQueryDenialRequested,
+    QUERY_DENIAL_REQUESTED
 );
 intent_delta!(
     ConfirmationHeldIntentDelta,

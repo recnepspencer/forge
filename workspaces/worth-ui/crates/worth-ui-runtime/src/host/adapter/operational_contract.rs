@@ -74,6 +74,19 @@ pub trait WorthUiOperationalHostAdapter:
         worth_ui_host_contract::UiHostCaptureCancellationOutcome::ReadbackMayHaveBegun
     }
 
+    fn place_semantic_focus(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostFocusPlacementRequest,
+    ) -> worth_ui_host_contract::UiHostFocusPlacementAcknowledgement {
+        worth_ui_host_contract::UiHostFocusPlacementAcknowledgement::settled(
+            request,
+            worth_ui_host_contract::UiHostFocusPlacementDisposition::RejectedBeforeEffect(
+                worth_ui_host_contract::UiHostFocusPlacementRejection::Unsupported,
+            ),
+        )
+    }
+
     fn present_mounted_surface(
         &self,
         _authority: &UiHostAdapterSessionAuthority,
@@ -215,6 +228,22 @@ where
             return worth_ui_host_contract::UiHostCaptureCancellationOutcome::CleanupIndeterminate;
         }
         self.perform_visual_capture_cancellation(request)
+    }
+
+    fn place_semantic_focus(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostFocusPlacementRequest,
+    ) -> worth_ui_host_contract::UiHostFocusPlacementAcknowledgement {
+        if request.host_session() != authority.host_session_identity() {
+            return worth_ui_host_contract::UiHostFocusPlacementAcknowledgement::settled(
+                request,
+                worth_ui_host_contract::UiHostFocusPlacementDisposition::RejectedBeforeEffect(
+                    worth_ui_host_contract::UiHostFocusPlacementRejection::ForeignSurface,
+                ),
+            );
+        }
+        self.perform_focus_placement(request)
     }
 
     fn present_mounted_surface(

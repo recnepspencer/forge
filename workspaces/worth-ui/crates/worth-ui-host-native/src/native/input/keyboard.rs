@@ -15,8 +15,8 @@ pub(crate) fn modifiers(modifiers: Modifiers) -> UiHostKeyboardModifiers {
         state.alt_key(),
         state.control_key(),
         state.shift_key(),
-        false,
-        state.super_key(),
+        cfg!(target_os = "macos") && state.super_key(),
+        !cfg!(target_os = "macos") && state.super_key(),
     )
 }
 

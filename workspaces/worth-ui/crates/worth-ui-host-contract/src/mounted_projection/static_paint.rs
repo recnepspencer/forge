@@ -178,6 +178,29 @@ impl UiMountedFilledRectMechanic {
     }
 
     #[doc(hidden)]
+    pub fn presented_within_portal(
+        self,
+        portal: super::UiMountedPortalOverlayMechanic,
+    ) -> Result<Self, UiMountedFilledRectCompletionDenial> {
+        let bounds = portal_relative_box(self.bounds, portal.bounds())
+            .ok_or(UiMountedFilledRectCompletionDenial::NonAreaGeometry)?;
+        Self::complete_from_runtime_mounting(UiMountedFilledRectCompletionInput {
+            frame: self.frame,
+            surface: self.surface,
+            binding: self.binding,
+            mounted_instance: self.mounted_instance,
+            node_receipt: self.node_receipt,
+            allocation_basis: self.allocation_basis,
+            bounds,
+            color: self.color,
+            layer_semantic_order: portal
+                .layer_semantic_order()
+                .saturating_add(1 + self.layer_semantic_order.min(1_024)),
+            clip_bounds: portal.bounds(),
+        })
+    }
+
+    #[doc(hidden)]
     pub fn same_retained_paint_meaning(self, other: Self) -> bool {
         self.schema == other.schema
             && self.surface == other.surface
@@ -189,6 +212,20 @@ impl UiMountedFilledRectMechanic {
             && self.layer_semantic_order == other.layer_semantic_order
             && self.clip_bounds == other.clip_bounds
     }
+}
+
+fn portal_relative_box(
+    relative: super::UiMountedCanonicalBox,
+    portal: super::UiMountedCanonicalBox,
+) -> Option<super::UiMountedCanonicalBox> {
+    super::UiMountedCanonicalBox::canonicalize(super::UiMountedCanonicalBoxInput {
+        x: portal.x() + relative.x(),
+        y: portal.y() + relative.y(),
+        width: relative.width(),
+        height: relative.height(),
+        coordinate_space: portal.coordinate_space(),
+    })
+    .ok()
 }
 
 impl UiMountedFilledRectTable {

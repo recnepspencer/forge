@@ -94,8 +94,6 @@ pub(super) fn map_denial(
         Native::MalformedDemand | Native::StaleDemand => {
             UiGlyphRasterTransactionDenial::MalformedDemand
         }
-        Native::LivePinConflict | Native::StaleAffinity | Native::PinConflict => {
-            UiGlyphRasterTransactionDenial::StalePlan
-        }
+        Native::PinConflict => UiGlyphRasterTransactionDenial::StalePlan,
     }
 }

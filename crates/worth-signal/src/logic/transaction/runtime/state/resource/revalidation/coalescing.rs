@@ -89,7 +89,7 @@ impl ResourceRuntimeState {
             telemetry.resource_revalidation_admission_count += 1;
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::revalidation_admission(
                 1,
                 0,
@@ -149,7 +149,7 @@ impl ResourceRuntimeState {
         &mut self,
         input: RevalidationCoalescingInput,
         active_in_flight: InFlightResourceRequest,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedRevalidationCoalescing {
         let node = input.intent.node();
         let request_intent = match input.intent.transaction_deadline() {
@@ -169,7 +169,7 @@ impl ResourceRuntimeState {
                 node,
                 input.descriptor_id,
                 ResourceTerminalVisibilityCause::Supersession,
-                telemetry.as_deref_mut(),
+                telemetry,
             );
         let transition = ResourceLifecycleTransition::new(
             node,

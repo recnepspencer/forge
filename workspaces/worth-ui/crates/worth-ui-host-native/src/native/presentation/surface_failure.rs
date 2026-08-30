@@ -22,6 +22,7 @@ impl UiNativeSurfaceRecovery {
         }
     }
 
+    #[cfg(feature = "certification-support")]
     const fn public_class(self) -> UiNativePresentationRecoveryClass {
         match self {
             Self::Outdated => UiNativePresentationRecoveryClass::SurfaceOutdated,
@@ -75,9 +76,13 @@ pub enum UiNativePresentationFault {
 pub enum UiNativePresentationRecoveryClass {
     Resize,
     Dpi,
+    #[cfg(feature = "certification-support")]
     SurfaceOutdated,
+    #[cfg(feature = "certification-support")]
     SurfaceLost,
+    #[cfg(feature = "certification-support")]
     DeviceLost,
+    #[cfg(feature = "certification-support")]
     PresentationIndeterminate,
 }
 

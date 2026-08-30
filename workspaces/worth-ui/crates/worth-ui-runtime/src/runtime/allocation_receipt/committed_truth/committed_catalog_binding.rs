@@ -124,10 +124,10 @@ pub(crate) struct UiCommittedAllocationCatalogActivationRow {
 pub(crate) enum UiCommittedScrollActivationSource {
     Host {
         witness: crate::evidence::UiHostMeasurementAuthorityWitness,
-        contract: crate::runtime::scroll_owned_allocation::UiAdmittedScrollOwnedContract,
+        contract: crate::runtime::scroll::allocation::UiAdmittedScrollOwnedContract,
     },
     Query {
-        contract: crate::runtime::scroll_owned_allocation::UiAdmittedScrollOwnedContract,
+        contract: crate::runtime::scroll::allocation::UiAdmittedScrollOwnedContract,
     },
 }
 
@@ -135,7 +135,7 @@ pub(crate) enum UiCommittedScrollActivationSource {
 pub(crate) enum UiCommittedPortalActivationSource {
     Host {
         witness: crate::evidence::UiHostMeasurementAuthorityWitness,
-        contract: crate::runtime::portal_anchored_allocation::UiAdmittedPortalAnchorContract,
+        contract: crate::runtime::portal::anchored_allocation::UiAdmittedPortalAnchorContract,
     },
 }
 

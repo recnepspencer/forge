@@ -11,6 +11,8 @@ mod retry_ledger;
 mod runtime_lifecycle;
 mod source_registry;
 
+pub(crate) const ALLOCATION_FRAME_SOURCE_CAPACITY: usize = 64;
+
 pub(crate) use dispatcher::{
     UiAllocationFrameDispatcher, UiAllocationFrameEpochAssignment,
     UiAllocationFrameSubmissionTransition,

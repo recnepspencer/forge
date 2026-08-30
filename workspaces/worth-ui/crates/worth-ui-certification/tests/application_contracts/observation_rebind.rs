@@ -20,6 +20,8 @@ mod model;
 mod ordering_model;
 #[path = "observation_rebind/query_consequence.rs"]
 mod query_consequence;
+#[path = "observation_rebind/scroll_runtime.rs"]
+mod scroll_runtime;
 #[path = "observation_rebind/semantic_pixel_independence.rs"]
 mod semantic_pixel_independence;
 #[path = "observation_rebind/source_affinity.rs"]

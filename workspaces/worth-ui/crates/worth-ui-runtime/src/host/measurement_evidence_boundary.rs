@@ -35,7 +35,7 @@ impl UiHostMeasurementSourceAuthority {
             .ok_or(UiHostMeasurementEvidenceDenial::SourceOrderExhausted)?;
         self.next_source_order = source_order;
         result.seal_host_source_position(
-            source_order,
+            result.request_identity().as_u64(),
             result.evidence_generation().as_u64(),
             source_order,
         );

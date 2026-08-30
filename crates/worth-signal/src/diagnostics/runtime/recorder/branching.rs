@@ -275,51 +275,81 @@ fn branch_merge_failure_detail(
             Some(target_branch),
             crate::data::error::SignalError::BranchMergeFailed {
                 kind,
-                evidence:
-                    Some(crate::logic::transaction::BranchMergeFailureEvidence::Conflict(evidence)),
+                evidence: Some(evidence),
                 ..
             },
-        ) => format!(
+        ) if matches!(
+            evidence.as_ref(),
+            crate::logic::transaction::BranchMergeFailureEvidence::Conflict(_)
+        ) =>
+        {
+            let crate::logic::transaction::BranchMergeFailureEvidence::Conflict(evidence) =
+                evidence.as_ref()
+            else {
+                unreachable!()
+            };
+            format!(
             "branch merge failed {} -> {} ({kind:?}, divergence={:?}, primary={:?}, resolution={:?})",
             source_branch.id.0,
             target_branch.id.0,
             evidence.divergence,
             evidence.summary.primary_conflict_kind,
             evidence.summary.required_resolution
-        ),
+            )
+        }
         (
             Some(source_branch),
             Some(target_branch),
             crate::data::error::SignalError::BranchMergeFailed {
                 kind,
-                evidence:
-                    Some(crate::logic::transaction::BranchMergeFailureEvidence::Identity(evidence)),
+                evidence: Some(evidence),
                 ..
             },
-        ) => format!(
+        ) if matches!(
+            evidence.as_ref(),
+            crate::logic::transaction::BranchMergeFailureEvidence::Identity(_)
+        ) =>
+        {
+            let crate::logic::transaction::BranchMergeFailureEvidence::Identity(evidence) =
+                evidence.as_ref()
+            else {
+                unreachable!()
+            };
+            format!(
             "branch merge failed {} -> {} ({kind:?}, identity_matcher={}, source_node={}, candidates={:?})",
             source_branch.id.0,
             target_branch.id.0,
             evidence.identity_matcher_name.as_str(),
             evidence.source_node,
             evidence.candidate_target_nodes
-        ),
+            )
+        }
         (
             Some(source_branch),
             Some(target_branch),
             crate::data::error::SignalError::BranchMergeFailed {
                 kind,
-                evidence:
-                    Some(crate::logic::transaction::BranchMergeFailureEvidence::Deletion(evidence)),
+                evidence: Some(evidence),
                 ..
             },
-        ) => format!(
+        ) if matches!(
+            evidence.as_ref(),
+            crate::logic::transaction::BranchMergeFailureEvidence::Deletion(_)
+        ) =>
+        {
+            let crate::logic::transaction::BranchMergeFailureEvidence::Deletion(evidence) =
+                evidence.as_ref()
+            else {
+                unreachable!()
+            };
+            format!(
             "branch merge failed {} -> {} ({kind:?}, deletion_policy={}, target_only_nodes={:?})",
             source_branch.id.0,
             target_branch.id.0,
             evidence.deletion_policy_name.as_str(),
             evidence.target_only_nodes
-        ),
+            )
+        }
         (
             Some(source_branch),
             Some(target_branch),

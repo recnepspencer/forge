@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use winit::dpi::{LogicalSize, PhysicalSize};
+use winit::dpi::LogicalSize;
+#[cfg(feature = "certification-support")]
+use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes};
 
@@ -47,6 +49,7 @@ impl UiNativeOwnedWindow {
         [size.width, size.height]
     }
 
+    #[cfg(feature = "certification-support")]
     pub(crate) fn request_client_physical_size(&self, extent: [u32; 2]) {
         let _ = self
             .0

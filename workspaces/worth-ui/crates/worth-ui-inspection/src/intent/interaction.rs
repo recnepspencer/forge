@@ -3,6 +3,7 @@ use super::UiIntentEvidenceReference;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum UiIntentInteractionEvidenceFamily {
     Activate,
+    CommandRoute,
     EditCommit,
     SelectionCommit,
     Submit,

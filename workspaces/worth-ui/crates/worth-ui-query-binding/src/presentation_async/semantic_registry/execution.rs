@@ -65,18 +65,6 @@ impl WorthUiPresentationAsyncRegistry {
         self.resume_semantic_execution(workspace, key, publication.change(), progress)
     }
 
-    #[cfg(test)]
-    pub fn publish_and_execute_change(
-        &mut self,
-        workspace: &mut runtime::WorthQueryWorkspace,
-        admission: &WorthUiPresentationRuntimeAdmission,
-        change: WorthUiPresentationSemanticChange,
-    ) -> Result<WorthUiPresentationSemanticExecution, WorthUiPresentationSemanticExecutionDenial>
-    {
-        let publication = self.publication_for_admission(admission, change)?;
-        self.publish_and_execute_publication(workspace, admission, &publication)
-    }
-
     fn resume_semantic_execution(
         &mut self,
         workspace: &mut runtime::WorthQueryWorkspace,
@@ -124,7 +112,6 @@ impl WorthUiPresentationAsyncRegistry {
                             .query
                             .push(WorthUiPresentationSemanticQueryObservation {
                                 outcome: report.provenance().class(),
-                                counters: report.counters(),
                                 performed,
                             });
                         progress.subscribers.push(instance.subscriber);
@@ -189,7 +176,7 @@ fn deliver_change(
     match delivery {
         worth_proof::TransitionOutcome::Success(receipt) => Ok(receipt),
         worth_proof::TransitionOutcome::Denied(denial) => Err(
-            WorthUiPresentationSemanticExecutionDenial::DeliveryDenied(denial),
+            WorthUiPresentationSemanticExecutionDenial::DeliveryDenied(Box::new(denial)),
         ),
         worth_proof::TransitionOutcome::Deferred(denial) => {
             Err(WorthUiPresentationSemanticExecutionDenial::DeliveryDeferred(denial))
@@ -219,13 +206,15 @@ fn execute_instance(
         .map_err(WorthUiPresentationSemanticExecutionDenial::Domain)?;
     let bound = workspace
         .observe_operating_world()
-        .map_err(WorthUiPresentationSemanticExecutionDenial::OperatingWorld)?
+        .map_err(|error| {
+            WorthUiPresentationSemanticExecutionDenial::OperatingWorld(Box::new(error))
+        })?
         .family(super::super::semantic_invalidation::WorthUiPresentationAsyncOperationFamily)
         .bind(
             &domain,
             super::super::semantic_invalidation::WorthUiPresentationAsyncOperation,
         )
-        .map_err(WorthUiPresentationSemanticExecutionDenial::Binding)?;
+        .map_err(|error| WorthUiPresentationSemanticExecutionDenial::Binding(Box::new(error)))?;
     let admitted = match bound.admit_execution_resources(
         (),
         crate::installed_domain::execution_resources::operation_execution_resource_request(),
@@ -244,5 +233,5 @@ fn execute_instance(
     };
     admitted
         .execute_owned_conditional_instance(instance, attempt, workspace)
-        .map_err(WorthUiPresentationSemanticExecutionDenial::Query)
+        .map_err(|error| WorthUiPresentationSemanticExecutionDenial::Query(Box::new(error)))
 }

@@ -11,6 +11,16 @@ mod application_replacement;
 mod builder;
 #[cfg(any(test, feature = "certification-support"))]
 mod certification_application_transition;
+mod focus_placement;
+pub use crate::mounting::{
+    UiFocusHostPlacementReconciliationDenial, UiFocusHostPlacementReconciliationOutcome,
+    UiFocusHostPlacementReconciliationReceipt, UiFocusHostPlacementShutdownReport,
+};
+pub use focus_placement::{
+    UiFocusPlacementReconciliationExecutionDenial, UiSemanticFocusParticipantObservation,
+    UiSemanticFocusPhysicalPlacementOutcome, UiSemanticFocusPublicationCause,
+    UiSemanticFocusPublicationOutcome, UiSemanticFocusPublicationReceipt,
+};
 mod host_neutral_app;
 mod intent_admission;
 mod intent_confirmation;
@@ -56,6 +66,7 @@ mod native_intent_posture;
 mod native_intent_terminal_posture;
 mod native_managed_rebind;
 mod native_observation_settlement;
+pub(crate) mod portal_dismissal;
 pub(crate) use native_observation_settlement::UiNativeObservationIngressSettlement;
 #[cfg(test)]
 mod native_observation_tests;
@@ -116,7 +127,7 @@ pub use certification_application_transition::WorthUiCertificationApplicationTra
 pub use host_neutral_app::WorthUiHostNeutralApp;
 pub use intent_consequence_publication::{
     UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
-    UiIntentConsequencePublicationRecovery,
+    UiIntentConsequencePublicationReceipt, UiIntentConsequencePublicationRecovery,
 };
 #[cfg(any(test, feature = "certification-support"))]
 pub use local_interaction_recipient::WorthUiLocalInputRecipientCertificationExt;
@@ -160,10 +171,14 @@ pub use native_application_program::{
     UiNativeComponentPresenceChange, UiNativeComponentSemanticTextChange,
     UiNativeThemeTokenValueChange,
 };
-pub(crate) use native_application_shell::UiNativeApplicationQueryCloseObservation;
+pub(crate) use native_application_shell::{
+    UiNativeApplicationQueryCloseObservation, UiNativeComponentPresenceProgress,
+};
 pub use native_application_shell::{
     WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
     WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativePhysicalPresentationRecovery, WorthUiNativePresentationRecoveryDenial,
+    WorthUiNativeReducedMotionPosture,
 };
 pub use native_intent::{
     WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,
@@ -183,8 +198,9 @@ pub use native_intent_posture::{
 };
 pub use native_intent_terminal_posture::WorthUiNativeIntentTerminalPostureOutcome;
 pub use native_managed_rebind::{
-    WorthUiNativeManagedRebindDenial, WorthUiNativeManagedRebindProgress,
-    WorthUiNativeManagedRebindStop,
+    WorthUiNativeManagedPortalDismissalOutcome, WorthUiNativeManagedRebindDenial,
+    WorthUiNativeManagedRebindProgress, WorthUiNativeManagedRebindStop,
+    WorthUiNativePortalDismissalStop, WorthUiNativePredecessorRecovery,
 };
 pub use native_projection_rebind::{
     WorthUiNativeManagedProjectionRebindOutcome, WorthUiNativeProjectionRebindDenial,
@@ -192,6 +208,7 @@ pub use native_projection_rebind::{
 pub use native_source_rebind::{
     WorthUiNativeManagedSourceRebindOutcome, WorthUiNativeSourceRebindDenial,
 };
+pub use portal_dismissal::UiPortalDismissalPublicationReceipt;
 pub(crate) use rebind_execution::WorthUiPreparedEvidenceOnlyApplicationRebind;
 pub(crate) use rebind_recovery::WorthUiRebindRecoveryAuthority;
 pub use selection_interaction::UiCurrentProjectionOptionStop;

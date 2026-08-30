@@ -26,6 +26,7 @@ pub(crate) struct UiDraftStateSnapshot {
 
 pub(crate) enum UiDraftProcessingOutcome {
     Mutation(UiDraftMutationReceipt),
+    DismissRequested(crate::runtime::interaction::UiDismissInteraction),
     Semantic(crate::runtime::interaction::UiSemanticInteraction),
     Stopped(UiLocalInputStop),
 }

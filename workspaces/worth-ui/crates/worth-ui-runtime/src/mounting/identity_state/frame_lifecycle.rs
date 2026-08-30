@@ -227,7 +227,7 @@ impl UiMountedIdentityState {
             .rebound(identity_candidate.frame(), replacement_views)
             .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)?;
         Ok(super::super::UiProjectedMountedFrameCandidate {
-            frame: std::sync::Arc::new(projection),
+            frame: std::rc::Rc::new(projection),
             identity_candidate,
             projection_changes,
             presentation_predecessor: self.current_frame,

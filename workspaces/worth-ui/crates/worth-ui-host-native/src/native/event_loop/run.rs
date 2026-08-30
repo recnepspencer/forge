@@ -33,7 +33,7 @@ impl WorthUiNativeEventLoop {
             loop_resources,
         } = preflight;
         if client
-            .install_application_readiness(application_readiness_ports)
+            .install_application_readiness(application_readiness_ports.into_vec())
             .is_err()
         {
             let mut expected = vec![
@@ -119,12 +119,12 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
             UiNativeEventLoopRunDenial::IncompleteCleanup
         },
         effect_posture,
-        peak_census,
-        terminal_census,
+        peak_census: Box::new(peak_census),
+        terminal_census: Box::new(terminal_census),
         client_cleanup_complete,
         cleanup,
         peak_text_pins,
-        input_observations,
+        input_observations: Box::new(input_observations),
         shutdown_overlap,
     }
 }

@@ -10,9 +10,11 @@ pub(crate) struct UiPreparedMountedProjection {
     realtime: Option<crate::runtime::WorthUiRealtimeFrameReceipt>,
     preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
     visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
+    portal_overlays: std::rc::Rc<[super::super::UiMountedPortalOverlayProjectionInput]>,
     projection_changes: super::super::UiMountedProjectionChangeSnapshot,
     presentation_changed_instances:
         std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    portal_overlays_changed: bool,
     counters: super::super::UiMountStageCounters,
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
@@ -24,9 +26,11 @@ pub(super) struct UiPreparedMountedProjectionInput {
     pub(super) semantic: UiMountedSemanticProjection,
     pub(super) preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
     pub(super) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
+    pub(super) portal_overlays: std::rc::Rc<[super::super::UiMountedPortalOverlayProjectionInput]>,
     pub(super) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
     pub(super) presentation_changed_instances:
         std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    pub(super) portal_overlays_changed: bool,
     pub(super) counters: super::super::UiMountStageCounters,
     pub(super) capability_generation:
         worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
@@ -36,7 +40,7 @@ pub(super) struct UiPreparedMountedProjectionInput {
 
 #[derive(Clone)]
 pub struct UiProjectedMountedFrameCandidate {
-    pub(in crate::mounting) frame: std::sync::Arc<UiMountedProjectionFrame>,
+    pub(in crate::mounting) frame: std::rc::Rc<UiMountedProjectionFrame>,
     pub(in crate::mounting) identity_candidate:
         super::super::identity_state::UiMountedIdentityFrameCandidate,
     pub(in crate::mounting) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
@@ -95,7 +99,7 @@ impl UiProjectedMountedFrameCandidate {
             crate::mounting::UiSurfaceBindingIdentityView,
         )],
     ) -> Result<(), UiMountedProjectionDenial> {
-        let frame = std::sync::Arc::make_mut(&mut self.frame);
+        let frame = std::rc::Rc::make_mut(&mut self.frame);
         frame.rebind_retained_mechanics(replacements)?;
         self.presentation_changed_instances = frame.mounted_instances().collect::<Vec<_>>().into();
         self.presentation_node_changed_instances = self.presentation_changed_instances.clone();
@@ -130,7 +134,7 @@ impl UiProjectedMountedFrameCandidate {
     pub(crate) fn into_parts(
         self,
     ) -> (
-        std::sync::Arc<UiMountedProjectionFrame>,
+        std::rc::Rc<UiMountedProjectionFrame>,
         super::super::identity_state::UiMountedIdentityFrameCandidate,
         super::super::UiMountedProjectionChangeSnapshot,
     ) {
@@ -149,8 +153,10 @@ impl UiPreparedMountedProjection {
             realtime: None,
             preview: input.preview,
             visual_overlay: input.visual_overlay,
+            portal_overlays: input.portal_overlays,
             projection_changes: input.projection_changes,
             presentation_changed_instances: input.presentation_changed_instances,
+            portal_overlays_changed: input.portal_overlays_changed,
             counters: input.counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
@@ -238,6 +244,8 @@ impl UiPreparedMountedProjection {
             mechanics,
             presentation_effects,
             diagnostics,
+            portal_overlays: self.portal_overlays,
+            portal_overlays_changed: self.portal_overlays_changed,
             changed_instances: self.presentation_changed_instances.clone(),
         });
         frame.complete_mechanics()?;
@@ -260,7 +268,7 @@ impl UiPreparedMountedProjection {
         frame.complete_presentation_effects(&presentation_node_changed_instances);
         frame.complete_diagnostics(&presentation_node_changed_instances);
         Ok(UiProjectedMountedFrameCandidate {
-            frame: std::sync::Arc::new(frame),
+            frame: std::rc::Rc::new(frame),
             identity_candidate,
             projection_changes: self.projection_changes,
             presentation_predecessor,

@@ -109,7 +109,7 @@ where
     ) -> Result<&'work worth_ui_text::UiQualifiedTextLayout, UiNativeTextPresentationReadiness>
     {
         let layout = (self.resolve)(mechanic.qualified_layout_identity())
-            .ok_or(UiNativeTextPresentationReadiness::SemanticTextLayoutMismatch)?;
+            .ok_or(UiNativeTextPresentationReadiness::LayoutMismatch)?;
         validate_mounted_layout(layout, mechanic)?;
         Ok(layout)
     }
@@ -121,7 +121,7 @@ where
     ) -> Result<UiGlyphRasterDemandBatch, UiNativeTextPresentationReadiness> {
         let scale =
             UiGlyphRasterScale::new(self.dpi.dpi_milli(), mechanic.qualified_layout_scale())
-                .ok_or(UiNativeTextPresentationReadiness::SemanticTextDemandDenied(
+                .ok_or(UiNativeTextPresentationReadiness::DemandDenied(
                     UiGlyphRasterDemandDenial::ZeroDpi,
                 ))?;
         derive_glyph_raster_demand(
@@ -134,15 +134,13 @@ where
                     mechanic.origin_x(),
                     mechanic.origin_y(),
                 )
-                .ok_or(
-                    UiNativeTextPresentationReadiness::SemanticTextDemandDenied(
-                        UiGlyphRasterDemandDenial::OriginOverflow,
-                    ),
-                )?,
+                .ok_or(UiNativeTextPresentationReadiness::DemandDenied(
+                    UiGlyphRasterDemandDenial::OriginOverflow,
+                ))?,
                 lane: self.lane,
             },
         )
-        .map_err(UiNativeTextPresentationReadiness::SemanticTextDemandDenied)
+        .map_err(UiNativeTextPresentationReadiness::DemandDenied)
     }
 }
 
@@ -162,10 +160,10 @@ fn validate_mounted_layout(
         || layout.view().font_collection_generation() != mechanic.qualified_layout_fonts()
         || layout.view().text_scale_generation() != mechanic.qualified_layout_scale()
     {
-        return Err(UiNativeTextPresentationReadiness::SemanticTextLayoutMismatch);
+        return Err(UiNativeTextPresentationReadiness::LayoutMismatch);
     }
     if layout.source() != mechanic.text() {
-        return Err(UiNativeTextPresentationReadiness::SemanticTextSourceMismatch);
+        return Err(UiNativeTextPresentationReadiness::SourceMismatch);
     }
     Ok(())
 }

@@ -319,7 +319,7 @@ pub(super) fn replacement_workspace(label: &str) -> FilesystemContractWorkspace 
     workspace
 }
 
-pub(super) fn stage_replacement(
+pub(crate) fn stage_replacement(
     workspace: &FilesystemContractWorkspace,
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
 ) -> (

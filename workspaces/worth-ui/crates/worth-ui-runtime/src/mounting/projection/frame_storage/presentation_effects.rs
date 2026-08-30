@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use worth_ui_host_contract::{
     UiHostSurfacePresentationMode, UiMountedAccessibilityProjection, UiMountedDiagnosticProjection,
-    UiMountedEffectFamily, UiMountedInstanceIdentity, UiMountedMotionProjection,
-    UiMountedParticipationStatus, UiSurfaceBindingGeneration,
+    UiMountedEffectFamily, UiMountedInstanceIdentity, UiSurfaceBindingGeneration,
 };
 
 use super::{UiMountedMechanicSource, UiMountedProjectionFrame, UiMountedSemanticProjection};
@@ -134,16 +133,6 @@ fn derive_instance(
             ),
         UiMountedEffectFamily::Accessibility,
     );
-    push_if(
-        &mut effects,
-        node.receipt.participation().focus().status() == UiMountedParticipationStatus::Admitted,
-        UiMountedEffectFamily::Focus,
-    );
-    push_if(
-        &mut effects,
-        matches!(node.receipt.motion(), UiMountedMotionProjection::Admitted),
-        UiMountedEffectFamily::Motion,
-    );
     if surface.audience.diagnostics_disclosed() {
         if overlay.is_some_and(|overlay| {
             overlay.target_receipt.mounted_instance() == instance
@@ -166,8 +155,6 @@ fn ordered_families() -> impl Iterator<Item = UiMountedEffectFamily> {
         UiMountedEffectFamily::Realtime,
         UiMountedEffectFamily::NativePaint,
         UiMountedEffectFamily::Accessibility,
-        UiMountedEffectFamily::Focus,
-        UiMountedEffectFamily::Motion,
         UiMountedEffectFamily::Diagnostic,
         UiMountedEffectFamily::IdentityOverlay,
     ]

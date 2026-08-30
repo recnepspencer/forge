@@ -106,7 +106,8 @@ impl UiLiveCollectionProjection {
             crate::projection_consumption::UiCollectionDerivationContext {
                 binding: &self.binding,
                 consumer: &self.consumer,
-                accesses: &self.accesses,
+                text_accesses: &self.text_accesses,
+                application_item_key_access: self.application_item_key_access.as_ref(),
                 budget: self.budget,
             },
             receipt,
@@ -120,7 +121,7 @@ impl UiLiveCollectionProjection {
                 .iter()
                 .map(|row| {
                     let values =
-                        self.accesses
+                        self.text_accesses
                             .iter()
                             .map(|access| {
                                 let fact = self.consumer.native_value(row, access.key()).expect(

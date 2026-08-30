@@ -3,6 +3,7 @@ mod identity;
 mod managed;
 mod prepared;
 mod registry;
+mod support;
 mod version;
 
 pub use contract::{
@@ -22,4 +23,5 @@ pub(crate) use managed::{
 pub(crate) use prepared::UiPreparedIntentExecution;
 pub use registry::UiIntentExecutionBindingPreparationDenial;
 pub(crate) use registry::{FrozenIntentExecutionBindings, UiIntentExecutionBindingPlan};
+pub(crate) use support::UiIntentExecutionBindingSupport;
 pub use version::UiIntentProviderVersion;

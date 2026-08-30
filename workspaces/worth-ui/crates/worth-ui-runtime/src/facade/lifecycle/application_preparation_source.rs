@@ -13,6 +13,16 @@ pub(crate) struct WorthUiApplicationPreparationSource {
 }
 
 impl WorthUiApplicationPreparationSource {
+    pub(crate) fn runtime_service_support(&self) -> crate::capability::UiRuntimeServiceSupport {
+        self.semantic_handoff.runtime_service_support()
+    }
+
+    pub(crate) fn authored_service_policy_defaults(
+        &self,
+    ) -> crate::declaration::UiServicePolicyDefaults {
+        self.semantic_handoff.authored_service_policy_defaults()
+    }
+
     pub(crate) fn rust_authored(
         input: &worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
         snapshot: &CapabilitySnapshot,

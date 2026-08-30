@@ -1,7 +1,10 @@
 use super::{
     UiMountedPresentationDelta, UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
-    UiMountedPresentationInitialInput, UiMountedPresentationUnchanged,
-    UiMountedPresentationUnchangedInput, UiMountedPresentationWorkView,
+    UiMountedPresentationInitialInput, UiMountedPresentationOpacity, UiMountedPresentationSample,
+    UiMountedPresentationSampleChange, UiMountedPresentationSampleConstructionDenial,
+    UiMountedPresentationSampleInput, UiMountedPresentationTransform,
+    UiMountedPresentationUnchanged, UiMountedPresentationUnchangedInput,
+    UiMountedPresentationWorkView,
 };
 
 #[test]
@@ -81,6 +84,94 @@ fn inert_initial_delta_and_unchanged_mechanics_remain_distinct() {
     ));
 }
 
+#[test]
+fn sample_contract_brands_finite_same_frame_unique_work() {
+    let frame = crate::UiMountedFrameIdentity::mint_unbound().expect("frame");
+    let surface = crate::UiSemanticSurfaceIdentity::mint_unbound().expect("surface");
+    let binding = crate::UiSurfaceBindingGeneration::mint_unbound().expect("binding");
+    let content = crate::UiMountedContentGeneration::mint_unbound().expect("content");
+    let baseline = crate::UiHostSurfaceBaselineIdentity::from_surface_binding(
+        surface,
+        crate::UiHostSurfaceIdentity::mint_unbound().expect("host surface"),
+        binding,
+        crate::WorthUiHostCapabilityObservationGeneration::new(9),
+        13,
+        crate::UiHostSurfacePresentationMode::RecordOnly,
+    );
+    let command = crate::UiMountedPaintCommandIdentity::semantic_text_from_correspondence(
+        crate::UiMountedInstanceIdentity::mint_unbound().expect("instance"),
+        0,
+        None,
+    );
+    let source = canonical_box(crate::UiMountedCoordinateSpace::Viewport, 1.0, 2.0);
+    let sampled = canonical_box(crate::UiMountedCoordinateSpace::Viewport, 3.0, 4.0);
+    let opacity = UiMountedPresentationOpacity::from_runtime_sampling(0.5).unwrap();
+    let change = UiMountedPresentationSampleChange::from_runtime_sampling(
+        command,
+        Some(UiMountedPresentationTransform::from_runtime_sampling(source, sampled).unwrap()),
+        opacity,
+    );
+    let input = |changes| UiMountedPresentationSampleInput {
+        frame,
+        surface,
+        binding,
+        content,
+        baseline,
+        changes,
+        damage: vec![super::UiMountedLogicalDamage::from_runtime_mounting(
+            sampled,
+        )],
+        production_cost: Default::default(),
+    };
+
+    let sample = UiMountedPresentationSample::from_inert_mechanics(input(vec![change])).unwrap();
+    assert_eq!(sample.affinity().predecessor(), Some(frame));
+    assert_eq!(sample.affinity().successor(), frame);
+    assert_eq!(sample.changes(), &[change]);
+    assert_eq!(
+        UiMountedPresentationSample::from_inert_mechanics(input(Vec::new())),
+        Err(UiMountedPresentationSampleConstructionDenial::EmptyChanges)
+    );
+    assert_eq!(
+        UiMountedPresentationSample::from_inert_mechanics(input(vec![change, change])),
+        Err(UiMountedPresentationSampleConstructionDenial::DuplicateCommandIdentity)
+    );
+}
+
+#[test]
+fn sample_values_reject_non_finite_opacity_and_mixed_coordinate_spaces() {
+    assert_eq!(
+        UiMountedPresentationOpacity::from_runtime_sampling(f32::NAN),
+        Err(UiMountedPresentationSampleConstructionDenial::NonFiniteOpacity)
+    );
+    assert_eq!(
+        UiMountedPresentationOpacity::from_runtime_sampling(1.01),
+        Err(UiMountedPresentationSampleConstructionDenial::OpacityOutOfRange)
+    );
+    assert_eq!(
+        UiMountedPresentationTransform::from_runtime_sampling(
+            canonical_box(crate::UiMountedCoordinateSpace::Viewport, 0.0, 0.0),
+            canonical_box(crate::UiMountedCoordinateSpace::HostSurface, 0.0, 0.0),
+        ),
+        Err(UiMountedPresentationSampleConstructionDenial::CoordinateSpaceMismatch)
+    );
+}
+
+fn canonical_box(
+    coordinate_space: crate::UiMountedCoordinateSpace,
+    x: f32,
+    y: f32,
+) -> crate::UiMountedCanonicalBox {
+    crate::UiMountedCanonicalBox::canonicalize(crate::UiMountedCanonicalBoxInput {
+        x,
+        y,
+        width: 10.0,
+        height: 10.0,
+        coordinate_space,
+    })
+    .unwrap()
+}
+
 fn empty_projection(
     frame: crate::UiMountedFrameIdentity,
     surface: crate::UiSemanticSurfaceIdentity,
@@ -96,6 +187,7 @@ fn empty_projection(
         clips: crate::UiMountedClipTable::produced(Vec::new()),
         layers: crate::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: crate::UiMountedFilledRectTable::empty(),
+        portal_overlays: crate::UiMountedPortalOverlayTable::empty(),
         semantic_text: crate::UiMountedSemanticTextTable::empty(),
         hit_tests: crate::UiMountedHitTestTable::empty(),
         paint_batches: crate::UiMountedPaintBatchTable::new(Vec::new()),

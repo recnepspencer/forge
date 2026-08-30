@@ -41,7 +41,7 @@ impl ResourceRuntimeState {
             telemetry.as_deref_mut(),
         );
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::timeout_heartbeat_extension(1, 0, 1),
         );
         ResourceTimeoutHeartbeatExtensionReport::admitted(extended, performance)
@@ -127,7 +127,7 @@ impl ResourceRuntimeState {
     pub fn timeout_heartbeat_extension_candidate(
         &self,
         handle: ResourceRequestHandle,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<
         (
             ResourceNodeId,
@@ -136,7 +136,7 @@ impl ResourceRuntimeState {
         ),
         ResourceTimeoutHeartbeatExtensionDenialClass,
     > {
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.resource_hot_in_flight_lookup_count += 1;
         }
         let candidate = self.classify_timeout_heartbeat_extension(handle, None)?;

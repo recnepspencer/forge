@@ -17,6 +17,7 @@ pub(crate) enum WorthUiSourceTokenKind {
     RightBrace,
     Semicolon,
     Equals,
+    Plus,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

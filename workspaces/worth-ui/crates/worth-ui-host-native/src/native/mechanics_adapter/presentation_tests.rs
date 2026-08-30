@@ -175,3 +175,16 @@ fn unchanged_reuses_the_last_physical_presentation_epoch() {
     assert_eq!(unchanged.diagnostic_value(), 101);
     assert!(presentation_epoch(&mut state, binding + 1, 103, false).is_none());
 }
+
+#[test]
+fn same_frame_sample_advances_epoch_only_when_native_pixels_are_painted() {
+    let mut state = UiNativeHostState::new();
+    let binding = 79;
+    let initial = presentation_epoch(&mut state, binding, 201, true).unwrap();
+    let offscreen_sample = presentation_epoch(&mut state, binding, 202, false).unwrap();
+    let painted_sample = presentation_epoch(&mut state, binding, 203, true).unwrap();
+
+    assert_eq!(offscreen_sample, initial);
+    assert_eq!(offscreen_sample.diagnostic_value(), 201);
+    assert_eq!(painted_sample.diagnostic_value(), 203);
+}

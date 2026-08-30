@@ -10,11 +10,11 @@ impl UiNativeEventLoopStopReport {
     }
 
     pub const fn peak_census(&self) -> UiNativeResourceCensus {
-        self.peak_census
+        *self.peak_census
     }
 
     pub const fn terminal_census(&self) -> UiNativeResourceCensus {
-        self.terminal_census
+        *self.terminal_census
     }
 
     pub const fn client_cleanup_complete(&self) -> bool {

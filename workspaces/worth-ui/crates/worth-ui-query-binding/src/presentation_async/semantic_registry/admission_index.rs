@@ -17,9 +17,9 @@ impl WorthUiPresentationAsyncRegistry {
             let (records, new) = self.semantic_records(&specification.partitions)?;
             self.next_semantic_version =
                 self.next_semantic_version.checked_add(1).ok_or_else(|| {
-                    WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(
+                    WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(Box::new(
                         duplicate_installation_denial(),
-                    )
+                    ))
                 })?;
             installations.push((records, self.next_semantic_version));
             all_new.extend(new);
@@ -41,20 +41,20 @@ impl WorthUiPresentationAsyncRegistry {
         let mut new_partitions = Vec::new();
         for (ordinal, key) in keys.iter().cloned().enumerate() {
             let record = if let Some(record) = self.partitions.get(&key) {
-                record.clone()
+                *record
             } else {
                 self.next_partition_identity =
                     self.next_partition_identity.checked_add(1).ok_or_else(|| {
-                        WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(
+                        WorthUiPresentationRuntimeAdmissionDenial::SemanticInstallation(Box::new(
                             duplicate_installation_denial(),
-                        )
+                        ))
                     })?;
                 let record = RelationalBridgeRecordIdentityParts::entity(
                     u32::try_from(ordinal + 1).expect("dependency ordinal fits u32"),
                     self.next_partition_identity,
                     1,
                 );
-                self.partitions.insert(key.clone(), record.clone());
+                self.partitions.insert(key.clone(), record);
                 new_partitions.push(key);
                 record
             };

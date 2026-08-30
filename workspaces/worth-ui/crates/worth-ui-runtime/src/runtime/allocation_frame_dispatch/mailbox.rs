@@ -2,7 +2,8 @@ use std::ops::Index;
 
 use super::UiAdmittedAllocationStreamIngress;
 
-pub(super) const ALLOCATION_FRAME_MAILBOX_MAX_CAPACITY: usize = 64;
+pub(super) const ALLOCATION_FRAME_MAILBOX_MAX_CAPACITY: usize =
+    super::ALLOCATION_FRAME_SOURCE_CAPACITY;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiAllocationFrameMailboxStoragePosture {

@@ -8,7 +8,7 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         class: ResourceRetryDenialClass,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryScheduleReport {
         let retry_budget_charge = if class == ResourceRetryDenialClass::RetryBudgetExhausted {
             self.in_flight_by_request
@@ -36,7 +36,7 @@ impl ResourceRuntimeState {
             class,
             retry_decision_digest,
             retry_budget_charge,
-            telemetry.as_deref_mut(),
+            telemetry,
         )
     }
 
@@ -44,16 +44,11 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         class: ResourceRetryDenialClass,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryAdmissionReport {
         let retry_decision_digest =
             self.retry_policy_decision_digest_for_request(handle.request_id());
-        self.deny_retry_admission(
-            handle.request_id(),
-            class,
-            retry_decision_digest,
-            telemetry.as_deref_mut(),
-        )
+        self.deny_retry_admission(handle.request_id(), class, retry_decision_digest, telemetry)
     }
 
     pub(in crate::logic::transaction::runtime::state::resource::retry) fn deny_retry_schedule(
@@ -66,7 +61,7 @@ impl ResourceRuntimeState {
     ) -> ResourceRetryScheduleReport {
         self.record_retry_denial(class, telemetry.as_deref_mut());
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::retry_schedule(
                 0,
                 1,
@@ -95,7 +90,7 @@ impl ResourceRuntimeState {
     ) -> ResourceRetryAdmissionReport {
         self.record_retry_denial(class, telemetry.as_deref_mut());
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::retry_admission(
                 0,
                 1,

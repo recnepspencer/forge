@@ -51,6 +51,10 @@ fn complete_projection_retains_current_paint_after_incremental_projection_commit
             .and_then(|formatting| formatting.token_value(&token)),
         Some(&color)
     );
+    assert!(
+        content.posture().trim().is_empty(),
+        "application-authored copy has no synthetic user-visible posture"
+    );
 }
 
 #[test]
@@ -91,7 +95,7 @@ fn theme_update_is_transactional_and_fans_out_to_alias_consumers() {
         crate::facade::entry::UiNativeThemeTokenValueChange::new(root.clone(), successor.clone())
             .expect("valid successor");
     let update = state
-        .prepare_theme_values(&[change.clone()])
+        .prepare_theme_values(std::slice::from_ref(&change))
         .expect("current revision prepares");
     assert_eq!(update.changed_tokens(), &[alias.clone(), root.clone()]);
     state

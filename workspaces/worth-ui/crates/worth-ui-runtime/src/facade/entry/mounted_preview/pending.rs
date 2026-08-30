@@ -8,6 +8,7 @@ use crate::facade::WorthUiActiveFrameworkTurnCompletion;
 impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
     pub fn into_mounted_preview(self) -> Result<WorthUiPendingMountedPreview<'session>, Box<Self>> {
         let Self {
+            application_session_identity,
             generation_identity,
             visual_trace_source,
             graph,
@@ -18,11 +19,14 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             mounted,
             host_session,
             host_exchange,
+            focus,
+            portal,
+            interaction,
             presentation,
         } = self;
         match completion.into_pending_mounted_preview() {
             Ok((transition, planning_counters)) => Ok(WorthUiPendingMountedPreview {
-                generation: generation_identity,
+                generation: generation_identity.clone(),
                 visual_trace_source,
                 graph,
                 font_collection,
@@ -30,12 +34,18 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 transition,
                 planning_counters,
                 ports: WorthUiMountedPreviewPorts {
+                    application_session_identity,
+                    generation_identity,
                     host_session,
                     mounted,
+                    focus,
+                    portal,
+                    interaction,
                     host_exchange,
                 },
             }),
             Err(completion) => Err(Box::new(Self {
+                application_session_identity,
                 generation_identity,
                 visual_trace_source,
                 graph,
@@ -46,6 +56,9 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 mounted,
                 host_session,
                 host_exchange,
+                focus,
+                portal,
+                interaction,
                 presentation,
             })),
         }
@@ -151,6 +164,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                     all_candidates_admitted: preview.all_candidates_admitted(),
                 }),
                 visual_overlay: None,
+                portal_overlays: std::rc::Rc::from([]),
                 semantic_content: crate::mounting::UiMountedSemanticContentInput::empty(),
                 theme_values: crate::mounting::UiMountedThemeValueSource::preview_only(),
                 font_collection: std::sync::Arc::clone(&self.font_collection),

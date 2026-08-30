@@ -1,6 +1,6 @@
 use crate::certification_support::ScriptedPresentationHost;
 use crate::mounting::{UiMountedFrameOutcome, UiMountedFramePublicationReceipt};
-use crate::runtime::tests::active_application_session_test_support::source_backed_component_app_with_host;
+use crate::runtime::tests::active_application_session_test_support::source_backed_focusable_component_app_with_host;
 use worth_ui_host_contract::{
     UiHostObservationBatch, UiHostObservationBatchInput, UiHostObservationLoss,
     UiHostObservationPayload, UiHostObservationPresentationBasis, UiHostObservationReport,
@@ -12,15 +12,26 @@ use worth_ui_host_contract::{
 fn native_observation_ready_path_drains_through_runtime_interaction_owner() {
     let host = ScriptedPresentationHost::native_display();
     host.push_native_display_presented();
-    let mut shell = source_backed_component_app_with_host(host.clone())
+    let mut shell = source_backed_focusable_component_app_with_host(host.clone())
         .launch_native_surface()
         .expect("native shell should launch");
 
     let first = published(shell.present_frame(100, 1), "first");
+    assert_eq!(
+        shell
+            .session
+            .focus
+            .as_ref()
+            .expect("focusable fixture installs Focus")
+            .participant_count_for_test(),
+        1
+    );
     let binding = *first.bindings().first().expect("native binding");
+    let host_surface = shell.session.mounted.view().surface_bindings()[0].host_surface_identity();
     let batch = focus_batch(
         shell.session.host_session.identity().as_u64(),
         UiHostObservationPresentationBasis::new(
+            host_surface,
             first.frame(),
             binding,
             UiHostPresentationEpoch::issued_by_host(1),
@@ -36,6 +47,12 @@ fn native_observation_ready_path_drains_through_runtime_interaction_owner() {
         &outcomes[0],
         crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(_)
     ));
+    assert!(shell
+        .session
+        .focus
+        .as_ref()
+        .expect("focusable fixture installs Focus")
+        .window_is_focused_for_test());
 
     let shutdown = shell.shutdown();
     assert!(shutdown.host_session_released());
@@ -88,7 +105,10 @@ fn focus_batch(
         reports: vec![UiHostObservationReport::new(
             sequence,
             UiHostObservationTimeBasis::HostMonotonicMillis(2),
-            UiHostObservationPayload::Focus { focused: true },
+            UiHostObservationPayload::WindowFocus {
+                surface: presentation.host_surface(),
+                focused: true,
+            },
         )],
     })
     .expect("focus observation batch should satisfy the host contract")

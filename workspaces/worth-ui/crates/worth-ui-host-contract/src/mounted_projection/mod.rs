@@ -4,6 +4,10 @@ mod headless_observation;
 mod hit_test;
 mod identity_overlay;
 mod participation;
+#[cfg(test)]
+mod portal_child_presentation_tests;
+mod portal_overlay;
+mod portal_presentation;
 mod preview;
 mod resource;
 mod semantic_text;
@@ -38,6 +42,13 @@ pub use participation::{
     UiMountedPaintProjection, UiMountedParticipation, UiMountedParticipationFact,
     UiMountedParticipationInput, UiMountedParticipationStatus, UiMountedProjectionAudience,
 };
+pub use portal_overlay::{
+    UiMountedPortalInputShielding, UiMountedPortalOverlayCompletionDenial,
+    UiMountedPortalOverlayCompletionInput, UiMountedPortalOverlayLifecyclePosture,
+    UiMountedPortalOverlayMechanic, UiMountedPortalOverlayReference,
+    UiMountedPortalOverlaySchemaVersion, UiMountedPortalOverlayTable,
+};
+pub use portal_presentation::UiMountedPortalPresentationAffinity;
 pub use preview::UiMountedPreviewProjection;
 pub use resource::{
     UiMountedResourceEntry, UiMountedResourceKind, UiMountedResourceReference,

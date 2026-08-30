@@ -32,8 +32,8 @@ pub(super) fn settle(
             ));
         };
         let observed = match owner.admit_presented_after_validation(receipt, payload_byte_len) {
-            Ok(crate::native_platform::text_presentation::UiPresentationAsyncPresentedAdmission::Current(_)) => PresentedSemanticPosture::Current,
-            Ok(crate::native_platform::text_presentation::UiPresentationAsyncPresentedAdmission::Superseded(_)) => PresentedSemanticPosture::Superseded,
+            Ok(crate::native_platform::text_presentation::UiPresentationAsyncPresentedAdmission::Current) => PresentedSemanticPosture::Current,
+            Ok(crate::native_platform::text_presentation::UiPresentationAsyncPresentedAdmission::Superseded) => PresentedSemanticPosture::Superseded,
             Err((receipt, _)) => {
                 receipts.push_front(receipt.into());
                 return Err(uncertainty(

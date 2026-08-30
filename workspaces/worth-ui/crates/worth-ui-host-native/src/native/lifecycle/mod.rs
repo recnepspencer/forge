@@ -35,7 +35,8 @@ pub(crate) use resource_registry::{
     UiNativeOwnedResource, UiNativeResourceOwner, UiNativeResourceRegistry,
 };
 pub(crate) use shutdown::{progress_shutdown, UiNativeShutdownPhase};
+#[cfg(feature = "certification-support")]
+pub(crate) use surface_succession::replace_retained_target_for_reconstruction;
 pub(crate) use surface_succession::{
-    collect_settled_device_generations, rebind_surface_scale,
-    replace_retained_target_for_reconstruction, resize_surface,
+    collect_settled_device_generations, rebind_surface_scale, resize_surface,
 };

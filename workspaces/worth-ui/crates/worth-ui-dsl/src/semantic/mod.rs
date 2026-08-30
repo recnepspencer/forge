@@ -1,4 +1,5 @@
 mod intent;
+mod service;
 mod ui_dsl_lowering_receipt;
 mod ui_dsl_semantic_artifact;
 mod ui_dsl_semantic_artifact_spec;
@@ -14,6 +15,14 @@ pub use intent::{
     WorthUiIntentOperabilityContractSpec, WorthUiIntentPayloadSource,
     WorthUiIntentPayloadSourceSpec, WorthUiIntentPolicySourceSpec,
     WorthUiIntentReadinessSourceSpec, WorthUiIntentSchemaExpectation,
+};
+pub use service::{
+    WorthUiCommandDeclaration, WorthUiCommandKey, WorthUiCommandModifier, WorthUiCommandScope,
+    WorthUiCommandShortcutStrokeSpec, WorthUiFocusDeclaration, WorthUiFocusScope,
+    WorthUiMotionDeclaration, WorthUiPortalDeclaration, WorthUiPortalDismissalSet,
+    WorthUiPortalLayer, WorthUiReducedMotionPolicy, WorthUiScrollAnchorPolicy,
+    WorthUiScrollDeclaration, WorthUiSelectionDeclaration, WorthUiSelectionMode,
+    WorthUiServiceDeclarationMeaning, WorthUiServiceDeclarationParseError, WorthUiServiceFamily,
 };
 pub use ui_dsl_lowering_receipt::UiDslLoweringReceipt;
 pub use ui_dsl_semantic_artifact::UiDslSemanticArtifact;

@@ -9,7 +9,7 @@ use super::{
 };
 
 pub(super) use execution::UiTypedManagedIntentExecution;
-pub(super) use material::outcome_material;
+pub(super) use material::{outcome_material, runtime_service_material};
 
 #[derive(Clone, Copy)]
 pub(crate) struct UiManagedIntentExecutionStartContext {
@@ -57,6 +57,12 @@ pub(crate) enum UiManagedIntentSettlement {
 
 pub(crate) trait UiManagedIntentOutcomeMaterial: Send {
     fn schema(&self) -> crate::capability::UiIntentSchema;
+
+    fn runtime_service_destination(
+        &self,
+    ) -> Option<crate::capability::UiIntentRuntimeServiceDestination> {
+        None
+    }
 
     fn into_consequences(self: Box<Self>) -> crate::capability::UiIntentProductConsequences;
 }

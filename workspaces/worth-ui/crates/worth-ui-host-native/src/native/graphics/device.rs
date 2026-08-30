@@ -19,7 +19,7 @@ pub(crate) struct UiNativeDeviceOwners {
 }
 
 pub(crate) struct UiNativeOwnedDevice {
-    state: UiNativeDeviceState,
+    state: Box<UiNativeDeviceState>,
     owners: UiNativeDeviceOwners,
     retired: Vec<UiNativeRetiredDeviceGeneration>,
 }
@@ -45,13 +45,13 @@ impl UiNativeDeviceGeneration {
 impl UiNativeOwnedDevice {
     pub(crate) fn new(state: UiNativeDeviceState, owners: UiNativeDeviceOwners) -> Self {
         Self {
-            state,
+            state: Box::new(state),
             owners,
             retired: Vec::new(),
         }
     }
 
-    pub(crate) const fn state(&self) -> &UiNativeDeviceState {
+    pub(crate) fn state(&self) -> &UiNativeDeviceState {
         &self.state
     }
 

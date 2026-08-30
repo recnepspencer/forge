@@ -11,7 +11,7 @@ pub(crate) struct UiNativePresentationSurface {
 }
 
 pub(crate) struct UiNativeOwnedPresentationSurface {
-    state: UiNativePresentationSurface,
+    state: Box<UiNativePresentationSurface>,
     owners: UiNativePresentationSurfaceOwners,
     basis_generation: u64,
     occluded: bool,
@@ -30,7 +30,7 @@ impl UiNativeOwnedPresentationSurface {
         owners: UiNativePresentationSurfaceOwners,
     ) -> Self {
         Self {
-            state,
+            state: Box::new(state),
             owners,
             basis_generation: 1,
             occluded: false,

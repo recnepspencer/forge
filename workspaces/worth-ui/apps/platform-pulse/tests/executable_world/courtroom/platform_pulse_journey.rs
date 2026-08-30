@@ -6,8 +6,8 @@ use crate::product_process::{
     AwaitingFirstFrame, AwaitingPreservation, AwaitingRecovery, AwaitingReplacement,
     AwaitingSchemaStop, AwaitingStatusRecovery, CargoBuiltPlatformPulse, FinalRecovered,
     FirstCurrent, GreenSuccessor, IdentityTraced, InitialBlue, Installed, NativeInputReached,
-    OverlayCleared, OverlayPublished, PreservedPredecessor, Published, PulseExecutableWorld,
-    RecoveredBlue, SchemaStopped, SecondCurrent, SnapshotCaptured,
+    OverlayCleared, OverlayPublished, PortalReady, PreservedPredecessor, Published,
+    PulseExecutableWorld, RecoveredBlue, SchemaStopped, SecondCurrent, SnapshotCaptured,
 };
 use crate::source_delta::{
     CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, MalformedPulseSourceDelta,
@@ -18,9 +18,11 @@ use crate::source_delta::{
 use super::journey_cost::{JourneyCostInputs, PlatformPulseJourneyCost};
 mod native_cutover;
 mod open;
+mod portal_open;
 
 pub(super) use native_cutover::CompletedPulseNativeCutoverRun;
 pub(super) use open::complete_open;
+pub(super) use portal_open::complete_portal_open;
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
 const NATIVE_INITIALIZATION_DEADLINE: Duration = Duration::from_secs(15);
@@ -90,7 +92,7 @@ fn publish_visual_identity(
         .unwrap_or_else(|failure| panic!("publish visible mounted identity overlay: {failure}"));
     advance_visual(&mut cursor, "observe-overlay");
     let (matching, sampled) = overlay.evidence().border_ratio();
-    assert_eq!(overlay.evidence().sequence(), 11);
+    assert_eq!(overlay.evidence().sequence(), 12);
     assert!(matching * 4 >= sampled * 3);
     let overlay_captures = overlay.evidence().capture_count();
 
@@ -103,7 +105,7 @@ fn publish_visual_identity(
         cleared.evidence().clear().cleared_frame(),
         cleared.evidence().clear().published_frame()
     );
-    assert_eq!(cleared.evidence().sequence(), 12);
+    assert_eq!(cleared.evidence().sequence(), 13);
     let captures = overlay_captures + cleared.evidence().capture_count();
     (cleared, captures)
 }
@@ -127,8 +129,8 @@ fn publish_first_current(
         .unwrap_or_else(|failure| panic!("publish first Query world input: {failure}"))
         .await_first_query_value(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("first Query value reaches native pixels: {failure}"));
-    assert_eq!(current.query_evidence().issued_sequence(), 7);
-    assert_eq!(current.query_evidence().published_sequence(), 8);
+    assert_eq!(current.query_evidence().issued_sequence(), 8);
+    assert_eq!(current.query_evidence().published_sequence(), 9);
     assert!(
         current.query_evidence().matching_blue_samples() * 4
             >= current.query_evidence().sampled_pixels() * 3
@@ -144,10 +146,10 @@ fn publish_second_current(
         .unwrap_or_else(|failure| panic!("publish second Query world input: {failure}"))
         .await_second_query_value(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("second Query value reaches native pixels: {failure}"));
-    assert_eq!(current.query_evidence().issued_sequence(), 13);
-    assert_eq!(current.query_evidence().published_sequence(), 14);
-    assert_eq!(current.refresh_retirement_evidence().sequence(), 15);
-    assert_eq!(current.refresh_snapshot_evidence().sequence(), 16);
+    assert_eq!(current.query_evidence().issued_sequence(), 14);
+    assert_eq!(current.query_evidence().published_sequence(), 15);
+    assert_eq!(current.refresh_retirement_evidence().sequence(), 16);
+    assert_eq!(current.refresh_snapshot_evidence().sequence(), 17);
     assert!(
         current.query_evidence().matching_blue_samples() * 4
             >= current.query_evidence().sampled_pixels() * 3
@@ -205,7 +207,7 @@ fn publish_green(
         });
     let evidence = green.evidence();
     assert_action(evidence.action(), PulseSourceDeltaIdentity::Green);
-    assert_eq!(evidence.sequence(), 17);
+    assert_eq!(evidence.sequence(), 18);
     assert_eq!(
         green.retirement_evidence().retirement().successor_frame(),
         evidence.replacement().successor_frame().diagnostic_value()
@@ -245,7 +247,7 @@ fn preserve_green(
         });
     let evidence = preserved.evidence();
     assert_action(evidence.action(), PulseSourceDeltaIdentity::Malformed);
-    assert_eq!(evidence.sequence(), 21);
+    assert_eq!(evidence.sequence(), 22);
     assert_eq!(evidence.preserved().active_generation(), prior_generation);
     assert_eq!(evidence.preserved().active_frame(), prior_frame);
     assert_eq!(evidence.identity().window(), prior_window);
@@ -277,8 +279,9 @@ fn recover_blue(
         evidence.action(),
         PulseSourceDeltaIdentity::CanonicalBlueRecovery,
     );
-    assert_eq!(evidence.sequence(), 22);
-    assert_eq!(recovered.preservation_evidence().sequence(), 21);
+    assert_eq!(evidence.sequence(), 23);
+    assert_eq!(recovered.rebase_snapshot_evidence().sequence(), 24);
+    assert_eq!(recovered.preservation_evidence().sequence(), 22);
     assert_eq!(evidence.identity().process_id(), process);
     assert_eq!(evidence.identity().window(), window);
     assert_ne!(evidence.replacement().active_generation(), prior_generation);
@@ -307,15 +310,16 @@ fn stop_on_revision_schema(
         evidence.replacement().action(),
         PulseSourceDeltaIdentity::RevisionSchema,
     );
-    assert_eq!(evidence.replacement().sequence(), 23);
+    assert_eq!(evidence.replacement().sequence(), 25);
+    assert_eq!(stopped.retirement_evidence().sequence(), 28);
     assert_eq!(evidence.query_basis(), &prior_query);
     assert_eq!(
         evidence.transition().kind(),
         worth_ui_platform_pulse::observation_contract::
             PlatformPulseProjectionSchemaTransitionKind::Stopped
     );
-    assert!(evidence.retained_upper_pixel_bytes() > 0);
-    assert!(evidence.changed_lower_pixel_bytes() > 0);
+    assert!(evidence.retained_control_pixel_bytes() > 0);
+    assert!(evidence.changed_posture_pixel_bytes() > 0);
     assert!(!evidence.canonical_current_restored());
     stopped
 }
@@ -338,15 +342,16 @@ fn recover_status_schema(
         evidence.replacement().action(),
         PulseSourceDeltaIdentity::StatusSchemaRecovery,
     );
-    assert_eq!(evidence.replacement().sequence(), 24);
+    assert_eq!(evidence.replacement().sequence(), 29);
+    assert_eq!(recovered.rebase_snapshot_evidence().sequence(), 30);
     assert_eq!(evidence.query_basis(), &stopped_query);
     assert_eq!(
         evidence.transition().kind(),
         worth_ui_platform_pulse::observation_contract::
             PlatformPulseProjectionSchemaTransitionKind::Recovered
     );
-    assert!(evidence.retained_upper_pixel_bytes() > 0);
-    assert!(evidence.changed_lower_pixel_bytes() > 0);
+    assert!(evidence.retained_control_pixel_bytes() > 0);
+    assert!(evidence.changed_posture_pixel_bytes() > 0);
     assert!(evidence.canonical_current_restored());
     assert_eq!(
         recovered.stopped_evidence().transition().kind(),

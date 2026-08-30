@@ -37,10 +37,10 @@ fn selection_bounds(
     font: &harfrust::FontRef<'_>,
     selection: &UiBitmapSelection<'_>,
 ) -> Option<Option<UiFontGlyphInkBounds>> {
-    let placement = BitmapPlacement::from_selection(&selection)?;
+    let placement = BitmapPlacement::from_selection(selection)?;
     let pixels = match selection {
         UiBitmapSelection::Direct(glyph) => alpha_bounds(&glyph.data, glyph.width, glyph.height)?,
-        UiBitmapSelection::CbdtComposite(composite) => composite_alpha_bounds(&composite)?,
+        UiBitmapSelection::CbdtComposite(composite) => composite_alpha_bounds(composite)?,
     };
     let Some(pixels) = pixels else {
         return Some(None);

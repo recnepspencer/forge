@@ -27,6 +27,7 @@ pub(super) struct UiNativeApplicationProgramProgress {
     surface_basis_barrier: Option<(usize, u64)>,
     runtime_qualification: super::runtime_qualification::UiNativeRuntimeQualificationState,
     pub(super) staged_superseding_successor: Option<UiNativeStagedSupersedingSuccessor>,
+    pub(super) staged_superseding_predecessor: Option<crate::mounting::UiPreparedMountedFrame>,
     external_close_requested: bool,
     visual_snapshot: Option<worth_ui_host_native::UiNativeClientVisualSnapshotObservation>,
 }
@@ -103,6 +104,7 @@ impl UiNativeApplicationProgramProgress {
                     runtime_qualification,
                 ),
             staged_superseding_successor: None,
+            staged_superseding_predecessor: None,
             external_close_requested: false,
             visual_snapshot: None,
         }
@@ -122,6 +124,7 @@ impl UiNativeApplicationProgramProgress {
         program_finished
             && self.pending.is_empty()
             && self.staged_superseding_successor.is_none()
+            && self.staged_superseding_predecessor.is_none()
             && self.pending_retry.is_none()
             && self.physical_recovery.is_empty()
     }
@@ -129,6 +132,7 @@ impl UiNativeApplicationProgramProgress {
     pub(super) fn request_external_close(&mut self) {
         self.external_close_requested = true;
         self.staged_superseding_successor = None;
+        self.staged_superseding_predecessor = None;
         self.pending_retry = None;
     }
 
@@ -190,9 +194,14 @@ impl UiNativeApplicationProgramProgress {
                 }
             }
             if program_frame == self.next_change_frame {
-                shell
+                let presence = shell
                     .apply_component_presence(frame.component_presence())
                     .map_err(|_| ())?;
+                if presence
+                    == crate::facade::entry::UiNativeComponentPresenceProgress::AwaitingPortalDismissal
+                {
+                    break;
+                }
                 shell
                     .apply_component_semantic_text(frame.semantic_text())
                     .map_err(|_| ())?;

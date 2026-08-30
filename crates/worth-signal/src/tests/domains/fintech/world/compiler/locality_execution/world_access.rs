@@ -29,12 +29,6 @@ impl super::super::CompiledFinancialWorld {
         self.locality().graph_instance()
     }
 
-    pub(in crate::tests::domains::fintech) fn locality_operational_digest(
-        &self,
-    ) -> Result<worth_foundational::facade::CanonicalDigestId, SignalError> {
-        self.locality().operational_digest()
-    }
-
     pub(in crate::tests::domains::fintech) fn locality_operational_digest_with_work(
         &self,
         performed_work: &FinancialPerformedCanonicalWork,

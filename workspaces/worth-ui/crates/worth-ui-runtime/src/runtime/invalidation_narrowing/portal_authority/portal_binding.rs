@@ -1,6 +1,6 @@
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiAdmittedPortalInvalidationBinding {
-    contract: crate::runtime::portal_anchored_allocation::UiAdmittedPortalAnchorContract,
+    contract: crate::runtime::portal::anchored_allocation::UiAdmittedPortalAnchorContract,
     target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
     receipt_identity: crate::runtime::UiAllocationReceiptIdentity,
     receipt_generation: crate::runtime::UiAllocationReceiptGeneration,
@@ -13,7 +13,7 @@ impl Eq for UiAdmittedPortalInvalidationBinding {}
 
 impl UiAdmittedPortalInvalidationBinding {
     pub(super) fn seal(
-        contract: crate::runtime::portal_anchored_allocation::UiAdmittedPortalAnchorContract,
+        contract: crate::runtime::portal::anchored_allocation::UiAdmittedPortalAnchorContract,
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
         receipt: &crate::runtime::UiAllocationReceipt,
         activation_witness: crate::evidence::UiHostMeasurementAuthorityWitness,
@@ -46,7 +46,7 @@ impl UiAdmittedPortalInvalidationBinding {
         let input = constraint.portal_anchor_planning_input()?;
         let observation = portal.observation();
         let contract =
-            crate::runtime::portal_anchored_allocation::UiAdmittedPortalAnchorContract::seal(
+            crate::runtime::portal::anchored_allocation::UiAdmittedPortalAnchorContract::seal(
                 observation.identity(),
                 allocation.measurement_basis(),
                 neighborhood,
@@ -69,7 +69,7 @@ impl UiAdmittedPortalInvalidationBinding {
 
     pub(crate) fn contract(
         &self,
-    ) -> &crate::runtime::portal_anchored_allocation::UiAdmittedPortalAnchorContract {
+    ) -> &crate::runtime::portal::anchored_allocation::UiAdmittedPortalAnchorContract {
         &self.contract
     }
 

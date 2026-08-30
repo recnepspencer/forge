@@ -6,6 +6,7 @@ mod lowering;
 mod queue;
 mod readiness;
 
+#[cfg(test)]
 pub(crate) use deduplication::merge_repeated_current_admission;
 pub(crate) use execution::execute_ready;
 pub(crate) use lowering::lower_current_work;

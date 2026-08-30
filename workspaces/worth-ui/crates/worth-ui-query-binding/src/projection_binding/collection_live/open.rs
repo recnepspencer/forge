@@ -14,7 +14,7 @@ pub(super) fn open_collection_projection(
         return stopped(&binding, StopKind::AlreadyOpened);
     };
     let (reference, bound, native_request) = prepared.into_parts();
-    let (request, accesses) = native_request.into_parts();
+    let (request, text_accesses, application_item_key_access) = native_request.into_parts();
     let admitted = match installed::transition::resource_admission(bound.admit_execution_resources(
         (),
         crate::installed_domain::execution_resources::operation_execution_resource_request(),
@@ -106,7 +106,8 @@ pub(super) fn open_collection_projection(
         crate::projection_consumption::UiCollectionDerivationContext {
             binding: &binding,
             consumer: &consumer,
-            accesses: &accesses,
+            text_accesses: &text_accesses,
+            application_item_key_access: application_item_key_access.as_ref(),
             budget,
         },
     );
@@ -143,7 +144,8 @@ pub(super) fn open_collection_projection(
             reference,
             lease,
             consumer,
-            accesses,
+            text_accesses,
+            application_item_key_access,
             budget,
         },
         fact,

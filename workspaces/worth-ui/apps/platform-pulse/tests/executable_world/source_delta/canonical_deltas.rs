@@ -8,6 +8,8 @@ use super::PulseSourceDeltaIdentity;
 const BLUE_TOKEN: &[u8] = b"theme.platform_pulse.blue";
 const GREEN_TOKEN: &[u8] = b"theme.platform_pulse.green";
 const MALFORMED_SOURCE: &[u8] = b"component platform.pulse.component.seed {";
+const IDENTITY_TARGET_ROUTE_BINDING: &[u8] = b"component platform.pulse.component.identity_target {\n  interaction activate routes platform.pulse.action.route;";
+const PORTAL_PRIMARY_ROUTE_BINDING: &[u8] = b"component platform.pulse.component.portal_primary_target {\n  interaction activate routes platform.pulse.action.route;";
 const INTENT_ROUTE_BINDING: &[u8] = b"  interaction activate routes platform.pulse.action.route;";
 
 #[derive(Debug)]
@@ -38,6 +40,8 @@ pub(crate) enum PulseSourceDeltaDefinitionFailure {
     StatusFieldAmbiguous(usize),
     IntentRouteBindingMissing,
     IntentRouteBindingAmbiguous(usize),
+    PortalPrimaryComponentMissing,
+    PortalPrimaryComponentAmbiguous(usize),
 }
 
 impl fmt::Display for PulseSourceDeltaDefinitionFailure {
@@ -58,6 +62,15 @@ impl fmt::Display for PulseSourceDeltaDefinitionFailure {
                 write!(
                     formatter,
                     "canonical pulse has {count} action route bindings"
+                )
+            }
+            Self::PortalPrimaryComponentMissing => {
+                formatter.write_str("canonical pulse has no portal primary component")
+            }
+            Self::PortalPrimaryComponentAmbiguous(count) => {
+                write!(
+                    formatter,
+                    "canonical pulse has {count} portal primary components"
                 )
             }
         }
@@ -148,10 +161,14 @@ impl IntentRouteRemovalSourceDelta {
         canonical: CanonicalPlatformPulse,
     ) -> Result<Self, PulseSourceDeltaDefinitionFailure> {
         let source = canonical.source_bytes();
+        let identity_binding = token_for_source_line_endings(source, IDENTITY_TARGET_ROUTE_BINDING);
         let offsets = source
-            .windows(INTENT_ROUTE_BINDING.len())
+            .windows(identity_binding.len())
             .enumerate()
-            .filter_map(|(offset, candidate)| (candidate == INTENT_ROUTE_BINDING).then_some(offset))
+            .filter_map(|(offset, candidate)| {
+                (candidate == identity_binding)
+                    .then_some(offset + identity_binding.len() - INTENT_ROUTE_BINDING.len())
+            })
             .collect::<Vec<_>>();
         let [offset] = offsets.as_slice() else {
             return Err(match offsets.len() {
@@ -177,13 +194,37 @@ impl IntentRouteRemovalSourceDelta {
             &self.bytes,
         )
     }
+
+    #[cfg(test)]
+    fn source_bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+fn token_for_source_line_endings(source: &[u8], token: &[u8]) -> Vec<u8> {
+    if source
+        .windows(token.len())
+        .any(|candidate| candidate == token)
+    {
+        return token.to_vec();
+    }
+    let mut adapted =
+        Vec::with_capacity(token.len() + token.iter().filter(|byte| **byte == b'\n').count());
+    for byte in token {
+        if *byte == b'\n' {
+            adapted.push(b'\r');
+        }
+        adapted.push(*byte);
+    }
+    adapted
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, MalformedPulseSourceDelta,
-        BLUE_TOKEN, GREEN_TOKEN,
+        token_for_source_line_endings, CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta,
+        IntentRouteRemovalSourceDelta, MalformedPulseSourceDelta, BLUE_TOKEN, GREEN_TOKEN,
+        IDENTITY_TARGET_ROUTE_BINDING, INTENT_ROUTE_BINDING, PORTAL_PRIMARY_ROUTE_BINDING,
     };
     use crate::installation::{CanonicalPlatformPulse, IsolatedPulseInstallation};
 
@@ -226,6 +267,57 @@ mod tests {
         assert_eq!(recovery_receipt.action_count(), 1);
         assert_eq!(canonical.source_bytes(), checkout_before);
         installation.close().expect("explicit cleanup");
+    }
+
+    #[test]
+    fn route_removal_targets_the_identity_action_without_erasing_the_portal_action() {
+        let canonical = CanonicalPlatformPulse::checked_in();
+        assert_eq!(count(canonical.source_bytes(), INTENT_ROUTE_BINDING), 1);
+        let portal_source = canonical.portal_primary_source_bytes();
+        assert_eq!(
+            count(
+                portal_source,
+                &token_for_source_line_endings(portal_source, PORTAL_PRIMARY_ROUTE_BINDING),
+            ),
+            1
+        );
+        let removal = IntentRouteRemovalSourceDelta::from_checked_in(canonical)
+            .expect("identity action route remains uniquely addressable");
+        assert_eq!(count(removal.source_bytes(), INTENT_ROUTE_BINDING), 0);
+        assert_eq!(
+            count(
+                removal.source_bytes(),
+                &token_for_source_line_endings(
+                    removal.source_bytes(),
+                    IDENTITY_TARGET_ROUTE_BINDING
+                ),
+            ),
+            0
+        );
+        assert_eq!(
+            count(
+                portal_source,
+                &token_for_source_line_endings(portal_source, PORTAL_PRIMARY_ROUTE_BINDING),
+            ),
+            1
+        );
+    }
+
+    #[test]
+    fn source_tokens_preserve_lf_and_crlf_without_normalizing_the_source() {
+        let token = b"first\nsecond";
+        assert_eq!(
+            token_for_source_line_endings(b"first\nsecond", token),
+            token
+        );
+        assert_eq!(
+            token_for_source_line_endings(b"first\r\nsecond", token),
+            b"first\r\nsecond"
+        );
+        assert_eq!(
+            token_for_source_line_endings(b"prior\r\nfirst\nsecond", token),
+            token
+        );
     }
 
     fn count(source: &[u8], token: &[u8]) -> usize {

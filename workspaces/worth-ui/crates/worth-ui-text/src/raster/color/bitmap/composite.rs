@@ -59,7 +59,7 @@ fn flatten_composite<'font, 'borrow>(
     validate_bitmap_dimensions(shape.width, shape.height)?;
     let pixels = match &data.content {
         BitmapContent::Data(format, bytes) => {
-            decode_data(*format, *bytes, context.size.bit_depth(), shape)?
+            decode_data(*format, bytes, context.size.bit_depth(), shape)?
         }
         BitmapContent::Composite(components) => {
             if components.is_empty() || stack.len() >= 64 || stack.contains(&glyph.to_u32()) {

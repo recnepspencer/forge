@@ -36,6 +36,8 @@ pub(crate) enum WatchedPulseTransition {
     IntentVisualRefreshRetired,
     IntentVisualRefreshCaptured,
     IntentCancellationRebind,
+    SemanticFocusPublished,
+    PortalDismissed,
 }
 
 #[derive(Debug)]

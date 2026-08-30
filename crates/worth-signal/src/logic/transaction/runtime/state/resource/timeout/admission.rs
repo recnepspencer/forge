@@ -34,7 +34,7 @@ impl ResourceRuntimeState {
             self.prepare_timeout_admission(in_flight, handle, ready_wake, telemetry.as_deref_mut());
         self.apply_timeout_admission(&prepared, telemetry.as_deref_mut());
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::timeout_admission(1, 0, 1)
                 .with_output_continuity_classification_width(u32::from(
                     prepared.terminal_visibility_classified,

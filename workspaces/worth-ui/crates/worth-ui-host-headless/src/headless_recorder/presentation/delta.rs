@@ -40,6 +40,16 @@ pub(super) fn apply(
         return Err(malformed());
     }
     current.frame = view.frame();
+    current.content = delta.affinity().content();
+    current.receipt_affinity = delta.affinity().receipt_affinity();
+    current.clear_sample_overrides_for(delta.changes().iter().flat_map(|change| match change {
+        UiMountedPaintCommandChange::Insert(command) => vec![command.identity()],
+        UiMountedPaintCommandChange::Replace {
+            predecessor,
+            successor,
+        } => vec![*predecessor, successor.identity()],
+        UiMountedPaintCommandChange::Remove(identity) => vec![*identity],
+    }));
     if let Some(auxiliary) = delta.auxiliary() {
         current.auxiliary = auxiliary.clone();
     }

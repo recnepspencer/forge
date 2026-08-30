@@ -55,7 +55,7 @@ impl UiProtocolResources {
     }
 
     pub(in crate::native::lifecycle) fn finish_queued_work(&mut self) {
-        if let Some(mut queued) = self.queued_readiness.take() {
+        if let Some(queued) = self.queued_readiness.take() {
             let _ = queued.registry.take(queued.owner);
             debug_assert_eq!(queued.registry.close(), 1);
         }
@@ -104,7 +104,7 @@ impl UiProtocolResources {
     }
 
     pub(in crate::native::lifecycle) fn release_all(&mut self) {
-        if let Some(mut queued) = self.queued_readiness.take() {
+        if let Some(queued) = self.queued_readiness.take() {
             debug_assert_eq!(queued.registry.close(), 1);
         }
         release(&mut self.registry, &mut self.prepared_upload);
@@ -122,11 +122,11 @@ impl UiProtocolResources {
 
 impl UiProtocolQueuedReadiness {
     fn queued() -> Result<Self, ()> {
-        let mut registry = UiNativeReadinessRegistry::new();
+        let registry = UiNativeReadinessRegistry::new();
         let owner = registry.register()?;
         registry.commit_latest(owner, 1_000, [160, 96])?;
         let mut redraw_requests = 0;
-        signal_committed(&mut registry, owner, || redraw_requests += 1)?;
+        signal_committed(&registry, owner, || redraw_requests += 1)?;
         (redraw_requests == 1)
             .then_some(Self { registry, owner })
             .ok_or(())

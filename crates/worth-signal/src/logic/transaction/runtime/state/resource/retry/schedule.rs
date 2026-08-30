@@ -105,7 +105,7 @@ impl ResourceRuntimeState {
         let prepared = self.prepare_resource_retry_schedule(input, candidate);
         let installed = self.install_resource_retry_schedule(prepared, telemetry.as_deref_mut());
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::retry_schedule(
                 1,
                 0,

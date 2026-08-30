@@ -27,8 +27,9 @@ use super::mounted_application_lifecycle::known_empty_surface_world::profile;
 #[path = "filesystem_intent_world.rs"]
 mod intent_world;
 pub(super) use intent_world::{
-    intent_world_operability_fact, launch_file_intent_world, launch_rust_intent_world,
-    INTENT_WORLD_OPERABILITY_FACT,
+    intent_world_operability_fact, launch_file_intent_world, launch_rust_command_intent_world,
+    launch_rust_intent_world, prepare_rust_command_intent_application,
+    prepare_rust_command_intent_application_with_policy, INTENT_WORLD_OPERABILITY_FACT,
 };
 
 #[derive(Clone, Copy)]

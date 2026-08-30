@@ -29,6 +29,7 @@ pub(crate) use qualification::UiNativeQualificationState;
 mod temporal_retry_tests;
 mod text_atlas_commit;
 mod text_atlas_lifecycle;
+#[cfg(test)]
 pub(crate) use text_atlas_lifecycle::UiNativeTextAtlasPhysicalProgress;
 
 pub(crate) struct UiNativeHostState {
@@ -43,6 +44,8 @@ pub(crate) struct UiNativeHostState {
     pub(crate) pending_presentations: Vec<UiNativePendingPresentation>,
     pub(crate) retained_draw_lists: BTreeMap<u64, UiNativeRetainedDrawList>,
     pub(crate) presentation_epochs: BTreeMap<u64, worth_ui_host_contract::UiHostPresentationEpoch>,
+    pub(crate) semantic_focus:
+        BTreeMap<u64, worth_ui_host_contract::UiHostFocusPlacementAcknowledgement>,
     pub(crate) captures: super::capture::UiNativeCaptureState,
     pub(crate) lifecycle: UiNativeLifecycleOrchestrator,
     pub(crate) text_atlas: UiNativeTextAtlas,
@@ -120,6 +123,7 @@ impl UiNativeHostState {
             pending_presentations: Vec::new(),
             retained_draw_lists: BTreeMap::new(),
             presentation_epochs: BTreeMap::new(),
+            semantic_focus: BTreeMap::new(),
             captures: super::capture::UiNativeCaptureState::default(),
             lifecycle: UiNativeLifecycleOrchestrator::new(),
             text_atlas: UiNativeTextAtlas::new(),
@@ -180,9 +184,8 @@ impl UiNativeHostState {
     ) -> Option<crate::UiNativeDerivedStateReconstructionObservation> {
         #[cfg(feature = "certification-support")]
         {
-            return self
-                .qualification
-                .derived_state_reconstruction_observation();
+            self.qualification
+                .derived_state_reconstruction_observation()
         }
         #[cfg(not(feature = "certification-support"))]
         {
@@ -273,7 +276,7 @@ impl UiNativeHostState {
                 identity,
             )) => match self.progress_text_atlas_physical(identity.pending()) {
                 text_atlas_lifecycle::UiNativeTextAtlasPhysicalProgress::Terminal => {
-                    UiNativeHostPhysicalProgress::TextAtlas
+                    UiNativeHostPhysicalProgress::TextAtlas(identity.request())
                 }
                 text_atlas_lifecycle::UiNativeTextAtlasPhysicalProgress::Pending
                 | text_atlas_lifecycle::UiNativeTextAtlasPhysicalProgress::NoProgress => {
@@ -295,7 +298,7 @@ impl UiNativeHostState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum UiNativeHostPhysicalProgress {
     NoProgress,
-    TextAtlas,
+    TextAtlas(super::physical_work_signal::UiNativePhysicalAtlasRequestIdentity),
     Presentation(
         super::physical_work_signal::UiNativePhysicalPresentationIdentity,
         UiNativePresentationPhysicalProgress,

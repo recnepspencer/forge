@@ -3,15 +3,19 @@ use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub(crate) struct DependencyRevision(pub(crate) u64);
-
-impl Default for DependencyRevision {
-    fn default() -> Self {
-        Self(0)
-    }
-}
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
@@ -93,6 +97,7 @@ impl ResolvedDependencyCause {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn binding(&self) -> worth_proof::Binding<DependencyCauseBindingAxes> {
         worth_proof::Binding::new(self.binding_axes.clone())
     }

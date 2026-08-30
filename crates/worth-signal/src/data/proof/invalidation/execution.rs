@@ -15,22 +15,6 @@ pub(crate) struct FrontierWaveEntrySummary {
     pub(crate) narrowed_scopes: PartitionScopeSet,
 }
 
-impl FrontierWaveEntrySummary {
-    pub(crate) fn new(
-        node: NodeId,
-        classification: FrontierEntryClassification,
-        inclusion_basis: FrontierInclusionBasis,
-        narrowed_scopes: impl Into<PartitionScopeSet>,
-    ) -> Self {
-        Self {
-            node,
-            classification,
-            inclusion_basis,
-            narrowed_scopes: narrowed_scopes.into(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct FrontierWaveSummary {
     pub(crate) wave_index: u32,
@@ -49,42 +33,6 @@ pub(crate) struct TransitiveFrontierEntrySummary {
     pub(crate) node: NodeId,
     pub(crate) classification: FrontierEntryClassification,
     pub(crate) inclusion_basis: FrontierInclusionBasis,
-}
-
-impl TransitiveFrontierEntrySummary {
-    pub(crate) fn new(node: NodeId) -> Self {
-        Self {
-            node,
-            classification: FrontierEntryClassification::MaybeStale,
-            inclusion_basis: FrontierInclusionBasis::TransitiveReachability,
-        }
-    }
-}
-
-impl TransitiveFrontierWaveSummary {
-    pub(crate) fn new(
-        wave_index: u32,
-        entries: impl IntoIterator<Item = TransitiveFrontierEntrySummary>,
-    ) -> Self {
-        Self {
-            wave_index,
-            entries: entries.into_iter().collect(),
-        }
-    }
-}
-
-impl FrontierWaveSummary {
-    pub(crate) fn new(
-        wave_index: u32,
-        aspect: Aspect,
-        entries: impl IntoIterator<Item = FrontierWaveEntrySummary>,
-    ) -> Self {
-        Self {
-            wave_index,
-            aspect,
-            entries: entries.into_iter().collect(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

@@ -1,7 +1,9 @@
 use super::super::terminal::{aggregate_affected, UiIndeterminatePresentationEvidence};
 use crate::facade::UiHostEffectPort;
 
-pub(super) struct PresentationSurfaceUncertainty {
+pub(super) struct PresentationSurfaceUncertainty(Box<PresentationSurfaceUncertaintyInner>);
+
+struct PresentationSurfaceUncertaintyInner {
     binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
     additional_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
     semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
@@ -15,13 +17,13 @@ impl PresentationSurfaceUncertainty {
         additional_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
         semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
     ) -> Self {
-        Self {
+        Self(Box::new(PresentationSurfaceUncertaintyInner {
             binding,
             additional_cost,
             semantic_receipts,
             recovery_required: Vec::new(),
             physical_recovery_bindings: Vec::new(),
-        }
+        }))
     }
 
     pub(super) fn effects_indeterminate(
@@ -33,7 +35,7 @@ impl PresentationSurfaceUncertainty {
     ) -> Self {
         let (semantic_receipts, recovery_required) =
             settle_effects_indeterminate(owner, semantic_receipts);
-        Self {
+        Self(Box::new(PresentationSurfaceUncertaintyInner {
             binding,
             additional_cost,
             semantic_receipts,
@@ -42,7 +44,7 @@ impl PresentationSurfaceUncertainty {
                 .then_some(binding)
                 .into_iter()
                 .collect(),
-        }
+        }))
     }
 }
 
@@ -54,13 +56,14 @@ pub(super) fn terminalize(
     >,
     uncertainty: PresentationSurfaceUncertainty,
 ) -> UiIndeterminatePresentationEvidence {
-    let PresentationSurfaceUncertainty {
+    let PresentationSurfaceUncertainty(inner) = uncertainty;
+    let PresentationSurfaceUncertaintyInner {
         binding,
         additional_cost,
         mut semantic_receipts,
         mut recovery_required,
         mut physical_recovery_bindings,
-    } = uncertainty;
+    } = *inner;
     let mut affected =
         aggregate_affected(&progress.completed, &progress.pending, &progress.rejected);
     affected.push(binding);

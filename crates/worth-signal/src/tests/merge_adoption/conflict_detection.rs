@@ -103,7 +103,7 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
                 kind,
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
-            let evidence = match evidence.expect("conflict evidence should be present") {
+            let evidence = match *evidence.expect("conflict evidence should be present") {
                 BranchMergeFailureEvidence::Conflict(evidence) => evidence,
                 other => panic!("expected conflict evidence, got {other:?}"),
             };
@@ -272,7 +272,7 @@ fn merge_branch_dependency_topology_conflict_surfaces_structural_requirement() {
                 kind,
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
-            let evidence = match evidence.expect("topology conflict evidence should be present") {
+            let evidence = match *evidence.expect("topology conflict evidence should be present") {
                 BranchMergeFailureEvidence::Conflict(evidence) => evidence,
                 other => panic!("expected conflict evidence, got {other:?}"),
             };

@@ -9,6 +9,10 @@ use crate::runtime::intent_execution::{
     UiIntentConsequenceHandoff, UiIntentConsequenceStopReason,
 };
 
+#[path = "intent_consequence/portal_service_request.rs"]
+mod portal_service_request;
+use portal_service_request::{portal_placement_stop_reason, portal_service_request};
+
 impl WorthUiActiveApplicationSession {
     pub fn publish_intent_consequences(
         &mut self,
@@ -70,6 +74,133 @@ impl WorthUiActiveApplicationSession {
         policy: crate::runtime::rebind::UiRebindExecutionPolicy,
         execution: crate::runtime::rebind::UiRebindExecutionRequest,
     ) -> UiIntentConsequencePublicationOutcome<'_> {
+        let explicit_portal_transition = match handoff.runtime_service_destination() {
+            Some(crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand) => {
+                if handoff.command_route().is_none() {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceCommandRouteMissing,
+                    );
+                }
+                None
+            }
+            Some(
+                destination @ (crate::capability::UiIntentRuntimeServiceDestination::OpenPortal
+                | crate::capability::UiIntentRuntimeServiceDestination::ClosePortal),
+            ) => {
+                if !handoff.includes_mounted_posture() {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceRequiresMountedPosture,
+                    );
+                }
+                let viewport = match self
+                    .application
+                    .mounted_viewport_bounds_for(handoff.graph_node())
+                {
+                    Ok(viewport) => viewport,
+                    Err(_) => {
+                        return self.stop_intent_consequence(
+                            handoff,
+                            UiIntentConsequenceStopReason::RuntimeServicePortalPlacement(
+                                crate::runtime::intent_execution::UiIntentPortalPlacementStopReason::IncompatibleCoordinateSpace,
+                            ),
+                        )
+                    }
+                };
+                let presented_viewport = viewport.and_then(|viewport| {
+                    crate::runtime::interaction::UiPresentedViewportGeometry::from_current_interaction(
+                        viewport,
+                        handoff.target().geometry(),
+                    )
+                });
+                let resolved_owner = self
+                    .mounted
+                    .current_portal_owner_for_child(handoff.target().mounted_instance());
+                let request = portal_service_request(
+                    &handoff,
+                    destination,
+                    presented_viewport,
+                    resolved_owner,
+                );
+                let Some(portal) = self.portal.as_ref() else {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceOwnerUnavailable(
+                            crate::capability::UiRuntimeServiceFamily::Portal.into(),
+                        ),
+                    );
+                };
+                match portal.prepare(request) {
+                    Ok(transition) => Some(transition),
+                    Err(
+                        crate::runtime::portal::UiPortalServiceTransitionDenial::RevisionExhausted,
+                    ) => {
+                        return self.stop_intent_consequence(
+                            handoff,
+                            UiIntentConsequenceStopReason::RuntimeServiceTransitionExhausted,
+                        )
+                    }
+                    Err(crate::runtime::portal::UiPortalServiceTransitionDenial::StalePlan) => {
+                        unreachable!("portal preparation does not mutate its revision")
+                    }
+                    Err(crate::runtime::portal::UiPortalServiceTransitionDenial::Placement(
+                        denial,
+                    )) => {
+                        return self.stop_intent_consequence(
+                            handoff,
+                            UiIntentConsequenceStopReason::RuntimeServicePortalPlacement(
+                                portal_placement_stop_reason(denial),
+                            ),
+                        )
+                    }
+                }
+            }
+            None => None,
+        };
+        let portal_transition = if explicit_portal_transition.is_none()
+            && handoff.interaction_family()
+                == crate::capability::UiSemanticInteractionFamily::SelectionCommit
+        {
+            match self.portal.as_ref().map(|portal| {
+                portal.prepare_dismissal(
+                    crate::runtime::portal::UiPortalDismissalTrigger::AcceptedSelection,
+                    None,
+                    handoff.idempotency(),
+                )
+            }) {
+                None
+                | Some(Ok(crate::runtime::portal::UiPortalDismissalPreparation::Ignored(_))) => {
+                    None
+                }
+                Some(Ok(crate::runtime::portal::UiPortalDismissalPreparation::Prepared(
+                    dismissal,
+                ))) => Some(dismissal.into_transition()),
+                Some(Err(
+                    crate::runtime::portal::UiPortalServiceTransitionDenial::RevisionExhausted,
+                )) => {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceTransitionExhausted,
+                    )
+                }
+                Some(Err(crate::runtime::portal::UiPortalServiceTransitionDenial::StalePlan)) => {
+                    unreachable!("portal dismissal preparation does not mutate its revision")
+                }
+                Some(Err(crate::runtime::portal::UiPortalServiceTransitionDenial::Placement(
+                    denial,
+                ))) => {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServicePortalPlacement(
+                            portal_placement_stop_reason(denial),
+                        ),
+                    )
+                }
+            }
+        } else {
+            explicit_portal_transition
+        };
         let observed = handoff.consequence_count();
         let limit = self.application.intent_consequence_fact_capacity();
         if observed > limit {
@@ -179,6 +310,8 @@ impl WorthUiActiveApplicationSession {
             observation: observation.progress,
             posture: observation.posture,
             consequence: handoff,
+            portal_transition,
+            portal_proposal: None,
             query_reference,
         };
         match self.prepare_intent_consequence_rebind(plan, execution, transfer) {

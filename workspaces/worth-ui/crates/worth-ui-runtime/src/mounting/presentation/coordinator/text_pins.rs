@@ -28,6 +28,7 @@ struct UiMountedTextPinEdit {
 pub(crate) struct UiMountedTextPinCandidate {
     binding: UiSurfaceBindingGeneration,
     next_binding: UiMountedBindingPins,
+    #[cfg(test)]
     binding_changed: bool,
     binding_additions: Box<[UiGlyphRasterPinRequest]>,
     binding_releases: Box<[UiGlyphRasterPinRequest]>,
@@ -62,6 +63,7 @@ impl UiMountedTextPinState {
         previous: UiMountedBindingPins,
         next_binding: UiMountedBindingPins,
     ) -> UiMountedTextPinCandidate {
+        #[cfg(test)]
         let binding_changed = previous.by_command != next_binding.by_command;
         let (binding_additions, binding_releases) = transition_difference(
             &all_pins(&previous).collect::<Vec<_>>(),
@@ -85,6 +87,7 @@ impl UiMountedTextPinState {
         UiMountedTextPinCandidate {
             binding,
             next_binding,
+            #[cfg(test)]
             binding_changed,
             binding_additions,
             binding_releases,
@@ -131,6 +134,7 @@ impl UiMountedTextPinState {
 }
 
 impl UiMountedTextPinCandidate {
+    #[cfg(test)]
     pub(crate) const fn changes_binding(&self) -> bool {
         self.binding_changed
     }

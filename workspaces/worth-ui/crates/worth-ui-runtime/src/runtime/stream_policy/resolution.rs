@@ -80,7 +80,8 @@ pub struct UiAllocationFrameRejection {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiAllocationSourceOrderLedger {
-    records: [Option<(u64, crate::runtime::UiAllocationFrameSourceGeneration, u64)>; 64],
+    records: [Option<(u64, crate::runtime::UiAllocationFrameSourceGeneration, u64)>;
+        crate::runtime::allocation_frame_dispatch::ALLOCATION_FRAME_SOURCE_CAPACITY],
 }
 
 #[derive(Debug, PartialEq)]

@@ -62,10 +62,10 @@ pub(crate) struct UiCommittedAllocationInvalidationContext {
     pub(super) impact_narrowing: Option<Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>>,
     pub(super) graph_replan_admission: crate::graph::UiGraphReplanAdmission,
     pub(super) scroll_planning:
-        Option<crate::runtime::scroll_owned_allocation::UiAdmittedScrollPlanningAuthority>,
+        Option<crate::runtime::scroll::allocation::UiAdmittedScrollPlanningAuthority>,
     pub(super) scroll_planning_denial: Option<crate::runtime::UiScrollContractAdmissionDenial>,
     pub(super) portal_planning:
-        Option<crate::runtime::portal_anchored_allocation::UiAdmittedPortalPlanningAuthority>,
+        Option<crate::runtime::portal::anchored_allocation::UiAdmittedPortalPlanningAuthority>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -78,10 +78,10 @@ pub(crate) struct UiAllocationInvalidationAdmissionContext {
     pub(super) impact_narrowing: Option<Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>>,
     pub(super) graph_replan_admission: crate::graph::UiGraphReplanAdmission,
     pub(super) scroll_planning:
-        Option<crate::runtime::scroll_owned_allocation::UiAdmittedScrollPlanningAuthority>,
+        Option<crate::runtime::scroll::allocation::UiAdmittedScrollPlanningAuthority>,
     pub(super) scroll_planning_denial: Option<crate::runtime::UiScrollContractAdmissionDenial>,
     pub(super) portal_planning:
-        Option<crate::runtime::portal_anchored_allocation::UiAdmittedPortalPlanningAuthority>,
+        Option<crate::runtime::portal::anchored_allocation::UiAdmittedPortalPlanningAuthority>,
 }
 
 pub(crate) struct UiInvalidationAuthorityLookup {
@@ -107,6 +107,19 @@ pub(crate) enum UiInvalidationAuthorityLookupDenial {
 }
 
 impl UiAllocationInvalidationAuthority {
+    pub(crate) fn viewport_measurement_witnesses(
+        &self,
+    ) -> Box<[crate::evidence::UiHostMeasurementAuthorityWitness]> {
+        self.host_targets_by_witness
+            .iter()
+            .filter_map(|(witness, _)| {
+                (witness.evidence_category()
+                    == crate::evidence::UiMeasurementEvidenceCategory::ViewportExtent)
+                    .then_some(*witness)
+            })
+            .collect()
+    }
+
     pub(in crate::runtime) fn prepare_portal_binding_succession(
         &self,
         permit: &crate::runtime::allocation_frame_dispatch::UiAllocationTransactionAuthority,
@@ -129,27 +142,6 @@ impl UiAllocationInvalidationAuthority {
         super::portal_binding_index::UiPortalMovementLookupDenial,
     > {
         self.portal_bindings.movement(result)
-    }
-    #[cfg(test)]
-    pub(crate) fn scroll_binding_counters(&self) -> crate::runtime::UiScrollBindingCatalogCounters {
-        self.scroll_bindings
-            .catalog_receipt
-            .as_ref()
-            .map_or_else(Default::default, |receipt| receipt.counters())
-    }
-    pub(crate) fn scroll_projection_target(
-        &self,
-        owner: crate::runtime::UiScrollProjectionOwnerIdentity,
-    ) -> Option<crate::runtime::UiActivatedScrollProjectionTarget> {
-        self.scroll_bindings.projection(owner)
-    }
-    pub(crate) fn validate_scroll_projection_receipt(
-        &self,
-        target: crate::runtime::UiActivatedScrollProjectionTarget,
-        key: &crate::runtime::UiScrollReceiptActivationKey,
-    ) -> Result<(), crate::runtime::UiScrollOwnerAcquisitionDenial> {
-        self.scroll_bindings
-            .validate_projection_receipt(target, key)
     }
     pub(crate) fn acquire_host_scroll_projection(
         &self,

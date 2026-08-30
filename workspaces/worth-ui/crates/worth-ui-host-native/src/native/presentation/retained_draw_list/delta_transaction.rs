@@ -8,6 +8,7 @@ use crate::native::presentation::retained_order::UiNativeRetainedOrderSnapshot;
 
 pub(crate) struct UiNativeRetainedDeltaUndo {
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    content: worth_ui_host_contract::UiMountedContentGeneration,
     commands: Vec<(UiMountedPaintCommandIdentity, Option<UiMountedPaintCommand>)>,
     glyph_runs: Vec<(
         UiMountedPaintCommandIdentity,
@@ -18,6 +19,10 @@ pub(crate) struct UiNativeRetainedDeltaUndo {
     regions: super::super::retained_regions::UiNativeRetainedRegions,
     identity_overlay: super::super::identity_overlay::UiNativeRetainedIdentityOverlay,
     last_paint_attribution: Option<(usize, super::UiNativeRetainedPresentationAttribution)>,
+    sample_overrides: Vec<(
+        UiMountedPaintCommandIdentity,
+        Option<worth_ui_host_contract::UiMountedPresentationSampleChange>,
+    )>,
 }
 
 impl UiNativeRetainedDrawList {
@@ -34,8 +39,10 @@ impl UiNativeRetainedDrawList {
         let membership = self.validate_changes(delta.changes())?;
         self.validate_order_edits(delta.order(), &membership)?;
         self.validate_damage(delta.changes(), delta.damage())?;
+        let changed_identities = changed_identities(delta.changes());
         let undo = UiNativeRetainedDeltaUndo {
             frame: self.frame,
+            content: self.content,
             commands: delta
                 .changes()
                 .iter()
@@ -59,7 +66,13 @@ impl UiNativeRetainedDrawList {
             regions: self.regions.clone(),
             identity_overlay: self.identity_overlay,
             last_paint_attribution: self.last_paint_attribution,
+            sample_overrides: changed_identities
+                .iter()
+                .copied()
+                .map(|identity| (identity, self.sample_overrides.get(&identity).copied()))
+                .collect(),
         };
+        self.retire_sample_overrides_for_semantic_delta(&changed_identities)?;
         if let Err(error) = self
             .apply_changes(delta.changes(), glyph_runs)
             .and_then(|_| self.apply_order_edits(delta.order()))
@@ -105,6 +118,7 @@ impl UiNativeRetainedDrawList {
         self.regions
             .rebind_receipt_affinity(delta.affinity().receipt_affinity());
         self.frame = delta.affinity().successor();
+        self.content = delta.affinity().content();
         self.retain_current_paint_attribution();
         let mut replay_damage = delta.damage().to_vec();
         let overlay_damage =
@@ -167,6 +181,46 @@ impl UiNativeRetainedDrawList {
         self.identity_overlay = undo.identity_overlay;
         self.last_paint_attribution = undo.last_paint_attribution;
         self.frame = undo.frame;
+        self.content = undo.content;
+        for (identity, override_change) in undo.sample_overrides {
+            self.sample_overrides.remove(&identity);
+            let Some(override_change) = override_change else {
+                continue;
+            };
+            let command = self
+                .commands
+                .get(&identity)
+                .ok_or(UiNativeRetainedDrawListDenial::CommandMismatch)?;
+            let semantic = visible_bounds(command);
+            let sampled =
+                super::sample_transaction::sampled_visible_bounds(command, Some(override_change))?;
+            super::mutation::update_damage(&mut self.damage, identity, semantic, sampled)?;
+            self.sample_overrides.insert(identity, override_change);
+        }
         Ok(())
     }
+}
+
+fn changed_identities(
+    changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
+) -> Vec<UiMountedPaintCommandIdentity> {
+    let mut identities = std::collections::HashSet::new();
+    for change in changes {
+        match change {
+            worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command) => {
+                identities.insert(command.identity());
+            }
+            worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+                predecessor,
+                successor,
+            } => {
+                identities.insert(*predecessor);
+                identities.insert(successor.identity());
+            }
+            worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => {
+                identities.insert(*identity);
+            }
+        }
+    }
+    identities.into_iter().collect()
 }

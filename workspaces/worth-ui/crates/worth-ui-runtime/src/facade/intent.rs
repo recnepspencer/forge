@@ -33,7 +33,7 @@ pub use crate::declaration::{
 };
 pub use crate::facade::entry::{
     UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
-    UiIntentConsequencePublicationRecovery,
+    UiIntentConsequencePublicationReceipt, UiIntentConsequencePublicationRecovery,
 };
 pub use crate::runtime::intent::{
     UiAdmittedIntent, UiConfirmedIntentCandidate, UiInoperableIntentCandidate,
@@ -72,14 +72,15 @@ pub use crate::runtime::intent_execution::{
     UiIntentExecutionIdempotencyIdentity, UiIntentExecutionPollContext, UiIntentExecutionProvider,
     UiIntentExecutionRecovery, UiIntentExecutionRequest, UiIntentExecutionReservationDenial,
     UiIntentExecutionShutdownReport, UiIntentExecutionTransition,
-    UiIntentExecutionTransitionPosture, UiIntentPartialEffect, UiIntentProviderPoll,
-    UiIntentProviderRecoveryPoll, UiIntentProviderSettlement, UiIntentProviderStart,
-    UiIntentProviderStop, UiIntentProviderVersion, UiIntentRecoveryHandle,
+    UiIntentExecutionTransitionPosture, UiIntentPartialEffect, UiIntentPortalPlacementStopReason,
+    UiIntentProviderPoll, UiIntentProviderRecoveryPoll, UiIntentProviderSettlement,
+    UiIntentProviderStart, UiIntentProviderStop, UiIntentProviderVersion, UiIntentRecoveryHandle,
     UiIntentRecoveryProgressOutcome, UiIntentRecoveryProgressPosture,
     UiIntentRecoveryProgressReceipt, UiIntentRecoveryProgressStop,
-    UI_INTENT_MAXIMUM_APPLICATION_ATTEMPTS, UI_INTENT_MAXIMUM_DESTINATION_ATTEMPTS,
-    UI_INTENT_MAXIMUM_INTENT_ATTEMPTS, UI_INTENT_MAXIMUM_PROVIDER_ATTEMPTS,
-    UI_INTENT_MAXIMUM_RETAINED_PAYLOAD_BYTES,
+    UiRuntimeServiceFamilyStopReason, UiRuntimeServiceProposalStop,
+    UiRuntimeServiceProposalStopReason, UI_INTENT_MAXIMUM_APPLICATION_ATTEMPTS,
+    UI_INTENT_MAXIMUM_DESTINATION_ATTEMPTS, UI_INTENT_MAXIMUM_INTENT_ATTEMPTS,
+    UI_INTENT_MAXIMUM_PROVIDER_ATTEMPTS, UI_INTENT_MAXIMUM_RETAINED_PAYLOAD_BYTES,
 };
 pub use crate::runtime::interaction::UiIntentRouteSource;
 pub use crate::runtime::session::UiIntentResourceCensus;

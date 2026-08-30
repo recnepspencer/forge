@@ -61,23 +61,40 @@ impl UiInteractionRuntimeState {
             if pointer.is_empty() && draft.is_empty() {
                 ignored_reports += 1;
             }
-            transitions.extend(pointer.into_iter().map(|outcome| match outcome {
-                UiPointerGestureOutcome::Pressed(press) => {
-                    UiInteractionTransition::PointerPressed(press)
+            for outcome in pointer {
+                match outcome {
+                    UiPointerGestureOutcome::Pressed(press) => {
+                        let dismissal = super::UiDismissInteraction::outside_press(
+                            core.presentation(),
+                            press.sequence(),
+                            press.time_basis(),
+                            press.position(),
+                        );
+                        transitions.push(UiInteractionTransition::PointerPressed(press));
+                        transitions.push(UiInteractionTransition::DismissRequested(dismissal));
+                    }
+                    UiPointerGestureOutcome::Completed(gesture) => {
+                        self.record_semantic();
+                        transitions.push(UiInteractionTransition::Semantic(
+                            UiSemanticInteraction::Activate(UiActivateInteraction::from_pointer(
+                                gesture,
+                                generation.clone(),
+                            )),
+                        ));
+                    }
+                    UiPointerGestureOutcome::Stopped(stop) => {
+                        transitions.push(UiInteractionTransition::Stopped(
+                            UiInteractionStop::PointerGesture(stop),
+                        ));
+                    }
                 }
-                UiPointerGestureOutcome::Completed(gesture) => {
-                    self.record_semantic();
-                    UiInteractionTransition::Semantic(UiSemanticInteraction::Activate(
-                        UiActivateInteraction::from_pointer(gesture, generation.clone()),
-                    ))
-                }
-                UiPointerGestureOutcome::Stopped(stop) => {
-                    UiInteractionTransition::Stopped(UiInteractionStop::PointerGesture(stop))
-                }
-            }));
+            }
             transitions.extend(draft.into_iter().map(|outcome| match outcome {
                 UiDraftProcessingOutcome::Mutation(receipt) => {
                     UiInteractionTransition::DraftMutation(receipt)
+                }
+                UiDraftProcessingOutcome::DismissRequested(interaction) => {
+                    UiInteractionTransition::DismissRequested(interaction)
                 }
                 UiDraftProcessingOutcome::Semantic(interaction) => {
                     self.record_semantic();
@@ -95,6 +112,8 @@ impl UiInteractionRuntimeState {
             transitions: transitions.into_boxed_slice(),
             ignored_reports,
             state: self.snapshot(),
+            scroll_observations: Box::new([]),
+            command_routes: Box::new([]),
         }
     }
 
@@ -109,6 +128,29 @@ impl UiInteractionRuntimeState {
         Install: FnOnce(worth_ui_host_contract::UiHostInputRecipientBindingReceipt) -> bool,
     {
         self.draft.bind(activation, context, contract, install)
+    }
+
+    pub(crate) fn bind_focused_submit<Install>(
+        &mut self,
+        target: super::UiPresentedInteractionTargetView,
+        context: super::draft::UiLocalInputRecipientBindingContext<'_>,
+        install: Install,
+    ) -> Result<
+        super::UiLocalInputRecipientBindingReceipt,
+        super::UiLocalInputRecipientBindingStopReason,
+    >
+    where
+        Install: FnOnce(worth_ui_host_contract::UiHostInputRecipientBindingReceipt) -> bool,
+    {
+        self.draft.bind_focused_submit(target, context, install)
+    }
+
+    pub(crate) fn clear_focused_recipient(
+        &mut self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) {
+        self.draft
+            .cancel_instance(instance, super::UiLocalInputStopReason::RecipientReplaced);
     }
 
     pub(crate) const fn application_generation(

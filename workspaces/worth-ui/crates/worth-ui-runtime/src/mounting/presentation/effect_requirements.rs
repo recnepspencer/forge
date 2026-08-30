@@ -29,14 +29,11 @@ mod tests {
     };
 
     #[test]
-    fn projection_derived_requirements_include_motion_and_diagnostic() {
+    fn motion_participation_remains_projection_metadata_not_a_host_effect() {
         let projection = admitted_effect_projection();
         assert_eq!(
             required_effects(UiHostSurfacePresentationMode::NativeDisplay, &projection),
-            vec![
-                UiMountedEffectFamily::Motion,
-                UiMountedEffectFamily::Diagnostic,
-            ]
+            vec![UiMountedEffectFamily::Diagnostic]
         );
         assert_eq!(
             required_effects(UiHostSurfacePresentationMode::RecordOnly, &projection),
@@ -63,6 +60,7 @@ mod tests {
                 UiMountedNodeProjectionViewInput {
                     mounted_instance: instance,
                     node_receipt: receipt,
+                    authored_position: 0,
                     role: UiMountedMechanicalRole::Diagnostic,
                     participation: UiMountedParticipation::new(UiMountedParticipationInput {
                         paint: withheld,
@@ -85,11 +83,13 @@ mod tests {
                     ),
                     drawables: Vec::new(),
                     semantic_text: Vec::new(),
+                    portal_presentation: None,
                 },
             )],
             clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
             layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
             filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+            portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
             semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
             hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(
                 Vec::new(),

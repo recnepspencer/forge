@@ -21,6 +21,8 @@ struct AuthoredPlatformPulseIntentInput {
     revision: u64,
     operability: PlatformPulseIntentInputOperability,
     executor_gate: PlatformPulseExecutorGatePosture,
+    #[serde(default)]
+    query_denial_requested: bool,
 }
 
 pub(super) fn read_record(
@@ -50,6 +52,7 @@ pub(super) fn read_record(
         revision: authored.revision,
         operability: authored.operability,
         executor_gate: authored.executor_gate,
+        query_denial_requested: authored.query_denial_requested,
     })
 }
 

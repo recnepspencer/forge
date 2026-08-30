@@ -1,5 +1,7 @@
 mod dense;
+#[cfg(test)]
 mod frontier;
 
 pub use dense::DenseBitset;
-pub use frontier::BitsetFrontier;
+#[cfg(test)]
+pub(crate) use frontier::BitsetFrontier;

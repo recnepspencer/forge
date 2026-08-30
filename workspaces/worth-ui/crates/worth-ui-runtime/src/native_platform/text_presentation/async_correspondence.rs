@@ -14,12 +14,12 @@ struct UiDeferredPresentedCompletion {
 }
 
 pub(crate) enum UiPresentationAsyncPresentedAdmission {
-    Current(worth_ui_query_binding::WorthUiPresentationPresentedReceipt),
-    Superseded(worth_ui_query_binding::WorthUiPresentationPresentedReceipt),
+    Current,
+    Superseded,
 }
 
 pub(crate) struct UiPresentationAsyncTerminalCleanup {
-    runtime: UiPresentationAsyncRuntime,
+    runtime: Box<UiPresentationAsyncRuntime>,
 }
 
 pub(crate) struct UiPresentationAsyncTerminalCloseReceipt {
@@ -37,8 +37,8 @@ impl std::fmt::Debug for UiPresentationAsyncTerminalCleanup {
 
 #[derive(Debug)]
 pub(crate) enum UiPresentationAsyncPendingDenial {
-    Issuance(worth_ui_query_binding::WorthUiPresentationCorrespondenceIssuanceDenial),
-    Admission(worth_ui_query_binding::WorthUiPresentationPendingAdmissionDenial),
+    Issuance,
+    Admission(Box<worth_ui_query_binding::WorthUiPresentationPendingAdmissionDenial>),
 }
 
 impl UiPresentationAsyncPendingDenial {
@@ -46,8 +46,8 @@ impl UiPresentationAsyncPendingDenial {
         self,
     ) -> Option<worth_ui_query_binding::WorthUiPresentationAdmissionRecovery> {
         match self {
-            Self::Admission(denial) => denial.into_recovery_receipt(),
-            Self::Issuance(_) => None,
+            Self::Admission(denial) => (*denial).into_recovery_receipt(),
+            Self::Issuance => None,
         }
     }
 }
@@ -76,10 +76,10 @@ impl UiPresentationAsyncRuntime {
         let correspondence = self
             .correspondence
             .issue(basis)
-            .map_err(UiPresentationAsyncPendingDenial::Issuance)?;
+            .map_err(|_| UiPresentationAsyncPendingDenial::Issuance)?;
         self.owner
             .admit_pending(correspondence)
-            .map_err(UiPresentationAsyncPendingDenial::Admission)
+            .map_err(|denial| UiPresentationAsyncPendingDenial::Admission(Box::new(denial)))
     }
 
     pub(crate) fn admit_presented_after_validation(
@@ -138,10 +138,10 @@ impl UiPresentationAsyncRuntime {
                 match receipt.observation().posture() {
                     worth_ui_query_binding::WorthUiPresentationAsyncPosture::Current => {
                         self.last_current_presented = Some(presented);
-                        Ok(UiPresentationAsyncPresentedAdmission::Current(receipt))
+                        Ok(UiPresentationAsyncPresentedAdmission::Current)
                     }
                     worth_ui_query_binding::WorthUiPresentationAsyncPosture::Superseded => {
-                        Ok(UiPresentationAsyncPresentedAdmission::Superseded(receipt))
+                        Ok(UiPresentationAsyncPresentedAdmission::Superseded)
                     }
                     posture => {
                         unreachable!("presented completion cannot settle into {posture:?} posture")
@@ -203,13 +203,6 @@ impl UiPresentationAsyncRuntime {
             .certify_effects_indeterminate(receipt, observed_payload_byte_len);
         self.owner
             .admit_effects_indeterminate_requiring_reconstruction(receipt, observation)
-    }
-
-    pub(crate) fn reject_before_effects(
-        &mut self,
-        receipt: &worth_ui_query_binding::WorthUiPresentationPendingReceipt,
-    ) -> Result<(), worth_ui_query_binding::WorthUiPresentationSettlementDenial> {
-        self.owner.reject_before_effects(receipt)
     }
 
     pub(crate) fn reject_recovery_before_effects(
@@ -286,7 +279,9 @@ impl UiPresentationAsyncRuntime {
                 settled_frontiers: self.settled_frontiers.into_boxed_slice(),
                 settled_frontier_trace_complete: !self.settled_frontier_trace_overflowed,
             }),
-            Err(_) => Err(UiPresentationAsyncTerminalCleanup { runtime: self }),
+            Err(_) => Err(UiPresentationAsyncTerminalCleanup {
+                runtime: Box::new(self),
+            }),
         }
     }
 }
@@ -295,7 +290,7 @@ impl UiPresentationAsyncTerminalCleanup {
     pub(crate) fn retry(
         self,
     ) -> Result<UiPresentationAsyncTerminalCloseReceipt, UiPresentationAsyncTerminalCleanup> {
-        self.runtime.into_terminal_close()
+        (*self.runtime).into_terminal_close()
     }
 }
 

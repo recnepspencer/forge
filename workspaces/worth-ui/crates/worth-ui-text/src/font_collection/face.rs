@@ -60,7 +60,7 @@ impl UiQualifiedFontFace {
             UiFontCoverageIndex::from_font(&font).ok_or(Denial::MissingUnicodeCoverage)?;
         let feature_tags = feature_inventory::derive(&font)?;
         let color_glyphs = super::color_glyph::validate(&font)?;
-        if input.intrinsic_color != !color_glyphs.is_empty() {
+        if input.intrinsic_color == color_glyphs.is_empty() {
             return Err(Denial::MalformedColorFontTables);
         }
         Ok(Self {

@@ -12,7 +12,7 @@ use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 
 use super::facts::OperabilityFacts;
-use super::intent_types::{PrimaryIntent, SecondaryIntent, UnsupportedIntent};
+use super::intent_types::{PrimaryIntent, SecondaryIntent};
 
 mod application;
 
@@ -135,25 +135,6 @@ pub(in crate::intent) fn build_route_scale(
         .expect("route-scale application compiles through production preparation")
 }
 
-pub(super) fn build_unsupported() -> (worth_ui::facade::app::WorthUiApp, OperabilityFacts) {
-    let facts = OperabilityFacts::new();
-    let input = single_input::<UnsupportedIntent>(
-        PRIMARY_DECLARATION,
-        UiIntentConcurrencyScope::TargetRouteSingleFlight,
-        &facts,
-    );
-    let app = prepare_application(
-        OperabilityApplicationInput::new(
-            input,
-            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<PrimaryIntent>::new(
-            ),
-        )
-        .with_unsupported_definition(),
-        &facts,
-    );
-    (app, facts)
-}
-
 fn scoped_input(
     layout: OccupancyLayout,
     facts: &OperabilityFacts,
@@ -204,19 +185,6 @@ fn two_declaration_input<I: UiIntent, J: UiIntent>(
             declaration::<I>(PRIMARY_DECLARATION, scope, facts),
             declaration::<J>(PEER_DECLARATION, scope, facts),
         ],
-    )
-}
-
-fn single_input<I: UiIntent>(
-    identity: &str,
-    scope: UiIntentConcurrencyScope,
-    facts: &OperabilityFacts,
-) -> WorthUiRustAuthoredArtifactInput {
-    module(
-        identity,
-        identity,
-        WorthUiIntentInteractionFamily::Activate,
-        [declaration::<I>(identity, scope, facts)],
     )
 }
 

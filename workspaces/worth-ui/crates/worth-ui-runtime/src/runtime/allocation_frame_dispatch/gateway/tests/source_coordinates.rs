@@ -112,6 +112,11 @@ fn host_source_distinguishes_equal_truth_at_later_monotonic_positions() {
         admitted.each_ref().map(|fact| fact.source_order()),
         [1, 2, 3]
     );
+    assert_eq!(
+        admitted.each_ref().map(|fact| fact.source_identity()),
+        [91, 91, 91],
+        "one declared measurement request owns one durable gateway source"
+    );
     let posture = super::run_framework_turn(&mut runtime, |turn| {
         for fact in admitted {
             assert!(turn

@@ -16,6 +16,7 @@ pub(crate) struct UiNativeTextAtlasUpload {
 
 impl UiNativeTextAtlasUpload {
     #[doc(hidden)]
+    #[cfg(test)]
     pub fn from_text_mechanics(
         key: UiGlyphRasterKey,
         width: u32,

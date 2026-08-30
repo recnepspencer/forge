@@ -34,7 +34,8 @@ pub(crate) use authored_material::{
 };
 pub use authored_payload_source::UiIntentPayloadSource;
 pub(crate) use catalog::{
-    UiIntentCatalog, UiIntentCatalogResolvedRoute, UiIntentCatalogSemanticComparison,
+    UiIntentCatalog, UiIntentCatalogCommandRoute, UiIntentCatalogResolvedRoute,
+    UiIntentCatalogSemanticComparison,
 };
 pub use catalog::{UiIntentCatalogMetrics, UiIntentRouteResolutionCost};
 pub use concurrency_scope::UiIntentConcurrencyScope;

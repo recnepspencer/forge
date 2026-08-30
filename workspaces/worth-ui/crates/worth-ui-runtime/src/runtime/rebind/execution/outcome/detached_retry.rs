@@ -55,27 +55,6 @@ impl UiDetachedRebindRetry {
         }
     }
 
-    pub(crate) fn retry<'session>(
-        self,
-        session: &'session mut crate::facade::WorthUiActiveApplicationSession,
-        now_tick: u64,
-    ) -> crate::runtime::rebind::UiRebindOutcome<'session> {
-        let kind = match self.inner {
-            UiDetachedRebindRetryInner::Changed(inner) => {
-                super::super::preparation::UiPreparedRebindKind::Changed(inner.attach(session))
-            }
-            UiDetachedRebindRetryInner::Content(inner) => {
-                super::super::preparation::UiPreparedRebindKind::Content(inner.attach(session))
-            }
-        };
-        super::super::preparation::UiPreparedRebind {
-            plan: self.plan,
-            reservation: self.registration,
-            kind,
-        }
-        .execute(now_tick)
-    }
-
     pub(crate) fn rebase_content_and_retry<'session>(
         self,
         session: &'session mut crate::facade::WorthUiActiveApplicationSession,

@@ -247,13 +247,13 @@ fn slot_participation_not_admitted_for_page_structures_on_freeze_path() {
     assert_eq!(
         denial,
         WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+            Box::new(UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
                 denial: UiDeclarationStructuralSemanticsAdmissionDenial::
                     SlotParticipationNotAdmittedForFamily {
                         family: UiDeclarationFamilyKind::Page,
                         observed: vec!["slot:footer".to_owned()],
                     },
-            },
+            }),
         )
     );
 }
@@ -266,15 +266,15 @@ fn unsupported_structural_tokens_deny_through_public_freeze_path() {
     );
     assert_eq!(
         denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
+        WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(
             UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
                 denial:
                     UiDeclarationStructuralSemanticsAdmissionDenial::UnsupportedStructuralTokens {
                         family: UiDeclarationFamilyKind::Control,
                         observed: vec!["repeat:many".to_owned()],
                     },
-            },
-        )
+            }
+        ),)
     );
 }
 

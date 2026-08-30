@@ -97,18 +97,18 @@ fn stale_delta_denies_without_mutating_retained_commands() {
     assert_eq!(retained.command(identity), Some(&initial.commands()[0]));
 }
 
-pub(in crate::native::presentation) struct DrawListWorld {
-    pub(in crate::native::presentation) surface: UiSemanticSurfaceIdentity,
-    pub(in crate::native::presentation) binding: UiSurfaceBindingGeneration,
-    pub(in crate::native::presentation) content: UiMountedContentGeneration,
-    pub(in crate::native::presentation) first: UiMountedInstanceIdentity,
+pub(in crate::native) struct DrawListWorld {
+    pub(in crate::native) surface: UiSemanticSurfaceIdentity,
+    pub(in crate::native) binding: UiSurfaceBindingGeneration,
+    pub(in crate::native) content: UiMountedContentGeneration,
+    pub(in crate::native) first: UiMountedInstanceIdentity,
     second: UiMountedInstanceIdentity,
     third: UiMountedInstanceIdentity,
-    pub(in crate::native::presentation) requirement: UiMountedSurfaceBindingRequirement,
+    pub(in crate::native) requirement: UiMountedSurfaceBindingRequirement,
 }
 
 impl DrawListWorld {
-    pub(in crate::native::presentation) fn new() -> Self {
+    pub(in crate::native) fn new() -> Self {
         let surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
         let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
         let requirement = UiMountedSurfaceBindingRequirement::new(
@@ -193,6 +193,24 @@ impl DrawListWorld {
             production_cost: Default::default(),
         })
     }
+
+    pub(in crate::native) fn retained_focus_target(
+        &self,
+        frame: UiMountedFrameIdentity,
+    ) -> (
+        super::UiNativeRetainedDrawList,
+        worth_ui_host_contract::UiHostFocusPlacementTarget,
+    ) {
+        let row = self.rect(frame, self.first, 0.0, UiMountedRgba8::new(9, 17, 31, 255));
+        let target = worth_ui_host_contract::UiHostFocusPlacementTarget::new(
+            row.mounted_instance(),
+            row.node_receipt(),
+        );
+        (
+            super::UiNativeRetainedDrawList::initial(&self.initial(frame, [row]), &[]).unwrap(),
+            target,
+        )
+    }
 }
 
 pub(in crate::native::presentation) fn command(
@@ -240,6 +258,7 @@ fn projection(
         clips: UiMountedClipTable::produced(Vec::new()),
         layers: UiMountedLayerTable::produced(Vec::new()),
         filled_rects: UiMountedFilledRectTable::from_runtime_mounting(rows).unwrap(),
+        portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
         semantic_text: UiMountedSemanticTextTable::empty(),
         hit_tests: UiMountedHitTestTable::empty(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
@@ -259,6 +278,7 @@ fn rect_node(index: usize, row: &UiMountedFilledRectMechanic) -> UiMountedNodePr
     UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
         mounted_instance: row.mounted_instance(),
         node_receipt: row.node_receipt(),
+        authored_position: u64::try_from(index).expect("fixture authored position"),
         role: UiMountedMechanicalRole::Control,
         participation: UiMountedParticipation::new(UiMountedParticipationInput {
             paint: admitted,
@@ -282,6 +302,7 @@ fn rect_node(index: usize, row: &UiMountedFilledRectMechanic) -> UiMountedNodePr
         diagnostic: worth_ui_host_contract::UiMountedDiagnosticProjection::Omitted(omitted),
         drawables: vec![worth_ui_host_contract::UiMountedDrawableReference::FilledRect(reference)],
         semantic_text: Vec::new(),
+        portal_presentation: None,
     })
 }
 

@@ -17,7 +17,7 @@ use worth_ui_runtime::facade::mounted::{
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::host_measurement_fixture::{begin_viewport, measurement_host, viewport_observation};
-use super::host_observation_fixture::{batch, pointer, report, source};
+use super::host_observation_fixture::{batch, pointer, report, source, window_focus};
 use super::mounted_application_lifecycle::in_flight_presentation_world::prepared;
 use super::mounted_application_lifecycle::published_mounted_world::{
     multi_surface_observation_world, published_observation_world,
@@ -243,11 +243,7 @@ fn adapter_call_only_enqueues_pointer_focus_and_measurement_until_presentation_r
         UiHostObservationLoss::Complete,
         vec![
             report(1, pointer(1, 10), &world.current),
-            report(
-                2,
-                UiHostObservationPayload::Focus { focused: true },
-                &world.current,
-            ),
+            report(2, window_focus(&world.current, true), &world.current),
         ],
     );
     let measurement_request = begin_viewport(&mut world.session, Some(world.binding), 100, 0);

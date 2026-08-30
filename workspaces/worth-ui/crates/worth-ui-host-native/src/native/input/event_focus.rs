@@ -13,12 +13,18 @@ pub(super) fn observe(
     let WindowEvent::Focused(focused) = event else {
         return None;
     };
-    if !state.admit_input(UiNativeInputObservationEventFamily::Focus) {
+    if !state.admit_input(UiNativeInputObservationEventFamily::WindowFocus) {
         return Some(state.rejection_disposition());
     }
     if !focused && state.pointer.end_capture().is_err() {
         state.record_terminal_stop(UiNativeInputObservationStop::PointerCaptureEpochExhausted);
         return Some(UiNativeInputObservationDisposition::Stopped);
     }
-    Some(state.emit_payloads([UiHostObservationPayload::Focus { focused: *focused }]))
+    let Some((_, _, presentation)) = state.completed else {
+        return Some(state.rejection_disposition());
+    };
+    Some(state.emit_payloads([UiHostObservationPayload::WindowFocus {
+        surface: presentation.host_surface(),
+        focused: *focused,
+    }]))
 }

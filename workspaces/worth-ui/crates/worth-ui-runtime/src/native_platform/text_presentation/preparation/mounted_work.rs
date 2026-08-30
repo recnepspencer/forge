@@ -23,11 +23,13 @@ pub(crate) fn mounted_semantic_text(
             complete_text_work(reconstruction.commands())
         }
         UiMountedPresentationWorkView::Delta(delta) => delta_text_work(delta.changes()),
-        UiMountedPresentationWorkView::Unchanged(_) => MountedSemanticTextWork {
-            mechanics: Vec::new(),
-            removals: Vec::new(),
-            complete: false,
-        },
+        UiMountedPresentationWorkView::Sample(_) | UiMountedPresentationWorkView::Unchanged(_) => {
+            MountedSemanticTextWork {
+                mechanics: Vec::new(),
+                removals: Vec::new(),
+                complete: false,
+            }
+        }
     }
 }
 
@@ -87,7 +89,9 @@ fn semantic_text_mechanic(
 ) -> Option<&UiMountedSemanticTextMechanic> {
     match command {
         UiMountedPaintCommand::SemanticText { mechanic, .. } => Some(mechanic),
-        UiMountedPaintCommand::FilledRect { .. } => None,
+        UiMountedPaintCommand::FilledRect { .. } | UiMountedPaintCommand::PortalOverlay { .. } => {
+            None
+        }
     }
 }
 
@@ -96,6 +100,7 @@ pub(super) fn logical_damage(work: UiMountedPresentationWorkView<'_>) -> &[UiMou
         UiMountedPresentationWorkView::Initial(initial) => initial.damage(),
         UiMountedPresentationWorkView::Delta(delta) => delta.damage(),
         UiMountedPresentationWorkView::Reconstruction(reconstruction) => reconstruction.damage(),
+        UiMountedPresentationWorkView::Sample(sample) => sample.damage(),
         UiMountedPresentationWorkView::Unchanged(_) => &[],
     }
 }

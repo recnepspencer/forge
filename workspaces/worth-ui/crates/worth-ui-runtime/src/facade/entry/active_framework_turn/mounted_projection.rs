@@ -1,5 +1,7 @@
 use super::WorthUiActiveFrameworkTurnExecution;
 
+mod lane_participation;
+
 pub(crate) struct WorthUiActiveMountedProjectionFrame<'frame, 'session> {
     execution: &'frame crate::runtime::WorthUiFrameworkTurnExecution<'session>,
     assembler: crate::mounting::UiMountedFrameAssembler<'frame>,
@@ -20,7 +22,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         request: &crate::mounting::UiMountedFrameRequest,
     ) -> crate::mounting::UiMountedFrameReuse {
         let plan = self.execution.runtime.active.active_plan_ref();
-        let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
+        let lanes = lane_participation::mounted_lanes(plan, request.virtualized_range().is_some());
         let allocation_truth_revision = self
             .execution
             .runtime
@@ -59,7 +61,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
     > {
         let virtualized_range = request.virtualized_range();
         let plan = self.execution.runtime.active.active_plan_ref();
-        let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
+        let lanes = lane_participation::mounted_lanes(plan, request.virtualized_range().is_some());
         let mut projection =
             self.begin_mounted_projection(request, lanes, semantic_content, theme_values, None)?;
         projection.execute_requested_lanes(lanes, virtualized_range)?;
@@ -78,7 +80,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
     > {
         let virtualized_range = request.virtualized_range();
         let plan = self.execution.runtime.active.active_plan_ref();
-        let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
+        let lanes = lane_participation::mounted_lanes(plan, request.virtualized_range().is_some());
         let mut projection = self.begin_mounted_projection(
             request,
             lanes,
@@ -102,7 +104,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
     > {
         let virtualized_range = request.virtualized_range();
         let plan = self.execution.runtime.active.active_plan_ref();
-        let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
+        let lanes = lane_participation::mounted_lanes(plan, request.virtualized_range().is_some());
         let mut projection =
             self.begin_mounted_projection(request, lanes, semantic_content, theme_values, None)?;
         projection.execute_requested_lanes(lanes, virtualized_range)?;
@@ -121,6 +123,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         crate::mounting::UiMountedFramePreparationDenial,
     > {
         let visual_overlay = request.visual_overlay();
+        let portal_overlays = request.portal_overlays();
         let plan = self.execution.runtime.active.active_plan_ref();
         let allocation_truth_revision = self
             .execution
@@ -146,6 +149,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
             lanes,
             preview: None,
             visual_overlay,
+            portal_overlays,
             semantic_content,
             theme_values,
             font_collection: std::sync::Arc::clone(&self.font_collection),
@@ -272,32 +276,6 @@ impl WorthUiActiveMountedProjectionFrame<'_, '_> {
         self.execute_realtime(crate::runtime::WorthUiRealtimeFrameTarget::renderer_surface(handle))
             .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
         Ok(())
-    }
-}
-
-fn mounted_lanes(
-    plan: &crate::runtime::WorthUiActiveExecutionPlan,
-    virtualized_range_present: bool,
-) -> crate::mounting::UiMountedLaneAssembly {
-    crate::mounting::UiMountedLaneAssembly {
-        ordinary: matches!(
-            plan.ordinary_availability(),
-            crate::runtime::WorthUiOrdinaryPlanAvailability::Executable
-        ),
-        virtualized: virtualized_range_present
-            && matches!(
-                plan.virtualized_availability(),
-                crate::runtime::WorthUiVirtualizedPlanAvailability::Executable
-            ),
-        canvas: matches!(
-            plan.canvas_spatial_availability(),
-            crate::runtime::WorthUiCanvasSpatialPlanAvailability::Executable
-        ),
-        realtime: matches!(
-            plan.realtime_availability(),
-            crate::runtime::WorthUiRealtimePlanAvailability::Executable
-        ),
-        preview: false,
     }
 }
 

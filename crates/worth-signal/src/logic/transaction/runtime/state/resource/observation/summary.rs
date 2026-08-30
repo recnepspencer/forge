@@ -145,14 +145,6 @@ impl ResourceRuntimeState {
         )
     }
 
-    pub fn in_flight_request(
-        &self,
-        handle: ResourceRequestHandle,
-        telemetry: &mut ResourceTelemetry,
-    ) -> Option<&InFlightResourceRequest> {
-        self.in_flight_request_optional(handle, Some(telemetry))
-    }
-
     pub fn in_flight_request_optional(
         &self,
         handle: ResourceRequestHandle,

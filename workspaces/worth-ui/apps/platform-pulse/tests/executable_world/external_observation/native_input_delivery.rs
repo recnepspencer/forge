@@ -7,6 +7,12 @@ pub(crate) enum NativeInputProbeKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeKeyboardCommand {
+    Escape,
+    PrimaryShiftP,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct NativeInputDeliveryObservation {
     kind: NativeInputProbeKind,
     process_id: u32,

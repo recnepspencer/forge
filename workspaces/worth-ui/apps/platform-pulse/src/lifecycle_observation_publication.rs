@@ -15,6 +15,7 @@ use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLifecycleObservationStream,
 };
 
+mod focus;
 mod intent;
 mod query;
 
@@ -156,9 +157,14 @@ impl PlatformPulseObservationPublisher {
         &self,
         source: &WorthUiSourcePackageRevision,
         receipt: &worth_ui::facade::rebind::UiRebindReceipt,
+        latest_focus_transition: Option<
+            worth_ui::facade::inspection::UiFocusMovedInspectionSummary,
+        >,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_replacement(source, receipt))
+            publisher.project(|stream| {
+                stream.project_replacement(source, receipt, latest_focus_transition)
+            })
         })
     }
 

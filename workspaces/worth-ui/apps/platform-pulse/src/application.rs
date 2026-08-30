@@ -24,12 +24,19 @@ use worth_ui_platform_pulse::intent::{
     platform_pulse_action_confirmation_fact, platform_pulse_action_definition,
     platform_pulse_action_mutability_fact, platform_pulse_action_policy_fact,
     platform_pulse_action_readiness_fact, platform_pulse_action_revision_fact,
-    PlatformPulseActionPortOwner, PlatformPulseActionProvider, PlatformPulseExecutorGate,
-    PlatformPulseIntentInputInstallation, PlatformPulseIntentInputRecord,
-    PlatformPulseIntentInputWatch, PlatformPulseIntentInputWatchDenial,
+    platform_pulse_close_portal_confirmation_fact, platform_pulse_close_portal_definition,
+    platform_pulse_close_portal_mutability_fact, platform_pulse_close_portal_policy_fact,
+    platform_pulse_close_portal_readiness_fact, platform_pulse_open_portal_definition,
+    platform_pulse_query_denial_fact, PlatformPulseActionPortOwner, PlatformPulseActionProvider,
+    PlatformPulseExecutorGate, PlatformPulseIntentInputInstallation,
+    PlatformPulseIntentInputRecord, PlatformPulseIntentInputWatch,
+    PlatformPulseIntentInputWatchDenial,
 };
+mod command_story;
+mod mosaic;
 mod presentation;
 
+use mosaic::register_mosaic;
 use presentation::{register_structure, register_theme_tokens, visual_inspection_policy};
 
 pub(crate) struct PreparedPlatformPulseComposition {
@@ -48,7 +55,7 @@ pub(crate) struct PreparedPlatformPulseComposition {
 pub(crate) enum PlatformPulsePreparationDenial {
     WatcherStart(WorthUiFilesystemWatcherDenial),
     InitialSourceSettlement(WorthUiFilesystemWatcherDenial),
-    CapabilityApplication(WorthUiApplicationPreparationDenial),
+    CapabilityApplication(Box<WorthUiApplicationPreparationDenial>),
     InitialSourceLowering(UiSourceRebindAttemptFailure),
     QueryInstallation(Box<PlatformPulseQueryInstallationDenial>),
     QueryRegistration(WorthUiProjectionRegistrationError),
@@ -103,9 +110,9 @@ pub(crate) fn prepare_composition(
             &intent_initial,
             intent_provider.clone(),
         )?;
-        let capability_app = capability_builder
-            .freeze()
-            .map_err(PlatformPulsePreparationDenial::CapabilityApplication)?;
+        let capability_app = capability_builder.freeze().map_err(|denial| {
+            PlatformPulsePreparationDenial::CapabilityApplication(Box::new(denial))
+        })?;
         let submission = snapshot
             .attempt_source_rebind(capability_app.capabilities())
             .into_candidate_submission()
@@ -178,11 +185,19 @@ fn builder(
     WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>,
     PlatformPulsePreparationDenial,
 > {
-    let builder = register_structure(
+    let builder = register_structure(register_mosaic(
         WorthUi::app()
             .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse()),
-    );
+    ));
     let builder = register_theme_tokens(builder)
+        .register_intent_boolean_fact(platform_pulse_close_portal_mutability_fact(), true)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
+        .register_intent_boolean_fact(platform_pulse_close_portal_readiness_fact(), true)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
+        .register_intent_boolean_fact(platform_pulse_close_portal_policy_fact(), true)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
+        .register_intent_boolean_fact(platform_pulse_close_portal_confirmation_fact(), false)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
         .register_intent_boolean_fact(platform_pulse_action_mutability_fact(), intent.mutable())
         .map_err(PlatformPulsePreparationDenial::IntentFact)?
         .register_intent_boolean_fact(platform_pulse_action_readiness_fact(), intent.ready())
@@ -196,13 +211,22 @@ fn builder(
         .map_err(PlatformPulsePreparationDenial::IntentFact)?
         .register_intent_unsigned64_fact(platform_pulse_action_revision_fact(), intent.revision())
         .map_err(PlatformPulsePreparationDenial::IntentFact)?
+        .register_intent_boolean_fact(
+            platform_pulse_query_denial_fact(),
+            intent.query_denial_requested(),
+        )
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
         .register_query_view(action_view)
         .map_err(PlatformPulsePreparationDenial::QueryViewRegistration)?
         .register_intent_definition(platform_pulse_action_definition())
         .map_err(PlatformPulsePreparationDenial::IntentDefinition)?
         .register_intent_provider(provider)
-        .map_err(PlatformPulsePreparationDenial::IntentProvider)?;
-    builder
+        .map_err(PlatformPulsePreparationDenial::IntentProvider)?
+        .register_runtime_service_intent_definition(platform_pulse_open_portal_definition())
+        .map_err(PlatformPulsePreparationDenial::IntentDefinition)?
+        .register_runtime_service_intent_definition(platform_pulse_close_portal_definition())
+        .map_err(PlatformPulsePreparationDenial::IntentDefinition)?;
+    command_story::register(builder)?
         .register_scalar_projection(registration)
         .map(|builder| builder.with_visual_inspection_policy(visual_inspection_policy()))
         .map_err(PlatformPulsePreparationDenial::QueryRegistration)

@@ -2,6 +2,8 @@ mod authority;
 mod consumption_view;
 pub(crate) mod coordinator;
 mod effect_requirements;
+mod focus_placement;
+pub(crate) mod motion_sampling;
 mod outcome;
 mod preflight;
 mod reconciliation;
@@ -17,7 +19,15 @@ pub(crate) use authority::{
     UiMountedPresentationWork,
 };
 pub(crate) use consumption_view::UiMountedHostPresentationAuthority;
-pub(crate) use coordinator::UiMountedPresentationCoordinator;
+pub(crate) use coordinator::{UiMotionSamplePresentationOutcome, UiMountedPresentationCoordinator};
+pub use focus_placement::{
+    UiFocusHostPlacementReconciliationDenial, UiFocusHostPlacementReconciliationOutcome,
+    UiFocusHostPlacementReconciliationReceipt, UiFocusHostPlacementShutdownReport,
+};
+pub(crate) use focus_placement::{
+    UiFocusHostPlacementSettlementDenial, UiMountedFocusPlacementDenial,
+    UiMountedFocusPlacementRequestBasis,
+};
 pub use outcome::{
     UiMountedIndeterminateFrame, UiMountedPresentationOutcome, UiMountedPresentationReceipt,
     UiMountedPresentationWitness, UiMountedPresentedFrame, UiMountedRejectedFrame,

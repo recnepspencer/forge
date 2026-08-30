@@ -24,9 +24,12 @@ impl WorthUiCommandPlanMeaning {
         let digest = descriptor
             .description()
             .map_or(digest, |value| fold_text(digest, value));
+        let digest = descriptor
+            .default_shortcut()
+            .map_or(digest, |value| fold_text(digest, &value.digest_basis()));
         descriptor
-            .default_shortcut_reference()
-            .map_or(digest, |value| fold_text(digest, value))
+            .route()
+            .map_or(digest, |value| fold_text(digest, &value.digest_basis()))
     }
 
     pub(crate) fn reference(&self) -> &WorthUiBoundCommandReference {

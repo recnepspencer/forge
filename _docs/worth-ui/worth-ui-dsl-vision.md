@@ -268,7 +268,7 @@ DSL source tree != canonical declaration artifact
 canonical declaration artifact != runtime UI graph
 runtime UI graph != lowered execution plan
 lowered execution plan != mounted receipt graph
-mounted receipt graph != host widget tree
+mounted receipt graph != host presentation mechanics
 ```
 
 Those layers have different authority, identity, lifecycle, invalidation, and
@@ -280,7 +280,7 @@ constructs rather than runtime authority objects.
 The execution plan is also a lowering product, not an authoring surface. DSL
 syntax may declare semantic requirements that affect a plan, but it may not
 name runtime handles, choose internal lane strategy, author host contacts, or
-make egui-specific mechanics part of canonical UI meaning. Source spans and
+make adapter-specific mechanics part of canonical UI meaning. Source spans and
 provenance remain available for plan inspection; ordinary frame execution does
 not reopen DSL source.
 
@@ -584,6 +584,13 @@ literal field read, or own live-resource recovery. General Query authoring,
 expressions, formatting/coercion, and composition remain separate additive
 language work; they must lower into this same declared binding and consumption
 model rather than replace it.
+
+Application Query meaning enters through `worth-query-decl`, and installation,
+admission, execution, live maintenance, and publication enter through
+`worth-query-host` at the application composition root. The DSL and Worth UI
+runtime consume only the resulting declared requirement and Query-issued bound
+or published products. They do not import the raw Query engine, Bridge,
+Relational, Signal, or certification replay surfaces.
 
 ## Authoring Shape
 

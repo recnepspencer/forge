@@ -1,16 +1,18 @@
 use std::time::Instant;
 
 use crate::adjudication::{
-    adjudicate_replacement, adjudicate_schema_transition, require_replacement_lifecycle,
-    CausalReplacementObservationSet, ExpectedNativeColor, ExpectedSchemaTransition,
-    ReplacementExpectation,
+    adjudicate_replacement, adjudicate_schema_transition, adjudicate_successor_visual_snapshot,
+    adjudicate_visual_comparison, adjudicate_visual_retirement, adjudicate_visual_snapshot,
+    require_replacement_lifecycle, CausalReplacementObservationSet, ExpectedNativeColor,
+    ExpectedSchemaTransition, ReplacementExpectation,
 };
 use crate::failure_teardown::{
     teardown_native_bound_world, PulseExecutableWorldFailure, PulseExecutableWorldFailureReport,
 };
 
 use super::watched_native_observation::{
-    observe_watched_native, observe_watched_native_until_pixels,
+    observe_watched_native_until_schema_posture_changes,
+    observe_watched_native_until_schema_posture_matches,
 };
 use super::{
     await_watched_observation, AwaitingSchemaStop, AwaitingStatusRecovery, FinalRecovered,
@@ -39,7 +41,33 @@ impl PulseExecutableWorld<AwaitingSchemaStop> {
             .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
             require_replacement_lifecycle(&envelope)
                 .map_err(PulseExecutableWorldFailure::Replacement)?;
-            let native = observe_watched_native(&mut world)?;
+            let successor_snapshot = await_watched_observation(
+                &mut world.process,
+                &mut world.lifecycle,
+                WatchedPulseTransition::VisualSuccessorSnapshot,
+                deadline,
+            )
+            .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
+            let comparison = await_watched_observation(
+                &mut world.process,
+                &mut world.lifecycle,
+                WatchedPulseTransition::VisualComparison,
+                deadline,
+            )
+            .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
+            let retirement = await_watched_observation(
+                &mut world.process,
+                &mut world.lifecycle,
+                WatchedPulseTransition::VisualSnapshotRetired,
+                deadline,
+            )
+            .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
+            let native = observe_watched_native_until_schema_posture_changes(
+                &mut world,
+                recovered.evidence.pixels(),
+                deadline,
+                "revision schema stopped posture",
+            )?;
             let causal = CausalReplacementObservationSet::new(
                 action,
                 recovered.evidence.identity().clone(),
@@ -53,7 +81,33 @@ impl PulseExecutableWorld<AwaitingSchemaStop> {
                 ExpectedNativeColor::Blue,
             ))
             .map_err(PulseExecutableWorldFailure::Replacement)?;
-            adjudicate_schema_transition(
+            let successor_snapshot = adjudicate_successor_visual_snapshot(
+                successor_snapshot,
+                replacement
+                    .replacement()
+                    .successor_frame()
+                    .diagnostic_value(),
+                replacement.sequence().saturating_add(1),
+            )
+            .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+            let comparison = adjudicate_visual_comparison(
+                comparison,
+                &recovered.rebase_snapshot,
+                &successor_snapshot,
+                successor_snapshot.sequence().saturating_add(1),
+            )
+            .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+            let retirement = adjudicate_visual_retirement(
+                retirement,
+                &recovered.rebase_snapshot,
+                replacement
+                    .replacement()
+                    .successor_frame()
+                    .diagnostic_value(),
+                comparison.sequence().saturating_add(1),
+            )
+            .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+            let evidence = adjudicate_schema_transition(
                 replacement,
                 recovered.evidence.pixels(),
                 None,
@@ -66,9 +120,10 @@ impl PulseExecutableWorld<AwaitingSchemaStop> {
                     .projection(),
                 ExpectedSchemaTransition::Stopped,
             )
-            .map_err(PulseExecutableWorldFailure::SchemaTransition)
+            .map_err(PulseExecutableWorldFailure::SchemaTransition)?;
+            Ok((evidence, retirement))
         })();
-        let evidence = match result {
+        let (evidence, retirement) = match result {
             Ok(evidence) => evidence,
             Err(primary) => return Err(teardown(world, primary)),
         };
@@ -78,6 +133,7 @@ impl PulseExecutableWorld<AwaitingSchemaStop> {
                 stage: SchemaStopped {
                     recovered,
                     evidence,
+                    retirement,
                 },
             },
         })
@@ -105,7 +161,14 @@ impl PulseExecutableWorld<AwaitingStatusRecovery> {
             .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
             require_replacement_lifecycle(&envelope)
                 .map_err(PulseExecutableWorldFailure::Replacement)?;
-            let native = observe_watched_native_until_pixels(
+            let rebase_snapshot = await_watched_observation(
+                &mut world.process,
+                &mut world.lifecycle,
+                WatchedPulseTransition::VisualSnapshot,
+                deadline,
+            )
+            .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
+            let native = observe_watched_native_until_schema_posture_matches(
                 &mut world,
                 stopped.recovered.evidence.pixels(),
                 deadline,
@@ -131,23 +194,37 @@ impl PulseExecutableWorld<AwaitingStatusRecovery> {
                 ExpectedNativeColor::Blue,
             ))
             .map_err(PulseExecutableWorldFailure::Replacement)?;
-            adjudicate_schema_transition(
+            let rebase_snapshot = adjudicate_visual_snapshot(
+                rebase_snapshot,
+                replacement
+                    .replacement()
+                    .successor_frame()
+                    .diagnostic_value(),
+                replacement.sequence().saturating_add(1),
+            )
+            .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+            let evidence = adjudicate_schema_transition(
                 replacement,
                 stopped.evidence.replacement().pixels(),
                 Some(stopped.recovered.evidence.pixels()),
                 stopped.evidence.query_basis(),
                 ExpectedSchemaTransition::Recovered,
             )
-            .map_err(PulseExecutableWorldFailure::SchemaTransition)
+            .map_err(PulseExecutableWorldFailure::SchemaTransition)?;
+            Ok((evidence, rebase_snapshot))
         })();
-        let evidence = match result {
+        let (evidence, rebase_snapshot) = match result {
             Ok(evidence) => evidence,
             Err(primary) => return Err(teardown(world, primary)),
         };
         Ok(PulseExecutableWorld {
             state: Published {
                 world,
-                stage: FinalRecovered { stopped, evidence },
+                stage: FinalRecovered {
+                    stopped,
+                    evidence,
+                    rebase_snapshot,
+                },
             },
         })
     }

@@ -108,8 +108,7 @@ impl UiAdmittedTextParagraph {
         }
         let graphemes = validate_style_spans(&input.source, &input.styles)?;
         let lines = graphemes
-            .checked_add(usize::from(source_ends_with_hard_break(&input.source)))
-            .unwrap_or(usize::MAX)
+            .saturating_add(usize::from(source_ends_with_hard_break(&input.source)))
             .max(1);
         if lines > UiGlobalTextProfile::MAX_LINE_RECORDS {
             return Err(UiTextParagraphAdmissionDenial::DerivedCapacityExceeded);

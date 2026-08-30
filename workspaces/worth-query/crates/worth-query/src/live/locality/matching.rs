@@ -4,6 +4,7 @@ use super::admission::{
     LocalitySemanticBasis, StreamLoweringAdmissionClass,
 };
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RegionScopedSubscriptionIdentity {
     pub(in crate::live) digest: String,
@@ -12,21 +13,10 @@ pub struct RegionScopedSubscriptionIdentity {
     pub(in crate::live) admission_class: LocalityAdmissionClass,
 }
 
+#[cfg(test)]
 impl RegionScopedSubscriptionIdentity {
     pub fn digest(&self) -> &str {
         &self.digest
-    }
-
-    pub fn query_digest(&self) -> &str {
-        &self.query_digest
-    }
-
-    pub fn locality_digest(&self) -> &str {
-        &self.locality_digest
-    }
-
-    pub fn admission_class(&self) -> &LocalityAdmissionClass {
-        &self.admission_class
     }
 }
 

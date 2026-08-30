@@ -78,6 +78,16 @@ pub use worth_ui_inspection::{
     UiVisualVisibleOutcome, UI_INTENT_CAUSAL_TRACE_EVIDENCE_BYTE_CAPACITY,
     UI_INTENT_INTERACTION_EVIDENCE_ENTRY_CAPACITY,
 };
+pub use worth_ui_inspection::{
+    UiCommandRouteLossInspection, UiCommandRouteLossInspectionReason,
+    UiCommandRouteScopeInspection, UiCommandWonInspectionSummary, UiFocusMoveInspectionCause,
+    UiFocusMoveInspectionOutcome, UiFocusMovedInspectionSummary,
+    UiFocusRestorationFailedInspectionSummary, UiFocusRestorationFailureInspectionReason,
+    UiMotionInterruptedInspectionReason, UiMotionInterruptedInspectionSummary,
+    UiPortalClosedInspectionReason, UiPortalClosedInspectionSummary,
+    UiRuntimeServiceInspectionCost, UiRuntimeServiceInspectionFamily,
+    UiRuntimeServiceInspectionSource, UiRuntimeServiceResourceCensus,
+};
 pub use worth_ui_runtime::facade::evidence::{
     UiAllocationReceiptDenialInspectionReceipt, UiAllocationReceiptInspectionReceipt,
     UiEvidenceExpansion, UiEvidenceFamilySummary, UiEvidenceHandle, UiEvidenceIdentity,

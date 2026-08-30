@@ -26,10 +26,6 @@ impl InvalidationPerformedCounterState {
         }
     }
 
-    pub(crate) fn capture_gate(&self) -> &SignalObservationCaptureGate {
-        &self.capture_gate
-    }
-
     pub(crate) fn shared_values(&self) -> Arc<[AtomicU64; 24]> {
         Arc::clone(&self.values)
     }

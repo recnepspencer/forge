@@ -26,7 +26,7 @@ fn qualified_asset_license_and_manifests_have_exact_digests() {
     );
     assert_eq!(
         sha256(WORTH_UI_NATIVE_PROFILE_MANIFEST.as_bytes()),
-        "522ac8b797b085acba1e5cb03644bd8d6bed0d150c037ee2ab2f99eb7482778f"
+        "fe4a8b504bc8b86e20f304437479cb913b724a044c92a43e94602a7b49beb867"
     );
 }
 
@@ -278,6 +278,10 @@ const NATIVE_STRING_FIELDS: &[(&str, &str)] = &[
     (
         "native_pointer_position_observation",
         "winsafe-0.0.28-user:GetMessagePos;event-ordered-client-origin;low16-wrapping;no-cursor-query",
+    ),
+    (
+        "reduced_motion_observation",
+        "windows-0.61.3-UI_ViewManagement:UISettings.AnimationsEnabled",
     ),
     (
         "client_input_observation",

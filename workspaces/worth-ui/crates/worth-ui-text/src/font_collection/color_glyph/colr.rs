@@ -180,7 +180,7 @@ fn collect_references(
                 references.insert(glyph.to_u16());
             }
         }
-        match (&*field.name, &field.value) {
+        match (field.name, &field.value) {
             ("first_layer_index", FieldType::U32(value)) => first_layer = Some(*value),
             ("num_layers", FieldType::U8(value)) => layer_count = Some(*value),
             _ => {}

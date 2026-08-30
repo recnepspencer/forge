@@ -15,7 +15,8 @@ impl UiLiveCollectionProjection {
             reference,
             lease,
             consumer,
-            accesses,
+            text_accesses,
+            application_item_key_access,
             budget,
         } = self;
         match lease.dispose(workspace) {
@@ -36,7 +37,8 @@ impl UiLiveCollectionProjection {
                             reference,
                             lease,
                             consumer,
-                            accesses,
+                            text_accesses,
+                            application_item_key_access,
                             budget,
                         },
                         query_error,

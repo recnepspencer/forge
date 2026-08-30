@@ -75,7 +75,7 @@ fn runtime_merge_request_named_conflict_policy_changes_merge_outcome() {
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
             let evidence =
-                match evidence.expect("reject policy failure should expose conflict evidence") {
+                match *evidence.expect("reject policy failure should expose conflict evidence") {
                     BranchMergeFailureEvidence::Conflict(evidence) => evidence,
                     other => panic!("expected conflict evidence, got {other:?}"),
                 };

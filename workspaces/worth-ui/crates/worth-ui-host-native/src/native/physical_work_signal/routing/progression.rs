@@ -1,11 +1,11 @@
 use worth_ui_host_contract::UiGlyphRasterTransactionPending;
 
-use super::super::{
-    declarations::UiNativePhysicalSignalOperation, UiNativePhysicalSignalOwner,
-    UiNativePhysicalSignalSettlement,
-};
+#[cfg(test)]
+use super::super::UiNativePhysicalSignalSettlement;
+use super::super::{declarations::UiNativePhysicalSignalOperation, UiNativePhysicalSignalOwner};
 
 impl UiNativePhysicalSignalOwner {
+    #[cfg(test)]
     pub(in crate::native::physical_work_signal) fn cancel_atlas_upload(
         &mut self,
         pending: UiGlyphRasterTransactionPending,

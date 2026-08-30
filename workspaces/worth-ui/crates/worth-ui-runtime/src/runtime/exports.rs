@@ -35,7 +35,8 @@ pub use super::launch::WorthUiRuntimeFrameworkLoop;
 pub use super::launch::{
     WorthUiLastValidObservation, WorthUiPendingActivation, WorthUiRuntime,
     WorthUiRuntimeFrameEpoch, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
-    WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
+    WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownBlocker, WorthUiRuntimeShutdownReceipt,
+    WorthUiRuntimeShutdownRecovery,
 };
 
 // --- planning ---
@@ -70,8 +71,6 @@ pub use super::allocation_receipt::{
 };
 pub(crate) use super::invalidation_narrowing::UiAdmittedAllocationPlanReference;
 pub use super::invalidation_narrowing::UiAdmittedPortalMovement;
-#[cfg(test)]
-pub use super::invalidation_narrowing::UiScrollBindingCatalogCounters;
 pub use super::invalidation_narrowing::{
     UiAllocationActivationCatalogDenial, UiAllocationInvalidationNarrowingDenial,
     UiAllocationInvalidationNarrowingRejection, UiAllocationInvalidationTarget,
@@ -115,8 +114,8 @@ pub use super::planning::plan_topology::{
     WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
 };
 pub use super::planning::query_binding::WorthUiQuerySettledFactLink;
-pub use super::portal_anchored_allocation::UiPortalActivationBindingDenial;
-pub use super::portal_anchored_allocation::{
+pub use super::portal::anchored_allocation::UiPortalActivationBindingDenial;
+pub use super::portal::anchored_allocation::{
     UiAdmittedPortalAnchorObservation, UiPortalAllocationPlanningBasis, UiPortalAnchorIdentity,
     UiPortalAnchorIdentityTransition, UiPortalAnchorSuccessorDenial,
 };
@@ -304,13 +303,14 @@ pub(crate) use super::source_ingress::{
     prepare_rust_authored_handoff, WorthUiAuthoredCompositionPreparationDenial,
 };
 pub use super::source_ingress::{
-    WorthUiAuthoredProjectionRequirement, WorthUiCandidateComposition,
-    WorthUiCandidateCompositionBasis, WorthUiCandidateOrderingReceipt,
+    WorthUiAuthoredProjectionRequirement, WorthUiAuthoredServiceDeclaration,
+    WorthUiCandidateComposition, WorthUiCandidateCompositionBasis, WorthUiCandidateOrderingReceipt,
     WorthUiFilesystemSourceAcquisitionDenial, WorthUiFilesystemSourceProvider,
     WorthUiFilesystemSourceWatcher, WorthUiFilesystemWatcherBackend,
     WorthUiFilesystemWatcherDenial, WorthUiFilesystemWatcherReadiness,
-    WorthUiFilesystemWatcherShutdownReceipt, WorthUiReloadDebounce, WorthUiSemanticHandoffEvidence,
-    WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop,
+    WorthUiFilesystemWatcherShutdownReceipt, WorthUiProjectionContentEdge, WorthUiReloadDebounce,
+    WorthUiSemanticHandoffEvidence, WorthUiSemanticHandoffPreparationDenial,
+    WorthUiSemanticHandoffPreparationStop, WorthUiServiceDeclarationAdmissionCause,
     WorthUiSettledSourceSnapshot, WorthUiSourceEventIngress, WorthUiSourceEventIngressSession,
     WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
     WorthUiSourcePackageRevision, WorthUiSourceProvider, WorthUiSourceProviderKind,

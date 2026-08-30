@@ -4,12 +4,13 @@ use std::rc::Rc;
 use worth_ui_host_contract::{
     UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt, UiHostSurfacePresentationMode,
     UiHostSurfacePresentationOutcome, UiHostSurfaceRegistrationDenial,
-    UiHostSurfaceRegistrationRequest, UiMountedFrameConsumptionView, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiHostMechanicsAdapter,
+    UiHostSurfaceRegistrationRequest, UiMountedFrameConsumptionView, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiHostMechanicsAdapter,
 };
 
 use super::UiNativeHostState;
 
+mod capability;
 mod construction;
 mod measurement;
 mod presentation;
@@ -35,16 +36,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
     }
 
     fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![
-            WorthUiHostCapability::ViewportObservation,
-            WorthUiHostCapability::DpiObservation,
-            WorthUiHostCapability::PointerInput,
-            WorthUiHostCapability::KeyboardInput,
-            WorthUiHostCapability::TextInput,
-            WorthUiHostCapability::Ime,
-            WorthUiHostCapability::NativePaint,
-            WorthUiHostCapability::IdentityOverlay,
-        ])
+        capability::report()
     }
 
     fn mechanical_visual_capture_capability(
@@ -65,6 +57,13 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         request: worth_ui_host_contract::UiHostVisualCaptureRequest,
     ) -> worth_ui_host_contract::UiHostCaptureCancellationOutcome {
         super::capture::cancel(&mut self.state.borrow_mut(), request)
+    }
+
+    fn perform_focus_placement(
+        &self,
+        request: worth_ui_host_contract::UiHostFocusPlacementRequest,
+    ) -> worth_ui_host_contract::UiHostFocusPlacementAcknowledgement {
+        super::solicited_effect::focus_placement::perform(&mut self.state.borrow_mut(), request)
     }
 
     fn drain_mechanical_host_observations(
@@ -216,15 +215,19 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
             );
         }
         let binding_pins = state.text_pins_by_binding.remove(&key).unwrap_or_default();
+        let live_pins = state.text_atlas.pin_observations();
         let releases = binding_pins
             .iter()
             .copied()
             .filter(|pin| {
                 !state
                     .text_pins_by_binding
-                    .values()
-                    .any(|retained| retained.contains(pin))
+                    .iter()
+                    .any(|(retained_binding, retained)| {
+                        state.registrations.contains_key(retained_binding) && retained.contains(pin)
+                    })
             })
+            .filter(|pin| live_pins.iter().any(|live| live.matches(*pin)))
             .collect::<Vec<_>>();
         if !releases.is_empty() {
             let Ok(attempt) =
@@ -284,6 +287,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         let mut state = self.state.borrow_mut();
+        state.semantic_focus.remove(&host_session_identity);
         state.lifecycle.release_session(host_session_identity);
         let pending_tokens = state
             .pending_text_presentations

@@ -35,6 +35,7 @@ pub(super) enum WorthUiSemanticDeclarationExactBasis {
         posture_tokens: Box<[String]>,
         support_tokens: Box<[String]>,
         intent: Option<WorthUiIntentDeclarationExactBasis>,
+        service: Option<String>,
     },
 }
 
@@ -101,6 +102,9 @@ impl WorthUiSemanticDeclarationExactBasis {
                     intent: declaration
                         .intent_declaration()
                         .map(WorthUiIntentDeclarationExactBasis::from_meaning),
+                    service: declaration
+                        .service_declaration()
+                        .map(crate::WorthUiServiceDeclarationMeaning::canonical_text),
                 }
             }
         }
@@ -165,6 +169,7 @@ impl WorthUiSemanticDeclarationExactBasis {
                 posture_tokens,
                 support_tokens,
                 intent,
+                service,
             } => {
                 fingerprint.fold_text("semantic-artifact");
                 fingerprint.fold_text(key);
@@ -181,6 +186,7 @@ impl WorthUiSemanticDeclarationExactBasis {
                     }
                     None => fingerprint.fold_bool(false),
                 }
+                fingerprint.fold_optional_text(service.as_deref());
             }
         }
     }

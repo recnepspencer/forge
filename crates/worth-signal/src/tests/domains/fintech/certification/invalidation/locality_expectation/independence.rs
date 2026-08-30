@@ -18,9 +18,9 @@ const PURE_WORLD_OWNERS: &[&str] = &[
     "positions",
 ];
 const ORACLE_CLOSURE_DIGEST: &str =
-    "111473b947e5a716ad32578f4df6de682d15d9582b290e1bd749423e4f30fde0";
+    "018dc4e4f89343579508d764682f2cec62d177cccabb45a4b2c6b1563c26b9ba";
 const PURE_WORLD_CLOSURE_DIGEST: &str =
-    "121f66b0d98b87f269566175b6d2e86a0f81256121a6d3d42e4ab8d4370e7812";
+    "655b53ad30ce7fdd902848e766041deb9771a40e04b85abc3bdcd511507f02e9";
 
 #[test]
 fn complete_oracle_dependency_graph_excludes_runtime_authority() {
@@ -88,16 +88,20 @@ fn oracle_dependency_guard_rejects_direct_and_reexported_runtime_imports() {
         format!("{facade}\npub(super) use crate::facade::mark_dirty as oracle_mark_dirty;");
     let aliased = visible_reexports(&aliased).expect("alias must parse");
     assert_eq!(
-        aliased.get("oracle_mark_dirty"),
-        Some(&"crate::facade::mark_dirty".to_owned())
+        aliased
+            .get("oracle_mark_dirty")
+            .and_then(module_graph::WorldReexport::unconditional_origin),
+        Some("crate::facade::mark_dirty")
     );
 
     let chained =
         format!("{facade}\nmod runtime_bridge;\npub(super) use runtime_bridge::oracle_mark_dirty;");
     let chained = visible_reexports(&chained).expect("chained alias must parse");
     assert_eq!(
-        chained.get("oracle_mark_dirty"),
-        Some(&"runtime_bridge::oracle_mark_dirty".to_owned())
+        chained
+            .get("oracle_mark_dirty")
+            .and_then(module_graph::WorldReexport::unconditional_origin),
+        Some("runtime_bridge::oracle_mark_dirty")
     );
 }
 

@@ -25,7 +25,6 @@ pub(in crate::tests::domains::fintech) use restore::FinancialRestoreLifecycleEvi
 
 pub(super) struct LocalityExecutionSettlement {
     pub(super) evaluated_outputs: BTreeSet<LocalitySemanticOutputId>,
-    pub(super) evaluated_sequence: Vec<LocalitySemanticOutputId>,
     pub(super) stage_outcomes: Vec<StageExecutionOutcome>,
     pub(super) stage_records: Vec<StageExecutionRecord>,
 }
@@ -205,7 +204,6 @@ impl CompiledFinancialLocalityWorld {
         }
         Ok(LocalityExecutionSettlement {
             evaluated_outputs: program.evaluated_outputs(),
-            evaluated_sequence: program.evaluated_sequence(),
             stage_outcomes,
             stage_records,
         })

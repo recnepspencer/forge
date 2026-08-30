@@ -108,7 +108,10 @@ fn component_accessibility_focus_and_execution_metadata_survive_freeze() {
         .register_component(
             component_descriptor("workspace.component.editor")
                 .with_accessibility(ComponentAccessibilitySupport::decorative_only())
-                .with_focus(ComponentFocusSupport::focus_container())
+                .with_focus(ComponentFocusSupport::active_descendant_focus_container(
+                    worth_ui::facade::declaration::ComponentFocusNavigationAxis::Both,
+                    true,
+                ))
                 .with_execution_lane(ComponentExecutionLane::Virtualized),
         )
         .freeze()
@@ -123,7 +126,13 @@ fn component_accessibility_focus_and_execution_metadata_survive_freeze() {
         descriptor.accessibility(),
         ComponentAccessibilitySupport::decorative_only()
     );
-    assert_eq!(descriptor.focus(), ComponentFocusSupport::focus_container());
+    assert_eq!(
+        descriptor.focus(),
+        ComponentFocusSupport::active_descendant_focus_container(
+            worth_ui::facade::declaration::ComponentFocusNavigationAxis::Both,
+            true,
+        )
+    );
     assert_eq!(
         descriptor.execution_lane(),
         ComponentExecutionLane::Virtualized

@@ -7,13 +7,14 @@ use worth_ui_host_contract::{
 pub(crate) fn compile(
     nodes: &[UiMountedNodeProjectionView],
     filled_rects: &[UiMountedFilledRectMechanic],
+    portal_overlays: &[worth_ui_host_contract::UiMountedPortalOverlayMechanic],
     semantic_text: &[UiMountedSemanticTextMechanic],
 ) -> (Vec<UiMountedPaintCommand>, Vec<UiMountedPaintOrderIdentity>) {
     let mut commands = Vec::new();
     let mut sources = Vec::new();
     for (node_ordinal, node) in nodes.iter().enumerate() {
         for (local_ordinal, reference) in node.drawables().iter().copied().enumerate() {
-            let command = command_for(reference, filled_rects, semantic_text);
+            let command = command_for(reference, filled_rects, portal_overlays, semantic_text);
             sources.push((
                 command.layer_semantic_order(),
                 node_ordinal,
@@ -34,6 +35,7 @@ pub(crate) fn compile(
 fn command_for(
     reference: UiMountedDrawableReference,
     filled_rects: &[UiMountedFilledRectMechanic],
+    portal_overlays: &[worth_ui_host_contract::UiMountedPortalOverlayMechanic],
     semantic_text: &[UiMountedSemanticTextMechanic],
 ) -> UiMountedPaintCommand {
     match reference {
@@ -48,6 +50,13 @@ fn command_for(
             let mechanic = semantic_text[usize::from(reference.index())].clone();
             UiMountedPaintCommand::SemanticText {
                 identity: UiMountedPaintCommandIdentity::semantic_text(&mechanic),
+                mechanic,
+            }
+        }
+        UiMountedDrawableReference::PortalOverlay(reference) => {
+            let mechanic = portal_overlays[usize::from(reference.index())];
+            UiMountedPaintCommand::PortalOverlay {
+                identity: UiMountedPaintCommandIdentity::portal_overlay(&mechanic),
                 mechanic,
             }
         }

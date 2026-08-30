@@ -45,16 +45,17 @@ pub(super) fn lower_serial_task_patch(
     graph.refresh_runtime_dependencies_of(node)?;
     let current_dependencies =
         CanonicalDependencies::from_slice(graph.current_runtime_dependencies_of(node)?);
-    let mut telemetry_guard = graph.telemetry_mut();
-    let telemetry = telemetry_guard.as_deref_mut();
-    let admitted = admit_or_error(
-        HostComputedApiFamily::CorePreparedEvaluation,
-        node,
-        current_dependencies.as_slice(),
-        prepared,
-        telemetry,
-    )?;
-    drop(telemetry_guard);
+    let admitted = {
+        let mut telemetry_guard = graph.telemetry_mut();
+        let telemetry = telemetry_guard.as_deref_mut();
+        admit_or_error(
+            HostComputedApiFamily::CorePreparedEvaluation,
+            node,
+            current_dependencies.as_slice(),
+            prepared,
+            telemetry,
+        )?
+    };
     let (prepared, _admitted_reads, dependency_patch) = admitted.into_parts();
     let next_dependencies = CanonicalDependencies::from_slice(dependency_patch.next_dependencies());
     let before_state = graph.get_state(node)?;

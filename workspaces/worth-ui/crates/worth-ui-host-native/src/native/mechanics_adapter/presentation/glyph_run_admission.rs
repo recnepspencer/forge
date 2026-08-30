@@ -78,7 +78,9 @@ fn semantic_mechanic(
                 UiMountedPaintCommandChange::Remove(_) => None,
             })
         }
-        UiMountedPresentationWorkView::Unchanged(_) => None,
+        UiMountedPresentationWorkView::Sample(_) | UiMountedPresentationWorkView::Unchanged(_) => {
+            None
+        }
     }
 }
 
@@ -92,9 +94,9 @@ fn matching_mechanic(
         {
             Some(mechanic)
         }
-        UiMountedPaintCommand::FilledRect { .. } | UiMountedPaintCommand::SemanticText { .. } => {
-            None
-        }
+        UiMountedPaintCommand::FilledRect { .. }
+        | UiMountedPaintCommand::PortalOverlay { .. }
+        | UiMountedPaintCommand::SemanticText { .. } => None,
     }
 }
 

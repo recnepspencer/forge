@@ -14,7 +14,6 @@ pub(crate) struct WorthUiMountedContentRebindInFlight<'session> {
 
 pub(crate) struct WorthUiDetachedPreparedMountedContentRebind {
     session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
-    frame: crate::mounting::UiPreparedMountedFrame,
     publication: WorthUiMountedContentPublication,
 }
 
@@ -94,12 +93,11 @@ impl<'session> WorthUiPreparedMountedContentRebind<'session> {
     pub(crate) fn detach(self: Box<Self>) -> WorthUiDetachedPreparedMountedContentRebind {
         let Self {
             session,
-            frame,
+            frame: _,
             publication,
         } = *self;
         WorthUiDetachedPreparedMountedContentRebind {
             session_identity: session.session_identity(),
-            frame,
             publication,
         }
     }
@@ -172,17 +170,6 @@ impl WorthUiDetachedPreparedMountedContentRebind {
         self.session_identity
     }
 
-    pub(crate) fn attach<'session>(
-        self,
-        session: &'session mut WorthUiActiveApplicationSession,
-    ) -> Box<WorthUiPreparedMountedContentRebind<'session>> {
-        Box::new(WorthUiPreparedMountedContentRebind {
-            session,
-            frame: self.frame,
-            publication: self.publication,
-        })
-    }
-
     pub(crate) fn rebase<'session>(
         self,
         session: &'session mut WorthUiActiveApplicationSession,
@@ -191,6 +178,7 @@ impl WorthUiDetachedPreparedMountedContentRebind {
         Box<WorthUiPreparedMountedContentRebind<'session>>,
         crate::runtime::rebind::UiRebindPreparationDenial,
     > {
+        let frame_request = session.mounted_frame_request();
         let completion = session.execute_framework_turn(|_| {}).map_err(|_| {
             crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
         })?;
@@ -200,7 +188,7 @@ impl WorthUiDetachedPreparedMountedContentRebind {
         let theme_values = execution.presentation.theme_values_source();
         let frame = execution
             .prepare_mounted_frame_with_content_internal(
-                crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                frame_request,
                 semantic_content,
                 theme_values,
             )

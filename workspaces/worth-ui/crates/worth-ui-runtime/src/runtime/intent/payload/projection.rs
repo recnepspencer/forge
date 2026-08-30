@@ -22,13 +22,13 @@ pub(crate) fn prepare_intent_payload(
     application_facts: &UiIntentApplicationFactState,
     occupancy: &super::super::operability::UiIntentOccupancyState,
 ) -> Result<UiPreparedIntentPayload, UiIntentPayloadStop> {
-    let (graph_node, declaration, interaction, route_resolution, evidence_reference) =
+    let (graph_node, declaration, source, route_resolution, evidence_reference) =
         route.into_parts();
     let basis_view =
-        UiIntentInputBasisView::observe(&interaction, generation, mounted, application_facts)?;
+        UiIntentInputBasisView::observe(&source, generation, mounted, application_facts)?;
     let definition = definitions.definition_at(declaration.definition());
-    let mut projection =
-        PayloadProjection::new(&interaction, definition.payload_schema(), &basis_view);
+    let binding_support = execution_bindings.support_at(declaration.definition());
+    let mut projection = PayloadProjection::new(&source, definition.payload_schema(), &basis_view);
     for binding in declaration.payload() {
         projection.project(binding)?;
     }
@@ -40,10 +40,11 @@ pub(crate) fn prepare_intent_payload(
         &basis_view,
         &declaration,
         definition,
+        binding_support,
         occupancy,
     );
     let basis = basis_view.seal(UiIntentInputBasisMaterial {
-        interaction,
+        source,
         query_inputs,
         application_inputs,
         owner_revisions,
@@ -62,7 +63,7 @@ pub(crate) fn prepare_intent_payload(
 }
 
 struct PayloadProjection<'basis> {
-    interaction: &'basis crate::runtime::interaction::UiSemanticInteraction,
+    source: &'basis super::super::routing::UiIntentProductInputSource,
     payload_schema: crate::capability::UiIntentSchema,
     basis: &'basis UiIntentInputBasisView<'basis>,
     values: Vec<UiIntentProjectedValue>,
@@ -74,12 +75,12 @@ struct PayloadProjection<'basis> {
 
 impl<'basis> PayloadProjection<'basis> {
     fn new(
-        interaction: &'basis crate::runtime::interaction::UiSemanticInteraction,
+        source: &'basis super::super::routing::UiIntentProductInputSource,
         payload_schema: crate::capability::UiIntentSchema,
         basis: &'basis UiIntentInputBasisView<'basis>,
     ) -> Self {
         Self {
-            interaction,
+            source,
             payload_schema,
             basis,
             values: Vec::new(),
@@ -159,8 +160,8 @@ impl<'basis> PayloadProjection<'basis> {
         field: UiIntentPayloadFieldDescriptor,
         projection: &UiResolvedIntentProjectionSource,
     ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
-        let crate::runtime::interaction::UiSemanticInteraction::SelectionCommit(selection) =
-            self.interaction
+        let Some(crate::runtime::interaction::UiSemanticInteraction::SelectionCommit(selection)) =
+            self.source.mounted_interaction()
         else {
             return Err(UiIntentPayloadStop::SelectionInteractionRequired {
                 field: field.stable_name(),
@@ -230,8 +231,8 @@ impl<'basis> PayloadProjection<'basis> {
         &mut self,
         field: UiIntentPayloadFieldDescriptor,
     ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
-        let crate::runtime::interaction::UiSemanticInteraction::EditCommit(draft) =
-            self.interaction
+        let Some(crate::runtime::interaction::UiSemanticInteraction::EditCommit(draft)) =
+            self.source.mounted_interaction()
         else {
             return Err(UiIntentPayloadStop::DraftInteractionRequired {
                 field: field.stable_name(),

@@ -13,7 +13,7 @@ pub struct UiResolvedProductIntentRoute {
     interaction: UiSemanticInteractionFamily,
     definition_id: UiIntentId,
     declaration: Arc<UiCanonicalIntentDeclaration>,
-    source: crate::runtime::interaction::UiSemanticInteraction,
+    source: UiIntentProductInputSource,
     cost: crate::declaration::UiIntentRouteResolutionCost,
     evidence_reference: Option<worth_ui_inspection::UiIntentEvidenceReference>,
 }
@@ -32,8 +32,16 @@ pub(crate) struct UiResolvedProductIntentRouteInput {
     pub(crate) interaction: UiSemanticInteractionFamily,
     pub(crate) definition_id: UiIntentId,
     pub(crate) declaration: Arc<UiCanonicalIntentDeclaration>,
-    pub(crate) source: crate::runtime::interaction::UiSemanticInteraction,
+    pub(crate) source: UiIntentProductInputSource,
     pub(crate) cost: crate::declaration::UiIntentRouteResolutionCost,
+}
+
+pub(crate) enum UiIntentProductInputSource {
+    Mounted(crate::runtime::interaction::UiSemanticInteraction),
+    Command {
+        receipt: crate::runtime::UiCommandRouteReceipt,
+        target: crate::runtime::interaction::UiPresentedInteractionTargetView,
+    },
 }
 
 pub(crate) struct UiResolvedConfirmationIntentRouteInput {
@@ -73,8 +81,18 @@ impl UiResolvedProductIntentRoute {
         self.declaration.identity().as_str()
     }
 
-    pub const fn source(&self) -> &crate::runtime::interaction::UiSemanticInteraction {
-        &self.source
+    pub const fn target(&self) -> crate::runtime::interaction::UiPresentedInteractionTargetView {
+        self.source.target()
+    }
+
+    pub const fn mounted_interaction(
+        &self,
+    ) -> Option<&crate::runtime::interaction::UiSemanticInteraction> {
+        self.source.mounted_interaction()
+    }
+
+    pub const fn is_command_route(&self) -> bool {
+        self.source.is_command()
     }
 
     pub const fn cost(&self) -> crate::declaration::UiIntentRouteResolutionCost {
@@ -87,12 +105,20 @@ impl UiResolvedProductIntentRoute {
         self.evidence_reference
     }
 
+    pub(crate) fn command_evidence_reference(
+        &self,
+    ) -> Option<worth_ui_inspection::UiIntentEvidenceReference> {
+        self.source
+            .command_receipt()
+            .and_then(crate::runtime::command_routing::UiCommandRouteReceipt::evidence_reference)
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (
         UiGraphNodeIdentity,
         Arc<UiCanonicalIntentDeclaration>,
-        crate::runtime::interaction::UiSemanticInteraction,
+        UiIntentProductInputSource,
         crate::declaration::UiIntentRouteResolutionCost,
         Option<worth_ui_inspection::UiIntentEvidenceReference>,
     ) {
@@ -103,6 +129,68 @@ impl UiResolvedProductIntentRoute {
             self.cost,
             self.evidence_reference,
         )
+    }
+}
+
+impl UiIntentProductInputSource {
+    pub(crate) const fn mounted(
+        interaction: crate::runtime::interaction::UiSemanticInteraction,
+    ) -> Self {
+        Self::Mounted(interaction)
+    }
+
+    pub(crate) const fn command(
+        receipt: crate::runtime::UiCommandRouteReceipt,
+        target: crate::runtime::interaction::UiPresentedInteractionTargetView,
+    ) -> Self {
+        Self::Command { receipt, target }
+    }
+
+    pub(crate) const fn generation(
+        &self,
+    ) -> &crate::runtime::WorthUiActiveApplicationGenerationIdentity {
+        match self {
+            Self::Mounted(interaction) => interaction.generation(),
+            Self::Command { receipt, .. } => receipt.application(),
+        }
+    }
+
+    pub(crate) const fn target(
+        &self,
+    ) -> crate::runtime::interaction::UiPresentedInteractionTargetView {
+        match self {
+            Self::Mounted(interaction) => interaction.target(),
+            Self::Command { target, .. } => *target,
+        }
+    }
+
+    pub(crate) const fn time_basis(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiHostObservationTimeBasis> {
+        match self {
+            Self::Mounted(interaction) => Some(interaction.time_basis()),
+            Self::Command { receipt, .. } => receipt.time_basis(),
+        }
+    }
+
+    pub(crate) const fn mounted_interaction(
+        &self,
+    ) -> Option<&crate::runtime::interaction::UiSemanticInteraction> {
+        match self {
+            Self::Mounted(interaction) => Some(interaction),
+            Self::Command { .. } => None,
+        }
+    }
+
+    pub(crate) const fn command_receipt(&self) -> Option<&crate::runtime::UiCommandRouteReceipt> {
+        match self {
+            Self::Mounted(_) => None,
+            Self::Command { receipt, .. } => Some(receipt),
+        }
+    }
+
+    pub(crate) const fn is_command(&self) -> bool {
+        matches!(self, Self::Command { .. })
     }
 }
 
@@ -160,6 +248,15 @@ impl UiResolvedConfirmationIntentRoute {
 }
 
 impl UiIntentRouteResolution {
+    pub(crate) fn command_evidence_reference(
+        &self,
+    ) -> Option<worth_ui_inspection::UiIntentEvidenceReference> {
+        match self {
+            Self::Product(route) => route.command_evidence_reference(),
+            Self::Confirmation(_) => None,
+        }
+    }
+
     pub(crate) fn with_evidence_reference(
         mut self,
         reference: Option<worth_ui_inspection::UiIntentEvidenceReference>,

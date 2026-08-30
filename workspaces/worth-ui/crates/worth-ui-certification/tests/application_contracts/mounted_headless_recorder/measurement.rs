@@ -14,7 +14,10 @@ fn default_recorder_remains_measurement_free() {
         recorder
             .operational_capability_report()
             .observed_capabilities(),
-        &[WorthUiHostCapability::MountedFrameRecording]
+        &[
+            WorthUiHostCapability::MountedFrameRecording,
+            WorthUiHostCapability::SemanticFocusPlacement,
+        ]
     );
     assert_eq!(
         recorder
@@ -39,6 +42,7 @@ fn configured_recorder_reports_and_observes_one_fixed_viewport() {
         capability_report.observed_capabilities(),
         &[
             WorthUiHostCapability::MountedFrameRecording,
+            WorthUiHostCapability::SemanticFocusPlacement,
             WorthUiHostCapability::ViewportObservation,
         ]
     );

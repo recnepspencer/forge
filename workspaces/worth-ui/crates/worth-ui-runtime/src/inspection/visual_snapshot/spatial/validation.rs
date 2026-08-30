@@ -45,7 +45,11 @@ pub(crate) fn validate_and_index(
     }
     let mut expected_paint =
         paint_rows_by_key(&expected_paint_rows, &expected_unsupported_paint_rows);
-    let mut expected_hit = hit_rows_by_key(&expected_hit_rows);
+    let expected_hit_mechanics = expected_hit_rows
+        .iter()
+        .map(crate::mounting::UiMountedHitTestPresentation::mechanic)
+        .collect::<Vec<_>>();
+    let mut expected_hit = hit_rows_by_key(&expected_hit_mechanics);
     let mut visible = Vec::with_capacity(expected_paint_rows.len());
     let mut hit_test = Vec::with_capacity(expected_hit_rows.len());
     for region in observed {

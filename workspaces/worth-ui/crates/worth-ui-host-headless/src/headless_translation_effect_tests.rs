@@ -16,7 +16,7 @@ use worth_ui_host_contract::{
 use super::{UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect};
 
 #[test]
-fn headless_translation_records_motion_and_diagnostic_mechanics_independently() {
+fn headless_translation_records_motion_metadata_without_synthesizing_a_host_mechanic() {
     let projection = admitted_effect_projection();
     let protocol = match UiHostProtocolContract::current().negotiate() {
         UiHostProtocolNegotiation::Compatible(protocol) => protocol,
@@ -75,9 +75,6 @@ fn headless_translation_records_motion_and_diagnostic_mechanics_independently() 
     );
     assert!(transcript
         .unperformed_effects()
-        .contains(&UiHeadlessUnperformedEffect::Motion { node_count: 1 }));
-    assert!(transcript
-        .unperformed_effects()
         .contains(&UiHeadlessUnperformedEffect::Diagnostic { node_count: 1 }));
 }
 
@@ -101,6 +98,7 @@ fn admitted_effect_projection() -> UiMountedProjectionView {
             UiMountedNodeProjectionViewInput {
                 mounted_instance,
                 node_receipt: receipt,
+                authored_position: 0,
                 role: UiMountedMechanicalRole::Diagnostic,
                 participation: UiMountedParticipation::new(UiMountedParticipationInput {
                     paint: withheld,
@@ -123,11 +121,13 @@ fn admitted_effect_projection() -> UiMountedProjectionView {
                 ),
                 drawables: Vec::new(),
                 semantic_text: Vec::new(),
+                portal_presentation: None,
             },
         )],
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+        portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
         semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
             .unwrap(),

@@ -299,7 +299,7 @@ fn assert_empty_admission_cost(
     assert_eq!(cost.payload_projection().application_inputs_read(), 0);
     assert_eq!(cost.payload_projection().admitted_utf8_bytes(), 0);
     assert_eq!(cost.operability_dependencies_visited(), 7);
-    assert_eq!(cost.currentness_checks(), 8);
+    assert_eq!(cost.currentness_checks(), 9);
     assert_eq!(cost.occupancy_slots_inspected(), expected_occupancy_slots);
     assert_eq!(cost.slots_inspected(), expected_attempt_slots);
 }

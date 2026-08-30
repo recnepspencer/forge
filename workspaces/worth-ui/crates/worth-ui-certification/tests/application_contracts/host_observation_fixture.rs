@@ -34,6 +34,16 @@ pub(super) fn report(
     ))
 }
 
+pub(super) fn window_focus(
+    basis: &PresentedObservationBasis,
+    focused: bool,
+) -> UiHostObservationPayload {
+    UiHostObservationPayload::WindowFocus {
+        surface: basis.host_surface,
+        focused,
+    }
+}
+
 pub(super) fn batch(
     source: HostObservationSource<'_>,
     range: (u64, u64),
@@ -44,6 +54,7 @@ pub(super) fn batch(
         protocol: protocol(),
         host_session: source.session.host_session_identity().as_u64(),
         presentation: UiHostObservationPresentationBasis::new(
+            source.basis.host_surface,
             source.basis.frame,
             source.binding,
             source.basis.epoch,

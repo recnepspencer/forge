@@ -76,7 +76,7 @@ impl ResourceRuntimeState {
             telemetry.resource_revalidation_admission_count += 1;
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::revalidation_admission(
                 1,
                 0,

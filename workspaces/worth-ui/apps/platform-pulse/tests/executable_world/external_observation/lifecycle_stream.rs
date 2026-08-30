@@ -34,7 +34,7 @@ pub(crate) struct LifecycleStreamMeasurement {
 pub(crate) struct LifecycleTraceEntry {
     run: String,
     sequence: u64,
-    outcome: &'static str,
+    outcome: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -340,6 +340,11 @@ impl LifecycleTraceEntry {
             PlatformPulseLifecycleObservation::IntentPosturePublished(_) => {
                 "intent_posture_published"
             }
+            PlatformPulseLifecycleObservation::IntentRoutingStopped(_) => "intent_routing_stopped",
+            PlatformPulseLifecycleObservation::SemanticFocusPublished(_) => {
+                "semantic_focus_published"
+            }
+            PlatformPulseLifecycleObservation::PortalDismissed(_) => "portal_dismissed",
             PlatformPulseLifecycleObservation::IntentCausalTrace(_) => "intent_causal_trace",
             PlatformPulseLifecycleObservation::QueryAction(_) => "query_action",
             PlatformPulseLifecycleObservation::QueryProjectionIssued(_) => {
@@ -370,7 +375,12 @@ impl LifecycleTraceEntry {
         Self {
             run: envelope.run().value().to_owned(),
             sequence: envelope.sequence().value(),
-            outcome,
+            outcome: match envelope.outcome() {
+                PlatformPulseLifecycleObservation::TerminalFailure(failure) => {
+                    format!("terminal_failure:{:?}", failure.family())
+                }
+                _ => outcome.to_owned(),
+            },
         }
     }
 }

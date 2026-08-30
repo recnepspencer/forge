@@ -39,6 +39,7 @@ impl UiAtlasPage {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn allocate(&mut self, width: u32, height: u32) -> Option<UiAtlasRect> {
         self.allocate_observed(width, height).0
     }

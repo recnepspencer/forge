@@ -150,32 +150,32 @@ fn assert_membership_shift_transcripts(
     assert_eq!(transcripts.len(), 5);
     assert_collection_transcript(
         &transcripts[0],
-        &mounted_instances,
-        &entities,
+        mounted_instances,
+        entities,
         &["Alpha", "Bravo"],
     );
     assert_collection_transcript(
         &transcripts[1],
-        &mounted_instances,
+        mounted_instances,
         &entities[1..],
         &["Bravo"],
     );
     assert_collection_transcript(
         &transcripts[2],
-        &mounted_instances,
+        mounted_instances,
         &entities[1..],
         &["Bravo updated"],
     );
     let inserted_entities = [inserted, entities[1].clone()];
     assert_collection_transcript(
         &transcripts[3],
-        &mounted_instances,
+        mounted_instances,
         &inserted_entities,
         &["Aaron", "Bravo updated"],
     );
     assert_collection_transcript(
         &transcripts[4],
-        &mounted_instances,
+        mounted_instances,
         &inserted_entities,
         &["Aaron", "Bravo final"],
     );
@@ -304,6 +304,7 @@ fn assert_collection_transcript(
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 1,
+            portal_overlay_count: 0,
             semantic_text_count: u32::try_from(expected_values.len() + 1)
                 .expect("certification row count fits the host contract"),
             preview_node_count: 0,

@@ -34,7 +34,22 @@ pub(super) struct PureClosure {
 
 pub(super) struct PureGraphPolicy<'a> {
     pub(super) allowed: &'a [&'a str],
-    pub(super) reexports: &'a BTreeMap<String, String>,
+    pub(super) reexports: &'a BTreeMap<String, WorldReexport>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum WorldReexport {
+    Unconditional(String),
+    Conditional,
+}
+
+impl WorldReexport {
+    pub(super) fn unconditional_origin(&self) -> Option<&str> {
+        match self {
+            Self::Unconditional(origin) => Some(origin),
+            Self::Conditional => None,
+        }
+    }
 }
 
 pub(super) fn module_closure(
@@ -75,7 +90,7 @@ pub(super) fn module_closure(
 pub(super) fn validate_oracle_imports(
     manifest: &Path,
     files: &BTreeMap<PathBuf, String>,
-    reexports: &BTreeMap<String, String>,
+    reexports: &BTreeMap<String, WorldReexport>,
 ) -> Result<BTreeSet<String>, String> {
     let mut owners = BTreeSet::new();
     for (path, source) in files {
@@ -152,17 +167,23 @@ pub(super) fn validate_pure_source_mutation(
     Ok(())
 }
 
-pub(super) fn visible_reexports(source: &str) -> Result<BTreeMap<String, String>, String> {
+pub(super) fn visible_reexports(source: &str) -> Result<BTreeMap<String, WorldReexport>, String> {
     let file = syn::parse_file(source).map_err(|error| error.to_string())?;
     let mut exports = BTreeMap::new();
     for item in file.items {
         let syn::Item::Use(item) = item else {
             continue;
         };
-        if !item.attrs.is_empty() {
-            return Err("conditional world reexports are not oracle authority".to_owned());
+        let mut item_exports = BTreeMap::new();
+        collect_reexports(&item.tree, &mut Vec::new(), &mut item_exports)?;
+        for (symbol, origin) in item_exports {
+            let reexport = if item.attrs.is_empty() {
+                WorldReexport::Unconditional(origin)
+            } else {
+                WorldReexport::Conditional
+            };
+            insert_world_reexport(&mut exports, symbol, reexport)?;
         }
-        collect_reexports(&item.tree, &mut Vec::new(), &mut exports)?;
     }
     Ok(exports)
 }
@@ -180,7 +201,7 @@ pub(super) fn closure_digest(manifest: &Path, closure: &BTreeMap<PathBuf, String
 
 fn world_owner(
     reference: &[String],
-    reexports: &BTreeMap<String, String>,
+    reexports: &BTreeMap<String, WorldReexport>,
 ) -> Result<Option<String>, String> {
     if !starts_with_segments(reference, WORLD_PREFIX) {
         return Ok(None);
@@ -192,9 +213,14 @@ fn world_owner(
     if world.join(format!("{first}.rs")).is_file() || world.join(first).join("mod.rs").is_file() {
         return Ok(Some(first.clone()));
     }
-    let origin = reexports
+    let reexport = reexports
         .get(first)
         .ok_or_else(|| format!("world facade does not resolve symbol {first}"))?;
+    let Some(origin) = reexport.unconditional_origin() else {
+        return Err(format!(
+            "conditional world symbol {first} is not oracle authority"
+        ));
+    };
     if origin.starts_with("crate::") {
         return Err(format!(
             "world symbol {first} aliases runtime authority {origin}"
@@ -298,6 +324,17 @@ fn insert_export(
     origin: String,
 ) -> Result<(), String> {
     if exports.insert(symbol.clone(), origin).is_some() {
+        return Err(format!("duplicate world reexport {symbol}"));
+    }
+    Ok(())
+}
+
+fn insert_world_reexport(
+    exports: &mut BTreeMap<String, WorldReexport>,
+    symbol: String,
+    reexport: WorldReexport,
+) -> Result<(), String> {
+    if exports.insert(symbol.clone(), reexport).is_some() {
         return Err(format!("duplicate world reexport {symbol}"));
     }
     Ok(())

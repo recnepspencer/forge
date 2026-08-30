@@ -1,7 +1,5 @@
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
-use worth_ui::facade::observation_report::{
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
-};
+use worth_ui::facade::observation_report::{UiHostObservationLoss, UiHostObservationReportOutcome};
 use worth_ui_host_headless::WorthUiHeadlessBaselineUnavailableHost;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedIdentityDenial,
@@ -182,7 +180,7 @@ fn wrong_deregistration_receipt_preserves_identity_but_blocks_effectful_consumer
         UiHostObservationLoss::Complete,
         vec![report(
             1,
-            UiHostObservationPayload::Focus { focused: true },
+            crate::host_observation_fixture::window_focus(&world.current, true),
             &world.current,
         )],
     );

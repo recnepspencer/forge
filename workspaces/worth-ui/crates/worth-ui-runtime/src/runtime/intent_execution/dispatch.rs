@@ -9,6 +9,7 @@ pub enum UiIntentExecutionCurrentnessStop {
     PresentationInFlight,
     TargetChanged(crate::runtime::interaction::UiInteractionTargetingDenial),
     ProductRouteChanged,
+    CommandContextChanged,
     PayloadInputChanged,
     OperabilityDependencyChanged,
     PolicyChanged,

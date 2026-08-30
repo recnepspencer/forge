@@ -439,3 +439,23 @@ path = "../../../../worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_
 [[bin]]
 name = "host-phase5-lawful-native-effect-authority"
 path = "../../../../worth-ui-host-contract/tests/ui/phase_five/lawful_native_effect_authority_is_issued_with_host.rs"
+
+[[bin]]
+name = "product-command-route-receipt-affine"
+path = "../../../../worth-ui/tests/ui/facade/command/fail/command_route_receipt_is_affine.rs"
+
+[[bin]]
+name = "product-command-descriptor-fields-private"
+path = "../../../../worth-ui/tests/ui/facade/command/construction/command_descriptor_fields_not_publicly_mintable.rs"
+
+[[bin]]
+name = "product-representative-descriptor-fields-private"
+path = "../../../../worth-ui/tests/ui/facade_visibility/descriptor_authority/representative_descriptor_fields_not_publicly_mintable.rs"
+
+[[bin]]
+name = "product-service-proposal-compiler-not-public"
+path = "../../../../worth-ui/tests/ui/facade/service/fail/proposal_compiler_is_not_a_product_surface.rs"
+
+[[bin]]
+name = "product-service-family-not-public-payload"
+path = "../../../../worth-ui/tests/ui/facade/service/fail/service_family_is_not_a_public_payload_enum.rs"

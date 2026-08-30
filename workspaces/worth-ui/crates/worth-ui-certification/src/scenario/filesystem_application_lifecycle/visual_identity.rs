@@ -12,6 +12,8 @@ use crate::scenario::application_authority_closure::visual_identity_application:
     clipped_semantic_text_action_application_builder_with_host_and_profile,
     clipped_visual_identity_application_builder_with_host,
     duplicate_hit_order_application_builder_with_host,
+    focusable_semantic_text_action_application_builder_with_host,
+    portal_semantic_text_action_application_builder_with_host,
     region_identity_application_builder_with_host,
     single_semantic_text_application_builder_with_host,
     visual_identity_application_builder_with_host, PHASE5_CANCELLATION_BACKGROUND,
@@ -85,6 +87,26 @@ impl FilesystemApplicationLifecycleScenario {
         Host: FixedCertificationHostBinding,
     {
         clipped_semantic_text_action_application_builder_with_host(host)
+    }
+
+    pub fn focusable_semantic_text_action_application_builder<Host>(
+        &self,
+        host: Host,
+    ) -> BoundApplicationBuilder
+    where
+        Host: FixedCertificationHostBinding,
+    {
+        focusable_semantic_text_action_application_builder_with_host(host)
+    }
+
+    pub fn portal_semantic_text_action_application_builder<Host>(
+        &self,
+        host: Host,
+    ) -> BoundApplicationBuilder
+    where
+        Host: FixedCertificationHostBinding,
+    {
+        portal_semantic_text_action_application_builder_with_host(host)
     }
 
     pub fn semantic_text_action_application_builder_with_change_profile<Host>(

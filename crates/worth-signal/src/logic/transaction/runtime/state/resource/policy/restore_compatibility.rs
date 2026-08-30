@@ -4,14 +4,6 @@ use crate::data::resource::*;
 use crate::data::telemetry::ResourceTelemetry;
 
 impl ResourceRuntimeState {
-    pub fn classify_policy_compatibility(
-        &self,
-        declaration: &ResourceNodeDeclaration,
-        telemetry: &mut ResourceTelemetry,
-    ) -> Result<ResourcePolicyCompatibilityReport, crate::data::error::SignalError> {
-        self.classify_policy_compatibility_optional(declaration, Some(telemetry))
-    }
-
     pub fn classify_policy_compatibility_optional(
         &self,
         declaration: &ResourceNodeDeclaration,
@@ -43,17 +35,6 @@ impl ResourceRuntimeState {
             telemetry.record_boundary_performance_envelope(report.performance());
         }
         Ok(report)
-    }
-
-    pub fn admit_policy_restore_compatibility(
-        &self,
-        declaration: &ResourceNodeDeclaration,
-        telemetry: &mut ResourceTelemetry,
-    ) -> Result<
-        Result<ResourcePolicyRestoreCompatibilityProof, DeniedResourcePolicyRestoreCompatibility>,
-        crate::data::error::SignalError,
-    > {
-        self.admit_policy_restore_compatibility_optional(declaration, Some(telemetry))
     }
 
     pub fn admit_policy_restore_compatibility_optional(
@@ -135,7 +116,7 @@ impl ResourceRuntimeState {
                 .iter()
                 .any(|family| family.class() == ResourcePolicyCompatibilityClass::MissingDescriptor)
             {
-                if let Some(telemetry) = telemetry.as_deref_mut() {
+                if let Some(telemetry) = telemetry {
                     telemetry.resource_replay_missing_policy_count += 1;
                 }
             }

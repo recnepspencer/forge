@@ -1,6 +1,7 @@
 use super::{
     presentation_deadline, stop_admitted, UiIntentConsequenceAdmitted, UiIntentConsequenceInFlight,
-    UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
+    UiIntentConsequenceIndeterminate, UiIntentConsequencePublicationCompletion,
+    UiIntentConsequencePublicationOutcome, UiIntentConsequencePublicationRecovery,
 };
 use crate::facade::entry::WorthUiActiveApplicationSession;
 
@@ -12,6 +13,17 @@ pub(in crate::facade::entry) struct DetachedUiIntentConsequenceInFlight {
         crate::facade::entry::intent_consequence_rebind::WorthUiIntentConsequenceRebindTransfer,
     query: Option<worth_ui_query_binding::WorthUiAdmittedCollectionChangePublication>,
     mounted: crate::mounting::UiMountedPresentationInFlight,
+}
+
+pub(in crate::facade::entry) struct DetachedUiIntentConsequenceIndeterminate {
+    session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    plan: crate::runtime::rebind::UiRebindPlan,
+    reservation: crate::runtime::rebind::UiRebindReservation,
+    transfer:
+        crate::facade::entry::intent_consequence_rebind::WorthUiIntentConsequenceRebindTransfer,
+    query: Option<worth_ui_query_binding::WorthUiAdmittedCollectionChangePublication>,
+    frame: crate::mounting::UiMountedIndeterminateFrame,
+    portal: Option<crate::runtime::session::UiIndeterminatePortalProposalTransaction>,
 }
 
 impl UiIntentConsequencePublicationCompletion<'_> {
@@ -38,7 +50,156 @@ impl UiIntentConsequencePublicationCompletion<'_> {
     }
 }
 
+impl UiIntentConsequencePublicationRecovery<'_> {
+    pub(in crate::facade::entry) fn detach_for_native(
+        mut self,
+    ) -> DetachedUiIntentConsequenceIndeterminate {
+        let state = self
+            .state
+            .take()
+            .expect("live consequence recovery owns its state");
+        let UiIntentConsequenceIndeterminate {
+            admitted,
+            frame,
+            portal,
+        } = *state;
+        let UiIntentConsequenceAdmitted {
+            session,
+            plan,
+            reservation,
+            transfer,
+            query,
+        } = admitted;
+        DetachedUiIntentConsequenceIndeterminate {
+            session_identity: session.session_identity(),
+            plan,
+            reservation,
+            transfer,
+            query,
+            frame,
+            portal,
+        }
+    }
+}
+
+impl DetachedUiIntentConsequenceIndeterminate {
+    pub(in crate::facade::entry) const fn carries_portal_transition(&self) -> bool {
+        self.portal.is_some()
+    }
+
+    pub(in crate::facade::entry) const fn session_identity(
+        &self,
+    ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
+        self.session_identity
+    }
+
+    pub(in crate::facade::entry) fn into_parts(
+        self,
+    ) -> (
+        crate::facade::WorthUiActiveApplicationSessionIdentity,
+        crate::mounting::UiMountedIndeterminateFrame,
+        Option<crate::runtime::session::UiIndeterminatePortalProposalTransaction>,
+        DetachedUiIntentConsequenceRecoveryResources,
+    ) {
+        let Self {
+            session_identity,
+            plan,
+            reservation,
+            transfer,
+            query,
+            frame,
+            portal,
+        } = self;
+        (
+            session_identity,
+            frame,
+            portal,
+            DetachedUiIntentConsequenceRecoveryResources {
+                plan,
+                reservation,
+                transfer,
+                query,
+            },
+        )
+    }
+
+    pub(in crate::facade::entry) fn from_parts(
+        session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
+        frame: crate::mounting::UiMountedIndeterminateFrame,
+        portal: Option<crate::runtime::session::UiIndeterminatePortalProposalTransaction>,
+        resources: DetachedUiIntentConsequenceRecoveryResources,
+    ) -> Self {
+        let DetachedUiIntentConsequenceRecoveryResources {
+            plan,
+            reservation,
+            transfer,
+            query,
+        } = resources;
+        Self {
+            session_identity,
+            plan,
+            reservation,
+            transfer,
+            query,
+            frame,
+            portal,
+        }
+    }
+}
+
+pub(in crate::facade::entry) struct DetachedUiIntentConsequenceRecoveryResources {
+    plan: crate::runtime::rebind::UiRebindPlan,
+    reservation: crate::runtime::rebind::UiRebindReservation,
+    transfer:
+        crate::facade::entry::intent_consequence_rebind::WorthUiIntentConsequenceRebindTransfer,
+    query: Option<worth_ui_query_binding::WorthUiAdmittedCollectionChangePublication>,
+}
+
+impl DetachedUiIntentConsequenceRecoveryResources {
+    pub(in crate::facade::entry) fn settle_predecessor(
+        mut self,
+        session: &mut WorthUiActiveApplicationSession,
+    ) {
+        debug_assert!(self.transfer.portal_proposal.is_none());
+        if let Some(query) = self.query.take() {
+            drop(
+                session
+                    .application
+                    .withdraw_exact_query_change(query)
+                    .expect("exclusive exact Query admission remains withdrawable during recovery"),
+            );
+        }
+        session
+            .intent_execution
+            .dispose_consequence_handoff(self.transfer.consequence);
+        drop((self.plan, self.reservation));
+    }
+
+    pub(in crate::facade::entry) fn abandon_for_shutdown(
+        mut self,
+        session: &mut WorthUiActiveApplicationSession,
+    ) {
+        debug_assert!(self.transfer.portal_proposal.is_none());
+        if let Some(query) = self.query.take() {
+            drop(
+                session
+                    .application
+                    .withdraw_exact_query_change(query)
+                    .expect("exclusive exact Query admission remains withdrawable at shutdown"),
+            );
+        }
+        session
+            .intent_execution
+            .dispose_consequence_handoff(self.transfer.consequence);
+        drop((self.plan, self.reservation));
+    }
+}
+
 impl DetachedUiIntentConsequenceInFlight {
+    pub(in crate::facade::entry) const fn carries_portal_transition(&self) -> bool {
+        self.transfer.portal_proposal.is_some()
+    }
+
     pub(in crate::facade::entry) const fn session_identity(
         &self,
     ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
@@ -61,7 +222,7 @@ impl DetachedUiIntentConsequenceInFlight {
             }
         };
         self.mounted.awaits_progress_class(class)
-            && progress.presentation().map_or(true, |presentation| {
+            && progress.presentation().is_none_or(|presentation| {
                 presentation.attempt() == self.mounted.attempt()
                     && self
                         .mounted

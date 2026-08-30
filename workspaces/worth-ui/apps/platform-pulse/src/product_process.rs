@@ -40,7 +40,7 @@ fn run_worth_native(
     };
     let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
         "WORTH UI Platform Pulse",
-        [160, 96],
+        worth_ui_platform_pulse::visual_identity_pulse::PLATFORM_PULSE_PRODUCT_LOGICAL_EXTENT,
     ));
     let platform = match WorthUiNativePlatform::prepare(profile) {
         Ok(platform) => platform,
@@ -54,6 +54,11 @@ fn run_worth_native(
         launch, publisher,
     )) {
         UiNativePlatformOutcome::Closed(receipt) if receipt.terminal_census().is_zero() => {
+            #[cfg(feature = "executable-world")]
+            if let Err(error) = crate::native_close_evidence::write(&receipt) {
+                eprintln!("WORTH UI native close evidence could not be written: {error}");
+                return ExitCode::from(3);
+            }
             ExitCode::SUCCESS
         }
         outcome => {

@@ -120,9 +120,9 @@ pub(super) fn map_text_readiness(
     readiness: UiNativeTextPresentationReadiness,
 ) -> UiHostSurfacePresentationDenial {
     match readiness {
-        UiNativeTextPresentationReadiness::SemanticTextDemandDenied(_)
-        | UiNativeTextPresentationReadiness::SemanticTextLayoutMismatch
-        | UiNativeTextPresentationReadiness::SemanticTextSourceMismatch => {
+        UiNativeTextPresentationReadiness::DemandDenied(_)
+        | UiNativeTextPresentationReadiness::LayoutMismatch
+        | UiNativeTextPresentationReadiness::SourceMismatch => {
             UiHostSurfacePresentationDenial::AdapterDeclined
         }
     }

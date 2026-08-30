@@ -28,6 +28,9 @@ mod retained_draw_list;
 mod retained_evidence_copy;
 mod retained_order;
 mod retained_regions;
+mod sample;
+#[cfg(feature = "certification-support")]
+mod sample_certification;
 mod surface;
 pub(crate) mod surface_basis;
 mod surface_failure;
@@ -58,7 +61,15 @@ pub(crate) use port::{
 #[cfg(feature = "certification-support")]
 use qualified_external_obligation::UiNativeQualifiedExternalObligation;
 pub(crate) use reconstruction::{present_cold_reconstruction, UiNativeReconstructionFailure};
+#[cfg(test)]
+pub(in crate::native) use retained_draw_list::tests::DrawListWorld;
 pub(crate) use retained_draw_list::UiNativeRetainedDrawList;
+pub(crate) use sample::{present_sample, UiNativeSamplePresentation};
+#[cfg(feature = "certification-support")]
+pub use sample_certification::{
+    certify_portal_sample_replay, UiNativePortalSampleReplayCertification,
+    UiNativePortalSampleReplayCertificationDenial,
+};
 pub(crate) use surface::{
     UiNativeOwnedPresentationSurface, UiNativePresentationSurface,
     UiNativePresentationSurfaceOwners,
@@ -161,7 +172,9 @@ pub(crate) fn present_initial<Port: UiNativePresentationPort>(
         Ok(external) => external,
         Err(UiNativePresentationFailure::Pending(pending)) => {
             return Err(UiNativePresentationFailure::Pending(
-                pending.with_settlement(UiNativePendingSurfaceSettlement::Initial(retained)),
+                pending.with_settlement(UiNativePendingSurfaceSettlement::Initial(Box::new(
+                    retained,
+                ))),
             ));
         }
         Err(failure) => return Err(failure),

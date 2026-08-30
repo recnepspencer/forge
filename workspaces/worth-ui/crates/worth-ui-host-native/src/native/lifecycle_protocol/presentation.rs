@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
     UiHostObservationPresentationBasis, UiHostPresentationEpoch, UiHostProtocolAgreement,
-    UiMountedFrameIdentity, UiSurfaceBindingGeneration,
+    UiHostSurfaceIdentity, UiMountedFrameIdentity, UiSurfaceBindingGeneration,
 };
 
 use super::{
@@ -44,6 +44,7 @@ impl UiNativeLifecycleProtocol {
         &mut self,
         protocol: UiHostProtocolAgreement,
         host_session: u64,
+        host_surface: UiHostSurfaceIdentity,
         binding: UiSurfaceBindingGeneration,
         completion_identity: u64,
     ) -> UiNativeLifecycleTransition {
@@ -56,6 +57,7 @@ impl UiNativeLifecycleProtocol {
         let remembered = self.input.remember_pending_presentation(
             protocol,
             host_session,
+            host_surface,
             binding,
             completion_identity,
         );

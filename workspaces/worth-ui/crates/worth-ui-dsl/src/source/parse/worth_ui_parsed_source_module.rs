@@ -12,6 +12,12 @@ pub(crate) enum WorthUiParsedSourceDeclaration {
     Component(WorthUiParsedBlockDeclaration),
     Control(WorthUiParsedBlockDeclaration),
     Intent(WorthUiParsedBlockDeclaration),
+    Portal(WorthUiParsedBlockDeclaration),
+    Focus(WorthUiParsedBlockDeclaration),
+    Motion(WorthUiParsedBlockDeclaration),
+    Command(WorthUiParsedBlockDeclaration),
+    Scroll(WorthUiParsedBlockDeclaration),
+    Selection(WorthUiParsedBlockDeclaration),
     Surface(WorthUiParsedBlockDeclaration),
     Binding(WorthUiParsedBlockDeclaration),
     QueryScalar(WorthUiParsedBlockDeclaration),
@@ -165,6 +171,12 @@ impl WorthUiParsedSourceDeclaration {
             (Self::Component(left), Self::Component(right))
             | (Self::Control(left), Self::Control(right))
             | (Self::Intent(left), Self::Intent(right))
+            | (Self::Portal(left), Self::Portal(right))
+            | (Self::Focus(left), Self::Focus(right))
+            | (Self::Motion(left), Self::Motion(right))
+            | (Self::Command(left), Self::Command(right))
+            | (Self::Scroll(left), Self::Scroll(right))
+            | (Self::Selection(left), Self::Selection(right))
             | (Self::Surface(left), Self::Surface(right))
             | (Self::Binding(left), Self::Binding(right))
             | (Self::QueryScalar(left), Self::QueryScalar(right))

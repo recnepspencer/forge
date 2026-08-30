@@ -311,6 +311,8 @@ fn draft_field(slot: u8, byte_budget: usize) -> UiDraftFieldIdentity {
 fn target_view() -> crate::runtime::interaction::UiPresentedInteractionTargetView {
     let binding = UiSurfaceBindingGeneration::mint_unbound().expect("binding identity capacity");
     let presentation = UiHostObservationPresentationBasis::new(
+        worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound()
+            .expect("host surface identity capacity"),
         UiMountedFrameIdentity::mint_unbound().expect("frame identity capacity"),
         binding,
         UiHostPresentationEpoch::issued_by_host(1),

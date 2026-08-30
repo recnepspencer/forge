@@ -16,17 +16,17 @@ pub(crate) struct UiNativePendingPresentation {
     external: Option<Box<dyn UiNativePendingExternalObligation>>,
     readback_owner: Option<crate::native::UiNativeResourceOwner>,
     submission_owner: Option<crate::native::UiNativeResourceOwner>,
-    physical_work: crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity,
-    physical_token: crate::native::physical_work_signal::UiNativePhysicalSignalRequestToken,
+    physical_work: Box<crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity>,
+    physical_token: Box<crate::native::physical_work_signal::UiNativePhysicalSignalRequestToken>,
     completion_identity: Option<u64>,
-    settlement: Option<super::UiNativePendingSurfaceSettlement>,
+    settlement: Option<Box<super::UiNativePendingSurfaceSettlement>>,
     completion: UiNativePendingPresentationCompletion,
 }
 
 pub(crate) enum UiNativePendingPresentationCompletion {
     Pending,
-    Presented(port::UiNativePresentationPortObservation),
-    Superseded(port::UiNativePresentationPortObservation),
+    Presented(Box<port::UiNativePresentationPortObservation>),
+    Superseded(Box<port::UiNativePresentationPortObservation>),
     Indeterminate,
 }
 
@@ -41,6 +41,7 @@ pub(crate) trait UiNativePendingExternalObligation {
         None
     }
 
+    #[cfg(feature = "certification-support")]
     fn take_duplicate_completed_observation(
         &mut self,
         _basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
@@ -62,8 +63,8 @@ impl UiNativePendingPresentation {
             external: Some(external),
             readback_owner: Some(readback_owner),
             submission_owner: Some(submission_owner),
-            physical_work,
-            physical_token,
+            physical_work: Box::new(physical_work),
+            physical_token: Box::new(physical_token),
             completion_identity: None,
             settlement: None,
             completion: UiNativePendingPresentationCompletion::Pending,
@@ -75,7 +76,7 @@ impl UiNativePendingPresentation {
         settlement: super::UiNativePendingSurfaceSettlement,
     ) -> Self {
         debug_assert!(self.settlement.is_none());
-        self.settlement = Some(settlement);
+        self.settlement = Some(Box::new(settlement));
         self
     }
 
@@ -103,7 +104,7 @@ impl UiNativePendingPresentation {
     }
 
     pub(crate) fn take_settlement(&mut self) -> Option<super::UiNativePendingSurfaceSettlement> {
-        self.settlement.take()
+        self.settlement.take().map(|settlement| *settlement)
     }
 
     pub(crate) fn replace_settlement(
@@ -111,7 +112,7 @@ impl UiNativePendingPresentation {
         settlement: super::UiNativePendingSurfaceSettlement,
     ) {
         debug_assert!(self.settlement.is_none());
-        self.settlement = Some(settlement);
+        self.settlement = Some(Box::new(settlement));
     }
 
     pub(crate) fn inherit_predecessor_settlement(
@@ -132,14 +133,14 @@ impl UiNativePendingPresentation {
         &mut self,
         observation: port::UiNativePresentationPortObservation,
     ) {
-        self.completion = UiNativePendingPresentationCompletion::Presented(observation);
+        self.completion = UiNativePendingPresentationCompletion::Presented(Box::new(observation));
     }
 
     pub(crate) fn mark_superseded(
         &mut self,
         observation: port::UiNativePresentationPortObservation,
     ) {
-        self.completion = UiNativePendingPresentationCompletion::Superseded(observation);
+        self.completion = UiNativePendingPresentationCompletion::Superseded(Box::new(observation));
     }
 
     pub(crate) fn mark_indeterminate(&mut self) {
@@ -153,7 +154,7 @@ impl UiNativePendingPresentation {
     pub(crate) const fn physical_work(
         &self,
     ) -> crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity {
-        self.physical_work
+        *self.physical_work
     }
 
     pub(crate) const fn physical_basis(
@@ -165,7 +166,7 @@ impl UiNativePendingPresentation {
     pub(crate) const fn physical_token(
         &self,
     ) -> crate::native::physical_work_signal::UiNativePhysicalSignalRequestToken {
-        self.physical_token
+        *self.physical_token
     }
 
     pub(crate) fn refresh_physical_token(
@@ -174,12 +175,12 @@ impl UiNativePendingPresentation {
     ) -> bool {
         if token.work()
             != crate::native::physical_work_signal::UiNativePhysicalSignalWork::Presentation(
-                self.physical_work,
+                *self.physical_work,
             )
         {
             return false;
         }
-        self.physical_token = token;
+        *self.physical_token = token;
         true
     }
 

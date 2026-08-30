@@ -68,7 +68,7 @@ impl ResourceRuntimeState {
                 active_request_id,
             },
             ResourceRevalidationAdmissionPreview::Deny(class) => {
-                return Err(self.deny_revalidation(intent, class, telemetry.as_deref_mut()));
+                return Err(self.deny_revalidation(intent, class, telemetry));
             }
         };
         Ok(PreparedResourceRevalidation {

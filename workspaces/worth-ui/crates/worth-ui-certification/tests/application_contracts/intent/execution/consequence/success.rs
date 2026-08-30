@@ -43,6 +43,7 @@ fn completed_effect_publishes_declared_query_and_mounted_posture_as_one_batch() 
         }
     };
     let scope = receipt
+        .rebind()
         .plan()
         .scope()
         .expect("the consequence publication resolves one changed scope");
@@ -77,7 +78,7 @@ fn completed_effect_publishes_declared_query_and_mounted_posture_as_one_batch() 
     assert_eq!(cost.graph_and_mounted_entries(), selected_entries);
     assert_eq!(cost.indexed_consumers(), scope.consumers().len());
     assert_eq!(
-        receipt.decision_record().consumer_count(),
+        receipt.rebind().decision_record().consumer_count(),
         cost.indexed_consumers()
     );
     let published = world.query_change_state();

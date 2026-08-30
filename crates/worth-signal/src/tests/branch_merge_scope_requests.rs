@@ -325,9 +325,12 @@ fn scoped_requests_do_not_silently_widen_into_full_branch_planning() {
     match err {
         SignalError::BranchMergeFailed {
             kind: BranchMergeFailureKind::ScopedMergeDenied,
-            evidence: Some(BranchMergeFailureEvidence::ScopedDenial(evidence)),
+            evidence: Some(evidence),
             ..
         } => {
+            let BranchMergeFailureEvidence::ScopedDenial(evidence) = *evidence else {
+                panic!("expected scoped denial evidence")
+            };
             assert_eq!(
                 evidence.denial_kind,
                 BranchMergeScopedDenialKind::SelectedNodeMissingFromSourceScope

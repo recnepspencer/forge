@@ -25,6 +25,7 @@ schema_version!(UiMountedFrameSchemaVersion);
 schema_version!(UiMountedPresentationSchemaVersion);
 schema_version!(UiHostObservationSchemaVersion);
 schema_version!(UiHostMeasurementSchemaVersion);
+schema_version!(UiHostSolicitedEffectSchemaVersion);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiHostProtocolContract {
@@ -34,6 +35,7 @@ pub struct UiHostProtocolContract {
     mounted_presentation: UiMountedPresentationSchemaVersion,
     observation: UiHostObservationSchemaVersion,
     measurement: UiHostMeasurementSchemaVersion,
+    solicited_effect: UiHostSolicitedEffectSchemaVersion,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,6 +55,7 @@ pub enum UiHostProtocolSchemaFamily {
     MountedPresentation,
     Observation,
     Measurement,
+    SolicitedEffect,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -91,19 +94,23 @@ impl UiHostProtocolVersion {
 }
 
 impl UiHostProtocolContract {
-    const COMPATIBLE_FLOOR: u16 = 5;
-    const CURRENT: u16 = 5;
+    const COMPATIBLE_FLOOR: u16 = 6;
+    const CURRENT: u16 = 6;
+    const CURRENT_FRAME_SCHEMA: u16 = 5;
     const CURRENT_PRESENTATION_SCHEMA: u16 = 5;
-    const CURRENT_OBSERVATION_SCHEMA: u16 = 6;
+    const CURRENT_OBSERVATION_SCHEMA: u16 = 7;
+    const CURRENT_MEASUREMENT_SCHEMA: u16 = 5;
+    const CURRENT_SOLICITED_EFFECT_SCHEMA: u16 = 1;
 
     pub const fn current() -> Self {
         Self::new(
             UiHostProtocolIdentity::worth_ui(),
             UiHostProtocolVersion::new(Self::CURRENT),
-            UiMountedFrameSchemaVersion::new(Self::CURRENT),
+            UiMountedFrameSchemaVersion::new(Self::CURRENT_FRAME_SCHEMA),
             UiMountedPresentationSchemaVersion::new(Self::CURRENT_PRESENTATION_SCHEMA),
             UiHostObservationSchemaVersion::new(Self::CURRENT_OBSERVATION_SCHEMA),
-            UiHostMeasurementSchemaVersion::new(Self::CURRENT),
+            UiHostMeasurementSchemaVersion::new(Self::CURRENT_MEASUREMENT_SCHEMA),
+            UiHostSolicitedEffectSchemaVersion::new(Self::CURRENT_SOLICITED_EFFECT_SCHEMA),
         )
     }
 
@@ -114,6 +121,7 @@ impl UiHostProtocolContract {
         mounted_presentation: UiMountedPresentationSchemaVersion,
         observation: UiHostObservationSchemaVersion,
         measurement: UiHostMeasurementSchemaVersion,
+        solicited_effect: UiHostSolicitedEffectSchemaVersion,
     ) -> Self {
         Self {
             identity,
@@ -122,6 +130,7 @@ impl UiHostProtocolContract {
             mounted_presentation,
             observation,
             measurement,
+            solicited_effect,
         }
     }
 
@@ -149,9 +158,12 @@ impl UiHostProtocolContract {
         self.measurement
     }
 
+    pub const fn solicited_effect(self) -> UiHostSolicitedEffectSchemaVersion {
+        self.solicited_effect
+    }
+
     pub fn negotiate(self) -> UiHostProtocolNegotiation {
-        let denial = self.compatibility_denial();
-        match denial {
+        match self.compatibility_denial() {
             Some(denial) => UiHostProtocolNegotiation::Incompatible(denial),
             None => {
                 UiHostProtocolNegotiation::Compatible(UiHostProtocolAgreement { contract: self })
@@ -163,36 +175,36 @@ impl UiHostProtocolContract {
         if self.identity != UiHostProtocolIdentity::worth_ui() {
             return Some(UiHostProtocolDenial::ForeignIdentity);
         }
-        revision_denial(self.protocol.revision()).map_or_else(
-            || {
-                [
-                    (
-                        UiHostProtocolSchemaFamily::MountedFrame,
-                        self.mounted_frame.revision(),
-                    ),
-                    (
-                        UiHostProtocolSchemaFamily::MountedPresentation,
-                        self.mounted_presentation.revision(),
-                    ),
-                    (
-                        UiHostProtocolSchemaFamily::Observation,
-                        self.observation.revision(),
-                    ),
-                    (
-                        UiHostProtocolSchemaFamily::Measurement,
-                        self.measurement.revision(),
-                    ),
-                ]
-                .into_iter()
-                .find_map(|(family, revision)| schema_denial(family, revision))
-            },
-            |ordering| {
-                Some(match ordering {
-                    RevisionDenial::TooOld => UiHostProtocolDenial::ProtocolTooOld,
-                    RevisionDenial::TooNew => UiHostProtocolDenial::ProtocolTooNew,
-                })
-            },
-        )
+        if let Some(denial) = revision_denial(self.protocol.revision()) {
+            return Some(match denial {
+                RevisionDenial::TooOld => UiHostProtocolDenial::ProtocolTooOld,
+                RevisionDenial::TooNew => UiHostProtocolDenial::ProtocolTooNew,
+            });
+        }
+        [
+            (
+                UiHostProtocolSchemaFamily::MountedFrame,
+                self.mounted_frame.revision(),
+            ),
+            (
+                UiHostProtocolSchemaFamily::MountedPresentation,
+                self.mounted_presentation.revision(),
+            ),
+            (
+                UiHostProtocolSchemaFamily::Observation,
+                self.observation.revision(),
+            ),
+            (
+                UiHostProtocolSchemaFamily::Measurement,
+                self.measurement.revision(),
+            ),
+            (
+                UiHostProtocolSchemaFamily::SolicitedEffect,
+                self.solicited_effect.revision(),
+            ),
+        ]
+        .into_iter()
+        .find_map(|(family, revision)| schema_denial(family, revision))
     }
 }
 
@@ -223,134 +235,27 @@ fn schema_denial(
     revision: u16,
 ) -> Option<UiHostProtocolDenial> {
     let current = match family {
+        UiHostProtocolSchemaFamily::MountedFrame => UiHostProtocolContract::CURRENT_FRAME_SCHEMA,
         UiHostProtocolSchemaFamily::MountedPresentation => {
             UiHostProtocolContract::CURRENT_PRESENTATION_SCHEMA
         }
         UiHostProtocolSchemaFamily::Observation => {
             UiHostProtocolContract::CURRENT_OBSERVATION_SCHEMA
         }
-        UiHostProtocolSchemaFamily::MountedFrame | UiHostProtocolSchemaFamily::Measurement => {
-            UiHostProtocolContract::CURRENT
+        UiHostProtocolSchemaFamily::Measurement => {
+            UiHostProtocolContract::CURRENT_MEASUREMENT_SCHEMA
+        }
+        UiHostProtocolSchemaFamily::SolicitedEffect => {
+            UiHostProtocolContract::CURRENT_SOLICITED_EFFECT_SCHEMA
         }
     };
-    let denial = if revision < current {
-        Some(RevisionDenial::TooOld)
-    } else if revision > current {
-        Some(RevisionDenial::TooNew)
-    } else {
-        None
-    };
-    denial.map(|denial| match denial {
-        RevisionDenial::TooOld => UiHostProtocolDenial::SchemaTooOld(family),
-        RevisionDenial::TooNew => UiHostProtocolDenial::SchemaTooNew(family),
-    })
+    match revision.cmp(&current) {
+        std::cmp::Ordering::Less => Some(UiHostProtocolDenial::SchemaTooOld(family)),
+        std::cmp::Ordering::Greater => Some(UiHostProtocolDenial::SchemaTooNew(family)),
+        std::cmp::Ordering::Equal => None,
+    }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolContract,
-        UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
-        UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiMountedFrameSchemaVersion,
-        UiMountedPresentationSchemaVersion,
-    };
-
-    #[test]
-    fn protocol_and_each_schema_family_negotiate_without_cross_family_substitution() {
-        let current = UiHostProtocolContract::current();
-        let protocol = current.protocol().revision();
-        let frame = current.mounted_frame().revision();
-        let presentation = current.mounted_presentation().revision();
-        let observation = current.observation().revision();
-        let measurement = current.measurement().revision();
-        assert!(matches!(
-            current.negotiate(),
-            UiHostProtocolNegotiation::Compatible(_)
-        ));
-        assert_denial(
-            contract(protocol - 1, frame, presentation, observation, measurement),
-            UiHostProtocolDenial::ProtocolTooOld,
-        );
-        assert_denial(
-            contract(0, frame, presentation, observation, measurement),
-            UiHostProtocolDenial::ProtocolTooOld,
-        );
-        assert_denial(
-            contract(protocol + 1, frame, presentation, observation, measurement),
-            UiHostProtocolDenial::ProtocolTooNew,
-        );
-        for (contract, family) in [
-            (
-                contract(protocol, frame - 1, presentation, observation, measurement),
-                UiHostProtocolSchemaFamily::MountedFrame,
-            ),
-            (
-                contract(protocol, frame, presentation - 1, observation, measurement),
-                UiHostProtocolSchemaFamily::MountedPresentation,
-            ),
-            (
-                contract(protocol, frame, presentation, observation - 1, measurement),
-                UiHostProtocolSchemaFamily::Observation,
-            ),
-            (
-                contract(protocol, frame, presentation, observation, measurement - 1),
-                UiHostProtocolSchemaFamily::Measurement,
-            ),
-        ] {
-            assert_denial(contract, UiHostProtocolDenial::SchemaTooOld(family));
-        }
-        for (contract, family) in [
-            (
-                contract(protocol, frame + 1, presentation, observation, measurement),
-                UiHostProtocolSchemaFamily::MountedFrame,
-            ),
-            (
-                contract(protocol, frame, presentation + 1, observation, measurement),
-                UiHostProtocolSchemaFamily::MountedPresentation,
-            ),
-            (
-                contract(protocol, frame, presentation, observation + 1, measurement),
-                UiHostProtocolSchemaFamily::Observation,
-            ),
-            (
-                contract(protocol, frame, presentation, observation, measurement + 1),
-                UiHostProtocolSchemaFamily::Measurement,
-            ),
-        ] {
-            assert_denial(contract, UiHostProtocolDenial::SchemaTooNew(family));
-        }
-        let foreign = UiHostProtocolContract::new(
-            UiHostProtocolIdentity::from_untrusted(7),
-            UiHostProtocolVersion::new(protocol),
-            UiMountedFrameSchemaVersion::new(frame),
-            UiMountedPresentationSchemaVersion::new(presentation),
-            UiHostObservationSchemaVersion::new(observation),
-            UiHostMeasurementSchemaVersion::new(measurement),
-        );
-        assert_denial(foreign, UiHostProtocolDenial::ForeignIdentity);
-    }
-
-    fn contract(
-        protocol: u16,
-        frame: u16,
-        presentation: u16,
-        observation: u16,
-        measurement: u16,
-    ) -> UiHostProtocolContract {
-        UiHostProtocolContract::new(
-            UiHostProtocolIdentity::worth_ui(),
-            UiHostProtocolVersion::new(protocol),
-            UiMountedFrameSchemaVersion::new(frame),
-            UiMountedPresentationSchemaVersion::new(presentation),
-            UiHostObservationSchemaVersion::new(observation),
-            UiHostMeasurementSchemaVersion::new(measurement),
-        )
-    }
-
-    fn assert_denial(contract: UiHostProtocolContract, expected: UiHostProtocolDenial) {
-        assert_eq!(
-            contract.negotiate(),
-            UiHostProtocolNegotiation::Incompatible(expected)
-        );
-    }
-}
+#[path = "protocol_tests.rs"]
+mod tests;

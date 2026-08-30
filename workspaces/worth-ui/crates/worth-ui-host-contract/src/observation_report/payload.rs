@@ -1,4 +1,8 @@
 use super::UiHostObservationFamily;
+use super::{
+    UiHostScrollDeltaPhase, UiHostScrollDeltaPrecision, UiHostScrollDeltaSource,
+    UiHostScrollDeltaTargetAffinity,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiHostObservationPayload {
@@ -28,10 +32,15 @@ pub enum UiHostObservationPayload {
         modifiers: super::UiHostKeyboardModifiers,
         transition: super::UiHostKeyTransition,
     },
-    Focus {
+    WindowFocus {
+        surface: crate::UiHostSurfaceIdentity,
         focused: bool,
     },
     ScrollDelta {
+        source: UiHostScrollDeltaSource,
+        phase: UiHostScrollDeltaPhase,
+        precision: UiHostScrollDeltaPrecision,
+        target: UiHostScrollDeltaTargetAffinity,
         x_subpixels: i64,
         y_subpixels: i64,
     },
@@ -69,7 +78,7 @@ impl UiHostObservationPayload {
             Self::PointerMotion { .. } => UiHostObservationFamily::PointerMotion,
             Self::PointerButton { .. } => UiHostObservationFamily::PointerButton,
             Self::Keyboard { .. } => UiHostObservationFamily::Keyboard,
-            Self::Focus { .. } => UiHostObservationFamily::Focus,
+            Self::WindowFocus { .. } => UiHostObservationFamily::WindowFocus,
             Self::ScrollDelta { .. } => UiHostObservationFamily::ScrollDelta,
             Self::Clock { .. } => UiHostObservationFamily::Clock,
             Self::Tick { .. } => UiHostObservationFamily::Tick,
@@ -85,8 +94,8 @@ impl UiHostObservationPayload {
             Self::PointerMotion { .. } => 35,
             Self::PointerButton { .. } => 36,
             Self::Keyboard { .. } => 8,
-            Self::Focus { .. } => 1,
-            Self::ScrollDelta { .. } => 16,
+            Self::WindowFocus { .. } => 17,
+            Self::ScrollDelta { target, .. } => 19 + target.encoded_len(),
             Self::Clock { .. } | Self::Tick { .. } => 8,
             Self::TextInput { text, .. } => 8 + text.len(),
             Self::ImeComposition { phase, .. } => 9 + ime_encoded_len(phase),
@@ -151,11 +160,23 @@ impl UiHostObservationPayload {
                 modifiers,
                 transition,
             } => digest.fold_keyboard(*logical_key, *physical_key, *modifiers, *transition),
-            Self::Focus { focused } => digest.fold(u64::from(*focused)),
+            Self::WindowFocus { surface, focused } => {
+                digest.fold(surface.diagnostic_value());
+                digest.fold(u64::from(*focused));
+            }
             Self::ScrollDelta {
+                source,
+                phase,
+                precision,
+                target,
                 x_subpixels,
                 y_subpixels,
-            } => digest.fold_pair(*x_subpixels as u64, *y_subpixels as u64),
+            } => {
+                digest.fold_pair(*source as u64, *phase as u64);
+                digest.fold(*precision as u64);
+                digest.fold_scroll_target(*target);
+                digest.fold_pair(*x_subpixels as u64, *y_subpixels as u64);
+            }
             Self::Clock { tick } | Self::Tick { tick } => digest.fold(*tick),
             Self::TextInput { revision, text } => {
                 digest.fold_text(*revision, text);
@@ -258,6 +279,26 @@ impl UiHostObservationPayloadDigest {
             position.basis().coordinate_unit() as u64,
         );
         self.fold_pair(position.x_subpixels() as u64, position.y_subpixels() as u64);
+    }
+
+    fn fold_scroll_target(&mut self, target: UiHostScrollDeltaTargetAffinity) {
+        let presentation = target.presentation();
+        self.fold(presentation.host_surface().diagnostic_value());
+        self.fold(presentation.frame().diagnostic_value());
+        self.fold(presentation.binding().diagnostic_value());
+        self.fold(presentation.epoch().diagnostic_value());
+        match target {
+            UiHostScrollDeltaTargetAffinity::ExactCoordinate { position, .. } => {
+                self.fold(1);
+                self.fold_position(position);
+            }
+            UiHostScrollDeltaTargetAffinity::ExactMountedTarget { mounted, .. } => {
+                self.fold(2);
+                self.fold(mounted.instance().diagnostic_value());
+                self.fold(mounted.node_receipt().diagnostic_value());
+            }
+            UiHostScrollDeltaTargetAffinity::PresentedSurfaceFallback { .. } => self.fold(3),
+        }
     }
 
     fn finish(self) -> u64 {

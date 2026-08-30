@@ -49,6 +49,18 @@ impl FrozenCommandCapabilities {
             .iter()
             .fold(0xcbf2_9ce4_8422_2325, fold_command_descriptor)
     }
+
+    pub(crate) fn runtime_service_support(&self) -> crate::capability::UiRuntimeServiceSupport {
+        let has_routable_shortcut = self.descriptors.iter().any(|descriptor| {
+            descriptor.default_shortcut().is_some() && descriptor.route().is_some()
+        });
+        if has_routable_shortcut {
+            crate::capability::UiRuntimeServiceSupport::none_installed()
+                .with_installed(crate::capability::UiRuntimeServiceFamily::CommandRouting)
+        } else {
+            crate::capability::UiRuntimeServiceSupport::none_installed()
+        }
+    }
 }
 
 fn fold_command_descriptor(accumulator: u64, descriptor: &CommandDescriptor) -> u64 {
@@ -59,8 +71,17 @@ fn fold_command_descriptor(accumulator: u64, descriptor: &CommandDescriptor) -> 
         with_description,
         descriptor.icon().map(|icon_id| icon_id.as_str()),
     );
-    let with_shortcut = fold_optional_str(with_icon, descriptor.default_shortcut_reference());
-    let with_category = fold_bytes(with_shortcut, descriptor.category().as_str().as_bytes());
+    let with_shortcut = fold_optional_string(
+        with_icon,
+        descriptor
+            .default_shortcut()
+            .map(|shortcut| shortcut.digest_basis()),
+    );
+    let with_route = fold_optional_string(
+        with_shortcut,
+        descriptor.route().map(|route| route.digest_basis()),
+    );
+    let with_category = fold_bytes(with_route, descriptor.category().as_str().as_bytes());
     fold_optional_str(
         with_category,
         descriptor
@@ -74,6 +95,10 @@ fn fold_optional_str(accumulator: u64, value: Option<&str>) -> u64 {
         Some(value) => fold_bytes(fold_bytes(accumulator, b"some"), value.as_bytes()),
         None => fold_bytes(accumulator, b"none"),
     }
+}
+
+fn fold_optional_string(accumulator: u64, value: Option<String>) -> u64 {
+    fold_optional_str(accumulator, value.as_deref())
 }
 
 fn fold_bytes(mut accumulator: u64, bytes: &[u8]) -> u64 {

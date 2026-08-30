@@ -74,8 +74,10 @@ impl PlatformPulseApplicationRuntime {
                 return;
             }
         };
-        let ingress = shell.admit_native_intent_progress(
+        let ingress = shell.admit_native_intent_progress_triplet(
             worth_ui_platform_pulse::intent::platform_pulse_action_definition(),
+            worth_ui_platform_pulse::intent::platform_pulse_open_portal_definition(),
+            worth_ui_platform_pulse::intent::platform_pulse_close_portal_definition(),
             progress,
             deadline,
         );
@@ -87,6 +89,7 @@ impl PlatformPulseApplicationRuntime {
         shell: &mut WorthUiNativeApplicationShell,
         ingress: worth_ui::facade::app::WorthUiNativeIntentIngress,
     ) {
+        let dismissals = ingress.dismissals().to_vec();
         if ingress.duplicate_batches() > 0 {
             self.fail_intent_settlement(format!(
                 "native interaction ingress duplicated {} batch(es)",
@@ -124,6 +127,11 @@ impl PlatformPulseApplicationRuntime {
             }
             self.pending_intent_postures.push_back(prepared);
         }
+        for dismissal in dismissals {
+            if self.terminal_error.is_some() || !self.dismiss_open_portal(shell, dismissal) {
+                break;
+            }
+        }
         if self.terminal_error.is_none() {
             self.advance_pending_intent_postures(shell);
         }
@@ -153,8 +161,16 @@ impl PlatformPulseApplicationRuntime {
             }
             WorthUiNativeIntentTransition::Stopped(stopped) => {
                 let (stop, posture) = stopped.into_parts();
-                if posture.is_none() && is_unrouted_interaction(&stop) {
-                    return None;
+                if posture.is_none() {
+                    if let Some(observation) = unrouted_observation(&stop) {
+                        if let Err(error) = self.publisher.intent_routing_stopped(observation) {
+                            self.fail(
+                                super::super::PlatformPulseTerminalError::ObservationPublication,
+                                Err(error),
+                            );
+                        }
+                        return None;
+                    }
                 }
                 let Some(posture) = posture else {
                     self.fail_intent_settlement(
@@ -182,7 +198,10 @@ impl PlatformPulseApplicationRuntime {
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
     ) {
-        while self.terminal_error.is_none() && self.pending_managed_rebind.is_none() {
+        while self.terminal_error.is_none()
+            && self.pending_managed_rebind.is_none()
+            && self.pending_frame_presentation.is_none()
+        {
             let Some(prepared) = self.pending_intent_postures.pop_front() else {
                 return;
             };
@@ -237,13 +256,22 @@ impl PlatformPulseApplicationRuntime {
         pending: PlatformPulsePendingIntentPosture,
         receipt: worth_ui::facade::rebind::UiRebindReceipt,
     ) -> bool {
+        let PlatformPulsePendingIntentPosture {
+            observation,
+            settlement,
+        } = pending;
+        let refresh_product_story = !matches!(
+            &observation,
+            PlatformPulseIntentPostureObservation::Admitted { .. }
+        );
         let Some(mounted) = receipt.mounted_publication() else {
             self.fail_intent_settlement("intent posture receipt omitted mounted publication");
             return false;
         };
-        if let Err(error) = self
-            .publisher
-            .intent_posture_published(pending.observation, mounted)
+        let command_transition = super::latest_command_transition(shell);
+        if let Err(error) =
+            self.publisher
+                .intent_posture_published(observation, mounted, command_transition)
         {
             self.fail(
                 super::super::PlatformPulseTerminalError::ObservationPublication,
@@ -251,7 +279,7 @@ impl PlatformPulseApplicationRuntime {
             );
             return false;
         }
-        if let Err(denial) = self.visual_identity.refresh_after_content_rebind(
+        if let Err(denial) = self.visual_identity.refresh_after_presentation_replacement(
             shell,
             self.presentation_tick,
             std::time::Instant::now(),
@@ -262,7 +290,7 @@ impl PlatformPulseApplicationRuntime {
         if let PlatformPulseIntentPostureSettlement::RetireExecution {
             attempt,
             idempotency,
-        } = pending.settlement
+        } = settlement
         {
             if self
                 .intent_evidence_index
@@ -272,6 +300,16 @@ impl PlatformPulseApplicationRuntime {
                 self.fail_intent_settlement(
                     "terminal attempt omitted its retained intent evidence reference",
                 );
+                return false;
+            }
+        }
+        if refresh_product_story {
+            if let Some(denial) = self.pending_query_denial_story.take() {
+                if !self.publish_query_denial_story(shell, denial) {
+                    return false;
+                }
+            }
+            if !self.refresh_product_story(shell) {
                 return false;
             }
         }
@@ -290,12 +328,23 @@ impl PlatformPulseApplicationRuntime {
     }
 }
 
-fn is_unrouted_interaction(stop: &WorthUiNativeIntentStop) -> bool {
-    matches!(
-        stop,
-        WorthUiNativeIntentStop::Route(
-            worth_ui::facade::intent::UiIntentRouteResolutionStop::Unrouted { .. }
-        )
+fn unrouted_observation(
+    stop: &WorthUiNativeIntentStop,
+) -> Option<
+    worth_ui_platform_pulse::observation_contract::PlatformPulseIntentRoutingStoppedObservation,
+> {
+    let WorthUiNativeIntentStop::Route(
+        worth_ui::facade::intent::UiIntentRouteResolutionStop::Unrouted {
+            graph_node,
+            interaction,
+        },
+    ) = stop
+    else {
+        return None;
+    };
+    Some(
+        worth_ui_platform_pulse::observation_contract::
+            PlatformPulseIntentRoutingStoppedObservation::unrouted(*graph_node, *interaction),
     )
 }
 

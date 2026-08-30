@@ -1,5 +1,5 @@
 /// Focus scope created by a mosaic region kind.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum MosaicFocusScopeKind {
     ActiveSurfaceScope,
     RegionScope,

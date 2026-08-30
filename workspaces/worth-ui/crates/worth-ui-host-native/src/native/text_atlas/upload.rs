@@ -23,6 +23,7 @@ pub(crate) struct UiNativeTextAtlasGpuPages {
     correlations: Vec<PendingAtlasTransactionCorrelation>,
 }
 
+#[cfg(test)]
 pub(crate) struct UiNativeTextAtlasGpuUploadRequest<'upload> {
     pub(crate) device: &'upload wgpu::Device,
     pub(crate) queue: &'upload wgpu::Queue,
@@ -145,6 +146,7 @@ impl UiNativeTextAtlasGpuPages {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn upload(
         &mut self,
         request: UiNativeTextAtlasGpuUploadRequest<'_>,
@@ -152,6 +154,7 @@ impl UiNativeTextAtlasGpuPages {
         self.upload_for_transaction(request, 0)
     }
 
+    #[cfg(test)]
     pub(crate) fn upload_for_transaction(
         &mut self,
         request: UiNativeTextAtlasGpuUploadRequest<'_>,
@@ -211,6 +214,7 @@ impl UiNativeTextAtlasGpuPages {
             .ok_or(UiNativeTextAtlasDenial::PageCapacityExceeded)
     }
 
+    #[cfg(test)]
     pub(crate) fn settle_pending(&mut self, resources: &mut UiNativeResourceRegistry) {
         let pending = std::mem::take(&mut self.pending);
         let mut remaining = Vec::with_capacity(pending.len());
@@ -331,6 +335,7 @@ impl UiNativeTextAtlasGpuPages {
         Ok(())
     }
 
+    #[cfg(test)]
     fn retain_live_correlations(&mut self) {
         self.correlations.retain(|correlation| {
             self.pending

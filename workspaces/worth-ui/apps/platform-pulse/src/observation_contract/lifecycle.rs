@@ -11,6 +11,9 @@ pub enum PlatformPulseLifecycleObservation {
     IntentInputAdmitted(super::intent::PlatformPulseIntentInputObservation),
     IntentExecutorStarted(super::intent::PlatformPulseIntentExecutorStartedObservation),
     IntentPosturePublished(super::intent::PlatformPulseIntentPosturePublished),
+    IntentRoutingStopped(super::intent::PlatformPulseIntentRoutingStoppedObservation),
+    SemanticFocusPublished(super::focus::PlatformPulseSemanticFocusPublished),
+    PortalDismissed(PlatformPulsePortalDismissed),
     IntentCausalTrace(super::intent::PlatformPulseIntentCausalTraceObservation),
     QueryAction(super::intent::PlatformPulseQueryActionObservation),
     QueryProjectionIssued(super::query::PlatformPulseQueryProjectionEvidence),
@@ -58,6 +61,11 @@ pub struct PlatformPulseMountedFrameObservation {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PlatformPulsePortalDismissed {
+    frame: PlatformPulseMountedFrameObservation,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlatformPulseFirstFramePublished {
     pub(super) source: PlatformPulseSourceSnapshotObservation,
     pub(super) generation: PlatformPulseApplicationGenerationObservation,
@@ -74,6 +82,8 @@ pub struct PlatformPulseReplacementPublished {
     pub(super) actual_native_effect_count: u64,
     pub(super) schema_transition:
         Option<super::schema_transition::PlatformPulseProjectionSchemaTransitionObservation>,
+    pub(super) latest_focus_transition:
+        Option<super::focus::PlatformPulseFocusTransitionInspection>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -208,6 +218,17 @@ accessors!(
     semantic_package_fingerprint: u64,
 );
 accessors!(PlatformPulseMountedFrameObservation, diagnostic_value: u64);
+accessors!(PlatformPulsePortalDismissed, frame: PlatformPulseMountedFrameObservation);
+
+impl PlatformPulsePortalDismissed {
+    pub(super) fn from_publication(
+        publication: &worth_ui::facade::app::UiMountedFramePublicationReceipt,
+    ) -> Self {
+        Self {
+            frame: PlatformPulseMountedFrameObservation::from_publication(publication),
+        }
+    }
+}
 
 impl PlatformPulseMountedFrameObservation {
     pub(super) fn from_publication(
@@ -238,6 +259,12 @@ impl PlatformPulseReplacementPublished {
         &self,
     ) -> Option<&super::schema_transition::PlatformPulseProjectionSchemaTransitionObservation> {
         self.schema_transition.as_ref()
+    }
+
+    pub const fn latest_focus_transition(
+        &self,
+    ) -> Option<super::focus::PlatformPulseFocusTransitionInspection> {
+        self.latest_focus_transition
     }
 }
 accessors!(

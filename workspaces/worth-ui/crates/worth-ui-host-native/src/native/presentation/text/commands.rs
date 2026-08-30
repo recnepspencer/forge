@@ -17,6 +17,7 @@ pub(crate) struct UiNativeGlyphCommand {
     pub(crate) atlas_page: u32,
     pub(crate) target: [f32; 4],
     pub(crate) texture_uv: [f32; 4],
+    pub(crate) opacity: f32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -34,15 +35,15 @@ pub(crate) fn plan_glyph_commands(
         .iter()
         .copied()
         .enumerate()
-        .filter_map(|(ordinal, run)| {
+        .map(|(ordinal, run)| {
             let entry = atlas
                 .entry_view(run.raster_key())
                 .ok_or(UiNativeGlyphCommandDenial::MissingAtlasEntry);
-            Some(entry.and_then(|entry| {
+            entry.and_then(|entry| {
                 command_for_run(run, entry, target_extent).map(|value| {
                     value.map(|command| (run.layer_semantic_order(), ordinal, command))
                 })
-            }))
+            })
         })
         .collect::<Result<Vec<_>, _>>()?;
     commands.sort_by_key(|command| {
@@ -101,6 +102,7 @@ fn command_for_run(
         atlas_page: entry.page,
         target,
         texture_uv,
+        opacity: 1.0,
     }))
 }
 
@@ -203,7 +205,7 @@ pub(crate) fn glyph_vertices(
         linear_channel(foreground[0]),
         linear_channel(foreground[1]),
         linear_channel(foreground[2]),
-        f32::from(foreground[3]) / 255.0,
+        f32::from(foreground[3]) / 255.0 * command.opacity,
     ];
     [
         glyph_vertex(left, bottom, u, far_v, color),

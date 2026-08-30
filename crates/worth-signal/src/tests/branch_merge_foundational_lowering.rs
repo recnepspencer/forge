@@ -214,9 +214,12 @@ fn scoped_requests_keep_foundational_family_visible_when_planning_narrows_candid
     match err {
         SignalError::BranchMergeFailed {
             kind: BranchMergeFailureKind::ScopedMergeDenied,
-            evidence: Some(BranchMergeFailureEvidence::ScopedDenial(evidence)),
+            evidence: Some(evidence),
             ..
         } => {
+            let BranchMergeFailureEvidence::ScopedDenial(evidence) = *evidence else {
+                panic!("expected scoped denial evidence")
+            };
             assert_eq!(
                 evidence.denial_kind,
                 BranchMergeScopedDenialKind::SelectedNodeMissingFromSourceScope

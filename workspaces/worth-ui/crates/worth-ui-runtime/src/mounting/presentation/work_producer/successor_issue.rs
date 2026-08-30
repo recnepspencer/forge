@@ -102,10 +102,10 @@ impl SuccessorIssue<'_> {
             UiMountedPresentationDeltaInput {
                 predecessor: self.predecessor.frame,
                 successor: self.successor.frame,
-                surface: self.successor.surface,
-                binding: self.successor.binding,
+                surface: self.successor.requirement.semantic_surface(),
+                binding: self.successor.requirement.binding(),
                 content: self.successor.content,
-                baseline: self.successor.baseline,
+                baseline: self.successor.requirement.baseline(),
                 changes: delta.changes,
                 nodes: self.successor.node_changes.to_vec(),
                 order: delta.order,
@@ -129,13 +129,15 @@ impl SuccessorIssue<'_> {
         {
             return Err(UiMountedPresentationWorkProductionDenial::StalePredecessor);
         }
-        if self.predecessor.surface != self.successor.surface {
+        if self.predecessor.requirement.semantic_surface()
+            != self.successor.requirement.semantic_surface()
+        {
             return Err(UiMountedPresentationWorkProductionDenial::SurfaceChanged);
         }
-        if self.predecessor.binding != self.successor.binding {
+        if self.predecessor.requirement.binding() != self.successor.requirement.binding() {
             return Err(UiMountedPresentationWorkProductionDenial::BindingChanged);
         }
-        if self.predecessor.baseline != self.successor.baseline {
+        if self.predecessor.requirement.baseline() != self.successor.requirement.baseline() {
             return Err(UiMountedPresentationWorkProductionDenial::BaselineChanged);
         }
         Ok(())
@@ -152,10 +154,10 @@ impl SuccessorIssue<'_> {
             UiMountedPresentationUnchangedInput {
                 predecessor: self.predecessor.frame,
                 successor: self.successor.frame,
-                surface: self.successor.surface,
-                binding: self.successor.binding,
+                surface: self.successor.requirement.semantic_surface(),
+                binding: self.successor.requirement.binding(),
                 content: self.successor.content,
-                baseline: self.successor.baseline,
+                baseline: self.successor.requirement.baseline(),
                 production_cost: production_cost(
                     local,
                     self.retained_traversal,
@@ -184,7 +186,7 @@ impl PreparedDelta {
             || !issue
                 .predecessor
                 .auxiliary
-                .same_lane_presentation_meaning(&issue.successor.auxiliary);
+                .same_presentation_meaning(&issue.successor.auxiliary);
         Self {
             affected_count: affected.len(),
             changes,

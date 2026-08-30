@@ -84,7 +84,7 @@ fn consumer_layout_substitution_is_rejected_before_layout_admission() {
     };
     assert_eq!(
         denial.readiness(),
-        UiNativeTextPresentationReadiness::SemanticTextLayoutMismatch
+        UiNativeTextPresentationReadiness::LayoutMismatch
     );
 }
 

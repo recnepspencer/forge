@@ -13,6 +13,9 @@ mod presentation_basis;
 mod report;
 #[cfg(test)]
 mod schema_contract_tests;
+mod scroll;
+#[cfg(test)]
+mod scroll_payload_contract_tests;
 mod sequence;
 mod time_basis;
 
@@ -49,5 +52,9 @@ pub use pointer::{
 };
 pub use presentation_basis::UiHostObservationPresentationBasis;
 pub use report::{UiHostObservationMountedBasis, UiHostObservationReport};
+pub use scroll::{
+    UiHostScrollDeltaPhase, UiHostScrollDeltaPrecision, UiHostScrollDeltaSource,
+    UiHostScrollDeltaTargetAffinity,
+};
 pub use sequence::{UiHostObservationSequence, UiHostObservationSequenceRange};
 pub use time_basis::UiHostObservationTimeBasis;

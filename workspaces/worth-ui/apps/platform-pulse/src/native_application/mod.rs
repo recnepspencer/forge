@@ -1,4 +1,4 @@
-use worth_ui::facade::app::{UiMountedFrameOutcome, WorthUiNativeApplicationShell};
+use worth_ui::facade::app::WorthUiNativeApplicationShell;
 use worth_ui::facade::source::WorthUiSourcePackageRevision;
 
 use crate::application::PlatformPulsePreparationDenial;
@@ -7,16 +7,18 @@ use crate::lifecycle_observation_publication::{
 };
 use crate::source_watch::PlatformPulseSourceWatch;
 use crate::visual_identity_execution::{
-    PlatformPulseContentMutationReadiness, PlatformPulseVisualExecutionDenial,
-    PlatformPulseVisualIdentityExecution,
+    PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityExecution,
 };
 
 mod composition;
 mod first_frame;
 mod frame_execution_diagnostic;
+mod frame_presentation;
 mod input;
 mod intent;
 mod lifecycle;
+mod product_copy;
+mod product_story;
 mod projection;
 mod query;
 mod readiness;
@@ -26,6 +28,7 @@ mod terminal_error;
 
 pub(crate) use composition::PlatformPulseApplication;
 
+use frame_presentation::PlatformPulsePendingFramePresentation;
 use projection::PlatformPulseProjectionRebindDenial;
 use terminal_error::PlatformPulseTerminalError;
 
@@ -34,6 +37,7 @@ enum PlatformPulsePendingManagedRebind {
     Source(WorthUiSourcePackageRevision),
     IntentPosture(intent::PlatformPulsePendingIntentPosture),
     IntentConsequence(intent::PlatformPulsePendingIntentConsequence),
+    PortalDismissal,
 }
 
 pub(crate) struct PlatformPulseApplicationRuntime {
@@ -46,6 +50,10 @@ pub(crate) struct PlatformPulseApplicationRuntime {
     intent_gate: Option<worth_ui_platform_pulse::intent::PlatformPulseExecutorGate>,
     intent_action_owner: Option<worth_ui_platform_pulse::intent::PlatformPulseActionPortOwner>,
     pending_query_actions: Vec<PlatformPulsePendingQueryAction>,
+    pending_query_denial_story: Option<
+        worth_ui_platform_pulse::observation_contract::PlatformPulseQueryActionPreconditionDenial,
+    >,
+    pending_frame_presentation: Option<PlatformPulsePendingFramePresentation>,
     pending_managed_rebind: Option<PlatformPulsePendingManagedRebind>,
     pending_intent_postures: std::collections::VecDeque<intent::PlatformPulsePreparedIntentPosture>,
     pending_intent_execution_transitions:
@@ -59,6 +67,7 @@ pub(crate) struct PlatformPulseApplicationRuntime {
     visual_identity: PlatformPulseVisualIdentityExecution,
     intent_clock: intent::PlatformPulseIntentClock,
     presentation_tick: u64,
+    product_story: product_story::PlatformPulseProductStory,
 }
 
 struct PlatformPulsePendingQueryAction {
@@ -68,62 +77,40 @@ struct PlatformPulsePendingQueryAction {
 }
 
 impl PlatformPulseApplicationRuntime {
-    fn present(&mut self) {
-        // The permanent pulse has no animation-driven ordinary frame loop.
-        // Once the first publication exists, explicit overlay and replacement
-        // transitions own every later presentation attempt. Re-presenting here
-        // could supersede an exact in-flight visual capture between polls.
-        if self.initial_source.is_none() {
-            return;
-        }
-        let Some(shell) = self.shell.as_mut() else {
-            return;
-        };
-        self.presentation_tick = self.presentation_tick.saturating_add(1);
-        let deadline = self.presentation_tick.saturating_add(1);
-        match shell.present_frame(deadline, self.presentation_tick) {
-            Ok(
-                UiMountedFrameOutcome::Published(publication)
-                | UiMountedFrameOutcome::Reconciled(publication),
-            ) => {
-                let Some(source) = self.initial_source.take() else {
-                    return;
-                };
-                if let Err(error) = self.publish_first_frame(&source, &publication) {
-                    self.fail(
-                        PlatformPulseTerminalError::ObservationPublication,
-                        Err(error),
-                    );
-                    return;
-                }
-                if let Err(denial) = self
-                    .visual_identity
-                    .arm_after_first_frame(std::time::Instant::now())
-                {
-                    self.fail_visual_identity(denial);
-                }
-            }
-            Ok(UiMountedFrameOutcome::Unchanged(_)) if self.initial_source.is_none() => {}
-            Ok(UiMountedFrameOutcome::Unchanged(_)) => {
-                self.fail(PlatformPulseTerminalError::UnexpectedInitialFrame, Ok(()));
-            }
-            Ok(outcome) => {
-                let observation = self.publisher.frame_outcome_failure(&outcome);
-                self.fail(
-                    PlatformPulseTerminalError::FrameExecution(
-                        frame_execution_diagnostic::outcome_label(&outcome),
-                    ),
-                    observation,
-                );
-            }
+    fn refresh_product_story(&mut self, shell: &mut WorthUiNativeApplicationShell) -> bool {
+        match self.product_story.refresh_runtime(shell) {
+            Ok(()) => true,
             Err(denial) => {
-                let detail = frame_execution_diagnostic::stop_label(&denial);
-                let observation = self.publisher.frame_execution_failure(&denial);
-                drop(denial);
-                self.fail(
-                    PlatformPulseTerminalError::FrameExecution(detail),
-                    observation,
-                );
+                self.fail(PlatformPulseTerminalError::ProductCopy(denial), Ok(()));
+                false
+            }
+        }
+    }
+
+    fn publish_source_story(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        sequence: u64,
+    ) -> bool {
+        match self.product_story.publish_source(shell, sequence) {
+            Ok(()) => true,
+            Err(denial) => {
+                self.fail(PlatformPulseTerminalError::ProductCopy(denial), Ok(()));
+                false
+            }
+        }
+    }
+
+    fn publish_query_denial_story(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        denial: worth_ui_platform_pulse::observation_contract::PlatformPulseQueryActionPreconditionDenial,
+    ) -> bool {
+        match self.product_story.publish_query_denial(shell, denial) {
+            Ok(()) => true,
+            Err(error) => {
+                self.fail(PlatformPulseTerminalError::ProductCopy(error), Ok(()));
+                false
             }
         }
     }
@@ -150,17 +137,6 @@ impl PlatformPulseApplicationRuntime {
         if let Err(denial) = result {
             self.fail_visual_identity(denial);
         }
-    }
-
-    fn prepare_content_mutations(&mut self) -> bool {
-        if self.visual_identity.content_mutation_readiness()
-            == PlatformPulseContentMutationReadiness::DeferredForVisualComparison
-        {
-            self.advance_visual_identity();
-        }
-        self.terminal_error.is_none()
-            && self.visual_identity.content_mutation_readiness()
-                == PlatformPulseContentMutationReadiness::Ready
     }
 
     fn fail_visual_identity(&mut self, denial: PlatformPulseVisualExecutionDenial) {

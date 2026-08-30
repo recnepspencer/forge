@@ -97,5 +97,13 @@ fn add_component_dependencies(
         ));
     }
 
+    if let Some(portal_child) = descriptor.portal_child_contract() {
+        candidate = candidate.with_dependency(RegistrationDependency::new(
+            COMPONENT_FAMILY_NAME,
+            COMPONENT_FAMILY_NAME,
+            portal_child.owner().as_str(),
+        ));
+    }
+
     candidate
 }

@@ -84,33 +84,6 @@ impl SignalGraph {
         Ok(self.get_entry(node)?.pending_cause_set_id())
     }
 
-    pub(crate) fn merge_pending_causes(
-        &mut self,
-        node: NodeId,
-        causes: impl IntoIterator<Item = ResolvedDependencyCause>,
-    ) -> Result<PendingCauseSetId, SignalError> {
-        let revision = self.dependency_revision(node)?;
-        let graph_instance = self.runtime_instance_id();
-        let causes = causes.into_iter().collect::<Vec<_>>();
-        self.validate_pending_causes(node, &causes)?;
-        for cause in &causes {
-            if cause.key.graph_instance != graph_instance
-                || cause.key.consumer != node
-                || cause.key.dependency_revision != revision
-            {
-                return Err(SignalError::invalid_input(
-                    "pending dependency cause is stale or bound to another consumer",
-                ));
-            }
-        }
-        let current = self.get_entry(node)?.pending_cause_set_id();
-        let id = self.cause_sets.replace(current, causes)?;
-        self.get_entry_mut(node)?.set_pending_cause_set_id(id);
-        self.rebuild_dirty_caches_from_pending_causes(node)?;
-        self.compact_cause_set_storage_if_sparse()?;
-        Ok(self.get_entry(node)?.pending_cause_set_id())
-    }
-
     pub(crate) fn rebuild_dirty_caches_from_pending_causes(
         &mut self,
         node: NodeId,

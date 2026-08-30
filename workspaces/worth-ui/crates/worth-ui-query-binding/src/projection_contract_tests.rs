@@ -51,6 +51,40 @@ fn collection_requirement_rejects_noncanonical_selected_fields() {
 }
 
 #[test]
+fn application_item_key_mapping_names_a_separate_typed_application_field() {
+    let identity = UiProjectionFieldRequirement::identity_id();
+    let status = UiProjectionFieldRequirement::collection_item_status();
+    let key = UiProjectionFieldRequirement::collection_item_key();
+    let requirement = UiCollectionSchemaRequirement::text(
+        identity,
+        [status.clone()],
+        UiProjectionLifecycleRequirement::Live,
+        false,
+        false,
+    )
+    .unwrap()
+    .with_unsigned64_application_item_key_field(key.clone());
+
+    assert_eq!(requirement.application_item_key_field(), Some(&key));
+    assert_eq!(
+        UiCollectionSchemaRequirement::text(
+            UiProjectionFieldRequirement::identity_id(),
+            [status],
+            UiProjectionLifecycleRequirement::Live,
+            false,
+            false,
+        )
+        .unwrap()
+        .with_unsigned64_application_item_key_field(
+            UiProjectionFieldRequirement::collection_item_key(),
+        )
+        .application_item_key_field()
+        .map(UiProjectionFieldRequirement::declared_name),
+        Some("key")
+    );
+}
+
+#[test]
 fn field_requirements_reject_ambiguous_source_names() {
     assert_eq!(
         UiProjectionFieldRequirement::declared(""),

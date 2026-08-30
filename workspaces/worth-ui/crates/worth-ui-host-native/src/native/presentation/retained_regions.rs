@@ -18,7 +18,17 @@ pub(super) struct UiNativeRetainedRegions {
 }
 
 impl UiNativeRetainedRegions {
-    #[cfg(test)]
+    pub(super) fn owns_node_receipt(
+        &self,
+        receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
+    ) -> bool {
+        self.hit_test
+            .iter()
+            .chain(self.paint.values())
+            .any(|region| self.current_receipt(region.mounted_receipt()) == receipt)
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
     pub(super) fn paint_only(commands: &[UiMountedPaintCommand]) -> Self {
         Self {
             receipt_affinity: None,
@@ -145,6 +155,17 @@ fn command_region(
             *identity,
             UiHostRealizedRegion::observed_by_host(
                 mechanic.node_receipt(),
+                UiHostRealizedGeometry::observed_by_host(mechanic.bounds(), mechanic.clip_bounds()),
+                UiHostRealizedOrdering::observed_by_host(
+                    mechanic.layer_semantic_order(),
+                    UiHostRealizedRegionParticipation::Paint,
+                ),
+            ),
+        ),
+        UiMountedPaintCommand::PortalOverlay { identity, mechanic } => (
+            *identity,
+            UiHostRealizedRegion::observed_by_host(
+                mechanic.owner_receipt(),
                 UiHostRealizedGeometry::observed_by_host(mechanic.bounds(), mechanic.clip_bounds()),
                 UiHostRealizedOrdering::observed_by_host(
                     mechanic.layer_semantic_order(),

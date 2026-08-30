@@ -95,7 +95,7 @@ impl MountedPresentationWorld {
             .map(|(index, row)| rect_node(index, row))
             .collect::<Vec<_>>();
         let (authored_paint_commands, authored_paint_order) =
-            crate::mounting::compile_presentation_sources(&nodes, &rows, &[]);
+            crate::mounting::compile_presentation_sources(&nodes, &rows, &[], &[]);
         UiMountedProjectionView::new(UiMountedProjectionViewInput {
             frame,
             surface: self.surface,
@@ -105,6 +105,7 @@ impl MountedPresentationWorld {
             clips: UiMountedClipTable::produced(Vec::new()),
             layers: UiMountedLayerTable::produced(Vec::new()),
             filled_rects: UiMountedFilledRectTable::from_runtime_mounting(rows).unwrap(),
+            portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
             semantic_text: UiMountedSemanticTextTable::empty(),
             hit_tests: UiMountedHitTestTable::empty(),
             paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
@@ -160,7 +161,7 @@ impl MountedPresentationWorld {
             )
             .collect::<Vec<_>>();
         let (authored_paint_commands, authored_paint_order) =
-            crate::mounting::compile_presentation_sources(&nodes, &rects, &texts);
+            crate::mounting::compile_presentation_sources(&nodes, &rects, &[], &texts);
         UiMountedProjectionView::new(UiMountedProjectionViewInput {
             frame,
             surface: self.surface,
@@ -170,6 +171,7 @@ impl MountedPresentationWorld {
             clips: UiMountedClipTable::produced(Vec::new()),
             layers: UiMountedLayerTable::produced(Vec::new()),
             filled_rects: UiMountedFilledRectTable::from_runtime_mounting(rects).unwrap(),
+            portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
             semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(texts).unwrap(),
             hit_tests: UiMountedHitTestTable::empty(),
             paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
@@ -207,7 +209,7 @@ impl MountedPresentationWorld {
             .map(|(index, row)| text_node(index, row))
             .collect::<Vec<_>>();
         let (authored_paint_commands, authored_paint_order) =
-            crate::mounting::compile_presentation_sources(&nodes, &[], &texts);
+            crate::mounting::compile_presentation_sources(&nodes, &[], &[], &texts);
         UiMountedProjectionView::new(UiMountedProjectionViewInput {
             frame,
             surface: self.surface,
@@ -217,6 +219,7 @@ impl MountedPresentationWorld {
             clips: UiMountedClipTable::produced(Vec::new()),
             layers: UiMountedLayerTable::produced(Vec::new()),
             filled_rects: UiMountedFilledRectTable::empty(),
+            portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
             semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(texts).unwrap(),
             hit_tests: UiMountedHitTestTable::empty(),
             paint_batches: UiMountedPaintBatchTable::new(Vec::new()),

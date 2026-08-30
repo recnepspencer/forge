@@ -1,6 +1,6 @@
 use super::UiObligationFamily;
 
-const CLOSED_FAMILIES: [UiObligationFamily; 12] = [
+const CLOSED_FAMILIES: [UiObligationFamily; 15] = [
     UiObligationFamily::StructuralLegality,
     UiObligationFamily::ParticipationLegality,
     UiObligationFamily::SlotContract,
@@ -10,6 +10,9 @@ const CLOSED_FAMILIES: [UiObligationFamily; 12] = [
     UiObligationFamily::PortalHostRequirement,
     UiObligationFamily::FocusRouteRequirement,
     UiObligationFamily::MotionSupportRequirement,
+    UiObligationFamily::ScrollRoutingRequirement,
+    UiObligationFamily::SelectionStateRequirement,
+    UiObligationFamily::CommandRouteRequirement,
     UiObligationFamily::AccessibilityRequirement,
     UiObligationFamily::HostCapabilityRequirement,
     UiObligationFamily::DiagnosticSurfaceRequirement,
@@ -31,5 +34,26 @@ impl UiObligationFamilyCatalog {
 
     pub fn contains(self, family: UiObligationFamily) -> bool {
         self.families().contains(&family)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{UiObligationFamily, UiObligationFamilyCatalog};
+
+    #[test]
+    fn closed_catalog_names_each_runtime_service_obligation_axis() {
+        let catalog = UiObligationFamilyCatalog::closed();
+        assert_eq!(catalog.families().len(), 15);
+        for family in [
+            UiObligationFamily::PortalHostRequirement,
+            UiObligationFamily::FocusRouteRequirement,
+            UiObligationFamily::MotionSupportRequirement,
+            UiObligationFamily::ScrollRoutingRequirement,
+            UiObligationFamily::SelectionStateRequirement,
+            UiObligationFamily::CommandRouteRequirement,
+        ] {
+            assert!(catalog.contains(family), "missing {family:?}");
+        }
     }
 }

@@ -8,7 +8,9 @@ pub use source::certification as certification_support;
 pub use semantic::{
     UiDslAspectName, UiDslLoweringReceipt, UiDslPostureToken, UiDslSemanticArtifact,
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, UiDslSupportToken, WorthUiIntentConcurrencyScope,
+    UiDslStructuralToken, UiDslSupportToken, WorthUiCommandDeclaration, WorthUiCommandKey,
+    WorthUiCommandModifier, WorthUiCommandScope, WorthUiCommandShortcutStrokeSpec,
+    WorthUiFocusDeclaration, WorthUiFocusScope, WorthUiIntentConcurrencyScope,
     WorthUiIntentConfirmationContractSpec, WorthUiIntentConfirmationSourceSpec,
     WorthUiIntentConsequenceContractSpec, WorthUiIntentDeclarationMeaning,
     WorthUiIntentDeclarationParseError, WorthUiIntentDeclarationSpec,
@@ -16,7 +18,11 @@ pub use semantic::{
     WorthUiIntentInteractionRouteKind, WorthUiIntentMutabilitySourceSpec,
     WorthUiIntentOperabilityContractSpec, WorthUiIntentPayloadSource,
     WorthUiIntentPayloadSourceSpec, WorthUiIntentPolicySourceSpec,
-    WorthUiIntentReadinessSourceSpec, WorthUiIntentSchemaExpectation,
+    WorthUiIntentReadinessSourceSpec, WorthUiIntentSchemaExpectation, WorthUiMotionDeclaration,
+    WorthUiPortalDeclaration, WorthUiPortalDismissalSet, WorthUiPortalLayer,
+    WorthUiReducedMotionPolicy, WorthUiScrollAnchorPolicy, WorthUiScrollDeclaration,
+    WorthUiSelectionDeclaration, WorthUiSelectionMode, WorthUiServiceDeclarationMeaning,
+    WorthUiServiceDeclarationParseError, WorthUiServiceFamily,
 };
 pub use source::{
     WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputBodyAtom,

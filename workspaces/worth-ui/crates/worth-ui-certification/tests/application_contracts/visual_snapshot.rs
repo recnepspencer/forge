@@ -92,10 +92,10 @@ fn phase_1_request_and_product_scenario_preserve_explicit_inputs() {
         scenario.target_authored_name(),
         PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME
     );
-    assert_eq!(scenario.logical_extent(), [160, 96]);
-    assert_eq!(scenario.background_logical_point(), [16, 16]);
-    assert_eq!(scenario.target_logical_point(), [52, 28]);
-    assert_eq!(PLATFORM_PULSE_TARGET_RGB, [242, 204, 96]);
+    assert_eq!(scenario.logical_extent(), [960, 600]);
+    assert_eq!(scenario.background_logical_point(), [8, 8]);
+    assert_eq!(scenario.target_logical_point(), [304, 424]);
+    assert_eq!(PLATFORM_PULSE_TARGET_RGB, [172, 103, 242]);
 }
 
 #[test]

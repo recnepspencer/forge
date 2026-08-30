@@ -14,5 +14,7 @@ mod registration_diagnostics;
 mod registry_extension_proof;
 #[path = "../runtime_lane_meaning_parity_facade_compile.rs"]
 mod runtime_lane_meaning_parity_facade_compile;
+#[path = "../service_policy_facade.rs"]
+mod service_policy_facade;
 #[path = "../support_posture.rs"]
 mod support_posture;

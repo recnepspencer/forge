@@ -6,8 +6,6 @@ use super::{
     UiAllocationFrameSourceLeaseIdentity,
 };
 
-const SOURCE_REGISTRY_CAPACITY: usize = 64;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiAllocationFrameSourceAdmissionDenial {
     RegistryFull,
@@ -30,7 +28,7 @@ struct UiAllocationFrameSourceSlot {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiAllocationFrameSourceRegistry {
-    slots: [UiAllocationFrameSourceSlot; SOURCE_REGISTRY_CAPACITY],
+    slots: [UiAllocationFrameSourceSlot; super::ALLOCATION_FRAME_SOURCE_CAPACITY],
 }
 
 impl UiAllocationFrameSourceRegistry {

@@ -48,6 +48,13 @@ impl WorthUiLayoutPlanMeaning {
         }
     }
 
+    pub(crate) const fn region_descriptor(&self) -> Option<&MosaicRegionKindDescriptor> {
+        match self {
+            Self::Region { descriptor, .. } => Some(descriptor),
+            Self::Surface { .. } => None,
+        }
+    }
+
     pub(crate) fn semantic_digest(&self) -> u64 {
         match self {
             Self::Region { descriptor, .. } => {

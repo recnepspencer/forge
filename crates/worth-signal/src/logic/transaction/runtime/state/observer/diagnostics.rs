@@ -1,7 +1,7 @@
 use crate::data::comparator::TierPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::proof::{FrontierDiagnosticsSidecar, InvalidationTraceRecord};
+use crate::data::proof::InvalidationTraceRecord;
 use crate::diagnostics::access::RuntimeDiagnostics;
 use crate::diagnostics::history::ExecutionInspector;
 use crate::diagnostics::lineage::{LineageArtifactId, SynthesizedLineageChain};
@@ -180,12 +180,6 @@ where
 
     pub fn latest_observation_summary(&self) -> Option<&'a ObservationBoundarySummary> {
         self.runtime.graph.diagnostics_state().latest_observation()
-    }
-
-    pub(crate) fn latest_frontier_execution_summary(
-        &self,
-    ) -> Option<&'a FrontierDiagnosticsSidecar> {
-        self.graph().latest_frontier_execution_summary()
     }
 
     pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {

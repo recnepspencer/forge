@@ -83,7 +83,7 @@ pub(crate) struct UiNativeTextAtlasTransactionPlan {
     pub(crate) evictions: Box<[UiGlyphRasterKey]>,
     pub(crate) candidate_alpha: CandidateAtlasStore,
     pub(crate) candidate_color: CandidateAtlasStore,
-    pub(crate) pin_additions: Box<[super::ownership::PinIdentity]>,
+    pub(crate) pin_additions: Box<[UiNativeTextAtlasPinRequest]>,
     pub(crate) pin_releases: Box<[super::ownership::PinIdentity]>,
     pub(crate) pin_change_keys: Box<[UiGlyphRasterKey]>,
     pub(crate) next_entry: u64,

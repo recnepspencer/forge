@@ -158,9 +158,19 @@ fn insert_status(
                     WorthQueryAuthoredAspectValue::string(identity),
                 )
                 .set_aspect(
-                    WorthQueryAspectTouch::from_authoring_ingress_text("query_text.status")
+                    WorthQueryAspectTouch::from_authoring_ingress_text("collection_item.status")
                         .unwrap(),
                     WorthQueryAuthoredAspectValue::string(status),
+                )
+                .set_aspect(
+                    WorthQueryAspectTouch::from_authoring_ingress_text("collection_item.key")
+                        .unwrap(),
+                    WorthQueryAuthoredAspectValue::native(AspectValue::UInt64(
+                        identity
+                            .bytes()
+                            .fold(1_u64, |key, byte| key.wrapping_mul(31) + u64::from(byte))
+                            .max(1),
+                    )),
                 )
         })
         .expect("projection text insertion");

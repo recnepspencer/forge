@@ -6,7 +6,10 @@ use crate::source_watch::{PlatformPulseSourceEvent, PlatformPulseSourceWatch};
 
 impl PlatformPulseApplicationRuntime {
     pub(super) fn poll_source(&mut self) {
-        while self.terminal_error.is_none() {
+        while source_poll_admitted(
+            self.terminal_error.is_some(),
+            self.pending_managed_rebind.is_some(),
+        ) {
             let Some(event) = self
                 .source_watch
                 .as_ref()
@@ -64,6 +67,7 @@ impl PlatformPulseApplicationRuntime {
                 publish_source_rebind(
                     &self.publisher,
                     &mut self.visual_identity,
+                    &mut self.product_story,
                     shell,
                     source,
                     receipt,
@@ -76,6 +80,9 @@ impl PlatformPulseApplicationRuntime {
                     ),
                     SourceRebindPublicationFailure::Visual(denial) => {
                         self.fail_visual_identity(denial)
+                    }
+                    SourceRebindPublicationFailure::ProductCopy(denial) => {
+                        self.fail(PlatformPulseTerminalError::ProductCopy(denial), Ok(()))
                     }
                 });
             }
@@ -112,6 +119,7 @@ impl PlatformPulseApplicationRuntime {
         if let Err(failure) = publish_source_rebind(
             &self.publisher,
             &mut self.visual_identity,
+            &mut self.product_story,
             shell,
             source,
             receipt,
@@ -123,9 +131,16 @@ impl PlatformPulseApplicationRuntime {
                     Err(error),
                 ),
                 SourceRebindPublicationFailure::Visual(denial) => self.fail_visual_identity(denial),
+                SourceRebindPublicationFailure::ProductCopy(denial) => {
+                    self.fail(PlatformPulseTerminalError::ProductCopy(denial), Ok(()))
+                }
             }
         }
     }
+}
+
+const fn source_poll_admitted(terminal: bool, managed_rebind_pending: bool) -> bool {
+    !terminal && !managed_rebind_pending
 }
 
 enum SourceRebindPublicationFailure {
@@ -133,20 +148,43 @@ enum SourceRebindPublicationFailure {
         crate::lifecycle_observation_publication::PlatformPulseObservationPublicationDenial,
     ),
     Visual(crate::visual_identity_execution::PlatformPulseVisualExecutionDenial),
+    ProductCopy(worth_ui_native_platform::UiNativeApplicationProgramDenial),
 }
 
 fn publish_source_rebind(
     publisher: &crate::lifecycle_observation_publication::PlatformPulseObservationPublisher,
     visual_identity: &mut crate::visual_identity_execution::PlatformPulseVisualIdentityExecution,
+    product_story: &mut super::product_story::PlatformPulseProductStory,
     shell: &mut worth_ui::facade::app::WorthUiNativeApplicationShell,
     source: worth_ui::facade::source::WorthUiSourcePackageRevision,
     receipt: worth_ui::facade::rebind::UiRebindReceipt,
     presentation_tick: u64,
 ) -> Result<(), SourceRebindPublicationFailure> {
+    let latest_focus_transition = shell.why_focus_moved().filter(|summary| {
+        matches!(
+            summary.cause(),
+            worth_ui::facade::inspection::UiFocusMoveInspectionCause::RebindPreserved
+                | worth_ui::facade::inspection::UiFocusMoveInspectionCause::RebindFallback
+        )
+    });
     publisher
-        .replacement(&source, &receipt)
+        .replacement(&source, &receipt, latest_focus_transition)
         .map_err(SourceRebindPublicationFailure::Observation)?;
     visual_identity
         .compare_after_rebind(shell, receipt, presentation_tick, std::time::Instant::now())
-        .map_err(SourceRebindPublicationFailure::Visual)
+        .map_err(SourceRebindPublicationFailure::Visual)?;
+    product_story
+        .publish_source(shell, source.sequence())
+        .and_then(|()| product_story.refresh_runtime(shell))
+        .map_err(SourceRebindPublicationFailure::ProductCopy)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn queued_source_events_wait_behind_managed_rebind_authority() {
+        assert!(super::source_poll_admitted(false, false));
+        assert!(!super::source_poll_admitted(false, true));
+        assert!(!super::source_poll_admitted(true, false));
+    }
 }

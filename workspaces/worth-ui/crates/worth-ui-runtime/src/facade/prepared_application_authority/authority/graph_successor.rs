@@ -152,6 +152,7 @@ impl WorthUiPreparedApplicationAuthority {
                 query_binding_plan: &self.query_binding_plan,
                 intent_application_fact_digest: self.intent_application_facts.digest_basis(),
                 intent_execution_binding_digest: self.intent_execution_bindings.digest_basis(),
+                service_policy_digest: self.service_policy_plan.digest_basis(),
                 visual_inspection_policy: self.visual_inspection_policy,
                 change_profile: self.change_profile,
             },

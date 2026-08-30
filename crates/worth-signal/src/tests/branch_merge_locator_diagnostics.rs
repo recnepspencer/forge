@@ -174,9 +174,12 @@ fn scoped_denial_and_unavailable_locators_stay_family_distinct_and_canonicalizab
         .plan()
     {
         Err(SignalError::BranchMergeFailed {
-            evidence: Some(BranchMergeFailureEvidence::ScopedDenial(evidence)),
+            evidence: Some(evidence),
             ..
-        }) => evidence,
+        }) => match *evidence {
+            BranchMergeFailureEvidence::ScopedDenial(evidence) => evidence,
+            other => panic!("expected scoped denial evidence, got {other:?}"),
+        },
         _ => panic!("expected scoped denial evidence"),
     };
     assert_eq!(
@@ -193,9 +196,12 @@ fn scoped_denial_and_unavailable_locators_stay_family_distinct_and_canonicalizab
         .plan()
     {
         Err(SignalError::BranchMergeFailed {
-            evidence: Some(BranchMergeFailureEvidence::ScopedUnavailable(evidence)),
+            evidence: Some(evidence),
             ..
-        }) => evidence,
+        }) => match *evidence {
+            BranchMergeFailureEvidence::ScopedUnavailable(evidence) => evidence,
+            other => panic!("expected scoped unavailable evidence, got {other:?}"),
+        },
         _ => panic!("expected scoped unavailable evidence"),
     };
 

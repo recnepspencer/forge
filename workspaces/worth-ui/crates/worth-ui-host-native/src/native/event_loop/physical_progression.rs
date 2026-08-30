@@ -8,7 +8,9 @@ use super::{UiNativeEventLoopApplication, UiNativeEventLoopClient, UiNativeEvent
 pub(super) enum UiNativePhysicalWakeProgress {
     NoWake,
     ConsumedWithoutReadyWork,
-    TextAtlasProgressed,
+    TextAtlasProgressed {
+        presentation: super::UiNativePhysicalPresentationCorrelation,
+    },
     PresentationProgressed {
         presentation: super::UiNativePhysicalPresentationCorrelation,
         duplicate_observation: bool,
@@ -21,11 +23,12 @@ impl UiNativePhysicalWakeProgress {
         self,
     ) -> Option<super::UiNativePhysicalProgressGrant> {
         match self {
-            Self::TextAtlasProgressed => Some(super::UiNativePhysicalProgressGrant::issued(
-                super::UiNativePhysicalProgressClass::TextAtlas,
-                None,
-                false,
-            )),
+            Self::TextAtlasProgressed { presentation } => Some(
+                super::UiNativePhysicalProgressGrant::issued_with_originating_presentation(
+                    super::UiNativePhysicalProgressClass::TextAtlas,
+                    presentation,
+                ),
+            ),
             Self::PresentationProgressed {
                 presentation,
                 duplicate_observation,
@@ -61,8 +64,10 @@ pub(super) fn progress_ready_physical_work(
         crate::native::host_state::UiNativeHostPhysicalProgress::NoProgress => {
             UiNativePhysicalWakeProgress::ConsumedWithoutReadyWork
         }
-        crate::native::host_state::UiNativeHostPhysicalProgress::TextAtlas => {
-            UiNativePhysicalWakeProgress::TextAtlasProgressed
+        crate::native::host_state::UiNativeHostPhysicalProgress::TextAtlas(identity) => {
+            UiNativePhysicalWakeProgress::TextAtlasProgressed {
+                presentation: atlas_correlation(identity),
+            }
         }
         crate::native::host_state::UiNativeHostPhysicalProgress::Presentation(
             identity,
@@ -101,6 +106,18 @@ fn correlation(
     identity: crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity,
 ) -> super::UiNativePhysicalPresentationCorrelation {
     let basis = identity.basis();
+    super::UiNativePhysicalPresentationCorrelation::issued(
+        basis.attempt(),
+        basis.surface(),
+        basis.binding(),
+        identity.sequence(),
+    )
+}
+
+fn atlas_correlation(
+    identity: crate::native::physical_work_signal::UiNativePhysicalAtlasRequestIdentity,
+) -> super::UiNativePhysicalPresentationCorrelation {
+    let basis = identity.presentation_basis();
     super::UiNativePhysicalPresentationCorrelation::issued(
         basis.attempt(),
         basis.surface(),
@@ -149,7 +166,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         }
         let shared = Rc::clone(&self.shared);
         let _ = crate::native::readiness::signal_level_ready(
-            &mut self.readiness,
+            &self.readiness,
             self.physical_readiness_owner,
             ready,
             || {

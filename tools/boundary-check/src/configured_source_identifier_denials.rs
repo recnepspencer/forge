@@ -51,6 +51,14 @@ fn visit_rust_sources(
             }
         };
         let path = entry.path();
+        if rule
+            .exclude_paths
+            .iter()
+            .map(|excluded| workspace.join(excluded))
+            .any(|excluded| path == excluded || path.starts_with(excluded))
+        {
+            continue;
+        }
         if path.is_dir() {
             visit_rust_sources(workspace, &path, rule, diagnostics);
         } else if path.extension().is_some_and(|extension| extension == "rs") {
@@ -272,9 +280,14 @@ mod tests {
             .expect("write denied fixture");
         std::fs::write(excluded.join("allowed.rs"), "use worth_query_host::facade;")
             .expect("write excluded fixture");
+        std::fs::write(
+            governed.join("allowed_file.rs"),
+            "use worth_query_host::facade;",
+        )
+        .expect("write excluded file fixture");
         let rule = SourceIdentifierDenialConfig {
             root: "governed".into(),
-            exclude_paths: vec!["governed/allowed".into()],
+            exclude_paths: vec!["governed/allowed".into(), "governed/allowed_file.rs".into()],
             forbidden_identifiers: vec!["worth_query_host".into()],
             forbidden_identifier_fragments: Vec::new(),
             guidance: "Query imports stay in the adapter".into(),

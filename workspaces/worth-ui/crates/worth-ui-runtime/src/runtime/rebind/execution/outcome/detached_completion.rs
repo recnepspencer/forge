@@ -63,7 +63,7 @@ impl UiDetachedRebindCompletion {
             UiDetachedRebindCompletionInner::Changed(inner) => (
                 inner.attempt(),
                 inner.awaits_progress_class(class),
-                progress.presentation().map_or(true, |presentation| {
+                progress.presentation().is_none_or(|presentation| {
                     inner
                         .pending_bindings()
                         .any(|binding| binding == presentation.binding())
@@ -72,7 +72,7 @@ impl UiDetachedRebindCompletion {
             UiDetachedRebindCompletionInner::Content { inner, .. } => (
                 inner.attempt(),
                 inner.awaits_progress_class(class),
-                progress.presentation().map_or(true, |presentation| {
+                progress.presentation().is_none_or(|presentation| {
                     inner
                         .pending_bindings()
                         .any(|binding| binding == presentation.binding())
@@ -83,7 +83,7 @@ impl UiDetachedRebindCompletion {
             && binding_matches
             && progress
                 .presentation()
-                .map_or(true, |presentation| presentation.attempt() == attempt)
+                .is_none_or(|presentation| presentation.attempt() == attempt)
     }
 
     pub(crate) fn complete<'session>(

@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use super::{
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
-    UiNativeEventLoopDirective, UiNativeObservationReadinessGrant, UiNativeReadinessGrant,
+    UiNativeEventLoopClientFailure, UiNativeEventLoopDirective, UiNativeObservationReadinessGrant,
+    UiNativeReadinessGrant,
 };
 use crate::native::presentation::UiNativePendingExternalObligation;
 
@@ -47,21 +48,21 @@ impl UiNativeEventLoopClient for CleanupClient {
     fn native_surface_ready(
         &mut self,
         _grant: super::UiNativeReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
         unreachable!("cleanup proof never enters callbacks")
     }
 
     fn redraw_ready(
         &mut self,
         _grant: UiNativeReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
         unreachable!("cleanup proof never enters callbacks")
     }
 
     fn native_observations_ready(
         &mut self,
         _grant: UiNativeObservationReadinessGrant,
-    ) -> Result<UiNativeEventLoopDirective, ()> {
+    ) -> Result<UiNativeEventLoopDirective, UiNativeEventLoopClientFailure> {
         unreachable!("cleanup proof never enters callbacks")
     }
 

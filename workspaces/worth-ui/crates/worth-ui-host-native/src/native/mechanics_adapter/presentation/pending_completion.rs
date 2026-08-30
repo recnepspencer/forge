@@ -33,10 +33,10 @@ pub(crate) fn complete_pending(
         }
         crate::native::presentation::UiNativePendingPresentationCompletion::Presented(
             observation,
-        ) => complete_presented(state, pending, observation),
+        ) => complete_presented(state, pending, *observation),
         crate::native::presentation::UiNativePendingPresentationCompletion::Superseded(
             observation,
-        ) => complete_superseded(state, pending, observation),
+        ) => complete_superseded(state, pending, *observation),
         crate::native::presentation::UiNativePendingPresentationCompletion::Indeterminate => {
             let completion_identity = pending.completion_identity();
             if let Some(settlement) = pending.take_settlement() {

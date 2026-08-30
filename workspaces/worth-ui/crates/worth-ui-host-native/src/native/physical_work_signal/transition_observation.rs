@@ -169,6 +169,7 @@ const fn origin_class(
         super::routing::UiNativePhysicalSignalExternalOrigin::NativeExternalPort => {
             UiNativePhysicalSignalObservationOriginClass::NativeExternalPort
         }
+        #[cfg(feature = "certification-support")]
         super::routing::UiNativePhysicalSignalExternalOrigin::QualifiedExternalPort => {
             UiNativePhysicalSignalObservationOriginClass::QualifiedExternalPort
         }

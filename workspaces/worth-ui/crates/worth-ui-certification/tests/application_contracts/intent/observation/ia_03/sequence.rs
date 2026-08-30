@@ -1,7 +1,6 @@
 use worth_ui::facade::interaction::UiHostInteractionIngressOutcome;
 use worth_ui::facade::observation_report::{
-    UiHostObservationFamily, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostPointerButtonTransition,
+    UiHostObservationFamily, UiHostObservationReportDenial, UiHostPointerButtonTransition,
 };
 
 use super::super::super::interaction_world::InteractionWorld;
@@ -10,7 +9,7 @@ use super::super::assertions::applied;
 #[test]
 fn sequence_duplicate_reorder_skip_delay_and_overflow_are_exact() {
     let mut duplicate = InteractionWorld::canonical();
-    let focused = UiHostObservationPayload::Focus { focused: true };
+    let focused = duplicate.window_focus(true);
     assert!(matches!(
         duplicate.payload_at(1, 100, focused.clone()),
         UiHostInteractionIngressOutcome::Applied(_)
@@ -23,8 +22,7 @@ fn sequence_duplicate_reorder_skip_delay_and_overflow_are_exact() {
         duplicate.payload_at(2, 1, focused.clone()),
         UiHostInteractionIngressOutcome::Applied(_)
     ));
-    let reordered =
-        duplicate.payload_at(1, 200, UiHostObservationPayload::Focus { focused: false });
+    let reordered = duplicate.payload_at(1, 200, duplicate.window_focus(false));
     assert_denial(
         reordered,
         UiHostObservationReportDenial::SequenceReordered,
@@ -34,7 +32,8 @@ fn sequence_duplicate_reorder_skip_delay_and_overflow_are_exact() {
 
     let mut skipped = InteractionWorld::canonical();
     let _ = applied(skipped.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]));
-    let gap = skipped.payload_at(3, 3, focused);
+    let skipped_focus = skipped.window_focus(true);
+    let gap = skipped.payload_at(3, 3, skipped_focus);
     assert_denial(gap, UiHostObservationReportDenial::SequenceGap, 1);
     assert_eq!(skipped.session.interaction_state().active_gestures(), 0);
     let _ = skipped.session.shutdown();

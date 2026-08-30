@@ -167,6 +167,12 @@ fn performed_effects(view: &UiMountedFrameConsumptionView<'_>) -> Vec<UiMountedE
         worth_ui_host_contract::UiMountedPresentationWorkView::Reconstruction(work) => {
             initial_effects(work.projection())
         }
+        worth_ui_host_contract::UiMountedPresentationWorkView::Sample(sample) => {
+            (!sample.changes().is_empty() || !sample.damage().is_empty())
+                .then_some(UiMountedEffectFamily::NativePaint)
+                .into_iter()
+                .collect()
+        }
         worth_ui_host_contract::UiMountedPresentationWorkView::Unchanged(_) => Vec::new(),
     }
 }

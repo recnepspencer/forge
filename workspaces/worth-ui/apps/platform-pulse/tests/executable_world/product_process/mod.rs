@@ -7,12 +7,17 @@ mod intent_progression;
 #[cfg(target_os = "windows")]
 mod kill_on_close_job;
 mod launch;
+#[cfg(target_os = "windows")]
+mod native_close_evidence;
+#[cfg(target_os = "windows")]
 mod native_desktop_lease;
 #[cfg(target_os = "windows")]
 mod native_input_progression;
 #[cfg(target_os = "windows")]
 mod normal_close_progression;
 mod output_capture;
+#[cfg(target_os = "windows")]
+mod portal_progression;
 #[cfg(target_os = "windows")]
 mod preservation_progression;
 #[cfg(target_os = "windows")]
@@ -44,14 +49,25 @@ pub(crate) use launch::{
     CargoBuiltPlatformPulse, EmergencyPlatformPulseExit, EmergencyPlatformPulseExitFailure,
     LivePlatformPulseProcess, NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure,
 };
+#[cfg(target_os = "windows")]
+pub(crate) use native_close_evidence::{
+    PlatformPulseNativeCloseEvidence, PlatformPulseNativeCloseEvidenceFailure,
+    PlatformPulseNativeSampleFrameEvidence, NATIVE_CLOSE_EVIDENCE_FILE_NAME,
+    NATIVE_CLOSE_EVIDENCE_PATH_ENVIRONMENT,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use native_input_progression::NativeInputCausalStep;
+#[cfg(target_os = "windows")]
+pub(crate) use portal_progression::{
+    PlatformPulsePortalJourneyEvidence, PlatformPulsePortalJourneyFailure,
+};
 #[cfg(target_os = "windows")]
 pub(crate) use progression::{
     AwaitingFirstFrame, AwaitingPreservation, AwaitingQueryCurrent, AwaitingRecovery,
     AwaitingReplacement, AwaitingSchemaStop, AwaitingStatusRecovery, Closed,
     ComparisonBasisRefreshed, FinalRecovered, FirstCurrent, GreenSuccessor, IdentityTraced,
     InitialBlue, Installed, NativeBoundExecutableWorld, NativeInputReached, OverlayCleared,
-    OverlayPublished, PreservedPredecessor, PreservedPredecessorEvidence, Published,
+    OverlayPublished, PortalReady, PreservedPredecessor, PreservedPredecessorEvidence, Published,
     PulseExecutableWorld, QueryCurrent, RecoveredBlue, SchemaStopped, SecondCurrent,
     SecondQueryCurrent, SnapshotCaptured,
 };

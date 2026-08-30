@@ -147,6 +147,7 @@ fn real_source_and_query_turn_publishes_one_semantic_application_successor() {
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 1,
+            portal_overlay_count: 0,
             semantic_text_count: 2,
             preview_node_count: 0,
         }]

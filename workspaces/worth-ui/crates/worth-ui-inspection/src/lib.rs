@@ -9,6 +9,7 @@ mod posture;
 mod query;
 mod receipt;
 mod scope;
+mod service;
 mod target;
 
 // Target identity lane
@@ -130,6 +131,20 @@ pub use receipt::{
     UiVisualSnapshotEvidence, UiVisualSnapshotEvidenceInput, UiVisualSnapshotIndeterminate,
     UiVisualSnapshotOmission, UiVisualSnapshotRelation, UiVisualSnapshotSuperseded,
     UiVisualVisibleContributor, UiVisualVisibleOutcome,
+};
+
+// Runtime-service causal inspection lane
+pub use service::{
+    UiCommandRouteLossInspection, UiCommandRouteLossInspectionReason,
+    UiCommandRouteScopeInspection, UiCommandWonInspectionSummary, UiFocusMoveInspectionCause,
+    UiFocusMoveInspectionOutcome, UiFocusMovedInspectionSummary,
+    UiFocusRestorationFailedInspectionSummary, UiFocusRestorationFailureInspectionReason,
+    UiMotionInterruptedInspectionReason, UiMotionInterruptedInspectionSummary,
+    UiPortalClosedInspectionReason, UiPortalClosedInspectionSummary,
+    UiRuntimeServiceInspectionCost, UiRuntimeServiceInspectionFamily,
+    UiRuntimeServiceInspectionSource, UiRuntimeServiceResourceCensus,
+    UiScrollOwnerInspectionSummary, UiSelectionDropInspectionReason,
+    UiSelectionDroppedInspectionSummary,
 };
 
 // Scope lane

@@ -6,9 +6,10 @@ use winit::keyboard::{Key, KeyCode, PhysicalKey};
 use worth_ui_host_contract::{
     UiHostApplicationGeneration, UiHostInputDraftSessionIdentity, UiHostInputRecipientBindingInput,
     UiHostInputRecipientBindingReceipt, UiHostInputRecipientFamily, UiHostInputRecipientGeneration,
-    UiHostObservationPresentationBasis, UiHostPresentationEpoch, UiMountedFrameIdentity,
-    UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity, UiSemanticSurfaceIdentity,
-    UiSurfaceBindingGeneration, UiTextProfileGeneration, UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT,
+    UiHostObservationPresentationBasis, UiHostPresentationEpoch, UiHostSurfaceIdentity,
+    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
+    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration, UiTextProfileGeneration,
+    UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT,
 };
 pub(super) use worth_ui_host_native::{
     UiNativeLifecycleEffect, UiNativeLifecyclePhase as UiNativeLifecycleState,
@@ -35,6 +36,7 @@ pub(super) struct UiNativeLifecycleWorld {
     binding: UiSurfaceBindingGeneration,
     pending_binding: Option<UiSurfaceBindingGeneration>,
     surface: UiSemanticSurfaceIdentity,
+    host_surface: UiHostSurfaceIdentity,
     mounted_instance: UiMountedInstanceIdentity,
     node_receipt: UiMountedNodeReceiptIdentity,
     recipient: Option<UiHostInputRecipientBindingReceipt>,
@@ -48,6 +50,7 @@ impl UiNativeLifecycleWorld {
             binding: UiSurfaceBindingGeneration::mint_unbound().expect("initial binding"),
             pending_binding: None,
             surface: UiSemanticSurfaceIdentity::mint_unbound().expect("semantic surface"),
+            host_surface: UiHostSurfaceIdentity::mint_unbound().expect("host surface"),
             mounted_instance: UiMountedInstanceIdentity::mint_unbound().expect("mounted instance"),
             node_receipt: UiMountedNodeReceiptIdentity::mint_unbound().expect("node receipt"),
             recipient: None,
@@ -138,6 +141,7 @@ impl UiNativeLifecycleWorld {
         self.protocol.remember_pending_presentation(
             protocol(),
             HOST_SESSION,
+            self.host_surface,
             binding,
             PENDING_COMPLETION,
         )
@@ -305,6 +309,7 @@ impl UiNativeLifecycleWorld {
         epoch: u64,
     ) -> UiHostObservationPresentationBasis {
         UiHostObservationPresentationBasis::new(
+            self.host_surface,
             UiMountedFrameIdentity::mint_unbound().expect("presentation frame"),
             binding,
             UiHostPresentationEpoch::issued_by_host(epoch),

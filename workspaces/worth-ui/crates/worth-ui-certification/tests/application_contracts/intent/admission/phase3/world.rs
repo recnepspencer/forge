@@ -34,6 +34,7 @@ use crate::mounted_application_lifecycle::published_mounted_world::presented_epo
 const TARGET_POINT: [i64; 2] = [10, 20];
 
 mod replacement;
+mod semantic_text_launch;
 
 pub(in crate::intent) struct AdmissionWorld {
     pub(in crate::intent) session: WorthUiActiveApplicationSession,
@@ -170,7 +171,20 @@ impl AdmissionWorld {
         &mut self,
         target: usize,
     ) -> UiAdmittedIntent<I> {
-        match self.admit_for::<I>(target) {
+        self.admit_exact_definition(target, UiIntentDefinition::<I>::application_effect())
+    }
+
+    pub(in crate::intent) fn admit_exact_definition<I, D>(
+        &mut self,
+        target: usize,
+        definition: UiIntentDefinition<I, D>,
+    ) -> UiAdmittedIntent<I>
+    where
+        I: worth_ui::facade::intent::UiIntent,
+        D: worth_ui::facade::intent::UiIntentDefinitionDestination,
+    {
+        let outcome = self.evaluate(target);
+        match self.session.admit_intent(definition, outcome) {
             UiIntentAdmissionDecision::Admitted(admitted) => admitted,
             UiIntentAdmissionDecision::ConfirmationRequired(_) => {
                 panic!("confirmation-disabled admission cannot require confirmation")
@@ -179,15 +193,6 @@ impl AdmissionWorld {
                 panic!("current operable target must admit: {:?}", stop.reason())
             }
         }
-    }
-
-    fn admit_for<I: worth_ui::facade::intent::UiIntent>(
-        &mut self,
-        target: usize,
-    ) -> UiIntentAdmissionDecision<I> {
-        let outcome = self.evaluate(target);
-        self.session
-            .admit_intent(UiIntentDefinition::<I>::application_effect(), outcome)
     }
 
     pub(in crate::intent) fn evaluate(&mut self, target: usize) -> UiIntentOperabilityOutcome {
@@ -355,6 +360,7 @@ fn presentation(
     binding: UiSurfaceBindingGeneration,
 ) -> UiHostObservationPresentationBasis {
     UiHostObservationPresentationBasis::new(
+        session.inspect_mounted_identity().surface_bindings()[0].host_surface_identity(),
         frame,
         binding,
         presented_epoch(session, frame, binding),

@@ -117,47 +117,70 @@ impl WorthUiPendingActivation {
 }
 
 /// Receipt emitted when the runtime host is consumed during shutdown.
+#[path = "lifecycle_state/service_shutdown.rs"]
+mod service_shutdown;
+
 #[derive(Debug)]
 pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
     query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
+    service_proposals:
+        crate::runtime::session::service_proposal::UiServiceProposalCompilerShutdownReceipt,
     mounted_presentation: crate::mounting::UiMountedPresentationShutdownReport,
     presentation_async_cleanup:
         Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup>,
     visual_capture: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
     visual_overlay: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
     interaction: crate::runtime::interaction::UiInteractionShutdownReport,
+    focus_placement: crate::mounting::UiFocusHostPlacementShutdownReport,
+    portal: crate::runtime::portal::UiPortalShutdownReport,
+    motion: crate::runtime::motion::UiMotionShutdownReport,
+    scroll_owners_released: usize,
+    selection_owners_released: usize,
+    command_routes_released: usize,
     intent_confirmation: crate::runtime::intent::UiIntentConfirmationShutdownReport,
     intent_admission: crate::runtime::intent::UiIntentAdmissionShutdownReport,
     intent_execution: crate::facade::intent::UiIntentExecutionShutdownReport,
     observation_resources: crate::runtime::observation::UiObservationResourceRetirementReport,
     intent_evidence: worth_ui_inspection::UiIntentEvidenceRetirementReport,
     intent_resource_census: crate::runtime::session::UiIntentResourceCensus,
+    runtime_service_resource_census: worth_ui_inspection::UiRuntimeServiceResourceCensus,
     rebind: crate::runtime::rebind::UiRebindShutdownReport,
     host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
     host_session_recovery: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
 }
 
 impl WorthUiRuntimeShutdownReceipt {
-    pub(crate) fn new(
+    pub(in crate::runtime) fn new(
         final_frame_epoch: WorthUiRuntimeFrameEpoch,
         _queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
         query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
+        service_proposals:
+            crate::runtime::session::service_proposal::UiServiceProposalCompilerShutdownReceipt,
     ) -> Self {
         Self {
             final_frame_epoch,
             query_retirement,
+            service_proposals,
             mounted_presentation: Default::default(),
             presentation_async_cleanup: None,
             visual_capture: Default::default(),
             visual_overlay: Default::default(),
             interaction: Default::default(),
+            focus_placement: Default::default(),
+            portal: Default::default(),
+            motion: Default::default(),
+            scroll_owners_released: 0,
+            selection_owners_released: 0,
+            command_routes_released: 0,
             intent_confirmation: Default::default(),
             intent_admission: Default::default(),
             intent_execution: Default::default(),
             observation_resources: Default::default(),
             intent_evidence: Default::default(),
             intent_resource_census: crate::runtime::session::UiIntentResourceCensus::EMPTY,
+            runtime_service_resource_census:
+                worth_ui_inspection::UiRuntimeServiceResourceCensus::EMPTY,
             rebind: Default::default(),
             host_session_release: None,
             host_session_recovery: None,
@@ -234,6 +257,12 @@ impl WorthUiRuntimeShutdownReceipt {
         self.intent_resource_census
     }
 
+    pub const fn runtime_service_resource_census(
+        &self,
+    ) -> worth_ui_inspection::UiRuntimeServiceResourceCensus {
+        self.runtime_service_resource_census
+    }
+
     pub fn host_session_release(
         &self,
     ) -> Option<crate::host::adapter::UiHostSessionReleaseOutcome> {
@@ -293,14 +322,6 @@ impl WorthUiRuntimeShutdownReceipt {
         recovery: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
     ) -> Self {
         self.host_session_recovery = recovery;
-        self
-    }
-
-    pub(crate) fn bind_rebind(
-        mut self,
-        report: crate::runtime::rebind::UiRebindShutdownReport,
-    ) -> Self {
-        self.rebind = report;
         self
     }
 

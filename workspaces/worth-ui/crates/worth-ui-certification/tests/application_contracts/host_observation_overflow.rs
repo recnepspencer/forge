@@ -6,7 +6,7 @@ use worth_ui::facade::observation_report::{
     UiHostObservationSequence, UiHostObservationSequenceRange,
 };
 
-use super::host_observation_fixture::{batch, pointer, report, source};
+use super::host_observation_fixture::{batch, pointer, report, source, window_focus};
 use super::mounted_application_lifecycle::published_mounted_world::published_observation_world;
 
 #[test]
@@ -76,7 +76,7 @@ fn complete_range_overflow_retains_nothing_and_advances_the_source() {
             UiHostObservationLoss::Complete,
             vec![report(
                 5,
-                UiHostObservationPayload::Focus { focused: true },
+                window_focus(&world.current, true),
                 &world.current,
             )],
         )),

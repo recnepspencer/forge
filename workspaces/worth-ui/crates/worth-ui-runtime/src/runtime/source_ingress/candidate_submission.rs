@@ -23,16 +23,16 @@ pub struct WorthUiWatchedCandidateSubmission {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiWatchedCandidateSubmissionDenial {
-    DslCompilation(WorthUiDslCompileReport),
+    DslCompilation(Box<WorthUiDslCompileReport>),
     SourceIngress(WorthUiSourceIngressDenial),
-    RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
-    Candidate(WorthUiReplacementCandidateDenial),
+    RuntimePreparation(Box<crate::runtime::WorthUiSemanticHandoffPreparationDenial>),
+    Candidate(Box<WorthUiReplacementCandidateDenial>),
 }
 
 pub(crate) enum WorthUiAuthoredCompositionPreparationDenial {
-    DslCompilation(WorthUiDslCompileReport),
-    RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
-    Candidate(WorthUiReplacementCandidateDenial),
+    DslCompilation(Box<WorthUiDslCompileReport>),
+    RuntimePreparation(Box<crate::runtime::WorthUiSemanticHandoffPreparationDenial>),
+    Candidate(Box<WorthUiReplacementCandidateDenial>),
 }
 
 pub(crate) fn prepare_rust_authored_handoff(
@@ -40,17 +40,19 @@ pub(crate) fn prepare_rust_authored_handoff(
     snapshot: &CapabilitySnapshot,
 ) -> Result<WorthUiCandidatePreparationHandoff, WorthUiAuthoredCompositionPreparationDenial> {
     let source_revision_digest = input.source_revision_digest();
-    let sealed_package = WorthUiDslCompiler::compile_rust_authored(input)
-        .map_err(WorthUiAuthoredCompositionPreparationDenial::DslCompilation)?;
-    let material = prepare_semantic_handoff(sealed_package, snapshot)
-        .map_err(WorthUiAuthoredCompositionPreparationDenial::RuntimePreparation)?;
+    let sealed_package = WorthUiDslCompiler::compile_rust_authored(input).map_err(|denial| {
+        WorthUiAuthoredCompositionPreparationDenial::DslCompilation(Box::new(denial))
+    })?;
+    let material = prepare_semantic_handoff(sealed_package, snapshot).map_err(|denial| {
+        WorthUiAuthoredCompositionPreparationDenial::RuntimePreparation(Box::new(denial))
+    })?;
     let (artifact, declaration_material, handoff) = material.into_parts();
     let candidate = rust_authored_replacement_candidate(
         artifact,
         snapshot.digest(),
         WorthUiReplacementCause::rust_authored_input_change(source_revision_digest),
     )
-    .map_err(WorthUiAuthoredCompositionPreparationDenial::Candidate)?;
+    .map_err(|denial| WorthUiAuthoredCompositionPreparationDenial::Candidate(Box::new(denial)))?;
     Ok(
         WorthUiCandidateComposition::rust_authored(candidate, declaration_material, handoff)
             .into_preparation_handoff(),

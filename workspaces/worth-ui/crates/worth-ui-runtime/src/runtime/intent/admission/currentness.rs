@@ -14,6 +14,7 @@ pub(crate) struct UiIntentAdmissionCurrentnessContext<'state> {
     pub(crate) generation: &'state crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     pub(crate) mounted: &'state crate::mounting::WorthUiMountedSessionState,
     pub(crate) application_facts: &'state super::super::payload::UiIntentApplicationFactState,
+    pub(crate) command_contexts: Box<[crate::runtime::command_routing::UiCommandRoutingContext]>,
 }
 
 pub(crate) struct UiIntentAdmissionPreparationFailure {
@@ -32,6 +33,7 @@ enum UiIntentCandidateCurrentnessViolation {
     PresentationInFlight,
     TargetChanged(crate::runtime::interaction::UiInteractionTargetingDenial),
     ProductRouteChanged,
+    CommandContextChanged,
     PayloadInputChanged,
     OperabilityDependencyChanged,
     PolicyChanged,
@@ -124,6 +126,22 @@ where
             requested: definition.id(),
         });
     }
+    if definition.execution_destination()
+        == crate::capability::UiIntentExecutionDestination::RuntimeService(
+            crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand,
+        )
+    {
+        let receipt = candidate
+            .command_route_receipt()
+            .ok_or(UiIntentAdmissionStopReason::CommandRouteRequired)?;
+        let routed = receipt.destination().intent();
+        if routed != definition.id() {
+            return Err(UiIntentAdmissionStopReason::CommandDestinationMismatch {
+                routed,
+                requested: definition.id(),
+            });
+        }
+    }
     Ok(())
 }
 
@@ -180,6 +198,18 @@ fn validate_currentness(
             6,
         ));
     }
+    if let Some(receipt) = payload.command_route_receipt() {
+        let current = context
+            .command_contexts
+            .iter()
+            .find(|current| current.surface() == receipt.surface());
+        if !current.is_some_and(|current| receipt.consumed_context_is_current(current)) {
+            return Err((
+                UiIntentCandidateCurrentnessViolation::CommandContextChanged,
+                7,
+            ));
+        }
+    }
     if !payload.payload_inputs_are_current(
         context.mounted,
         context.application_facts,
@@ -187,7 +217,7 @@ fn validate_currentness(
     ) {
         return Err((
             UiIntentCandidateCurrentnessViolation::PayloadInputChanged,
-            7,
+            8,
         ));
     }
     payload
@@ -199,10 +229,10 @@ fn validate_currentness(
         .map_err(|drift| {
             (
                 UiIntentCandidateCurrentnessViolation::from_dependency_drift(drift),
-                8,
+                9,
             )
         })?;
-    Ok(UiIntentExecutionCurrentnessAdmission { checks: 8, target })
+    Ok(UiIntentExecutionCurrentnessAdmission { checks: 9, target })
 }
 
 impl UiIntentExecutionCurrentnessAdmission {
@@ -285,6 +315,7 @@ impl UiIntentCandidateCurrentnessViolation {
             Self::PresentationInFlight => UiIntentAdmissionStopReason::PresentationInFlight,
             Self::TargetChanged(reason) => UiIntentAdmissionStopReason::TargetChanged(reason),
             Self::ProductRouteChanged => UiIntentAdmissionStopReason::ProductRouteChanged,
+            Self::CommandContextChanged => UiIntentAdmissionStopReason::CommandContextChanged,
             Self::PayloadInputChanged => UiIntentAdmissionStopReason::PayloadInputChanged,
             Self::OperabilityDependencyChanged => {
                 UiIntentAdmissionStopReason::OperabilityDependencyChanged
@@ -306,6 +337,7 @@ impl UiIntentCandidateCurrentnessViolation {
             Self::PresentationInFlight => Stop::PresentationInFlight,
             Self::TargetChanged(reason) => Stop::TargetChanged(reason),
             Self::ProductRouteChanged => Stop::ProductRouteChanged,
+            Self::CommandContextChanged => Stop::CommandContextChanged,
             Self::PayloadInputChanged => Stop::PayloadInputChanged,
             Self::OperabilityDependencyChanged => Stop::OperabilityDependencyChanged,
             Self::PolicyChanged => Stop::PolicyChanged,
@@ -319,6 +351,16 @@ fn product_route_is_current(
     catalog: &crate::declaration::UiIntentCatalog,
     definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
 ) -> bool {
+    if candidate.command_route_receipt().is_some() {
+        let Some((crate::declaration::UiIntentCatalogCommandRoute::Resolved { declaration }, _)) =
+            catalog.lookup_command(candidate.definition_id())
+        else {
+            return false;
+        };
+        return Arc::ptr_eq(&declaration, candidate.declaration_reference())
+            && definitions.definition_at(declaration.definition()).id()
+                == candidate.definition_id();
+    }
     let Some((crate::declaration::UiIntentCatalogResolvedRoute::Product { declaration, .. }, _)) =
         catalog.lookup(candidate.graph_node(), candidate.interaction_family())
     else {

@@ -112,52 +112,12 @@ impl CompiledFinancialWorld {
         }
     }
 
-    pub(crate) fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
-        match &mut self.kind {
-            CompiledFinancialWorldKind::Portfolio(portfolio) => {
-                portfolio.runtime.set_runtime_policy(policy);
-            }
-            CompiledFinancialWorldKind::Locality(locality) => {
-                locality.set_runtime_policy(policy);
-            }
-        }
-    }
-
     pub(crate) fn runtime_policy(&self) -> SignalRuntimePolicy {
         match &self.kind {
             CompiledFinancialWorldKind::Portfolio(portfolio) => {
                 portfolio.runtime.graph().runtime_policy()
             }
             CompiledFinancialWorldKind::Locality(locality) => locality.runtime_policy(),
-        }
-    }
-
-    pub(crate) fn reset_performed_observation(&mut self) {
-        match &mut self.kind {
-            CompiledFinancialWorldKind::Portfolio(portfolio) => {
-                portfolio
-                    .runtime
-                    .graph_mut()
-                    .reset_invalidation_performed_counters();
-            }
-            CompiledFinancialWorldKind::Locality(locality) => {
-                locality.reset_performed_observation();
-            }
-        }
-    }
-
-    pub(crate) fn reset_optional_observation(&mut self) {
-        match &mut self.kind {
-            CompiledFinancialWorldKind::Portfolio(portfolio) => {
-                portfolio.runtime.graph_mut().reset_telemetry();
-                portfolio
-                    .runtime
-                    .graph_mut()
-                    .reset_invalidation_performed_counters();
-            }
-            CompiledFinancialWorldKind::Locality(locality) => {
-                locality.reset_optional_observation();
-            }
         }
     }
 }

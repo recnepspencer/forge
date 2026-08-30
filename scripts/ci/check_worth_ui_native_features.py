@@ -8,14 +8,30 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "workspaces/worth-ui/Cargo.toml"
+LINUX_TARGET = "x86_64-unknown-linux-gnu"
+WINDOWS_TARGET = "x86_64-pc-windows-msvc"
 MODES = (
-    ("default", ()),
-    ("all-features", ("--all-features",)),
-    ("windows", ("--filter-platform", "x86_64-pc-windows-msvc")),
+    ("linux", LINUX_TARGET, ()),
+    ("linux-all-features", LINUX_TARGET, ("--all-features",)),
+    ("windows", WINDOWS_TARGET, ()),
+    ("windows-all-features", WINDOWS_TARGET, ("--all-features",)),
 )
 EXPECTED_FEATURES = {
-    ("wgpu", "29.0.4"): {"dx12", "parking_lot", "std", "wgsl"},
-    ("winit", "0.30.13"): {"rwh_06"},
+    LINUX_TARGET: {
+        ("wgpu", "29.0.4"): {"dx12", "parking_lot", "std", "wgsl"},
+        ("winit", "0.30.13"): {
+            "bytemuck",
+            "percent-encoding",
+            "rwh_06",
+            "x11",
+            "x11-dl",
+            "x11rb",
+        },
+    },
+    WINDOWS_TARGET: {
+        ("wgpu", "29.0.4"): {"dx12", "parking_lot", "std", "wgsl"},
+        ("winit", "0.30.13"): {"rwh_06"},
+    },
 }
 EXPECTED_DEPENDENCIES = {
     ("worth-ui-host-native", "0.1.0"): {
@@ -41,7 +57,7 @@ EXPECTED_DEPENDENCIES = {
 }
 
 
-def metadata(extra: tuple[str, ...]) -> dict[str, object]:
+def metadata(target: str, extra: tuple[str, ...]) -> dict[str, object]:
     result = subprocess.run(
         [
             "cargo",
@@ -52,6 +68,8 @@ def metadata(extra: tuple[str, ...]) -> dict[str, object]:
             "--manifest-path",
             str(MANIFEST),
             *extra,
+            "--filter-platform",
+            target,
         ],
         cwd=ROOT,
         capture_output=True,
@@ -62,6 +80,53 @@ def metadata(extra: tuple[str, ...]) -> dict[str, object]:
     if result.returncode != 0:
         raise RuntimeError(result.stderr)
     return json.loads(result.stdout)
+
+
+def resolved_features(target: str, extra: tuple[str, ...]) -> dict[tuple[str, str], set[str]]:
+    result = subprocess.run(
+        [
+            "cargo",
+            "tree",
+            "--locked",
+            "--manifest-path",
+            str(MANIFEST),
+            "--workspace",
+            "--target",
+            target,
+            "--edges",
+            "normal,build,dev",
+            "--prefix",
+            "none",
+            "--format",
+            "{p}|{f}",
+            "--no-dedupe",
+            *extra,
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr)
+    return parse_feature_tree(result.stdout)
+
+
+def parse_feature_tree(output: str) -> dict[tuple[str, str], set[str]]:
+    observed: dict[tuple[str, str], set[str]] = {}
+    qualified = {
+        f"{name} v{version}": (name, version)
+        for expectations in EXPECTED_FEATURES.values()
+        for name, version in expectations
+    }
+    for line in output.splitlines():
+        package, separator, features = line.partition("|")
+        identity = qualified.get(package)
+        if not separator or identity is None:
+            continue
+        observed.setdefault(identity, set()).update(filter(None, features.split(",")))
+    return observed
 
 
 def resolved_node(graph: dict[str, object], name: str, version: str) -> dict[str, object]:
@@ -95,15 +160,31 @@ def resolved_node(graph: dict[str, object], name: str, version: str) -> dict[str
     return node
 
 
-def validate(graph: dict[str, object], mode: str) -> None:
-    for (name, version), expected in EXPECTED_FEATURES.items():
-        node = resolved_node(graph, name, version)
-        observed = set(node.get("features", ()))
+def expected_dependencies(target: str) -> dict[tuple[str, str], set[str]]:
+    expected = {
+        identity: set(dependencies)
+        for identity, dependencies in EXPECTED_DEPENDENCIES.items()
+    }
+    if target == LINUX_TARGET:
+        expected[("worth-ui-host-native", "0.1.0")].remove("winsafe")
+    return expected
+
+
+def validate_features(
+    observed_features: dict[tuple[str, str], set[str]], mode: str, target: str
+) -> None:
+    for (name, version), expected in EXPECTED_FEATURES[target].items():
+        observed = observed_features.get((name, version))
+        if observed is None:
+            raise ValueError(f"{mode}: missing resolved features for {name} {version}")
         if observed != expected:
             raise ValueError(
                 f"{mode}: {name} features drifted: {sorted(observed)} != {sorted(expected)}"
             )
-    for (name, version), expected in EXPECTED_DEPENDENCIES.items():
+
+
+def validate_dependencies(graph: dict[str, object], mode: str, target: str) -> None:
+    for (name, version), expected in expected_dependencies(target).items():
         node = resolved_node(graph, name, version)
         dependencies = node.get("deps")
         if not isinstance(dependencies, list):
@@ -120,14 +201,27 @@ def validate(graph: dict[str, object], mode: str) -> None:
             )
 
 
+def validate(
+    graph: dict[str, object],
+    observed_features: dict[tuple[str, str], set[str]],
+    mode: str,
+    target: str,
+) -> None:
+    validate_features(observed_features, mode, target)
+    validate_dependencies(graph, mode, target)
+
+
 def main() -> int:
     try:
-        for mode, extra in MODES:
-            validate(metadata(extra), mode)
+        for mode, target, extra in MODES:
+            validate(metadata(target, extra), resolved_features(target, extra), mode, target)
     except (json.JSONDecodeError, OSError, RuntimeError, ValueError) as error:
         print(f"native resolved-graph audit failed: {error}", file=sys.stderr)
         return 1
-    print("Worth UI native resolved graphs are exact in default, all-feature, and Windows modes")
+    print(
+        "Worth UI native resolved graphs are exact for Linux and Windows "
+        "in normal and all-feature modes"
+    )
     return 0
 
 

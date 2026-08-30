@@ -31,7 +31,7 @@ impl UiPreparedMountedFrame {
             .map(|requirement| {
                 Ok(UiMountedSurfaceReceipt {
                     requirement: *requirement,
-                    projection_frame: std::sync::Arc::clone(&candidate.frame),
+                    projection_frame: std::rc::Rc::clone(&candidate.frame),
                     projection: std::cell::OnceCell::new(),
                 })
             })
@@ -134,6 +134,15 @@ impl UiPreparedMountedFrame {
 
     pub(crate) fn presented_receipt_basis(&self) -> &crate::mounting::UiMountedNodeReceiptBasis {
         self.candidate.presented_receipt_basis()
+    }
+
+    pub(crate) fn focus_participation_snapshot(
+        &self,
+    ) -> crate::mounting::UiMountedFocusParticipationSnapshot {
+        crate::mounting::UiMountedFocusParticipationSnapshot::from_projection(
+            self.candidate.frame(),
+            self.presented_receipt_basis(),
+        )
     }
 
     pub(crate) fn into_publication_parts(

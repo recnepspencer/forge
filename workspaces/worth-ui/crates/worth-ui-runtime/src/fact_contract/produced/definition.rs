@@ -8,6 +8,10 @@ pub enum UiProducedFactOwner {
     IntentRuntime,
     ScrollRuntimeState,
     PortalRuntimeState,
+    FocusRuntimeState,
+    SelectionRuntimeState,
+    MotionRuntimeState,
+    CommandRoutingRuntimeState,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -20,6 +24,10 @@ pub enum UiProducedFactFamily {
     IntentPosture,
     CommittedScrollExtent,
     CommittedPortalAnchor,
+    CommittedFocus,
+    CommittedSelection,
+    CommittedMotionTrack,
+    CommittedCommandRoute,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -61,6 +69,18 @@ impl UiProducedFactContract {
             }
             UiProducedFactOwner::PortalRuntimeState => {
                 Self::new(owner, UiProducedFactFamily::CommittedPortalAnchor, false)
+            }
+            UiProducedFactOwner::FocusRuntimeState => {
+                Self::new(owner, UiProducedFactFamily::CommittedFocus, false)
+            }
+            UiProducedFactOwner::SelectionRuntimeState => {
+                Self::new(owner, UiProducedFactFamily::CommittedSelection, false)
+            }
+            UiProducedFactOwner::MotionRuntimeState => {
+                Self::new(owner, UiProducedFactFamily::CommittedMotionTrack, false)
+            }
+            UiProducedFactOwner::CommandRoutingRuntimeState => {
+                Self::new(owner, UiProducedFactFamily::CommittedCommandRoute, false)
             }
         }
     }

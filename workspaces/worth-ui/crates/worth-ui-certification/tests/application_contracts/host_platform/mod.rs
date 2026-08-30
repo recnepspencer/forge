@@ -2,6 +2,7 @@ mod capture;
 mod lifecycle;
 mod mixed_carrier;
 mod oracle;
+mod scale_world;
 mod world;
 
 use oracle::{adjudicate, expectation, ordered_pixel, OracleDenial};
@@ -17,6 +18,10 @@ fn mixed_carrier_successors_are_local_in_ordinary_smoke() {
 fn mixed_carrier_successors_are_local_at_the_4096_command_ceiling() {
     let production = assert_mixed_carrier(mixed_carrier::CLOSURE);
     assert_collection_row_correlation(&production.initial, 1_359);
+}
+
+pub(crate) fn verify_4096_mounted_node_world() -> usize {
+    scale_world::verify()
 }
 
 fn assert_mixed_carrier(

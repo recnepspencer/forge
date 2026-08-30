@@ -138,6 +138,8 @@ fn refresh_native_paint_effect(
     successor: &mut UiHeadlessMountedFrameTranscript,
 ) -> Result<(), worth_ui_host_contract::UiHostSurfacePresentationDenial> {
     let filled_rect_count = u32::try_from(successor.filled_rects.len()).map_err(|_| malformed())?;
+    let portal_overlay_count =
+        u32::try_from(successor.portal_overlays.len()).map_err(|_| malformed())?;
     let semantic_text_count =
         u32::try_from(successor.semantic_text.len()).map_err(|_| malformed())?;
     let preview_node_count = node_count(&successor.nodes, |node| {
@@ -152,24 +154,29 @@ fn refresh_native_paint_effect(
         .find_map(|effect| match effect {
             super::UiHeadlessUnperformedEffect::NativePaint {
                 filled_rect_count,
+                portal_overlay_count,
                 semantic_text_count,
                 preview_node_count,
-            } => Some((filled_rect_count, semantic_text_count, preview_node_count)),
+            } => Some((
+                filled_rect_count,
+                portal_overlay_count,
+                semantic_text_count,
+                preview_node_count,
+            )),
             _ => None,
         })
         .ok_or_else(malformed)?;
     *effect.0 = filled_rect_count;
-    *effect.1 = semantic_text_count;
-    *effect.2 = preview_node_count;
+    *effect.1 = portal_overlay_count;
+    *effect.2 = semantic_text_count;
+    *effect.3 = preview_node_count;
     Ok(())
 }
 
 fn refresh_node_effects(
     successor: &mut UiHeadlessMountedFrameTranscript,
 ) -> Result<(), worth_ui_host_contract::UiHostSurfacePresentationDenial> {
-    use worth_ui_host_contract::{
-        UiMountedAccessibilityProjection, UiMountedMotionProjection, UiMountedParticipationStatus,
-    };
+    use worth_ui_host_contract::UiMountedAccessibilityProjection;
     successor.unperformed_effects = successor
         .unperformed_effects
         .iter()
@@ -178,8 +185,6 @@ fn refresh_node_effects(
             !matches!(
                 effect,
                 super::UiHeadlessUnperformedEffect::Accessibility { .. }
-                    | super::UiHeadlessUnperformedEffect::Focus { .. }
-                    | super::UiHeadlessUnperformedEffect::Motion { .. }
                     | super::UiHeadlessUnperformedEffect::Diagnostic { .. }
             )
         })
@@ -191,12 +196,6 @@ fn refresh_node_effects(
                 node.accessibility(),
                 UiMountedAccessibilityProjection::Admitted(_)
             )
-        })?,
-        node_count(&successor.nodes, |node| {
-            node.participation().focus().status() == UiMountedParticipationStatus::Admitted
-        })?,
-        node_count(&successor.nodes, |node| {
-            matches!(node.motion(), UiMountedMotionProjection::Admitted)
         })?,
         node_count(&successor.nodes, |node| {
             matches!(
@@ -213,18 +212,8 @@ fn refresh_node_effects(
         });
     }
     if predicates[1] > 0 {
-        effects.push(super::UiHeadlessUnperformedEffect::Focus {
-            node_count: predicates[1],
-        });
-    }
-    if predicates[2] > 0 {
-        effects.push(super::UiHeadlessUnperformedEffect::Motion {
-            node_count: predicates[2],
-        });
-    }
-    if predicates[3] > 0 {
         effects.push(super::UiHeadlessUnperformedEffect::Diagnostic {
-            node_count: predicates[3],
+            node_count: predicates[1],
         });
     }
     successor.unperformed_effects = effects.into_boxed_slice();
@@ -247,15 +236,23 @@ fn apply_mechanic_changes(
     )],
 ) -> Result<(), worth_ui_host_contract::UiHostSurfacePresentationDenial> {
     let mut filled_rects = std::mem::take(&mut successor.filled_rects).into_vec();
+    let mut portal_overlays = std::mem::take(&mut successor.portal_overlays).into_vec();
     let mut semantic_text = std::mem::take(&mut successor.semantic_text).into_vec();
-    remove_changed_commands(&mut filled_rects, &mut semantic_text, changes)?;
+    remove_changed_commands(
+        &mut filled_rects,
+        &mut portal_overlays,
+        &mut semantic_text,
+        changes,
+    )?;
     insert_changed_commands(
         &mut filled_rects,
+        &mut portal_overlays,
         &mut semantic_text,
         changes,
         semantic_snapshots,
     )?;
     successor.filled_rects = filled_rects.into_boxed_slice();
+    successor.portal_overlays = portal_overlays.into_boxed_slice();
     successor.semantic_text = semantic_text.into_boxed_slice();
     Ok(())
 }
@@ -289,6 +286,7 @@ fn apply_recorded_order_edits(
 
 fn remove_changed_commands(
     filled_rects: &mut Vec<UiHeadlessFilledRectMechanic>,
+    portal_overlays: &mut Vec<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
     semantic_text: &mut Vec<UiHeadlessSemanticTextMechanic>,
     changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
 ) -> Result<(), worth_ui_host_contract::UiHostSurfacePresentationDenial> {
@@ -310,6 +308,11 @@ fn remove_changed_commands(
             .position(|mechanic| mechanic.command_identity() == identity)
         {
             semantic_text.remove(index);
+        } else if let Some(index) = portal_overlays.iter().position(|mechanic| {
+            worth_ui_host_contract::UiMountedPaintCommandIdentity::portal_overlay(mechanic)
+                == identity
+        }) {
+            portal_overlays.remove(index);
         } else {
             return Err(malformed());
         }
@@ -319,6 +322,7 @@ fn remove_changed_commands(
 
 fn insert_changed_commands(
     filled_rects: &mut Vec<UiHeadlessFilledRectMechanic>,
+    portal_overlays: &mut Vec<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
     semantic_text: &mut Vec<UiHeadlessSemanticTextMechanic>,
     changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
     semantic_snapshots: &[(
@@ -340,6 +344,9 @@ fn insert_changed_commands(
                     .ok_or_else(malformed)?;
                 debug_assert_eq!(snapshot.semantic_digest(), mechanic.semantic_digest());
                 semantic_text.push(snapshot)
+            }
+            worth_ui_host_contract::UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                portal_overlays.push(*mechanic)
             }
         }
     }

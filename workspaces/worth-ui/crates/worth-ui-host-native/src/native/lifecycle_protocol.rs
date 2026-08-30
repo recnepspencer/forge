@@ -1,5 +1,9 @@
+#[cfg(any(test, feature = "certification-support"))]
 use winit::dpi::PhysicalPosition;
-use winit::event::{ElementState, WindowEvent};
+#[cfg(feature = "certification-support")]
+use winit::event::ElementState;
+use winit::event::WindowEvent;
+#[cfg(feature = "certification-support")]
 use winit::keyboard::{Key, PhysicalKey};
 use worth_ui_host_contract::{
     UiHostInputRecipientBindingReceipt, UiHostObservationDrain,
@@ -39,6 +43,7 @@ impl UiNativeLifecycleProtocol {
         self.phase
     }
 
+    #[cfg(feature = "certification-support")]
     pub const fn predecessor_epoch(&self) -> Option<UiHostPresentationEpoch> {
         self.predecessor
     }
@@ -73,6 +78,7 @@ impl UiNativeLifecycleProtocol {
         )
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub fn observe_window_event_at(
         &mut self,
         event: &WindowEvent,
@@ -107,6 +113,7 @@ impl UiNativeLifecycleProtocol {
         self.input_transition(disposition, before_events, before_stops)
     }
 
+    #[cfg(feature = "certification-support")]
     pub fn observe_keyboard_components_at(
         &mut self,
         logical_key: &Key,

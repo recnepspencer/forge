@@ -60,6 +60,31 @@ pub(in crate::observation_contract) enum PlatformPulseVisualObservationState {
 }
 
 impl PlatformPulseVisualObservationState {
+    pub(in crate::observation_contract) fn after_refreshed_snapshot(
+        self,
+        snapshot: u64,
+        observed_frame: u64,
+        observed_current: bool,
+    ) -> Result<Self, PlatformPulseLifecycleObservationProjectionDenial> {
+        let Self::AwaitingRefreshSnapshot { refresh_frame } = self else {
+            return Err(
+                PlatformPulseLifecycleObservationProjectionDenial::VisualObservationOutOfOrder,
+            );
+        };
+        if !observed_current || observed_frame < refresh_frame {
+            return Err(PlatformPulseLifecycleObservationProjectionDenial::
+                VisualRefreshSnapshotAffinityMismatch {
+                    expected_frame: refresh_frame,
+                    observed_frame,
+                    observed_current,
+                });
+        }
+        Ok(Self::Refreshed {
+            snapshot,
+            frame: observed_frame,
+        })
+    }
+
     pub(in crate::observation_contract) fn after_content_publication(
         self,
         frame: u64,
@@ -95,6 +120,15 @@ impl PlatformPulseVisualObservationState {
                     refresh_frame: frame,
                 })
             }
+            Self::AwaitingSuccessorSnapshot {
+                predecessor_snapshot,
+                predecessor_frame,
+                successor_frame,
+            } if frame >= successor_frame => Ok(Self::AwaitingRefreshRetirement {
+                snapshot: predecessor_snapshot,
+                snapshot_frame: predecessor_frame,
+                refresh_frame: frame,
+            }),
             _ => Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete),
         }
     }
@@ -121,7 +155,9 @@ impl PlatformPulseVisualObservationState {
                 predecessor_frame: frame,
                 successor_frame,
             }),
-            Self::Retired => Ok(Self::Retired),
+            Self::Retired => Ok(Self::AwaitingRefreshSnapshot {
+                refresh_frame: successor_frame,
+            }),
             Self::AwaitingFirstFrame
             | Self::SnapshotCaptured { .. }
             | Self::IdentityTraced { .. }

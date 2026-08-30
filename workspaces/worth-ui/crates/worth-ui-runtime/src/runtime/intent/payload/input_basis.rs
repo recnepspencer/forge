@@ -18,7 +18,7 @@ pub struct UiIntentInputBasisReceipt {
 
 pub(crate) struct UiIntentInputBasis {
     receipt: UiIntentInputBasisReceipt,
-    interaction: crate::runtime::interaction::UiSemanticInteraction,
+    source: super::super::routing::UiIntentProductInputSource,
     query_inputs: Box<[worth_ui_query_binding::UiProjectionInputFactReference]>,
     application_inputs: Box<[super::UiIntentApplicationInputReference]>,
     operability: super::super::operability::UiIntentOperabilityBasis,
@@ -29,7 +29,7 @@ pub(crate) struct UiIntentInputBasisInput {
     pub(crate) publication_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     pub(crate) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     pub(crate) route_resolution: crate::declaration::UiIntentRouteResolutionCost,
-    pub(crate) interaction: crate::runtime::interaction::UiSemanticInteraction,
+    pub(crate) source: super::super::routing::UiIntentProductInputSource,
     pub(crate) query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
     pub(crate) application_inputs: Vec<super::UiIntentApplicationInputReference>,
     pub(crate) owner_revisions: Vec<UiIntentInputOwnerRevision>,
@@ -39,7 +39,7 @@ pub(crate) struct UiIntentInputBasisInput {
 }
 
 pub(crate) struct UiIntentInputBasisMaterial {
-    pub(crate) interaction: crate::runtime::interaction::UiSemanticInteraction,
+    pub(crate) source: super::super::routing::UiIntentProductInputSource,
     pub(crate) query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
     pub(crate) application_inputs: Vec<super::UiIntentApplicationInputReference>,
     pub(crate) owner_revisions: Vec<UiIntentInputOwnerRevision>,
@@ -61,7 +61,7 @@ impl UiIntentInputBasis {
                 owner_revisions: input.owner_revisions.into_boxed_slice(),
                 evidence_reference: input.evidence_reference,
             },
-            interaction: input.interaction,
+            source: input.source,
             query_inputs: input.query_inputs.into_boxed_slice(),
             application_inputs: input.application_inputs.into_boxed_slice(),
             operability: input.operability,
@@ -73,7 +73,7 @@ impl UiIntentInputBasis {
     }
 
     pub(crate) fn retained_owner_reference_count(&self) -> usize {
-        let _ = &self.interaction;
+        let _ = &self.source;
         1 + self.query_inputs.len() + self.application_inputs.len()
     }
 
@@ -81,10 +81,29 @@ impl UiIntentInputBasis {
         &self.operability
     }
 
-    pub(crate) const fn interaction_time_basis(
+    pub(crate) fn interaction_time_basis(
         &self,
     ) -> worth_ui_host_contract::UiHostObservationTimeBasis {
-        self.interaction.time_basis()
+        self.source
+            .time_basis()
+            .expect("resolved command routes carry an exact observation time basis")
+    }
+
+    pub(crate) fn selection_option(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiProjectionOptionReference> {
+        match self.source.mounted_interaction() {
+            Some(crate::runtime::interaction::UiSemanticInteraction::SelectionCommit(
+                selection,
+            )) => Some(selection.option()),
+            _ => None,
+        }
+    }
+
+    pub(crate) const fn command_route_receipt(
+        &self,
+    ) -> Option<&crate::runtime::UiCommandRouteReceipt> {
+        self.source.command_receipt()
     }
 
     pub(crate) fn payload_inputs_are_current(

@@ -11,6 +11,8 @@ mod stop;
 mod transition;
 
 #[cfg(test)]
+mod focused_submit_tests;
+#[cfg(test)]
 mod tests;
 
 pub use binding::{

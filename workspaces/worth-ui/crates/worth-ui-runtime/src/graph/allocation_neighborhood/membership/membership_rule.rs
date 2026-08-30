@@ -58,6 +58,7 @@ fn is_independent_viewport_contract(
         Some(
             crate::declaration::UiDeclaredMeasurementMode::FillViewport
                 | crate::declaration::UiDeclaredMeasurementMode::ViewportInset { .. }
+                | crate::declaration::UiDeclaredMeasurementMode::ViewportRegion { .. }
                 | crate::declaration::UiDeclaredMeasurementMode::FixedLogicalSize { .. }
         )
     )
@@ -119,6 +120,17 @@ mod tests {
             UiDeclaredMeasurementMode::ViewportInset {
                 horizontal_logical_points: 48,
                 vertical_logical_points: 24,
+            }
+        )));
+        assert!(is_independent_viewport_contract(Some(
+            UiDeclaredMeasurementMode::ViewportRegion {
+                horizontal: crate::capability::ComponentViewportAxisPlacement::stretch_between(
+                    24, 24,
+                ),
+                vertical: crate::capability::ComponentViewportAxisPlacement::fixed_from_start(
+                    24, 56,
+                )
+                .unwrap(),
             }
         )));
         assert!(!is_independent_viewport_contract(Some(

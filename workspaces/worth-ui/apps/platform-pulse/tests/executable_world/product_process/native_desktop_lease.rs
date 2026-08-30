@@ -2,16 +2,32 @@ use std::fs::{File, OpenOptions};
 use std::io::ErrorKind;
 use std::os::windows::fs::OpenOptionsExt;
 use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
 const ACQUISITION_POLL_INTERVAL: Duration = Duration::from_millis(10);
 const LEASE_FILE: &str = "worth-ui-native-desktop-v1.lock";
+static IN_PROCESS_NATIVE_DESKTOP: OnceLock<Mutex<()>> = OnceLock::new();
+
+pub(super) struct NativeDesktopCourtroomLease {
+    _guard: MutexGuard<'static, ()>,
+}
 
 pub(super) struct NativeDesktopLease {
     file: Option<File>,
     path: PathBuf,
     owner_process_id: u32,
+}
+
+impl NativeDesktopCourtroomLease {
+    pub(super) fn acquire() -> Self {
+        let courtroom = IN_PROCESS_NATIVE_DESKTOP.get_or_init(|| Mutex::new(()));
+        let guard = courtroom
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        Self { _guard: guard }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -68,7 +84,7 @@ fn open_exclusive(path: &PathBuf) -> std::io::Result<File> {
 mod tests {
     use std::time::{Duration, Instant};
 
-    use super::NativeDesktopLease;
+    use super::{NativeDesktopCourtroomLease, NativeDesktopLease};
 
     #[test]
     fn exclusive_desktop_lease_rejects_a_concurrent_owner() {
@@ -79,6 +95,7 @@ mod tests {
             );
             return;
         }
+        let _courtroom = NativeDesktopCourtroomLease::acquire();
         let first = NativeDesktopLease::acquire(Instant::now() + Duration::from_secs(1))
             .expect("first cross-process lease");
         assert_eq!(first.owner_process_id(), std::process::id());

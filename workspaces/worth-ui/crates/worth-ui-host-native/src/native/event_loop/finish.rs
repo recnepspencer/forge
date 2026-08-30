@@ -29,13 +29,13 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             return Err(UiNativeEventLoopStopReport {
                 cause,
                 effect_posture: captured.effect_posture,
-                peak_census: terminal.peak_census,
-                terminal_census: terminal.terminal_census,
+                peak_census: Box::new(terminal.peak_census),
+                terminal_census: Box::new(terminal.terminal_census),
                 client_cleanup_complete: terminal.client_closed
                     && terminal.client_resources_complete,
                 cleanup,
                 peak_text_pins: captured.peak_text_pins,
-                input_observations: captured.input_observations,
+                input_observations: Box::new(captured.input_observations),
                 shutdown_overlap: terminal.shutdown_overlap,
             });
         }

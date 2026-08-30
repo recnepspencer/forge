@@ -7,8 +7,9 @@ pub struct UiIntentRouteSource {
     source: UiIntentRouteSourceKind,
 }
 
-enum UiIntentRouteSourceKind {
+pub(crate) enum UiIntentRouteSourceKind {
     MountedInteraction(super::super::UiSemanticInteraction),
+    CommandRoute(crate::runtime::command_routing::UiCommandRouteReceipt),
 }
 
 impl UiIntentRouteSource {
@@ -18,17 +19,26 @@ impl UiIntentRouteSource {
         }
     }
 
-    pub(crate) fn into_mounted_interaction(self) -> super::super::UiSemanticInteraction {
-        match self.source {
-            UiIntentRouteSourceKind::MountedInteraction(interaction) => interaction,
+    pub fn command_route(receipt: crate::runtime::UiCommandRouteReceipt) -> Self {
+        Self {
+            source: UiIntentRouteSourceKind::CommandRoute(receipt),
         }
     }
 
-    pub(crate) fn evidence_input(&self) -> worth_ui_inspection::UiIntentInteractionEvidenceInput {
+    pub(crate) fn into_kind(self) -> UiIntentRouteSourceKind {
+        self.source
+    }
+
+    pub(crate) fn evidence_input(
+        &self,
+    ) -> Option<worth_ui_inspection::UiIntentInteractionEvidenceInput> {
         match &self.source {
             UiIntentRouteSourceKind::MountedInteraction(interaction) => {
-                super::super::semantic_evidence_input(interaction)
+                Some(super::super::semantic_evidence_input(interaction))
             }
+            UiIntentRouteSourceKind::CommandRoute(_) => None,
         }
     }
 }
+
+pub(crate) use UiIntentRouteSourceKind as UiIntentRouteSourceMaterial;

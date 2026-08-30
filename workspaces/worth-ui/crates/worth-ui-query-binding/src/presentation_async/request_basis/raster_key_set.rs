@@ -20,7 +20,7 @@ impl WorthUiPresentationRasterKeySetBasis {
     }
 
     pub fn contains(&self, key: UiGlyphRasterKey) -> bool {
-        self.keys.iter().any(|candidate| *candidate == key)
+        self.keys.contains(&key)
     }
 }
 

@@ -30,7 +30,7 @@ fn nonempty_admission_payload_bytes_retire_exactly() {
         PayloadApplicationFacts::text(fact, "rust"),
     );
     let interaction = activation(&mut world.interaction);
-    let route = resolve_route(&world.interaction, interaction);
+    let route = resolve_route(&mut world.interaction, interaction);
     let payload = world
         .interaction
         .session
@@ -83,7 +83,7 @@ fn activation(
 }
 
 fn resolve_route(
-    world: &crate::intent::interaction_world::InteractionWorld,
+    world: &mut crate::intent::interaction_world::InteractionWorld,
     interaction: UiSemanticInteraction,
 ) -> worth_ui::facade::intent::UiResolvedProductIntentRoute {
     match world

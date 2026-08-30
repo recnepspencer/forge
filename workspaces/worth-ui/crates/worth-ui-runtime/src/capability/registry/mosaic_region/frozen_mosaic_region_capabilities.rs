@@ -44,6 +44,23 @@ impl FrozenMosaicRegionCapabilities {
             .map(|index| &self.descriptors[index])
     }
 
+    pub(crate) fn runtime_service_support(&self) -> crate::capability::UiRuntimeServiceSupport {
+        use crate::capability::{MosaicScrollOwnership as Ownership, UiRuntimeServiceFamily};
+
+        let scroll_declared = self.descriptors.iter().any(|descriptor| {
+            matches!(
+                descriptor.scroll_ownership(),
+                Some(Ownership::RegionOwned | Ownership::SurfaceOwned | Ownership::ViewportOwned)
+            )
+        });
+        if scroll_declared {
+            crate::capability::UiRuntimeServiceSupport::none_installed()
+                .with_installed(UiRuntimeServiceFamily::Scroll)
+        } else {
+            crate::capability::UiRuntimeServiceSupport::none_installed()
+        }
+    }
+
     pub(crate) fn digest_basis(&self) -> u64 {
         self.descriptors
             .iter()

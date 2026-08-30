@@ -28,6 +28,7 @@ pub(super) fn prepare_candidate_mounted_frame(
     let range = request.virtualized_range();
     let visual_overlay = request.visual_overlay();
     let visual_overlay_revision = request.visual_overlay_revision();
+    let portal_overlays = request.portal_overlays();
     let plan = application.candidate_plan();
     let lanes = candidate_lanes(plan, range.is_some());
     let allocation_source = crate::runtime::UiMountedAllocationProjectionSource::for_replacement(
@@ -60,6 +61,7 @@ pub(super) fn prepare_candidate_mounted_frame(
             lanes,
             preview: None,
             visual_overlay,
+            portal_overlays,
             semantic_content,
             theme_values:
                 crate::mounting::UiMountedThemeValueSource::replacement_candidate_frozen_plan(),

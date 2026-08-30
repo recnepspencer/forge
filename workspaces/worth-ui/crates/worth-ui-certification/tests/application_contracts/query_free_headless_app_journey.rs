@@ -14,6 +14,14 @@ fn query_free_headless_app_executes_without_optional_subsystem_ceremony() {
     let mut session = app
         .launch()
         .expect("an empty Query-free application launches");
+    assert!(session.runtime_service_resource_census().is_empty());
+    assert!(session.why_portal_closed().is_none());
+    assert!(session.why_focus_moved().is_none());
+    assert!(session.why_focus_restoration_failed().is_none());
+    assert!(session.why_motion_interrupted().is_none());
+    assert!(session.why_scroll_owner().is_none());
+    assert!(session.why_selection_dropped().is_none());
+    assert!(session.why_command_won().is_none());
     let outcome = session
         .execute_mounted_frame(
             UiMountedFrameRequest::all_bound_surfaces(),
@@ -66,4 +74,6 @@ fn query_free_headless_app_executes_without_optional_subsystem_ceremony() {
         posture, "rejected-before-effects",
         "an empty Query-free app should stop before host effects without setup ceremony"
     );
+    let shutdown = session.shutdown();
+    assert!(shutdown.runtime_service_resource_census().is_empty());
 }

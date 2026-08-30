@@ -30,9 +30,12 @@ fn scoped_merge_denials_preserve_distinct_selected_node_aspect_and_ambiguous_pos
     match missing_node_error {
         SignalError::BranchMergeFailed {
             kind: BranchMergeFailureKind::ScopedMergeDenied,
-            evidence: Some(BranchMergeFailureEvidence::ScopedDenial(evidence)),
+            evidence: Some(evidence),
             ..
         } => {
+            let BranchMergeFailureEvidence::ScopedDenial(evidence) = *evidence else {
+                panic!("expected scoped denial evidence")
+            };
             assert_eq!(
                 evidence.denial_kind,
                 BranchMergeScopedDenialKind::UnknownSelectedNode
@@ -83,9 +86,12 @@ fn scoped_merge_denials_preserve_distinct_selected_node_aspect_and_ambiguous_pos
     match missing_aspect_error {
         SignalError::BranchMergeFailed {
             kind: BranchMergeFailureKind::ScopedMergeDenied,
-            evidence: Some(BranchMergeFailureEvidence::ScopedDenial(evidence)),
+            evidence: Some(evidence),
             ..
         } => {
+            let BranchMergeFailureEvidence::ScopedDenial(evidence) = *evidence else {
+                panic!("expected scoped denial evidence")
+            };
             let denied_aspect =
                 SignalSelectedAspectRequestEntry::new(NodeId::new(777, 2), ASPECT_A);
             assert_eq!(
@@ -138,9 +144,12 @@ fn scoped_merge_denials_preserve_distinct_selected_node_aspect_and_ambiguous_pos
     match ambiguous_error {
         SignalError::BranchMergeFailed {
             kind: BranchMergeFailureKind::ScopedMergeDenied,
-            evidence: Some(BranchMergeFailureEvidence::ScopedDenial(evidence)),
+            evidence: Some(evidence),
             ..
         } => {
+            let BranchMergeFailureEvidence::ScopedDenial(evidence) = *evidence else {
+                panic!("expected scoped denial evidence")
+            };
             assert_eq!(
                 evidence.denial_kind,
                 BranchMergeScopedDenialKind::SelectedTargetCorrespondenceAmbiguous
@@ -195,9 +204,12 @@ fn unsupported_scoped_strategy_fails_as_unavailable_without_branch_mutation_or_d
     match unavailable {
         SignalError::BranchMergeFailed {
             kind: BranchMergeFailureKind::ScopedMergeUnavailable,
-            evidence: Some(BranchMergeFailureEvidence::ScopedUnavailable(evidence)),
+            evidence: Some(evidence),
             ..
         } => {
+            let BranchMergeFailureEvidence::ScopedUnavailable(evidence) = *evidence else {
+                panic!("expected scoped unavailable evidence")
+            };
             assert_eq!(
                 evidence.reason,
                 BranchMergeScopedUnavailableReason::RuntimeDoesNotSupportSelectedNodes

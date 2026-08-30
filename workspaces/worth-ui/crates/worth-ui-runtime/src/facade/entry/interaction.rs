@@ -14,7 +14,11 @@ impl WorthUiActiveApplicationSession {
     pub(crate) fn drain_and_admit_host_observation_batches(
         &mut self,
         reachability: worth_ui_host_native::UiNativeInputReachability,
+        pending_portal_transition: bool,
     ) -> UiNativeObservationIngressSettlement {
+        if self.motion.is_installed() {
+            self.complete_motion_sample_presentation();
+        }
         let drain = match self.host_session.drain_observations() {
             Ok(drain) => drain,
             Err(denial) => {
@@ -25,7 +29,12 @@ impl WorthUiActiveApplicationSession {
             .into_batches()
             .into_vec()
             .into_iter()
-            .map(|batch| self.admit_host_interaction_batch(batch))
+            .map(|batch| {
+                self.admit_host_interaction_batch_with_portal_transition(
+                    batch,
+                    pending_portal_transition,
+                )
+            })
             .collect::<Vec<_>>()
             .into_boxed_slice();
         UiNativeObservationIngressSettlement::from_outcomes(outcomes, reachability)
@@ -37,15 +46,86 @@ impl WorthUiActiveApplicationSession {
         &mut self,
         batch: UiHostObservationBatch,
     ) -> UiHostInteractionIngressOutcome {
+        self.admit_host_interaction_batch_with_portal_transition(batch, false)
+    }
+
+    pub(crate) fn admit_host_interaction_batch_with_portal_transition(
+        &mut self,
+        batch: UiHostObservationBatch,
+        pending_portal_transition: bool,
+    ) -> UiHostInteractionIngressOutcome {
         let previous_input = self.interaction.active_input_binding();
         let core = batch.canonical_core();
         let binding = core.binding();
         let outcome = match self.validate_host_observation_batch(batch) {
             UiHostObservationReportOutcome::Validated(batch) => {
+                let portal_escape = self
+                    .portal
+                    .as_ref()
+                    .is_some_and(|portal| {
+                        pending_portal_transition || portal.topmost_presentation().is_some()
+                    })
+                    .then(|| portal_escape_dismissal(batch.reports(), core.presentation()))
+                    .flatten();
+                let scroll_observations = if self.scroll.is_installed() {
+                    batch
+                        .reports()
+                        .iter()
+                        .filter_map(|report| self.observe_scroll_payload(report.report().payload()))
+                        .collect()
+                } else {
+                    Vec::new()
+                };
+                let command_routes = batch
+                    .reports()
+                    .iter()
+                    .filter_map(|report| {
+                        if let Some(focus) = self.focus.as_mut() {
+                            focus.observe_host_payload(
+                                report.report().payload(),
+                                core.presentation(),
+                            );
+                        }
+                        let focus_navigated = self.observe_focus_navigation_report(
+                            report.report().payload(),
+                            core.presentation(),
+                        );
+                        (!focus_navigated)
+                            .then(|| {
+                                self.observe_command_report(report.report(), core.presentation())
+                            })
+                            .flatten()
+                    })
+                    .collect();
+                let motion_tick = batch
+                    .reports()
+                    .iter()
+                    .filter_map(|report| {
+                        if let worth_ui_host_contract::UiHostObservationPayload::Tick { tick } =
+                            report.report().payload()
+                        {
+                            Some(*tick)
+                        } else {
+                            None
+                        }
+                    })
+                    .max();
                 let generation = self.active_generation_identity();
-                let receipt = self.interaction.ingest(batch, &self.mounted, &generation);
+                let mut receipt = self.interaction.ingest(batch, &self.mounted, &generation);
+                receipt.retain_scroll_observations(scroll_observations);
+                receipt.retain_command_routes(command_routes);
+                if let Some(dismissal) = portal_escape {
+                    receipt.retain_service_dismissal(dismissal);
+                }
                 self.intent_evidence
                     .retain_transitions(receipt.transitions());
+                if let Some(tick) = motion_tick.filter(|_| {
+                    self.motion.is_installed() && self.mounted.has_active_motion_samples()
+                }) {
+                    if let Ok(prepared) = self.prepare_motion_tick(tick, core.presentation()) {
+                        self.present_prepared_motion_tick(prepared, core.presentation());
+                    }
+                }
                 UiHostInteractionIngressOutcome::Applied(receipt)
             }
             UiHostObservationReportOutcome::Duplicate(duplicate) => {
@@ -96,6 +176,30 @@ impl WorthUiActiveApplicationSession {
         self.interaction.cancel_all(reason);
         self.clear_displaced_input_recipient(previous_input);
     }
+}
+
+fn portal_escape_dismissal(
+    reports: &[crate::facade::observation_report::UiValidatedHostObservationReport],
+    presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+) -> Option<crate::runtime::interaction::UiDismissInteraction> {
+    reports.iter().find_map(|validated| {
+        let report = validated.report();
+        matches!(
+            report.payload(),
+            worth_ui_host_contract::UiHostObservationPayload::Keyboard {
+                logical_key: worth_ui_host_contract::UiHostKey::Escape,
+                transition: worth_ui_host_contract::UiHostKeyTransition::Pressed { repeat: false },
+                ..
+            }
+        )
+        .then(|| {
+            crate::runtime::interaction::UiDismissInteraction::escape(
+                presentation,
+                report.sequence(),
+                report.time_basis(),
+            )
+        })
+    })
 }
 
 fn denial_stop_reason(

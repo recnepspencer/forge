@@ -63,6 +63,23 @@ impl PlatformPulseObservationPublisher {
         })
     }
 
+    pub(crate) fn visual_snapshot_retired_after_current_successor(
+        &self,
+        snapshot: UiVisualSnapshotIdentity,
+        predecessor_frame: u64,
+        successor_frame: u64,
+        disposal: UiVisualSnapshotDisposalReceipt,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.project_observation(|stream| {
+            stream.project_visual_snapshot_retired_after_current_successor(
+                snapshot,
+                predecessor_frame,
+                successor_frame,
+                disposal,
+            )
+        })
+    }
+
     pub(crate) fn visual_identity_failure(
         &self,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {

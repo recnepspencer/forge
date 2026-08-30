@@ -11,7 +11,7 @@ pub(super) fn qualify_layout(
 ) -> Result<UiMountedTextQualification, UiMountedProjectionDenial> {
     let width = logical_millipoints(bounds.width())?;
     let height = logical_millipoints(bounds.height())?;
-    let line_height = 18_000_u32;
+    let line_height = formatting.line_height_millipoints().unwrap_or(18_000);
     let constraints = worth_ui_text::UiTextParagraphConstraints::new(
         worth_ui_text::UiTextParagraphConstraintsInput {
             language: Arc::from("und"),

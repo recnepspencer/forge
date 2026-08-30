@@ -146,6 +146,67 @@ pub(crate) fn launch_rust_intent_world<I: worth_ui::facade::intent::UiIntent>(
     launch_intent_application(application)
 }
 
+pub(crate) fn launch_rust_command_intent_world<I: worth_ui::facade::intent::UiIntent>(
+    input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+    command: worth_ui::facade::declaration::CommandDescriptor,
+) -> worth_ui::facade::app::WorthUiActiveApplicationSession {
+    let scenario = FilesystemApplicationLifecycleScenario::new("phase-6-command-intent-route");
+    let application = scenario
+        .visual_identity_application_builder(intent_host())
+        .register_intent_boolean_fact(intent_world_operability_fact(), true)
+        .expect("command intent operability fact registers")
+        .register_runtime_service_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<I>::runtime_service(
+                worth_ui::facade::intent::UiIntentRuntimeServiceDestination::InvokeCommand,
+            ),
+        )
+        .expect("command runtime-service definition registers")
+        .register_command(command)
+        .with_rust_authored_input(input)
+        .freeze()
+        .expect("Rust-authored command intent world prepares");
+    launch_intent_application(application)
+}
+
+pub(crate) fn prepare_rust_command_intent_application<I: worth_ui::facade::intent::UiIntent>(
+    input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+    command: worth_ui::facade::declaration::CommandDescriptor,
+    host: worth_ui_runtime::certification_support::ScriptedPresentationHost,
+) -> worth_ui::facade::app::WorthUiApp {
+    prepare_rust_command_intent_application_with_policy::<I>(
+        input,
+        command,
+        host,
+        worth_ui::facade::service::UiCommandRoutingPolicy::desktop(),
+    )
+}
+
+pub(crate) fn prepare_rust_command_intent_application_with_policy<
+    I: worth_ui::facade::intent::UiIntent,
+>(
+    input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+    command: worth_ui::facade::declaration::CommandDescriptor,
+    host: worth_ui_runtime::certification_support::ScriptedPresentationHost,
+    policy: worth_ui::facade::service::UiCommandRoutingPolicy,
+) -> worth_ui::facade::app::WorthUiApp {
+    let scenario = FilesystemApplicationLifecycleScenario::new("phase-6-native-command-route");
+    scenario
+        .visual_identity_application_builder(host)
+        .with_command_routing_policy_defaults(policy)
+        .register_intent_boolean_fact(intent_world_operability_fact(), true)
+        .expect("command intent operability fact registers")
+        .register_runtime_service_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<I>::runtime_service(
+                worth_ui::facade::intent::UiIntentRuntimeServiceDestination::InvokeCommand,
+            ),
+        )
+        .expect("command runtime-service definition registers")
+        .register_command(command)
+        .with_rust_authored_input(input)
+        .freeze()
+        .expect("Rust-authored native command intent world prepares")
+}
+
 pub(crate) fn intent_world_operability_fact(
 ) -> worth_ui::facade::intent::UiIntentApplicationFact<worth_ui::facade::intent::UiIntentBoolean> {
     worth_ui::facade::intent::UiIntentApplicationFact::boolean(INTENT_WORLD_OPERABILITY_FACT)

@@ -32,6 +32,7 @@ pub(super) fn run(
     route_removal: IntentRouteRemovalSourceDelta,
     actions: &mut dyn IntentCausalActionAuthority,
 ) -> Result<(), PlatformPulseIntentJourneyFailure> {
+    report_checkpoint(world, "intent-open");
     let ready = IntentJourney {
         world,
         baseline,
@@ -41,6 +42,7 @@ pub(super) fn run(
         state: Ready,
     };
     let first_held = ready.activate_first()?;
+    report_checkpoint(first_held.world, "intent-first-held");
     let first_completed = first_held.release_first(ReadyReleasedIntentDelta)?;
     let confirmation = first_completed.require_confirmation(ConfirmationHeldIntentDelta)?;
     let stale = confirmation.stale_confirmation(ConfirmationReleasedIntentDelta)?;
@@ -49,11 +51,20 @@ pub(super) fn run(
     let disabled = second_completed.stop_disabled(DisabledIntentDelta)?;
     let denied = disabled.stop_policy_denied(DeniedIntentDelta)?;
     let final_held = denied.activate_final_held(FinalHeldIntentDelta)?;
+    report_checkpoint(final_held.world, "intent-final-held");
     let cancelled = final_held.cancel_through_rebind(route_removal)?;
+    report_checkpoint(cancelled.world, "intent-route-removal-cancelled");
     let IntentJourney {
         state: Cancelled, ..
     } = cancelled;
     Ok(())
+}
+
+fn report_checkpoint(world: &NativeBoundExecutableWorld, phase: &str) {
+    eprintln!(
+        "WORTH_UI_EXECUTABLE_WORLD_PHASE phase={phase} elapsed_ms={}",
+        world.journey_started.elapsed().as_millis()
+    );
 }
 
 pub(super) fn run_causal_pulse(
@@ -196,7 +207,7 @@ impl<'a> IntentJourney<'a, Ready> {
         let started = observation::await_executor_started(self.world, admitted.value)?;
         self.evidence.record_provider_start();
         self.evidence.record_sequence(started);
-        self.record_rebase()?;
+        self.record_refresh()?;
         self.visible(self.action.region())?;
         self.evidence.record_first_attempt(admitted.value);
         self.advance_action("observe-first-action-held")?;

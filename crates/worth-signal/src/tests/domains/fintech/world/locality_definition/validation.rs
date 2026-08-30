@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::locality_scale::{LocalityScaleTuple, RestorePosture};
 use super::{
@@ -161,10 +161,15 @@ impl FinancialLocalityDefinition {
 
     fn validate_origin_contracts(&self) {
         assert!(!self.mutations.is_empty());
-        let mut producer_generations = BTreeSet::new();
+        let mut producer_generations = BTreeMap::new();
         for mutation in &self.mutations {
+            let prior_aspect = producer_generations.insert(
+                (mutation.producer, mutation.admission_generation),
+                mutation.aspect,
+            );
             assert!(
-                producer_generations.insert((mutation.producer, mutation.admission_generation,))
+                prior_aspect.is_none_or(|aspect| aspect == mutation.aspect),
+                "one canonical source/aspect admission generation cannot name two aspects"
             );
             assert!(matches!(
                 self.outputs[mutation.producer.ordinal() as usize].formula,

@@ -6,7 +6,9 @@ mod stream_lowering;
 
 pub use member_projection::{StreamMemberProjection, StreamWindowCompatibility};
 pub use query_contract::{DeliveryLocalityOutcome, QueryDeliveryContract};
-pub use replay_record::{DeliveryContractReplayRecord, RegionScopedReplayBundle};
+pub use replay_record::DeliveryContractReplayRecord;
+#[cfg(test)]
+pub use replay_record::RegionScopedReplayBundle;
 pub use stream_admission::{
     AdmittedStreamConsumerContract, StreamConsumerShape, StreamContractDigest,
     StreamContractRequest,

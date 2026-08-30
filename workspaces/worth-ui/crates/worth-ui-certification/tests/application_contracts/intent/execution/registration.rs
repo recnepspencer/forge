@@ -148,19 +148,45 @@ fn destination_specific_registration_freezes_one_binding_per_definition() {
         .unwrap()
         .freeze()
         .unwrap();
-    let unsupported = base_builder()
-        .register_unsupported_intent_definition(UiIntentDefinition::<AlphaIntent>::runtime_service(
-            UiIntentRuntimeServiceDestination::InvokeCommand,
-        ))
+    let command_service = base_builder()
+        .register_runtime_service_intent_definition(
+            UiIntentDefinition::<AlphaIntent>::runtime_service(
+                UiIntentRuntimeServiceDestination::InvokeCommand,
+            ),
+        )
         .unwrap()
         .freeze()
         .unwrap();
     assert_registration_metrics(&transition, 1);
-    assert_registration_metrics(&unsupported, 1);
+    assert_registration_metrics(&command_service, 1);
     assert_ne!(
         transition.generation_identity(),
-        unsupported.generation_identity()
+        command_service.generation_identity()
     );
+}
+
+#[test]
+fn runtime_service_registration_accepts_command_and_portal_destinations() {
+    let command = base_builder()
+        .register_runtime_service_intent_definition(
+            UiIntentDefinition::<AlphaIntent>::runtime_service(
+                UiIntentRuntimeServiceDestination::InvokeCommand,
+            ),
+        )
+        .unwrap()
+        .freeze()
+        .unwrap();
+    let portal = base_builder()
+        .register_runtime_service_intent_definition(
+            UiIntentDefinition::<AlphaIntent>::runtime_service(
+                UiIntentRuntimeServiceDestination::OpenPortal,
+            ),
+        )
+        .unwrap()
+        .freeze()
+        .unwrap();
+    assert_registration_metrics(&command, 1);
+    assert_registration_metrics(&portal, 1);
 }
 
 #[test]

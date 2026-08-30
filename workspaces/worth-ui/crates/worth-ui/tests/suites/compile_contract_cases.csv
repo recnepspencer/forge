@@ -52,6 +52,7 @@ fail,tests/ui/facade/diagnostics/construction/diagnostic_report_fields_not_publi
 fail,tests/ui/facade/diagnostics/construction/raw_strings_cannot_replace_diagnostic_codes.rs,facade_compile.rs
 fail,tests/ui/facade/command/construction/command_descriptor_fields_not_publicly_mintable.rs,facade_compile.rs
 fail,tests/ui/facade/command/construction/command_readiness_cannot_be_flattened_to_bool.rs,facade_compile.rs
+fail,tests/ui/facade/command/fail/command_route_receipt_is_affine.rs,facade_compile.rs
 pass,tests/ui/facade/intent/pass/typed_intent_relationships.rs,facade_compile.rs
 fail,tests/ui/facade/intent/fail/intent_type_boundaries_are_sealed.rs,facade_compile.rs
 fail,tests/ui/facade/intent/fail/causal_trace_cannot_become_admission.rs,facade_compile.rs
@@ -317,3 +318,5 @@ pass,tests/ui/facade/construction/host_binding/paint_identities_support_lawful_c
 fail,tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/native_preparation_progression_is_lawful.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/known_empty_baseline_observation_is_lawful.rs,facade_compile.rs
+fail,tests/ui/facade/service/fail/proposal_compiler_is_not_a_product_surface.rs,facade_compile.rs
+fail,tests/ui/facade/service/fail/service_family_is_not_a_public_payload_enum.rs,facade_compile.rs

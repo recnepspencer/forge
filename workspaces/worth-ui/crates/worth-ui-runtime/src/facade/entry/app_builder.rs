@@ -16,6 +16,7 @@ mod freeze;
 mod intent_registration;
 mod query_registration;
 mod registration_error;
+mod service_policy;
 
 pub use registration_error::{
     WorthUiProjectionRegistrationError, WorthUiQueryViewRegistrationError,
@@ -37,6 +38,7 @@ pub struct WorthUiApplicationBuilder<
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     intent_execution_bindings: crate::runtime::intent_execution::UiIntentExecutionBindingPlan,
+    service_policy_defaults: crate::declaration::UiServicePolicyDefaults,
     font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     change_profile: ChangeProfileState,
     intent_wiring: IntentWiringState,
@@ -85,6 +87,7 @@ impl WorthUiApplicationBuilder<UiChangeProfileMissing, UiIntentWiringSatisfied> 
             intent_application_facts: Default::default(),
             intent_execution_bindings:
                 crate::runtime::intent_execution::UiIntentExecutionBindingPlan::new(),
+            service_policy_defaults: Default::default(),
             font_collection: std::sync::Arc::new(
                 worth_ui_text::UiGlobalFontCollection::admit_qualified_profile()
                     .expect("embedded qualified text profile")
@@ -116,7 +119,7 @@ impl<ChangeProfileState, IntentWiringState>
         self
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn with_rust_authored_declaration_fixture(
         self,
         fixture: crate::facade::WorthUiRustAuthoredDeclarationFixture,
@@ -204,6 +207,7 @@ impl<ChangeProfileState, IntentWiringState>
             query_binding_plan: self.query_binding_plan,
             intent_application_facts: self.intent_application_facts,
             intent_execution_bindings: self.intent_execution_bindings,
+            service_policy_defaults: self.service_policy_defaults,
             font_collection: self.font_collection,
             change_profile,
             intent_wiring: self.intent_wiring,

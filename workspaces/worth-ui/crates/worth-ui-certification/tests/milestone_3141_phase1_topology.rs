@@ -29,10 +29,11 @@ fn assert_current_protocol_rejects_mixed_revision() {
     use worth_ui_host_contract::{
         UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolContract,
         UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
-        UiHostProtocolVersion, UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
+        UiHostProtocolVersion, UiHostSolicitedEffectSchemaVersion, UiMountedFrameSchemaVersion,
+        UiMountedPresentationSchemaVersion,
     };
     let current = UiHostProtocolContract::current();
-    assert_eq!(current.protocol().revision(), 5);
+    assert_eq!(current.protocol().revision(), 6);
     let mixed = UiHostProtocolContract::new(
         UiHostProtocolIdentity::worth_ui(),
         UiHostProtocolVersion::new(3),
@@ -40,6 +41,7 @@ fn assert_current_protocol_rejects_mixed_revision() {
         UiMountedPresentationSchemaVersion::new(4),
         UiHostObservationSchemaVersion::new(6),
         UiHostMeasurementSchemaVersion::new(4),
+        UiHostSolicitedEffectSchemaVersion::new(1),
     );
     assert_eq!(
         mixed.negotiate(),
@@ -53,10 +55,10 @@ fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
     let protocol = repository_document(
         "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_frame/protocol.rs",
     );
-    assert!(protocol.contains("const COMPATIBLE_FLOOR: u16 = 5;"));
-    assert!(protocol.contains("const CURRENT: u16 = 5;"));
+    assert!(protocol.contains("const COMPATIBLE_FLOOR: u16 = 6;"));
+    assert!(protocol.contains("const CURRENT: u16 = 6;"));
     assert!(protocol.contains("const CURRENT_PRESENTATION_SCHEMA: u16 = 5;"));
-    assert!(protocol.contains("const CURRENT_OBSERVATION_SCHEMA: u16 = 6;"));
+    assert!(protocol.contains("const CURRENT_OBSERVATION_SCHEMA: u16 = 7;"));
     let inventory = workspace_source_inventory();
     let consumers = [
         (
@@ -103,7 +105,7 @@ fn phase_one_product_preparation_is_effect_free_and_host_neutral() {
         .expect("native application preparation owner");
     for required in [
         "pub enum UiNativeApplicationPreparationOutcome",
-        "Prepared(UiPreparedNativeApplication)",
+        "Prepared(Box<UiPreparedNativeApplication>)",
         "Denied(UiNativeApplicationPreparationDenial)",
         "WorthUiHostNeutralApp",
     ] {
