@@ -16,7 +16,7 @@ use super::with_movement_permit;
 
 type TestRuntime = SignalRuntime<(), (), (), (), ()>;
 
-pub(super) fn runtime_with_two_branches() -> (
+pub(in crate::branch::owner_services) fn runtime_with_two_branches() -> (
     TestRuntime,
     SignalBranchHandle,
     SignalBranchHandle,

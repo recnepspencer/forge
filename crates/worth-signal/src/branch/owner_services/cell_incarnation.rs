@@ -5,7 +5,7 @@ static NEXT_SIGNAL_BRANCH_CELL_INCARNATION: AtomicU64 = AtomicU64::new(1);
 
 /// Owner-issued identity for one installed branch-cell lifetime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct SignalBranchCellIncarnation(NonZeroU64);
+pub(in crate::branch) struct SignalBranchCellIncarnation(NonZeroU64);
 
 impl SignalBranchCellIncarnation {
     pub(super) fn issue() -> Self {

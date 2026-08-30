@@ -6,7 +6,8 @@
 
 pub use crate::branch::{
     signal_branch_identity, signal_branch_observation, AdmittedSignalBranchBasis,
-    AdmittedSignalBranchSnapshot, PlannedSignalBranchRetirement,
+    AdmittedSignalBranchSnapshot, ManagedSignalBranchReference,
+    ManagedSignalBranchReferenceAdmissionDenial, PlannedSignalBranchRetirement,
     PlannedSignalBranchRetirementBatch, SignalBranchAdvanceDenial, SignalBranchAdvanceEngineDenial,
     SignalBranchAdvanceOutcome, SignalBranchBasisAuthority, SignalBranchBasisAuthorityMarker,
     SignalBranchBasisLifecyclePosture, SignalBranchBasisObservationDenial,

@@ -21,6 +21,7 @@ mod owner_metadata;
 mod unavailable;
 
 pub(crate) use cancellation::SignalOwnerMovementPermit;
+pub(in crate::branch) use cell_incarnation::SignalBranchCellIncarnation;
 
 pub(crate) use basis_port::SignalBranchBasisPort;
 pub(crate) use branch_cell_state::SignalBranchCellState;
@@ -34,9 +35,9 @@ pub(crate) use branch_registry::{
 };
 pub(crate) use counters::SignalOwnerServiceCounters;
 pub(crate) use lifecycle_port::SignalBranchLifecyclePort;
-pub(crate) use lifecycle_state::{
-    SignalOwnerAdmissionDenial, SignalOwnerLifecyclePoisonRecovery, SignalOwnerLifecycleState,
-    SignalOwnerOperationAdmission,
+pub(in crate::branch) use lifecycle_state::{
+    SignalOwnerAdmissionDenial, SignalOwnerLifecycleIdentity, SignalOwnerLifecyclePoisonRecovery,
+    SignalOwnerLifecycleState, SignalOwnerOperationAdmission,
 };
 pub(crate) use mutation_port::SignalBranchMutationPort;
 pub(crate) use owner::{

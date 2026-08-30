@@ -1,4 +1,10 @@
-use crate::branch::{SignalBranchBasisObservationDenial, SignalBranchObservation};
+use std::sync::Arc;
+
+use crate::branch::{
+    AdmittedSignalBranchBasis, ManagedSignalBranchReference,
+    ManagedSignalBranchReferenceAdmissionDenial, SignalBranchBasisObservationDenial,
+    SignalBranchBasisReadmissionDenial, SignalBranchObservation,
+};
 use crate::state::SignalBranchId;
 
 use super::SignalOwner;
@@ -12,6 +18,114 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    #[allow(
+        dead_code,
+        reason = "Phase 4 basis port publishes this private owner seam"
+    )]
+    pub(in crate::branch::owner_services) fn issue_managed_branch_reference(
+        self: &Arc<Self>,
+        basis: &AdmittedSignalBranchBasis,
+    ) -> Result<ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial> {
+        let target = basis
+            .observation()
+            .target()
+            .as_basis()
+            .ok_or(ManagedSignalBranchReferenceAdmissionDenial::OwnerInvariantViolation)?;
+        if target.graph_instance_id() != self.runtime_instance_id().to_string()
+            || target.definition_basis() != self.definition_basis()
+        {
+            return Err(ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner);
+        }
+        let admission = self.admit().map_err(|denial| match denial {
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::ForeignOwner => {
+                ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner
+            }
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::OwnerUnavailable => {
+                ManagedSignalBranchReferenceAdmissionDenial::OwnerUnavailable(
+                    SignalOwnerUnavailable,
+                )
+            }
+        })?;
+        let cell = self
+            .lookup_cell(&admission, basis.owner_branch_id())
+            .map_err(map_managed_reference_registry_denial)?;
+        Ok(ManagedSignalBranchReference::owner_issued(
+            &self.lifecycle,
+            basis.owner_branch_id(),
+            cell.incarnation(),
+        ))
+    }
+
+    #[allow(
+        dead_code,
+        reason = "Phase 4 owner-service methods reuse this private admission seam"
+    )]
+    pub(in crate::branch::owner_services) fn admit_managed_branch_reference(
+        self: &Arc<Self>,
+        reference: &ManagedSignalBranchReference,
+    ) -> Result<
+        (
+            SignalOwnerOperationAdmission,
+            Arc<
+                crate::branch::owner_services::SignalBranchExecutionCell<
+                    crate::branch::owner_services::SignalBranchCellState<D, I, T>,
+                >,
+            >,
+        ),
+        ManagedSignalBranchReferenceAdmissionDenial,
+    > {
+        if !reference.is_bound_to(&self.lifecycle) {
+            return Err(ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner);
+        }
+        let admission = self.admit().map_err(|denial| match denial {
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::ForeignOwner => {
+                ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner
+            }
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::OwnerUnavailable => {
+                ManagedSignalBranchReferenceAdmissionDenial::OwnerUnavailable(
+                    SignalOwnerUnavailable,
+                )
+            }
+        })?;
+        let cell = self
+            .lookup_cell(&admission, reference.branch_id())
+            .map_err(map_managed_reference_registry_denial)?;
+        if cell.incarnation() != reference.cell_incarnation() {
+            return Err(ManagedSignalBranchReferenceAdmissionDenial::BranchIncarnationReplaced);
+        }
+        Ok((admission, cell))
+    }
+
+    #[allow(
+        dead_code,
+        reason = "Phase 4 basis observation publishes this checked-cell seam"
+    )]
+    pub(in crate::branch::owner_services) fn observe_managed_branch_reference(
+        self: &Arc<Self>,
+        reference: &ManagedSignalBranchReference,
+    ) -> Result<SignalBranchObservation, SignalBranchBasisObservationDenial> {
+        let (admission, cell) = self
+            .admit_managed_branch_reference(reference)
+            .map_err(map_managed_reference_observation_denial)?;
+        cell.observe_exact(&admission)
+    }
+
+    #[allow(
+        dead_code,
+        reason = "Phase 4 exact readmission consumes this checked-cell sub-step"
+    )]
+    pub(in crate::branch::owner_services) fn observe_managed_reference_for_readmission(
+        self: &Arc<Self>,
+        reference: &ManagedSignalBranchReference,
+    ) -> Result<SignalBranchObservation, SignalBranchBasisReadmissionDenial> {
+        let branch_id = reference.branch_id();
+        let (admission, cell) = self
+            .admit_managed_branch_reference(reference)
+            .map_err(map_managed_reference_readmission_denial)?;
+        cell.observe_exact(&admission)
+            .map_err(|denial| map_observation_readmission_denial(denial, branch_id))
+    }
+
     #[allow(dead_code, reason = "Phase 4 basis operations consume this owner seam")]
     pub(in crate::branch::owner_services) fn observe_branch_exact(
         &self,
@@ -22,6 +136,100 @@ where
             .lookup(admission, branch_id)
             .map_err(|denial| map_basis_registry_denial(denial, branch_id))?
             .observe_exact(admission)
+    }
+}
+
+fn map_managed_reference_observation_denial(
+    denial: ManagedSignalBranchReferenceAdmissionDenial,
+) -> SignalBranchBasisObservationDenial {
+    match denial {
+        ManagedSignalBranchReferenceAdmissionDenial::OwnerUnavailable(unavailable) => {
+            SignalBranchBasisObservationDenial::OwnerUnavailable(unavailable)
+        }
+        denial => SignalBranchBasisObservationDenial::ManagedReferenceDenied { denial },
+    }
+}
+
+fn map_managed_reference_readmission_denial(
+    denial: ManagedSignalBranchReferenceAdmissionDenial,
+) -> SignalBranchBasisReadmissionDenial {
+    match denial {
+        ManagedSignalBranchReferenceAdmissionDenial::OwnerUnavailable(unavailable) => {
+            SignalBranchBasisReadmissionDenial::OwnerUnavailable(unavailable)
+        }
+        denial => SignalBranchBasisReadmissionDenial::ManagedReferenceDenied { denial },
+    }
+}
+
+fn map_observation_readmission_denial(
+    denial: SignalBranchBasisObservationDenial,
+    branch_id: SignalBranchId,
+) -> SignalBranchBasisReadmissionDenial {
+    match denial {
+        SignalBranchBasisObservationDenial::OwnerUnavailable(unavailable) => {
+            SignalBranchBasisReadmissionDenial::OwnerUnavailable(unavailable)
+        }
+        SignalBranchBasisObservationDenial::ManagedReferenceDenied { denial } => {
+            SignalBranchBasisReadmissionDenial::ManagedReferenceDenied { denial }
+        }
+        SignalBranchBasisObservationDenial::UnknownBranch { branch_id } => {
+            SignalBranchBasisReadmissionDenial::UnknownBranch { branch_id }
+        }
+        SignalBranchBasisObservationDenial::RetirementInProgress { branch_id } => {
+            SignalBranchBasisReadmissionDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchBasisObservationDenial::RetiredBranch { branch_id } => {
+            SignalBranchBasisReadmissionDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchBasisObservationDenial::QuarantinedBranch { branch_id } => {
+            SignalBranchBasisReadmissionDenial::QuarantinedBranch { branch_id }
+        }
+        SignalBranchBasisObservationDenial::OwnerCellMisuse { branch_id } => {
+            SignalBranchBasisReadmissionDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchBasisObservationDenial::OwnerInvariantViolation { branch_id } => {
+            SignalBranchBasisReadmissionDenial::OwnerInvariantViolation { branch_id }
+        }
+        SignalBranchBasisObservationDenial::InvalidOwnerObservation { .. } => {
+            SignalBranchBasisReadmissionDenial::OwnerInvariantViolation { branch_id }
+        }
+        SignalBranchBasisObservationDenial::RetentionUnavailable { denial } => match denial {
+            crate::branch::SignalBranchRetentionAcquisitionDenial::CapacityExhausted {
+                maximum_active_leases,
+            } => SignalBranchBasisReadmissionDenial::UnavailableRetention {
+                maximum_active_leases,
+            },
+            crate::branch::SignalBranchRetentionAcquisitionDenial::IdentityExhausted => {
+                SignalBranchBasisReadmissionDenial::RetentionIdentityExhausted
+            }
+            _ => SignalBranchBasisReadmissionDenial::OwnerInvariantViolation { branch_id },
+        },
+    }
+}
+
+fn map_managed_reference_registry_denial(
+    denial: SignalBranchRegistryDenial,
+) -> ManagedSignalBranchReferenceAdmissionDenial {
+    match denial {
+        SignalBranchRegistryDenial::ForeignOwner | SignalBranchRegistryDenial::ExpiredAdmission => {
+            ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner
+        }
+        SignalBranchRegistryDenial::UnknownBranch(_) => {
+            ManagedSignalBranchReferenceAdmissionDenial::BranchLifecycleEnded
+        }
+        SignalBranchRegistryDenial::RetirementInProgress(_) => {
+            ManagedSignalBranchReferenceAdmissionDenial::BranchRetirementInProgress
+        }
+        SignalBranchRegistryDenial::TargetCellDenied(_) => {
+            ManagedSignalBranchReferenceAdmissionDenial::BranchLifecycleEnded
+        }
+        SignalBranchRegistryDenial::DuplicateBranch(_)
+        | SignalBranchRegistryDenial::LiveCapacityExhausted { .. }
+        | SignalBranchRegistryDenial::ReservationCapacityExhausted { .. }
+        | SignalBranchRegistryDenial::ExpiredRetirement(_)
+        | SignalBranchRegistryDenial::OwnerMetadataOrdering => {
+            ManagedSignalBranchReferenceAdmissionDenial::OwnerInvariantViolation
+        }
     }
 }
 

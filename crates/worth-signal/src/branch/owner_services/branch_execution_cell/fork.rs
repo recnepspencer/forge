@@ -28,17 +28,18 @@ where
             .preflight_cell_wait()
             .map_err(|_| SignalBranchForkOperationDenial::CancelledNoMovement)?;
         self.validate_admission(admission)
-            .map_err(map_fork_cell_denial)?;
+            .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
         let _cell_hold = admission
             .hold_branch_cell(self.incarnation)
             .map_err(SignalBranchCellAdmissionDenial::from)
-            .map_err(map_fork_cell_denial)?;
+            .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
         self.counters.record_target_cell_contact();
         self.contacts.fetch_add(1, Ordering::SeqCst);
         let mut state = self
             .lock_state_after_contention_observation()
-            .map_err(map_fork_cell_denial)?;
-        self.require_live_posture().map_err(map_fork_cell_denial)?;
+            .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
+        self.require_live_posture()
+            .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
         let live = state.observation().map_err(owner_fork_failure)?;
         if let Err(mismatch) = live.compare(source.observation()) {
             return Err(SignalBranchForkOperationDenial::BasisMismatch {
@@ -60,17 +61,27 @@ where
     }
 }
 
-fn map_fork_cell_denial(
+pub(in crate::branch::owner_services) fn map_fork_cell_denial(
     denial: SignalBranchCellAdmissionDenial,
+    branch_id: crate::state::SignalBranchId,
 ) -> SignalBranchForkOperationDenial {
     match denial {
         SignalBranchCellAdmissionDenial::ForeignOwner
         | SignalBranchCellAdmissionDenial::ExpiredLifecycle => {
             SignalBranchForkOperationDenial::OwnerUnavailable(SignalOwnerUnavailable)
         }
-        denial => owner_fork_failure(SignalError::internal(format!(
-            "Signal branch fork cell admission denied: {denial:?}"
-        ))),
+        SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
+            SignalBranchForkOperationDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetirementInProgress => {
+            SignalBranchForkOperationDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetiredIncarnation => {
+            SignalBranchForkOperationDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::PoisonedIncarnation => {
+            SignalBranchForkOperationDenial::QuarantinedBranch { branch_id }
+        }
     }
 }
 

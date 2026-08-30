@@ -5,6 +5,7 @@ mod descriptor;
 mod fork;
 mod identity;
 mod lifecycle;
+mod managed_reference;
 mod merge;
 pub(crate) mod owner_services;
 mod readmission;
@@ -36,6 +37,9 @@ pub use lifecycle::{
     SignalBranchBasisLifecyclePosture, SignalBranchRetirementBatchDenial,
     SignalBranchRetirementBatchReceipt, SignalBranchRetirementDenial, SignalBranchRetirementReason,
     SignalBranchRetirementReceipt,
+};
+pub use managed_reference::{
+    ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial,
 };
 pub use merge::{SignalBranchMergeDenial, SignalBranchMergeOutcome};
 #[cfg(feature = "test-operation-control")]

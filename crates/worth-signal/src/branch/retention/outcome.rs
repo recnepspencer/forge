@@ -37,8 +37,9 @@ pub enum SignalBranchRetentionAcquisitionDenial {
 /// Why one explicit release was refused.
 ///
 /// Releasing twice is representationally unavailable because release consumes
-/// the lease, so the only refusal left is a lease presented to an owner that
-/// did not issue it.
+/// the lease. A weak port can refuse before consumption when its owner is gone,
+/// and a live owner refuses a lease issued by another runtime. Both paths return
+/// the still-live lease to the caller.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetentionReleaseDenial {
     OwnerUnavailable(SignalOwnerUnavailable),

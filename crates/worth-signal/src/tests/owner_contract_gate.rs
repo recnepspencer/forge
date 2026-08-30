@@ -1,6 +1,8 @@
 use crate::facade::branch::{
-    AdmittedSignalBranchBasis, SignalBranchForkOutcome, SignalBranchRetentionLease,
-    SignalOwnerLifecycleObservation, SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable,
+    AdmittedSignalBranchBasis, ManagedSignalBranchReference,
+    ManagedSignalBranchReferenceAdmissionDenial, SignalBranchForkOutcome,
+    SignalBranchRetentionLease, SignalOwnerLifecycleObservation, SignalOwnerServiceCostSnapshot,
+    SignalOwnerUnavailable,
 };
 
 fn assert_send_sync<T: Send + Sync>() {}
@@ -39,6 +41,8 @@ fn branch_facade_preserves_existing_exports_and_adds_owner_vocabulary() {
     assert_public_type::<AdmittedSignalBranchBasis>();
     assert_public_type::<SignalBranchForkOutcome>();
     assert_public_type::<SignalBranchRetentionLease>();
+    assert_send_sync::<ManagedSignalBranchReference>();
+    assert_copy_eq::<ManagedSignalBranchReferenceAdmissionDenial>();
     assert_send_sync::<SignalOwnerServiceCostSnapshot>();
     assert_copy_eq::<SignalOwnerLifecycleObservation>();
     assert_copy_eq::<SignalOwnerUnavailable>();

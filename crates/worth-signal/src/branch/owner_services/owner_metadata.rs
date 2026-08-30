@@ -200,7 +200,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(crate) fn into_state_for(
+    pub(in crate::branch) fn into_state_for(
         self,
         runtime_instance_id: u64,
         lifecycle_identity: SignalOwnerLifecycleIdentity,

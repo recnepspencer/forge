@@ -89,7 +89,7 @@ where
     }
 }
 
-fn map_restore_cell_denial(
+pub(in crate::branch::owner_services) fn map_restore_cell_denial(
     denial: SignalBranchCellAdmissionDenial,
     branch_id: crate::state::SignalBranchId,
 ) -> SignalBranchRestoreDenial {
@@ -98,7 +98,18 @@ fn map_restore_cell_denial(
         | SignalBranchCellAdmissionDenial::ExpiredLifecycle => {
             SignalBranchRestoreDenial::OwnerUnavailable(SignalOwnerUnavailable)
         }
-        _ => SignalBranchRestoreDenial::UnknownBranch { branch_id },
+        SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
+            SignalBranchRestoreDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetirementInProgress => {
+            SignalBranchRestoreDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetiredIncarnation => {
+            SignalBranchRestoreDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::PoisonedIncarnation => {
+            SignalBranchRestoreDenial::QuarantinedBranch { branch_id }
+        }
     }
 }
 

@@ -21,6 +21,8 @@ use super::{
 };
 
 mod basis;
+#[cfg(test)]
+mod managed_reference_replacement_tests;
 
 pub(crate) const DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES: usize = 4_096;
 pub(crate) const DEFAULT_MAXIMUM_SIGNAL_BRANCH_RESERVATIONS: usize = 64;
@@ -125,7 +127,7 @@ where
 {
     fn drop(&mut self) {
         if let SignalOwnerRootState::Sealed(owner) = &self.state {
-            let _ = owner.lifecycle.close(owner.runtime_instance_id);
+            let _ = owner.lifecycle.request_close(owner.runtime_instance_id);
         }
     }
 }

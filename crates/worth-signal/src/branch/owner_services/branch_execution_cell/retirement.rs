@@ -54,8 +54,14 @@ where
                 Ordering::AcqRel,
                 Ordering::Acquire,
             )
-            .map_err(|_| SignalBranchRetirementDenial::UnknownBranch {
-                branch_id: self.branch_id,
+            .map_err(|observed| match observed {
+                CELL_RETIRING => SignalBranchRetirementDenial::RetirementInProgress {
+                    branch_id: self.branch_id,
+                },
+                CELL_RETIRED => SignalBranchRetirementDenial::RetiredBranch {
+                    branch_id: self.branch_id,
+                },
+                _ => unreachable!("branch cell lifecycle posture is owner-defined"),
             })?;
         let mut posture = SignalBranchCellRetirementPosture {
             lifecycle_posture: &self.lifecycle_posture,
@@ -88,7 +94,7 @@ where
     }
 }
 
-fn map_retirement_cell_denial(
+pub(in crate::branch::owner_services) fn map_retirement_cell_denial(
     denial: SignalBranchCellAdmissionDenial,
     branch_id: crate::state::SignalBranchId,
 ) -> SignalBranchRetirementDenial {
@@ -97,6 +103,17 @@ fn map_retirement_cell_denial(
         | SignalBranchCellAdmissionDenial::ExpiredLifecycle => {
             SignalBranchRetirementDenial::OwnerUnavailable(SignalOwnerUnavailable)
         }
-        _ => SignalBranchRetirementDenial::UnknownBranch { branch_id },
+        SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
+            SignalBranchRetirementDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetirementInProgress => {
+            SignalBranchRetirementDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetiredIncarnation => {
+            SignalBranchRetirementDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::PoisonedIncarnation => {
+            SignalBranchRetirementDenial::QuarantinedBranch { branch_id }
+        }
     }
 }

@@ -75,7 +75,7 @@ where
     }
 }
 
-fn map_snapshot_cell_denial(
+pub(in crate::branch::owner_services) fn map_snapshot_cell_denial(
     denial: SignalBranchCellAdmissionDenial,
     branch_id: crate::state::SignalBranchId,
 ) -> SignalBranchSnapshotCaptureDenial {
@@ -84,7 +84,18 @@ fn map_snapshot_cell_denial(
         | SignalBranchCellAdmissionDenial::ExpiredLifecycle => {
             SignalBranchSnapshotCaptureDenial::OwnerUnavailable(SignalOwnerUnavailable)
         }
-        _ => SignalBranchSnapshotCaptureDenial::UnknownBranch { branch_id },
+        SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
+            SignalBranchSnapshotCaptureDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetirementInProgress => {
+            SignalBranchSnapshotCaptureDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetiredIncarnation => {
+            SignalBranchSnapshotCaptureDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::PoisonedIncarnation => {
+            SignalBranchSnapshotCaptureDenial::QuarantinedBranch { branch_id }
+        }
     }
 }
 

@@ -9,6 +9,9 @@ use super::{SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable};
 #[derive(Debug)]
 pub enum SignalBranchBasisObservationDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    ManagedReferenceDenied {
+        denial: super::ManagedSignalBranchReferenceAdmissionDenial,
+    },
     UnknownBranch {
         branch_id: SignalBranchId,
     },
@@ -38,6 +41,9 @@ pub enum SignalBranchBasisObservationDenial {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchBasisReadmissionDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    ManagedReferenceDenied {
+        denial: super::ManagedSignalBranchReferenceAdmissionDenial,
+    },
     UnsupportedDescriptorVersion {
         observed: u16,
         supported: u16,
@@ -54,7 +60,19 @@ pub enum SignalBranchBasisReadmissionDenial {
     UnknownBranch {
         branch_id: SignalBranchId,
     },
+    RetirementInProgress {
+        branch_id: SignalBranchId,
+    },
     RetiredBranch {
+        branch_id: SignalBranchId,
+    },
+    QuarantinedBranch {
+        branch_id: SignalBranchId,
+    },
+    OwnerCellMisuse {
+        branch_id: SignalBranchId,
+    },
+    OwnerInvariantViolation {
         branch_id: SignalBranchId,
     },
     UnavailableSnapshot {

@@ -102,6 +102,14 @@ impl<S> SignalBranchExecutionCell<S> {
         self.branch_id
     }
 
+    #[allow(
+        dead_code,
+        reason = "Phase 4 managed-reference admission validates this incarnation"
+    )]
+    pub(super) const fn incarnation(&self) -> SignalBranchCellIncarnation {
+        self.incarnation
+    }
+
     #[cfg(test)]
     pub(crate) fn with_state<R>(
         &self,

@@ -29,7 +29,7 @@ pub(crate) enum SignalOwnerLifecyclePoisonRecovery {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct SignalOwnerLifecycleIdentity(u64);
+pub(in crate::branch) struct SignalOwnerLifecycleIdentity(u64);
 
 #[derive(Debug)]
 struct SignalOwnerLifecycleStatus {
@@ -93,21 +93,27 @@ impl SignalOwnerLifecycleState {
             return Err(SignalOwnerCloseDenial);
         }
         let mut status = self.lock_status();
-        if status.observation == SignalOwnerLifecycleObservation::Open {
-            status.observation = SignalOwnerLifecycleObservation::Closing;
-            self.counters.record_close_batch();
-        }
+        self.begin_close(&mut status);
         while status.observation == SignalOwnerLifecycleObservation::Closing {
-            if status.admitted_operations == 0 {
-                status.observation = SignalOwnerLifecycleObservation::Closed;
-                self.drain.notify_all();
-                break;
-            }
             status = match self.drain.wait(status) {
                 Ok(status) => status,
                 Err(poisoned) => self.recover_poisoned_status(poisoned),
             };
         }
+        Ok(())
+    }
+
+    /// Reject new work immediately without waiting on the caller whose
+    /// admission may be triggering owner-root destruction.
+    pub(crate) fn request_close(
+        &self,
+        owner_runtime_instance_id: u64,
+    ) -> Result<(), SignalOwnerCloseDenial> {
+        if owner_runtime_instance_id != self.owner_runtime_instance_id {
+            return Err(SignalOwnerCloseDenial);
+        }
+        let mut status = self.lock_status();
+        self.begin_close(&mut status);
         Ok(())
     }
 
@@ -119,7 +125,7 @@ impl SignalOwnerLifecycleState {
         self.owner_runtime_instance_id
     }
 
-    pub(crate) fn lifecycle_identity(&self) -> SignalOwnerLifecycleIdentity {
+    pub(in crate::branch) fn lifecycle_identity(&self) -> SignalOwnerLifecycleIdentity {
         self.lifecycle_identity
     }
 
@@ -140,6 +146,20 @@ impl SignalOwnerLifecycleState {
         if status.observation == SignalOwnerLifecycleObservation::Closing
             && status.admitted_operations == 0
         {
+            status.observation = SignalOwnerLifecycleObservation::Closed;
+            self.drain.notify_all();
+        }
+    }
+
+    fn begin_close(&self, status: &mut SignalOwnerLifecycleStatus) {
+        if status.observation == SignalOwnerLifecycleObservation::Open {
+            status.observation = SignalOwnerLifecycleObservation::Closing;
+            self.counters.record_close_batch();
+        }
+        if status.observation == SignalOwnerLifecycleObservation::Closing
+            && status.admitted_operations == 0
+        {
+            status.observation = SignalOwnerLifecycleObservation::Closed;
             self.drain.notify_all();
         }
     }

@@ -42,22 +42,22 @@ where
         F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>,
     {
         self.validate_admission(admission)
-            .map_err(map_cell_admission_denial)?;
+            .map_err(|denial| map_advance_cell_denial(denial, self.branch_id))?;
         cancellation
             .preflight_cell_wait()
             .map_err(|_| SignalBranchAdvanceDenial::CancelledNoMovement)?;
         let _cell_hold = admission
             .hold_branch_cell(self.incarnation)
             .map_err(SignalBranchCellAdmissionDenial::from)
-            .map_err(map_cell_admission_denial)?;
+            .map_err(|denial| map_advance_cell_denial(denial, self.branch_id))?;
         self.counters.record_target_cell_contact();
         self.contacts
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut state = self
             .lock_state_after_contention_observation()
-            .map_err(map_cell_admission_denial)?;
+            .map_err(|denial| map_advance_cell_denial(denial, self.branch_id))?;
         self.require_live_posture()
-            .map_err(map_cell_admission_denial)?;
+            .map_err(|denial| map_advance_cell_denial(denial, self.branch_id))?;
 
         let live = state
             .observation()
@@ -88,16 +88,26 @@ where
     }
 }
 
-fn map_cell_admission_denial(denial: SignalBranchCellAdmissionDenial) -> SignalBranchAdvanceDenial {
+pub(in crate::branch::owner_services) fn map_advance_cell_denial(
+    denial: SignalBranchCellAdmissionDenial,
+    branch_id: crate::state::SignalBranchId,
+) -> SignalBranchAdvanceDenial {
     match denial {
         SignalBranchCellAdmissionDenial::ForeignOwner
         | SignalBranchCellAdmissionDenial::ExpiredLifecycle => {
             SignalBranchAdvanceDenial::OwnerUnavailable(SignalOwnerUnavailable)
         }
-        denial => SignalBranchAdvanceDenial::MutationFailedNoMovement {
-            error: SignalError::internal(format!(
-                "Signal branch advance cell admission denied: {denial:?}"
-            )),
-        },
+        SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
+            SignalBranchAdvanceDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetirementInProgress => {
+            SignalBranchAdvanceDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetiredIncarnation => {
+            SignalBranchAdvanceDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::PoisonedIncarnation => {
+            SignalBranchAdvanceDenial::QuarantinedBranch { branch_id }
+        }
     }
 }

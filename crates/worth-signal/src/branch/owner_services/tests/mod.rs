@@ -2,15 +2,18 @@ mod admission_affinity;
 mod basis_denials;
 mod branch_registry;
 mod cancellation;
+mod cell_posture_outcomes;
 mod cell_progress;
 mod exact_cell_contracts;
 mod fork_contracts;
 mod fork_sharing;
 mod issuance_capability;
 mod lifecycle;
+mod managed_reference;
 mod progress_bound;
 mod registry_capacity;
-mod runtime_root;
+mod root_destruction;
+pub(super) mod runtime_root;
 
 fn with_movement_permit(operation: impl FnOnce(&super::SignalOwnerMovementPermit<'_>)) {
     let source = super::SignalOwnerCancellationSource::new();
