@@ -59,7 +59,8 @@ impl SignalGraph {
     }
 
     pub(crate) fn rebuild_pending_revalidation_waiters(&mut self) -> Result<(), SignalError> {
-        let mut rebuilt = im::OrdMap::<NodeId, im::OrdSet<NodeId>>::new();
+        let mut rebuilt =
+            crate::data::persistent_ord_map::PersistentOrdMap::<NodeId, im::OrdSet<NodeId>>::new();
         for consumer in self.live_node_ids() {
             let Some(pending) = self.pending_dependency_revalidation(consumer)? else {
                 continue;

@@ -151,16 +151,14 @@ where
     T: Copy + Ord,
 {
     pub(crate) fn fork_for_owner_cell(
-        &self,
+        &mut self,
         parent: &crate::state::SignalBranchHandle,
         destination: crate::state::SignalBranchHandle,
     ) -> SignalForkedBranchState<D, I, T> {
-        let (graph, work) = self.graph().fork_persistent();
+        let (graph, work) = self.authority.graph.fork_persistent();
+        let config = self.authority.config.fork_persistent();
         let mut fork = Self::new(
-            AuthorityState {
-                graph,
-                config: self.authority.config.fork_persistent(),
-            },
+            AuthorityState { graph, config },
             self.derived.fork_persistent(),
             BranchAncestryState::new(
                 destination.id,
@@ -187,8 +185,8 @@ where
     pub(crate) fn persistent_identity(&self) -> SignalBranchPersistentIdentity<D, I, T> {
         SignalBranchPersistentIdentity {
             graph: self.graph().persistent_identity(),
-            config: self.authority.config.fork_persistent(),
-            derived: self.derived.fork_persistent(),
+            config: self.authority.config.fork_storage_identity(),
+            derived: self.derived.fork_storage_identity(),
             hot_page_identities: self.graph().hot_page_identities(),
         }
     }

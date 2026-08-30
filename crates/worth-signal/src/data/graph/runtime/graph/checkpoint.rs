@@ -192,21 +192,22 @@ impl SignalGraph {
                 telemetry: RuntimeTelemetry::default(),
                 reconstruction_counters: ReconstructionCounters::default(),
                 partition_interner: PartitionInterner::default(),
-                branch_mutation_view: im::OrdMap::new(),
-                branch_mutation_records: im::OrdMap::new(),
+                branch_mutation_view: Default::default(),
+                branch_mutation_records: Default::default(),
                 diagnostics: authority.diagnostics.clone(),
                 installed_policy: authority.installed_policy,
             },
             schema_registry: std::sync::Arc::new(SignalSchemaRegistry::default()),
             aspect_lowering_owner: None,
-            conditional_dependency_versions: im::OrdMap::new(),
-            authorization_policy_identities: im::OrdSet::new(),
+            conditional_dependency_versions: Default::default(),
+            authorization_policy_identities: crate::data::persistent_ord_set::PersistentOrdSet::new(
+            ),
             invalidation_readiness_epoch: 0,
             invalidation_performed_counters,
             invalidation_performed_work,
             observation_sessions,
             observation_capture_cleanup: Some(observation_capture_cleanup),
-            pending_repeated_invalidation_admissions: im::OrdMap::new(),
+            pending_repeated_invalidation_admissions: Default::default(),
         };
         let installed_policy = graph.observation.installed_policy;
         graph

@@ -18,6 +18,23 @@ pub struct CheckpointRuntime<D: Copy + Ord, I: Copy + Ord> {
 }
 
 impl<D: Copy + Ord, I: Copy + Ord> CheckpointRuntime<D, I> {
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            dirty: self.dirty.fork_persistent(),
+            policy: self.policy.fork_persistent(),
+            telemetry: self.telemetry,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            dirty: self.dirty.fork_storage_identity(),
+            policy: self.policy.fork_storage_identity(),
+            telemetry: self.telemetry,
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
         self.dirty.shares_storage_with(&other.dirty)

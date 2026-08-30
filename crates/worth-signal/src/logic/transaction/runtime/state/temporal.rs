@@ -5,6 +5,8 @@ use crate::data::temporal::{
 
 mod admission;
 mod clock;
+#[cfg(test)]
+mod fork_cost_tests;
 mod frontier;
 mod lifecycle;
 mod observation;
@@ -20,14 +22,22 @@ pub(in crate::logic::transaction::runtime) struct TemporalRuntimeState {
     pub(super) next_wake_id: TemporalWakeId,
     pub(super) next_wake_ordinal: WakeOrdinal,
     pub(super) next_previous_value_revision: PreviousValueRevision,
-    pub(super) scheduled_wakes: im::OrdMap<TemporalWakeId, ScheduledTemporalWake>,
-    pub(super) scheduled_frontier:
-        im::OrdMap<crate::data::temporal::ClockTick, im::OrdMap<WakeOrdinal, TemporalWakeId>>,
-    pub(super) ready_wakes: im::OrdMap<TemporalWakeId, ReadyTemporalWake>,
-    pub(super) ready_frontier: im::OrdMap<WakeOrdinal, TemporalWakeId>,
-    pub(super) owner_frontier:
-        im::OrdMap<TemporalWakeOwner, im::OrdMap<WakeOrdinal, TemporalWakeId>>,
-    pub(super) retired_wakes: im::OrdMap<TemporalWakeId, RetiredTemporalWake>,
+    pub(super) scheduled_wakes:
+        crate::data::persistent_ord_map::PersistentOrdMap<TemporalWakeId, ScheduledTemporalWake>,
+    pub(super) scheduled_frontier: crate::data::persistent_ord_map::PersistentOrdMap<
+        crate::data::temporal::ClockTick,
+        im::OrdMap<WakeOrdinal, TemporalWakeId>,
+    >,
+    pub(super) ready_wakes:
+        crate::data::persistent_ord_map::PersistentOrdMap<TemporalWakeId, ReadyTemporalWake>,
+    pub(super) ready_frontier:
+        crate::data::persistent_ord_map::PersistentOrdMap<WakeOrdinal, TemporalWakeId>,
+    pub(super) owner_frontier: crate::data::persistent_ord_map::PersistentOrdMap<
+        TemporalWakeOwner,
+        im::OrdMap<WakeOrdinal, TemporalWakeId>,
+    >,
+    pub(super) retired_wakes:
+        crate::data::persistent_ord_map::PersistentOrdMap<TemporalWakeId, RetiredTemporalWake>,
 }
 
 impl Default for TemporalRuntimeState {
@@ -38,18 +48,52 @@ impl Default for TemporalRuntimeState {
             next_wake_id: TemporalWakeId::new(0),
             next_wake_ordinal: WakeOrdinal::ZERO,
             next_previous_value_revision: PreviousValueRevision::ZERO,
-            scheduled_wakes: im::OrdMap::new(),
-            scheduled_frontier: im::OrdMap::new(),
-            ready_wakes: im::OrdMap::new(),
-            ready_frontier: im::OrdMap::new(),
-            owner_frontier: im::OrdMap::new(),
-            retired_wakes: im::OrdMap::new(),
+            scheduled_wakes: Default::default(),
+            scheduled_frontier: Default::default(),
+            ready_wakes: Default::default(),
+            ready_frontier: Default::default(),
+            owner_frontier: Default::default(),
+            retired_wakes: Default::default(),
+        }
+    }
+}
+
+impl TemporalRuntimeState {
+    pub(in crate::logic::transaction::runtime) fn fork_persistent(&mut self) -> Self {
+        Self {
+            clock_basis: self.clock_basis,
+            previous_value_capability_epoch: self.previous_value_capability_epoch,
+            next_wake_id: self.next_wake_id,
+            next_wake_ordinal: self.next_wake_ordinal,
+            next_previous_value_revision: self.next_previous_value_revision,
+            scheduled_wakes: self.scheduled_wakes.fork_persistent(),
+            scheduled_frontier: self.scheduled_frontier.fork_persistent(),
+            ready_wakes: self.ready_wakes.fork_persistent(),
+            ready_frontier: self.ready_frontier.fork_persistent(),
+            owner_frontier: self.owner_frontier.fork_persistent(),
+            retired_wakes: self.retired_wakes.fork_persistent(),
         }
     }
 }
 
 #[cfg(test)]
 impl TemporalRuntimeState {
+    pub(super) fn fork_storage_identity(&self) -> Self {
+        Self {
+            clock_basis: self.clock_basis,
+            previous_value_capability_epoch: self.previous_value_capability_epoch,
+            next_wake_id: self.next_wake_id,
+            next_wake_ordinal: self.next_wake_ordinal,
+            next_previous_value_revision: self.next_previous_value_revision,
+            scheduled_wakes: self.scheduled_wakes.fork_storage_identity(),
+            scheduled_frontier: self.scheduled_frontier.fork_storage_identity(),
+            ready_wakes: self.ready_wakes.fork_storage_identity(),
+            ready_frontier: self.ready_frontier.fork_storage_identity(),
+            owner_frontier: self.owner_frontier.fork_storage_identity(),
+            retired_wakes: self.retired_wakes.fork_storage_identity(),
+        }
+    }
+
     pub(super) fn shares_storage_with(&self, other: &Self) -> bool {
         self.scheduled_wakes.ptr_eq(&other.scheduled_wakes)
             && self.scheduled_frontier.ptr_eq(&other.scheduled_frontier)

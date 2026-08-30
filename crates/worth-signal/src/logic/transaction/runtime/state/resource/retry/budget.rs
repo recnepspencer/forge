@@ -25,12 +25,29 @@ impl ResourceRetryBudgetCharge {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(in crate::logic::transaction::runtime::state::resource) struct ResourceRetryBudgetLedger {
-    spend_by_generation: im::OrdMap<ResourceGeneration, u32>,
-    spend_by_node: im::OrdMap<ResourceNodeId, u32>,
+    spend_by_generation: crate::data::persistent_ord_map::PersistentOrdMap<ResourceGeneration, u32>,
+    spend_by_node: crate::data::persistent_ord_map::PersistentOrdMap<ResourceNodeId, u32>,
     runtime_spend: u32,
 }
 
 impl ResourceRetryBudgetLedger {
+    pub(in crate::logic::transaction::runtime) fn fork_persistent(&mut self) -> Self {
+        Self {
+            spend_by_generation: self.spend_by_generation.fork_persistent(),
+            spend_by_node: self.spend_by_node.fork_persistent(),
+            runtime_spend: self.runtime_spend,
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::logic::transaction::runtime) fn fork_storage_identity(&self) -> Self {
+        Self {
+            spend_by_generation: self.spend_by_generation.fork_storage_identity(),
+            spend_by_node: self.spend_by_node.fork_storage_identity(),
+            runtime_spend: self.runtime_spend,
+        }
+    }
+
     #[cfg(test)]
     pub(in crate::logic::transaction::runtime) fn shares_storage_with(&self, other: &Self) -> bool {
         self.spend_by_generation.ptr_eq(&other.spend_by_generation)

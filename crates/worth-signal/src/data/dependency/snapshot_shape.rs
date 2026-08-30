@@ -47,7 +47,10 @@ impl SnapshotShapeHandle {
 pub struct DependencySnapshotShapeStore {
     shapes: crate::data::persistent_vector::PersistentVector<DependencySnapshotShape>,
     #[serde(skip, default)]
-    interner: im::HashMap<DependencySnapshotShape, SnapshotShapeHandle>,
+    interner: crate::data::persistent_hash_map::PersistentHashMap<
+        DependencySnapshotShape,
+        SnapshotShapeHandle,
+    >,
 }
 
 impl DependencySnapshotShapeStore {
@@ -84,6 +87,21 @@ impl DependencySnapshotShapeStore {
                 .iter()
                 .map(|(key, value)| (key.clone(), *value))
                 .collect(),
+        }
+    }
+
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            shapes: self.shapes.fork_persistent(),
+            interner: self.interner.fork_persistent(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            shapes: self.shapes.clone(),
+            interner: self.interner.fork_storage_identity(),
         }
     }
 

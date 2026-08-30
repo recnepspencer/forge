@@ -179,7 +179,7 @@ where
     }
 
     pub(crate) fn fork_state(
-        &self,
+        &mut self,
         destination: &SignalBranchHandle,
     ) -> SignalForkBranchState<D, I, T> {
         let forked = self

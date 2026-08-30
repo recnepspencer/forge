@@ -49,8 +49,23 @@ where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
 {
-    pub(crate) fn fork_persistent(&self) -> Self {
-        self.clone()
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            checkpoint: self.checkpoint.fork_persistent(),
+            resource: self.resource.fork_persistent(),
+            temporal: self.temporal.fork_persistent(),
+            telemetry: self.telemetry,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            checkpoint: self.checkpoint.fork_storage_identity(),
+            resource: self.resource.fork_storage_identity(),
+            temporal: self.temporal.fork_storage_identity(),
+            telemetry: self.telemetry,
+        }
     }
 
     #[cfg(test)]

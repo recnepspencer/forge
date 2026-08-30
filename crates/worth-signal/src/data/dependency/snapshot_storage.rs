@@ -67,7 +67,10 @@ impl DependencySnapshotId {
 pub struct DependencySnapshotStore {
     snapshots: crate::data::persistent_vector::PersistentVector<DependencySnapshot>,
     #[serde(skip, default)]
-    interner: im::HashMap<DependencySnapshot, DependencySnapshotId>,
+    interner: crate::data::persistent_hash_map::PersistentHashMap<
+        DependencySnapshot,
+        DependencySnapshotId,
+    >,
     #[serde(skip, default)]
     shape_handles: crate::data::persistent_vector::PersistentVector<SnapshotShapeHandle>,
 }
@@ -180,6 +183,23 @@ impl DependencySnapshotStore {
                 .map(|(key, value)| (key.clone(), *value))
                 .collect(),
             shape_handles: self.shape_handles.operational_clone(),
+        }
+    }
+
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            snapshots: self.snapshots.fork_persistent(),
+            interner: self.interner.fork_persistent(),
+            shape_handles: self.shape_handles.fork_persistent(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            snapshots: self.snapshots.clone(),
+            interner: self.interner.fork_storage_identity(),
+            shape_handles: self.shape_handles.clone(),
         }
     }
 

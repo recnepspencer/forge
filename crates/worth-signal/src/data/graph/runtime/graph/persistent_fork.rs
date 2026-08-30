@@ -40,8 +40,9 @@ pub(crate) struct SignalGraphPersistentIdentity {
     cause_sets: crate::data::graph::storage::invalidation_causes::CanonicalCauseSetStore,
     schema_registry: Arc<crate::schema::data::SignalSchemaRegistry>,
     partition_interner: crate::data::output::PartitionInterner,
-    conditional_dependency_versions: im::OrdMap<crate::data::handle::NodeId, Vec<u64>>,
-    authorization_policy_identities: im::OrdSet<[u8; 32]>,
+    conditional_dependency_versions:
+        crate::data::persistent_ord_map::PersistentOrdMap<crate::data::handle::NodeId, Vec<u64>>,
+    authorization_policy_identities: crate::data::persistent_ord_set::PersistentOrdSet<[u8; 32]>,
 }
 
 #[cfg(test)]
@@ -66,7 +67,7 @@ impl SignalGraphPersistentIdentity {
 }
 
 impl SignalGraph {
-    pub(crate) fn fork_persistent(&self) -> (Self, SignalGraphForkWork) {
+    pub(crate) fn fork_persistent(&mut self) -> (Self, SignalGraphForkWork) {
         let observation_sessions: crate::logic::transaction::SignalObservationSessionState =
             Default::default();
         observation_sessions.set_default_surface_mask(
@@ -89,22 +90,26 @@ impl SignalGraph {
             Self {
                 lifecycle_token: Default::default(),
                 instance_id: self.instance_id,
-                arena: self.arena.clone(),
-                topology: self.topology.clone(),
-                cause_sets: self.cause_sets.clone(),
+                arena: self.arena.fork_persistent(),
+                topology: self.topology.fork_persistent(),
+                cause_sets: self.cause_sets.fork_persistent(),
                 cause_readmission_required: self.cause_readmission_required,
                 traversal: TraversalResources::default(),
                 observation: self.observation.fork_branch_local(),
                 schema_registry: Arc::clone(&self.schema_registry),
                 aspect_lowering_owner: None,
-                conditional_dependency_versions: self.conditional_dependency_versions.clone(),
-                authorization_policy_identities: self.authorization_policy_identities.clone(),
+                conditional_dependency_versions: self
+                    .conditional_dependency_versions
+                    .fork_persistent(),
+                authorization_policy_identities: self
+                    .authorization_policy_identities
+                    .fork_persistent(),
                 invalidation_readiness_epoch: self.invalidation_readiness_epoch,
                 observation_sessions,
                 observation_capture_cleanup: Some(observation_capture_cleanup),
                 invalidation_performed_counters,
                 invalidation_performed_work,
-                pending_repeated_invalidation_admissions: im::OrdMap::new(),
+                pending_repeated_invalidation_admissions: Default::default(),
             },
             SignalGraphForkWork::shared_without_node_copy(),
         )
@@ -114,12 +119,16 @@ impl SignalGraph {
     pub(crate) fn persistent_identity(&self) -> SignalGraphPersistentIdentity {
         SignalGraphPersistentIdentity {
             arena: self.arena.clone(),
-            topology: self.topology.clone(),
-            cause_sets: self.cause_sets.clone(),
+            topology: self.topology.fork_storage_identity(),
+            cause_sets: self.cause_sets.fork_storage_identity(),
             schema_registry: Arc::clone(&self.schema_registry),
             partition_interner: self.observation.fork_storage_identity(),
-            conditional_dependency_versions: self.conditional_dependency_versions.clone(),
-            authorization_policy_identities: self.authorization_policy_identities.clone(),
+            conditional_dependency_versions: self
+                .conditional_dependency_versions
+                .fork_storage_identity(),
+            authorization_policy_identities: self
+                .authorization_policy_identities
+                .fork_storage_identity(),
         }
     }
 

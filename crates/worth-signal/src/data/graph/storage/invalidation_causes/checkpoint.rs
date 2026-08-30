@@ -56,7 +56,7 @@ impl<'de> Deserialize<'de> for CanonicalCauseSetStore {
             next_output_commit_ordinal: wire.next_output_commit_ordinal.max(max_published_ordinal),
             published_output_commits: wire.published_output_commits.into_iter().collect(),
             occupied_set_count: 0,
-            output_commit_reference_counts: im::OrdMap::new(),
+            output_commit_reference_counts: Default::default(),
             deserialized_quarantine,
             #[cfg(test)]
             published_order_probe: crate::data::persistent_vector::PersistentVector::new(),

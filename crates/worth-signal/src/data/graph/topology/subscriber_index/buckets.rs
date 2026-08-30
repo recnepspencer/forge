@@ -5,11 +5,15 @@ use crate::data::handle::NodeId;
 use crate::data::output::{
     DetailTokenId, InternedPartitionSubscription, PartitionMatchMode, PartitionTokenId,
 };
+use crate::data::persistent_ord_map::PersistentOrdMap;
 use crate::data::proof::invalidation::output_commit::{ProducedAspectChange, ScopePrecision};
 
 use super::membership::remove_member;
 
+#[cfg(test)]
+mod fork_cost_tests;
 mod operational_clone;
+mod persistent_fork;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum IndexedSubscriptionScope {
@@ -169,16 +173,16 @@ struct SubscriberScopeBuckets {
 
 #[derive(Clone, Debug)]
 pub(crate) struct ReverseSubscriptionIndex {
-    buckets: im::OrdMap<ProducerAspectKey, SubscriberScopeBuckets>,
-    by_consumer: im::OrdMap<NodeId, Vec<IndexedSubscriptionMembership>>,
+    buckets: PersistentOrdMap<ProducerAspectKey, SubscriberScopeBuckets>,
+    by_consumer: PersistentOrdMap<NodeId, Vec<IndexedSubscriptionMembership>>,
     valid: bool,
 }
 
 impl Default for ReverseSubscriptionIndex {
     fn default() -> Self {
         Self {
-            buckets: im::OrdMap::new(),
-            by_consumer: im::OrdMap::new(),
+            buckets: PersistentOrdMap::new(),
+            by_consumer: PersistentOrdMap::new(),
             valid: true,
         }
     }

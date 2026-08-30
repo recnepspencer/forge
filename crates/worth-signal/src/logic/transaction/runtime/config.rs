@@ -18,10 +18,18 @@ pub struct SignalRuntimeConfig<T: Copy + Ord> {
     tier_policies: TierPolicyTable<T>,
     fallback_comparator: VersionComparatorPolicy,
     pub(super) key_registry: RuntimeKeyRegistry,
-    computations: im::OrdMap<RuntimeStringId, ComputationRegistration<T>>,
-    keyed_nodes: im::OrdMap<(RuntimeStringId, RuntimeStringId), NodeId>,
-    memo_cache:
-        im::OrdMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), NodeEvaluationResult>,
+    computations: crate::data::persistent_ord_map::PersistentOrdMap<
+        RuntimeStringId,
+        ComputationRegistration<T>,
+    >,
+    keyed_nodes: crate::data::persistent_ord_map::PersistentOrdMap<
+        (RuntimeStringId, RuntimeStringId),
+        NodeId,
+    >,
+    memo_cache: crate::data::persistent_ord_map::PersistentOrdMap<
+        (RuntimeStringId, RuntimeStringId, RuntimeStringId),
+        NodeEvaluationResult,
+    >,
     resource_runtime_deadline: Option<TemporalDuration>,
 }
 
@@ -39,17 +47,40 @@ impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
             tier_policies: TierPolicyTable::default(),
             fallback_comparator: VersionComparatorPolicy::Exact,
             key_registry: RuntimeKeyRegistry::default(),
-            computations: im::OrdMap::new(),
-            keyed_nodes: im::OrdMap::new(),
-            memo_cache: im::OrdMap::new(),
+            computations: Default::default(),
+            keyed_nodes: Default::default(),
+            memo_cache: Default::default(),
             resource_runtime_deadline: None,
         }
     }
 }
 
 impl<T: Copy + Ord> SignalRuntimeConfig<T> {
-    pub(crate) fn fork_persistent(&self) -> Self {
-        self.clone()
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            node_meta: self.node_meta.fork_persistent(),
+            tier_policies: self.tier_policies.fork_persistent(),
+            fallback_comparator: self.fallback_comparator.clone(),
+            key_registry: self.key_registry.fork_persistent(),
+            computations: self.computations.fork_persistent(),
+            keyed_nodes: self.keyed_nodes.fork_persistent(),
+            memo_cache: self.memo_cache.fork_persistent(),
+            resource_runtime_deadline: self.resource_runtime_deadline,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            node_meta: self.node_meta.clone(),
+            tier_policies: self.tier_policies.clone(),
+            fallback_comparator: self.fallback_comparator.clone(),
+            key_registry: self.key_registry.fork_storage_identity(),
+            computations: self.computations.fork_storage_identity(),
+            keyed_nodes: self.keyed_nodes.fork_storage_identity(),
+            memo_cache: self.memo_cache.fork_storage_identity(),
+            resource_runtime_deadline: self.resource_runtime_deadline,
+        }
     }
 
     #[cfg(test)]

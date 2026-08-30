@@ -18,11 +18,13 @@ pub(crate) struct CanonicalCauseSetStore {
     #[serde(default)]
     pub(super) next_output_commit_ordinal: u64,
     #[serde(default)]
-    pub(super) published_output_commits: im::OrdMap<u64, ProducedAspectDelta>,
+    pub(super) published_output_commits:
+        crate::data::persistent_ord_map::PersistentOrdMap<u64, ProducedAspectDelta>,
     #[serde(skip)]
     pub(super) occupied_set_count: usize,
     #[serde(skip)]
-    pub(super) output_commit_reference_counts: im::OrdMap<u64, usize>,
+    pub(super) output_commit_reference_counts:
+        crate::data::persistent_ord_map::PersistentOrdMap<u64, usize>,
     #[serde(skip)]
     pub(super) deserialized_quarantine: bool,
     #[cfg(test)]
@@ -225,6 +227,43 @@ impl CanonicalCauseSetStore {
             #[cfg(test)]
             published_order_probe: self.published_order_probe.operational_clone(),
             #[cfg(test)]
+            last_compaction_slot_visits: self.last_compaction_slot_visits,
+        }
+    }
+
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            generation: self.generation,
+            sets: self.sets.fork_persistent(),
+            slot_generations: self.slot_generations.fork_persistent(),
+            free_indices: self.free_indices.fork_persistent(),
+            next_output_commit_ordinal: self.next_output_commit_ordinal,
+            published_output_commits: self.published_output_commits.fork_persistent(),
+            occupied_set_count: self.occupied_set_count,
+            output_commit_reference_counts: self.output_commit_reference_counts.fork_persistent(),
+            deserialized_quarantine: self.deserialized_quarantine,
+            #[cfg(test)]
+            published_order_probe: self.published_order_probe.fork_persistent(),
+            #[cfg(test)]
+            last_compaction_slot_visits: self.last_compaction_slot_visits,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            generation: self.generation,
+            sets: self.sets.clone(),
+            slot_generations: self.slot_generations.clone(),
+            free_indices: self.free_indices.clone(),
+            next_output_commit_ordinal: self.next_output_commit_ordinal,
+            published_output_commits: self.published_output_commits.fork_storage_identity(),
+            occupied_set_count: self.occupied_set_count,
+            output_commit_reference_counts: self
+                .output_commit_reference_counts
+                .fork_storage_identity(),
+            deserialized_quarantine: self.deserialized_quarantine,
+            published_order_probe: self.published_order_probe.clone(),
             last_compaction_slot_visits: self.last_compaction_slot_visits,
         }
     }

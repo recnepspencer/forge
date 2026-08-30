@@ -16,10 +16,22 @@ pub(crate) struct EdgeTopology {
     #[serde(skip, default)]
     pub(in crate::data::graph) reverse_subscriptions: ReverseSubscriptionIndex,
     #[serde(skip, default)]
-    pub(in crate::data::graph) pending_revalidation_waiters: im::OrdMap<NodeId, im::OrdSet<NodeId>>,
+    pub(in crate::data::graph) pending_revalidation_waiters:
+        crate::data::persistent_ord_map::PersistentOrdMap<NodeId, im::OrdSet<NodeId>>,
 }
 
 impl EdgeTopology {
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            dependency_snapshots: self.dependency_snapshots.fork_persistent(),
+            dependency_snapshot_shapes: self.dependency_snapshot_shapes.fork_persistent(),
+            dependency_edges: self.dependency_edges.fork_persistent(),
+            subscriber_edges: self.subscriber_edges.fork_persistent(),
+            reverse_subscriptions: self.reverse_subscriptions.fork_persistent(),
+            pending_revalidation_waiters: self.pending_revalidation_waiters.fork_persistent(),
+        }
+    }
+
     pub(crate) fn operational_clone(&self) -> Self {
         Self {
             dependency_snapshots: self.dependency_snapshots.operational_clone(),
@@ -30,8 +42,20 @@ impl EdgeTopology {
             pending_revalidation_waiters: self
                 .pending_revalidation_waiters
                 .iter()
-                .map(|(node, waiters)| (*node, waiters.iter().copied().collect::<im::OrdSet<_>>()))
+                .map(|(node, waiters)| (*node, waiters.clone()))
                 .collect(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            dependency_snapshots: self.dependency_snapshots.fork_storage_identity(),
+            dependency_snapshot_shapes: self.dependency_snapshot_shapes.fork_storage_identity(),
+            dependency_edges: self.dependency_edges.fork_storage_identity(),
+            subscriber_edges: self.subscriber_edges.fork_storage_identity(),
+            reverse_subscriptions: self.reverse_subscriptions.fork_storage_identity(),
+            pending_revalidation_waiters: self.pending_revalidation_waiters.fork_storage_identity(),
         }
     }
 

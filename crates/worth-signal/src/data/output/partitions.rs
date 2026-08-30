@@ -245,9 +245,9 @@ pub struct PartitionInterner {
     partitions: crate::data::persistent_vector::PersistentVector<String>,
     details: crate::data::persistent_vector::PersistentVector<String>,
     #[serde(default)]
-    partition_lookup: im::OrdMap<String, PartitionTokenId>,
+    partition_lookup: crate::data::persistent_ord_map::PersistentOrdMap<String, PartitionTokenId>,
     #[serde(default)]
-    detail_lookup: im::OrdMap<String, DetailTokenId>,
+    detail_lookup: crate::data::persistent_ord_map::PersistentOrdMap<String, DetailTokenId>,
 }
 
 impl PartitionInterner {
@@ -343,6 +343,25 @@ impl PartitionInterner {
                 .iter()
                 .map(|(key, value)| (key.clone(), *value))
                 .collect(),
+        }
+    }
+
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            partitions: self.partitions.fork_persistent(),
+            details: self.details.fork_persistent(),
+            partition_lookup: self.partition_lookup.fork_persistent(),
+            detail_lookup: self.detail_lookup.fork_persistent(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            partitions: self.partitions.clone(),
+            details: self.details.clone(),
+            partition_lookup: self.partition_lookup.fork_storage_identity(),
+            detail_lookup: self.detail_lookup.fork_storage_identity(),
         }
     }
 

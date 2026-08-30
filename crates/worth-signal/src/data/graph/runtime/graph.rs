@@ -78,6 +78,19 @@ pub(crate) struct NodeArena {
 }
 
 impl NodeArena {
+    fn fork_persistent(&mut self) -> Self {
+        Self {
+            nodes: self.nodes.fork_persistent(),
+            hot: self.hot.fork_persistent(),
+            warm: self.warm.fork_persistent(),
+            cold: self.cold.fork_persistent(),
+            free_list: self.free_list.fork_persistent(),
+            free_slots: self.free_slots.fork_persistent(),
+            active_nodes: self.active_nodes,
+            compaction: self.compaction.clone(),
+        }
+    }
+
     fn operational_clone(&self) -> Self {
         Self {
             nodes: self.nodes.operational_clone(),
@@ -128,9 +141,11 @@ pub struct SignalGraph {
     #[serde(skip, default)]
     pub(crate) aspect_lowering_owner: Option<SignalAspectLoweringOwner>,
     #[serde(skip, default)]
-    pub(crate) conditional_dependency_versions: im::OrdMap<NodeId, Vec<u64>>,
+    pub(crate) conditional_dependency_versions:
+        crate::data::persistent_ord_map::PersistentOrdMap<NodeId, Vec<u64>>,
     #[serde(skip, default)]
-    pub(crate) authorization_policy_identities: im::OrdSet<[u8; 32]>,
+    pub(crate) authorization_policy_identities:
+        crate::data::persistent_ord_set::PersistentOrdSet<[u8; 32]>,
     #[serde(skip, default)]
     pub(crate) invalidation_readiness_epoch: u64,
     #[serde(skip, default)]
@@ -142,7 +157,8 @@ pub struct SignalGraph {
     #[serde(skip, default)]
     pub(crate) invalidation_performed_work: PerformedWorkCaptureState,
     #[serde(skip, default)]
-    pub(crate) pending_repeated_invalidation_admissions: im::OrdMap<NodeId, u64>,
+    pub(crate) pending_repeated_invalidation_admissions:
+        crate::data::persistent_ord_map::PersistentOrdMap<NodeId, u64>,
 }
 
 #[derive(Deserialize)]
@@ -172,14 +188,15 @@ impl<'de> Deserialize<'de> for SignalGraph {
             observation: wire.observation,
             schema_registry: std::sync::Arc::new(SignalSchemaRegistry::default()),
             aspect_lowering_owner: None,
-            conditional_dependency_versions: im::OrdMap::new(),
-            authorization_policy_identities: im::OrdSet::new(),
+            conditional_dependency_versions: Default::default(),
+            authorization_policy_identities: crate::data::persistent_ord_set::PersistentOrdSet::new(
+            ),
             invalidation_readiness_epoch: 0,
             observation_sessions: SignalObservationSessionState::default(),
             observation_capture_cleanup: None,
             invalidation_performed_counters: InvalidationPerformedCounterState::default(),
             invalidation_performed_work: PerformedWorkCaptureState::default(),
-            pending_repeated_invalidation_admissions: im::OrdMap::new(),
+            pending_repeated_invalidation_admissions: Default::default(),
         };
         graph.rebind_observation_capture_state();
         Ok(graph)

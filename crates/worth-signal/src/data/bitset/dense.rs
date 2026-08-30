@@ -104,6 +104,12 @@ impl DenseBitset {
         }
     }
 
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            words: self.words.fork_persistent(),
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
         self.words.shares_storage_with(&other.words)

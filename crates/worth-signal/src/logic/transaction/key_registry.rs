@@ -18,14 +18,28 @@ impl RuntimeStringId {
 #[derive(Debug, Clone, Default)]
 pub(super) struct RuntimeKeyRegistry {
     pub(super) families: crate::data::persistent_vector::PersistentVector<ComputationFamily>,
-    pub(super) family_lookup: im::OrdMap<ComputationFamily, RuntimeStringId>,
+    pub(super) family_lookup:
+        crate::data::persistent_ord_map::PersistentOrdMap<ComputationFamily, RuntimeStringId>,
     pub(super) keys: crate::data::persistent_vector::PersistentVector<ComputationKey>,
-    pub(super) key_lookup: im::OrdMap<ComputationKey, RuntimeStringId>,
+    pub(super) key_lookup:
+        crate::data::persistent_ord_map::PersistentOrdMap<ComputationKey, RuntimeStringId>,
     pub(super) memo_keys: crate::data::persistent_vector::PersistentVector<StructuralMemoKey>,
-    pub(super) memo_key_lookup: im::OrdMap<StructuralMemoKey, RuntimeStringId>,
+    pub(super) memo_key_lookup:
+        crate::data::persistent_ord_map::PersistentOrdMap<StructuralMemoKey, RuntimeStringId>,
 }
 
 impl RuntimeKeyRegistry {
+    pub(super) fn fork_persistent(&mut self) -> Self {
+        Self {
+            families: self.families.fork_persistent(),
+            family_lookup: self.family_lookup.fork_persistent(),
+            keys: self.keys.fork_persistent(),
+            key_lookup: self.key_lookup.fork_persistent(),
+            memo_keys: self.memo_keys.fork_persistent(),
+            memo_key_lookup: self.memo_key_lookup.fork_persistent(),
+        }
+    }
+
     pub(super) fn intern_family(&mut self, family: &ComputationFamily) -> RuntimeStringId {
         if let Some(id) = self.family_lookup.get(family).copied() {
             return id;
@@ -65,6 +79,18 @@ impl RuntimeKeyRegistry {
 
     pub(super) fn memo_key(&self, id: RuntimeStringId) -> &StructuralMemoKey {
         &self.memo_keys[id.index()]
+    }
+
+    #[cfg(test)]
+    pub(super) fn fork_storage_identity(&self) -> Self {
+        Self {
+            families: self.families.clone(),
+            family_lookup: self.family_lookup.fork_storage_identity(),
+            keys: self.keys.clone(),
+            key_lookup: self.key_lookup.fork_storage_identity(),
+            memo_keys: self.memo_keys.clone(),
+            memo_key_lookup: self.memo_key_lookup.fork_storage_identity(),
+        }
     }
 
     #[cfg(test)]

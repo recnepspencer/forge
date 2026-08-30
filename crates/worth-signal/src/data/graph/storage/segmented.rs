@@ -15,7 +15,7 @@ struct Segment {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SegmentedStore<T: Clone, Id: Clone> {
     segments: crate::data::persistent_vector::PersistentVector<Vec<T>>,
-    interner: im::HashMap<u64, im::Vector<Id>>,
+    interner: crate::data::persistent_hash_map::PersistentHashMap<u64, Vec<Id>>,
     id: PhantomData<Id>,
 }
 
@@ -23,7 +23,7 @@ impl<T: Clone, Id: Clone> Default for SegmentedStore<T, Id> {
     fn default() -> Self {
         Self {
             segments: crate::data::persistent_vector::PersistentVector::new(),
-            interner: im::HashMap::new(),
+            interner: crate::data::persistent_hash_map::PersistentHashMap::new(),
             id: PhantomData,
         }
     }
@@ -42,7 +42,7 @@ where
             self.interner
                 .entry(hash_slice(segment))
                 .or_default()
-                .push_back(Id::from_index(index + 1));
+                .push(Id::from_index(index + 1));
         }
     }
 
@@ -68,7 +68,7 @@ where
         }
         self.segments.push_back(items.to_vec());
         let id = Id::from_index(self.segments.len());
-        self.interner.entry(hash).or_default().push_back(id);
+        self.interner.entry(hash).or_default().push(id);
         id
     }
 
@@ -93,11 +93,24 @@ where
     pub(crate) fn operational_clone(&self) -> Self {
         Self {
             segments: self.segments.operational_clone(),
-            interner: self
-                .interner
-                .iter()
-                .map(|(hash, ids)| (*hash, ids.iter().cloned().collect()))
-                .collect(),
+            interner: self.interner.operational_clone(),
+            id: PhantomData,
+        }
+    }
+
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            segments: self.segments.fork_persistent(),
+            interner: self.interner.fork_persistent(),
+            id: PhantomData,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            segments: self.segments.clone(),
+            interner: self.interner.fork_storage_identity(),
             id: PhantomData,
         }
     }
@@ -158,7 +171,7 @@ where
         }
         Ok(Self {
             segments,
-            interner: im::HashMap::new(),
+            interner: crate::data::persistent_hash_map::PersistentHashMap::new(),
             id: PhantomData,
         })
     }

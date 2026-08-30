@@ -7,6 +7,12 @@ pub struct TierPolicyTable<T: Copy + Ord> {
 }
 
 impl<T: Copy + Ord> TierPolicyTable<T> {
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            entries: self.entries.fork_persistent(),
+        }
+    }
+
     /// Create an empty table.
     pub fn new() -> Self {
         Self {

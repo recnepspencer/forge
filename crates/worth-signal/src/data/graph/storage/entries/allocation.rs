@@ -54,6 +54,7 @@ impl SignalGraph {
             .storage
             .rolled_back_created_node_count += indices.len() as u64;
 
+        let mut newly_freed = Vec::with_capacity(indices.len());
         for index in indices.iter().rev().copied() {
             let Some(slot) = self.arena.nodes.get_mut(index) else {
                 continue;
@@ -64,28 +65,34 @@ impl SignalGraph {
                 self.arena.warm[index] = NodeWarmData::default();
                 self.arena.cold[index] = None;
                 self.arena.active_nodes = self.arena.active_nodes.saturating_sub(1);
-            }
-            if !slot.is_retired() && !self.arena.free_slots.contains(index) {
-                self.arena.free_list.push_back(index as u32);
-                self.arena.free_slots.mark(index);
+                if !slot.is_retired() && !self.arena.free_slots.contains(index) {
+                    self.arena.free_slots.mark(index);
+                    newly_freed.push(index);
+                }
             }
         }
 
-        while self
-            .arena
-            .nodes
-            .last()
-            .is_some_and(|slot| !slot.is_occupied())
-        {
-            self.arena.free_slots.clear(self.arena.nodes.len() - 1);
+        newly_freed.sort_unstable();
+        loop {
+            let Some(last_index) = self.arena.nodes.len().checked_sub(1) else {
+                break;
+            };
+            if newly_freed.binary_search(&last_index).is_err()
+                || self.arena.nodes[last_index].is_occupied()
+            {
+                break;
+            }
+            self.arena.free_slots.clear(last_index);
             self.arena.nodes.pop_back();
             self.arena.hot.pop_back();
             self.arena.warm.pop_back();
             self.arena.cold.pop_back();
         }
-        self.arena
-            .free_list
-            .retain(|index| (*index as usize) < self.arena.nodes.len());
+        for index in newly_freed {
+            if index < self.arena.nodes.len() && self.arena.free_slots.contains(index) {
+                self.arena.free_list.push_back(index as u32);
+            }
+        }
     }
 
     pub(crate) fn node_allocator_state(&self) -> u32 {

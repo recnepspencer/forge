@@ -26,3 +26,5 @@ pub(in crate::tests::phase1_api) const SLOT_SOURCE: &str =
     include_str!("../../../data/graph/storage/slot.rs");
 pub(in crate::tests::phase1_api) const PERSISTENT_PAGED_VECTOR_SOURCE: &str =
     include_str!("../../../data/persistent_paged_vector.rs");
+pub(in crate::tests::phase1_api) const PERSISTENT_VECTOR_SOURCE: &str =
+    include_str!("../../../data/persistent_vector.rs");

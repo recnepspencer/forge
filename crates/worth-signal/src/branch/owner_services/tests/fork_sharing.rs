@@ -9,6 +9,7 @@ use crate::data::dependency::DependencyEdge;
 use crate::data::dirty_set::BatchedDirtySet;
 use crate::data::effect_mapping::EffectMapping;
 use crate::data::graph::SignalGraph;
+use crate::data::node::{NodeHotData, NodeState};
 use crate::data::resource::{ResourceNodeDeclaration, ResourceNodeId, ResourcePayloadContract};
 use crate::data::temporal::{ClockTick, TemporalCondition};
 use crate::facade::{
@@ -74,12 +75,12 @@ pub(super) fn seed_nonempty_persistent_branch_state(
 }
 
 #[test]
-fn exact_fork_has_no_node_count_root_allocation_slope() {
+fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
     const CHILD_PROCESS: &str = "WORTH_SIGNAL_FORK_ALLOCATION_CHILD";
     if env::var_os(CHILD_PROCESS).is_none() {
         let status = Command::new(env::current_exe().expect("test executable resolves"))
             .arg("--exact")
-            .arg("branch::owner_services::tests::fork_sharing::exact_fork_has_no_node_count_root_allocation_slope")
+            .arg("branch::owner_services::tests::fork_sharing::exact_fork_and_first_write_have_no_node_count_allocation_slope")
             .arg("--nocapture")
             .arg("--test-threads=1")
             .env(CHILD_PROCESS, "1")
@@ -90,6 +91,7 @@ fn exact_fork_has_no_node_count_root_allocation_slope() {
     }
 
     let mut allocation_samples = Vec::new();
+    let mut first_write_samples = Vec::new();
     let mut eager_copy_bytes = None;
     for node_count in [1, 64, 512, 4_096] {
         let mut graph = SignalGraph::new();
@@ -101,6 +103,10 @@ fn exact_fork_has_no_node_count_root_allocation_slope() {
                 .set_dependencies(pair[1], [DependencyEdge::new(pair[0], Aspect::new(1))])
                 .expect("scale probe topology installs");
         }
+        let changed_node = nodes[node_count / 2];
+        graph
+            .set_node_state(changed_node, NodeState::Clean)
+            .expect("first-write probe starts from known source state");
 
         let (mut runtime, source_branch, _, _) = runtime_with_two_branches_from_graph(graph);
         seed_nonempty_persistent_branch_state(&mut runtime, nodes[0]);
@@ -173,6 +179,32 @@ fn exact_fork_has_no_node_count_root_allocation_slope() {
         assert!(sharing.graph.cause_root_shared, "cause size {node_count}");
         assert!(sharing.config_roots_shared, "config size {node_count}");
         assert!(sharing.derived_roots_shared, "derived size {node_count}");
+
+        let first_write_region = Region::new(&INSTRUMENTED_SYSTEM);
+        destination
+            .with_state(&destination_admission, |destination, _| {
+                destination
+                    .state_mut()
+                    .graph_mut()
+                    .set_node_state(changed_node, NodeState::Dirty)
+                    .expect("destination first write is valid");
+            })
+            .expect("destination first write admits");
+        let first_write = first_write_region.change();
+        first_write_samples.push((
+            node_count,
+            first_write.allocations,
+            first_write.bytes_allocated,
+        ));
+        source_cell
+            .with_state(&source_admission, |source, _| {
+                assert_eq!(
+                    source.state().graph().get_state(changed_node),
+                    Ok(NodeState::Clean),
+                    "destination first write must not mutate the source"
+                );
+            })
+            .expect("source isolation remains inspectable");
     }
     let minimum_calls = allocation_samples
         .iter()
@@ -199,6 +231,32 @@ fn exact_fork_has_no_node_count_root_allocation_slope() {
             "fork allocated bytes slope with {node_count} nodes: {bytes} vs {minimum_bytes}"
         );
     }
+    let minimum_first_write_calls = first_write_samples
+        .iter()
+        .map(|(_, calls, _)| *calls)
+        .min()
+        .expect("first-write allocation cases exist");
+    let minimum_first_write_bytes = first_write_samples
+        .iter()
+        .map(|(_, _, bytes)| *bytes)
+        .min()
+        .expect("first-write allocation cases exist");
+    let maximum_first_write_bytes = first_write_samples
+        .iter()
+        .map(|(_, _, bytes)| *bytes)
+        .max()
+        .expect("first-write allocation cases exist");
+    let one_page_byte_allowance = 64 * std::mem::size_of::<NodeHotData>() + 8 * 1_024;
+    for (node_count, calls, bytes) in first_write_samples {
+        assert!(
+            calls <= minimum_first_write_calls + 8,
+            "first-write allocation calls slope with {node_count} nodes: {calls} vs {minimum_first_write_calls}"
+        );
+        assert!(
+            bytes <= minimum_first_write_bytes + one_page_byte_allowance,
+            "first-write bytes exceed one bounded hot page with {node_count} nodes: {bytes} vs {minimum_first_write_bytes}"
+        );
+    }
     let eager_copy_bytes = eager_copy_bytes.expect("large eager-copy sensitivity case ran");
     assert!(
         eager_copy_bytes > minimum_bytes + 8 * 1_024,
@@ -207,5 +265,9 @@ fn exact_fork_has_no_node_count_root_allocation_slope() {
     assert!(
         eager_copy_bytes > maximum_bytes,
         "the measured eager clone must allocate more than every persistent fork"
+    );
+    assert!(
+        eager_copy_bytes > maximum_first_write_bytes + one_page_byte_allowance,
+        "the first-write bound must reject a deferred whole-graph clone: eager={eager_copy_bytes}, first_write_max={maximum_first_write_bytes}"
     );
 }

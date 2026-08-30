@@ -269,7 +269,7 @@ impl SignalGraph {
 }
 
 fn restore_optional_record(
-    records: &mut im::OrdMap<NodeId, BranchMutationRecord>,
+    records: &mut crate::data::persistent_ord_map::PersistentOrdMap<NodeId, BranchMutationRecord>,
     node: NodeId,
     record: Option<BranchMutationRecord>,
 ) {
