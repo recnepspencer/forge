@@ -36,6 +36,11 @@ pub use handoff::{
     RecoveredPhysicalRuntimeHandoff, RecoveryCleanupCounters, RecoveryCleanupDeferralEvidence,
     RecoveryCleanupEvidence, RecoveryCleanupPosture, RecoveryOperationFateSet,
 };
+pub use integrity_ingress::{
+    RecoveryIntegrityIngressObservation as PhysicalRecoveryIntegrityObservation,
+    RecoveryIntegrityIngressObservationOutcome as PhysicalRecoveryIntegrityObservationOutcome,
+    RecoveryIntegrityIngressRejection as PhysicalRecoveryIntegrityRejection,
+};
 pub use observation::{
     RecoveryReportBlockCause, RecoveryReportCounters, RecoveryReportDecodeDenial,
     RecoveryReportDenialCause, RecoveryReportEnvelope, RecoveryReportOutcome,

@@ -58,13 +58,22 @@ pub(super) fn observe_all(
     let (current_manifest_facts, previous_manifest_facts) =
         observe_root_manifest_facts(discovery, limits, &mut roots, counters)
             .map_err(&preserve_root_denials)?;
-    let checkpoint = observe_checkpoint(discovery, limits).map_err(&preserve_root_denials)?;
+    let preserve_manifest_observations = |failure| {
+        preserve_post_manifest_failure(
+            failure,
+            &root_protocol_denials,
+            &current_manifest_facts,
+            &previous_manifest_facts,
+        )
+    };
+    let checkpoint =
+        observe_checkpoint(discovery, limits).map_err(&preserve_manifest_observations)?;
     record_checkpoint_counters(counters, &checkpoint);
     let (wal, residue, wal_entries) =
-        observe_wal(discovery, limits).map_err(&preserve_root_denials)?;
+        observe_wal(discovery, limits).map_err(&preserve_manifest_observations)?;
     record_wal_counters(counters, &wal, &residue, wal_entries);
     if discovery.counters().bytes_read > declaration.observation_bytes {
-        return Err(preserve_root_denials(discovery_limit(
+        return Err(preserve_manifest_observations(discovery_limit(
             PhysicalRecoveryLimitDimension::ObservationBytes,
             discovery.counters().bytes_read,
             declaration.observation_bytes,
@@ -81,6 +90,18 @@ pub(super) fn observe_all(
         residue,
         root_protocol_denials,
     })
+}
+
+fn preserve_post_manifest_failure(
+    failure: DiscoveryFailure,
+    root_protocol_denials: &[PhysicalRecoverySourceDenial],
+    current: &ManifestFactsDiscovery,
+    previous: &ManifestFactsDiscovery,
+) -> DiscoveryFailure {
+    failure
+        .with_root_protocol_denials(root_protocol_denials)
+        .with_integrity_trace(current.integrity_trace().clone())
+        .with_integrity_trace(previous.integrity_trace().clone())
 }
 
 fn observe_fallback_anchor(
@@ -215,7 +236,13 @@ fn observe_root_manifest_facts(
     );
     counters.manifest_bytes = declaration.manifest_bytes - roots.remaining_manifest_bytes;
     counters.manifest_entries = declaration.manifest_entries - remaining_manifest_entries;
-    let previous_manifest_facts = previous_manifest_facts_result?;
+    let previous_manifest_facts = match previous_manifest_facts_result {
+        Ok(facts) => facts,
+        Err(failure) => {
+            let (_, trace) = current_manifest_facts.into_parts();
+            return Err(failure.with_integrity_trace(trace));
+        }
+    };
     counters.manifest_blocks =
         current_manifest_facts.block_count() + previous_manifest_facts.block_count();
     Ok((current_manifest_facts, previous_manifest_facts))

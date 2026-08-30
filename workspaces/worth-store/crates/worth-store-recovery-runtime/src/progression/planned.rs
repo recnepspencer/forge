@@ -27,6 +27,7 @@ pub struct PlannedPhysicalRecovery {
     staging: RecoveryStagingLayoutPlan,
     publication: RecoveryPublicationPlan,
     quiescence: RecoveryQuiescencePlan,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 mod cancellation;
@@ -48,6 +49,7 @@ impl PlannedPhysicalRecovery {
         staging: RecoveryStagingLayoutPlan,
         publication: RecoveryPublicationPlan,
         quiescence: RecoveryQuiescencePlan,
+        integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
     ) -> Self {
         Self {
             authority,
@@ -64,6 +66,7 @@ impl PlannedPhysicalRecovery {
             staging,
             publication,
             quiescence,
+            integrity_trace,
         }
     }
 
@@ -108,6 +111,13 @@ impl PlannedPhysicalRecovery {
     pub const fn selected_sources(&self) -> &PhysicalSourceSelection {
         &self.selection
     }
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.integrity_trace.observations()
+    }
 
     pub fn cancellation_after_command(
         &self,
@@ -136,6 +146,7 @@ impl PlannedPhysicalRecovery {
             coordination,
             root_protocol_denials,
             root_protocol_counters,
+            integrity_trace,
             ..
         } = self;
         assert!(coordination.shutdown_is_quiescent());
@@ -149,7 +160,8 @@ impl PlannedPhysicalRecovery {
                 recovery_effects,
             )
             .with_root_protocol_denials(root_protocol_denials)
-            .with_root_protocol_counters(root_protocol_counters),
+            .with_root_protocol_counters(root_protocol_counters)
+            .with_integrity_trace(integrity_trace),
         )
     }
 
@@ -196,6 +208,7 @@ impl PlannedPhysicalRecovery {
             publication,
             quiescence,
             root_protocol_denials,
+            integrity_trace,
         } = self;
         crate::orchestration::stage_recovery(crate::orchestration::RecoveryStagingInput {
             authority,
@@ -211,6 +224,7 @@ impl PlannedPhysicalRecovery {
             publication,
             quiescence,
             cancellation,
+            integrity_trace,
         })
     }
 }

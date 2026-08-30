@@ -89,6 +89,13 @@ impl RecoveredPhysicalRuntimeHandoff {
     pub const fn cleanup_posture(&self) -> &RecoveryCleanupPosture {
         &self.evidence.cleanup
     }
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.evidence.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.evidence.integrity_trace.observations()
+    }
 }
 
 impl std::fmt::Debug for RecoveredPhysicalRuntimeHandoff {

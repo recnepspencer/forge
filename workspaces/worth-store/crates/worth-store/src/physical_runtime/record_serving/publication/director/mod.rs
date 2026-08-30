@@ -87,6 +87,8 @@ pub(in crate::physical_runtime) struct RecordPublicationFoundation {
     pub(in crate::physical_runtime) residue: RecordPublicationResidueObservation,
     pub(in crate::physical_runtime) frame_ports: RecordFramePorts,
     pub(in crate::physical_runtime) generation: crate::physical_runtime::LifecycleGeneration,
+    pub(in crate::physical_runtime) lifecycle:
+        Arc<crate::physical_runtime::lifecycle::LifecycleState>,
 }
 
 struct RecordPreparationState {
@@ -122,7 +124,7 @@ impl RecordPublicationDirector {
                 foundation.frame_ports,
                 CanonicalFrameReadSource::new(planning_read),
                 writeback,
-                runtime.lifecycle_state(),
+                foundation.lifecycle,
             ),
             mutation,
             generation: foundation.generation,

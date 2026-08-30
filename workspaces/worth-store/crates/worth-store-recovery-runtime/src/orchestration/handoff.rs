@@ -50,6 +50,7 @@ pub(crate) fn finish_recovery_after_cleanup(
                     publication_settlement,
                     reopen: reopen_counters,
                     cleanup,
+                    integrity_trace: state.integrity_trace,
                 },
             ))
         }
@@ -65,6 +66,7 @@ pub(crate) fn finish_recovery_after_cleanup(
                     state.root_protocol_counters,
                     recovery_effects,
                 )
+                .with_integrity_trace(state.integrity_trace)
                 .with_handoff_failure(denial),
             )
         }

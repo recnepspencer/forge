@@ -1,6 +1,5 @@
 mod diagnostics;
 mod disposition;
-mod recovery_join;
 #[allow(
     dead_code,
     reason = "Wave A establishes family cutover seams before record-serving consumers move"
@@ -27,9 +26,6 @@ pub use disposition::{
     PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
     RebuildablePhysicalDerivedObservation, UnknownDerivedRebuildability,
 };
-pub(in crate::physical_runtime) use recovery_join::{
-    RecoveryIntegrityHandoffBinding, RecoveryIntegrityRuntimeGeneration,
-};
 pub(in crate::physical_runtime) use resident_admission::denial::ResidentIntegrityAdmissionDenial;
 pub(in crate::physical_runtime) use resident_admission::extent::{
     admit_resident_extent_chunk, admit_resident_extent_manifest,
@@ -46,27 +42,8 @@ pub(in crate::physical_runtime) use scrub::{
 
 #[cfg(test)]
 mod owner_valid_compile_contracts {
-    use worth_store_physical_integrity::PhysicalIntegrityObservationOutcome;
-
     use super::*;
     use crate::physical_runtime::LifecycleGeneration;
-
-    fn bind_recovery_handoff(
-        store: worth_store_physical_format::store_namespace::StableStoreIdentity,
-        root_generation: u64,
-        generation: LifecycleGeneration,
-        residency: &crate::physical_runtime::record_serving::RecordFramePorts,
-        observations: Vec<PhysicalIntegrityObservationOutcome>,
-    ) {
-        residency.invalidate_integrity_validation_for_runtime_transition();
-        let runtime_generation = RecoveryIntegrityRuntimeGeneration::bind(generation);
-        let _ = RecoveryIntegrityHandoffBinding::bind(
-            store,
-            root_generation,
-            runtime_generation,
-            observations,
-        );
-    }
 
     fn drive_scrub<'runtime, 'media>(
         request: ManagedPhysicalIntegrityScrubRequest<'runtime, 'media>,
@@ -80,7 +57,6 @@ mod owner_valid_compile_contracts {
 
     #[test]
     fn phase_two_owner_bind_shapes_type_check_without_forging_validation() {
-        let _ = bind_recovery_handoff;
         let _ = drive_scrub;
     }
 }

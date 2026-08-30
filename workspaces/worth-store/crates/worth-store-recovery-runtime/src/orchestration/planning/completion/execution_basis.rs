@@ -41,6 +41,7 @@ pub(super) fn derive(
             &mut basis.observed_pages.manifest_budget,
             context.limits.manifest_entries,
             remaining_observation_bytes,
+            &mut context.integrity_trace,
         );
         context.authority.media = media;
         basis.observed_pages.candidate_artifact_reads = attempt.artifact_reads;

@@ -30,6 +30,7 @@ pub struct PhysicalRecoveryPublicationIndeterminate {
     reopen: Option<super::PhysicalRecoveryReopenFailure>,
     handoff: Option<RecoveredPhysicalRuntimeConstructionDenial>,
     recovery_effects: u64,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,6 +39,7 @@ pub struct PhysicalRecoveryRefusal {
     root_protocol_denials: Vec<super::PhysicalRecoverySourceDenial>,
     root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters,
     recovery_effects: u64,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 impl PhysicalRecoveryRefusal {
@@ -47,6 +49,7 @@ impl PhysicalRecoveryRefusal {
             root_protocol_denials: Vec::new(),
             root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters::default(),
             recovery_effects,
+            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         }
     }
 
@@ -76,6 +79,21 @@ impl PhysicalRecoveryRefusal {
 
     pub const fn root_protocol_counters(&self) -> super::PhysicalRecoveryRootProtocolCounters {
         self.root_protocol_counters
+    }
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.integrity_trace.observations()
+    }
+
+    pub(crate) fn with_integrity_trace(
+        mut self,
+        trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
+    ) -> Self {
+        self.integrity_trace = trace;
+        self
     }
 }
 
@@ -148,6 +166,17 @@ pub struct PhysicalRecoveryBlockEvidence {
     pub publication_counters: Option<super::PhysicalRecoveryPublicationCounters>,
     pub publication_denial: Option<super::PhysicalRecoveryPublicationDenial>,
     pub publication_settlements: Option<super::PhysicalRecoveryPublicationSettlementLedger>,
+    pub(crate) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
+}
+
+impl PhysicalRecoveryBlockEvidence {
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.integrity_trace.observations()
+    }
 }
 
 impl PhysicalRecoveryPublicationIndeterminate {
@@ -170,6 +199,7 @@ impl PhysicalRecoveryPublicationIndeterminate {
             reopen: None,
             handoff: None,
             recovery_effects,
+            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         }
     }
     pub const fn store_identity(&self) -> StableStoreIdentity {
@@ -192,6 +222,21 @@ impl PhysicalRecoveryPublicationIndeterminate {
     }
     pub const fn recovery_effects(&self) -> u64 {
         self.recovery_effects
+    }
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.integrity_trace.observations()
+    }
+
+    pub(crate) fn with_integrity_trace(
+        mut self,
+        trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
+    ) -> Self {
+        self.integrity_trace = trace;
+        self
     }
 
     pub(crate) fn with_reopen_failure(
@@ -243,6 +288,10 @@ pub enum PhysicalRecoveryPageAdmissionDenial {
         target: Option<PhysicalRedoTargetIdentity>,
         artifact: RecordArtifactFile,
     },
+    Integrity {
+        artifact: RecordArtifactFile,
+        denial: super::PhysicalRecoveryRootProtocolDenial,
+    },
     InvalidTarget(PhysicalRedoTargetIdentity),
     InvalidPage(PhysicalRedoTargetIdentity),
     ManifestEntryLimit,
@@ -289,5 +338,24 @@ impl PhysicalRecoveryBlock {
 
     pub const fn recovery_effects(&self) -> u64 {
         self.recovery_effects
+    }
+}
+
+impl PhysicalRecoveryOutcome {
+    pub(crate) fn with_integrity_trace(
+        self,
+        trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
+    ) -> Self {
+        match self {
+            Self::Blocked(mut block) => {
+                block.evidence.integrity_trace.append(trace);
+                Self::Blocked(block)
+            }
+            Self::Refused(refusal) => Self::Refused(refusal.with_integrity_trace(trace)),
+            Self::PublicationIndeterminate(indeterminate) => {
+                Self::PublicationIndeterminate(indeterminate.with_integrity_trace(trace))
+            }
+            Self::Recovered(recovered) => Self::Recovered(recovered),
+        }
     }
 }

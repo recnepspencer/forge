@@ -38,6 +38,7 @@ pub struct StagedPhysicalRecovery {
     pub(crate) closed: ClosedRecoveryStagingGeneration,
     pub(crate) staging_counters: PhysicalRecoveryStagingCounters,
     pub(crate) staging_settlements: PhysicalRecoveryStagingSettlementLedger,
+    pub(crate) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 impl StagedPhysicalRecovery {
@@ -58,6 +59,7 @@ impl StagedPhysicalRecovery {
         closed: ClosedRecoveryStagingGeneration,
         staging_counters: PhysicalRecoveryStagingCounters,
         staging_settlements: PhysicalRecoveryStagingSettlementLedger,
+        integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
     ) -> Self {
         Self {
             authority,
@@ -75,6 +77,7 @@ impl StagedPhysicalRecovery {
             closed,
             staging_counters,
             staging_settlements,
+            integrity_trace,
         }
     }
 
@@ -125,6 +128,13 @@ impl StagedPhysicalRecovery {
     pub fn is_quiescent(&self) -> bool {
         self.coordination.is_ready()
     }
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.integrity_trace.observations()
+    }
 
     #[cfg(feature = "certification-test-authority")]
     pub fn certification_fail_publication_scheduler_settlement_at(
@@ -158,6 +168,7 @@ impl StagedPhysicalRecovery {
             root_protocol_counters,
             staging_counters,
             staging_settlements,
+            integrity_trace,
             ..
         } = self;
         assert!(coordination.shutdown_is_quiescent());
@@ -181,6 +192,7 @@ impl StagedPhysicalRecovery {
                     crate::entry::PhysicalRecoveryStagingDenial::CancelledAfterClosedStaging,
                 ),
                 staging_settlements: Some(staging_settlements),
+                integrity_trace,
                 ..crate::entry::PhysicalRecoveryBlockEvidence::default()
             },
             recovery_effects,

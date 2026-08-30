@@ -38,7 +38,7 @@ pub use source_precedence::{
     observe_structured_physical_root_candidate, select_current_previous_root,
     select_physical_recovery_sources, CheckpointCoveredWalArtifact, InspectedPhysicalWalArtifacts,
     PageLsnSkipApplyDecision, PhysicalBootstrapFallbackAnchor, PhysicalCheckpointBase,
-    PhysicalCheckpointBaseDenial, PhysicalManifestBlockCandidate, PhysicalPageFactDenial,
+    PhysicalCheckpointBaseDenial, PhysicalManifestBlockProjection, PhysicalPageFactDenial,
     PhysicalRecoveryResidue, PhysicalRecoveryResidueKind, PhysicalRecoverySource,
     PhysicalRootCandidateDenial, PhysicalRootManifestDenial, PhysicalRootSelectionDenial,
     PhysicalRootSelectorDenial, PhysicalRootSlotObservation, PhysicalRootSourceCandidate,

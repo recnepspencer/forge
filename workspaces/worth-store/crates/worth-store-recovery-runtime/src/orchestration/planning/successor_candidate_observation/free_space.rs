@@ -2,14 +2,12 @@ use std::collections::{BTreeSet, VecDeque};
 
 use worth_store::physical_runtime::BoundedRecoveryFilesystemDiscovery;
 use worth_store_physical_format::{
-    durable_artifact_checksum, DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest,
-    FreeSpaceBlockReference, FreeSpaceMembershipBlockDecodeLimits,
-    PhysicalFreeSpaceMembershipBlock, PhysicalRecordFormatDeclaration, RecordArtifactFile,
-    RecordFreeSpaceManifestEntry,
+    DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest, PhysicalRecordFormatDeclaration,
+    PhysicalTreeIdentity, RecordArtifactFile, RecordFreeSpaceManifestEntry,
 };
 
-use super::artifact_read::{observed, required, retain_successor};
-use super::denial::{admit_successor_read, consume_successor, free_denial, invalid};
+use super::artifact_read::{observed, required_source, retain_successor};
+use super::denial::{admit_successor_read, consume_successor, invalid};
 use super::materialization::CandidateMaterialization;
 use crate::entry::PhysicalRecoverySuccessorCandidateDenial;
 use crate::orchestration::planning::manifest_entry_budget::ManifestEntryBudget;
@@ -24,6 +22,7 @@ pub(super) fn read(
     artifacts: &mut Vec<RecoveryObservedCandidateArtifact>,
     referenced_artifacts: &mut Vec<RecordArtifactFile>,
     materialization: &mut CandidateMaterialization,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<
     (
         DurableFreeSpaceManifestHeader,
@@ -34,21 +33,27 @@ pub(super) fn read(
     let header_artifact = RecordArtifactFile::FreeSpaceManifest {
         generation: root.generation(),
     };
-    let header_bytes = required(
+    let header_source = required_source(
         discovery.read_free_space_manifest(root.generation(), byte_limit),
         header_artifact,
     )?;
-    let (header, found_format) =
-        DurableFreeSpaceManifestHeader::decode(&header_bytes, root.node_capacity())
-            .map_err(|_| invalid(header_artifact))?;
-    if found_format != format
-        || header.generation() != root.generation()
-        || header.root() != root.free_space_root()
-        || durable_artifact_checksum(&header_bytes) != root.free_space_checksum()
-        || header.encode(format) != header_bytes
-    {
-        return Err(invalid(header_artifact));
-    }
+    let header = crate::integrity_ingress::projection::free_space_header(
+        &header_source,
+        discovery.store_identity(),
+        format,
+        root,
+        integrity_trace,
+    )
+    .map_err(
+        |rejection| PhysicalRecoverySuccessorCandidateDenial::RootProtocol {
+            artifact: header_artifact,
+            generation: root.generation(),
+            denial: rejection.diagnostic(),
+        },
+    )?;
+    let header_bytes = header_source
+        .into_bytes()
+        .expect("source-bound free-space-header admission retained present bytes");
     materialization.retain_free_space_header(header_bytes.len());
     artifacts.push(observed(header_artifact, header_bytes));
     referenced_artifacts.push(header_artifact);
@@ -67,7 +72,7 @@ pub(super) fn read(
         if !visited.insert((reference.generation(), reference.block())) {
             return Err(invalid(artifact));
         }
-        let bytes = required(
+        let source = required_source(
             discovery.read_free_space_membership_block(
                 reference.generation(),
                 reference.block(),
@@ -75,19 +80,24 @@ pub(super) fn read(
             ),
             artifact,
         )?;
-        let (block, found_format) = PhysicalFreeSpaceMembershipBlock::decode_bounded(
-            &bytes,
+        let tree =
+            PhysicalTreeIdentity::new(header.tree_identity()).ok_or_else(|| invalid(artifact))?;
+        let block = crate::integrity_ingress::projection::free_space_membership_block(
+            &source,
+            discovery.store_identity(),
+            format,
+            tree,
+            reference,
             header.node_capacity(),
-            FreeSpaceMembershipBlockDecodeLimits {
-                leaf_entries: budget.remaining(),
-                branch_children: budget.remaining(),
-            },
+            integrity_trace,
         )
-        .map_err(|denial| free_denial(denial, artifact, budget))?;
-        if found_format != format {
-            return Err(invalid(artifact));
-        }
-        validate(&header, format, reference, &block, &bytes, artifact)?;
+        .map_err(
+            |rejection| PhysicalRecoverySuccessorCandidateDenial::RootProtocol {
+                artifact,
+                generation: reference.generation(),
+                denial: rejection.diagnostic(),
+            },
+        )?;
         if let Some(found) = block.entries() {
             consume_successor(budget, found.len(), artifact)?;
             materialization.retain_free_entries(found.len());
@@ -96,6 +106,9 @@ pub(super) fn read(
             consume_successor(budget, children.len(), artifact)?;
             pending.extend(children.iter().copied());
         }
+        let bytes = source
+            .into_bytes()
+            .expect("source-bound free-space-membership admission retained present bytes");
         let retained_bytes = bytes.len();
         if retain_successor(root.generation(), artifact, bytes, artifacts) {
             materialization.retain_artifact(retained_bytes);
@@ -103,19 +116,4 @@ pub(super) fn read(
     }
     entries.sort_unstable_by_key(|entry| (entry.class() as u8, entry.owner()));
     Ok((header, entries))
-}
-
-fn validate(
-    header: &DurableFreeSpaceManifestHeader,
-    format: PhysicalRecordFormatDeclaration,
-    reference: FreeSpaceBlockReference,
-    block: &PhysicalFreeSpaceMembershipBlock,
-    bytes: &[u8],
-    artifact: RecordArtifactFile,
-) -> Result<(), PhysicalRecoverySuccessorCandidateDenial> {
-    (block.tree_identity() == header.tree_identity()
-        && block.reference(durable_artifact_checksum(bytes)) == reference
-        && block.encode(format) == bytes)
-        .then_some(())
-        .ok_or_else(|| invalid(artifact))
 }

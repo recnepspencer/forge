@@ -20,6 +20,7 @@ pub(super) struct PhysicalRecordServingAssembly {
     frame_ports: crate::physical_runtime::record_serving::RecordFramePorts,
     generation: LifecycleGeneration,
     signal_profile: PhysicalSignalProfileIdentity,
+    lifecycle: Arc<crate::physical_runtime::lifecycle::LifecycleState>,
 }
 
 pub(super) struct InstalledPhysicalRecordServing {
@@ -37,6 +38,7 @@ impl PhysicalRecordServingAssembly {
         frame_ports: crate::physical_runtime::record_serving::RecordFramePorts,
         generation: LifecycleGeneration,
         signal_profile: PhysicalSignalProfileIdentity,
+        lifecycle: Arc<crate::physical_runtime::lifecycle::LifecycleState>,
     ) -> Self {
         Self {
             state,
@@ -44,6 +46,7 @@ impl PhysicalRecordServingAssembly {
             frame_ports,
             generation,
             signal_profile,
+            lifecycle,
         }
     }
 
@@ -135,6 +138,7 @@ impl PhysicalRecordServingAssembly {
                 residue: self.state.publication_residue,
                 frame_ports: self.frame_ports.clone(),
                 generation: self.generation,
+                lifecycle: self.lifecycle,
             },
         );
         let checkpoint = PhysicalCheckpointRuntimeOwner::new(

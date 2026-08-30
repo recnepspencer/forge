@@ -17,6 +17,7 @@ pub struct SelectedPhysicalRecovery {
     selection: PhysicalSourceSelection,
     counters: PhysicalRecoveryDiscoveryCounters,
     root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 impl SelectedPhysicalRecovery {
@@ -30,6 +31,7 @@ impl SelectedPhysicalRecovery {
         selection: PhysicalSourceSelection,
         counters: PhysicalRecoveryDiscoveryCounters,
         root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+        integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
     ) -> Self {
         Self {
             authority,
@@ -37,6 +39,7 @@ impl SelectedPhysicalRecovery {
             selection,
             counters,
             root_protocol_denials,
+            integrity_trace,
         }
     }
 
@@ -100,11 +103,20 @@ impl SelectedPhysicalRecovery {
         &self.root_protocol_denials
     }
 
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.integrity_trace.observations()
+    }
+
     pub fn cancel_before_reconstruction(self) -> PhysicalRecoveryOutcome {
         let Self {
             authority,
             coordination,
             root_protocol_denials,
+            integrity_trace,
             ..
         } = self;
         assert!(coordination.shutdown_is_quiescent());
@@ -117,7 +129,8 @@ impl SelectedPhysicalRecovery {
                 PhysicalRecoveryRefusalKind::CancelledBeforeReconstruction,
                 recovery_effects,
             )
-            .with_root_protocol_denials(root_protocol_denials),
+            .with_root_protocol_denials(root_protocol_denials)
+            .with_integrity_trace(integrity_trace),
         )
     }
 
@@ -129,6 +142,7 @@ impl SelectedPhysicalRecovery {
         PhysicalSourceSelection,
         PhysicalRecoveryDiscoveryCounters,
         Vec<PhysicalRecoverySourceDenial>,
+        crate::integrity_ingress::RecoveryIntegrityIngressTrace,
     ) {
         (
             self.authority,
@@ -136,6 +150,7 @@ impl SelectedPhysicalRecovery {
             self.selection,
             self.counters,
             self.root_protocol_denials,
+            self.integrity_trace,
         )
     }
 }

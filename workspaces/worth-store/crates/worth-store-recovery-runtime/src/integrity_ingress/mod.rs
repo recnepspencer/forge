@@ -5,10 +5,12 @@ mod families;
 mod namespace_join;
 mod observation;
 mod planned_selector;
+pub(crate) mod projection;
 mod rejection;
 mod root_protocol;
 mod routing;
 mod source;
+mod trace;
 
 #[cfg(test)]
 mod tests;
@@ -28,11 +30,11 @@ use families::root::{
     admit_current_root_selector, admit_previous_root_selector, admit_root_manifest,
 };
 pub(crate) use namespace_join::RecoveryArtifactNamespaceJoin;
-pub(crate) use observation::{
+pub use observation::{
     RecoveryIntegrityIngressObservation, RecoveryIntegrityIngressObservationOutcome,
 };
 pub(crate) use planned_selector::admit_staged_current_selector;
-pub(crate) use rejection::RecoveryIntegrityIngressRejection;
+pub use rejection::RecoveryIntegrityIngressRejection;
 pub(crate) use root_protocol::{
     admit_addressed_root, admit_current_selector, admit_observed_bootstrap_catalog,
     admit_previous_selector,
@@ -40,6 +42,7 @@ pub(crate) use root_protocol::{
 #[allow(unused_imports)]
 pub(crate) use routing::{observe_absent_recovery_artifact, RecoveryIntegrityIngressAttempt};
 use source::{ObservedRecoverySource, ObservedWalFrameSource};
+pub(crate) use trace::RecoveryIntegrityIngressTrace;
 
 #[cfg(test)]
 mod owner_valid_compile_contracts {

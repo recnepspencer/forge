@@ -78,6 +78,7 @@ pub(super) struct DiscoveryFailure {
     kind: PhysicalRecoveryBlock,
     limit: Option<PhysicalRecoveryLimitFailure>,
     source_denials: Vec<PhysicalRecoverySourceDenial>,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 impl DiscoveryFailure {
@@ -90,6 +91,14 @@ impl DiscoveryFailure {
         self.source_denials = combined;
         self
     }
+
+    pub(super) fn with_integrity_trace(
+        mut self,
+        trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
+    ) -> Self {
+        self.integrity_trace.append(trace);
+        self
+    }
 }
 
 impl From<PhysicalRecoveryBlock> for DiscoveryFailure {
@@ -98,6 +107,7 @@ impl From<PhysicalRecoveryBlock> for DiscoveryFailure {
             kind,
             limit: None,
             source_denials: Vec::new(),
+            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         }
     }
 }
@@ -190,6 +200,7 @@ pub(crate) fn discover_sources(
                 kind,
                 limit,
                 source_denials,
+                integrity_trace,
             } = failure;
             Err((
                 authority,
@@ -200,6 +211,7 @@ pub(crate) fn discover_sources(
                     limit,
                     artifact: Some(discovery_artifact_context(kind).to_owned()),
                     source_denials,
+                    integrity_trace,
                     ..PhysicalRecoveryBlockEvidence::default()
                 },
             ))
@@ -221,6 +233,7 @@ pub(super) fn map_discovery_failure(
                 admitted,
             }),
             source_denials: Vec::new(),
+            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         },
         RecoveryDiscoveryFailure::ByteLimitExceeded {
             observed,
@@ -239,6 +252,7 @@ pub(super) fn map_discovery_failure(
                 admitted,
             }),
             source_denials: Vec::new(),
+            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         },
         RecoveryDiscoveryFailure::Media { artifact, failure } => DiscoveryFailure {
             kind: PhysicalRecoveryBlock::MediaObservation,
@@ -250,6 +264,7 @@ pub(super) fn map_discovery_failure(
                     io_kind: failure.io_kind(),
                 },
             }],
+            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         },
         RecoveryDiscoveryFailure::InvalidAddress { artifact } => DiscoveryFailure {
             kind: PhysicalRecoveryBlock::MediaObservation,
@@ -258,6 +273,7 @@ pub(super) fn map_discovery_failure(
                 artifact,
                 failure: PhysicalRecoveryMediaObservationFailure::InvalidAddress,
             }],
+            integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         },
     }
 }
@@ -310,6 +326,7 @@ pub(super) fn discovery_limit(
             admitted,
         }),
         source_denials: Vec::new(),
+        integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
     }
 }
 

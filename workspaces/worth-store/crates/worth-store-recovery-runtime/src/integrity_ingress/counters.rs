@@ -41,6 +41,22 @@ impl RecoveryIntegrityIngressCounters {
         self.owner_decoder_entries
     }
 
+    pub(super) const fn new() -> Self {
+        Self {
+            attempted: 0,
+            admitted: 0,
+            rejected_damaged: 0,
+            rejected_unsupported: 0,
+            rejected_unknown: 0,
+            rejected_indeterminate: 0,
+            rejected_absent: 0,
+            rejected_conflicting: 0,
+            rejected_source_binding: 0,
+            owner_projection_entries: 0,
+            owner_decoder_entries: 0,
+        }
+    }
+
     pub(super) fn record(&mut self, observation: RecoveryIntegrityIngressObservation) {
         self.attempted += 1;
         match observation.outcome() {

@@ -93,6 +93,13 @@ impl ReopenedPhysicalRecovery {
     pub fn is_quiescent(&self) -> bool {
         self.state.coordination.is_ready()
     }
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.state.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.state.integrity_trace.observations()
+    }
 
     pub(crate) fn take_fresh_reopen(&mut self) -> CompletedPhysicalRecoveryFreshReopen {
         self.reopened

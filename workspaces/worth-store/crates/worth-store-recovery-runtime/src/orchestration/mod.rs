@@ -13,7 +13,7 @@ pub(crate) use discovery::{
     discover_sources, BootstrapDiscovery, CheckpointDiscovery, DiscoveryMaterial, WalDiscovery,
 };
 pub(crate) use handoff::finish_recovery_after_cleanup;
-pub(crate) use manifest_facts::ManifestFactsDiscovery;
+pub(crate) use manifest_facts::{ManifestFactsDiscovery, ManifestFactsState};
 pub(crate) use planning::plan_recovery;
 pub(crate) use publication::publish_recovery;
 pub(crate) use recovery::recover;

@@ -32,4 +32,5 @@ pub(crate) struct RecoveredPhysicalRuntimeHandoffEvidence {
     pub(crate) publication_settlement: PhysicalRecoveryPublicationSettlementLedger,
     pub(crate) reopen: PhysicalRecoveryReopenCounters,
     pub(crate) cleanup: RecoveryCleanupPosture,
+    pub(crate) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }

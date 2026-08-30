@@ -108,6 +108,7 @@ impl DiscoveredPhysicalRecovery {
                 selected.selection,
                 selected.counters,
                 selected.root_protocol_denials,
+                selected.integrity_trace,
             )),
             Err(failure) => blocked(authority, coordination, failure.kind, failure.evidence),
         }

@@ -48,6 +48,7 @@ pub(super) fn observe_selected_pages(
     admitted_manifest_entries: u64,
     maximum_manifest_entries: u64,
     maximum_bytes: u64,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> (AdmittedRecoveryFilesystemMedia, PageObservationAttempt) {
     let mut discovery = media
         .bounded_discovery(maximum_entries, maximum_bytes)
@@ -64,6 +65,7 @@ pub(super) fn observe_selected_pages(
         maximum_manifest_entries,
         maximum_bytes,
         &mut integrity,
+        integrity_trace,
     );
     let counters = discovery.counters();
     (
@@ -91,6 +93,7 @@ fn observe(
     maximum_manifest_entries: u64,
     byte_limit: u64,
     integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressCounters,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<ObservedPageBasis, PageObservationFailure> {
     let already_observed = admitted_manifest_entries.saturating_sub(maximum_manifest_entries);
     let mut budget = super::manifest_entry_budget::ManifestEntryBudget::new(
@@ -103,6 +106,7 @@ fn observe(
         format,
         &mut budget,
         byte_limit,
+        integrity_trace,
     )?;
     if let Some((fallback, fallback_format)) = retained_fallback {
         let fallback_source = super::selected_source_inventory::observe_with_budget(
@@ -111,6 +115,7 @@ fn observe(
             fallback_format,
             &mut budget,
             byte_limit,
+            integrity_trace,
         )?;
         let mut source_artifacts = selected_source.source_artifacts.into_vec();
         source_artifacts.extend(fallback_source.source_artifacts);
@@ -206,6 +211,23 @@ pub(super) fn required(
         Ok(observed) => observed
             .into_bytes()
             .ok_or(PageObservationFailure::MissingArtifact { target, artifact }),
+        Err(worth_store::physical_runtime::RecoveryDiscoveryFailure::ByteLimitExceeded {
+            ..
+        }) => Err(PageObservationFailure::ByteLimit),
+        Err(failure) => Err(PageObservationFailure::Media { target, failure }),
+    }
+}
+
+pub(super) fn required_source(
+    result: Result<
+        worth_store::physical_runtime::ObservedRecoveryArtifact,
+        worth_store::physical_runtime::RecoveryDiscoveryFailure,
+    >,
+    target: Option<PhysicalRedoTargetIdentity>,
+    artifact: RecordArtifactFile,
+) -> Result<worth_store::physical_runtime::ObservedRecoveryArtifact, PageObservationFailure> {
+    match result {
+        Ok(observed) => Ok(observed),
         Err(worth_store::physical_runtime::RecoveryDiscoveryFailure::ByteLimitExceeded {
             ..
         }) => Err(PageObservationFailure::ByteLimit),

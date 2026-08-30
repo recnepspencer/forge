@@ -92,7 +92,7 @@ fn selected_source_inventory_denies_before_crossing_manifest_block_read() {
     let format = worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
         .admit()
         .unwrap();
-    let result = crate::orchestration::planning::selected_source_inventory::observe(
+    let (result, _) = crate::orchestration::planning::selected_source_inventory::observe(
         &mut discovery,
         &root,
         format,
@@ -142,7 +142,7 @@ fn selected_world(name: &str, segment_pages: u32) -> SelectedWorld {
     drop(world);
     let admitted = admitted_recovery(retained.path());
     let selected = admitted.discover().unwrap().select().unwrap();
-    let (authority, coordination, selection, _, _) = selected.into_parts();
+    let (authority, coordination, selection, _, _, _) = selected.into_parts();
     SelectedWorld {
         authority,
         coordination,
@@ -220,14 +220,35 @@ fn assert_result(world: SelectedWorld, targets: Vec<PhysicalRedoTarget>, expecte
     let format = worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
         .admit()
         .unwrap();
-    let selected_source = crate::orchestration::planning::selected_source_inventory::observe(
-        &mut discovery,
-        &root,
-        format,
-        64,
-        1024 * 1024,
-    )
-    .unwrap();
+    let (selected_source, integrity_trace) =
+        crate::orchestration::planning::selected_source_inventory::observe(
+            &mut discovery,
+            &root,
+            format,
+            64,
+            1024 * 1024,
+        );
+    let selected_source = selected_source.unwrap();
+    assert_eq!(
+        integrity_trace.observations().len() as u64,
+        integrity_trace.counters().attempted,
+        "every root-tree/free-space ingress attempt must retain its scoped observation"
+    );
+    assert_eq!(integrity_trace.counters().attempted, 3);
+    assert_eq!(integrity_trace.counters().admitted, 3);
+    let families = integrity_trace
+        .observations()
+        .iter()
+        .map(|observation| observation.scope().artifact_family())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        families,
+        vec![
+            worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily::FreeSpaceHeader,
+            worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily::SegmentMembership,
+            worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily::FreeSpaceMembershipBlock,
+        ]
+    );
     let result = admit_absent_targets(
         &root,
         &placements,

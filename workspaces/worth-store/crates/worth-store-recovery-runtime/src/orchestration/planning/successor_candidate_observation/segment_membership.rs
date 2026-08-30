@@ -2,13 +2,12 @@ use std::collections::{BTreeSet, VecDeque};
 
 use worth_store::physical_runtime::BoundedRecoveryFilesystemDiscovery;
 use worth_store_physical_format::{
-    durable_artifact_checksum, DurablePhysicalRootManifest, PhysicalRecordFormatDeclaration,
-    PhysicalSegmentMembershipBlock, RecordArtifactFile, RecordSegmentPageManifestEntry,
-    SegmentManifestBlockReference, SegmentMembershipBlockDecodeLimits,
+    DurablePhysicalRootManifest, PhysicalRecordFormatDeclaration, PhysicalTreeIdentity,
+    RecordArtifactFile, RecordSegmentPageManifestEntry,
 };
 
-use super::artifact_read::{required, retain_successor};
-use super::denial::{admit_successor_read, consume_successor, invalid, segment_denial};
+use super::artifact_read::{required_source, retain_successor};
+use super::denial::{admit_successor_read, consume_successor, invalid};
 use super::materialization::CandidateMaterialization;
 use crate::entry::PhysicalRecoverySuccessorCandidateDenial;
 use crate::orchestration::planning::manifest_entry_budget::ManifestEntryBudget;
@@ -23,6 +22,7 @@ pub(super) fn read(
     artifacts: &mut Vec<RecoveryObservedCandidateArtifact>,
     referenced_artifacts: &mut Vec<RecordArtifactFile>,
     materialization: &mut CandidateMaterialization,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<Vec<RecordSegmentPageManifestEntry>, PhysicalRecoverySuccessorCandidateDenial> {
     let mut pending = root.segment_root().into_iter().collect::<VecDeque<_>>();
     let mut visited = BTreeSet::new();
@@ -38,7 +38,7 @@ pub(super) fn read(
         if !visited.insert((reference.generation(), reference.block())) {
             return Err(invalid(artifact));
         }
-        let bytes = required(
+        let source = required_source(
             discovery.read_segment_membership_block(
                 reference.generation(),
                 reference.block(),
@@ -46,19 +46,24 @@ pub(super) fn read(
             ),
             artifact,
         )?;
-        let (block, found_format) = PhysicalSegmentMembershipBlock::decode_bounded(
-            &bytes,
+        let tree =
+            PhysicalTreeIdentity::new(root.tree_identity()).ok_or_else(|| invalid(artifact))?;
+        let block = crate::integrity_ingress::projection::segment_membership_block(
+            &source,
+            discovery.store_identity(),
+            format,
+            tree,
+            reference,
             root.node_capacity(),
-            SegmentMembershipBlockDecodeLimits {
-                leaf_entries: budget.remaining(),
-                branch_children: budget.remaining(),
-            },
+            integrity_trace,
         )
-        .map_err(|denial| segment_denial(denial, artifact, budget))?;
-        if found_format != format {
-            return Err(invalid(artifact));
-        }
-        validate(root, format, reference, &block, &bytes, artifact)?;
+        .map_err(
+            |rejection| PhysicalRecoverySuccessorCandidateDenial::RootProtocol {
+                artifact,
+                generation: reference.generation(),
+                denial: rejection.diagnostic(),
+            },
+        )?;
         if let Some(found) = block.entries() {
             consume_successor(budget, found.len(), artifact)?;
             materialization.retain_segment_entries(found.len());
@@ -67,6 +72,9 @@ pub(super) fn read(
             consume_successor(budget, children.len(), artifact)?;
             pending.extend(children.iter().copied());
         }
+        let bytes = source
+            .into_bytes()
+            .expect("source-bound segment-membership admission retained present bytes");
         let retained_bytes = bytes.len();
         if retain_successor(root.generation(), artifact, bytes, artifacts) {
             materialization.retain_artifact(retained_bytes);
@@ -75,19 +83,4 @@ pub(super) fn read(
     entries
         .sort_unstable_by_key(|entry| (entry.page_cell().segment_id().get(), entry.page().get()));
     Ok(entries)
-}
-
-fn validate(
-    root: &DurablePhysicalRootManifest,
-    format: PhysicalRecordFormatDeclaration,
-    reference: SegmentManifestBlockReference,
-    block: &PhysicalSegmentMembershipBlock,
-    bytes: &[u8],
-    artifact: RecordArtifactFile,
-) -> Result<(), PhysicalRecoverySuccessorCandidateDenial> {
-    (block.tree_identity() == root.tree_identity()
-        && block.reference(durable_artifact_checksum(bytes)) == reference
-        && block.encode(format) == bytes)
-        .then_some(())
-        .ok_or_else(|| invalid(artifact))
 }

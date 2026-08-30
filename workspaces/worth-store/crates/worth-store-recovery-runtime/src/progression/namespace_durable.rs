@@ -37,6 +37,7 @@ pub(crate) struct NamespaceDurableState {
     pub(crate) closed: ClosedRecoveryStagingGeneration,
     pub(crate) staging_counters: PhysicalRecoveryStagingCounters,
     pub(crate) staging_settlements: PhysicalRecoveryStagingSettlementLedger,
+    pub(crate) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 impl NamespaceDurablePhysicalRecovery {
@@ -106,6 +107,13 @@ impl NamespaceDurablePhysicalRecovery {
     }
     pub fn is_quiescent(&self) -> bool {
         self.state.coordination.is_ready()
+    }
+    pub const fn integrity_observation_count(&self) -> u64 {
+        self.state.integrity_trace.counters().attempted
+    }
+
+    pub fn integrity_observations(&self) -> &[crate::PhysicalRecoveryIntegrityObservation] {
+        self.state.integrity_trace.observations()
     }
 
     /// Reopens the namespace-durable selector and root through scheduled C4

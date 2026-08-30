@@ -43,6 +43,12 @@ pub(in crate::physical_runtime) struct RecordFramePorts {
 }
 
 impl RecordFramePorts {
+    pub(in crate::physical_runtime::record_serving) fn store_identity(
+        &self,
+    ) -> worth_store_physical_format::store_namespace::StableStoreIdentity {
+        self.pool.store_identity()
+    }
+
     pub(in crate::physical_runtime) fn bounded(
         store: StableStoreIdentity,
         limits: PhysicalResidencyLimits,
@@ -159,6 +165,12 @@ impl RecordFramePorts {
         &self,
     ) -> &crate::physical_runtime::ResidentAdmissionCounterCells {
         &self.resident_integrity_counters
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn resident_integrity_counter_owner(
+        &self,
+    ) -> Arc<crate::physical_runtime::ResidentAdmissionCounterCells> {
+        Arc::clone(&self.resident_integrity_counters)
     }
 
     pub(in crate::physical_runtime) fn resident_integrity_counters(

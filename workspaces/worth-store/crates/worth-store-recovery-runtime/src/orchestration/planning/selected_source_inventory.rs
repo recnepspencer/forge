@@ -3,16 +3,13 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use worth_store::physical_runtime::BoundedRecoveryFilesystemDiscovery;
 use worth_store_physical_format::{
-    durable_artifact_checksum, BoundedFreeSpaceMembershipBlockDecodeDenial,
-    BoundedSegmentMembershipBlockDecodeDenial, DurableFreeSpaceManifestHeader,
-    DurablePhysicalRootManifest, FreeSpaceMembershipBlockDecodeLimits,
-    PhysicalFreeSpaceMembershipBlock, PhysicalRecordFormatDeclaration,
-    PhysicalSegmentMembershipBlock, RecordArtifactFile, RecordFreeSpaceManifestEntry,
-    SegmentManifestBlockReference, SegmentMembershipBlockDecodeLimits,
+    DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest, PhysicalFreeSpaceMembershipBlock,
+    PhysicalRecordFormatDeclaration, PhysicalSegmentMembershipBlock, PhysicalTreeIdentity,
+    RecordArtifactFile, RecordFreeSpaceManifestEntry, SegmentManifestBlockReference,
 };
 
 use super::manifest_entry_budget::ManifestEntryBudget;
-use super::page_observation::{required, PageObservationFailure};
+use super::page_observation::{required_source, PageObservationFailure};
 use crate::progression::{RecoverySelectedSegmentPage, RecoverySelectedSourceInventory};
 
 type SelectedSegmentTopologyObservation = (
@@ -28,9 +25,21 @@ pub(super) fn observe(
     format: PhysicalRecordFormatDeclaration,
     maximum_manifest_entries: u64,
     byte_limit: u64,
-) -> Result<RecoverySelectedSourceInventory, PageObservationFailure> {
+) -> (
+    Result<RecoverySelectedSourceInventory, PageObservationFailure>,
+    crate::integrity_ingress::RecoveryIntegrityIngressTrace,
+) {
     let mut budget = ManifestEntryBudget::new(maximum_manifest_entries, 0);
-    observe_with_budget(discovery, root, format, &mut budget, byte_limit)
+    let mut integrity_trace = crate::integrity_ingress::RecoveryIntegrityIngressTrace::default();
+    let inventory = observe_with_budget(
+        discovery,
+        root,
+        format,
+        &mut budget,
+        byte_limit,
+        &mut integrity_trace,
+    );
+    (inventory, integrity_trace)
 }
 
 pub(super) fn observe_with_budget(
@@ -39,13 +48,20 @@ pub(super) fn observe_with_budget(
     format: PhysicalRecordFormatDeclaration,
     budget: &mut ManifestEntryBudget,
     byte_limit: u64,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<RecoverySelectedSourceInventory, PageObservationFailure> {
     budget.admit_pending_block_read()?;
-    let free_space = read_free_space_header(discovery, root, format, byte_limit)?;
+    let free_space = read_free_space_header(discovery, root, format, byte_limit, integrity_trace)?;
     let (segment_pages, segment_artifacts, segment_topology) =
-        read_segment_pages(discovery, root, format, budget, byte_limit)?;
-    let (free_entries, free_artifacts, free_topology) =
-        read_free_entries(discovery, &free_space, format, budget, byte_limit)?;
+        read_segment_pages(discovery, root, format, budget, byte_limit, integrity_trace)?;
+    let (free_entries, free_artifacts, free_topology) = read_free_entries(
+        discovery,
+        &free_space,
+        format,
+        budget,
+        byte_limit,
+        integrity_trace,
+    )?;
     let mut source_artifacts = BTreeSet::from([RecordArtifactFile::FreeSpaceManifest {
         generation: root.generation(),
     }]);
@@ -69,25 +85,27 @@ fn read_free_space_header(
     root: &DurablePhysicalRootManifest,
     format: PhysicalRecordFormatDeclaration,
     byte_limit: u64,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<DurableFreeSpaceManifestHeader, PageObservationFailure> {
     let artifact = RecordArtifactFile::FreeSpaceManifest {
         generation: root.generation(),
     };
-    let bytes = required(
+    let source = required_source(
         discovery.read_free_space_manifest(root.generation(), byte_limit),
         None,
         artifact,
     )?;
-    let (header, found_format) =
-        DurableFreeSpaceManifestHeader::decode(&bytes, u16::MAX).map_err(|_| invalid(artifact))?;
-    if found_format != format
-        || header.generation() != root.generation()
-        || header.root() != root.free_space_root()
-        || durable_artifact_checksum(&bytes) != root.free_space_checksum()
-    {
-        return Err(invalid(artifact));
-    }
-    Ok(header)
+    crate::integrity_ingress::projection::free_space_header(
+        &source,
+        discovery.store_identity(),
+        format,
+        root,
+        integrity_trace,
+    )
+    .map_err(|rejection| PageObservationFailure::Integrity {
+        artifact,
+        denial: rejection.diagnostic(),
+    })
 }
 
 fn read_segment_pages(
@@ -96,6 +114,7 @@ fn read_segment_pages(
     format: PhysicalRecordFormatDeclaration,
     budget: &mut ManifestEntryBudget,
     byte_limit: u64,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<SelectedSegmentTopologyObservation, PageObservationFailure> {
     let mut pending = root.segment_root().into_iter().collect::<VecDeque<_>>();
     let mut visited = BTreeSet::new();
@@ -112,7 +131,7 @@ fn read_segment_pages(
         if !visited.insert((reference.generation(), reference.block())) {
             return Err(invalid(artifact));
         }
-        let bytes = required(
+        let source = required_source(
             discovery.read_segment_membership_block(
                 reference.generation(),
                 reference.block(),
@@ -121,21 +140,21 @@ fn read_segment_pages(
             None,
             artifact,
         )?;
-        let (block, found_format) = PhysicalSegmentMembershipBlock::decode_bounded(
-            &bytes,
+        let tree =
+            PhysicalTreeIdentity::new(root.tree_identity()).ok_or_else(|| invalid(artifact))?;
+        let block = crate::integrity_ingress::projection::segment_membership_block(
+            &source,
+            discovery.store_identity(),
+            format,
+            tree,
+            reference,
             root.node_capacity(),
-            SegmentMembershipBlockDecodeLimits {
-                leaf_entries: budget.remaining(),
-                branch_children: budget.remaining(),
-            },
+            integrity_trace,
         )
-        .map_err(|denial| segment_denial(denial, artifact))?;
-        if found_format != format
-            || block.tree_identity() != root.tree_identity()
-            || block.reference(durable_artifact_checksum(&bytes)) != reference
-        {
-            return Err(invalid(artifact));
-        }
+        .map_err(|rejection| PageObservationFailure::Integrity {
+            artifact,
+            denial: rejection.diagnostic(),
+        })?;
         topology.insert((reference.generation(), reference.block()), block.clone());
         if let Some(entries) = block.entries() {
             budget.consume(entries.len())?;
@@ -164,6 +183,7 @@ fn read_free_entries(
     format: PhysicalRecordFormatDeclaration,
     budget: &mut ManifestEntryBudget,
     byte_limit: u64,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<
     (
         Vec<RecordFreeSpaceManifestEntry>,
@@ -187,7 +207,7 @@ fn read_free_entries(
         if !visited.insert((reference.generation(), reference.block())) {
             return Err(invalid(artifact));
         }
-        let bytes = required(
+        let source = required_source(
             discovery.read_free_space_membership_block(
                 reference.generation(),
                 reference.block(),
@@ -196,21 +216,21 @@ fn read_free_entries(
             None,
             artifact,
         )?;
-        let (block, found_format) = PhysicalFreeSpaceMembershipBlock::decode_bounded(
-            &bytes,
+        let tree =
+            PhysicalTreeIdentity::new(header.tree_identity()).ok_or_else(|| invalid(artifact))?;
+        let block = crate::integrity_ingress::projection::free_space_membership_block(
+            &source,
+            discovery.store_identity(),
+            format,
+            tree,
+            reference,
             header.node_capacity(),
-            FreeSpaceMembershipBlockDecodeLimits {
-                leaf_entries: budget.remaining(),
-                branch_children: budget.remaining(),
-            },
+            integrity_trace,
         )
-        .map_err(|denial| free_denial(denial, artifact))?;
-        if found_format != format
-            || block.tree_identity() != header.tree_identity()
-            || block.reference(durable_artifact_checksum(&bytes)) != reference
-        {
-            return Err(invalid(artifact));
-        }
+        .map_err(|rejection| PageObservationFailure::Integrity {
+            artifact,
+            denial: rejection.diagnostic(),
+        })?;
         topology.insert((reference.generation(), reference.block()), block.clone());
         if let Some(found) = block.entries() {
             budget.consume(found.len())?;
@@ -256,32 +276,6 @@ fn routing_identity(
     digest.update(entry.data_page_count().to_le_bytes());
     digest.update(entry.frame_index().to_le_bytes());
     digest.finalize().into()
-}
-
-fn segment_denial(
-    denial: BoundedSegmentMembershipBlockDecodeDenial,
-    artifact: RecordArtifactFile,
-) -> PageObservationFailure {
-    match denial {
-        BoundedSegmentMembershipBlockDecodeDenial::LeafEntries { .. }
-        | BoundedSegmentMembershipBlockDecodeDenial::BranchChildren { .. } => {
-            PageObservationFailure::ManifestEntryLimit
-        }
-        BoundedSegmentMembershipBlockDecodeDenial::Format(_) => invalid(artifact),
-    }
-}
-
-fn free_denial(
-    denial: BoundedFreeSpaceMembershipBlockDecodeDenial,
-    artifact: RecordArtifactFile,
-) -> PageObservationFailure {
-    match denial {
-        BoundedFreeSpaceMembershipBlockDecodeDenial::LeafEntries { .. }
-        | BoundedFreeSpaceMembershipBlockDecodeDenial::BranchChildren { .. } => {
-            PageObservationFailure::ManifestEntryLimit
-        }
-        BoundedFreeSpaceMembershipBlockDecodeDenial::Format(_) => invalid(artifact),
-    }
 }
 
 const fn invalid(artifact: RecordArtifactFile) -> PageObservationFailure {

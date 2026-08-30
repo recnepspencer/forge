@@ -167,6 +167,7 @@ pub(super) fn resolve(
         context.limits.manifest_entries,
         admitted.remaining_manifest_entries,
         remaining_observation_bytes,
+        &mut context.integrity_trace,
     );
     context.authority.media = media;
     let planning_counters = counters::after_fates(

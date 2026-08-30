@@ -45,6 +45,20 @@ pub(super) fn required(
     })
 }
 
+pub(super) fn required_source(
+    result: Result<ObservedRecoveryArtifact, RecoveryDiscoveryFailure>,
+    artifact: RecordArtifactFile,
+) -> Result<ObservedRecoveryArtifact, PhysicalRecoverySuccessorCandidateDenial> {
+    match result {
+        Ok(observed) => Ok(observed),
+        Err(failure) => Err(PhysicalRecoverySuccessorCandidateDenial::Discovery {
+            artifact,
+            generation: artifact_generation(artifact),
+            failure,
+        }),
+    }
+}
+
 pub(super) fn optional(
     result: Result<ObservedRecoveryArtifact, RecoveryDiscoveryFailure>,
     artifact: RecordArtifactFile,

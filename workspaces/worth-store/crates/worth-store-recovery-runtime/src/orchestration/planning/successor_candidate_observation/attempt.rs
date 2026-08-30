@@ -26,6 +26,7 @@ pub(in crate::orchestration::planning) fn observe(
     budget: &mut ManifestEntryBudget,
     maximum_manifest_entries: u64,
     maximum_bytes: u64,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> (
     AdmittedRecoveryFilesystemMedia,
     SuccessorCandidateObservationAttempt,
@@ -70,6 +71,7 @@ pub(in crate::orchestration::planning) fn observe(
         maximum_bytes,
         &mut materialization,
         &mut root_protocol_counters,
+        integrity_trace,
     );
     let counters = discovery.counters();
     let peak_materialization_bytes = materialization.peak_bytes();

@@ -29,5 +29,6 @@ pub(super) fn construct(
         execution.staging,
         execution.publication,
         execution.quiescence,
+        context.integrity_trace,
     )
 }

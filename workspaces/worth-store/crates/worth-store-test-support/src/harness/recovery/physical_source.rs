@@ -12,8 +12,9 @@ use worth_store_physical_format::{
 };
 use worth_store_recovery_physics::{
     admit_physical_page_facts, admit_physical_wal_tail, observe_structured_physical_root_candidate,
-    select_current_previous_root, select_physical_recovery_sources, PhysicalManifestBlockCandidate,
-    PhysicalSourceSelection, PhysicalWalSegmentCandidate, SelectedCompactionProduct,
+    select_current_previous_root, select_physical_recovery_sources,
+    PhysicalManifestBlockProjection, PhysicalSourceSelection, PhysicalWalSegmentCandidate,
+    SelectedCompactionProduct,
 };
 use worth_store_wal::{
     inspect_verified_wal_segment, prepare_wal_frame_append, WalSegmentArtifactIdentity,
@@ -26,7 +27,7 @@ use worth_store_wal::{
 pub fn deterministic_checkpoint_plus_tail_source() -> PhysicalSourceSelection {
     let format = PhysicalRecordFormatDeclaration::builder().admit().unwrap();
     let store = stable_store();
-    let (manifest, block_reference, block_bytes) = root_manifest(format);
+    let (manifest, block_reference, block) = root_manifest(format);
     let selector = DurableRootSelector::new(
         store,
         format,
@@ -46,9 +47,9 @@ pub fn deterministic_checkpoint_plus_tail_source() -> PhysicalSourceSelection {
     .unwrap();
     let page_facts = admit_physical_page_facts(
         root.selected(),
-        vec![PhysicalManifestBlockCandidate::new(
+        vec![PhysicalManifestBlockProjection::from_projected_block(
             block_reference,
-            block_bytes,
+            block,
         )],
         1,
         1,
@@ -79,7 +80,7 @@ fn root_manifest(
 ) -> (
     DurablePhysicalRootManifest,
     worth_store_physical_format::ManifestBlockReference,
-    Vec<u8>,
+    PhysicalRootRoutingBlock,
 ) {
     let record = PersistedRecordIdentity::new([1; 16], 1).unwrap();
     let authority = PhysicalGenerationAuthority::for_canonical_physical_format();
@@ -123,7 +124,7 @@ fn root_manifest(
         .free_space_root(free_space)
         .admit()
         .unwrap();
-    (manifest, block_reference, block_bytes)
+    (manifest, block_reference, block)
 }
 
 fn checkpoint_base(

@@ -10,7 +10,8 @@ use crate::entry::{
     PhysicalRecoveryLimitFailure, PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
 };
 use crate::orchestration::{
-    BootstrapDiscovery, CheckpointDiscovery, ManifestFactsDiscovery, WalDiscovery,
+    BootstrapDiscovery, CheckpointDiscovery, ManifestFactsDiscovery, ManifestFactsState,
+    WalDiscovery,
 };
 
 use super::PhysicalRecoveryDiscoveryCounters;
@@ -34,6 +35,7 @@ pub(super) struct SelectionOutput {
     pub(super) selection: PhysicalSourceSelection,
     pub(super) counters: PhysicalRecoveryDiscoveryCounters,
     pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    pub(super) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 pub(super) struct SelectionFailure {
@@ -42,8 +44,8 @@ pub(super) struct SelectionFailure {
 }
 
 struct ManifestSelectionInput {
-    current: ManifestFactsDiscovery,
-    previous: ManifestFactsDiscovery,
+    current: ManifestFactsState,
+    previous: ManifestFactsState,
     limits: PhysicalRecoveryLimits,
 }
 
@@ -63,6 +65,10 @@ pub(super) fn select_sources(
     limits: PhysicalRecoveryLimits,
 ) -> Result<SelectionOutput, SelectionFailure> {
     let mut counters = input.counters;
+    let (current_manifest_facts, mut integrity_trace) = input.current_manifest_facts.into_parts();
+    let (previous_manifest_facts, previous_integrity_trace) =
+        input.previous_manifest_facts.into_parts();
+    integrity_trace.append(previous_integrity_trace);
     let (root, root_protocol_denials) = root::select(
         input.current,
         input.previous,
@@ -73,20 +79,30 @@ pub(super) fn select_sources(
     let (page_facts, retained_previous_page_facts) = select_manifest_facts(
         &root,
         ManifestSelectionInput {
-            current: input.current_manifest_facts,
-            previous: input.previous_manifest_facts,
+            current: current_manifest_facts,
+            previous: previous_manifest_facts,
             limits,
         },
         &mut counters,
     )
-    .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
-    let checkpoint = select_checkpoint(&root, input.checkpoint, counters)
-        .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
+    .map_err(|failure| {
+        failure
+            .with_root_protocol_denials(&root_protocol_denials)
+            .with_integrity_trace(integrity_trace.clone())
+    })?;
+    let checkpoint = select_checkpoint(&root, input.checkpoint, counters).map_err(|failure| {
+        failure
+            .with_root_protocol_denials(&root_protocol_denials)
+            .with_integrity_trace(integrity_trace.clone())
+    })?;
     let frontier = checkpoint
         .as_ref()
         .map_or(0, |checkpoint| checkpoint.wal_tail_begin_lsn());
-    let wal_tail = select_wal(&root, input.wal, frontier, &mut counters)
-        .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
+    let wal_tail = select_wal(&root, input.wal, frontier, &mut counters).map_err(|failure| {
+        failure
+            .with_root_protocol_denials(&root_protocol_denials)
+            .with_integrity_trace(integrity_trace.clone())
+    })?;
     let compaction = checkpoint.as_ref().map(SelectedCompactionProduct::admit);
     let selection = select_final_cut(FinalSelectionInput {
         root,
@@ -99,11 +115,16 @@ pub(super) fn select_sources(
         counters,
         frontier,
     })
-    .map_err(|failure| failure.with_root_protocol_denials(&root_protocol_denials))?;
+    .map_err(|failure| {
+        failure
+            .with_root_protocol_denials(&root_protocol_denials)
+            .with_integrity_trace(integrity_trace.clone())
+    })?;
     Ok(SelectionOutput {
         selection,
         counters,
         root_protocol_denials,
+        integrity_trace,
     })
 }
 
@@ -118,8 +139,8 @@ fn select_manifest_facts(
     };
     let generation = root.selected().selector().root_generation();
     let blocks = match selected {
-        ManifestFactsDiscovery::Observed { blocks, .. } => blocks,
-        ManifestFactsDiscovery::Rejected(denial) => {
+        ManifestFactsState::Observed { blocks } => blocks,
+        ManifestFactsState::Rejected(denial) => {
             return Err(SelectionFailure::new(
                 PhysicalRecoveryBlockKind::SourceSelection,
                 *counters,
@@ -130,7 +151,7 @@ fn select_manifest_facts(
                 PhysicalRecoverySourceDenial::ManifestObservation(denial),
             ]));
         }
-        ManifestFactsDiscovery::Unavailable => {
+        ManifestFactsState::Unavailable => {
             return Err(SelectionFailure::new(
                 PhysicalRecoveryBlockKind::SourceSelection,
                 *counters,
@@ -150,7 +171,7 @@ fn select_manifest_facts(
     counters.selected_page_facts = page_facts.placements().len() as u64;
     counters.distinct_pages_and_extents = page_facts.distinct_pages_and_extents();
     let retained_previous_page_facts = match (root.retained_previous(), retained_previous) {
-        (Some(previous), Some(ManifestFactsDiscovery::Observed { blocks })) => Some(
+        (Some(previous), Some(ManifestFactsState::Observed { blocks })) => Some(
             admit_physical_page_facts(
                 previous,
                 blocks,
@@ -166,7 +187,7 @@ fn select_manifest_facts(
                 )
             })?,
         ),
-        (Some(previous), Some(ManifestFactsDiscovery::Rejected(denial))) => {
+        (Some(previous), Some(ManifestFactsState::Rejected(denial))) => {
             return Err(SelectionFailure::new(
                 PhysicalRecoveryBlockKind::SourceSelection,
                 *counters,
@@ -177,7 +198,7 @@ fn select_manifest_facts(
                 PhysicalRecoverySourceDenial::ManifestObservation(denial),
             ]));
         }
-        (Some(previous), Some(ManifestFactsDiscovery::Unavailable)) => {
+        (Some(previous), Some(ManifestFactsState::Unavailable)) => {
             return Err(SelectionFailure::new(
                 PhysicalRecoveryBlockKind::SourceSelection,
                 *counters,
@@ -353,6 +374,14 @@ impl SelectionFailure {
         let mut combined = denials.to_vec();
         combined.append(&mut self.evidence.source_denials);
         self.evidence.source_denials = combined;
+        self
+    }
+
+    fn with_integrity_trace(
+        mut self,
+        trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
+    ) -> Self {
+        self.evidence.integrity_trace = trace;
         self
     }
 }

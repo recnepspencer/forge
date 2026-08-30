@@ -1,16 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use worth_store_physical_format::{
-    durable_artifact_checksum, CurrentPhysicalRecordPlacement, ManifestBlockReference,
-    PhysicalRecordFormatDeclaration, PhysicalRootRoutingBlock, RootRoutingBlockDenial,
+    CurrentPhysicalRecordPlacement, ManifestBlockReference, PhysicalRootRoutingBlock,
 };
 
 use super::PhysicalRootSourceCandidate;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PhysicalManifestBlockCandidate {
+pub struct PhysicalManifestBlockProjection {
     reference: ManifestBlockReference,
-    bytes: Vec<u8>,
+    block: PhysicalRootRoutingBlock,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,18 +28,23 @@ pub enum PhysicalPageFactDenial {
     MissingManifestBlock,
     UnexpectedManifestBlock,
     ManifestEntryLimit,
-    BlockFormat(RootRoutingBlockDenial),
-    BlockFormatMismatch,
-    BlockReferenceMismatch,
+    ManifestReferenceIdentityMismatch,
     TreeIdentityMismatch,
     DuplicateRecord,
     RecordCountMismatch,
     DistinctPageOrExtentLimit,
 }
 
-impl PhysicalManifestBlockCandidate {
-    pub fn new(reference: ManifestBlockReference, bytes: Vec<u8>) -> Self {
-        Self { reference, bytes }
+impl PhysicalManifestBlockProjection {
+    /// Carries a block projection into source-precedence evaluation.
+    ///
+    /// This value is descriptive, not integrity authority. Its reference
+    /// identity is checked again before owner facts are formed.
+    pub fn from_projected_block(
+        reference: ManifestBlockReference,
+        block: PhysicalRootRoutingBlock,
+    ) -> Self {
+        Self { reference, block }
     }
 }
 
@@ -72,7 +76,7 @@ impl SelectedPhysicalPageFacts {
 
 pub fn admit_physical_page_facts(
     root: &PhysicalRootSourceCandidate,
-    blocks: Vec<PhysicalManifestBlockCandidate>,
+    blocks: Vec<PhysicalManifestBlockProjection>,
     maximum_manifest_entries: u64,
     maximum_distinct_pages_and_extents: u64,
 ) -> Result<SelectedPhysicalPageFacts, PhysicalPageFactDenial> {
@@ -98,11 +102,10 @@ pub fn admit_physical_page_facts(
         let candidate = candidates
             .remove(&reference_key(reference))
             .ok_or(PhysicalPageFactDenial::MissingManifestBlock)?;
-        let block = decode_block(
-            root.selector().format(),
-            manifest.node_capacity(),
-            &candidate,
-        )?;
+        let block = candidate.block;
+        if block.reference(reference.checksum()) != reference {
+            return Err(PhysicalPageFactDenial::ManifestReferenceIdentityMismatch);
+        }
         if block.tree_identity() != manifest.tree_identity() {
             return Err(PhysicalPageFactDenial::TreeIdentityMismatch);
         }
@@ -156,22 +159,6 @@ pub fn admit_physical_page_facts(
     })
 }
 
-fn decode_block(
-    format: PhysicalRecordFormatDeclaration,
-    capacity: u16,
-    candidate: &PhysicalManifestBlockCandidate,
-) -> Result<PhysicalRootRoutingBlock, PhysicalPageFactDenial> {
-    let (block, found_format) = PhysicalRootRoutingBlock::decode(&candidate.bytes, capacity)
-        .map_err(PhysicalPageFactDenial::BlockFormat)?;
-    if found_format != format {
-        return Err(PhysicalPageFactDenial::BlockFormatMismatch);
-    }
-    if block.reference(durable_artifact_checksum(&candidate.bytes)) != candidate.reference {
-        return Err(PhysicalPageFactDenial::BlockReferenceMismatch);
-    }
-    Ok(block)
-}
-
 const fn reference_key(reference: ManifestBlockReference) -> (u64, u64) {
     (reference.generation(), reference.block())
 }
@@ -193,6 +180,7 @@ fn page_or_extent_key(placement: &CurrentPhysicalRecordPlacement) -> (u8, u64, u
 #[cfg(test)]
 mod tests {
     use worth_store_physical_format::{
+        durable_artifact_checksum,
         store_namespace::{
             ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord,
             StoreNamespaceVersion,
@@ -248,6 +236,18 @@ mod tests {
     }
 
     #[test]
+    fn projected_block_range_cannot_substitute_for_its_reference() {
+        let (root, candidate) = root_and_block(1);
+        let replacement = PhysicalRootRoutingBlock::leaf(7, 1, 1, vec![placement(2)], 4).unwrap();
+        let substituted =
+            PhysicalManifestBlockProjection::from_projected_block(candidate.reference, replacement);
+        assert_eq!(
+            admit_physical_page_facts(&root, vec![substituted], 1, 1),
+            Err(PhysicalPageFactDenial::ManifestReferenceIdentityMismatch)
+        );
+    }
+
+    #[test]
     fn aggregate_entries_across_multiple_leaf_blocks_are_bounded() {
         let (root, blocks) = branched_root_and_blocks();
         assert_eq!(
@@ -262,7 +262,7 @@ mod tests {
 
     fn root_and_block(
         record_count: u64,
-    ) -> (PhysicalRootSourceCandidate, PhysicalManifestBlockCandidate) {
+    ) -> (PhysicalRootSourceCandidate, PhysicalManifestBlockProjection) {
         let format = PhysicalRecordFormatDeclaration::builder().admit().unwrap();
         let placement = placement(1);
         let block = PhysicalRootRoutingBlock::leaf(7, 1, 1, vec![placement], 4).unwrap();
@@ -291,12 +291,15 @@ mod tests {
         let PhysicalRootSlotObservation::Candidate(root) = observation else {
             panic!("root fixture must be admitted")
         };
-        (root, PhysicalManifestBlockCandidate::new(reference, bytes))
+        (
+            root,
+            PhysicalManifestBlockProjection::from_projected_block(reference, block),
+        )
     }
 
     fn branched_root_and_blocks() -> (
         PhysicalRootSourceCandidate,
-        Vec<PhysicalManifestBlockCandidate>,
+        Vec<PhysicalManifestBlockProjection>,
     ) {
         let format = PhysicalRecordFormatDeclaration::builder().admit().unwrap();
         let left = PhysicalRootRoutingBlock::leaf(7, 1, 1, vec![placement(1)], 2).unwrap();
@@ -337,9 +340,9 @@ mod tests {
         (
             root,
             vec![
-                PhysicalManifestBlockCandidate::new(branch_reference, branch_bytes),
-                PhysicalManifestBlockCandidate::new(left_reference, left_bytes),
-                PhysicalManifestBlockCandidate::new(right_reference, right_bytes),
+                PhysicalManifestBlockProjection::from_projected_block(branch_reference, branch),
+                PhysicalManifestBlockProjection::from_projected_block(left_reference, left),
+                PhysicalManifestBlockProjection::from_projected_block(right_reference, right),
             ],
         )
     }

@@ -24,7 +24,7 @@ pub use current_previous_root::{
     SelectedPhysicalRoot, SelectedPhysicalRootRole,
 };
 pub use page_facts::{
-    admit_physical_page_facts, PhysicalManifestBlockCandidate, PhysicalPageFactDenial,
+    admit_physical_page_facts, PhysicalManifestBlockProjection, PhysicalPageFactDenial,
     SelectedPhysicalPageFacts,
 };
 pub use page_lsn_skip_apply::PageLsnSkipApplyDecision;

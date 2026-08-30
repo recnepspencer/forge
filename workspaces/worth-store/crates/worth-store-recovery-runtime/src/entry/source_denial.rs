@@ -1,7 +1,7 @@
 use worth_store::physical_runtime::{ArtifactTreeFailureKind, RecoveryDiscoveryArtifact};
 use worth_store_physical_format::{
     store_namespace::StableStoreIdentity, CheckpointStreamDecodeDenial, ManifestBlockReference,
-    PhysicalRecordFormatDeclaration, RootRoutingBlockDenial, RootSelectorRole,
+    RootSelectorRole,
 };
 use worth_store_physical_integrity::PhysicalIntegrityRejection;
 
@@ -33,23 +33,9 @@ pub enum PhysicalManifestObservationDenial {
     MissingArtifact {
         reference: ManifestBlockReference,
     },
-    Decode {
+    Integrity {
         reference: ManifestBlockReference,
-        denial: RootRoutingBlockDenial,
-    },
-    FormatIdentity {
-        reference: ManifestBlockReference,
-        expected: PhysicalRecordFormatDeclaration,
-        observed: PhysicalRecordFormatDeclaration,
-    },
-    TreeIdentity {
-        reference: ManifestBlockReference,
-        expected: u64,
-        observed: u64,
-    },
-    ReferenceIntegrity {
-        expected: ManifestBlockReference,
-        observed: ManifestBlockReference,
+        denial: PhysicalRecoveryRootProtocolDenial,
     },
 }
 use worth_store_recovery_physics::{

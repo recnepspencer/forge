@@ -16,7 +16,22 @@ use crate::physical_runtime::{
 pub(in crate::physical_runtime) struct ResidentAdmissionContext<'counter> {
     lifecycle: std::sync::Arc<LifecycleState>,
     snapshot: LifecycleStateSnapshot,
-    counters: &'counter ResidentAdmissionCounterCells,
+    counters: ResidentAdmissionCounters<'counter>,
+}
+
+#[derive(Clone)]
+enum ResidentAdmissionCounters<'counter> {
+    Borrowed(&'counter ResidentAdmissionCounterCells),
+    Shared(std::sync::Arc<ResidentAdmissionCounterCells>),
+}
+
+impl ResidentAdmissionCounters<'_> {
+    fn cells(&self) -> &ResidentAdmissionCounterCells {
+        match self {
+            Self::Borrowed(counters) => counters,
+            Self::Shared(counters) => counters,
+        }
+    }
 }
 
 impl<'counter> ResidentAdmissionContext<'counter> {
@@ -28,7 +43,19 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         Self {
             lifecycle,
             snapshot,
-            counters,
+            counters: ResidentAdmissionCounters::Borrowed(counters),
+        }
+    }
+
+    pub(in crate::physical_runtime) fn from_shared(
+        lifecycle: std::sync::Arc<LifecycleState>,
+        counters: std::sync::Arc<ResidentAdmissionCounterCells>,
+    ) -> ResidentAdmissionContext<'static> {
+        let snapshot = lifecycle.snapshot();
+        ResidentAdmissionContext {
+            lifecycle,
+            snapshot,
+            counters: ResidentAdmissionCounters::Shared(counters),
         }
     }
 
@@ -58,7 +85,7 @@ impl<'counter> ResidentAdmissionContext<'counter> {
             scope,
         ) {
             Ok(Some(binding)) => {
-                self.counters.observe_exact_record_reuse();
+                self.counters.cells().observe_exact_record_reuse();
                 Ok(Some(binding))
             }
             Ok(None) => Ok(None),
@@ -84,7 +111,7 @@ impl<'counter> ResidentAdmissionContext<'counter> {
     }
 
     pub(super) fn observe_fresh_validation(&self) {
-        self.counters.observe_fresh_validation();
+        self.counters.cells().observe_fresh_validation();
     }
 
     pub(super) fn validation_rejected<T>(
@@ -121,7 +148,7 @@ impl<'counter> ResidentAdmissionContext<'counter> {
             Ok(lease) => lease,
             Err(denial) => return Err(self.reject(denial)),
         };
-        self.counters.observe_owner_decoder_entry();
+        self.counters.cells().observe_owner_decoder_entry();
         let result = decoder(lease, binding.scope());
         binding.enter_owner_decoder()?;
         Ok(result)
@@ -139,7 +166,7 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         binding
             .require_current_binding()
             .map_err(|denial| self.reject(denial))?;
-        self.counters.observe_owner_projection_entry();
+        self.counters.cells().observe_owner_projection_entry();
         let result = projection();
         binding
             .require_current_binding()
@@ -161,7 +188,7 @@ impl<'counter> ResidentAdmissionContext<'counter> {
     }
 
     fn reject(&self, denial: ResidentIntegrityAdmissionDenial) -> ResidentIntegrityAdmissionDenial {
-        self.counters.observe_rejection_before_decoder();
+        self.counters.cells().observe_rejection_before_decoder();
         denial
     }
 }

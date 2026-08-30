@@ -32,6 +32,7 @@ pub(crate) struct RecoveryStagingInput {
     pub(crate) publication: RecoveryPublicationPlan,
     pub(crate) quiescence: RecoveryQuiescencePlan,
     pub(crate) cancellation: RecoveryStagingCancellation,
+    pub(crate) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,6 +90,7 @@ fn complete(
         execution.closed.expect("successful execution is closed"),
         execution.counters,
         execution.settlements,
+        input.integrity_trace,
     ))
 }
 
@@ -115,6 +117,7 @@ fn block(
             staging_counters: Some(execution.counters),
             staging_denial: execution.denial,
             staging_settlements: Some(execution.settlements),
+            integrity_trace: input.integrity_trace,
             ..PhysicalRecoveryBlockEvidence::default()
         },
         recovery_effects,

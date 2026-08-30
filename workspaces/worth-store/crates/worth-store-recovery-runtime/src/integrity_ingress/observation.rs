@@ -3,13 +3,13 @@ use worth_store_physical_integrity::PhysicalArtifactScope;
 use super::RecoveryIntegrityIngressRejection;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct RecoveryIntegrityIngressObservation {
+pub struct RecoveryIntegrityIngressObservation {
     scope: PhysicalArtifactScope,
     outcome: RecoveryIntegrityIngressObservationOutcome,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RecoveryIntegrityIngressObservationOutcome {
+pub enum RecoveryIntegrityIngressObservationOutcome {
     Admitted,
     Rejected(RecoveryIntegrityIngressRejection),
 }
@@ -32,11 +32,11 @@ impl RecoveryIntegrityIngressObservation {
         }
     }
 
-    pub(crate) const fn scope(self) -> PhysicalArtifactScope {
+    pub const fn scope(self) -> PhysicalArtifactScope {
         self.scope
     }
 
-    pub(crate) const fn outcome(self) -> RecoveryIntegrityIngressObservationOutcome {
+    pub const fn outcome(self) -> RecoveryIntegrityIngressObservationOutcome {
         self.outcome
     }
 }

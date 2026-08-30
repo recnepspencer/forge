@@ -36,6 +36,7 @@ pub(crate) fn publish_recovery(
         closed,
         staging_counters,
         staging_settlements,
+        integrity_trace,
     } = staged;
     let planned_effects = quiescence.publication_commands();
     let (expectation, candidates) = publication.into_command_parts();
@@ -59,6 +60,7 @@ pub(crate) fn publish_recovery(
             staging_counters,
             staging_settlements,
             planned_effects,
+            integrity_trace,
         ));
     };
     if candidates.is_empty() {
@@ -80,6 +82,7 @@ pub(crate) fn publish_recovery(
                 staging_counters,
                 staging_settlements,
                 planned_effects,
+                integrity_trace,
             ));
         }
         return Ok(NamespaceDurablePhysicalRecovery::new(
@@ -98,6 +101,7 @@ pub(crate) fn publish_recovery(
                 closed,
                 staging_counters,
                 staging_settlements,
+                integrity_trace,
             },
             expectation,
             PhysicalRecoveryPublicationCounters::default(),
@@ -122,6 +126,7 @@ pub(crate) fn publish_recovery(
             staging_counters,
             staging_settlements,
             planned_effects,
+            integrity_trace,
         ));
     };
     match coordination
@@ -138,6 +143,7 @@ pub(crate) fn publish_recovery(
                     root_protocol_counters,
                     counters,
                     PhysicalRecoveryPublicationSettlement::Completed(completed),
+                    integrity_trace,
                 ));
             }
             Ok(NamespaceDurablePhysicalRecovery::new(
@@ -156,6 +162,7 @@ pub(crate) fn publish_recovery(
                     closed,
                     staging_counters,
                     staging_settlements,
+                    integrity_trace,
                 },
                 expectation,
                 counters,
@@ -178,6 +185,7 @@ pub(crate) fn publish_recovery(
                     root_protocol_counters,
                     counters,
                     settlement,
+                    integrity_trace,
                 ))
             } else {
                 Err(block_settlement(
@@ -191,6 +199,7 @@ pub(crate) fn publish_recovery(
                     staging_settlements,
                     counters,
                     settlement,
+                    integrity_trace,
                 ))
             }
         }
@@ -203,6 +212,7 @@ pub(crate) fn publish_recovery(
                 root_protocol_counters,
                 counters,
                 PhysicalRecoveryPublicationSettlement::Indeterminate(outcome),
+                integrity_trace,
             ))
         }
     }
@@ -218,6 +228,7 @@ fn block_invalid(
     staging: crate::entry::PhysicalRecoveryStagingCounters,
     staging_settlements: crate::entry::PhysicalRecoveryStagingSettlementLedger,
     planned_effects: u64,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> PhysicalRecoveryOutcome {
     assert!(coordination.shutdown_is_quiescent());
     let store = authority.media.store_identity();
@@ -242,6 +253,7 @@ fn block_invalid(
                 ..PhysicalRecoveryPublicationCounters::default()
             }),
             publication_denial: Some(PhysicalRecoveryPublicationDenial::InvalidPlan),
+            integrity_trace,
             ..PhysicalRecoveryBlockEvidence::default()
         },
         recovery_effects,
@@ -260,6 +272,7 @@ fn block_settlement(
     staging_settlements: crate::entry::PhysicalRecoveryStagingSettlementLedger,
     counters: PhysicalRecoveryPublicationCounters,
     settlement: PhysicalRecoveryPublicationSettlement,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> PhysicalRecoveryOutcome {
     assert!(coordination.shutdown_is_quiescent());
     let store = authority.media.store_identity();
@@ -283,6 +296,7 @@ fn block_settlement(
             publication_settlements: Some(PhysicalRecoveryPublicationSettlementLedger::new(
                 settlement,
             )),
+            integrity_trace,
             ..PhysicalRecoveryBlockEvidence::default()
         },
         recovery_effects,
@@ -296,6 +310,7 @@ fn indeterminate(
     root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
     counters: PhysicalRecoveryPublicationCounters,
     settlement: PhysicalRecoveryPublicationSettlement,
+    integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> PhysicalRecoveryOutcome {
     assert!(coordination.shutdown_is_quiescent());
     let store = authority.media.store_identity();
@@ -313,6 +328,7 @@ fn indeterminate(
             root_protocol_denials,
             root_protocol_counters,
             recovery_effects,
-        ),
+        )
+        .with_integrity_trace(integrity_trace),
     )
 }

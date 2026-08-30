@@ -3,7 +3,7 @@ use worth_store_physical_integrity::PhysicalIntegrityRejection;
 use crate::entry::PhysicalRecoveryRootProtocolDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RecoveryIntegrityIngressRejection {
+pub enum RecoveryIntegrityIngressRejection {
     Absent,
     ConflictingDuplication { observed_sources: u64 },
     Integrity(PhysicalIntegrityRejection),

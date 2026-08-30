@@ -29,6 +29,7 @@ fn observe_bounded(
     byte_limit: u64,
     materialization: &mut CandidateMaterialization,
     root_protocol_counters: &mut crate::entry::PhysicalRecoveryRootProtocolCounters,
+    integrity_trace: &mut crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 ) -> Result<Option<RecoveryObservedSuccessorCandidate>, PhysicalRecoverySuccessorCandidateDenial> {
     let Some(observed_root) = root_manifest::read(
         discovery,
@@ -54,6 +55,7 @@ fn observe_bounded(
         &mut artifacts,
         &mut referenced_artifacts,
         materialization,
+        integrity_trace,
     )?;
     let segment_entries = segment_membership::read(
         discovery,
@@ -64,6 +66,7 @@ fn observe_bounded(
         &mut artifacts,
         &mut referenced_artifacts,
         materialization,
+        integrity_trace,
     )?;
     let (free_space, free_entries) = free_space::read(
         discovery,
@@ -74,6 +77,7 @@ fn observe_bounded(
         &mut artifacts,
         &mut referenced_artifacts,
         materialization,
+        integrity_trace,
     )?;
     artifacts.sort_unstable_by_key(|item| item.artifact);
     if artifacts

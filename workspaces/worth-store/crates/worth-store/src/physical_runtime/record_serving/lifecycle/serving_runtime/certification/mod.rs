@@ -154,6 +154,11 @@ impl ServingPhysicalRuntime {
             .map_err(|_| {
                 crate::physical_runtime::record_serving::RecordCanonicalObservationDenial::ManifestUnavailable
             })?;
+        let integrity_counters = self
+            .parts
+            .residency
+            .ports()
+            .resident_integrity_counter_owner();
         crate::physical_runtime::record_serving::evidence::canonical_observation::observe_runtime_topology(
             crate::physical_runtime::record_serving::evidence::canonical_observation::RuntimeTopologySource {
                 allocation: &allocation,
@@ -163,6 +168,8 @@ impl ServingPhysicalRuntime {
                 access: self.parts.access,
                 root: &root,
                 free_space: &free_space,
+                lifecycle: self.parts.core.lifecycle_state(),
+                integrity_counters: integrity_counters.as_ref(),
             },
         )
     }

@@ -3,12 +3,14 @@ mod phase_three_support;
 
 use phase_three_support::*;
 use worth_store::physical_runtime::{ArtifactTreeFailureKind, RecoveryDiscoveryArtifact};
-use worth_store_physical_format::RecordArtifactFile;
+use worth_store_physical_format::{
+    integrity_declarations::PhysicalIntegrityArtifactFamily, RecordArtifactFile,
+};
 use worth_store_physical_integrity::{PhysicalDamageCause, PhysicalIntegrityRejection};
 use worth_store_recovery_runtime::{
-    PhysicalRecoveryBlockKind, PhysicalRecoveryMediaObservationFailure,
-    PhysicalRecoveryRootProtocolArtifact, PhysicalRecoveryRootProtocolDenial,
-    PhysicalRecoverySourceDenial,
+    PhysicalRecoveryBlockKind, PhysicalRecoveryIntegrityObservationOutcome,
+    PhysicalRecoveryMediaObservationFailure, PhysicalRecoveryRootProtocolArtifact,
+    PhysicalRecoveryRootProtocolDenial, PhysicalRecoverySourceDenial,
 };
 
 #[test]
@@ -32,7 +34,7 @@ fn media_denials_retain_exact_fixed_artifact_and_backend_cause() {
     let checkpoint_parent = tempfile::tempdir().unwrap();
     let checkpoint_root = checkpoint_parent.path().join("checkpoint-directory");
     let checkpoint_store = initialize_store(&checkpoint_root);
-    publish_synthetic_genesis(&checkpoint_root, checkpoint_store);
+    publish_synthetic_nonempty_genesis(&checkpoint_root, checkpoint_store);
     let records = checkpoint_root.join("families").join("records");
     let mut previous = std::fs::read(records.join("root-current.selector")).unwrap();
     previous[65] ^= 0x5a;
@@ -49,6 +51,14 @@ fn media_denials_retain_exact_fixed_artifact_and_backend_cause() {
         &checkpoint_blocked,
         RecoveryDiscoveryArtifact::CurrentCheckpoint,
     );
+    assert!(matches!(
+        checkpoint_blocked.evidence().integrity_observations(),
+        [observation]
+            if observation.scope().artifact_family()
+                == PhysicalIntegrityArtifactFamily::RootRoutingBlock
+                && observation.outcome()
+                    == PhysicalRecoveryIntegrityObservationOutcome::Admitted
+    ));
     assert!(checkpoint_blocked
         .evidence()
         .source_denials
