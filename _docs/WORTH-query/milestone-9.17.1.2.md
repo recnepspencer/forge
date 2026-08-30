@@ -24,10 +24,9 @@ branches without:
 - reconstructing an admitted basis from ids or descriptors; or
 - keeping a closed Signal owner alive through a cloneable service handle.
 
-Milestones 9.17.1 and 9.17.1.1 remain closed authorities for basis, MVCC,
-publication, settlement, and retention meaning. This milestone adds no new
-Relational meaning: it ports the direct observation/retention/lifecycle methods
-already promised to composition, then closes Signal operation-service progress.
+Closed 9.17.1/.1.1 basis, MVCC, publication, settlement, and retention meanings
+remain authoritative. This milestone ports existing Relational operations and
+establishes Signal service progress.
 
 ## Central Claim
 
@@ -55,12 +54,10 @@ The claim is false if:
 
 ## Corrective Boundary
 
-Relational already has independently borrowable preparation, fork,
-publication, and settlement ports, but composition-required basis and lifecycle
-operations remain direct runtime calls. Signal already has exact admitted bases,
-retention, typed outcomes, and branch-local execution, but fork, advance,
-snapshot, restoration, and retirement remain methods on one mutable runtime.
-This milestone ports those existing meanings without changing either owner.
+At milestone entry, Relational lacks basis/lifecycle ports beside its four
+existing services. Signal's exact bases, retention, outcomes, and branch-local
+engines still require whole-runtime mutation access. Neither gap authorizes
+changing component meaning or ownership.
 
 ## Governing Ownership Decision
 
@@ -95,8 +92,7 @@ weak owner connectivity. They cannot keep the owner alive, mint authority,
 accept raw descriptors as authority, or introduce a global runtime lock. The
 existing direct runtime methods delegate to the same owner state.
 
-The boundary is a public owner facade, not a consumer trait. Runtime World may
-only carry, call, and correlate its concrete types.
+Runtime World may only carry, call, and correlate concrete owner-facade types.
 
 ## Owner Root And Port Lifecycle
 
@@ -313,15 +309,16 @@ different: it increments an exact dropped/aggregated-event counter and exposes
 a typed diagnostic omission without denying or changing an otherwise lawful
 owner operation. No service adds an unbounded request queue.
 
-Ordinary costs are reported honestly:
-
-- basis observation: target lookup plus exact observation cost;
-- same-branch operation: target-cell synchronization plus existing Signal
-  operation cost;
-- unrelated-branch operation: independent target-cell synchronization;
-- fork: source capture plus bounded registry insertion;
-- retirement: target validation plus bounded registry/retention accounting;
-- owner close: bounded batches when work scales with live branch count.
+Ordinary work is target-local; fork adds source capture and bounded insertion,
+retirement adds retention accounting, and close uses bounded batches. Storage
+changes must preserve non-forking performance, not merely cheap fork counters.
+Before changing representation, freeze existing performance-profile workloads
+and budgets. Compare pre-milestone baseline and final release builds on identical
+hardware, features, ordering, warmup, and repetitions; isolate allocation probes.
+Measure elapsed distributions, allocation calls/bytes, peak live bytes, and
+structural work. Run the complete affected profile family. Neither stale goldens
+nor baseline regeneration may conceal a regression; apply existing budgets to
+the direct baseline comparison.
 
 Signal reports structural counts and installed capacities unless an existing
 owner-owned byte accountant measures the exact requested scope. This milestone
@@ -461,6 +458,16 @@ This milestone adds no dependency from either owner to:
 Boundary checks also reject consumer-defined owner traits and descriptor-based
 authority reconstruction.
 
+## Adversarial Courtroom
+
+The decisive court parks Signal branch A after cell admission but before
+movement, completes unrelated branch B, then releases A. It separately races
+two admissible operations from one basis and requires exactly one movement.
+Public observations must expose shadow state, global locking, leaked capacity,
+owner clones, and cross-branch poison. The Relational companion reaches the
+existing basis/lifecycle owners through the bundle alone. The families below
+define the denial, lifecycle, compiler, model, and scale evidence.
+
 ## Phase Progression
 
 Contract evolution alternates serial gates and bounded parallel waves. Gates
@@ -470,6 +477,10 @@ Each lane owns its subordinate assembly/test registration and ships
 behavior or independent evidence, not placeholders or merge-only work. Contract
 defects return to one serial gate, never adapters, aliases, duplicate traits,
 or compatibility lanes.
+
+Each gate closes only its stated claim: inspect the integrated lane changes,
+run their affected proofs, and resolve material findings before dependents
+proceed. Stubs and internal-cell tests cannot certify public service completion.
 
 ### Phase 1: Serial owner-contract gate
 
@@ -495,7 +506,7 @@ or compatibility lanes.
 ### Phase 3: Serial Signal-kernel gate
 
 - integrate the kernel behind the sole non-cloneable `SignalRuntime` root;
-- prove two admitted cells can progress independently before service migration;
+- prove independent cell progress, real fork sharing, and ordinary-cost preservation before service migration;
 - freeze cell operations and port inputs/outcomes, then pre-register the basis, mutation, and lifecycle port slots in `owner_services/mod.rs`; and
 - leave facade aggregation and old-method delegation under one gate owner.
 
@@ -539,21 +550,9 @@ generated-context checks, perform the structural completion review against the
 final integrated diff, then freeze the 9.17.2 handoff. No review-only or merge-
 only lane counts toward the two-to-four implementation lanes above.
 
-## Adversarial Courtroom
-
-The decisive court parks Signal branch A after cell admission but before
-movement, completes unrelated branch B, then releases A. It separately races
-two operations from one basis and requires exactly one movement. Public owner
-observations must expose any shadow graph, global lock, leaked reservation,
-owner clone, or cross-branch poison. A focused Relational companion proves the
-new bundle reaches the existing basis and lifecycle owners without raw-runtime
-access or a second authority lane. The named families below own the remaining
-denial, lifecycle, compiler, model, and scale evidence.
-
 ## Test Evidence Architecture
 
-The integration evidence follows the same discipline as the Relational Supply
-Chain and Query Bank courts. It is not a collection of API examples:
+Integration evidence follows the Relational Supply Chain and Query Bank courts:
 
 - the production side is causally compiled through
   `worth_signal::facade::branch` and executes the real `SignalRuntime` owner;
@@ -610,20 +609,24 @@ families:
 2. **Signal facade provenance and baseline:** prove the declaration, admitted
    basis, public observation, and oracle agree. Deny foreign or equal-looking
    owner, branch, definition, lifecycle, generation, and restored-snapshot
-   substitutions before owner movement.
+   substitutions before movement with the exact typed reason, not generic error
+   presence. Same-Rust-type foreign-owner substitutions require runtime proof.
 3. **Independent-progress matrix:** for advance execution, fork source capture,
    snapshot capture, restoration, retirement, and close-drain work, park branch
-   A at every operation-control boundary at which a target cell, registry, or
-   lifecycle guard can be held. While A remains parked, complete every lawful
-   basis/mutation/lifecycle operation on B. Assert B's semantic result, zero A
-   contact/wait/movement deltas, and that B did not release A. A global lock
-   introduced in any real phase must make at least one matrix cell fail.
+   A at every reachable seam surrounding branch work, after permitted short
+   metadata guards release. While A remains parked, complete every lawful
+   basis/mutation/lifecycle operation on B, with zero A contact/wait/movement.
+   During close, test already-admitted B separately from new admission, which
+   must deny. B cannot release A; widening a metadata lock across branch work
+   must make the test fail.
 4. **Same-branch race matrix:** from the same admitted posture run
    advance/advance, advance/restore, advance/retire, restore/restore,
    restore/retire, snapshot/advance, and observe/retire. Mutating pairs produce
-   at most one canonical movement or retirement; losers return the exact typed
-   stale/no-movement posture. Observers receive one complete pre- or post-state,
-   never a mixed generation/snapshot. Every race ends with a healthy follow-up.
+   exactly one movement when both requests are independently admissible and
+   effectful; prove that precondition with uncontended twins. Retention-blocked
+   retirement is a separate typed-denial case. Losers preserve exact denial
+   reasons; observers receive complete pre- or post-state, never mixed state.
+   Every race ends with a healthy follow-up.
 5. **Legacy/port cutover:** interleave each remaining public
    `SignalRuntime` convenience operation with the corresponding port operation
    against one branch. Movement through either surface immediately stales the
@@ -632,12 +635,12 @@ families:
    if either surface addresses separate mutable state or bypasses the cell.
 6. **Fork and sharing:** prove a fork binds the exact source basis, receives a
    distinct owner-issued branch identity, and shares immutable graph structure.
-   Source capture and destination installation counters each increase once;
-   copied mutable graph nodes remain exactly zero across Court, Standard, and
-   Scale graph sizes. An owner-local focused proof compares the immutable
-   resource handles by allocation identity, while an integration allocation
-   probe proves fork allocation has no node-count slope; counters alone cannot
-   certify sharing.
+   Capture/installation counters each increase once; copied mutable graph nodes
+   stay zero at every scale. Compare actual storage allocation identities and
+   prove fork allocation has no node-count slope. Mutate source and destination:
+   only the changed branch's oracle values move. Measure the first write too;
+   copying is bounded by the declared changed-state granule, never deferred
+   whole-graph cloning. An eager-copy twin must violate the allocation bound.
 7. **Cancellation cutoffs:** at every cancellable pre-movement boundary for
    advance, fork, restore, and retire, cancel and prove no canonical effect,
    released reservations, and an immediate healthy twin. At every
@@ -665,25 +668,28 @@ families:
 11. **Facade and compiler:** compile-pass every public port method through the
     two concrete owner facades with its required `&self`, `Send + Sync`, and
     operation-specific generic bounds. Compile-fail local-only Signal
-    configuration issuance, raw identifiers, forged or wrong-owner bases,
+    configuration issuance, raw identifiers, forged bases,
     basis-port mutation, retirement without linear authority, consumed-outcome
     reuse, generic marker substitution, private-cell access, default-build
     test-control names/accessors, and public construction of port or unavailable
-    types.
+    types. Each negative fixture has a valid counterpart and fails at the
+    intended authority boundary, not from missing imports or unrelated errors.
 12. **Seeded model sequences:** apply deterministic sequences of observe,
     readmit, retain/release, fork, advance, snapshot/restore, retire, close, and
     capability loss to the real owner and independent oracle. The CI profile
     must exercise every operation, every public outcome class, every lifecycle
     transition, and every ordered adjacent pair of state-changing operations at
     least once; the scheduled profile adds longer traces and concurrency.
-    Coverage is test-local semantic accounting, not production instrumentation.
-    On failure, print the seed and minimal reproducing prefix.
+    Reject missing reachable coverage; justify unreachable combinations from
+    owner contracts rather than silently skipping them. Print the seed and
+    minimal failing prefix; accounting stays test-local.
 13. **Structural cost:** vary live branches, graph size, unrelated operations,
     same-branch contenders, and retained bases independently. Assert the exact
     counter deltas and zero-copy/zero-unrelated-contact rules from the capacity
-    and cost contract. Court-to-Standard-to-Scale results must demonstrate that
-    ordinary target lookup and execution breadth do not acquire a slope in total
-    live branches.
+    and cost contract. Court/Standard/Scale use 2/64/4,096 live branches and
+    64/4,096/65,536 graph nodes, varying one axis at a time. Freeze repetitions,
+    contention/retention ceilings, and allocation bounds before implementation;
+    no ordinary target-work slope may depend on unrelated live branches.
 14. **Runtime-context locality:** execute with distinct non-`Clone` request
     contexts carrying drop sentinels. After success, denial, cancellation, and
     panic, prove the context is immediately caller-accessible and eventually
@@ -694,21 +700,16 @@ families:
 
 ## Lane And Harness Contract
 
-All Signal cases remain in `signal_owner_services.rs`; directory modules do
-not become extra Cargo integration targets. Compiler fixtures are executed as
-one grouped family to control compile cost.
+Use one Signal integration target, `signal_owner_services.rs`, with subordinate
+modules, and one grouped compiler-fixture family; no target-per-case proliferation.
 
-- The ordinary focused lane runs Relational service completion, provenance,
-  facade, the complete public-method matrix, Signal baseline/fork/sharing,
-  legacy/port cutover, terminal lifecycle, capacity, and the bounded semantic-
-  coverage model profile.
-- The CI operation-control lane runs with the test-only
-  `test-operation-control` feature and owns deterministic parks, same-branch
-  races, cancellation cutoffs, panic injection, capacity cleanup, close races,
-  and their healthy twins.
-- The scheduled ignored lane owns larger model sequences, contention matrices,
-  and named Court/Standard/Scale profiles with fixed configuration,
-  repetitions, p50/p95/p99, and structural counts.
+- **Focused:** both public-method matrices, provenance, facade, baseline,
+  sharing, legacy cutover, lifecycle, capacity, and bounded model coverage.
+- **CI operation-control:** deterministic parks/races, cancellation, panic,
+  capacity cleanup, close, and healthy twins under `test-operation-control`.
+- **Scheduled ignored:** longer models, contention, Court/Standard/Scale, and
+  affected performance profiles; fixed configurations/repetitions, p50/p95/p99,
+  and structural counts.
 
 The configuration matrix is the Cartesian product of `profile-compact`,
 `profile-standard`, and `profile-extended` with `parallel` disabled and
@@ -728,11 +729,11 @@ same public outcome, observation, counter, and cleanup posture as the ordinary
 binary. CI must fail if a command intended to select a required family executes
 zero cases or if a declared required test becomes ignored, renamed, or absent.
 
-`run_signal_owner_service_selection.sh` applies the same exact-selection rule
-as the existing Relational selector: list the target under the same features,
-filter, exactness, and ignored posture; require the declared executable roster;
-then execute that identical selection. The script proves lane selection only,
-not behavioral correctness.
+Both selectors require explicit executable rosters for these milestone lanes;
+a merely nonempty family is insufficient. List and run identical targets,
+default-feature posture, features, filters, and ignored posture. The Signal
+selector must support `--no-default-features`; rosters are reviewed against the
+scenario matrix, never generated solely from whatever tests happen to exist.
 
 The planned commands are:
 
@@ -743,21 +744,25 @@ cargo test -p worth-relational --all-features --all-targets
 cargo test -p worth-signal --all-targets
 cargo test -p worth-signal --doc
 cargo run -p worth-signal --example independent_branch_services
+cargo fmt --all --check
+cargo clippy -p worth-relational -p worth-signal --all-targets -- -D warnings
+bash scripts/ci/check_workspace_rust_line_caps.sh dirty
+cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .
+cargo run --manifest-path tools/agent-context/Cargo.toml -- check
 ```
 
 For each of the six feature configurations, CI additionally runs:
 
 ```text
 cargo test -p worth-signal --no-default-features --features <configuration> --all-targets
-bash scripts/ci/run_signal_owner_service_selection.sh --test signal_owner_services --features <configuration>,test-operation-control --selection operation_control::
+bash scripts/ci/run_signal_owner_service_selection.sh --test signal_owner_services --no-default-features --features <configuration>,test-operation-control --selection operation_control::
 ```
 
 The default-feature and `profile-extended,parallel` operation-control selectors
 also execute their declared ignored Scale roster with `--ignored`. Package
 commands are preservation gates, not substitutes for the focused court.
-Exact-selection wrappers govern named CI and scheduled families. A global fixed
-test count is not an acceptance criterion; the required semantic matrix and
-its declared executable rosters are.
+Supply repeated `--expect-name` arguments from the reviewed roster to every
+selector invocation above. Global test counts are not acceptance criteria.
 
 ## Wrong-Reason-Green And Sensitivity Contract
 
@@ -777,9 +782,10 @@ placement at the claimed boundary.
 
 ## Structural Completion Review
 
-Passing tests is necessary and insufficient for closure. The final reviewer
-must inspect the integrated production and test diff rather than accepting an
-agent's phase summary or a green command transcript. The review must establish:
+Passing tests is necessary and insufficient. An independent reviewer inspects
+the complete milestone diff, including earlier phase commits, not merely the
+last correction. Trace each required public operation from facade to canonical
+owner and its executable evidence. The review must establish:
 
 - every pre-milestone public Signal branch observation, readmission, retention,
   fork, advance, snapshot, restoration, retirement, and owner-status entry point
@@ -802,12 +808,9 @@ agent's phase summary or a green command transcript. The review must establish:
   topology, every touched Rust file satisfies the line cap, and no catch-all
   module absorbed the refactor.
 
-This is an implementation-diff review by someone other than the primary
-implementation agent, not a permanent proof ledger or source fingerprint
-system. The reviewer receives the governing specification, final production
-and test diffs, harness and fixtures, exact command results and timings,
-documentation, and known environment constraints. Every material finding is
-fixed at its production owner and the affected evidence reruns before closure.
+Review receives the spec, integrated diffs, fixtures, command results/timings,
+docs, and environment constraints. Fix material findings at their owner and
+rerun affected evidence; no permanent proof ledger or fingerprint system.
 
 ## Documentation Deliverables
 
@@ -844,19 +847,13 @@ closure. Documentation examples compile in the normal documentation lane.
 
 ## Must Ship
 
-- one weak `RelationalOwnerServicePorts` bundle completing the frozen facade;
-- `SignalRuntime` retained as the sole non-cloneable Signal owner root;
-- one concrete weak `SignalOwnerServicePorts` bundle;
-- concrete weak cloneable basis, mutation, and lifecycle ports;
-- one canonical branch registry and one execution cell per live branch;
-- delegation from existing runtime convenience methods;
-- exact same-branch compare-and-move behavior;
-- independent unrelated-branch progress;
-- terminal owner-close, cancellation, panic, and capability-loss behavior;
-- bounded registries and honest structural cost observations;
-- curated public facade, exact-selection CI support, focused tests, full
-  configuration/package regression, compiler fences, scale evidence, and
-  owner-facing documentation.
+- complete weak Relational and Signal bundles through the curated facades;
+- sole non-cloneable Signal root, canonical registry/cells, and compatibility
+  delegation;
+- same-branch compare-and-move, unrelated progress, lifecycle-total terminal
+  behavior, bounded resources, and measured cost preservation; and
+- every scenario family, compiler fence, configuration/scale lane,
+  exact-selection gate, executable example, and specified owner guide.
 
 ## Must Preserve
 
@@ -883,14 +880,9 @@ closure. Documentation examples compile in the normal documentation lane.
 
 Milestone 9.17.1.2 closes only when:
 
-- the complete Relational method matrix proves every promised operation through
-  `RelationalOwnerServicePorts` without receiving or exclusively borrowing
-  `RelationalRuntime`;
-- the complete Signal method matrix proves every promised operation through
-  concrete `worth_signal::facade::branch` ports using `&self`, with the exact
-  receiver and service-issuance bounds compiler-checked;
-- no composition-facing operation requires `&mut SignalRuntime` or a global
-  mutex around it;
+- both complete public method matrices execute through concrete ports using
+  `&self`, with issuance/receiver bounds compiler-checked and no whole-runtime
+  borrowing or global mutex;
 - every independent-progress matrix cell completes deterministically, and every
   same-branch race satisfies its exact movement/observation outcome;
 - mixed legacy/port sequences and races prove both public routes use the same
@@ -903,27 +895,26 @@ Milestone 9.17.1.2 closes only when:
   omission rather than masquerading as operational denial;
 - model-sequence semantic coverage reaches every operation, public outcome,
   lifecycle transition, and ordered state-changing adjacency required above;
-- exact structural counters prove zero unrelated-cell work, zero fork graph
-  copying, and no live-branch-count slope on ordinary target work;
+- counters and independent measurements prove sharing, bounded first writes,
+  zero unrelated work, and ordinary-cost preservation;
 - request runtime contexts are synchronously borrowed and never retained;
 - documentation and the executable example match the public facade;
 - every focused, exact-selection, six-configuration package and
   operation-control, default-feature, documentation, example, scheduled Scale,
   formatting, lint, dirty-line-cap, boundary, and generated-context command has
-  actually run and passed on the final integrated tree;
-- the causally compiled cargo-routing world, independent oracle, deterministic
-  operation-control lane, seeded model family, sensitivity cases, and teardown
-  assertions satisfy their contracts; and
-- final implementation-diff review finds no material defect, unresolved
-  finding, `Arc<Mutex<SignalRuntime<_>>>`, consumer adapter trait, background
-  queue, raw-id authority, undelegated mutation route, or second mutable branch
-  graph.
+  actually run and passed on the final integrated tree, except independently
+  established out-of-scope baseline debt under the rule below;
+- all specified world, oracle, harness, sensitivity, and teardown contracts
+  hold; and
+- final implementation-diff review finds no material defect or unresolved
+  finding against the authority, lifecycle, topology, or evidence contracts.
 
-No agent may infer closure from a subset of commands, a phase-completion note,
-the existence of named test files, compilation alone, or a previously green
-revision. Required evidence is evaluated against the final integrated diff;
-any production or test correction invalidates the affected prior results until
-they rerun.
+Missing, skipped, timed-out, zero-selected, or unrun required evidence leaves
+the milestone open. Prior green revisions and phase summaries cannot close it;
+corrections invalidate affected results until rerun. Pre-existing failures are
+repository debt only when reproduced on the unchanged baseline and reviewed
+as outside the causal scope; never report them as passing. Closure states the
+verified revision, remaining debt, and residual risk without claiming certainty.
 
 ## Exact Handoff To Milestone 9.17.2
 
