@@ -82,8 +82,7 @@ pub struct WorthQueryApplicationQueryContinuation<Schema, Query, Parameters, Que
     pub(super) graph_authority_identity: String,
     pub(super) provider_identity: String,
     pub(super) basis_descriptor: RelationalBranchBasisDescriptor,
-    pub(super) basis_retention:
-        worth_relational::facade::branch::RelationalComponentBasisRetentionLease,
+    pub(super) basis_retention: worth_relational::facade::branch::RelationalBranchRetentionLease,
     pub(super) index_id: DerivedIndexId,
     pub(super) index_generation: DerivedIndexGenerationId,
     pub(super) boundary: RelatedEntityOrderingBoundary,

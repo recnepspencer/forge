@@ -250,9 +250,14 @@ pub(crate) fn denied_request_response_completion_after_restore_staleness(
     let request_identity = admit_request_response_identity(runtime, node, truth_basis);
     let raw = request_response_raw_completion(&request_identity, 64);
     with_async_request_signal_runtime(runtime.signal_runtime_key, |signal_runtime| {
-        let snapshot = signal_runtime
-            .capture_snapshot()
-            .expect("snapshot capture should succeed without managed queue bindings");
+        let branch = signal_runtime.current_branch();
+        let basis = signal_runtime
+            .observe_signal_branch_basis(branch.clone())
+            .expect("active branch should admit an owner-bound basis");
+        let (snapshot, _captured_basis) = signal_runtime
+            .capture_signal_branch_snapshot(&basis)
+            .expect("snapshot capture should succeed through the owner basis")
+            .into_parts();
         let node = request_identity
             .lowered()
             .request_response_declaration()
@@ -261,8 +266,11 @@ pub(crate) fn denied_request_response_completion_after_restore_staleness(
         signal_runtime
             .admit_resource_request(ResourceRequestIntent::new(node))
             .expect("post-snapshot request should mutate runtime before restore");
+        let restore_basis = signal_runtime
+            .observe_signal_branch_basis(branch)
+            .expect("mutated branch should admit a current owner-bound basis");
         signal_runtime
-            .restore_snapshot(&snapshot)
+            .restore_signal_branch(&restore_basis, &snapshot)
             .expect("restore should rekey resource request handles");
     })
     .expect("signal runtime should stay on the owning thread");

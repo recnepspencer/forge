@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn complexity_budget_relation_integrity_skips_entity_only_mutation_work() {
-    let mut runtime = relation_integrity_cardinality_runtime();
-    let entity = create_entity(&mut runtime, "entity-only");
+    let runtime = relation_integrity_cardinality_runtime();
+    let entity = create_entity(&runtime, "entity-only");
 
     runtime.performance_access().reset_counters();
-    let _ = update_entity(&mut runtime, entity, "entity-only-updated");
+    let _ = update_entity(&runtime, entity, "entity-only-updated");
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.relation_integrity_contracts_evaluated, 0);
@@ -19,15 +19,15 @@ fn complexity_budget_relation_integrity_skips_entity_only_mutation_work() {
 
 #[test]
 fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidates() {
-    let mut runtime = relation_integrity_uniqueness_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let _existing = create_relation(&mut runtime, source, target, "existing");
+    let runtime = relation_integrity_uniqueness_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let _existing = create_relation(&runtime, source, target, "existing");
     for index in 0..10 {
-        let other_source = create_entity(&mut runtime, &format!("other-source-{index}"));
-        let other_target = create_entity(&mut runtime, &format!("other-target-{index}"));
+        let other_source = create_entity(&runtime, &format!("other-source-{index}"));
+        let other_target = create_entity(&runtime, &format!("other-target-{index}"));
         let _ = create_relation(
-            &mut runtime,
+            &runtime,
             other_source,
             other_target,
             &format!("other-rel-{index}"),
@@ -35,7 +35,7 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
     }
 
     runtime.performance_access().reset_counters();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(WorkerIntentBatch::new("duplicate-unique-relation").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -47,8 +47,9 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
-    ));
-    let error = txn.commit(&mut runtime).unwrap_err();
+    ))
+    .expect("test staging stays within configured resource budgets");
+    let error = txn.commit(&runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -63,12 +64,12 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
 
 #[test]
 fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
-    let mut runtime = relation_integrity_symmetry_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = relation_integrity_symmetry_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
 
     runtime.performance_access().reset_counters();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("missing-twin").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -80,8 +81,9 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
-    let error = txn.commit(&mut runtime).unwrap_err();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let error = txn.commit(&runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -96,18 +98,18 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
 
 #[test]
 fn complexity_budget_relation_integrity_endpoint_deletion_checks_only_deleted_endpoints() {
-    let mut runtime = relation_integrity_endpoint_deletion_runtime();
-    let (source, _target, _relation) =
-        create_endpoint_deletion_relation_fixture(&mut runtime, "live");
+    let runtime = relation_integrity_endpoint_deletion_runtime();
+    let (source, _target, _relation) = create_endpoint_deletion_relation_fixture(&runtime, "live");
 
     runtime.performance_access().reset_counters();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("delete-source").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
         )),
-    );
-    let error = txn.commit(&mut runtime).unwrap_err();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let error = txn.commit(&runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -122,13 +124,13 @@ fn complexity_budget_relation_integrity_endpoint_deletion_checks_only_deleted_en
 
 #[test]
 fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_contracts() {
-    let mut runtime = relation_integrity_multi_contract_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let _existing = create_relation(&mut runtime, source, target, "existing");
+    let runtime = relation_integrity_multi_contract_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let _existing = create_relation(&runtime, source, target, "existing");
 
     runtime.performance_access().reset_counters();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(WorkerIntentBatch::new("duplicate-and-missing-twin").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -140,8 +142,9 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
-    ));
-    let _error = txn.commit(&mut runtime).unwrap_err();
+    ))
+    .expect("test staging stays within configured resource budgets");
+    let _error = txn.commit(&runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.relation_integrity_contracts_evaluated, 3);
@@ -154,10 +157,10 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
 
 #[test]
 fn complexity_budget_relation_integrity_minimum_certification_reports_snapshot_breadth() {
-    let mut runtime = relation_integrity_minimum_certification_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    create_relation(&mut runtime, source, target, "single");
+    let runtime = relation_integrity_minimum_certification_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    create_relation(&runtime, source, target, "single");
 
     runtime.performance_access().reset_counters();
     let result = runtime.validation().certification_state();

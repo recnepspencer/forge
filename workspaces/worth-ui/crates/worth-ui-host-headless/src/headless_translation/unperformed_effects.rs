@@ -11,6 +11,8 @@ pub(super) fn unperformed_effects(
     let mut effects = vec![UiHeadlessUnperformedEffect::NativePaint {
         filled_rect_count: u32::try_from(projection.filled_rects().rows().len())
             .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+        portal_overlay_count: u32::try_from(projection.portal_overlays().rows().len())
+            .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
         semantic_text_count: u32::try_from(projection.semantic_text().rows().len())
             .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
         preview_node_count: matching_node_count(projection, |node| {
@@ -39,21 +41,6 @@ fn node_unperformed_effects(
         effects.push(UiHeadlessUnperformedEffect::Accessibility {
             node_count: accessibility,
         });
-    }
-    let focus = matching_node_count(projection, |node| {
-        node.participation().focus().status() == UiMountedParticipationStatus::Admitted
-    })?;
-    if focus > 0 {
-        effects.push(UiHeadlessUnperformedEffect::Focus { node_count: focus });
-    }
-    let motion = matching_node_count(projection, |node| {
-        matches!(
-            node.motion(),
-            worth_ui_host_contract::UiMountedMotionProjection::Admitted
-        )
-    })?;
-    if motion > 0 {
-        effects.push(UiHeadlessUnperformedEffect::Motion { node_count: motion });
     }
     let diagnostic = matching_node_count(projection, |node| {
         matches!(

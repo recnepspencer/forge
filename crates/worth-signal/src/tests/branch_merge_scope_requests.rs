@@ -13,13 +13,13 @@ fn guided_merge_defaults_and_explicit_full_branch_requests_normalize_identically
     let main = runtime.current_branch();
 
     let default_request = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .build_normalized_request()
         .expect("default guided merge should build a normalized full-branch request");
     let explicit_request = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .full_branch()
@@ -98,7 +98,7 @@ fn guided_and_proof_visible_selected_node_requests_normalize_identically() {
     let node_b = NodeId::new(3, 2);
 
     let guided_scope = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([node_a, node_b, node_a])
@@ -194,7 +194,7 @@ fn guided_and_proof_visible_selected_aspect_requests_normalize_identically() {
     let main = runtime.current_branch();
 
     let guided_scope = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects([
@@ -241,14 +241,14 @@ fn empty_scoped_requests_fail_before_merge_planning_begins() {
     let plans_before = runtime.observe().metrics().planner.plans_built;
 
     let empty_nodes_request = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes(Vec::<NodeId>::new())
         .build_request()
         .expect("guided merge should build an empty selected-node request for boundary denial");
     let empty_aspects_request = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects(Vec::<SignalSelectedAspectRequestEntry>::new())
@@ -265,7 +265,7 @@ fn empty_scoped_requests_fail_before_merge_planning_begins() {
     );
 
     let err = match runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes(Vec::<NodeId>::new())
@@ -280,7 +280,7 @@ fn empty_scoped_requests_fail_before_merge_planning_begins() {
         "expected typed empty selected-node denial, got {err:?}"
     );
     let err = match runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_aspects(Vec::<SignalSelectedAspectRequestEntry>::new())
@@ -312,7 +312,7 @@ fn scoped_requests_do_not_silently_widen_into_full_branch_planning() {
     let main = runtime.current_branch();
 
     let err = match runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_nodes([scoped_node])
@@ -325,9 +325,12 @@ fn scoped_requests_do_not_silently_widen_into_full_branch_planning() {
     match err {
         SignalError::BranchMergeFailed {
             kind: BranchMergeFailureKind::ScopedMergeDenied,
-            evidence: Some(BranchMergeFailureEvidence::ScopedDenial(evidence)),
+            evidence: Some(evidence),
             ..
         } => {
+            let BranchMergeFailureEvidence::ScopedDenial(evidence) = *evidence else {
+                panic!("expected scoped denial evidence")
+            };
             assert_eq!(
                 evidence.denial_kind,
                 BranchMergeScopedDenialKind::SelectedNodeMissingFromSourceScope
@@ -352,14 +355,14 @@ fn selected_node_and_selected_aspect_requests_keep_family_distinct_even_on_same_
     let main = runtime.current_branch();
 
     let selected_nodes = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([node])
         .build_normalized_request()
         .expect("selected-node request should normalize");
     let selected_aspects = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .selected_aspects([SignalSelectedAspectRequestEntry::new(node, ASPECT_A)])

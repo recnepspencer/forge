@@ -20,7 +20,7 @@ use crate::publication::patch::data::{
 use crate::runtime::RelationalReplayRecord;
 use crate::runtime::RelationalRuntime;
 
-pub(crate) use failure_diagnostics::publication_failure_diagnostic;
+pub(crate) use failure_diagnostics::invariant_failure_diagnostic;
 
 pub struct PublicationSurface<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -69,16 +69,18 @@ impl<'runtime> PublicationSurface<'runtime> {
         PublicationSubscriberStreamAccess::new(self.runtime)
     }
 
-    pub fn latest_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
-        self.runtime.publication.latest_bundle.as_ref()
+    pub fn latest_bundle(
+        &self,
+    ) -> Option<std::sync::Arc<PublicationBundle<RelationalReplayRecord>>> {
+        self.runtime.publication.latest_bundle()
     }
 
-    pub fn latest_patch(&self) -> Option<&PublishedAuthoritativePatchEnvelope> {
-        self.latest_bundle().map(|bundle| &bundle.patch)
+    pub fn latest_patch(&self) -> Option<PublishedAuthoritativePatchEnvelope> {
+        self.latest_bundle().map(|bundle| bundle.patch.clone())
     }
 
-    pub fn latest_replay(&self) -> Option<&RelationalReplayRecord> {
-        self.latest_bundle().map(|bundle| &bundle.replay)
+    pub fn latest_replay(&self) -> Option<RelationalReplayRecord> {
+        self.latest_bundle().map(|bundle| bundle.replay.clone())
     }
 
     pub fn observation_snapshot(&self) -> PublicationObservationSnapshot {
@@ -93,7 +95,7 @@ impl<'runtime> PublicationSurface<'runtime> {
         self.diagnostic_access().facade()
     }
 
-    pub fn diagnostic_artifacts(&self) -> &[RelationalDiagnosticArtifact] {
+    pub fn diagnostic_artifacts(&self) -> Vec<RelationalDiagnosticArtifact> {
         self.runtime.publication_diagnostics()
     }
 

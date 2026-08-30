@@ -31,6 +31,14 @@ fn program_admission_is_bounded_and_component_semantic() {
 }
 
 #[test]
+fn semantic_text_successor_preserves_the_callers_exact_revision_basis() {
+    let change = UiNativeComponentSemanticTextChange::successor("component:status", 7, "Current")
+        .expect("a bounded semantic successor is valid");
+    assert_eq!(change.expected_revision(), 7);
+    assert_eq!(change.text(), "Current");
+}
+
+#[test]
 fn presented_source_capture_is_bounded_to_one_program_frame() {
     let captured = UiNativeApplicationFrame::present_current().capture_presented_source_pixels();
     assert!(UiNativeApplicationProgram::new([captured]).is_ok());

@@ -3,7 +3,7 @@ use crate::transactions::data::{CommitResult, TransactionCommitError};
 
 impl RelationalRuntime {
     pub fn commit_branch_transaction(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
     ) -> Result<CommitResult, TransactionCommitError> {
         let candidate = self.prepare_branch_transaction(transaction)?;
@@ -11,31 +11,71 @@ impl RelationalRuntime {
     }
 
     pub fn prepare_branch_transaction(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
     ) -> Result<crate::mvcc::PreparedRelationalCommitCandidate, TransactionCommitError> {
-        let proposal = self
-            .validate_branch_transaction(transaction)
-            .map_err(attach_validation_rejection)?;
-        self.prepare_validated_proposal(proposal)
+        self.preparation_port()
+            .prepare_branch_transaction(transaction)
     }
-}
 
-fn attach_validation_rejection(error: TransactionCommitError) -> TransactionCommitError {
-    let mut commit_log = crate::transactions::data::CommitLog::new();
-    let phase = crate::transactions::data::CommitPhase::DraftPreparation;
-    commit_log.begin_phase(phase);
-    match &error {
-        TransactionCommitError::Conflict { error, .. } => {
-            commit_log.record_rejection(phase, Some(error.code()), None, error.detail());
-        }
-        TransactionCommitError::Publication { error, .. } => {
-            commit_log.record_rejection(phase, None, Some(error.stage), error.detail.clone());
-        }
-        TransactionCommitError::Preparation { error, .. } => {
-            commit_log.record_rejection(phase, Some(error.code()), None, error.detail());
-        }
-        TransactionCommitError::PerformedButDurabilityDeferred { .. } => {}
+    /// The independently borrowable preparation service for this runtime.
+    ///
+    /// Preparation is one of four owner services obtained from a shared borrow
+    /// of the runtime: preparation here,
+    /// [`RelationalRuntime::fork_port`](crate::runtime::RelationalRuntime::fork_port)
+    /// for branch creation,
+    /// [`RelationalRuntime::publication_port`](crate::runtime::RelationalRuntime::publication_port)
+    /// for linearization, and
+    /// [`RelationalRuntime::settlement_port`](crate::runtime::RelationalRuntime::settlement_port)
+    /// for durability and repair. Each is `Clone + Send + Sync`, so unrelated
+    /// branches can progress at once without any caller excluding another.
+    ///
+    /// Preparation performs the fallible work *before* effects, and a prepared
+    /// candidate that is never published moves no public reference:
+    ///
+    /// ```
+    /// use worth_relational::facade::mvcc::RelationalTransactionIntent;
+    /// use worth_relational::facade::runtime::RelationalRuntimeApi;
+    /// use worth_relational::facade::schema::RelationalSchemaRegistry;
+    /// use worth_relational::facade::transactions::WorkerIntentBatch;
+    ///
+    /// let runtime = RelationalRuntimeApi::builder()
+    ///     .schema_registry(RelationalSchemaRegistry::new())
+    ///     .build();
+    /// let preparation = runtime.preparation_port();
+    ///
+    /// let identity = runtime.main_branch_identity();
+    /// let (before, basis) = runtime
+    ///     .observe_branch(&identity)
+    ///     .expect("an owner-issued identity observes its own branch");
+    ///
+    /// let mut transaction = runtime
+    ///     .begin_branch_transaction(&basis, RelationalTransactionIntent::ordinary())
+    ///     .expect("an exact admitted basis admits a branch transaction");
+    /// transaction
+    ///     .push_batch(WorkerIntentBatch::new("preparation-port-doc"))
+    ///     .expect("one empty batch stages within the declared budget");
+    ///
+    /// let candidate = preparation
+    ///     .prepare_branch_transaction(transaction)
+    ///     .expect("preparation validates without moving the branch");
+    /// preparation
+    ///     .discard_prepared_candidate(candidate)
+    ///     .expect("a candidate is consumed exactly once, by discard or publication");
+    ///
+    /// // Discarding released the candidate's retained residue and moved nothing:
+    /// // the branch still observes the exact same target and generation.
+    /// let (after, _basis) = runtime
+    ///     .observe_branch(&identity)
+    ///     .expect("the branch is still observable");
+    /// assert_eq!(after, before);
+    /// ```
+    ///
+    /// The runnable owner workflow, including concurrent publication on
+    /// unrelated branches, is `examples/branch_local_mvcc.rs`.
+    pub fn preparation_port(&self) -> crate::mvcc::RelationalPreparationPort {
+        crate::mvcc::RelationalPreparationPort::new(
+            crate::runtime::RelationalPreparationOwnerBinding::from_runtime(self),
+        )
     }
-    error.with_commit_log(commit_log)
 }

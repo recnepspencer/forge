@@ -2,9 +2,9 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_matches_patch_stream_for_committed_history() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "a");
-    let _ = create_entity_outcome(&mut runtime, "b");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&runtime, "a");
+    let _ = create_entity_outcome(&runtime, "b");
 
     let patch_batch = runtime
         .publication()
@@ -23,11 +23,11 @@ fn subscriber_stream_matches_patch_stream_for_committed_history() {
 
 #[test]
 fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "a");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "a");
     runtime.durability_authority().checkpoint().unwrap();
-    let _second = create_entity_outcome(&mut runtime, "b");
-    let _third = create_entity_outcome(&mut runtime, "c");
+    let _second = create_entity_outcome(&runtime, "b");
+    let _third = create_entity_outcome(&runtime, "c");
 
     assert!(runtime
         .history_authority()
@@ -46,7 +46,7 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_patch_batch = recovered
@@ -62,11 +62,11 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
 
 #[test]
 fn subscriber_stream_keeps_patch_parity_when_later_retained_envelope_is_missing() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let runtime = persisted_runtime_with_test_schema();
+    let _first = create_entity_outcome(&runtime, "a");
     runtime.durability_authority().checkpoint().unwrap();
-    let second = create_entity_outcome(&mut runtime, "b");
-    let _third = create_entity_outcome(&mut runtime, "c");
+    let second = create_entity_outcome(&runtime, "b");
+    let _third = create_entity_outcome(&runtime, "c");
 
     assert!(runtime
         .history_authority()

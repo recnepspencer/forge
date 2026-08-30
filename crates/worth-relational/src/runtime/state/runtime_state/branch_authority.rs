@@ -74,25 +74,6 @@ impl RelationalRuntime {
         self.admitted_branch_basis_for_identity(identity)
     }
 
-    /// Admit the configured main branch through its owner-issued identity.
-    pub fn admit_main_branch_basis(
-        &self,
-    ) -> Result<AdmittedRelationalBranchBasis, RelationalBranchBasisDenial> {
-        self.admit_branch_basis(&self.main_branch_identity())
-    }
-
-    /// Resolve an explicit branch name to its owner-issued identity, then
-    /// admit that identity as an exact basis.
-    pub fn admit_named_branch_basis(
-        &self,
-        branch_id: &BranchId,
-    ) -> Result<AdmittedRelationalBranchBasis, RelationalBranchBasisDenial> {
-        let identity = self
-            .branch_identity(branch_id)
-            .map_err(identity_to_basis_denial)?;
-        self.admit_branch_basis(&identity)
-    }
-
     pub(crate) fn admitted_branch_basis_for_merge_branch(
         &self,
         branch_id: &BranchId,
@@ -105,90 +86,6 @@ impl RelationalRuntime {
             .map_err(|denial| map_basis_denial(identity_to_basis_denial(denial)))?;
         self.admitted_branch_basis_for_identity(&identity)
             .map_err(map_basis_denial)
-    }
-
-    pub(crate) fn admitted_branch_basis_is_current(
-        &self,
-        binding: &AdmittedRelationalBranchBasis,
-    ) -> bool {
-        self.history
-            .branch_cell(binding.identity().branch_id())
-            .is_some_and(|cell| {
-                cell.identity() == binding.identity()
-                    && cell.observation() == *binding.reference()
-                    && cell.truth_version() == binding.truth_version()
-            })
-    }
-
-    pub(crate) fn admitted_branch_basis_commit(
-        &self,
-        binding: &AdmittedRelationalBranchBasis,
-    ) -> Option<crate::history::RelationalCommitIdentity> {
-        let cell = self.history.branch_cell(binding.identity().branch_id())?;
-        if cell.identity() != binding.identity()
-            || cell.observation() != *binding.reference()
-            || cell.truth_version() != binding.truth_version()
-        {
-            return None;
-        }
-        match binding.reference().target() {
-            worth_foundational::FoundationalBranchTarget::Empty => None,
-            worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                let commit_id = crate::history::data::CommitId(target.selected_commit_id());
-                self.history
-                    .commit_catalog
-                    .get(commit_id)
-                    .map(|artifact| artifact.identity().clone())
-                    .or_else(|| {
-                        cell.root().and_then(|root| {
-                            let envelope = root.canonical_envelope()?;
-                            (envelope.commit.commit_id == commit_id).then(|| {
-                                crate::history::RelationalCommitIdentity::new(
-                                    envelope.commit.commit_id,
-                                    envelope.commit.version_id,
-                                    envelope.branch_context.clone(),
-                                )
-                            })
-                        })
-                    })
-            }
-        }
-    }
-
-    /// Returns the exact branch-local version represented by an owner-issued
-    /// binding. An empty branch has a real local basis (version zero); it must
-    /// never borrow the runtime-wide current version as a fallback.
-    pub(crate) fn admitted_branch_basis_version(
-        &self,
-        binding: &AdmittedRelationalBranchBasis,
-    ) -> Option<crate::identity::data::VersionId> {
-        let cell = self.history.branch_cell(binding.identity().branch_id())?;
-        if cell.identity() != binding.identity()
-            || cell.observation() != *binding.reference()
-            || cell.truth_version() != binding.truth_version()
-        {
-            return None;
-        }
-        match binding.reference().target() {
-            worth_foundational::FoundationalBranchTarget::Empty => {
-                Some(crate::identity::data::VersionId(0))
-            }
-            worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                let commit_id = crate::history::data::CommitId(target.selected_commit_id());
-                self.history
-                    .commit_catalog
-                    .get(commit_id)
-                    .map(|artifact| artifact.identity().version_id())
-                    .or_else(|| {
-                        cell.root().and_then(|root| {
-                            root.canonical_envelope().and_then(|envelope| {
-                                (envelope.commit.commit_id == commit_id)
-                                    .then_some(envelope.commit.version_id)
-                            })
-                        })
-                    })
-            }
-        }
     }
 
     pub(crate) fn runtime_instance_id(&self) -> u64 {
@@ -229,9 +126,23 @@ fn map_basis_denial(
             expected_runtime_instance_id,
             actual_runtime_instance_id,
         },
-        RelationalBranchBasisDenial::UnknownBranch(branch)
-        | RelationalBranchBasisDenial::ArchivedBranch(branch) => {
+        RelationalBranchBasisDenial::UnknownBranch(branch) => {
             crate::merge::data::RelationalMergeRequestBindingDenial::UnknownBranch(branch)
+        }
+        RelationalBranchBasisDenial::ArchivedBranch(branch) => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::ArchivedBranch(branch)
+        }
+        RelationalBranchBasisDenial::DeletingBranch(branch) => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::DeletingBranch(branch)
+        }
+        RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::RetentionCapacityExhausted
+        }
+        RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::RetentionIdentityExhausted
+        }
+        RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::SnapshotIdentityExhausted
         }
         _ => crate::merge::data::RelationalMergeRequestBindingDenial::IdentityMismatch,
     }

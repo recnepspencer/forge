@@ -7,7 +7,8 @@ use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId, SignalS
 use super::super::runtime_state::{ExplicitBranchForkPacket, SignalRuntime};
 use super::branches::{BranchAncestryState, BranchState};
 use super::fork_snapshot::materialize_snapshot_fork_state;
-use super::{SignalBranchBasisArtifact, SignalBranchBasisDenial};
+use super::fork_validation::{expect_fork_branch_basis, validate_fork_branch_name};
+use super::SignalBranchBasisArtifact;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchForkRequestBasis {
@@ -70,6 +71,8 @@ impl SignalBranchForkRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchForkDenial {
+    InvalidBranchIdentity,
+    BranchIdentityExhausted,
     UnknownParentBranch {
         parent_branch_id: SignalBranchId,
     },
@@ -180,6 +183,15 @@ where
         request: SignalBranchForkRequest,
         snapshot: Option<&SignalSnapshotV1>,
     ) -> TransitionOutcome<SignalBranchForkReceipt, SignalBranchForkDenial> {
+        let validated_name = match validate_fork_branch_name(request.branch_name()) {
+            Ok(name) => name,
+            Err(_) => {
+                self.with_telemetry(|telemetry| {
+                    telemetry.transaction.explicit_fork_denial_count += 1
+                });
+                return TransitionOutcome::denied(SignalBranchForkDenial::InvalidBranchIdentity);
+            }
+        };
         let resolved = match self.resolve_branch_fork_request(&request, snapshot) {
             Ok(resolved) => resolved,
             Err(denial) => {
@@ -193,11 +205,16 @@ where
         let current_branch_name = resolved.parent_branch.name.clone();
         let parent_branch_id = resolved.parent_branch.id;
         let mut branch_state = resolved.source_branch_state;
-        let handle = self.graph.diagnostics_state_mut().create_branch_from_basis(
-            request.branch_name().to_owned(),
+        let handle = match self.branches.create_live_branch(
+            validated_name,
             parent_branch_id,
             resolved.created_branch_head_snapshot_id,
-        );
+        ) {
+            Ok(handle) => handle,
+            Err(_) => {
+                return TransitionOutcome::denied(SignalBranchForkDenial::BranchIdentityExhausted)
+            }
+        };
         *branch_state.ancestry_mut() = BranchAncestryState::new(
             handle.id,
             Some(parent_branch_id),
@@ -208,10 +225,8 @@ where
         self.branches
             .branch_mutation_ledger_mut(parent_branch_id, resolved.parent_branch.head_snapshot_id)
             .clear_all(resolved.parent_branch.head_snapshot_id);
-        branch_state
-            .graph_mut()
-            .diagnostics_state_mut()
-            .set_active_branch(handle.id);
+        self.branches
+            .project_catalog(handle.id, branch_state.graph_mut());
         self.with_telemetry(|telemetry| telemetry.transaction.explicit_fork_count += 1);
         if resolved.requested_snapshot_basis.is_some() {
             self.with_telemetry(|telemetry| {
@@ -225,8 +240,7 @@ where
                 branch_state,
             ))
             .expect("validated fork admission must produce a well-formed fork packet");
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.project_branch_catalog();
         crate::diagnostics::recorder::record_snapshot_event(
             &mut self.graph,
             crate::diagnostics::replay::ReplayEventKind::BranchCreated,
@@ -284,7 +298,7 @@ where
                     },
                 )?;
                 let parent_basis =
-                    expect_branch_basis(self.branch_basis_artifact(parent_branch.clone()));
+                    expect_fork_branch_basis(self.branch_basis_artifact(parent_branch.clone()));
                 let source_branch_state =
                     self.materialize_parent_head_fork_state(parent_branch.clone())?;
                 Ok(ResolvedForkRequest {
@@ -333,8 +347,8 @@ where
                     });
                 }
                 let parent_basis =
-                    expect_branch_basis(self.branch_basis_artifact(parent_branch.clone()));
-                let requested_snapshot_basis = expect_branch_basis(
+                    expect_fork_branch_basis(self.branch_basis_artifact(parent_branch.clone()));
+                let requested_snapshot_basis = expect_fork_branch_basis(
                     self.snapshot_branch_basis_artifact(parent_branch.clone(), snapshot),
                 );
                 let source_branch_state =
@@ -378,14 +392,5 @@ where
             }
             other => panic!("heavy branch capture returned an undeclared failure: {other}"),
         }
-    }
-}
-
-fn expect_branch_basis(
-    outcome: TransitionOutcome<SignalBranchBasisArtifact, SignalBranchBasisDenial>,
-) -> SignalBranchBasisArtifact {
-    match outcome {
-        TransitionOutcome::Success(basis) => basis,
-        other => panic!("validated branch fork basis must succeed, got {other:?}"),
     }
 }

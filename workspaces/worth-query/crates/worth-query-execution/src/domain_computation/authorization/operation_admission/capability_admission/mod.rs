@@ -40,7 +40,10 @@ where
         WorthQueryOperationAuthorizationDenial,
     >
     where
-        Input: ApplicationCapabilityRequest<Schema, Capability>,
+        Operation: 'static,
+        Input: ApplicationCapabilityRequest<Schema, Capability>
+            + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
+            + 'static,
     {
         self.admit_capability_access_inner(principal, capability, input, request, None)
     }
@@ -63,7 +66,10 @@ where
         WorthQueryOperationAuthorizationDenial,
     >
     where
-        Input: ApplicationCapabilityRequest<Schema, Capability>,
+        Operation: 'static,
+        Input: ApplicationCapabilityRequest<Schema, Capability>
+            + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
+            + 'static,
     {
         self.admit_capability_access_inner(principal, capability, input, request, Some(approved))
     }
@@ -80,7 +86,10 @@ where
         WorthQueryOperationAuthorizationDenial,
     >
     where
-        Input: ApplicationCapabilityRequest<Schema, Capability>,
+        Operation: 'static,
+        Input: ApplicationCapabilityRequest<Schema, Capability>
+            + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
+            + 'static,
     {
         admit_request(request, capability.contract().operation())?;
         let prepared =

@@ -57,6 +57,16 @@ impl RelationalRootRegion {
             optional_cache_bytes: self.allocation_inventory.optional_cache_bytes,
         }
     }
+
+    pub(super) fn reclaimable_unique_authoritative_bytes(&self) -> u64 {
+        let mut bytes = std::mem::size_of::<Self>() as u64;
+        if Arc::strong_count(&self.partition) == 1 {
+            bytes = bytes
+                .saturating_add(std::mem::size_of::<PartitionState>() as u64)
+                .saturating_add(self.allocation_inventory.authoritative_bytes);
+        }
+        bytes
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -8,11 +8,11 @@ use worth_foundational::facade::PortableRecordAspectPatch;
 
 #[test]
 fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let source_key = crate::symbols::data::ClientKey::raw("same-commit-source");
     let target_key = crate::symbols::data::ClientKey::raw("same-commit-target");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("same-commit-graph")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -57,10 +57,11 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                     fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let outcome = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("same-commit graph creation should succeed");
     let created_entities = changed_entities(&outcome);
     let created_relations = changed_relations(&outcome);
@@ -93,11 +94,11 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
 
 #[test]
 fn bulk_relation_create_can_target_same_commit_created_entities() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let source_key = crate::symbols::data::ClientKey::raw("bulk-created-source");
     let target_key = crate::symbols::data::ClientKey::raw("bulk-created-target");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("bulk-graph")
             .push(MutationIntent::Create(CreateIntent::BulkEntities(
@@ -143,10 +144,11 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
                     field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let outcome = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("bulk relation create against created refs should succeed");
 
     assert_eq!(changed_entities(&outcome).len(), 2);
@@ -178,7 +180,7 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
 
 #[test]
 fn relation_aspect_create_records_exact_owner_correspondence() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let source_key = crate::symbols::data::ClientKey::raw("aspect-created-source");
     let target_key = crate::symbols::data::ClientKey::raw("aspect-created-target");
     let relation_key = crate::symbols::data::ClientKey::raw("aspect-created-edge");
@@ -193,7 +195,7 @@ fn relation_aspect_create_records_exact_owner_correspondence() {
         client_key: target_key.clone(),
     };
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("aspect-graph")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -226,10 +228,11 @@ fn relation_aspect_create_records_exact_owner_correspondence() {
                     aspect_patch: PortableRecordAspectPatch::new([]),
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let outcome = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("same-commit relation-aspect creation should succeed");
     let created_relation = changed_relations(&outcome)[0];
     assert_eq!(
@@ -246,10 +249,10 @@ fn relation_aspect_create_records_exact_owner_correspondence() {
 
 #[test]
 fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let missing_key = crate::symbols::data::ClientKey::raw("missing-created-endpoint");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("invalid-created-ref").push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -273,10 +276,11 @@ fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("missing created ref should fail closed");
     match error {
         TransactionCommitError::Conflict { error, .. } => {

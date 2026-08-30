@@ -11,6 +11,9 @@ fn consume_inert_mechanics(view: &UiMountedFrameConsumptionView<'_>) {
         UiMountedPresentationWorkView::Reconstruction(work) => {
             let _ = (work.commands(), work.order(), work.damage());
         }
+        UiMountedPresentationWorkView::Sample(sample) => {
+            let _ = (sample.changes(), sample.damage(), sample.affinity());
+        }
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
             let _ = unchanged.affinity();
         }

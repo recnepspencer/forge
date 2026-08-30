@@ -8,7 +8,7 @@ use crate::workflow::LoweredMutationIntentDeclaration;
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
 use super::execution_relational_scalar::{
-    ensure_exact_basis_freshness, mutation_target_branch, mutation_transaction_validation_input,
+    ensure_exact_basis_freshness, mutation_target_branch, observe_exact_branch_basis,
     open_exact_basis_snapshot,
 };
 use super::RelationalEffectExecutionFailure;
@@ -37,12 +37,12 @@ pub(super) fn execute_lowered_mutation_batch(
                 .into());
         }
     }
+    let transaction_validation_input = observe_exact_branch_basis(runtime, &target_branch)?;
     for declaration in declarations {
-        ensure_exact_basis_freshness(runtime, declaration)?;
+        ensure_exact_basis_freshness(declaration, &transaction_validation_input)?;
     }
-    let transaction_validation_input =
-        mutation_transaction_validation_input(runtime, first_declaration)?;
-    let snapshot = open_exact_basis_snapshot(runtime, &target_branch)?;
+    let snapshot =
+        open_exact_basis_snapshot(runtime, &target_branch, &transaction_validation_input)?;
     let lowered_components = declarations
         .iter()
         .map(|declaration| {
@@ -54,14 +54,7 @@ pub(super) fn execute_lowered_mutation_batch(
             )
         })
         .collect::<Result<Vec<_>, _>>();
-    let released = runtime.snapshots().release_snapshot(&snapshot);
-    if !released {
-        return Err((
-            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
-            "exact Relational batch strategy snapshot could not be released".to_string(),
-        )
-            .into());
-    }
+    super::exact_snapshot_closeout::release_exact_execution_snapshot(runtime, &snapshot);
     let lowered_components = lowered_components?;
     let mut batch = WorkerIntentBatch::new("worth-query-effect-batch");
     for intents in lowered_components {
@@ -74,40 +67,43 @@ pub(super) fn execute_lowered_mutation_batch(
             &transaction_validation_input,
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
-        .expect("owner-admitted transaction context");
-    txn.push_batch(batch);
-    let candidate = runtime.prepare_branch_transaction(txn).map_err(|error| {
-        lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed)
-    })?;
+        .map_err(super::relational_execution_deferred::transaction_admission)?;
+    txn.push_batch(batch)
+        .map_err(super::relational_execution_deferred::transaction_staging)?;
+    let candidate = runtime
+        .prepare_branch_transaction(txn)
+        .map_err(super::relational_execution_deferred::transaction_commit)?;
     let performed = match runtime.publication_port().compare_and_publish(candidate) {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
-        worth_proof::TransitionOutcome::Deferred(deferred) => {
-            return Err(RelationalEffectExecutionFailure::deferred(format!(
-                "Relational batch publication deferred before movement: {deferred:?}"
-            )));
+        worth_relational::facade::mvcc::RelationalPublicationOutcome::Performed(performed) => {
+            performed
         }
-        worth_proof::TransitionOutcome::Stale(stale) => {
+        worth_relational::facade::mvcc::RelationalPublicationOutcome::Interrupted(event) => {
+            return Err(super::relational_execution_deferred::interruption_event(
+                event,
+            ));
+        }
+        worth_relational::facade::mvcc::RelationalPublicationOutcome::Deferred(deferred) => {
+            return Err(super::relational_execution_deferred::publication(deferred));
+        }
+        worth_relational::facade::mvcc::RelationalPublicationOutcome::Stale(stale) => {
             return Err(lower_runtime_error(
                 stale,
                 EffectExecutionDenialKind::RelationalCommitFailed,
             )
             .into());
         }
-        worth_proof::TransitionOutcome::Denied(denial) => {
+        worth_relational::facade::mvcc::RelationalPublicationOutcome::Denied(denial) => {
             return Err(lower_runtime_error(
                 denial,
                 EffectExecutionDenialKind::RelationalCommitFailed,
             )
             .into());
         }
-        worth_proof::TransitionOutcome::Failed(failure) => {
-            return Err(lower_runtime_error(
+        worth_relational::facade::mvcc::RelationalPublicationOutcome::Failed(failure) => {
+            return Err(super::relational_execution_deferred::publication_failure(
                 failure,
-                EffectExecutionDenialKind::RelationalCommitFailed,
-            )
-            .into());
+            ));
         }
-        worth_proof::TransitionOutcome::RebindRequired(impossible) => match impossible {},
     };
     runtime
         .settle_performed_publication(performed)

@@ -43,12 +43,12 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema)
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let outcome = create_relation_outcome(&mut runtime, source, target, "guarded");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let outcome = create_relation_outcome(&runtime, source, target, "guarded");
 
     let replay = runtime
         .replay_authority()
@@ -93,10 +93,10 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
 #[test]
 fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejected_feature_attempt()
 {
-    let mut runtime = source_max_one_relation_integrity_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let target_b = create_entity(&mut runtime, "target-b");
+    let runtime = source_max_one_relation_integrity_runtime();
+    let source = create_entity(&runtime, "source");
+    let target_a = create_entity(&runtime, "target-a");
+    let target_b = create_entity(&runtime, "target-b");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -107,7 +107,7 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
 
     let accepted_feature = {
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-            &mut runtime,
+            &runtime,
             BranchId("feature".to_string()),
         );
         txn.push_batch(WorkerIntentBatch::new("accepted-feature-relation").push(
@@ -121,30 +121,33 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                     fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             )),
-        ));
-        txn.commit(&mut runtime).unwrap()
+        ))
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).unwrap()
     };
     let feature_head_before_reject = runtime
         .history()
         .branch_head(&BranchId("feature".to_string()));
 
     let mut rejected_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut runtime,
+        &runtime,
         BranchId("feature".to_string()),
     );
-    rejected_txn.push_batch(WorkerIntentBatch::new("rejected-feature-relation").push(
-        MutationIntent::Create(CreateIntent::Relation(
-            crate::transactions::data::RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_key: crate::symbols::data::ClientKey::raw("feature-rejected"),
-                source: crate::transactions::data::EntityReference::Existing(source),
-                target: crate::transactions::data::EntityReference::Existing(target_b),
-                fields: crate::transactions::data::AspectFieldPatch::default(),
-            },
-        )),
-    ));
-    let rejected = rejected_txn.commit(&mut runtime).unwrap_err();
+    rejected_txn
+        .push_batch(WorkerIntentBatch::new("rejected-feature-relation").push(
+            MutationIntent::Create(CreateIntent::Relation(
+                crate::transactions::data::RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::ClientKey::raw("feature-rejected"),
+                    source: crate::transactions::data::EntityReference::Existing(source),
+                    target: crate::transactions::data::EntityReference::Existing(target_b),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
+                },
+            )),
+        ))
+        .expect("test staging stays within configured resource budgets");
+    let rejected = rejected_txn.commit(&runtime).unwrap_err();
 
     match rejected {
         TransactionCommitError::Conflict { error, .. } => {

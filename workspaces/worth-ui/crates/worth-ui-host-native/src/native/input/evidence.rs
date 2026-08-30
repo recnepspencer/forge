@@ -93,7 +93,7 @@ fn family_index(family: UiHostObservationFamily) -> Option<usize> {
         UiHostObservationFamily::PointerMotion => Some(2),
         UiHostObservationFamily::PointerButton => Some(3),
         UiHostObservationFamily::Keyboard => Some(4),
-        UiHostObservationFamily::Focus => Some(5),
+        UiHostObservationFamily::WindowFocus => Some(5),
         UiHostObservationFamily::ScrollDelta => Some(6),
         UiHostObservationFamily::Clock => Some(7),
         UiHostObservationFamily::Tick => Some(8),
@@ -124,6 +124,7 @@ fn scroll_delta_observation(
     let UiHostObservationPayload::ScrollDelta {
         x_subpixels,
         y_subpixels,
+        ..
     } = report.payload()
     else {
         return None;

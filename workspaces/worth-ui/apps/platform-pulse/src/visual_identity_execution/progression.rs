@@ -14,11 +14,18 @@ use worth_ui_platform_pulse::observation_contract::{
 use crate::lifecycle_observation_publication::PlatformPulseObservationPublisher;
 use crate::visual_identity_adjudication::adjudicate_points;
 
+pub(super) use super::frame_affinity::snapshot_matches_current_mounted_frame;
 use super::{
-    comparison, PlatformPulseRetainedSnapshot, PlatformPulseVisibleOverlay,
-    PlatformPulseVisualCapture, PlatformPulseVisualExecutionDenial,
-    PlatformPulseVisualIdentityState, PlatformPulseVisualRefreshCapture,
+    capture_restart, comparison, PlatformPulseRetainedSnapshot, PlatformPulseVisibleOverlay,
+    PlatformPulseVisualCapture, PlatformPulseVisualCapturePhase,
+    PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityState,
+    PlatformPulseVisualRefreshCapture,
 };
+
+#[path = "progression/retirement.rs"]
+mod retirement;
+pub(super) use retirement::retire_snapshot;
+use retirement::{next_presentation_ticks, retain_refreshed_snapshot, retire_refresh_predecessor};
 
 const CAPTURE_WALL_DEADLINE: Duration = Duration::from_secs(5);
 const OVERLAY_VISIBLE_DWELL: Duration = Duration::from_secs(2);
@@ -28,7 +35,6 @@ pub(super) enum PlatformPulseVisualCaptureResolution {
     Captured(UiVisualSnapshotReceipt<UiPixelsRequired>),
     RetryBefore { deadline: Instant },
 }
-
 pub(super) fn advance_state(
     state: PlatformPulseVisualIdentityState,
     shell: &mut WorthUiNativeApplicationShell,
@@ -37,8 +43,26 @@ pub(super) fn advance_state(
     now: Instant,
 ) -> Result<PlatformPulseVisualIdentityState, PlatformPulseVisualExecutionDenial> {
     match state {
-        PlatformPulseVisualIdentityState::Settling { begin_at } if now >= begin_at => {
-            begin_capture(shell, *tick, now).map(PlatformPulseVisualIdentityState::Capturing)
+        PlatformPulseVisualIdentityState::Settling { deadline, .. }
+            if super::state_progression::initial_readiness_expired(now, deadline) =>
+        {
+            Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline(
+                PlatformPulseVisualCapturePhase::InitialReadiness,
+            ))
+        }
+        PlatformPulseVisualIdentityState::Settling { begin_at, deadline } if now >= begin_at => {
+            match begin_capture(shell, *tick, now) {
+                Ok(capture) => Ok(PlatformPulseVisualIdentityState::Capturing(capture)),
+                Err(PlatformPulseVisualExecutionDenial::CaptureMountedFrameUnavailable(
+                    worth_ui::facade::app::UiMountedInspectionOmission::FrameTransitionInFlight,
+                )) if now < deadline => Ok(PlatformPulseVisualIdentityState::Settling {
+                    begin_at: now
+                        .checked_add(Duration::from_millis(1))
+                        .map_or(deadline, |poll| poll.min(deadline)),
+                    deadline,
+                }),
+                Err(denial) => Err(denial),
+            }
         }
         PlatformPulseVisualIdentityState::Capturing(capture) => {
             poll_capture(capture, shell, publisher, tick, now)
@@ -53,7 +77,7 @@ pub(super) fn advance_state(
             poll_refresh(refresh, shell, publisher, tick, now)
         }
         PlatformPulseVisualIdentityState::OverlayVisible(overlay) if now >= overlay.clear_at => {
-            clear_overlay(overlay, shell, publisher, tick)
+            clear_overlay(overlay, shell, publisher, tick, now)
         }
         PlatformPulseVisualIdentityState::Transitioning => {
             Ok(PlatformPulseVisualIdentityState::Transitioning)
@@ -67,10 +91,15 @@ pub(super) fn begin_capture(
     tick: u64,
     now: Instant,
 ) -> Result<PlatformPulseVisualCapture, PlatformPulseVisualExecutionDenial> {
-    let deadline = now
-        .checked_add(CAPTURE_WALL_DEADLINE)
-        .ok_or(PlatformPulseVisualExecutionDenial::ClockOverflow)?;
+    let deadline = capture_wall_deadline(now)?;
     begin_capture_before(shell, tick, deadline)
+}
+pub(super) fn capture_wall_deadline(
+    admitted_at: Instant,
+) -> Result<Instant, PlatformPulseVisualExecutionDenial> {
+    admitted_at
+        .checked_add(CAPTURE_WALL_DEADLINE)
+        .ok_or(PlatformPulseVisualExecutionDenial::ClockOverflow)
 }
 
 pub(super) fn begin_capture_before(
@@ -80,8 +109,10 @@ pub(super) fn begin_capture_before(
 ) -> Result<PlatformPulseVisualCapture, PlatformPulseVisualExecutionDenial> {
     let frame = match shell.inspect_mounted_frame(UiMountedInspectionRequest::current()) {
         UiMountedInspectionReceipt::Available(frame) => frame,
-        UiMountedInspectionReceipt::Omitted(_) => {
-            return Err(PlatformPulseVisualExecutionDenial::MountedFrameUnavailable)
+        UiMountedInspectionReceipt::Omitted(omission) => {
+            return Err(
+                PlatformPulseVisualExecutionDenial::CaptureMountedFrameUnavailable(omission),
+            )
         }
     };
     let target = frame
@@ -97,7 +128,11 @@ pub(super) fn begin_capture_before(
     let pending = shell
         .begin_visual_pixel_snapshot(&grant, request)
         .map_err(PlatformPulseVisualExecutionDenial::SnapshotAdmission)?;
-    Ok(PlatformPulseVisualCapture { pending, deadline })
+    Ok(PlatformPulseVisualCapture {
+        pending,
+        deadline,
+        replacement: super::replacement::PlatformPulseReplacementPosture::default(),
+    })
 }
 
 fn poll_capture(
@@ -109,23 +144,36 @@ fn poll_capture(
 ) -> Result<PlatformPulseVisualIdentityState, PlatformPulseVisualExecutionDenial> {
     if now >= capture.deadline {
         shell.cancel_visual_snapshot(capture.pending);
-        return Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline);
+        if capture.replacement.is_pending() {
+            return capture_restart::initial_after_stale_frame(shell, *tick, now);
+        }
+        return Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline(
+            PlatformPulseVisualCapturePhase::Initial,
+        ));
     }
     match shell.poll_visual_snapshot(capture.pending, *tick) {
         UiVisualCapturePoll::Pending(pending) => Ok(PlatformPulseVisualIdentityState::Capturing(
             PlatformPulseVisualCapture {
                 pending,
                 deadline: capture.deadline,
+                replacement: capture.replacement,
             },
         )),
         UiVisualCapturePoll::Completed(outcome) => {
             match resolve_capture(outcome, capture.deadline)? {
                 PlatformPulseVisualCaptureResolution::Captured(receipt) => {
+                    if !snapshot_matches_current_mounted_frame(&receipt, shell)? {
+                        shell.dispose_visual_snapshot(receipt);
+                        return capture_restart::initial_after_stale_frame(shell, *tick, now);
+                    }
                     publish_overlay(receipt, shell, publisher, tick, now)
                 }
                 PlatformPulseVisualCaptureResolution::RetryBefore { deadline } => {
-                    begin_capture_before(shell, *tick, deadline)
-                        .map(PlatformPulseVisualIdentityState::Capturing)
+                    if capture.replacement.is_pending() {
+                        capture_restart::initial_after_stale_frame(shell, *tick, now)
+                    } else {
+                        capture_restart::initial_after_host_supersession(shell, *tick, deadline)
+                    }
                 }
             }
         }
@@ -200,6 +248,7 @@ fn publish_overlay(
             },
             published,
             clear_at,
+            replacement: super::replacement::PlatformPulseReplacementPosture::default(),
         },
     ))
 }
@@ -209,6 +258,7 @@ fn clear_overlay(
     shell: &mut WorthUiNativeApplicationShell,
     publisher: &PlatformPulseObservationPublisher,
     tick: &mut u64,
+    now: Instant,
 ) -> Result<PlatformPulseVisualIdentityState, PlatformPulseVisualExecutionDenial> {
     let (deadline, current) = next_presentation_ticks(tick)?;
     let cleared = shell
@@ -219,7 +269,20 @@ fn clear_overlay(
         .map_err(PlatformPulseVisualExecutionDenial::Observation)?;
     let mut retained = overlay.retained;
     retained.overlay_clear = Some(cleared);
-    Ok(PlatformPulseVisualIdentityState::ComparisonReady(retained))
+    if overlay.replacement.is_pending() {
+        if super::replacement::portal_active(shell) {
+            Ok(PlatformPulseVisualIdentityState::DeferredRefresh(retained))
+        } else {
+            Ok(PlatformPulseVisualIdentityState::AwaitingRefresh {
+                predecessor: retained,
+                budget: super::capture_restart::PlatformPulseAwaitingCaptureBudget::fresh(
+                    super::replacement_frame_deadline(now)?,
+                ),
+            })
+        }
+    } else {
+        Ok(PlatformPulseVisualIdentityState::ComparisonReady(retained))
+    }
 }
 
 fn poll_refresh(
@@ -229,9 +292,21 @@ fn poll_refresh(
     tick: &mut u64,
     now: Instant,
 ) -> Result<PlatformPulseVisualIdentityState, PlatformPulseVisualExecutionDenial> {
-    if now >= refresh.capture.deadline {
+    let capture_deadline = refresh.capture.deadline;
+    if now >= capture_deadline {
         shell.cancel_visual_snapshot(refresh.capture.pending);
-        return Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline);
+        if refresh.capture.replacement.is_pending() {
+            return capture_restart::refresh_after_stale_frame(
+                shell,
+                *tick,
+                refresh.predecessor,
+                now,
+            );
+        }
+        shell.dispose_visual_snapshot(refresh.predecessor.snapshot);
+        return Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline(
+            PlatformPulseVisualCapturePhase::Refresh,
+        ));
     }
     match shell.poll_visual_snapshot(refresh.capture.pending, *tick) {
         UiVisualCapturePoll::Pending(pending) => {
@@ -239,14 +314,36 @@ fn poll_refresh(
             Ok(PlatformPulseVisualIdentityState::Refreshing(refresh))
         }
         UiVisualCapturePoll::Completed(outcome) => {
-            match resolve_capture(outcome, refresh.capture.deadline)? {
+            match resolve_capture(outcome, capture_deadline)? {
                 PlatformPulseVisualCaptureResolution::Captured(successor) => {
-                    retire_snapshot(refresh.predecessor, shell, publisher)?;
+                    if !snapshot_matches_current_mounted_frame(&successor, shell)? {
+                        shell.dispose_visual_snapshot(successor);
+                        return capture_restart::refresh_after_stale_frame(
+                            shell,
+                            *tick,
+                            refresh.predecessor,
+                            now,
+                        );
+                    }
+                    retire_refresh_predecessor(refresh.predecessor, &successor, shell, publisher)?;
                     retain_refreshed_snapshot(successor, publisher)
                 }
                 PlatformPulseVisualCaptureResolution::RetryBefore { deadline } => {
-                    refresh.capture = begin_capture_before(shell, *tick, deadline)?;
-                    Ok(PlatformPulseVisualIdentityState::Refreshing(refresh))
+                    if refresh.capture.replacement.is_pending() {
+                        capture_restart::refresh_after_stale_frame(
+                            shell,
+                            *tick,
+                            refresh.predecessor,
+                            now,
+                        )
+                    } else {
+                        capture_restart::refresh_after_host_supersession(
+                            shell,
+                            *tick,
+                            refresh.predecessor,
+                            deadline,
+                        )
+                    }
                 }
             }
         }
@@ -262,100 +359,42 @@ fn poll_rebase(
 ) -> Result<PlatformPulseVisualIdentityState, PlatformPulseVisualExecutionDenial> {
     if now >= capture.deadline {
         shell.cancel_visual_snapshot(capture.pending);
-        return Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline);
+        if capture.replacement.is_pending() {
+            return capture_restart::rebase_after_stale_frame(shell, *tick, now);
+        }
+        return Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline(
+            PlatformPulseVisualCapturePhase::Rebase,
+        ));
     }
     match shell.poll_visual_snapshot(capture.pending, *tick) {
         UiVisualCapturePoll::Pending(pending) => Ok(PlatformPulseVisualIdentityState::Rebasing(
             PlatformPulseVisualCapture {
                 pending,
                 deadline: capture.deadline,
+                replacement: capture.replacement,
             },
         )),
         UiVisualCapturePoll::Completed(outcome) => {
             match resolve_capture(outcome, capture.deadline)? {
                 PlatformPulseVisualCaptureResolution::Captured(receipt) => {
+                    if !snapshot_matches_current_mounted_frame(&receipt, shell)? {
+                        shell.dispose_visual_snapshot(receipt);
+                        return capture_restart::rebase_after_stale_frame(shell, *tick, now);
+                    }
                     retain_refreshed_snapshot(receipt, publisher)
                 }
                 PlatformPulseVisualCaptureResolution::RetryBefore { deadline } => {
-                    begin_capture_before(shell, *tick, deadline)
-                        .map(PlatformPulseVisualIdentityState::Rebasing)
+                    if capture.replacement.is_pending() {
+                        capture_restart::rebase_after_stale_frame(shell, *tick, now)
+                    } else {
+                        capture_restart::rebase_after_host_supersession(shell, *tick, deadline)
+                    }
                 }
             }
         }
     }
 }
 
-fn retain_refreshed_snapshot(
-    successor: UiVisualSnapshotReceipt<UiPixelsRequired>,
-    publisher: &PlatformPulseObservationPublisher,
-) -> Result<PlatformPulseVisualIdentityState, PlatformPulseVisualExecutionDenial> {
-    publisher
-        .refreshed_visual_snapshot(&successor)
-        .map_err(PlatformPulseVisualExecutionDenial::Observation)?;
-    Ok(PlatformPulseVisualIdentityState::ComparisonReady(
-        PlatformPulseRetainedSnapshot {
-            snapshot: successor,
-            overlay_clear: None,
-        },
-    ))
-}
-
-pub(super) fn retire_snapshot(
-    retained: PlatformPulseRetainedSnapshot,
-    shell: &mut WorthUiNativeApplicationShell,
-    publisher: &PlatformPulseObservationPublisher,
-) -> Result<(), PlatformPulseVisualExecutionDenial> {
-    let relation = retained
-        .snapshot
-        .relation()
-        .map_err(PlatformPulseVisualExecutionDenial::SnapshotRelation)?;
-    match relation {
-        worth_ui::facade::inspection::UiVisualSnapshotRelation::Current => {
-            return Err(PlatformPulseVisualExecutionDenial::SnapshotStillCurrent)
-        }
-        worth_ui::facade::inspection::UiVisualSnapshotRelation::RetainedPredecessor
-        | worth_ui::facade::inspection::UiVisualSnapshotRelation::Historical => {}
-    };
-    let snapshot = retained.snapshot.identity();
-    let disposal = shell.dispose_visual_snapshot(retained.snapshot);
-    publisher
-        .visual_snapshot_retired(snapshot, relation, disposal)
-        .map_err(PlatformPulseVisualExecutionDenial::Observation)
-}
-
-fn next_presentation_ticks(
-    tick: &mut u64,
-) -> Result<(u64, u64), PlatformPulseVisualExecutionDenial> {
-    let current = tick
-        .checked_add(1)
-        .ok_or(PlatformPulseVisualExecutionDenial::TickExhausted)?;
-    let deadline = current
-        .checked_add(1)
-        .ok_or(PlatformPulseVisualExecutionDenial::TickExhausted)?;
-    *tick = current;
-    Ok((deadline, current))
-}
-
 #[cfg(test)]
-mod tests {
-    use super::{resolve_capture, PlatformPulseVisualCaptureResolution};
-    use std::time::{Duration, Instant};
-    use worth_ui::facade::inspection::{
-        UiPixelsRequired, UiVisualSnapshotOutcome, UiVisualSnapshotSuperseded,
-    };
-
-    #[test]
-    fn superseded_capture_retries_without_renewing_its_wall_deadline() {
-        let deadline = Instant::now() + Duration::from_secs(5);
-        let outcome = UiVisualSnapshotOutcome::<UiPixelsRequired>::Superseded(
-            UiVisualSnapshotSuperseded::from_runtime_projection(false),
-        );
-
-        let resolution = resolve_capture(outcome, deadline).expect("supersession is retryable");
-        let PlatformPulseVisualCaptureResolution::RetryBefore { deadline: observed } = resolution
-        else {
-            panic!("supersession must not masquerade as a captured artifact")
-        };
-        assert_eq!(observed, deadline);
-    }
-}
+#[path = "progression/tests.rs"]
+mod tests;

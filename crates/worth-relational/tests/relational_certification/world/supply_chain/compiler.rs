@@ -28,6 +28,7 @@ pub(crate) enum SupplyChainCompilationError {
     Transaction(TransactionCommitError),
     HandleBinding(HandleBindingError),
     BranchBasis(worth_relational::facade::branch::RelationalBranchBasisDenial),
+    SnapshotAdmission(worth_relational::facade::snapshots::RelationalSnapshotAdmissionDenial),
 }
 
 const SUPPLY_CHAIN_BASELINE_PATCH_BUDGET: usize = 16_384;
@@ -169,6 +170,13 @@ fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
             coherent_publication_required: true,
             max_patch_records_per_commit,
             max_published_snapshot_handles: 256,
+            max_active_snapshot_handles: 4_096,
+            max_transaction_overlay_bytes: 268_435_456,
+            max_transaction_footprint_loci: 262_144,
+            max_transaction_savepoints: 4_096,
+            max_prepared_candidates: 1_024,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
         })
         .runtime_setup(|setup| {
             setup.relation_integrity_scope_budget(relation_integrity_scope_budget);
@@ -186,7 +194,7 @@ fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
         .install(program.schema_registry().clone())
         .map_err(SupplyChainCompilationError::SchemaInstallation)?;
 
-    let commit_result = commit_definition(&mut runtime, &program)?;
+    let commit_result = commit_definition(&runtime, &program)?;
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime
         .observe_branch(&identity)
@@ -194,7 +202,7 @@ fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
     let snapshot = runtime
         .snapshots()
         .snapshot_for_observation(&basis.observation())
-        .map_err(SupplyChainCompilationError::BranchBasis)?;
+        .map_err(SupplyChainCompilationError::SnapshotAdmission)?;
     let handles = SupplyChainSemanticHandles::bind(&program, &commit_result, snapshot)
         .map_err(SupplyChainCompilationError::HandleBinding)?;
 
@@ -210,7 +218,7 @@ fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
 }
 
 fn commit_definition(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     program: &CompiledSupplyChainProgram,
 ) -> Result<worth_relational::facade::transactions::CommitResult, SupplyChainCompilationError> {
     if program.entity_specs().is_empty() && program.relation_specs().is_empty() {
@@ -223,7 +231,9 @@ fn commit_definition(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("supply-chain-empty-baseline"));
+        transaction
+            .push_batch(WorkerIntentBatch::new("supply-chain-empty-baseline"))
+            .expect("empty baseline staging fits the configured transaction budget");
         return transaction.commit(runtime).map_err(transaction_error);
     }
 
@@ -244,7 +254,9 @@ fn commit_definition(
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(batch);
+    transaction
+        .push_batch(batch)
+        .expect("Supply Chain baseline staging fits its configured transaction budget");
     transaction.commit(runtime).map_err(transaction_error)
 }
 

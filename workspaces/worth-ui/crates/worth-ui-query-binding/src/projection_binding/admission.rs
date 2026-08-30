@@ -209,9 +209,13 @@ fn collection_preparation_stop(
             "the declared row identity does not match Query's collection contract".to_owned(),
         ),
         Denial::NativeRequest(denial) => match denial {
-            crate::application_binding::WorthUiCollectionTextNativeRequestDenial::NativeFamilyMismatch => (
+            crate::application_binding::WorthUiCollectionTextNativeRequestDenial::TextNativeFamilyMismatch => (
                 super::UiProjectionBindingStopKind::NativeFamilyMismatch,
                 "the selected Query native field is not text".to_owned(),
+            ),
+            crate::application_binding::WorthUiCollectionTextNativeRequestDenial::ApplicationItemKeyNativeFamilyMismatch => (
+                super::UiProjectionBindingStopKind::NativeFamilyMismatch,
+                "the application item-key field is not unsigned64".to_owned(),
             ),
             crate::application_binding::WorthUiCollectionTextNativeRequestDenial::ProjectionRequest(denial) => (
                 super::UiProjectionBindingStopKind::SchemaMismatch,

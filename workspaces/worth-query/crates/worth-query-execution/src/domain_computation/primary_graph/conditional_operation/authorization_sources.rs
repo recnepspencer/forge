@@ -11,13 +11,31 @@ use worth_query_installation::facade::{
 use crate::domain_computation::authorization::WorthQueryAdmittedApplicationOperation;
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationQueryAccessContext,
-    WorthQueryApplicationQueryControls, WorthQueryAuthenticatedPrincipal,
-    WorthQueryOperationAuthorizationDenial, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryControls,
+    WorthQueryAuthenticatedPrincipal, WorthQueryOperationAuthorizationDenial,
+    WorthQueryPrimaryGraphApplicationRuntime,
 };
 
 #[cfg(test)]
 #[path = "authorization_sources/tests.rs"]
 mod tests;
+
+#[derive(Debug)]
+pub enum WorthQueryTemporalQueryAuthorizationDenial {
+    Query(WorthQueryApplicationQueryAdmissionDenial),
+    Authorization(WorthQueryOperationAuthorizationDenial),
+}
+
+impl std::fmt::Display for WorthQueryTemporalQueryAuthorizationDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Query(denial) => denial.fmt(formatter),
+            Self::Authorization(denial) => denial.fmt(formatter),
+        }
+    }
+}
+
+impl std::error::Error for WorthQueryTemporalQueryAuthorizationDenial {}
 
 pub trait WorthQueryTemporalQueryAuthorization<
     Schema,
@@ -60,7 +78,7 @@ pub trait WorthQueryTemporalQueryAuthorization<
             PrincipalIdentity,
             Scope,
         >,
-        String,
+        WorthQueryTemporalQueryAuthorizationDenial,
     >;
 }
 
@@ -110,11 +128,11 @@ where
             PrincipalIdentity,
             Scope,
         >,
-        String,
+        WorthQueryTemporalQueryAuthorizationDenial,
     > {
         runtime
             .admit_application_query(query, access, parameters, controls)
-            .map_err(|denial| format!("{:?}: {}", denial.kind(), denial.subject()))
+            .map_err(WorthQueryTemporalQueryAuthorizationDenial::Query)
     }
 }
 
@@ -184,6 +202,7 @@ impl<
 where
     Schema: ApplicationSchema,
     CapabilityInput: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>
+        + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
         + Clone
         + Send
         + Sync
@@ -221,7 +240,7 @@ where
             PrincipalIdentity,
             Scope,
         >,
-        String,
+        WorthQueryTemporalQueryAuthorizationDenial,
     > {
         let capability = runtime
             .admit_capability_access(
@@ -230,10 +249,10 @@ where
                 self.input.clone(),
                 controls.request_scope(),
             )
-            .map_err(|denial| denial.to_string())?;
+            .map_err(WorthQueryTemporalQueryAuthorizationDenial::Authorization)?;
         runtime
             .admit_governed_application_query(query, access, capability, parameters, controls)
-            .map_err(|denial| format!("{:?}: {}", denial.kind(), denial.subject()))
+            .map_err(WorthQueryTemporalQueryAuthorizationDenial::Query)
     }
 }
 
@@ -309,12 +328,17 @@ impl<Schema, Capability, Operation, Input, Scope>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>
+        + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
         + Clone
         + Send
         + Sync
         + 'static,
     Capability: Send + Sync + 'static,
-    Operation: Send + Sync + 'static,
+    Operation:
+        worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity
+            + Send
+            + Sync
+            + 'static,
 {
     fn authorize<Principal, PrincipalIdentity>(
         &self,

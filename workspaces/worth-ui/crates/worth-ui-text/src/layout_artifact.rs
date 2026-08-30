@@ -175,6 +175,7 @@ impl UiQualifiedTextLayoutArtifact {
         }
     }
 
+    #[cfg(test)]
     pub(crate) const fn identity(&self) -> UiQualifiedTextLayoutIdentity {
         self.identity
     }

@@ -2,12 +2,12 @@ use crate::tests::support::*;
 
 #[test]
 fn complexity_budget_partition_scoped_historical_entity_scans_are_partition_bounded() {
-    let mut runtime = runtime_with_test_schema();
-    let _left_a = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
-    let _left_b = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
+    let runtime = runtime_with_test_schema();
+    let _left_a = create_entity_in_partition(&runtime, "left-a", PartitionId(7));
+    let _left_b = create_entity_in_partition(&runtime, "left-b", PartitionId(7));
     let historical_version = runtime.history().latest_commit().unwrap().version_id;
-    let _right_a = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
-    let _right_b = create_entity_in_partition(&mut runtime, "right-b", PartitionId(11));
+    let _right_a = create_entity_in_partition(&runtime, "right-a", PartitionId(11));
+    let _right_b = create_entity_in_partition(&runtime, "right-b", PartitionId(11));
 
     runtime.performance_access().reset_counters();
     let records = runtime
@@ -22,13 +22,13 @@ fn complexity_budget_partition_scoped_historical_entity_scans_are_partition_boun
 
 #[test]
 fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bounded() {
-    let mut runtime = runtime_with_test_schema();
-    let left_source = create_entity_in_partition(&mut runtime, "left-source", PartitionId(7));
-    let left_target = create_entity_in_partition(&mut runtime, "left-target", PartitionId(7));
-    let right_source = create_entity_in_partition(&mut runtime, "right-source", PartitionId(11));
-    let right_target = create_entity_in_partition(&mut runtime, "right-target", PartitionId(11));
+    let runtime = runtime_with_test_schema();
+    let left_source = create_entity_in_partition(&runtime, "left-source", PartitionId(7));
+    let left_target = create_entity_in_partition(&runtime, "left-target", PartitionId(7));
+    let right_source = create_entity_in_partition(&runtime, "right-source", PartitionId(11));
+    let right_target = create_entity_in_partition(&runtime, "right-target", PartitionId(11));
     let _left_relation = create_relation_in_partition(
-        &mut runtime,
+        &runtime,
         left_source,
         left_target,
         "left-r0",
@@ -36,7 +36,7 @@ fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bo
     );
     let historical_version = runtime.history().latest_commit().unwrap().version_id;
     let _right_relation = create_relation_in_partition(
-        &mut runtime,
+        &runtime,
         right_source,
         right_target,
         "right-r0",

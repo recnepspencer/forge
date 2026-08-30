@@ -18,11 +18,11 @@ use super::support::{bridge_envelopes_at_current_observation, runtime_with_test_
 
 #[test]
 fn real_entity_and_relation_transactions_preserve_semantic_binding_surfaces() {
-    let mut runtime = runtime_with_test_schema();
-    let source = changed_entities(&create_entity_outcome(&mut runtime, "source"))[0];
-    let target = changed_entities(&create_entity_outcome(&mut runtime, "target"))[0];
+    let runtime = runtime_with_test_schema();
+    let source = changed_entities(&create_entity_outcome(&runtime, "source"))[0];
+    let target = changed_entities(&create_entity_outcome(&runtime, "target"))[0];
 
-    create_relation_outcome(&mut runtime, source, target, "edge");
+    create_relation_outcome(&runtime, source, target, "edge");
     let commit = runtime
         .publication()
         .latest_bundle()
@@ -73,24 +73,24 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         structural_binding("partition", 92, AspectBinding::StructuralPartition),
         structural_binding("facet", 93, AspectBinding::StructuralFacet),
     ]);
-    let mut runtime = fixture.build_runtime();
-    let mut creation = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    creation.push_batch(
-        WorkerIntentBatch::new("structural-create").push(MutationIntent::Create(
-            CreateIntent::Entity(EntitySpec {
-                partition_id: crate::facade::identity::PartitionId::main(),
-                kind_id: crate::facade::identity::KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw("solid"),
-                fields: string_aspect_field_patch([
-                    (aspect_key("name"), field_key("name"), "solid"),
-                    (aspect_key("summary"), field_key("title"), "solid"),
-                ]),
-            }),
-        )),
-    );
-    let created = creation
-        .commit(&mut runtime)
-        .expect("real structural create");
+    let runtime = fixture.build_runtime();
+    let mut creation = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    creation
+        .push_batch(
+            WorkerIntentBatch::new("structural-create").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("solid"),
+                    fields: string_aspect_field_patch([
+                        (aspect_key("name"), field_key("name"), "solid"),
+                        (aspect_key("summary"), field_key("title"), "solid"),
+                    ]),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    let created = creation.commit(&runtime).expect("real structural create");
     let entity = changed_entities(&created)[0];
     let structural_commit = runtime
         .publication()
@@ -98,21 +98,22 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         .unwrap()
         .commit
         .commit_id;
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("summary-field-update").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: string_aspect_field_patch([
-                    (aspect_key("summary"), field_key("title"), "solid"),
-                    (aspect_key("summary"), field_key("status"), "ready"),
-                ]),
-            },
-        )),
-    ));
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("summary-field-update").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: string_aspect_field_patch([
+                        (aspect_key("summary"), field_key("title"), "solid"),
+                        (aspect_key("summary"), field_key("status"), "ready"),
+                    ]),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let field_commit = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("real struct-field update")
         .commit
         .commit_id;

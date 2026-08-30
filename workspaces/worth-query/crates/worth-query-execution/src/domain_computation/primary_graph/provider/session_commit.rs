@@ -44,3 +44,33 @@ pub(super) fn provider_failure(
         crate::domain_computation::WorthQueryProviderSessionProtocolCounters::default(),
     )
 }
+
+pub(super) fn snapshot_admission_failure(
+    stage: WorthQueryProviderSessionProtocolStage,
+    denial: crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial,
+    detail: &'static str,
+) -> WorthQueryProviderSessionFailure {
+    let kind = match denial {
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => crate::domain_computation::WorthQueryProviderSessionDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        },
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::RetentionCapacityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::RetentionIdentityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::SnapshotIdentityExhausted
+        }
+        _ => crate::domain_computation::WorthQueryProviderSessionDenialKind::ProviderRejected,
+    };
+    WorthQueryProviderSessionFailure::new(
+        kind,
+        stage,
+        detail,
+        crate::domain_computation::WorthQueryProviderSessionProtocolCounters::default(),
+    )
+}

@@ -48,6 +48,15 @@ impl WorthQueryManagedRunAdmission<'_> {
                     WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis => {
                         WorthQueryManagedWorkflowRunAdmissionFailureKind::RelationalBasis
                     }
+                    WorthQueryManagedLowerAdmissionFailureKind::RetentionCapacityExhausted => {
+                        WorthQueryManagedWorkflowRunAdmissionFailureKind::RetentionCapacityExhausted
+                    }
+                    WorthQueryManagedLowerAdmissionFailureKind::RetentionIdentityExhausted => {
+                        WorthQueryManagedWorkflowRunAdmissionFailureKind::RetentionIdentityExhausted
+                    }
+                    WorthQueryManagedLowerAdmissionFailureKind::SnapshotIdentityExhausted => {
+                        WorthQueryManagedWorkflowRunAdmissionFailureKind::SnapshotIdentityExhausted
+                    }
                     WorthQueryManagedLowerAdmissionFailureKind::BridgePlanning => {
                         WorthQueryManagedWorkflowRunAdmissionFailureKind::BridgePlanning
                     }

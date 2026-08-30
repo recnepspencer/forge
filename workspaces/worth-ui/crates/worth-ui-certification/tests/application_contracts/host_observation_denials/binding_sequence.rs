@@ -6,7 +6,7 @@ use worth_ui::facade::observation_report::{
 use worth_ui_runtime::facade::mounted::UiHostSurfacePresentationMode;
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
-use crate::host_observation_fixture::{batch, report, source};
+use crate::host_observation_fixture::{batch, report, source, window_focus};
 use crate::mounted_application_lifecycle::known_empty_surface_world::profile;
 use crate::mounted_application_lifecycle::published_mounted_world::{
     publish, published_observation_world,
@@ -21,7 +21,7 @@ fn observation_sequence_remains_session_scoped_across_a_binding_successor() {
         UiHostObservationLoss::Complete,
         vec![report(
             1,
-            UiHostObservationPayload::Focus { focused: true },
+            window_focus(&world.current, true),
             &world.current,
         )],
     );
@@ -47,7 +47,7 @@ fn observation_sequence_remains_session_scoped_across_a_binding_successor() {
         UiHostObservationLoss::Complete,
         vec![report(
             2,
-            UiHostObservationPayload::Focus { focused: false },
+            window_focus(&successor_basis, false),
             &successor_basis,
         )],
     );

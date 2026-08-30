@@ -9,10 +9,10 @@ use crate::tests::support::*;
 
 #[test]
 fn complexity_budget_graph_summary_reports_explicit_inspection_work() {
-    let mut runtime = runtime_with_test_schema();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let _relation = create_relation(&mut runtime, left, right, "rel");
+    let runtime = runtime_with_test_schema();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let _relation = create_relation(&runtime, left, right, "rel");
 
     runtime.performance_access().reset_counters();
     let summary = runtime
@@ -55,9 +55,9 @@ fn complexity_budget_graph_summary_reports_explicit_inspection_work() {
 
 #[test]
 fn complexity_budget_structural_identity_distinguishes_direct_lookup_from_broad_query() {
-    let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "alpha");
-    let _other = create_entity(&mut runtime, "beta");
+    let runtime = runtime_with_test_schema();
+    let entity = create_entity(&runtime, "alpha");
+    let _other = create_entity(&runtime, "beta");
 
     runtime.performance_access().reset_counters();
     let direct = runtime.inspect_what_happened().structural_identity(
@@ -92,10 +92,10 @@ fn complexity_budget_structural_identity_distinguishes_direct_lookup_from_broad_
 
 #[test]
 fn complexity_budget_kind_summary_reports_request_shaped_scope() {
-    let mut runtime = runtime_with_test_schema();
-    let _left_a = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
-    let _left_b = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
-    let _right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let runtime = runtime_with_test_schema();
+    let _left_a = create_entity_in_partition(&runtime, "left-a", PartitionId(7));
+    let _left_b = create_entity_in_partition(&runtime, "left-b", PartitionId(7));
+    let _right = create_entity_in_partition(&runtime, "right", PartitionId(11));
 
     runtime.performance_access().reset_counters();
     let summary = runtime
@@ -120,11 +120,11 @@ fn complexity_budget_kind_summary_reports_request_shaped_scope() {
 
 #[test]
 fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitly() {
-    let mut runtime = runtime_with_test_schema();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let isolated = create_entity(&mut runtime, "isolated");
-    let _relation = create_relation(&mut runtime, left, right, "rel");
+    let runtime = runtime_with_test_schema();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let isolated = create_entity(&runtime, "isolated");
+    let _relation = create_relation(&runtime, left, right, "rel");
 
     runtime.performance_access().reset_counters();
     let summary =
@@ -180,10 +180,10 @@ fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitl
 
 #[test]
 fn complexity_budget_retention_summary_reports_bounded_slot_scans() {
-    let mut runtime = runtime_with_test_schema();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let _relation = create_relation(&mut runtime, left, right, "rel");
+    let runtime = runtime_with_test_schema();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let _relation = create_relation(&runtime, left, right, "rel");
 
     runtime.performance_access().reset_counters();
     let summary = runtime
@@ -206,10 +206,10 @@ fn complexity_budget_retention_summary_reports_bounded_slot_scans() {
 
 #[test]
 fn complexity_budget_neighbor_inspection_uses_adjacency_not_relation_materialization() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation = create_relation(&mut runtime, source, target, "rel");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation = create_relation(&runtime, source, target, "rel");
 
     runtime.performance_access().reset_counters();
     let neighbors = runtime
@@ -228,9 +228,9 @@ fn complexity_budget_neighbor_inspection_uses_adjacency_not_relation_materializa
 
 #[test]
 fn complexity_budget_commit_inspection_reads_are_index_explicit_and_bounded() {
-    let mut runtime = runtime_with_test_schema();
-    let _first = create_entity(&mut runtime, "first");
-    let _second = create_entity(&mut runtime, "second");
+    let runtime = runtime_with_test_schema();
+    let _first = create_entity(&runtime, "first");
+    let _second = create_entity(&runtime, "second");
     let latest_commit = runtime
         .history()
         .latest_commit()

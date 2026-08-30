@@ -1,4 +1,4 @@
-use super::input_delivery::{classify_pointer_target, PointerTargetCheckPhase};
+use super::pointer_target::{classify_pointer_target, PointerTargetCheckPhase};
 use crate::external_observation::NativeInputProbeKind;
 use crate::native_platform::NativePlatformFailure;
 

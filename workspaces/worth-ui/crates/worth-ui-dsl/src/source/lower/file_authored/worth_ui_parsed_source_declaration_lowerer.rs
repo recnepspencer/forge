@@ -33,6 +33,36 @@ pub(crate) fn lower_parsed_source_declaration(
         WorthUiParsedSourceDeclaration::Intent(block_declaration) => {
             lower_intent_declaration(block_declaration, declaration_index)?
         }
+        WorthUiParsedSourceDeclaration::Portal(block_declaration) => lower_service_declaration(
+            block_declaration,
+            declaration_index,
+            crate::WorthUiServiceFamily::Portal,
+        )?,
+        WorthUiParsedSourceDeclaration::Focus(block_declaration) => lower_service_declaration(
+            block_declaration,
+            declaration_index,
+            crate::WorthUiServiceFamily::Focus,
+        )?,
+        WorthUiParsedSourceDeclaration::Motion(block_declaration) => lower_service_declaration(
+            block_declaration,
+            declaration_index,
+            crate::WorthUiServiceFamily::Motion,
+        )?,
+        WorthUiParsedSourceDeclaration::Command(block_declaration) => lower_service_declaration(
+            block_declaration,
+            declaration_index,
+            crate::WorthUiServiceFamily::CommandRouting,
+        )?,
+        WorthUiParsedSourceDeclaration::Scroll(block_declaration) => lower_service_declaration(
+            block_declaration,
+            declaration_index,
+            crate::WorthUiServiceFamily::Scroll,
+        )?,
+        WorthUiParsedSourceDeclaration::Selection(block_declaration) => lower_service_declaration(
+            block_declaration,
+            declaration_index,
+            crate::WorthUiServiceFamily::Selection,
+        )?,
         WorthUiParsedSourceDeclaration::Surface(block_declaration) => {
             WorthUiArtifactInputNode::Surface(lower_parsed_block_declaration(
                 block_declaration,
@@ -64,6 +94,48 @@ pub(crate) fn lower_parsed_source_declaration(
             ))
         }
     })
+}
+
+fn lower_service_declaration(
+    declaration: &crate::source::WorthUiParsedBlockDeclaration,
+    declaration_index: usize,
+    family: crate::WorthUiServiceFamily,
+) -> Result<WorthUiArtifactInputNode, WorthUiDslCompileDiagnostic> {
+    let provenance = WorthUiArtifactInputProvenance::parsed_source(
+        declaration.span().clone(),
+        None,
+        declaration_index,
+    );
+    let body = lower_parsed_block_body(declaration.body());
+    let service =
+        crate::WorthUiServiceDeclarationMeaning::parse(family, declaration.name_text(), &body)
+            .map_err(|error| service_diagnostic(declaration, error))?;
+    let semantic = crate::WorthUiSemanticArtifactDeclaration::new(
+        crate::UiDslSemanticKey::new(declaration.name_text()),
+        crate::UiDslSemanticFamily::RuntimeService,
+    )
+    .with_service_declaration(service);
+    Ok(WorthUiArtifactInputNode::SemanticArtifact(
+        WorthUiArtifactInputSemanticArtifactNode::new(semantic, provenance),
+    ))
+}
+
+fn service_diagnostic(
+    declaration: &crate::source::WorthUiParsedBlockDeclaration,
+    error: crate::WorthUiServiceDeclarationParseError,
+) -> WorthUiDslCompileDiagnostic {
+    let span = declaration.span();
+    WorthUiDslCompileDiagnostic::new(
+        WorthUiDslCompileDiagnosticCode::InvalidServiceDeclaration,
+        WorthUiDslCompileStopClass::LanguageLegality,
+        error.detail(),
+        Some(span.module_id().as_str().to_owned()),
+        Some(WorthUiDslSourceSpan::new(
+            span.module_id().as_str(),
+            span.start_byte(),
+            span.end_byte(),
+        )),
+    )
 }
 
 fn lower_import_declaration(
@@ -183,5 +255,6 @@ fn lower_token_kind_to_body_atom(
         WorthUiSourceTokenKind::RightBrace => WorthUiArtifactInputBodyAtom::RightBrace,
         WorthUiSourceTokenKind::Semicolon => WorthUiArtifactInputBodyAtom::Semicolon,
         WorthUiSourceTokenKind::Equals => WorthUiArtifactInputBodyAtom::Equals,
+        WorthUiSourceTokenKind::Plus => WorthUiArtifactInputBodyAtom::Plus,
     }
 }

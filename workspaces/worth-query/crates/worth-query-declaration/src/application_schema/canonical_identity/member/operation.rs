@@ -16,7 +16,7 @@ pub(super) fn append_operation_member(
             input_type,
         } => {
             append_operation_header(basis, prefix, "operation", operation);
-            basis.text(format!("{prefix}.input-type"), input_type);
+            basis.text(format!("{prefix}.input-type"), input_type.as_str());
         }
         ApplicationSchemaMember::OperationProgram { operation, target } => {
             append_operation_header(basis, prefix, "operation-program", operation);
@@ -50,7 +50,7 @@ pub(super) fn append_operation_member(
             ExternalEffectEncoding {
                 operation,
                 effect,
-                rust_payload_type,
+                rust_payload_type: rust_payload_type.as_str(),
                 protocol,
                 maximum_payload_bytes: *maximum_payload_bytes,
                 correlation_family: correlation_family.as_str(),

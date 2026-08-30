@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 use worth_query_installation::facade::{
     ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect, ApplicationSchema,
     ApplicationSchemaMember, WorthQueryInstalledAbilityRequirement,
@@ -196,9 +197,10 @@ impl WorthQueryInstalledAuthorizationRegistry {
         self.capabilities.plan_by_identity(capability_identity)
     }
 
-    pub(in crate::domain_computation) fn elevation_lifecycle_operation<Operation, Input>(
+    pub(in crate::domain_computation) fn elevation_lifecycle_operation<Operation>(
         &self,
         operation: &str,
+        input_type: &str,
     ) -> Result<
         Option<(
             [u8; 32],
@@ -206,9 +208,12 @@ impl WorthQueryInstalledAuthorizationRegistry {
             WorthQueryElevationLifecycleOperationRole,
         )>,
         (),
-    > {
+    >
+    where
+        Operation: ApplicationOperationMarkerIdentity,
+    {
         self.capabilities
-            .elevation_lifecycle_operation::<Operation, Input>(operation)
+            .elevation_lifecycle_operation::<Operation>(operation, input_type)
     }
 
     pub(in crate::domain_computation) const fn capability_compilation(

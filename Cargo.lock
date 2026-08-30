@@ -333,6 +333,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-queue"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "803d13fb3b09d88be9f4dbc29062c66b19bf7170867ceb746d2a8689bf6c7a26"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2306,6 +2315,7 @@ name = "worth-relational"
 version = "0.1.0"
 dependencies = [
  "arc-swap",
+ "crossbeam-queue",
  "dashmap",
  "proptest",
  "rayon",
@@ -2313,6 +2323,7 @@ dependencies = [
  "serde",
  "sha2",
  "smallvec",
+ "stats_alloc",
  "trybuild",
  "worth-foundational",
  "worth-harness",

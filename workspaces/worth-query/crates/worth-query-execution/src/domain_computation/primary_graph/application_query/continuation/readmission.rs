@@ -70,10 +70,14 @@ where
         >,
         WorthQueryApplicationQueryAdmissionDenial,
     > {
-        let affinity =
+        let mut affinity =
             validate_continuation_affinity(self, query, access.scope().entity_id(), continuation)?;
         let query_controls = WorthQueryApplicationQueryControls::continuation_resume(
             affinity.basis_descriptor.clone(),
+            affinity
+                .basis_retention
+                .take()
+                .expect("validated continuation carries its exact retention lease"),
             controls,
         );
         self.finish_continuation_readmission(
@@ -145,10 +149,14 @@ where
     where
         Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>,
     {
-        let affinity =
+        let mut affinity =
             validate_continuation_affinity(self, query, access.scope().entity_id(), continuation)?;
         let query_controls = WorthQueryApplicationQueryControls::continuation_resume(
             affinity.basis_descriptor.clone(),
+            affinity
+                .basis_retention
+                .take()
+                .expect("validated continuation carries its exact retention lease"),
             controls,
         );
         let pending = prepare_governed_access(self, query, access, capability, &query_controls)?;

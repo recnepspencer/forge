@@ -50,30 +50,6 @@ fn content_width(lines: &[worth_ui_host_contract::UiQualifiedTextLineRecord]) ->
         .unwrap_or(0)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::content_width;
-    use worth_ui_host_contract::{
-        UiQualifiedTextLineInput, UiQualifiedTextLineRecord, UiTextOriginalRange, UiTextRect,
-    };
-
-    #[test]
-    fn aligned_line_offset_is_not_counted_as_content_width() {
-        let line = UiQualifiedTextLineRecord::from_text_mechanics(UiQualifiedTextLineInput {
-            original_range: UiTextOriginalRange::new(0, 5).unwrap(),
-            visual_run_start: 0,
-            visual_run_end: 1,
-            logical_bounds: UiTextRect::from_text_mechanics(40_000, 0, 100_000, 18_000).unwrap(),
-            ink_bounds: UiTextRect::from_text_mechanics(39_000, 1_000, 101_000, 17_000).unwrap(),
-            baseline_millipoints: 14_000,
-            hard_break: false,
-            overflowed: false,
-        });
-
-        assert_eq!(content_width(&[line]), 60_000);
-    }
-}
-
 impl UiHeadlessTextMeasurement {
     pub const fn layout_identity(self) -> UiQualifiedTextLayoutIdentity {
         self.layout
@@ -101,5 +77,29 @@ impl UiHeadlessTextMeasurement {
     }
     pub const fn text_scale_generation(self) -> UiTextScaleGeneration {
         self.text_scale
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::content_width;
+    use worth_ui_host_contract::{
+        UiQualifiedTextLineInput, UiQualifiedTextLineRecord, UiTextOriginalRange, UiTextRect,
+    };
+
+    #[test]
+    fn aligned_line_offset_is_not_counted_as_content_width() {
+        let line = UiQualifiedTextLineRecord::from_text_mechanics(UiQualifiedTextLineInput {
+            original_range: UiTextOriginalRange::new(0, 5).unwrap(),
+            visual_run_start: 0,
+            visual_run_end: 1,
+            logical_bounds: UiTextRect::from_text_mechanics(40_000, 0, 100_000, 18_000).unwrap(),
+            ink_bounds: UiTextRect::from_text_mechanics(39_000, 1_000, 101_000, 17_000).unwrap(),
+            baseline_millipoints: 14_000,
+            hard_break: false,
+            overflowed: false,
+        });
+
+        assert_eq!(content_width(&[line]), 60_000);
     }
 }

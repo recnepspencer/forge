@@ -8,13 +8,19 @@ mod application_replacement_exact_authority_tests;
 mod basis;
 mod candidate;
 mod candidate_pipeline;
+mod candidate_scroll_geometry;
 mod cutover;
+mod cutover_generation;
 mod mounted;
 mod mounted_frame;
+mod prepared_activation_access;
 mod publication_observation;
 mod rebind_preparation;
 mod receipt;
 mod retry;
+mod scroll_replacement;
+mod selection_replacement;
+mod service_installation_reconciliation;
 
 pub use candidate::{WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope};
 pub(crate) use mounted::{
@@ -119,6 +125,10 @@ pub(super) struct WorthUiPreparedApplicationActivation {
     visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    candidate_graph: crate::graph::UiGraphSnapshot,
+    candidate_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    candidate_service_policy_plan: crate::declaration::UiNormalizedServicePolicyPlan,
     reload_cost: Result<
         crate::runtime::WorthUiReloadLoweringCounterReceipt,
         crate::runtime::WorthUiReloadCounterBoundaryDenial,

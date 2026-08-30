@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::time::Instant;
 
 use crate::installation::{CanonicalPlatformPulse, PulseInstallationPath};
 use crate::product_process::{Closed, PulseExecutableWorld};
@@ -55,12 +54,12 @@ pub(super) fn complete(
     manifest: &PulseCausalActionManifest,
     installation_path: &PulseInstallationPath,
 ) -> CompletedPulseNativeCutoverRun {
-    let journey_started = Instant::now();
     let route_removal =
         IntentRouteRemovalSourceDelta::from_checked_in(CanonicalPlatformPulse::checked_in())
             .expect("canonical Pulse contains exactly one typed action route");
     let mut cursor = manifest.cursor();
     let open = complete_open_for_manifest(deltas, &mut cursor, manifest, installation_path);
+    let journey_started = open.recovered.native_journey_started();
     let open_source_actions = open.recovered.source_action_count();
     let first_publication = open.first_publication;
     let window_lookups = open.window_lookups;
@@ -71,6 +70,7 @@ pub(super) fn complete(
         .unwrap_or_else(|failure| {
             panic!("cumulative native intent journey reaches its visible consequence: {failure}")
         });
+    report_checkpoint("intent-complete", journey_started);
     let intent = completed.evidence();
     assert_complete_intent_evidence(intent);
     let source_action_count = open_source_actions.saturating_add(intent.source_action_count());
@@ -83,6 +83,7 @@ pub(super) fn complete(
     let (recovered, quiescence) = recovered
         .observe_quiescent(manifest.idle_interval())
         .unwrap_or_else(|failure| panic!("observe product quiescence: {failure}"));
+    report_checkpoint("quiescence-complete", journey_started);
     advance(&mut cursor, "observe-quiescent-interval");
     assert!(quiescence.observed_for() >= manifest.idle_interval());
     assert_eq!(quiescence.lifecycle_event_delta(), 0);
@@ -94,6 +95,7 @@ pub(super) fn complete(
         recovered,
         expected_shutdown_sequence,
     );
+    report_checkpoint("close-complete", journey_started);
     advance(&mut cursor, "observe-exact-zero-shutdown");
     cursor
         .finish()
@@ -131,6 +133,13 @@ pub(super) fn complete(
         cost,
         evidence,
     }
+}
+
+fn report_checkpoint(phase: &str, journey_started: std::time::Instant) {
+    eprintln!(
+        "WORTH_UI_EXECUTABLE_WORLD_PHASE phase={phase} elapsed_ms={}",
+        journey_started.elapsed().as_millis()
+    );
 }
 
 fn advance(cursor: &mut PulseCausalActionCursor<'_>, action: &'static str) {

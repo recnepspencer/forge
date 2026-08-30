@@ -24,10 +24,11 @@ The ambition is direct:
   typed, native, reactive, and inspectable desktop app development can be
 
 The Worth native host owns the pixel, input-observation, and event loop. Worth
-UI is the application platform. Worth Query is the semantic runtime beneath
-product surfaces. Together they should make desktop apps feel lighter than
-Electron, more coherent than web frontends, more ergonomic than traditional
-native UI, and more truthful than ad hoc application state.
+UI is the application platform. Worth Query is the application-facing
+composition authority over the domain and lower runtimes that own truth.
+Together they should make desktop apps feel lighter than Electron, more
+coherent than web frontends, more ergonomic than traditional native UI, and
+more truthful than ad hoc application state.
 
 ## What This Platform Is For
 
@@ -82,8 +83,8 @@ crate:
 - first-class application shell: windows, menus, tabs, panels, docking,
   shortcuts, status, lifecycle, and persisted workspace layouts
 - command registry as the shared action spine for menus, toolbars, shortcuts,
-  command palettes, context menus, automation, undo, telemetry, and runtime
-  intent
+  command palettes, context menus, automation, future owner-admitted undo/redo
+  projection, telemetry, and runtime intent
 - Query-bound surfaces where tables, trees, inspectors, timelines, canvases,
   and dashboards are backed by canonical declared read meaning
 - hot-lowered UI composition where source files in the codebase lower into
@@ -91,8 +92,9 @@ crate:
   recompiling Rust
 - specialized execution lanes for desktop widgets, virtualized data surfaces,
   spatial canvases, real-time HUDs, and shader/material-backed overlays
-- live view binding through Worth Query, bridge, and signal semantics instead
-  of widget-owned event subscriptions
+- live view binding through Query-published projections and Query-owned
+  lifecycle instead of widget-owned event subscriptions or direct Bridge,
+  Relational, or Signal access
 - intent-aware buttons and workflows whose enabled, denied, advisory, stopped,
   recoverable, and completed states come from structured runtime posture
 - preview and branch UX as ordinary desktop affordances, not special-case
@@ -154,12 +156,14 @@ truthfulness, and better desktop ergonomics.
 
 | Layer | Responsibility | Owns |
 | --- | --- | --- |
-| `worth-ui-host-contract` and `worth-ui-host-native` | host-neutral presentation contract and native mechanics | pixels, input observations, surfaces, wake causes, event loop |
-| `worth-ui` | desktop application platform | shell, commands, layout, widgets, design system, native integration, accessibility, tooling |
-| `worth-query` | semantic product runtime | declared reads, live views, view shapes, intent admission, inspection, recovery, mutation evidence |
-| `worth-runtime-bridge` | runtime coordination | patch-to-invalidation, snapshot-backed evaluation, subscriptions, causality |
-| `worth-relational` | authoritative truth runtime | identity, mutation, history, diffs, lineage, schema, snapshots |
-| `worth-signal` | derived computation runtime | invalidation, recomputation, scheduling, reactive execution, diagnostics |
+| `worth-ui-host-contract` | stable presentation and observation boundary | host-neutral physical work, presentation, input, capture, readiness, and cleanup contracts |
+| `worth-ui-host-native` and `worth-ui-host-headless` | host mechanics | native or deterministic mechanical execution; never UI meaning |
+| `worth-ui` | desktop application platform | UI declarations, shell, commands, layout, widgets, design system, accessibility, UI services, and presentation meaning |
+| `worth-query-decl` and `worth-query-host` | Query audience boundaries | application declaration and host installation, admission, execution, and publication entry |
+| `worth-query` | application-facing composition authority | installed meaning, authority composition, typed progression, execution products, live maintenance, runtime-local recovery, and publication |
+| `worth-runtime-bridge` | installed correspondence and lowering | lawful correspondence between Query and lower runtimes; not graph truth or application policy |
+| `worth-relational` | authoritative graph truth runtime | entities, relations, aspects, versions, snapshots, transactions, and commit mechanics |
+| `worth-signal` | scoped derived-computation runtime | local evaluation slots, readiness and scheduling, performed execution receipts, and condition outcomes |
 
 ### Ownership boundary
 
@@ -171,7 +175,8 @@ truthfulness, and better desktop ergonomics.
 - host-neutral component system and professional widget suite
 - design tokens, themes, density, typography, focus, and visual states
 - keyboard navigation and accessibility semantics at the UI layer
-- UI binding to Query artifacts, outcomes, live views, and runtime posture
+- UI binding to Query-published or Query-bound projections, outcomes, live
+  lifecycle, and runtime posture through the Query audience boundary
 - native desktop integration and cross-platform app affordances
 - background task presentation and user-facing progress/cancellation surfaces
 - settings, preferences, persisted layouts, recent files, and app-local user
@@ -185,8 +190,8 @@ truthfulness, and better desktop ergonomics.
 - authoritative truth semantics
 - query planning or query legality
 - relational mutation authority
-- signal scheduling or recomputation policy
-- bridge causality or subscription delivery internals
+- Signal-local scheduling, evaluation, or performed-computation truth
+- Bridge correspondence and lowering internals
 - domain-specific kernel operations
 - network protocol delivery
 - final OS implementation details where lower platform adapters own the native
@@ -199,8 +204,10 @@ invent truth, query, mutation, causality, or recovery semantics above the
 runtime stack.
 
 Product surfaces start from the UI, but their meaning should flow through
-canonical commands, Query declarations, admitted intents, runtime artifacts,
-and structured outcomes.
+canonical commands, UI routing and operability, Query declarations and
+installed operations where domain work is required, owner-issued runtime
+artifacts, governed publication, and structured outcomes. UI admission never
+substitutes for Query application-operation admission.
 
 ## Principles
 
@@ -244,8 +251,9 @@ These are locked architectural decisions:
 - failed UI reloads keep the last valid plan active and surface diagnostics
   without disturbing the running app
 - commands are first-class registry entries with stable identifiers
-- UI views may bind to Query artifacts directly rather than host-local data
-  adapters
+- UI views consume Query-published or Query-bound projection products through
+  the installed audience-facade path rather than host-local data adapters or a
+  raw Query-engine dependency
 - runtime outcomes, denials, advisories, stops, recovery briefs, receipts, and
   inspection artifacts remain structured through the UI boundary
 - professional app shell primitives ship before broad ornamental component
@@ -420,8 +428,9 @@ Technical role:
 Every lowered UI node that owns durable interaction state should have a stable
 identity. Hot reload must reconcile old and new artifacts by identity so focus,
 scroll position, selection, text input state, panel visibility, splitter
-positions, tab state, table column widths, query subscriptions, and
-component-local state can survive source changes.
+positions, tab state, table column widths, Query projection attachments, and
+component-local state can survive source changes when their owning lifecycle
+admits preservation.
 
 What this enables:
 
@@ -685,30 +694,39 @@ What this enables:
 #### Intent-aware command execution
 
 Technical role:
-Commands that mutate runtime truth or trigger domain workflows should lower
-through Worth Query's intent admission, preparation, writeback, preview, or
-mutation evidence lanes where applicable.
+Commands that mutate runtime truth or trigger domain workflows first use Worth
+UI routing, targeting, operability, and confirmation. They then enter the
+installed Query application-operation path through `worth-query-host`, where
+authentication, principal binding, capability, purpose, disclosure, graph
+obligations, execution, commit, aftermath, and publication retain their own
+typed progression. A UI dispatch receipt cannot authorize the Query operation.
 
 What this enables:
 
 - buttons and menu items can explain why they are unavailable
 - risky actions can show advisory or violation posture before execution
-- mutations can produce receipts, undo entries, recovery actions, and
-  inspection evidence
+- mutations can produce exact commit, aftermath, publication, recovery-support,
+  and inspection posture without a UI callback pretending to own the effect
 - command execution becomes part of the runtime story rather than a callback
   side effect
 
 #### Undo, redo, and transaction presentation
 
 Technical role:
-The platform must present undoable command history while respecting runtime
-transaction authority and mutation evidence.
+The platform must eventually present owner-issued undoable and redoable command
+history while respecting runtime transaction authority, committed aftermath,
+and mutation evidence. Undo and redo are an aspirational product capability,
+not a currently admitted ordinary Query contract. Until the owning runtime
+admits them, Worth UI may present history and exact recoverability posture but
+must not expose an actionable UI-local undo or redo authority.
+Query's `provisional_aftermath` remains a compiled experiment and is not an
+accepted undo/redo product contract.
 
 What this enables:
 
 - users see meaningful action names, affected scope, and recoverability
-- undo/redo can participate in branch, preview, and transaction-scoped
-  workflows
+- once admitted by the owning runtime, undo/redo can participate in branch,
+  preview, and transaction-scoped workflows
 - applications avoid shallow UI-only undo stacks that drift from truth
 
 ### Query-Bound Surfaces
@@ -769,7 +787,7 @@ What this enables:
 - users can see what changed, when, why, and what prior identity became
 - branch comparison and review screens can be standard platform patterns
 - AI and operator workflows can inspect speculative or historical state without
-  custom replay UI
+  app-local history plumbing
 
 #### Canvas and spatial work surfaces
 
@@ -804,9 +822,12 @@ What this enables:
 #### Structured outcome rendering
 
 Technical role:
-The UI platform should render runtime outcomes as first-class UX states:
-ready, loading, denied, advisory, violation, stopped, recoverable, completed,
-unsupported, deferred, stale, and failed with diagnostics.
+The UI platform should render runtime outcomes as first-class UX states without
+replacing the owner-issued outcome type. Presentation may group ready, pending,
+denied, advisory, violation, stopped, recoverable, committed, completed,
+unsupported, deferred, stale, partial, indeterminate, and failed posture, but
+must retain distinctions that change legal next actions, effects, disclosure,
+inspection, or resource release.
 
 What this enables:
 
@@ -1211,8 +1232,10 @@ What this enables:
 #### Runtime-aware extension hooks
 
 Technical role:
-Plugins that bind to runtime data should use Query declarations, commands,
-intent admission, and structured outcomes rather than raw lower-runtime access.
+Plugins that bind to runtime data should use Query declarations through
+`worth-query-decl`, installed host progression through `worth-query-host`,
+Worth UI command routing, and structured outcomes rather than raw Query or
+lower-runtime access.
 
 What this enables:
 
@@ -1240,8 +1263,9 @@ Worth UI succeeds when the following outcomes are true:
 - professional widgets are trusted for production data-heavy tools
 - live UI surfaces are backed by declared Query meaning instead of local event
   plumbing
-- command availability, intent admission, runtime denials, advisory posture,
-  recovery, and mutation evidence are visible as ordinary UX
+- command availability, UI routing, Query application-operation admission,
+  runtime denials, advisory posture, recovery, and mutation evidence are
+  visible as ordinary UX without collapsing their authority boundaries
 - preview and branch workflows feel natural enough that users expect to inspect
   consequences before committing important changes
 - app developers can explain why values changed, why recomputation happened,
@@ -1354,7 +1378,8 @@ The highest-signal Worth UI programs are:
   console, form, and canvas primitives
 - Query-bound view surfaces and live view binding
 - structured runtime outcome rendering
-- intent-aware command execution through Query admission and mutation evidence
+- intent-aware command execution whose UI dispatch remains distinct from Query
+  application-operation admission and mutation evidence
 - preview, branch, diff, merge, and recovery UX primitives
 - accessibility, focus, and keyboard navigation architecture
 - native OS integration adapters
@@ -1391,6 +1416,7 @@ work.
 
 ## Companion Documents
 
+- [WORTH Query orientation for AI agents](../../workspaces/worth-query/crates/worth-query/docs/AI_README.md)
 - [_docs/worth-query/worth_query_vision.md](../worth-query/worth_query_vision.md)
 - [_docs/worth-runtime-bridge/worth_runtime_bridge_vision.md](../worth-runtime-bridge/worth_runtime_bridge_vision.md)
 - [_docs/worth-relational/worth_relational_vision.md](../worth-relational/worth_relational_vision.md)

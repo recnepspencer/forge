@@ -30,7 +30,7 @@ impl TemporalRuntimeState {
         owner: TemporalWakeOwner,
         condition: TemporalCondition,
         due_tick: ClockTick,
-        mut telemetry: Option<&mut TemporalTelemetry>,
+        telemetry: Option<&mut TemporalTelemetry>,
         allow_past_due: bool,
     ) -> Result<ScheduledTemporalWake, SignalError> {
         if !allow_past_due && due_tick < self.clock_basis.current_tick() {
@@ -58,7 +58,7 @@ impl TemporalRuntimeState {
         self.insert_scheduled_frontier_entry(&wake);
         self.insert_owner_frontier_entry(wake.owner(), wake.ordinal(), wake.id());
         self.scheduled_wakes.insert(wake.id(), wake.clone());
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.temporal_wake_count += 1;
             telemetry.scheduled_frontier_width = telemetry
                 .scheduled_frontier_width
@@ -104,7 +104,7 @@ impl TemporalRuntimeState {
         )?;
         let scheduled =
             self.admit_scheduled_wake(owner, condition, due_tick, telemetry.as_deref_mut(), false)?;
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.rescheduled_wake_count += 1;
         }
         Ok(TemporalWakeReschedule::new(retired, scheduled))
@@ -147,7 +147,7 @@ impl TemporalRuntimeState {
         )?;
         let scheduled =
             self.admit_scheduled_wake(owner, condition, due_tick, telemetry.as_deref_mut(), false)?;
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.rescheduled_wake_count += 1;
         }
         Ok(TemporalWakeReschedule::new(retired, scheduled))
@@ -288,7 +288,7 @@ impl TemporalRuntimeState {
             telemetry.as_deref_mut(),
             true,
         )?;
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.rescheduled_wake_count += 1;
             telemetry.interval_wake_regeneration_count += 1;
             telemetry.missed_interval_count = telemetry

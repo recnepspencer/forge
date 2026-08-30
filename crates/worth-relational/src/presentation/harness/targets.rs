@@ -82,6 +82,19 @@ pub(super) fn commit_error_to_harness_error(
         crate::facade::transactions::TransactionCommitError::Preparation { error, .. } => {
             RelationalHarnessError(error.detail())
         }
+        crate::facade::transactions::TransactionCommitError::Interrupted {
+            interruption, ..
+        } => RelationalHarnessError(format!("transaction interrupted: {interruption:?}")),
+        crate::facade::transactions::TransactionCommitError::PublicationDenied {
+            denial, ..
+        } => RelationalHarnessError(format!("branch publication denied: {denial:?}")),
+        crate::facade::transactions::TransactionCommitError::PublicationDeferred {
+            deferred,
+            ..
+        } => RelationalHarnessError(format!("branch publication deferred: {deferred:?}")),
+        crate::facade::transactions::TransactionCommitError::PublicationFailed {
+            failure, ..
+        } => RelationalHarnessError(failure.detail().to_owned()),
         crate::facade::transactions::TransactionCommitError::PerformedButDurabilityDeferred {
             error,
             ..

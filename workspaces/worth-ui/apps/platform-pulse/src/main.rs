@@ -3,6 +3,8 @@ mod launch_configuration;
 mod lifecycle_observation_publication;
 mod native_application;
 #[cfg(feature = "executable-world")]
+mod native_close_evidence;
+#[cfg(feature = "executable-world")]
 mod native_gate_d_application;
 mod native_phase2_evidence;
 #[cfg(feature = "executable-world")]

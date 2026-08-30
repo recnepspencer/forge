@@ -22,14 +22,19 @@ mod lifecycle;
 mod mutation;
 #[path = "retained_draw_list/replay.rs"]
 mod replay;
+#[path = "retained_draw_list/sample_transaction.rs"]
+mod sample_transaction;
 
 pub(super) use delta_transaction::UiNativeRetainedDeltaUndo;
 pub(super) use denial::UiNativeRetainedDrawListDenial;
+pub(super) use sample_transaction::sampled_visible_bounds;
+pub(super) use sample_transaction::UiNativeRetainedSampleUndo;
 
 pub(crate) struct UiNativeRetainedDrawList {
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
     surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
     binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    content: worth_ui_host_contract::UiMountedContentGeneration,
     baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
     commands: command_store::UiNativeRetainedCommandStore,
     order: UiNativeRetainedOrder<UiMountedPaintOrderIdentity>,
@@ -37,6 +42,10 @@ pub(crate) struct UiNativeRetainedDrawList {
     damage: UiNativeDamageIndex<UiMountedPaintCommandIdentity>,
     glyph_runs:
         HashMap<UiMountedPaintCommandIdentity, Box<[worth_ui_host_contract::UiGlyphRunView]>>,
+    sample_overrides: HashMap<
+        UiMountedPaintCommandIdentity,
+        worth_ui_host_contract::UiMountedPresentationSampleChange,
+    >,
     regions: super::retained_regions::UiNativeRetainedRegions,
     identity_overlay: super::identity_overlay::UiNativeRetainedIdentityOverlay,
     last_paint_attribution: Option<(usize, UiNativeRetainedPresentationAttribution)>,
@@ -88,6 +97,13 @@ impl UiNativeRetainedDrawList {
         self.frame
     }
 
+    pub(crate) fn owns_node_receipt(
+        &self,
+        receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
+    ) -> bool {
+        self.regions.owns_node_receipt(receipt)
+    }
+
     #[cfg(test)]
     pub(super) fn apply_delta(
         &mut self,
@@ -112,6 +128,13 @@ impl UiNativeRetainedDrawList {
             .get(&identity)
             .map(Box::as_ref)
             .unwrap_or_default()
+    }
+
+    pub(super) fn sample_override(
+        &self,
+        identity: UiMountedPaintCommandIdentity,
+    ) -> Option<worth_ui_host_contract::UiMountedPresentationSampleChange> {
+        self.sample_overrides.get(&identity).copied()
     }
 
     pub(super) fn all_glyph_runs(&self) -> Vec<worth_ui_host_contract::UiGlyphRunView> {
@@ -163,6 +186,14 @@ impl UiNativeRetainedDrawList {
                     bounds: mechanic.bounds(),
                     mounted_instance: mechanic.mounted_instance(),
                     node_receipt: mechanic.node_receipt(),
+                }
+            }
+            UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                UiNativeRetainedPresentationAttribution {
+                    color: mechanic.color(),
+                    bounds: mechanic.bounds(),
+                    mounted_instance: mechanic.owner(),
+                    node_receipt: mechanic.owner_receipt(),
                 }
             }
             UiMountedPaintCommand::SemanticText { mechanic, .. } => {

@@ -14,12 +14,14 @@ type BoundRequest = operation::WorthQueryBoundProjectionRequest<
 pub(crate) enum WorthUiCollectionTextNativeRequestDenial {
     ProjectionRequest(operation::WorthQueryNativeProjectionRequestDenial),
     SelectionMismatch(WorthQueryNativeSelectionDenial),
-    NativeFamilyMismatch,
+    TextNativeFamilyMismatch,
+    ApplicationItemKeyNativeFamilyMismatch,
 }
 
 pub(crate) struct WorthUiCollectionTextNativeRequest {
     request: BoundRequest,
-    accesses: Box<[WorthUiCollectionTextNativeAccess]>,
+    text_accesses: Box<[WorthUiCollectionTextNativeAccess]>,
+    application_item_key_access: Option<WorthUiCollectionTextNativeAccess>,
 }
 
 pub(crate) struct WorthUiCollectionTextNativeAccess {
@@ -35,10 +37,11 @@ impl WorthUiCollectionTextNativeRequest {
             crate::installed_domain::collection_text_projection::WorthUiCollectionTextProjectionFamily,
             ObservationLaneWitness,
         >,
-        selected_fields: &[crate::UiProjectionFieldRequirement],
+        requirement: &crate::UiCollectionSchemaRequirement,
     ) -> Result<Self, WorthUiCollectionTextNativeRequestDenial> {
         let mut builder = consumer.projection_request();
-        let selections = selected_fields
+        let selections = requirement
+            .selected_fields()
             .iter()
             .map(|field| {
                 builder
@@ -46,10 +49,18 @@ impl WorthUiCollectionTextNativeRequest {
                     .map_err(WorthUiCollectionTextNativeRequestDenial::ProjectionRequest)
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let application_item_key_selection = requirement
+            .application_item_key_field()
+            .map(|field| {
+                builder
+                    .select_display_native_field_name(field.native_key())
+                    .map_err(WorthUiCollectionTextNativeRequestDenial::ProjectionRequest)
+            })
+            .transpose()?;
         let request = builder
             .build()
             .map_err(WorthUiCollectionTextNativeRequestDenial::ProjectionRequest)?;
-        let accesses = selections
+        let text_accesses = selections
             .iter()
             .map(|selection| {
                 let resolution = request
@@ -58,7 +69,7 @@ impl WorthUiCollectionTextNativeRequest {
                 if resolution.key().expected_shape()
                     != AspectValuePosture::Scalar(ScalarAspectType::String)
                 {
-                    return Err(WorthUiCollectionTextNativeRequestDenial::NativeFamilyMismatch);
+                    return Err(WorthUiCollectionTextNativeRequestDenial::TextNativeFamilyMismatch);
                 }
                 Ok(WorthUiCollectionTextNativeAccess {
                     resolution_counters: resolution.counters(),
@@ -66,11 +77,41 @@ impl WorthUiCollectionTextNativeRequest {
                 })
             })
             .collect::<Result<_, _>>()?;
-        Ok(Self { request, accesses })
+        let application_item_key_access = application_item_key_selection
+            .map(|selection| {
+                let resolution = request
+                    .resolve_native_key(&selection)
+                    .map_err(WorthUiCollectionTextNativeRequestDenial::SelectionMismatch)?;
+                if resolution.key().expected_shape()
+                    != AspectValuePosture::Scalar(ScalarAspectType::UInt64)
+                {
+                    return Err(WorthUiCollectionTextNativeRequestDenial::ApplicationItemKeyNativeFamilyMismatch);
+                }
+                Ok(WorthUiCollectionTextNativeAccess {
+                    resolution_counters: resolution.counters(),
+                    key: resolution.into_key(),
+                })
+            })
+            .transpose()?;
+        Ok(Self {
+            request,
+            text_accesses,
+            application_item_key_access,
+        })
     }
 
-    pub(crate) fn into_parts(self) -> (BoundRequest, Box<[WorthUiCollectionTextNativeAccess]>) {
-        (self.request, self.accesses)
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        BoundRequest,
+        Box<[WorthUiCollectionTextNativeAccess]>,
+        Option<WorthUiCollectionTextNativeAccess>,
+    ) {
+        (
+            self.request,
+            self.text_accesses,
+            self.application_item_key_access,
+        )
     }
 }
 

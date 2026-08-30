@@ -191,11 +191,11 @@ pub(super) fn runtime_with_acyclicity_and_connectivity_budget(
 }
 
 pub(super) fn create_entity_of_kind(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     kind_id: KindId,
     client_key: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("entity-{client_key}")).push(
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -206,10 +206,9 @@ pub(super) fn create_entity_of_kind(
             }))
             .into(),
         ),
-    );
-    let outcome = txn
-        .commit(&mut runtime)
-        .expect("entity creation must succeed");
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).expect("entity creation must succeed");
     outcome
         .changed_records
         .iter()
@@ -221,13 +220,13 @@ pub(super) fn create_entity_of_kind(
 }
 
 pub(super) fn create_relation_of_kind(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     kind_id: KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
     client_key: &str,
 ) -> RelationId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("relation-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -239,10 +238,9 @@ pub(super) fn create_relation_of_kind(
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
-    let outcome = txn
-        .commit(&mut runtime)
-        .expect("relation creation must succeed");
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(runtime).expect("relation creation must succeed");
     outcome
         .changed_records
         .iter()
@@ -302,7 +300,7 @@ pub(super) fn runtime_with_summary_title_commit_boundary_uniqueness() -> Relatio
 }
 
 pub(super) fn commit_entity_with_summary(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     client_key: &str,
     title: &str,
     status: &str,
@@ -310,7 +308,7 @@ pub(super) fn commit_entity_with_summary(
     crate::facade::transactions::CommitResult,
     crate::transactions::data::TransactionCommitError,
 > {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("entity-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -334,6 +332,7 @@ pub(super) fn commit_entity_with_summary(
                 ),
             ]),
         })),
-    ));
-    txn.commit(&mut runtime)
+    ))
+    .expect("test staging stays within configured resource budgets");
+    txn.commit(runtime)
 }

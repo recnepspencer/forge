@@ -20,8 +20,8 @@ use super::support::{
 
 #[test]
 fn runtime_bridge_relational_source_exposes_latest_publication_bundle_authoritatively() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "alice");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "alice");
 
     let bundle = runtime
         .publication()
@@ -72,7 +72,7 @@ fn relational_source_graph_role_is_explicit_and_validated() {
 
 #[test]
 fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenance() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let entity = |partition_id, key: &str| {
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id,
@@ -85,14 +85,15 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
             ),
         }))
     };
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(
-        WorkerIntentBatch::new("partition-publication")
-            .push(entity(PartitionId::main(), "main"))
-            .push(entity(PartitionId::new(7), "secondary")),
-    );
-    let committed = transaction.commit(&mut runtime).unwrap();
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("partition-publication")
+                .push(entity(PartitionId::main(), "main"))
+                .push(entity(PartitionId::new(7), "secondary")),
+        )
+        .expect("test staging stays within configured resource budgets");
+    let committed = transaction.commit(&runtime).unwrap();
     let secondary = committed
         .changed_records
         .iter()
@@ -155,8 +156,8 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
 #[test]
 fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical_snapshot_authority(
 ) {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "alice");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "alice");
 
     let bundle = runtime
         .publication()
@@ -228,8 +229,8 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
         RuntimeBridgeRelationalSource::for_shared_graph_role(Arc::clone(&runtime), "model")
             .expect("test graph role");
     let historical_commit = {
-        let mut runtime = runtime.lock().expect("test runtime lock");
-        create_entity_outcome(&mut runtime, "alice").commit.clone()
+        let runtime = runtime.lock().expect("test runtime lock");
+        create_entity_outcome(&runtime, "alice").commit.clone()
     };
     let branch_identity = runtime
         .lock()
@@ -245,8 +246,8 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
     let historical_commit_id = historical_commit.commit_id;
 
     {
-        let mut runtime = runtime.lock().expect("test runtime lock");
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let runtime = runtime.lock().expect("test runtime lock");
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(
             WorkerIntentBatch::new("update").push(MutationIntent::Create(
                 crate::transactions::data::CreateIntent::Entity(
@@ -262,9 +263,9 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
                     },
                 ),
             )),
-        );
-        txn.commit(&mut runtime)
-            .expect("second commit should publish");
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).expect("second commit should publish");
     }
     let historical_commit_identity = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(historical_commit_id.0),

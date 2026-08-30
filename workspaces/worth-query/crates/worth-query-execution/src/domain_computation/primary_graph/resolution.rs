@@ -122,8 +122,9 @@ impl WorthQueryExecutionRuntime {
             .clone()
             .into_foundational_value();
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = super::exact_basis_access::open_current_main_snapshot(runtime)
-                .expect("installed primary graph retains an exact main-branch basis");
+            let snapshot = super::exact_basis_access::open_current_main_snapshot(runtime).map_err(
+                |basis_denial| principal_snapshot_denial(basis_denial, principal.binding()),
+            )?;
             let result = validate_freshness_at_snapshot(
                 runtime,
                 &snapshot,
@@ -131,7 +132,7 @@ impl WorthQueryExecutionRuntime {
                 &layout,
                 &expected_identity,
             );
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             result
         })?;
         admit_resolution_request(scope, principal.binding(), principal.is_expired())?;
@@ -180,11 +181,35 @@ where
 {
     graph.integration_handle().with_runtime_mut(|runtime| {
         let snapshot = super::exact_basis_access::open_current_main_snapshot(runtime)
-            .expect("installed primary graph retains an exact main-branch basis");
+            .map_err(|basis_denial| principal_snapshot_denial(basis_denial, resolution.binding))?;
         let result = resolve_at_snapshot(runtime, &snapshot, &resolution);
-        runtime.snapshots().release_snapshot(&snapshot);
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
         result
     })
+}
+
+fn principal_snapshot_denial(
+    basis_denial: super::WorthQueryExactBasisSnapshotDenial,
+    binding: &str,
+) -> WorthQueryPrincipalResolutionDenial {
+    let kind = match basis_denial {
+        super::WorthQueryExactBasisSnapshotDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => WorthQueryPrincipalResolutionDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        },
+        super::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+            WorthQueryPrincipalResolutionDenialKind::RetentionCapacityExhausted
+        }
+        super::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+            WorthQueryPrincipalResolutionDenialKind::RetentionIdentityExhausted
+        }
+        super::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+            WorthQueryPrincipalResolutionDenialKind::SnapshotIdentityExhausted
+        }
+        _ => WorthQueryPrincipalResolutionDenialKind::StalePrincipalProof,
+    };
+    resolution_denial(kind, binding)
 }
 
 fn resolve_at_snapshot<PrincipalIdentity>(

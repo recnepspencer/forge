@@ -10,7 +10,7 @@ use crate::tests::support::*;
 #[test]
 fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_trace_each_boundary() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut visible_txn = {
@@ -26,8 +26,10 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
             )
             .expect("owner-admitted transaction context")
     };
-    visible_txn.push_batch(batch_create("b"));
-    visible_txn.commit(&mut runtime).unwrap();
+    visible_txn
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    visible_txn.commit(&runtime).unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
     let mut upgrade_txn = {
@@ -43,8 +45,10 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
             )
             .expect("owner-admitted transaction context")
     };
-    upgrade_txn.push_batch(batch_create("c"));
-    upgrade_txn.commit(&mut runtime).unwrap();
+    upgrade_txn
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
+    upgrade_txn.commit(&runtime).unwrap();
 
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.geometry.v3".to_string(),
@@ -77,7 +81,7 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
 #[test]
 fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.geometry.v3".to_string(),
         accepted_upgrade_classes: SubscriberContinuationClassSet::new([
@@ -108,8 +112,10 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
             )
             .expect("owner-admitted transaction context")
     };
-    visible_txn.push_batch(batch_create("b"));
-    visible_txn.commit(&mut runtime).unwrap();
+    visible_txn
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    visible_txn.commit(&runtime).unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
     let mut upgrade_txn = {
@@ -125,8 +131,10 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
             )
             .expect("owner-admitted transaction context")
     };
-    upgrade_txn.push_batch(batch_create("c"));
-    upgrade_txn.commit(&mut runtime).unwrap();
+    upgrade_txn
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
+    upgrade_txn.commit(&runtime).unwrap();
 
     let resumed = runtime
         .publication()

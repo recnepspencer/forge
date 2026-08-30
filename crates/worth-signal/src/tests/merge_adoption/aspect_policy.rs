@@ -51,7 +51,7 @@ fn runtime_merge_lowers_schema_default_aspect_policy_for_affected_aspect() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -117,7 +117,7 @@ fn runtime_merge_node_aspect_policy_override_precedes_schema_default() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -182,7 +182,7 @@ fn runtime_merge_request_named_aspect_policy_precedes_schema_and_node_defaults()
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .aspect_policy_named(ASPECT_A, "signal.aspect.prefer-source")
@@ -247,7 +247,7 @@ fn runtime_merge_lowers_aspect_decision_records_for_affected_nodes() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()

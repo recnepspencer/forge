@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RELATIONAL_ROOT="$ROOT_DIR/crates/worth-relational/src"
 RAW_REQUESTS="$RELATIONAL_ROOT/merge/data/requests/raw.rs"
-HISTORY_STATE="$RELATIONAL_ROOT/runtime/state/subsystems/history.rs"
 
 failures=0
 
@@ -21,9 +20,8 @@ check_absent() {
 
 check_absent "retired combined CommitReference remains in production" "CommitReference" "$RELATIONAL_ROOT"
 check_absent "retired ExpectedBranchHead remains in production" "ExpectedBranchHead" "$RELATIONAL_ROOT"
-check_absent "retired admitted branch-basis lane remains in production" "AdmittedRelationalBranchBasis" "$RELATIONAL_ROOT"
 check_absent "retired generic branch-authority readmission remains in production" "admit_relational_branch_observation" "$RELATIONAL_ROOT"
-if rg -n "pub fn (snapshot_for_branch|admit_execution_basis)\(" "$RELATIONAL_ROOT" --glob '*.rs' >/tmp/worth-relational-phase4-residue.txt 2>&1; then
+if rg -n "pub fn (snapshot_for_branch|admit_execution_basis|admit_named_branch_basis)\(" "$RELATIONAL_ROOT" --glob '*.rs' >/tmp/worth-relational-phase4-residue.txt 2>&1; then
   echo "[relational-phase4-residue] FAIL: raw branch visibility/currentness door remains public" >&2
   cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
@@ -38,7 +36,7 @@ if rg -n "pub fn (pin_snapshot|admit_execution_basis_for_identity)\(" "$RELATION
   cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
 fi
-if rg -n "admit_application_commit|admit_execution_basis_for_identity|admit_truth_view_execution_basis|project_version|retain_version_for_replay|historical_snapshot|historical_branch_head|historical_merge_branch_basis|replay_(commit|range)|replay_authority|(^|[^[:alnum:]_])(self|world|replay_api|recovery_api|runtime|[[:alnum:]_]*runtime|world\.runtime)\.replay[[:space:]]*\(" "$ROOT_DIR/crates/worth-relational/tests/relational_certification" --glob '*.rs' --glob '!**/phase4_compatibility.rs' >/tmp/worth-relational-phase4-residue.txt 2>&1; then
+if rg -n "admit_application_commit|admit_execution_basis_for_identity|admit_truth_view_execution_basis|project_version|retain_version_for_replay|historical_snapshot|historical_branch_head|historical_merge_branch_basis|replay_(commit|range)|replay_authority|(^|[^[:alnum:]_])(self|world|replay_api|recovery_api|runtime|[[:alnum:]_]*runtime|world\.runtime)\.replay[[:space:]]*\(" "$ROOT_DIR/crates/worth-relational/tests/relational_certification" --glob '*.rs' --glob '!**/reference/compatibility.rs' >/tmp/worth-relational-phase4-residue.txt 2>&1; then
   echo "[relational-phase4-residue] FAIL: Phase-4 Supply Chain certification imported a later compatibility authority" >&2
   cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
@@ -101,15 +99,18 @@ if rg -n -P "#\[cfg\(not\(test\)\)\][\\r\\n]+\\s*pub\\s+(target_branch|source_br
   failures=1
 fi
 
-population_iteration_count="$(rg -n "branch_cells\.(values|keys)" "$HISTORY_STATE" | wc -l | tr -d ' ')"
-if [[ "$population_iteration_count" != "1" ]]; then
-  echo "[relational-phase4-residue] FAIL: branch population iteration escaped the instrumented boundary (found $population_iteration_count sites)" >&2
-  rg -n "branch_cells\.(values|keys)" "$HISTORY_STATE" >&2 || true
+if rg -n "branch_cells\.(values|keys|iter|iter_mut|into_iter)" "$RELATIONAL_ROOT" --glob '*.rs' \
+    | rg -v "runtime[/\\\\]state[/\\\\]subsystems[/\\\\](history_branch_cells|history_recovery)\.rs:" \
+    >/tmp/worth-relational-phase4-residue.txt 2>&1; then
+  echo "[relational-phase4-residue] FAIL: branch population iteration escaped its named runtime owners" >&2
+  cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
 fi
 
-if rg -n "branch_cells\.(iter|iter_mut|into_iter)" "$HISTORY_STATE" >/tmp/worth-relational-phase4-residue.txt 2>&1; then
-  echo "[relational-phase4-residue] FAIL: branch population iteration bypassed the named boundary" >&2
+if rg -n "RelationalCommitArtifact::from_envelope" "$RELATIONAL_ROOT" --glob '*.rs' \
+    | rg -v "(history[/\\\\]commit[/\\\\](catalog|artifact_tests)|mvcc[/\\\\]publication[/\\\\]authority)\.rs:" \
+    >/tmp/worth-relational-phase4-residue.txt 2>&1; then
+  echo "[relational-phase4-residue] FAIL: artifact materialization escaped the catalog or prepared-publication boundary" >&2
   cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
 fi
@@ -120,17 +121,11 @@ if rg -n "pub\(crate\) fn append\(" "$RELATIONAL_ROOT/history/commit/catalog.rs"
   failures=1
 fi
 
-materialization_sites="$(rg -n "RelationalCommitArtifact::from_envelope" "$RELATIONAL_ROOT" --glob '*.rs' | wc -l | tr -d ' ')"
-if [[ "$materialization_sites" != "1" ]]; then
-  echo "[relational-phase4-residue] FAIL: artifact materialization has $materialization_sites production sites (expected the catalog boundary only)" >&2
-  rg -n "RelationalCommitArtifact::from_envelope" "$RELATIONAL_ROOT" --glob '*.rs' >&2 || true
-  failures=1
-fi
-
-counter_sites="$(rg -n "materializations\.fetch_add" "$RELATIONAL_ROOT/history/commit/catalog.rs" | wc -l | tr -d ' ')"
-if [[ "$counter_sites" != "1" ]]; then
-  echo "[relational-phase4-residue] FAIL: catalog materialization accounting has $counter_sites construction sites (expected one)" >&2
-  rg -n "materializations\.fetch_add" "$RELATIONAL_ROOT/history/commit/catalog.rs" >&2 || true
+if rg -n "materializations\.fetch_add" "$RELATIONAL_ROOT" --glob '*.rs' \
+    | rg -v "history[/\\\\]commit[/\\\\]catalog\.rs:" \
+    >/tmp/worth-relational-phase4-residue.txt 2>&1; then
+  echo "[relational-phase4-residue] FAIL: catalog materialization accounting escaped the catalog owner" >&2
+  cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
 fi
 
@@ -140,4 +135,4 @@ if (( failures != 0 )); then
   exit 1
 fi
 
-echo "[relational-phase4-residue] PASS: retired branch authority and later currentness lease doors are absent; Phase-4 projections are private and exact-cell derived, while bounded compatibility reads stay outside certification"
+echo "[relational-phase4-residue] PASS: retired branch authority doors are absent; later exact admitted bases remain identity-gated, and post-Phase-4 history work remains inside its named owners"

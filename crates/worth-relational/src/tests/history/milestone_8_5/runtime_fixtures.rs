@@ -221,7 +221,7 @@ fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
 }
 
 pub(super) fn execute_strategy_commit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     request: NativeStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> crate::facade::transactions::CommitResult {
@@ -241,12 +241,12 @@ pub(super) fn execute_strategy_commit(
         .as_ref()
         .map(|branch| {
             crate::tests::support::test_owner_transaction_validation_input_for_branch(
-                &*runtime,
+                runtime,
                 branch.clone(),
             )
         })
         .unwrap_or_else(|| {
-            crate::tests::support::test_owner_transaction_validation_input_for_main(&*runtime)
+            crate::tests::support::test_owner_transaction_validation_input_for_main(runtime)
         });
     let mut authority = runtime.commit_strategies_authority();
     let lowered = authority

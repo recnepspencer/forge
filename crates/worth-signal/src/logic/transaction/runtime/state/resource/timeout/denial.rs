@@ -19,7 +19,7 @@ impl ResourceRuntimeState {
             }
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::timeout_heartbeat_extension(0, 1, 0),
         );
         ResourceTimeoutHeartbeatExtensionReport::denied(
@@ -59,7 +59,7 @@ impl ResourceRuntimeState {
             }
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::timeout_admission(
                 0,
                 1,

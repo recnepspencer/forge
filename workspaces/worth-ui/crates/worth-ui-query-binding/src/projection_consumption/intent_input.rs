@@ -11,12 +11,17 @@ use super::{
 
 #[path = "intent_input/collection_catalog.rs"]
 mod collection_catalog;
+#[path = "intent_input/collection_reference.rs"]
+mod collection_reference;
 #[path = "intent_input/collection_transition.rs"]
 mod collection_transition;
 #[path = "intent_input/transition_work.rs"]
 mod transition_work;
 
 use collection_catalog::UiProjectionInputCollectionCatalog;
+pub use collection_reference::{
+    UiProjectionInputCollectionRow, UiProjectionOptionReference, UiProjectionOptionStableKey,
+};
 pub use collection_transition::UiProjectionInputFactTransition;
 pub use transition_work::UiProjectionInputTransitionWork;
 
@@ -77,18 +82,6 @@ pub struct UiCollectionProjectionInputFact {
     completeness: Option<UiCollectionCompleteness>,
     catalog: Option<UiProjectionInputCollectionCatalog>,
     transition_work: UiProjectionInputTransitionWork,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiProjectionOptionReference {
-    owner_revision: UiProjectionInputRevision,
-    query_row_identity: Arc<WorthQueryEvidenceIdentity>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiProjectionInputCollectionRow {
-    row: UiCollectionProjectionRowReference,
-    selected_values: Box<[Arc<str>]>,
 }
 
 impl UiProjectionInputRevision {
@@ -207,42 +200,33 @@ impl UiCollectionProjectionInputFact {
             UiProjectionOptionReference::query_issued(
                 self.revision.clone(),
                 retained.row().query_identity().clone(),
+                retained.application_item_key(),
             )
         })
     }
 
+    pub fn current_option_keys(&self) -> Option<Box<[UiProjectionOptionStableKey]>> {
+        (self.posture == UiProjectionInputPosture::Current)
+            .then(|| {
+                self.catalog
+                    .as_ref()
+                    .map(|catalog| catalog.ordered_stable_keys())
+            })
+            .flatten()
+    }
+
+    pub fn current_application_item_keys(&self) -> Option<Box<[core::num::NonZeroU64]>> {
+        (self.posture == UiProjectionInputPosture::Current)
+            .then(|| {
+                self.catalog
+                    .as_ref()
+                    .and_then(|catalog| catalog.ordered_application_item_keys())
+            })
+            .flatten()
+    }
+
     pub fn transition_work(&self) -> UiProjectionInputTransitionWork {
         self.transition_work
-    }
-}
-
-impl UiProjectionOptionReference {
-    fn query_issued(
-        owner_revision: UiProjectionInputRevision,
-        query_row_identity: WorthQueryEvidenceIdentity,
-    ) -> Self {
-        Self {
-            owner_revision,
-            query_row_identity: Arc::new(query_row_identity),
-        }
-    }
-
-    pub fn owner_revision(&self) -> &UiProjectionInputRevision {
-        &self.owner_revision
-    }
-
-    pub fn query_identity(&self) -> &WorthQueryEvidenceIdentity {
-        &self.query_row_identity
-    }
-}
-
-impl UiProjectionInputCollectionRow {
-    pub fn row(&self) -> &UiCollectionProjectionRowReference {
-        &self.row
-    }
-
-    pub fn selected_values(&self) -> &[Arc<str>] {
-        &self.selected_values
     }
 }
 
@@ -279,6 +263,11 @@ impl UiProjectionInputSlot {
 
     pub const fn index(self) -> usize {
         self.0 as usize
+    }
+
+    #[cfg(any(test, feature = "certification-construction"))]
+    pub const fn for_certification(index: u32) -> Self {
+        Self(index)
     }
 }
 
@@ -346,13 +335,15 @@ fn collection_rows(
     value
         .rows()
         .iter()
-        .map(|row| UiProjectionInputCollectionRow {
-            row: row.row().clone(),
-            selected_values: row
-                .selected_values()
-                .iter()
-                .map(|value| Arc::from(value.as_str()))
-                .collect(),
+        .map(|row| {
+            UiProjectionInputCollectionRow::query_issued(
+                row.row().clone(),
+                row.selected_values()
+                    .iter()
+                    .map(|value| Arc::from(value.as_str()))
+                    .collect(),
+                row.application_item_key(),
+            )
         })
         .collect()
 }

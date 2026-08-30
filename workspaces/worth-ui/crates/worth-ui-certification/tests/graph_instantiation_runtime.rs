@@ -218,15 +218,15 @@ fn freeze_path_returns_the_exact_graph_handoff_denial() {
     );
     assert_eq!(
         denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
+        WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(
             UiDeclarationGraphHandoffDenial::DeclaredPostureNotAdmitted {
                 denial: UiDeclaredPostureAdmissionDenial::InvalidLaneClaim {
                     family: UiDeclarationFamilyKind::Control,
                     lane: UiDeclaredPostureLaneKind::ServiceUsage,
                     observed: vec!["service:unknown".to_owned()],
                 },
-            },
-        )
+            }
+        ),)
     );
 }
 

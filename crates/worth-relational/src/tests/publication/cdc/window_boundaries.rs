@@ -3,9 +3,9 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_cdc_resume_windows_preserve_order_across_interleaved_partitions() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let left = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
     let baseline_checkpoint =
         checkpoint_for_schema_version(PatchStreamPosition(2), SchemaVersionId(1));
 
@@ -18,11 +18,11 @@ fn subscriber_cdc_resume_windows_preserve_order_across_interleaved_partitions() 
         (right, "right-3"),
     ];
     for (entity, name) in updates {
-        let _ = update_entity(&mut runtime, entity, name);
+        let _ = update_entity(&runtime, entity, name);
     }
 
-    let _ = create_entity_in_partition(&mut runtime, "churn-1", PartitionId(29));
-    let _ = create_entity_in_partition(&mut runtime, "churn-2", PartitionId(31));
+    let _ = create_entity_in_partition(&runtime, "churn-1", PartitionId(29));
+    let _ = create_entity_in_partition(&runtime, "churn-2", PartitionId(31));
 
     let full = runtime
         .publication()

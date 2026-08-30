@@ -5,6 +5,9 @@ mod construction;
 mod durability_fault_injection;
 mod guided;
 mod initial_schema_installation;
+mod interruption_counters;
+mod operation_control;
+mod schema_transition_admission;
 mod state;
 
 pub use crate::config::data::RelationalRuntimeConfig;
@@ -31,6 +34,16 @@ pub use initial_schema_installation::{
     RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
     RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
 };
+pub use interruption_counters::RelationalInterruptionCostCounters;
+#[cfg(test)]
+pub use operation_control::RelationalPatchPositionReservationGate;
+pub use operation_control::{
+    RelationalCancellationSource, RelationalCancellationToken, RelationalInterruptionBoundary,
+    RelationalInterruptionEvent, RelationalOperationControl, RelationalOperationInterruption,
+};
+pub use schema_transition_admission::{
+    RelationalSchemaTransitionAdmissionDenial, RelationalSchemaTransitionAdmissionDenialKind,
+};
 pub use state::{
     RelationalBranchSharingCostCounters, RelationalPatchPositionReservationCounters,
     RelationalPhase4ReferenceCostCounters,
@@ -40,15 +53,28 @@ pub(crate) use crate::storage::overlay::{PartitionAccess, WorkingState};
 pub use construction::RelationalRuntimeForkDenial;
 pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
+pub(crate) use state::RelationalRuntimeState;
 pub(crate) use state::{
-    readmit_positioned_canonical_commit, CanonicalCheckpointAdmissionError,
-    CanonicalPositionAdmission, CanonicalPublicationRecordError, CommitStrategiesSubsystem,
-    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
-    PendingRecordAllocations, PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
-    PreparedRecoveredVersionedArtifactPublication, PreparedVersionedArtifactAccelerators,
-    PreparedVersionedArtifactPublication, PublicationSubsystem, ReclaimedRecordSlot,
-    RecordIdentitySubsystem, RelationalCanonicalPublicationRoutes,
-    RelationalForkMaterializationCost, ReplayRetentionState, RuntimeInstrumentation,
+    readmit_positioned_canonical_commit, AdmittedRelationalRuntimeOperation,
+    BranchHeadVersionIndexAuthority, CanonicalCheckpointAdmissionError, CanonicalPositionAdmission,
+    CanonicalPublicationRecordError, CommitStrategiesSubsystem, DurabilitySubsystem,
+    HistorySubsystem, IndexingState, IndexingSubsystem, LineageIdentityAllocator, LineageState,
+    LineageSubsystem, PartitionEdition, PendingRecordAllocations, PerformedCheckpointSelection,
+    PreparedCanonicalPublicationRoute, PreparedRecoveredVersionedArtifactPublication,
+    PreparedVersionedArtifactAccelerators, PreparedVersionedArtifactPublication,
+    PublicationSubsystem, PublishedSnapshotCapacityOwner, PublishedSnapshotCloseout,
+    PublishedSnapshotSlotReservation, ReclaimedRecordSlot, RecordIdentitySubsystem,
+    RelationalCandidateRegistrationDenial, RelationalCanonicalPublicationRoutes,
+    RelationalDiagnosticArtifactStore, RelationalForkMaterializationCost,
+    RelationalForkOwnerBinding, RelationalPreparationHistory, RelationalPreparationOwnerBinding,
+    RelationalPreparationRuntime, RelationalRuntimeConfigurationBinding,
+    RelationalRuntimeConfigurationSnapshot, RelationalRuntimeOwnerBinding,
+    RelationalRuntimePublicationBinding, ReplayRetentionState, RuntimeInstrumentation,
     RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
-    ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
+    StorageSubsystem, ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
+};
+pub(crate) use state::{
+    DeferredRelationalSettlement, PendingRelationalPublicationSettlement,
+    PerformedRelationalSettlement, RelationalPendingSettlementReservation,
+    RelationalSettlementClaim, RelationalSettlementReservationDenial, ReservedRelationalSettlement,
 };

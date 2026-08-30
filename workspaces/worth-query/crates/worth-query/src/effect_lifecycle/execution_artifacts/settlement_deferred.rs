@@ -6,6 +6,7 @@ use super::EffectExecutionDenial;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectExecutionDeferred {
+    kind: super::super::EffectExecutionDeferredKind,
     message: String,
     lowered_effect_execution_plan_identity: WorthQueryEvidenceIdentity,
     outcome_identity: WorthQueryEvidenceIdentity,
@@ -13,7 +14,11 @@ pub struct EffectExecutionDeferred {
 }
 
 impl EffectExecutionDeferred {
-    pub(crate) fn new(lowered: &LoweredEffectExecutionPlan, message: impl Into<String>) -> Self {
+    pub(crate) fn new(
+        lowered: &LoweredEffectExecutionPlan,
+        kind: super::super::EffectExecutionDeferredKind,
+        message: impl Into<String>,
+    ) -> Self {
         let message = message.into();
         let plan_identity = lowered.lowered_effect_execution_plan_identity().clone();
         let outcome_identity =
@@ -26,6 +31,7 @@ impl EffectExecutionDeferred {
                 .field_shape(WorthQueryEvidenceTag::new("message"), message.as_str())
                 .seal();
         Self {
+            kind,
             message,
             lowered_effect_execution_plan_identity: plan_identity,
             outcome_identity,
@@ -33,6 +39,10 @@ impl EffectExecutionDeferred {
                 lowered.counters().effect_support_row_count(),
             ),
         }
+    }
+
+    pub fn kind(&self) -> super::super::EffectExecutionDeferredKind {
+        self.kind
     }
 
     pub fn message(&self) -> &str {
@@ -116,6 +126,10 @@ impl EffectExecutionSettlementDeferred {
         &self.counters
     }
 
+    pub fn commit_id(&self) -> worth_relational::facade::history::CommitId {
+        self.settlement.commit().commit_id
+    }
+
     pub fn repair_with(
         &self,
         authority: super::EffectExecutionAuthority<'_>,
@@ -137,6 +151,7 @@ impl EffectExecutionSettlementDeferred {
 pub enum EffectExecutionStop {
     Denied(EffectExecutionDenial),
     Deferred(EffectExecutionDeferred),
+    ControlStopped(super::EffectExecutionControlStopped),
     SettlementDeferred(EffectExecutionSettlementDeferred),
 }
 
@@ -144,21 +159,28 @@ impl EffectExecutionStop {
     pub fn denial(&self) -> Option<&EffectExecutionDenial> {
         match self {
             Self::Denied(denial) => Some(denial),
-            Self::Deferred(_) | Self::SettlementDeferred(_) => None,
+            Self::Deferred(_) | Self::ControlStopped(_) | Self::SettlementDeferred(_) => None,
         }
     }
 
     pub fn deferred(&self) -> Option<&EffectExecutionDeferred> {
         match self {
             Self::Deferred(deferred) => Some(deferred),
-            Self::Denied(_) | Self::SettlementDeferred(_) => None,
+            Self::Denied(_) | Self::ControlStopped(_) | Self::SettlementDeferred(_) => None,
         }
     }
 
     pub fn settlement_deferred(&self) -> Option<&EffectExecutionSettlementDeferred> {
         match self {
-            Self::Denied(_) | Self::Deferred(_) => None,
+            Self::Denied(_) | Self::Deferred(_) | Self::ControlStopped(_) => None,
             Self::SettlementDeferred(deferred) => Some(deferred),
+        }
+    }
+
+    pub fn control_stopped(&self) -> Option<&super::EffectExecutionControlStopped> {
+        match self {
+            Self::ControlStopped(stopped) => Some(stopped),
+            Self::Denied(_) | Self::Deferred(_) | Self::SettlementDeferred(_) => None,
         }
     }
 }

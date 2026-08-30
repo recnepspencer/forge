@@ -2,19 +2,22 @@ use crate::application_schema::{
     ApplicationEffectPayload, ApplicationEffectRef, ApplicationFieldUnit, EqualityPredicate,
     ReadOnly, TypedApplicationValue,
 };
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 
-use super::ApplicationQueryResultFieldRef;
+use super::{ApplicationQueryMarkerIdentity, ApplicationQueryResultFieldRef};
 
 /// Domain-owned interpretation of one committed effect as a live-query cause.
 ///
 /// The binding type is identity-bearing query meaning. Query invokes these
 /// functions only after installation has matched the exact binding, effect,
 /// payload, scope selector, and target selector.
-pub trait ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>: 'static {
+pub trait ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>:
+    WorthQueryPortableType + 'static
+{
     type Effect;
-    type Payload: ApplicationEffectPayload + Clone;
-    type ScopeIdentity: TypedApplicationValue;
-    type TargetIdentity: TypedApplicationValue;
+    type Payload: ApplicationEffectPayload + WorthQueryPortableType + Clone;
+    type ScopeIdentity: TypedApplicationValue + WorthQueryPortableType;
+    type TargetIdentity: TypedApplicationValue + WorthQueryPortableType;
 
     fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload>;
     fn scope_identity(payload: &Self::Payload) -> Self::ScopeIdentity;
@@ -56,53 +59,110 @@ impl ApplicationQueryLiveResourceContract {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryLiveCauseContract {
-    binding_type: &'static str,
-    effect: &'static str,
-    payload_type: &'static str,
-    scope_slot_type: &'static str,
-    scope_field: (&'static str, &'static str, &'static str),
-    scope_value_type: &'static str,
-    target_slot_type: &'static str,
-    target_field: (&'static str, &'static str, &'static str),
-    target_value_type: &'static str,
+    binding_type: WorthQueryPortableTypeIdentity,
+    effect: String,
+    payload_type: WorthQueryPortableTypeIdentity,
+    scope_slot_type: WorthQueryPortableTypeIdentity,
+    scope_field: (String, String, String),
+    scope_value_type: WorthQueryPortableTypeIdentity,
+    target_slot_type: WorthQueryPortableTypeIdentity,
+    target_field: (String, String, String),
+    target_value_type: WorthQueryPortableTypeIdentity,
     resources: ApplicationQueryLiveResourceContract,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryPortableApplicationQueryLiveCauseParts {
+    pub binding_type: WorthQueryPortableTypeIdentity,
+    pub effect: String,
+    pub payload_type: WorthQueryPortableTypeIdentity,
+    pub scope_slot_type: WorthQueryPortableTypeIdentity,
+    pub scope_entity: String,
+    pub scope_aspect: String,
+    pub scope_field: String,
+    pub scope_value_type: WorthQueryPortableTypeIdentity,
+    pub target_slot_type: WorthQueryPortableTypeIdentity,
+    pub target_entity: String,
+    pub target_aspect: String,
+    pub target_field: String,
+    pub target_value_type: WorthQueryPortableTypeIdentity,
+    pub resources: ApplicationQueryLiveResourceContract,
+}
+
 impl ApplicationQueryLiveCauseContract {
-    pub const fn binding_type(&self) -> &'static str {
-        self.binding_type
+    pub fn from_untrusted_parts(parts: WorthQueryPortableApplicationQueryLiveCauseParts) -> Self {
+        Self {
+            binding_type: parts.binding_type,
+            effect: parts.effect,
+            payload_type: parts.payload_type,
+            scope_slot_type: parts.scope_slot_type,
+            scope_field: (parts.scope_entity, parts.scope_aspect, parts.scope_field),
+            scope_value_type: parts.scope_value_type,
+            target_slot_type: parts.target_slot_type,
+            target_field: (parts.target_entity, parts.target_aspect, parts.target_field),
+            target_value_type: parts.target_value_type,
+            resources: parts.resources,
+        }
     }
 
-    pub const fn effect(&self) -> &'static str {
-        self.effect
+    pub const fn binding_type(&self) -> &str {
+        self.binding_type.as_str()
     }
 
-    pub const fn payload_type(&self) -> &'static str {
-        self.payload_type
+    pub fn binding_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.binding_type.clone()
     }
 
-    pub const fn scope_slot_type(&self) -> &'static str {
-        self.scope_slot_type
+    pub fn effect(&self) -> &str {
+        &self.effect
     }
 
-    pub const fn scope_field(&self) -> (&'static str, &'static str, &'static str) {
-        self.scope_field
+    pub const fn payload_type(&self) -> &str {
+        self.payload_type.as_str()
     }
 
-    pub const fn scope_value_type(&self) -> &'static str {
-        self.scope_value_type
+    pub fn payload_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.payload_type.clone()
     }
 
-    pub const fn target_slot_type(&self) -> &'static str {
-        self.target_slot_type
+    pub const fn scope_slot_type(&self) -> &str {
+        self.scope_slot_type.as_str()
     }
 
-    pub const fn target_field(&self) -> (&'static str, &'static str, &'static str) {
-        self.target_field
+    pub fn scope_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.scope_slot_type.clone()
     }
 
-    pub const fn target_value_type(&self) -> &'static str {
-        self.target_value_type
+    pub fn scope_field(&self) -> (&str, &str, &str) {
+        (
+            &self.scope_field.0,
+            &self.scope_field.1,
+            &self.scope_field.2,
+        )
+    }
+
+    pub const fn scope_value_type(&self) -> &str {
+        self.scope_value_type.as_str()
+    }
+
+    pub const fn target_slot_type(&self) -> &str {
+        self.target_slot_type.as_str()
+    }
+
+    pub fn target_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.target_slot_type.clone()
+    }
+
+    pub fn target_field(&self) -> (&str, &str, &str) {
+        (
+            &self.target_field.0,
+            &self.target_field.1,
+            &self.target_field.2,
+        )
+    }
+
+    pub const fn target_value_type(&self) -> &str {
+        self.target_value_type.as_str()
     }
 
     pub const fn resources(&self) -> ApplicationQueryLiveResourceContract {
@@ -155,25 +215,28 @@ impl ApplicationQueryLiveCauseContract {
         Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
         ScopeUnit: ApplicationFieldUnit,
         TargetUnit: ApplicationFieldUnit,
+        Query: ApplicationQueryMarkerIdentity,
+        ScopeSlot: WorthQueryPortableType,
+        TargetSlot: WorthQueryPortableType,
     {
         Self {
-            binding_type: std::any::type_name::<Binding>(),
-            effect: Binding::effect().name(),
-            payload_type: std::any::type_name::<Binding::Payload>(),
-            scope_slot_type: scope_identity.slot_type(),
+            binding_type: Binding::PORTABLE_TYPE_IDENTITY,
+            effect: Binding::effect().name().to_owned(),
+            payload_type: Binding::Payload::PORTABLE_TYPE_IDENTITY,
+            scope_slot_type: scope_identity.slot_key().slot_identity(),
             scope_field: (
-                scope_identity.entity(),
-                scope_identity.aspect(),
-                scope_identity.field(),
+                scope_identity.entity().to_owned(),
+                scope_identity.aspect().to_owned(),
+                scope_identity.field().to_owned(),
             ),
-            scope_value_type: std::any::type_name::<Binding::ScopeIdentity>(),
-            target_slot_type: target_identity.slot_type(),
+            scope_value_type: Binding::ScopeIdentity::PORTABLE_TYPE_IDENTITY,
+            target_slot_type: target_identity.slot_key().slot_identity(),
             target_field: (
-                target_identity.entity(),
-                target_identity.aspect(),
-                target_identity.field(),
+                target_identity.entity().to_owned(),
+                target_identity.aspect().to_owned(),
+                target_identity.field().to_owned(),
             ),
-            target_value_type: std::any::type_name::<Binding::TargetIdentity>(),
+            target_value_type: Binding::TargetIdentity::PORTABLE_TYPE_IDENTITY,
             resources,
         }
     }

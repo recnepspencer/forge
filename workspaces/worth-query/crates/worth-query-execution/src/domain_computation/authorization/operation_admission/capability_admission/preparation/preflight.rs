@@ -3,6 +3,7 @@
 use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityRequest, ApplicationCapabilityRequestProjection,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableType;
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationCapability,
     WorthQueryInstalledApplicationOperationGraphAuthority,
@@ -39,6 +40,8 @@ pub(super) fn validate_static_authority<
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
+    Operation: 'static,
+    Input: worth_query_declaration::facade::portable_identity::WorthQueryPortableType + 'static,
 {
     if principal.is_expired() {
         return Err(denial(
@@ -148,6 +151,8 @@ pub(super) fn resolve_installed_operation<Schema, Capability, Operation, Input>(
 >
 where
     Schema: ApplicationSchema,
+    Operation: 'static,
+    Input: WorthQueryPortableType + 'static,
 {
     runtime
         .installed_schema

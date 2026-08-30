@@ -12,7 +12,7 @@ use crate::domain_computation::primary_graph::{
 };
 use worth_query_declaration::facade::{
     application_capability::ApplicationCapabilityRequest,
-    application_schema::TypedMutationPreconditions,
+    application_schema::{ApplicationOperationMarkerIdentity, TypedMutationPreconditions},
 };
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,
@@ -62,6 +62,7 @@ where
         WorthQueryOperationAuthorizationDenial,
     >
     where
+        Operation: ApplicationOperationMarkerIdentity,
         Input: ApplicationCapabilityRequest<Schema, Capability>,
     {
         crate::domain_computation::authorization::operation_progression::progress_capability_operation(
@@ -87,6 +88,7 @@ pub(in crate::domain_computation::authorization) fn validate_capability_operatio
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
+    Operation: ApplicationOperationMarkerIdentity,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     validate_progression_authority(runtime, access, operation, progression)?;

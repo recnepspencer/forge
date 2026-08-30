@@ -15,6 +15,7 @@ use presentation_sources::PresentationSources;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedDrawableReference {
     FilledRect(super::UiMountedFilledRectReference),
+    PortalOverlay(super::UiMountedPortalOverlayReference),
     SemanticText(super::UiMountedSemanticTextReference),
 }
 
@@ -22,6 +23,7 @@ pub enum UiMountedDrawableReference {
 pub struct UiMountedNodeProjectionView {
     mounted_instance: UiMountedInstanceIdentity,
     node_receipt: UiMountedNodeReceiptIdentity,
+    authored_position: u64,
     role: super::UiMountedMechanicalRole,
     participation: super::UiMountedParticipation,
     allocation: super::UiMountedAllocationProjection,
@@ -33,6 +35,7 @@ pub struct UiMountedNodeProjectionView {
     diagnostic: super::UiMountedDiagnosticProjection,
     drawables: Box<[UiMountedDrawableReference]>,
     semantic_text: Box<[super::UiMountedSemanticTextReference]>,
+    portal_presentation: Option<super::UiMountedPortalPresentationAffinity>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -45,6 +48,7 @@ pub struct UiMountedProjectionView {
     clips: super::UiMountedClipTable,
     layers: super::UiMountedLayerTable,
     filled_rects: super::UiMountedFilledRectTable,
+    portal_overlays: super::UiMountedPortalOverlayTable,
     semantic_text: super::UiMountedSemanticTextTable,
     hit_tests: super::UiMountedHitTestTable,
     paint_batches: super::UiMountedPaintBatchTable,
@@ -67,6 +71,7 @@ pub struct UiMountedProjectionView {
 pub struct UiMountedNodeProjectionViewInput {
     pub mounted_instance: UiMountedInstanceIdentity,
     pub node_receipt: UiMountedNodeReceiptIdentity,
+    pub authored_position: u64,
     pub role: super::UiMountedMechanicalRole,
     pub participation: super::UiMountedParticipation,
     pub allocation: super::UiMountedAllocationProjection,
@@ -78,6 +83,7 @@ pub struct UiMountedNodeProjectionViewInput {
     pub diagnostic: super::UiMountedDiagnosticProjection,
     pub drawables: Vec<UiMountedDrawableReference>,
     pub semantic_text: Vec<super::UiMountedSemanticTextReference>,
+    pub portal_presentation: Option<super::UiMountedPortalPresentationAffinity>,
 }
 
 pub struct UiMountedProjectionViewInput {
@@ -89,6 +95,7 @@ pub struct UiMountedProjectionViewInput {
     pub clips: super::UiMountedClipTable,
     pub layers: super::UiMountedLayerTable,
     pub filled_rects: super::UiMountedFilledRectTable,
+    pub portal_overlays: super::UiMountedPortalOverlayTable,
     pub semantic_text: super::UiMountedSemanticTextTable,
     pub hit_tests: super::UiMountedHitTestTable,
     pub paint_batches: super::UiMountedPaintBatchTable,
@@ -104,6 +111,7 @@ impl UiMountedNodeProjectionView {
         Self {
             mounted_instance: input.mounted_instance,
             node_receipt: input.node_receipt,
+            authored_position: input.authored_position,
             role: input.role,
             participation: input.participation,
             allocation: input.allocation,
@@ -115,6 +123,7 @@ impl UiMountedNodeProjectionView {
             diagnostic: input.diagnostic,
             drawables: input.drawables.into_boxed_slice(),
             semantic_text: input.semantic_text.into_boxed_slice(),
+            portal_presentation: input.portal_presentation,
         }
     }
     pub fn mounted_instance(&self) -> UiMountedInstanceIdentity {
@@ -122,6 +131,9 @@ impl UiMountedNodeProjectionView {
     }
     pub fn node_receipt(&self) -> UiMountedNodeReceiptIdentity {
         self.node_receipt
+    }
+    pub const fn authored_position(&self) -> u64 {
+        self.authored_position
     }
     pub fn role(&self) -> super::UiMountedMechanicalRole {
         self.role
@@ -156,6 +168,9 @@ impl UiMountedNodeProjectionView {
     pub fn semantic_text(&self) -> &[super::UiMountedSemanticTextReference] {
         &self.semantic_text
     }
+    pub const fn portal_presentation(&self) -> Option<super::UiMountedPortalPresentationAffinity> {
+        self.portal_presentation
+    }
 }
 
 impl UiMountedProjectionView {
@@ -176,6 +191,7 @@ impl UiMountedProjectionView {
         let presentation = PresentationSources::admit(
             &input.nodes,
             &input.filled_rects,
+            &input.portal_overlays,
             &input.semantic_text,
             input.authored_paint_commands,
             input.authored_paint_order,
@@ -189,6 +205,7 @@ impl UiMountedProjectionView {
             clips: input.clips,
             layers: input.layers,
             filled_rects: input.filled_rects,
+            portal_overlays: input.portal_overlays,
             semantic_text: input.semantic_text,
             hit_tests: input.hit_tests,
             paint_batches: input.paint_batches,
@@ -233,6 +250,9 @@ impl UiMountedProjectionView {
     }
     pub fn filled_rects(&self) -> &super::UiMountedFilledRectTable {
         &self.filled_rects
+    }
+    pub fn portal_overlays(&self) -> &super::UiMountedPortalOverlayTable {
+        &self.portal_overlays
     }
     pub fn semantic_text(&self) -> &super::UiMountedSemanticTextTable {
         &self.semantic_text

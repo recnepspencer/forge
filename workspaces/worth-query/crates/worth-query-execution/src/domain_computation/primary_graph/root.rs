@@ -35,7 +35,7 @@ impl WorthQueryPrimaryGraph {
         runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
         mut layout: WorthQueryPrimaryGraphLayout,
-        mut runtime: RelationalRuntime,
+        runtime: RelationalRuntime,
     ) -> Self {
         let relational_runtime_instance_id = runtime.main_branch_identity().runtime_instance_id();
         let mut indexes_by_locator = BTreeMap::new();
@@ -292,20 +292,20 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
     pub(crate) fn bind_current_truth_head(
         &self,
         branch: &worth_relational::facade::history::BranchId,
-    ) -> Result<worth_runtime_bridge::facade::TruthSnapshotIdentity, &'static str> {
+    ) -> Result<
+        worth_runtime_bridge::facade::TruthSnapshotIdentity,
+        worth_relational::facade::branch::RelationalBranchBasisDenial,
+    > {
         let basis = self.with_runtime(|runtime| {
-            let identity = runtime
-                .branch_identity(branch)
-                .map_err(|_| "primary graph branch identity is unavailable")?;
-            runtime
-                .observe_branch(&identity)
-                .map(|(_, basis)| basis)
-                .map_err(|_| "primary graph branch basis is unavailable")
+            let identity = runtime.branch_identity(branch).map_err(|_| {
+                worth_relational::facade::branch::RelationalBranchBasisDenial::UnknownBranch(
+                    branch.clone(),
+                )
+            })?;
+            runtime.observe_branch(&identity).map(|(_, basis)| basis)
         })?;
         let source = self.relational_bridge_source();
-        let head = source
-            .bind_branch_head_basis_for_bridge(&basis)
-            .map_err(|_| "primary graph branch head could not bind to Bridge")?;
+        let head = source.bind_branch_head_basis_for_bridge(&basis)?;
         let snapshot = head.snapshot_identity().clone();
         let mut installed = self
             .bridge_head
@@ -315,37 +315,16 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         Ok(snapshot)
     }
 
-    pub(crate) fn retain_current_truth_observation(
-        &self,
-        branch: &worth_relational::facade::history::BranchId,
-    ) -> Result<
-        std::sync::Arc<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
-        &'static str,
-    > {
-        let source = self.relational_bridge_source();
-        let observation = self.with_runtime(|runtime| {
-            let identity = runtime
-                .branch_identity(branch)
-                .map_err(|_| "primary graph branch identity is unavailable")?;
-            let (_, basis) = runtime
-                .observe_branch(&identity)
-                .map_err(|_| "primary graph branch basis is unavailable")?;
-            source
-                .retain_branch_basis_for_bridge_in_runtime(runtime, &basis)
-                .map_err(|_| "primary graph branch observation could not bind to Bridge")
-        })?;
-        Ok(std::sync::Arc::new(observation))
-    }
-
     pub(crate) fn bind_truth_head_basis_in_runtime(
         &self,
         runtime: &RelationalRuntime,
         basis: &worth_relational::facade::branch::AdmittedRelationalBranchBasis,
-    ) -> Result<worth_runtime_bridge::facade::TruthSnapshotIdentity, &'static str> {
+    ) -> Result<
+        worth_runtime_bridge::facade::TruthSnapshotIdentity,
+        worth_relational::facade::branch::RelationalBranchBasisDenial,
+    > {
         let source = self.relational_bridge_source();
-        let head = source
-            .bind_branch_head_basis_for_bridge_in_runtime(runtime, basis)
-            .map_err(|_| "primary graph branch head could not bind to Bridge")?;
+        let head = source.bind_branch_head_basis_for_bridge_in_runtime(runtime, basis)?;
         let snapshot = head.snapshot_identity().clone();
         let mut installed = self
             .bridge_head

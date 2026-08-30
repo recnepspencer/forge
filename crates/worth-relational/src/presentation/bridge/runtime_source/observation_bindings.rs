@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use worth_runtime_bridge::facade::{RelationalBridgeSourceError, TruthSnapshotIdentity};
 
 use crate::history::data::CommitId;
-use crate::history::retention::RelationalComponentBasisRetentionLease;
+use crate::history::retention::RelationalBranchRetentionLease;
 use crate::identity::data::VersionId;
 use crate::mvcc::RelationalBranchObservation;
 use crate::snapshots::data::SnapshotId;
@@ -63,7 +63,7 @@ struct RelationalBridgeObservationBinding {
     version_id: VersionId,
     commit_id: Option<CommitId>,
     observation: RelationalBranchObservation,
-    retention: RelationalComponentBasisRetentionLease,
+    retention: RelationalBranchRetentionLease,
 }
 
 impl RelationalBridgeObservationBindings {
@@ -75,7 +75,7 @@ impl RelationalBridgeObservationBindings {
         self: &Arc<Self>,
         snapshot_id: SnapshotId,
         observation: RelationalBranchObservation,
-        retention: RelationalComponentBasisRetentionLease,
+        retention: RelationalBranchRetentionLease,
     ) -> RelationalBridgeObservationLease {
         let version_id = observation.version_id();
         let commit_id = observation.commit_id();
@@ -229,8 +229,7 @@ impl Drop for RelationalBridgeObservationLease {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationalBridgeObservationReleaseReceipt {
     snapshot_identity: TruthSnapshotIdentity,
-    component_release:
-        Option<crate::history::retention::RelationalComponentBasisRetentionReleaseReceipt>,
+    component_release: Option<crate::history::retention::RelationalBranchRetentionReleaseReceipt>,
 }
 
 impl RelationalBridgeObservationReleaseReceipt {
@@ -244,7 +243,7 @@ impl RelationalBridgeObservationReleaseReceipt {
 
     pub fn component_release(
         &self,
-    ) -> Option<&crate::history::retention::RelationalComponentBasisRetentionReleaseReceipt> {
+    ) -> Option<&crate::history::retention::RelationalBranchRetentionReleaseReceipt> {
         self.component_release.as_ref()
     }
 }

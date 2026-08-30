@@ -128,8 +128,8 @@ fn assemble_observation(
     schema: super::schema::SchemaVersion,
     view: &RelationalReadView,
 ) -> Result<ObservedSupplyChainState, ObservationError> {
-    let entities = observe_entities(program, handles, &view)?;
-    let relations = observe_relations(handles, &view)?;
+    let entities = observe_entities(program, handles, view)?;
+    let relations = observe_relations(handles, view)?;
     let branch = branch_label(branch_id)?;
     let parent = runtime
         .branch_reference_state(branch_id)
@@ -186,7 +186,7 @@ fn branch_label(
         "competing-arrival" => Ok(BranchLabel::CompetingArrival),
         "inspection" => Ok(BranchLabel::Inspection),
         "rewire" => Ok(BranchLabel::Rewire),
-        "hazard-v2" => Ok(BranchLabel::HazardV2),
+        "hazard-v2" | "hazard-v2-secondary" => Ok(BranchLabel::HazardV2),
         _ => Err(ObservationError::UnknownBranch(branch_id.clone())),
     }
 }

@@ -29,7 +29,9 @@ impl<'runtime> DurabilityAccess<'runtime> {
     }
 
     #[cfg(test)]
-    pub(crate) fn durable_log(&self) -> &[crate::history::data::PositionedCanonicalCommit] {
+    pub(crate) fn durable_log(
+        &self,
+    ) -> Vec<std::sync::Arc<crate::history::data::PositionedCanonicalCommit>> {
         DurabilityRead::durable_log(self.runtime)
     }
 }

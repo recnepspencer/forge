@@ -1,4 +1,6 @@
-use worth_ui_host_contract::{UiHostPresentationCostReport, UiMountedPresentationProductionCost};
+use worth_ui_host_contract::{
+    UiHostPresentationCostReport, UiHostPresentationEpoch, UiMountedPresentationProductionCost,
+};
 
 #[path = "observation/graphics.rs"]
 mod graphics;
@@ -44,6 +46,7 @@ pub enum UiNativePresentationWorkKind {
     Initial,
     Delta,
     Reconstruction,
+    Sample,
     Unchanged,
 }
 
@@ -51,6 +54,7 @@ pub enum UiNativePresentationWorkKind {
 pub struct UiNativeRetainedFrameObservation {
     frame: u64,
     kind: UiNativePresentationWorkKind,
+    sample_presentation_epoch: Option<UiHostPresentationEpoch>,
     retained_baseline_rgba8: [u8; 4],
     retained_center_rgba8: [u8; 4],
     cost: UiHostPresentationCostReport,
@@ -268,6 +272,7 @@ impl UiNativeRetainedFrameObservation {
     pub(crate) fn observed(
         frame: u64,
         kind: UiNativePresentationWorkKind,
+        sample_presentation_epoch: Option<UiHostPresentationEpoch>,
         pixels: [[u8; 4]; 2],
         cost: UiHostPresentationCostReport,
         presentation: Option<UiNativePresentationObservation>,
@@ -279,6 +284,7 @@ impl UiNativeRetainedFrameObservation {
         Self {
             frame,
             kind,
+            sample_presentation_epoch,
             retained_baseline_rgba8: pixels[0],
             retained_center_rgba8: pixels[1],
             cost,
@@ -293,6 +299,10 @@ impl UiNativeRetainedFrameObservation {
 
     pub const fn kind(&self) -> UiNativePresentationWorkKind {
         self.kind
+    }
+
+    pub const fn sample_presentation_epoch(&self) -> Option<UiHostPresentationEpoch> {
+        self.sample_presentation_epoch
     }
 
     pub const fn retained_baseline_rgba8(&self) -> [u8; 4] {

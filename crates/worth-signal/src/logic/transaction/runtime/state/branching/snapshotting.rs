@@ -1,14 +1,12 @@
 mod capture;
 mod validation;
 
-use std::collections::BTreeMap;
-
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::state::{
-    SignalBranchHandle, SignalBranchId, SignalSnapshotV1, SnapshotArtifactRestoreMode,
+    SignalBranchHandle, SignalSnapshotV1, SnapshotArtifactRestoreMode,
     SnapshotDependencyRestoreMode, SnapshotRestoreIntent,
 };
 
@@ -21,15 +19,27 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
+    pub(crate) fn restore_snapshot(
+        &mut self,
+        snapshot: &SignalSnapshotV1,
+    ) -> Result<(), SignalError> {
         self.restore_snapshot_with_intent(snapshot, SnapshotRestoreIntent::restore_runtime_truth())
     }
 
-    pub fn restore_snapshot_with_intent(
+    pub(crate) fn restore_snapshot_with_intent(
         &mut self,
         snapshot: &SignalSnapshotV1,
         intent: SnapshotRestoreIntent,
     ) -> Result<(), SignalError> {
+        let restored_branch_id = snapshot.meta.branch_id;
+        let next_generation = self
+            .branches
+            .next_branch_head_generation(restored_branch_id)
+            .map_err(|denial| {
+                SignalError::internal(format!(
+                    "Signal restore generation cannot advance: {denial:?}"
+                ))
+            })?;
         let reconstructability_proof = snapshot.reconstructability_proof()?;
         let restore_plan = self.graph.plan_snapshot_restore(snapshot, intent)?;
         self.graph.validate_snapshot_compatibility(snapshot)?;
@@ -51,14 +61,20 @@ where
         }
         if let Some(snapshot_state) = snapshot_state {
             let current_diagnostics = self.graph.diagnostics_state().clone();
-            return self.restore_stored_snapshot_branch(
+            self.restore_stored_snapshot_branch(
                 snapshot,
                 intent,
                 &reconstructability_proof,
                 &restore_plan,
                 snapshot_state,
                 &current_diagnostics,
+            )?;
+            self.branches.commit_branch_restore_generation(
+                restored_branch_id,
+                next_generation,
+                snapshot.meta.snapshot_id,
             );
+            return Ok(());
         }
 
         self.graph.restore_snapshot_with_intent(snapshot, intent)?;
@@ -69,12 +85,18 @@ where
                 self.telemetry = *telemetry;
             }
         }
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.branches
+            .set_branch_head_snapshot(restored_branch_id, snapshot.meta.snapshot_id);
+        self.project_branch_catalog();
+        self.branches.commit_branch_restore_generation(
+            restored_branch_id,
+            next_generation,
+            snapshot.meta.snapshot_id,
+        );
         Ok(())
     }
 
-    pub fn restore_branch_snapshot(
+    pub(crate) fn restore_branch_snapshot(
         &mut self,
         branch: SignalBranchHandle,
         snapshot: &SignalSnapshotV1,
@@ -86,7 +108,7 @@ where
         )
     }
 
-    pub fn restore_branch_snapshot_with_intent(
+    pub(crate) fn restore_branch_snapshot_with_intent(
         &mut self,
         branch: SignalBranchHandle,
         snapshot: &SignalSnapshotV1,
@@ -104,6 +126,14 @@ where
         if branch.id == self.graph.current_branch().id {
             return self.restore_snapshot_with_intent(snapshot, intent);
         }
+        let next_generation = self
+            .branches
+            .next_branch_head_generation(branch.id)
+            .map_err(|denial| {
+                SignalError::internal(format!(
+                    "Signal restore generation cannot advance: {denial:?}"
+                ))
+            })?;
         if matches!(
             intent.dependency_state,
             SnapshotDependencyRestoreMode::SeedRecomputationFromSnapshot
@@ -114,7 +144,7 @@ where
         }
         let (snapshot_state, current_diagnostics, target_policy) =
             self.load_noncurrent_restore_inputs(&branch, snapshot)?;
-        let mut graph = self.restore_snapshot_graph(
+        let graph = self.restore_snapshot_graph(
             snapshot,
             &reconstructability_proof,
             &restore_plan,
@@ -122,16 +152,19 @@ where
             intent,
             target_policy,
         )?;
-        graph.diagnostics_state_mut().set_active_branch(branch.id);
-        graph
-            .diagnostics_state_mut()
-            .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
-        let (state, branch_catalog) =
-            Self::finalize_restored_branch_state(snapshot_state, graph, snapshot);
+        let mut state = Self::finalize_restored_branch_state(snapshot_state, graph, snapshot);
         self.record_snapshot_restore_telemetry(intent, &restore_plan);
         self.graph.interrupt_observation_at_boundary();
+        self.branches
+            .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
+        self.branches.project_catalog(branch.id, state.graph_mut());
         self.branches.store_branch_state(state);
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.project_branch_catalog();
+        self.branches.commit_branch_restore_generation(
+            branch.id,
+            next_generation,
+            snapshot.meta.snapshot_id,
+        );
         Ok(())
     }
 
@@ -179,7 +212,7 @@ where
         snapshot_state: SnapshotBranchState<D, I, T>,
         current_diagnostics: &crate::diagnostics::state::DiagnosticsState,
     ) -> Result<(), SignalError> {
-        let mut graph = self.restore_snapshot_graph(
+        let graph = self.restore_snapshot_graph(
             snapshot,
             reconstructability_proof,
             restore_plan,
@@ -187,14 +220,11 @@ where
             intent,
             self.graph.installed_runtime_policy(),
         )?;
-        graph
-            .diagnostics_state_mut()
-            .set_active_branch(snapshot.meta.branch_id);
-        graph
-            .diagnostics_state_mut()
+        self.branches
             .set_branch_head_snapshot(snapshot.meta.branch_id, snapshot.meta.snapshot_id);
-        let (state, branch_catalog) =
-            Self::finalize_restored_branch_state(snapshot_state, graph, snapshot);
+        let mut state = Self::finalize_restored_branch_state(snapshot_state, graph, snapshot);
+        self.branches
+            .project_catalog(snapshot.meta.branch_id, state.graph_mut());
         let preserved_transaction = self.telemetry_snapshot().transaction;
         let interrupted_observation = self.graph.interrupt_observation_at_boundary();
         self.apply_branch_lifecycle_transfer(
@@ -215,7 +245,7 @@ where
             self.graph.record_boundary_interruption();
         }
         self.record_snapshot_restore_telemetry(intent, restore_plan);
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.project_branch_catalog();
         Ok(())
     }
 
@@ -293,10 +323,7 @@ where
         snapshot_state: SnapshotBranchState<D, I, T>,
         graph: SignalGraph,
         snapshot: &SignalSnapshotV1,
-    ) -> (
-        super::branches::BranchState<D, I, T>,
-        BTreeMap<SignalBranchId, SignalBranchHandle>,
-    ) {
+    ) -> super::branches::BranchState<D, I, T> {
         let restore_optional_telemetry = graph.captures_observation_surface(
             crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
         );
@@ -327,7 +354,6 @@ where
             .graph_mut()
             .diagnostics_state_mut()
             .refresh_retained_views(history, graph_summary);
-        let branch_catalog = state.graph().diagnostics_state().branch_catalog().clone();
-        (state, branch_catalog)
+        state
     }
 }

@@ -14,14 +14,10 @@ use crate::transactions::data::MergeExecutionSummary;
 
 #[test]
 fn merge_branch_basis_matches_planning_artifact_and_history_scope_authority() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     let request = MergePlanningRequest::new(
         BranchId("main".to_string()),
         BranchId("feature".to_string()),
@@ -55,8 +51,8 @@ fn merge_branch_basis_matches_planning_artifact_and_history_scope_authority() {
 
 #[test]
 fn merge_branch_basis_denial_happens_before_planning_for_missing_or_disconnected_branches() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
     let main_branch = BranchId("main".to_string());
     let missing_branch = BranchId("missing".to_string());
 
@@ -82,7 +78,7 @@ fn merge_branch_basis_denial_happens_before_planning_for_missing_or_disconnected
     ));
 
     let orphan_branch = BranchId("orphan".to_string());
-    graft_disconnected_branch_head(&mut runtime, &orphan_branch);
+    graft_disconnected_branch_head(&runtime, &orphan_branch);
     let missing_merge_base = runtime
         .history()
         .resolve_merge_branch_basis(&orphan_branch, &main_branch)
@@ -115,14 +111,10 @@ fn merge_branch_basis_denial_happens_before_planning_for_missing_or_disconnected
 
 #[test]
 fn merge_branch_basis_survives_published_merge_outcome_and_durability_recovery() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     let prepared = runtime
         .prepare_merge_execution(crate::facade::merge::MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),
@@ -143,7 +135,7 @@ fn merge_branch_basis_survives_published_merge_outcome_and_durability_recovery()
         .expect("live merge authority");
 
     let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
@@ -208,9 +200,9 @@ fn assert_summary_projects_exact_basis(summary: &MergeExecutionSummary) {
     );
 }
 
-fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &BranchId) {
-    let mut disconnected = persisted_runtime_with_test_schema();
-    create_entity(&mut disconnected, "orphan-root");
+fn graft_disconnected_branch_head(runtime: &RelationalRuntime, branch_id: &BranchId) {
+    let disconnected = persisted_runtime_with_test_schema();
+    create_entity(&disconnected, "orphan-root");
 
     let source_head = disconnected
         .history()
@@ -224,8 +216,7 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
 
     let mut envelope = disconnected
         .history
-        .commit_envelopes
-        .get(&source_head.commit_id)
+        .recorded_commit_envelope(source_head.commit_id)
         .expect("source envelope")
         .as_ref()
         .clone();
@@ -234,10 +225,13 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
 
     runtime
         .history
-        .commit_catalog
-        .append_envelope(Arc::new(envelope.clone()))
+        .with_ledger_mut(|ledger| {
+            ledger
+                .commit_catalog
+                .append_envelope(Arc::new(envelope.clone()))
+        })
         .expect("disconnected artifact id is unique");
-    let mut branch_cell =
+    let branch_cell =
         RelationalBranchReferenceCell::empty(runtime.runtime_instance_id(), branch_id.clone())
             .expect("disconnected branch identity is valid");
     branch_cell
@@ -250,14 +244,15 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
         ))
         .expect("disconnected branch reference is valid");
     runtime.history.insert_branch_cell(branch_cell);
-    runtime.history.commit_graph.insert(
+    runtime.history.insert_commit_graph_node(
         orphan_head.commit_id,
         VersionNode {
             commit: orphan_head,
         },
     );
-    runtime
-        .history
-        .commit_envelopes
-        .insert(envelope.commit.commit_id, Arc::new(envelope));
+    runtime.history.with_ledger_mut(|ledger| {
+        ledger
+            .commit_envelopes
+            .insert(envelope.commit.commit_id, Arc::new(envelope))
+    });
 }

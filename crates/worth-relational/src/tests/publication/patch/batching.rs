@@ -3,10 +3,10 @@ use crate::tests::support::*;
 
 #[test]
 fn patch_stream_resume_batches_commits_without_duplication() {
-    let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
-    let _second = create_entity_outcome(&mut runtime, "b");
-    let _third = create_entity_outcome(&mut runtime, "c");
+    let runtime = runtime_with_test_schema();
+    let _first = create_entity_outcome(&runtime, "a");
+    let _second = create_entity_outcome(&runtime, "b");
+    let _third = create_entity_outcome(&runtime, "c");
 
     let first_batch = runtime
         .publication()
@@ -33,8 +33,8 @@ fn patch_stream_resume_batches_commits_without_duplication() {
 
 #[test]
 fn patch_stream_rejects_unknown_resume_position() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     let error = runtime
         .publication()
@@ -52,11 +52,11 @@ fn patch_stream_rejects_unknown_resume_position() {
 
 #[test]
 fn patch_stream_uses_durable_canonical_history_when_retained_envelope_is_missing() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "a");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "a");
     runtime.durability_authority().checkpoint().unwrap();
-    let _second = create_entity_outcome(&mut runtime, "b");
-    let _third = create_entity_outcome(&mut runtime, "c");
+    let _second = create_entity_outcome(&runtime, "b");
+    let _third = create_entity_outcome(&runtime, "c");
 
     assert!(runtime
         .history_authority()

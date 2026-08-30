@@ -71,6 +71,22 @@ fn family_definitions_preserve_closed_owner_and_framework_order() {
             UiObservationFamily::CommittedPortalAnchor,
             UiObservationOwner::PortalRuntimeState,
         ),
+        (
+            UiObservationFamily::CommittedFocus,
+            UiObservationOwner::FocusRuntimeState,
+        ),
+        (
+            UiObservationFamily::CommittedSelection,
+            UiObservationOwner::SelectionRuntimeState,
+        ),
+        (
+            UiObservationFamily::CommittedMotionTrack,
+            UiObservationOwner::MotionRuntimeState,
+        ),
+        (
+            UiObservationFamily::CommittedCommandRoute,
+            UiObservationOwner::CommandRoutingRuntimeState,
+        ),
     ];
     for (rank, (family, owner)) in expected.into_iter().enumerate() {
         let definition = family.definition();
@@ -108,4 +124,19 @@ fn family_definitions_preserve_closed_owner_and_framework_order() {
         intent_posture.coalescing_policy(),
         UiObservationCoalescingPolicy::Forbidden
     );
+
+    for family in [
+        UiObservationFamily::CommittedFocus,
+        UiObservationFamily::CommittedSelection,
+        UiObservationFamily::CommittedMotionTrack,
+        UiObservationFamily::CommittedCommandRoute,
+    ] {
+        let definition = family.definition();
+        assert_eq!(definition.loss_policy(), UiObservationLossPolicy::Lossless);
+        assert_eq!(definition.reset_policy(), UiObservationResetPolicy::NoReset);
+        assert_eq!(
+            definition.coalescing_policy(),
+            UiObservationCoalescingPolicy::OwnerEquivalentOnly
+        );
+    }
 }

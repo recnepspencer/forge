@@ -21,24 +21,19 @@ pub(in crate::tests::domains::fintech) use canonical_identity::{
     FinancialCanonicalCaseIdentity, FinancialCanonicalReportIdentity,
 };
 pub(in crate::tests::domains::fintech) use cost_slope::{
-    certify_ordinary_cost_slopes, certify_ordinary_cost_slopes_from_cases,
-    certify_scheduled_cost_slopes_from_cases, InvalidationCostSlopeClass,
+    certify_ordinary_cost_slopes_from_cases, certify_scheduled_cost_slopes_from_cases,
     InvalidationCostSlopeReport,
 };
 pub(in crate::tests::domains::fintech) use courtroom::run_financial_causality_courtroom;
 pub(crate) use fresh_recompute::FreshFinancialRecompute;
 pub(in crate::tests::domains::fintech) use locality_canonical_identity::verified_locality_case_identity;
 pub(in crate::tests::domains::fintech) use locality_expectation::{
-    ExpectedCanonicalWork, ExpectedLocalityCounterRow, FinancialLocalityExpectationManifest,
+    ExpectedLocalityCounterRow, FinancialLocalityExpectationManifest,
 };
 pub(in crate::tests::domains::fintech) use locality_fresh_recompute::FreshFinancialLocalityRecompute;
-pub(crate) use locality_receipt::{
-    verify_locality_case, verify_locality_case_with_policy, FinancialLocalityCaseEvidence,
-};
-pub(in crate::tests::domains::fintech) use locality_run::{
-    certify_ordinary_locality_run, certify_scheduled_locality_run,
-    FinancialFrontierLocalityCertificationRun,
-};
+#[cfg(feature = "parallel")]
+pub(crate) use locality_receipt::verify_locality_case_with_policy;
+pub(crate) use locality_receipt::{verify_locality_case, FinancialLocalityCaseEvidence};
 pub(in crate::tests::domains::fintech) use necessity_manifest::{
     FinancialNecessityEvidence, FinancialNecessityManifest,
 };

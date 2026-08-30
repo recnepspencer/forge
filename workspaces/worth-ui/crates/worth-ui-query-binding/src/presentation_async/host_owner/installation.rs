@@ -27,25 +27,21 @@ pub struct WorthUiPresentationAsyncInstallation {
 
 #[derive(Debug)]
 pub enum WorthUiPresentationAsyncInstallationError {
-    Builder(super::super::super::WorthUiScalarProjectionInstallationError),
-    Completion(runtime::WorthQueryHostRuntimeCompletionError),
-    Runtime(runtime::WorthQueryRuntimeError),
+    Builder(Box<super::super::super::WorthUiScalarProjectionInstallationError>),
+    Completion(Box<runtime::WorthQueryHostRuntimeCompletionError>),
+    Runtime(Box<runtime::WorthQueryRuntimeError>),
 }
 
 impl WorthUiPresentationAsyncHostPlan {
-    #[allow(
-        clippy::result_large_err,
-        reason = "cold host installation preserves exact Query failure topology"
-    )]
     pub fn prepare() -> Result<Self, WorthUiPresentationAsyncInstallationError> {
         let source = crate::product_projection::shared_source_state();
         let bridge = crate::product_projection::platform_pulse_bridge().map_err(|detail| {
-            WorthUiPresentationAsyncInstallationError::Builder(
+            WorthUiPresentationAsyncInstallationError::Builder(Box::new(
                 super::super::super::WorthUiScalarProjectionInstallationError::Bridge(detail),
-            )
+            ))
         })?;
         let builder = crate::product_projection::projection_runtime_builder(source, bridge)
-            .map_err(WorthUiPresentationAsyncInstallationError::Builder)?;
+            .map_err(|error| WorthUiPresentationAsyncInstallationError::Builder(Box::new(error)))?;
         let plan = builder.prepare_host_installation();
         let (request, completion) = plan.into_parts();
         Ok(Self {
@@ -80,13 +76,12 @@ impl WorthUiPresentationAsyncHostCompletion {
         installation: runtime::WorthQueryExecutionRuntimeInstallation,
     ) -> Result<WorthUiPresentationAsyncInstallation, WorthUiPresentationAsyncInstallationError>
     {
-        let runtime = self
-            .inner
-            .complete(installation)
-            .map_err(WorthUiPresentationAsyncInstallationError::Completion)?;
+        let runtime = self.inner.complete(installation).map_err(|error| {
+            WorthUiPresentationAsyncInstallationError::Completion(Box::new(error))
+        })?;
         let workspace = runtime
             .workspace("worth-ui-mounted-presentation")
-            .map_err(WorthUiPresentationAsyncInstallationError::Runtime)?;
+            .map_err(|error| WorthUiPresentationAsyncInstallationError::Runtime(Box::new(error)))?;
         let (correspondence_authority, correspondence) =
             correspondence::correspondence_authority_pair();
         let owner = WorthUiPresentationAsyncOwner {

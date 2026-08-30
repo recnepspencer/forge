@@ -352,7 +352,7 @@ fn change_account_label(
         )]));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -361,15 +361,18 @@ fn change_account_label(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("change-label-after-basis-pin").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: account,
-                    fields,
-                },
-            )),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(WorkerIntentBatch::new("change-label-after-basis-pin").push(
+                MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                    UpdateEntityFieldsIntent {
+                        entity_id: account,
+                        fields,
+                    },
+                )),
+            ))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        super::super::fixture::release_test_commit_snapshot(runtime, &committed);
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

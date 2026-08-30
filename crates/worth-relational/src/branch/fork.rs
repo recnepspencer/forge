@@ -3,26 +3,33 @@ use std::sync::Arc;
 use worth_foundational::FoundationalBranchTarget;
 
 use crate::history::data::{BranchCreateError, BranchId, CommitId};
-use crate::history::HistoryAuthority;
-use crate::runtime::RelationalRuntime;
 
 use super::authority::admit_relational_fork_source;
 use super::fork_source_basis::{AdmittedRelationalForkSourceBasis, RelationalForkSourceDescriptor};
 use super::identity::RelationalBranchIdentity;
 use super::reference::{RelationalBranchCellDenial, RelationalBranchReferenceObservation};
 use super::RelationalBranchVersion;
+use super::RelationalForkPort;
 
 /// Typed denials for the Phase-4 fork transition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RelationalForkDenial {
     SourceBranchMissing,
+    SourceArchived,
+    SourceDeleting,
     EmptySource,
     DuplicateTarget,
+    RetiredTarget,
     ForeignRuntime,
     StaleSource,
     MissingArtifact,
     InvalidTarget(BranchCreateError),
     Cell(RelationalBranchCellDenial),
+    RetentionCapacityExhausted,
+    RetentionOwnerUnavailable,
+    RetentionIdentityExhausted,
+    RetentionInvariantViolation,
+    OwnerUnavailable,
 }
 
 /// Read-only evidence returned after a successful branch-reference fork.
@@ -67,11 +74,11 @@ impl RelationalForkOutcome {
     }
 }
 
-impl RelationalRuntime {
+impl RelationalForkPort {
     /// Observe an exact live source and issue the owner-sealed fork-only
     /// token. Empty branches do not produce a fork source.
     pub fn observe_fork_source(
-        &mut self,
+        &self,
         source_branch: &BranchId,
     ) -> Result<
         (
@@ -80,28 +87,32 @@ impl RelationalRuntime {
         ),
         RelationalForkDenial,
     > {
+        let _operation = self
+            .lifecycle
+            .admit()
+            .ok_or(RelationalForkDenial::OwnerUnavailable)?;
         let source_cell = self
-            .history
+            .owner
             .branch_cell(source_branch)
             .ok_or(RelationalForkDenial::SourceBranchMissing)?;
         let source_snapshot = source_cell.atomic_snapshot();
+        match source_snapshot.lifecycle_posture() {
+            super::RelationalBranchLifecyclePosture::Live => {}
+            super::RelationalBranchLifecyclePosture::Archived => {
+                return Err(RelationalForkDenial::SourceArchived);
+            }
+            super::RelationalBranchLifecyclePosture::Deleting => {
+                return Err(RelationalForkDenial::SourceDeleting);
+            }
+        }
         let observation = source_snapshot.observation();
         let truth_version = source_snapshot.truth_version();
-        self.history.phase4_costs.branch_cell_lookups = self
-            .history
-            .phase4_costs
-            .branch_cell_lookups
-            .saturating_add(1);
-        self.history.phase4_costs.branch_cell_contacts = self
-            .history
-            .phase4_costs
-            .branch_cell_contacts
-            .saturating_add(1);
+        self.owner.record_lookup();
         if observation.target().is_empty() {
             return Err(RelationalForkDenial::EmptySource);
         }
         let descriptor = RelationalForkSourceDescriptor::new(
-            self.runtime_instance_id(),
+            self.runtime_instance_id,
             observation,
             source_branch.clone(),
             truth_version,
@@ -114,49 +125,84 @@ impl RelationalRuntime {
     /// The immutable source artifact is shared by identity; no envelope copy
     /// or source-cell mutation is performed.
     pub fn fork_branch(
-        &mut self,
+        &self,
         target_branch: BranchId,
         source: AdmittedRelationalForkSourceBasis,
     ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
+        self.fork_branch_with_pause(target_branch, source, || {})
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_branch_with_test_pause(
+        &self,
+        target_branch: BranchId,
+        source: AdmittedRelationalForkSourceBasis,
+        reached: &std::sync::Barrier,
+        release: &std::sync::Barrier,
+    ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
+        self.fork_branch_with_pause(target_branch, source, || {
+            reached.wait();
+            release.wait();
+        })
+    }
+
+    fn fork_branch_with_pause(
+        &self,
+        target_branch: BranchId,
+        source: AdmittedRelationalForkSourceBasis,
+        pause: impl FnOnce(),
+    ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
+        let _operation = self
+            .lifecycle
+            .admit()
+            .ok_or(RelationalForkDenial::OwnerUnavailable)?;
         let (descriptor, _authority) = source.into_parts();
-        let validated = self.validate_fork_source(&target_branch, descriptor)?;
-        let prepared = self.prepare_fork_target(target_branch, &validated)?;
+        let reservation = self
+            .owner
+            .reserve_target(target_branch.clone())
+            .map_err(|denial| match denial {
+                super::RelationalForkTargetReservationDenial::Duplicate => {
+                    RelationalForkDenial::DuplicateTarget
+                }
+                super::RelationalForkTargetReservationDenial::Retired => {
+                    RelationalForkDenial::RetiredTarget
+                }
+            })?;
+        let validated = self.validate_fork_source(descriptor)?;
+        pause();
+        let prepared = self.prepare_fork_target(target_branch, reservation, &validated)?;
         self.install_fork_target(validated, prepared)
     }
 
     fn validate_fork_source(
-        &mut self,
-        target_branch: &BranchId,
+        &self,
         descriptor: RelationalForkSourceDescriptor,
     ) -> Result<ValidatedForkSource, RelationalForkDenial> {
-        if descriptor.runtime_instance_id() != self.runtime_instance_id() {
+        if descriptor.runtime_instance_id() != self.runtime_instance_id {
             return Err(RelationalForkDenial::ForeignRuntime);
-        }
-        if self.history.has_branch(target_branch) {
-            return Err(RelationalForkDenial::DuplicateTarget);
         }
         let (source_observation, source_truth_version, source_root) = {
             let source_cell = self
-                .history
+                .owner
                 .branch_cell(descriptor.source_branch())
                 .ok_or(RelationalForkDenial::SourceBranchMissing)?;
             let snapshot = source_cell.atomic_snapshot();
+            match snapshot.lifecycle_posture() {
+                super::RelationalBranchLifecyclePosture::Live => {}
+                super::RelationalBranchLifecyclePosture::Archived => {
+                    return Err(RelationalForkDenial::SourceArchived);
+                }
+                super::RelationalBranchLifecyclePosture::Deleting => {
+                    return Err(RelationalForkDenial::SourceDeleting);
+                }
+            }
             (
                 snapshot.observation(),
                 snapshot.truth_version(),
                 snapshot.root(),
             )
         };
-        self.history.phase4_costs.branch_cell_lookups = self
-            .history
-            .phase4_costs
-            .branch_cell_lookups
-            .saturating_add(1);
-        self.history.phase4_costs.branch_cell_contacts = self
-            .history
-            .phase4_costs
-            .branch_cell_contacts
-            .saturating_add(1);
+        self.owner.record_lookup();
         if descriptor.truth_version() != source_truth_version
             || descriptor
                 .observation()
@@ -174,14 +220,14 @@ impl RelationalRuntime {
     }
 
     fn prepare_fork_target(
-        &mut self,
+        &self,
         target_branch: BranchId,
+        reservation: super::RelationalForkTargetReservation,
         source: &ValidatedForkSource,
     ) -> Result<PreparedForkTarget, RelationalForkDenial> {
-        let target_branch_id = target_branch.clone();
         let source_root = Arc::clone(&source.source_root);
         let target_cell = crate::branch::RelationalBranchReferenceCell::from_source_with_root(
-            self.runtime_instance_id(),
+            self.runtime_instance_id,
             target_branch,
             source.descriptor.source_branch().clone(),
             &source.source_observation,
@@ -198,19 +244,10 @@ impl RelationalRuntime {
             FoundationalBranchTarget::Basis(target) => Some(CommitId(target.selected_commit_id())),
         };
         let source_head_version = if let Some(commit_id) = shared_commit_id {
-            self.history.phase4_costs.catalog_lookups =
-                self.history.phase4_costs.catalog_lookups.saturating_add(1);
-            let version_id = self
-                .history
-                .commit_catalog
-                .get(commit_id)
-                .map(|artifact| artifact.identity().version_id())
-                .or_else(|| {
-                    source_root
-                        .canonical_envelope()
-                        .filter(|envelope| envelope.commit.commit_id == commit_id)
-                        .map(|envelope| envelope.commit.version_id)
-                })
+            let version_id = source_root
+                .canonical_envelope()
+                .filter(|envelope| envelope.commit.commit_id == commit_id)
+                .map(|envelope| envelope.commit.version_id)
                 .ok_or(RelationalForkDenial::MissingArtifact)?;
             Some(version_id)
         } else {
@@ -218,27 +255,21 @@ impl RelationalRuntime {
         };
         Ok(PreparedForkTarget {
             target_cell,
-            target_branch: target_branch_id,
             source_root,
             target_observation,
             fork_provenance,
             target_truth_version,
             shared_commit_id,
             source_head_version,
+            reservation,
         })
     }
 
     fn install_fork_target(
-        &mut self,
+        &self,
         source: ValidatedForkSource,
         target: PreparedForkTarget,
     ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
-        let source_branch = source.descriptor.source_branch().clone();
-        self.history
-            .branch_cell_mut(&source_branch)
-            .expect("source branch cell remains registered")
-            .retain_head()
-            .map_err(RelationalForkDenial::Cell)?;
         let fork_materialized_authoritative_bytes = target
             .target_cell
             .root()
@@ -256,38 +287,36 @@ impl RelationalRuntime {
             authoritative_bytes: fork_materialized_authoritative_bytes,
             copied_commit_envelopes,
         };
-        self.history.phase4_costs.reference_allocations = self
-            .history
-            .phase4_costs
-            .reference_allocations
-            .saturating_add(1);
-        self.history.phase4_costs.branch_cell_contacts = self
-            .history
-            .phase4_costs
-            .branch_cell_contacts
-            .saturating_add(1);
-        self.history.insert_branch_cell(target.target_cell);
-        self.history
-            .record_fork_root_acquisition(&target.target_branch);
-        self.history
-            .record_fork_materialization(&target.target_branch, materialization_cost);
-        if let Some(source_head_version) = target.source_head_version {
-            self.visibility_pins()
-                .move_branch_head_visibility_residency(
-                    &target.target_branch,
-                    None,
-                    Some(source_head_version),
-                );
-            self.visibility_pins()
-                .pin_branch_version(source_head_version);
-        }
+        let target_root = target
+            .target_cell
+            .root()
+            .expect("prepared fork target retains its selected root");
+        self.owner
+            .install_head(&target.target_cell, &target_root)
+            .map_err(|denial| match denial {
+                crate::history::retention::RelationalRetentionAcquisitionDenial::CapacityExhausted => {
+                    RelationalForkDenial::RetentionCapacityExhausted
+                }
+                crate::history::retention::RelationalRetentionAcquisitionDenial::OwnerUnavailable => {
+                    RelationalForkDenial::RetentionOwnerUnavailable
+                }
+                crate::history::retention::RelationalRetentionAcquisitionDenial::IdentityExhausted => {
+                    RelationalForkDenial::RetentionIdentityExhausted
+                }
+                crate::history::retention::RelationalRetentionAcquisitionDenial::RootSetTooLarge => {
+                    RelationalForkDenial::RetentionInvariantViolation
+                }
+            })?;
+        self.owner.record_install(
+            &target.target_cell,
+            materialization_cost,
+            target.source_head_version,
+        );
+        let target_identity = target.target_cell.identity().clone();
+        self.owner
+            .install_target(target.reservation, target.target_cell);
         Ok(RelationalForkOutcome {
-            target_identity: self
-                .history
-                .branch_cell(&target.target_branch)
-                .expect("forked branch cell must be registered")
-                .identity()
-                .clone(),
+            target_identity,
             source_observation: source.source_observation,
             target_observation: target.target_observation,
             fork_provenance: target.fork_provenance,
@@ -307,40 +336,14 @@ struct ValidatedForkSource {
 
 struct PreparedForkTarget {
     target_cell: crate::branch::RelationalBranchReferenceCell,
-    target_branch: BranchId,
     source_root: Arc<crate::branch::RelationalBranchRoot>,
     target_observation: RelationalBranchReferenceObservation,
     fork_provenance: RelationalBranchReferenceObservation,
     target_truth_version: RelationalBranchVersion,
     shared_commit_id: Option<CommitId>,
     source_head_version: Option<crate::identity::data::VersionId>,
+    reservation: super::RelationalForkTargetReservation,
 }
 
-impl HistoryAuthority<'_> {
-    /// In-crate compatibility adapter for replay and preservation callers.
-    /// It observes an owner fork token and delegates to `fork_branch`; it is
-    /// not a public currentness door and is not a second fork authority.
-    pub(crate) fn fork_branch_from(
-        &mut self,
-        new_branch: BranchId,
-        from_branch: &BranchId,
-    ) -> Result<(), BranchCreateError> {
-        let runtime = self.runtime();
-        let (_, basis) =
-            runtime
-                .observe_fork_source(from_branch)
-                .map_err(|denial| match denial {
-                    RelationalForkDenial::DuplicateTarget => {
-                        BranchCreateError::branch_already_exists()
-                    }
-                    _ => BranchCreateError::source_branch_missing(),
-                })?;
-        runtime
-            .fork_branch(new_branch, basis)
-            .map(|_| ())
-            .map_err(|denial| match denial {
-                RelationalForkDenial::DuplicateTarget => BranchCreateError::branch_already_exists(),
-                _ => BranchCreateError::source_branch_missing(),
-            })
-    }
-}
+#[path = "fork_runtime_adapters.rs"]
+mod runtime_adapters;

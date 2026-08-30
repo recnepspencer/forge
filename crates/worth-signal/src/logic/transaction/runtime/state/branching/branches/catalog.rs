@@ -9,10 +9,14 @@ use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 use super::super::super::merge::BranchMutationLedger;
 use super::super::super::reconstructability::{AuthorityState, DerivedState};
 use super::super::super::temporal::TemporalRuntimeState;
-use super::super::retirement::SignalBranchRetirementReceipt;
+use crate::branch::SignalBranchRetirementReceipt;
 
 use super::authority::{BranchAncestryState, BranchState};
 use super::SnapshotBranchState;
+use crate::branch::{SignalBranchRetentionRegistry, ValidatedSignalBranchName};
+
+pub(in crate::logic::transaction::runtime::state) const DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS: usize =
+    4_096;
 
 #[derive(Debug, Clone)]
 pub(super) struct BranchRuntimeMeta {
@@ -26,15 +30,19 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(super) owner_runtime_instance_id: u64,
     pub(super) branches: BTreeMap<SignalBranchId, BranchState<D, I, T>>,
     pub(super) live_branch_catalog: BTreeMap<SignalBranchId, SignalBranchHandle>,
     pub(super) branch_meta: BTreeMap<SignalBranchId, BranchRuntimeMeta>,
     pub(super) snapshots:
         BTreeMap<(SignalBranchId, SignalSnapshotId), SnapshotBranchState<D, I, T>>,
+    pub(super) maximum_stored_snapshots: usize,
     pub(super) children_by_parent: BTreeMap<SignalBranchId, BTreeSet<SignalBranchId>>,
     pub(super) retirement_receipts: BTreeMap<SignalBranchId, SignalBranchRetirementReceipt>,
     pub(super) active_merge_participants: BTreeSet<SignalBranchId>,
     pub(super) branch_head_generations: BTreeMap<SignalBranchId, u64>,
+    pub(super) branch_restore_snapshot_ids: BTreeMap<SignalBranchId, Option<SignalSnapshotId>>,
+    pub(super) retention: SignalBranchRetentionRegistry,
     pub(super) next_node_index: u32,
     pub(super) next_snapshot_id: u64,
     pub(super) next_branch_id: u64,
@@ -50,20 +58,56 @@ where
 {
     pub fn new() -> Self {
         Self {
+            owner_runtime_instance_id: 0,
             branches: BTreeMap::new(),
             live_branch_catalog: BTreeMap::new(),
             branch_meta: BTreeMap::new(),
             snapshots: BTreeMap::new(),
+            maximum_stored_snapshots: DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS,
             children_by_parent: BTreeMap::new(),
             retirement_receipts: BTreeMap::new(),
             active_merge_participants: BTreeSet::new(),
             branch_head_generations: BTreeMap::new(),
+            branch_restore_snapshot_ids: BTreeMap::new(),
+            retention: SignalBranchRetentionRegistry::new(0),
             next_node_index: 0,
             next_snapshot_id: 0,
             next_branch_id: 1,
             next_lineage_artifact_id: 0,
             next_lineage_sequence: 0,
         }
+    }
+
+    pub fn with_live_catalog(
+        live_branch_catalog: BTreeMap<SignalBranchId, SignalBranchHandle>,
+        owner_runtime_instance_id: u64,
+    ) -> Self {
+        let branch_head_generations = live_branch_catalog
+            .keys()
+            .copied()
+            .map(|branch_id| (branch_id, 0))
+            .collect();
+        let branch_restore_snapshot_ids = live_branch_catalog
+            .keys()
+            .copied()
+            .map(|branch_id| (branch_id, None))
+            .collect();
+        Self {
+            owner_runtime_instance_id,
+            live_branch_catalog,
+            branch_head_generations,
+            branch_restore_snapshot_ids,
+            retention: SignalBranchRetentionRegistry::new(owner_runtime_instance_id),
+            ..Self::new()
+        }
+    }
+
+    pub const fn owner_runtime_instance_id(&self) -> u64 {
+        self.owner_runtime_instance_id
+    }
+
+    pub fn set_maximum_stored_snapshots(&mut self, maximum_stored_snapshots: usize) {
+        self.maximum_stored_snapshots = maximum_stored_snapshots;
     }
 
     pub fn capture_active_state(
@@ -109,9 +153,6 @@ where
             state.mutation_ledger().clone(),
         );
         let branch_id = state.branch_id();
-        if let Some(handle) = state.graph().branch_handle(branch_id) {
-            self.live_branch_catalog.insert(branch_id, handle);
-        }
         state
             .graph_mut()
             .diagnostics_state_mut()
@@ -139,16 +180,48 @@ where
         self.observe_allocator_state(graph);
     }
 
-    pub fn synchronize_catalogs(
-        &mut self,
-        branch_catalog: &BTreeMap<SignalBranchId, SignalBranchHandle>,
-        active_branch: SignalBranchId,
-        active_graph: &mut SignalGraph,
-    ) {
-        self.live_branch_catalog.clone_from(branch_catalog);
+    pub fn project_catalog(&self, active_branch: SignalBranchId, active_graph: &mut SignalGraph) {
         active_graph
             .diagnostics_state_mut()
-            .synchronize_branch_catalog(branch_catalog, active_branch);
+            .synchronize_branch_catalog(&self.live_branch_catalog, active_branch);
+    }
+
+    pub fn create_live_branch(
+        &mut self,
+        name: ValidatedSignalBranchName,
+        parent_branch_id: SignalBranchId,
+        parent_head_snapshot_id: Option<SignalSnapshotId>,
+    ) -> Result<SignalBranchHandle, crate::data::error::SignalError> {
+        let branch_id = SignalBranchId(self.next_branch_id.max(1));
+        self.next_branch_id = branch_id.0.checked_add(1).ok_or_else(|| {
+            crate::data::error::SignalError::internal("Signal branch identity exhausted")
+        })?;
+        let handle = SignalBranchHandle {
+            id: branch_id,
+            name: name.into_inner(),
+            parent_branch_id: Some(parent_branch_id),
+            head_snapshot_id: parent_head_snapshot_id,
+        };
+        self.live_branch_catalog.insert(branch_id, handle.clone());
+        self.branch_restore_snapshot_ids.insert(branch_id, None);
+        Ok(handle)
+    }
+
+    pub fn set_branch_head_snapshot(
+        &mut self,
+        branch_id: SignalBranchId,
+        snapshot_id: SignalSnapshotId,
+    ) {
+        if let Some(branch) = self.live_branch_catalog.get_mut(&branch_id) {
+            branch.head_snapshot_id = Some(snapshot_id);
+        }
+        let catalog = self.live_branch_catalog.clone();
+        if let Some(state) = self.branches.get_mut(&branch_id) {
+            state
+                .graph_mut()
+                .diagnostics_state_mut()
+                .synchronize_branch_catalog(&catalog, branch_id);
+        }
     }
 
     pub(in crate::logic::transaction::runtime::state::branching) fn store_branch_state(
@@ -156,9 +229,6 @@ where
         state: BranchState<D, I, T>,
     ) {
         self.observe_allocator_state(state.graph());
-        if let Some(handle) = state.graph().branch_handle(state.branch_id()) {
-            self.live_branch_catalog.insert(state.branch_id(), handle);
-        }
         self.record_branch_meta(
             state.branch_id(),
             state.ancestry().clone(),

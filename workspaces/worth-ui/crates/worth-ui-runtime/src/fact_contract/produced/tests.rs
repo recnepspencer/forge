@@ -29,6 +29,11 @@ fn every_owner_has_one_closed_fact_family_and_only_query_can_reset() {
             UiProducedFactResetPosture::OwnerIssuedReset,
         ),
         (
+            UiProducedFactOwner::IntentRuntime,
+            UiProducedFactFamily::IntentPosture,
+            UiProducedFactResetPosture::NoReset,
+        ),
+        (
             UiProducedFactOwner::ScrollRuntimeState,
             UiProducedFactFamily::CommittedScrollExtent,
             UiProducedFactResetPosture::NoReset,
@@ -36,6 +41,26 @@ fn every_owner_has_one_closed_fact_family_and_only_query_can_reset() {
         (
             UiProducedFactOwner::PortalRuntimeState,
             UiProducedFactFamily::CommittedPortalAnchor,
+            UiProducedFactResetPosture::NoReset,
+        ),
+        (
+            UiProducedFactOwner::FocusRuntimeState,
+            UiProducedFactFamily::CommittedFocus,
+            UiProducedFactResetPosture::NoReset,
+        ),
+        (
+            UiProducedFactOwner::SelectionRuntimeState,
+            UiProducedFactFamily::CommittedSelection,
+            UiProducedFactResetPosture::NoReset,
+        ),
+        (
+            UiProducedFactOwner::MotionRuntimeState,
+            UiProducedFactFamily::CommittedMotionTrack,
+            UiProducedFactResetPosture::NoReset,
+        ),
+        (
+            UiProducedFactOwner::CommandRoutingRuntimeState,
+            UiProducedFactFamily::CommittedCommandRoute,
             UiProducedFactResetPosture::NoReset,
         ),
     ];

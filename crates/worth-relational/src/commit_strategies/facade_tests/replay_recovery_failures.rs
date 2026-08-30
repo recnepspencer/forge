@@ -4,7 +4,7 @@ use super::native_strategy_fixtures::*;
 fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_lacks_executor() {
     let root_path = unique_test_store_path("worth-relational-strategy-replay-missing-executor");
     let mut runtime = persisted_intent_runtime(root_path.clone(), true);
-    let entity = crate::tests::support::create_entity(&mut runtime, "before");
+    let entity = crate::tests::support::create_entity(&runtime, "before");
     let commit = execute_persisted_intent_strategy_commit(&mut runtime, entity);
     let branch_head_before = runtime.history().branch_head(&BranchId("main".to_string()));
     let mut recovery_plan = runtime.durability().recovery_plan(
@@ -14,7 +14,7 @@ fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_la
 
     let mut recovered = persisted_intent_runtime(root_path, false);
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .expect("recovery without strategy executor");
     let branch_head_after_recovery = recovered
@@ -51,7 +51,7 @@ fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_la
 fn replay_commit_reports_strategy_execution_failure_when_recovered_executor_rejects() {
     let root_path = unique_test_store_path("worth-relational-strategy-replay-failing-executor");
     let mut runtime = persisted_intent_runtime(root_path.clone(), true);
-    let entity = crate::tests::support::create_entity(&mut runtime, "before");
+    let entity = crate::tests::support::create_entity(&runtime, "before");
     let commit = execute_persisted_intent_strategy_commit(&mut runtime, entity);
     let mut recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
@@ -60,7 +60,7 @@ fn replay_commit_reports_strategy_execution_failure_when_recovered_executor_reje
     let mut recovered = persisted_intent_runtime_with_failing_executor(root_path);
     recovery_plan.commit_strategy_executors = recovered.commit_strategy_executor_registry().clone();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .expect("recovery with hostile failing executor");
     let branch_head_before_replay = recovered

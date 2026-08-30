@@ -1,5 +1,7 @@
 use super::UiAllocationStreamFamily;
 
+const VIEWPORT_INVALIDATION_TARGET_CAPACITY: u16 = 128;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiAllocationCommitTarget {
     SemanticAndAllocation,
@@ -157,11 +159,13 @@ impl UiAllocationStreamPolicy {
 }
 
 const fn viewport_observation() -> UiAllocationStreamPolicy {
+    let source_capacity =
+        crate::runtime::allocation_frame_dispatch::ALLOCATION_FRAME_SOURCE_CAPACITY as u16;
     UiAllocationStreamPolicy {
         cadence: UiAllocationCadenceKind::CoalescedWindow,
         target: UiAllocationCommitTarget::AllocationOnly,
-        budget: UiAllocationCadenceBudget::contract(16, 1, 4, 0, 1)
-            .with_max_invalidation_targets(8),
+        budget: UiAllocationCadenceBudget::contract(source_capacity, 1, source_capacity, 0, 1)
+            .with_max_invalidation_targets(VIEWPORT_INVALIDATION_TARGET_CAPACITY),
         evidence_cadence: UiAllocationEvidenceCadence::PerResolvedFrame,
         collapse_law: UiAllocationStreamCollapseLaw::CoalesceWithinResolvedFrame,
         partial_settlement_law: UiAllocationPartialSettlementLaw::NotApplicable,
@@ -191,8 +195,9 @@ mod tests {
             UiAllocationStreamFamily::HostMeasurementReplacement,
         );
         assert_eq!(viewport.target(), UiAllocationCommitTarget::AllocationOnly);
-        assert_eq!(viewport.budget().max_committed_receipts(), 4);
-        assert_eq!(viewport.budget().max_invalidation_targets(), 8);
+        assert_eq!(viewport.budget().ingress_window(), 64);
+        assert_eq!(viewport.budget().max_committed_receipts(), 64);
+        assert_eq!(viewport.budget().max_invalidation_targets(), 128);
         assert_eq!(viewport.budget().max_durable_mutations(), 0);
         assert_eq!(viewport.budget().max_resolved_plans(), 1);
         assert_eq!(viewport.budget().max_lag_frames(), 1);

@@ -22,6 +22,7 @@ pub use product_action::{
     WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionExecution,
     WorthUiScalarProjectionActionIndeterminate, WorthUiScalarProjectionActionInstallation,
     WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
+    WorthUiScalarProjectionActionPreconditionDenial,
     WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
 };
 

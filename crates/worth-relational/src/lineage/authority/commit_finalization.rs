@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::{EntityId, KindId, LineageId, PartitionId, VersionId};
-use crate::lineage::authority::LineageAuthority;
+use crate::lineage::authority::LineagePreparationAuthority;
 use crate::lineage::data::{
     FinalizedLineageEventBatch, LineageDecisionKind, LineageDecisionLog, LineageEventKind,
     LineageFinalizationArtifact, LineageNode, PreparedLineageFinalization,
@@ -44,9 +44,9 @@ struct AssignedLineageNode {
     install_in_staged_state: bool,
 }
 
-impl<'runtime> LineageAuthority<'runtime> {
+impl<'runtime> LineagePreparationAuthority<'runtime> {
     pub(crate) fn ensure_lineage_for_commit(
-        &mut self,
+        &self,
         staged: &mut WorkingState,
         commit: &RelationalCommitReceipt,
         merged_plan: &[MutationIntent],
@@ -58,14 +58,12 @@ impl<'runtime> LineageAuthority<'runtime> {
             .map_err(|_| "lineage id batch capacity exceeded u64".to_owned())?;
         let event_width = u64::try_from(plan.drafts.len())
             .map_err(|_| "lineage event batch capacity exceeded u64".to_owned())?;
-        let lineage_start = self.runtime.lineage.next_lineage_id;
-        let event_start = self.runtime.lineage.next_event_id;
-        let lineage_end = checked_reservation_end(lineage_start, lineage_width, "lineage id")?;
-        let event_end = checked_reservation_end(event_start, event_width, "lineage event id")?;
+        let (lineage_start, event_start) = self
+            .runtime
+            .lineage_identity
+            .reserve(lineage_width, event_width)?;
+        let lineage_end = lineage_start + lineage_width;
         let assigned = plan.assign_lineage_ids(staged, lineage_start..lineage_end)?;
-
-        self.runtime.lineage.next_lineage_id = lineage_end;
-        self.runtime.lineage.next_event_id = event_end;
 
         let mut events = Vec::with_capacity(assigned.len());
         let mut decisions = Vec::with_capacity(assigned.len());
@@ -291,13 +289,6 @@ fn entity_lineage(staged: &WorkingState, entity_id: EntityId) -> Option<LineageI
         .get_partition(entity_id.partition_id)
         .and_then(|partition| partition.entity_arena.get(&entity_id))
         .and_then(|slot_view| slot_view.extra().lineage_id)
-}
-
-fn checked_reservation_end(start: u64, width: u64, counter_name: &str) -> Result<u64, String> {
-    start
-        .checked_add(width)
-        .filter(|end| *end < u64::MAX)
-        .ok_or_else(|| format!("{counter_name} allocator exhausted"))
 }
 
 fn find_replace_target_entity(

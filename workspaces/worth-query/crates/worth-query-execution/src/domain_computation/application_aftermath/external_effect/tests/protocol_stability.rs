@@ -26,6 +26,9 @@ macro_rules! moved_payload_module {
 
             pub(super) struct ProtocolSchema;
             pub(super) struct Payload;
+            worth_query_declaration::worth_query_portable_type!(
+                Payload => "worth.query.test.protocol-stability-payload.v1"
+            );
 
             worth_query_declaration::worth_query_operation!(
                 pub(super) Notify(Payload) in ProtocolSchema
@@ -107,7 +110,7 @@ fn rust_module_move_cannot_change_installed_or_outbox_protocol_identity() {
         std::any::type_name::<original_location::Payload>(),
         std::any::type_name::<moved_location::Payload>()
     );
-    assert_ne!(
+    assert_eq!(
         rust_payload_type(&original_contract),
         rust_payload_type(&moved_contract)
     );
@@ -132,6 +135,8 @@ fn installed_contract<Schema, Operation, Input>(
 ) -> InstalledExternalEffectContract
 where
     Schema: ApplicationSchema,
+    Operation: 'static,
+    Input: worth_query_declaration::facade::portable_identity::WorthQueryPortableType + 'static,
 {
     let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
         Schema::OWNER,
@@ -164,7 +169,7 @@ fn rust_payload_type(contract: &InstalledExternalEffectContract) -> &str {
     match contract {
         InstalledExternalEffectContract::Declared {
             rust_payload_type, ..
-        } => rust_payload_type,
+        } => rust_payload_type.as_str(),
         InstalledExternalEffectContract::None => panic!("test operation must escape"),
     }
 }

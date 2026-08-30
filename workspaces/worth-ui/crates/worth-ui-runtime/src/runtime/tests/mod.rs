@@ -126,8 +126,8 @@ mod ordinary_owner_bundle_scale_tests;
 mod ordinary_plan_structure_hostile_tests;
 #[path = "activation/phase_10_scroll_owned_activation_tests.rs"]
 mod phase_10_scroll_owned_activation_tests;
-#[path = "activation/phase_11_portal_anchored_allocation_tests.rs"]
-mod phase_11_portal_anchored_allocation_tests;
+#[path = "activation/phase_11_portal_allocation_tests.rs"]
+mod phase_11_portal_allocation_tests;
 #[path = "activation/phase_11_portal_test_support.rs"]
 mod phase_11_portal_test_support;
 #[path = "activation/phase_11_substrate_readiness_tests.rs"]

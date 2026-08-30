@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use worth_ui_host_contract::{
     UiMountedPaintCommand, UiMountedPaintOrderIdentity, UiMountedPaintOrderIntegrity,
     UiMountedPresentationInitial, UiMountedPresentationReconstruction,
@@ -25,6 +27,7 @@ impl UiNativeRetainedDrawList {
             initial.affinity().successor(),
             initial.affinity().surface(),
             initial.affinity().binding(),
+            initial.affinity().content(),
             initial.affinity().baseline(),
             initial.commands(),
             initial.order(),
@@ -48,6 +51,7 @@ impl UiNativeRetainedDrawList {
             work.affinity().successor(),
             work.affinity().surface(),
             work.affinity().binding(),
+            work.affinity().content(),
             work.affinity().baseline(),
             work.commands(),
             work.order(),
@@ -57,11 +61,12 @@ impl UiNativeRetainedDrawList {
         )
     }
 
-    #[cfg(test)]
-    pub(super) fn from_complete(
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(in crate::native::presentation) fn from_complete(
         frame: worth_ui_host_contract::UiMountedFrameIdentity,
         surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+        content: worth_ui_host_contract::UiMountedContentGeneration,
         baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
         source_commands: &[UiMountedPaintCommand],
         source_order: &[UiMountedPaintOrderIdentity],
@@ -72,6 +77,7 @@ impl UiNativeRetainedDrawList {
             frame,
             surface,
             binding,
+            content,
             baseline,
             source_commands,
             source_order,
@@ -87,6 +93,7 @@ impl UiNativeRetainedDrawList {
         frame: worth_ui_host_contract::UiMountedFrameIdentity,
         surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+        content: worth_ui_host_contract::UiMountedContentGeneration,
         baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
         source_commands: &[UiMountedPaintCommand],
         source_order: &[UiMountedPaintOrderIdentity],
@@ -106,6 +113,7 @@ impl UiNativeRetainedDrawList {
             frame,
             surface,
             binding,
+            content,
             baseline,
             source_commands,
             source_order,
@@ -121,6 +129,7 @@ impl UiNativeRetainedDrawList {
         frame: worth_ui_host_contract::UiMountedFrameIdentity,
         surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+        content: worth_ui_host_contract::UiMountedContentGeneration,
         baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
         source_commands: &[UiMountedPaintCommand],
         source_order: &[UiMountedPaintOrderIdentity],
@@ -153,7 +162,8 @@ impl UiNativeRetainedDrawList {
             .iter()
             .filter_map(|command| match command {
                 UiMountedPaintCommand::SemanticText { identity, .. } => Some(*identity),
-                UiMountedPaintCommand::FilledRect { .. } => None,
+                UiMountedPaintCommand::FilledRect { .. }
+                | UiMountedPaintCommand::PortalOverlay { .. } => None,
             })
             .collect::<std::collections::HashSet<_>>();
         if source_glyph_runs
@@ -180,12 +190,14 @@ impl UiNativeRetainedDrawList {
             frame,
             surface,
             binding,
+            content,
             baseline,
             commands,
             order: UiNativeRetainedOrder::initial(source_order.iter().copied())?,
             order_integrity,
             damage,
             glyph_runs,
+            sample_overrides: HashMap::new(),
             regions,
             identity_overlay,
             last_paint_attribution: None,

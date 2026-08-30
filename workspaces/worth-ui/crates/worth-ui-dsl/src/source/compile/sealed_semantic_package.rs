@@ -190,6 +190,29 @@ impl WorthUiSealedSemanticPackage {
         })
     }
 
+    pub fn service_declarations(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &crate::WorthUiServiceDeclarationMeaning,
+            &WorthUiArtifactInputProvenance,
+        ),
+    > {
+        self.canonical_module_order.iter().flat_map(|module_id| {
+            self.declaration_views(module_id)
+                .into_iter()
+                .flatten()
+                .filter_map(|view| {
+                    let service = match view.declaration() {
+                        WorthUiSemanticDeclaration::SemanticArtifact(artifact) => {
+                            artifact.declaration().service_declaration()
+                        }
+                        _ => None,
+                    }?;
+                    Some((service, view.provenance()))
+                })
+        })
+    }
     #[cfg(feature = "certification-support")]
     pub(super) fn with_protocol_for_certification(
         mut self,

@@ -2,7 +2,8 @@ use wasm_bindgen::prelude::*;
 use worth_signal::facade::history::RuntimeSnapshot;
 
 use crate::boundary::restore_tokens::{
-    load_snapshot, load_snapshot_envelope, store_snapshot, store_snapshot_envelope,
+    ensure_restore_token_capacity_available, load_snapshot, load_snapshot_envelope, store_snapshot,
+    store_snapshot_envelope,
 };
 use crate::boundary::serde::{
     from_js, from_portable_wire, to_js, to_js_structured, to_portable_wire,
@@ -38,8 +39,9 @@ impl SignalHistory {
     }
 
     pub fn snapshot_wire(&self) -> Result<String, JsValue> {
+        ensure_restore_token_capacity_available().map_err(JsValue::from)?;
         let snapshot = self.core.borrow_mut().snapshot().map_err(JsValue::from)?;
-        Ok(store_snapshot_envelope(snapshot))
+        store_snapshot_envelope(snapshot).map_err(JsValue::from)
     }
 
     pub fn snapshot_portable_wire(&self) -> Result<String, JsValue> {
@@ -120,12 +122,13 @@ impl SignalHistory {
     }
 
     pub fn branch_snapshot_wire(&self, branch_id: u64) -> Result<String, JsValue> {
+        ensure_restore_token_capacity_available().map_err(JsValue::from)?;
         let snapshot = self
             .core
             .borrow_mut()
             .branch_snapshot(branch_id)
             .map_err(JsValue::from)?;
-        Ok(store_snapshot(snapshot))
+        store_snapshot(snapshot).map_err(JsValue::from)
     }
 
     pub fn branch_snapshot_portable_wire(&self, branch_id: u64) -> Result<String, JsValue> {
@@ -154,12 +157,13 @@ impl SignalHistory {
     }
 
     pub fn branch_snapshot_envelope_wire(&self, branch_id: u64) -> Result<String, JsValue> {
+        ensure_restore_token_capacity_available().map_err(JsValue::from)?;
         let snapshot = self
             .core
             .borrow_mut()
             .branch_snapshot_envelope(branch_id)
             .map_err(JsValue::from)?;
-        Ok(store_snapshot_envelope(snapshot))
+        store_snapshot_envelope(snapshot).map_err(JsValue::from)
     }
 
     pub fn branch_snapshot_envelope_portable_wire(

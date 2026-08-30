@@ -12,10 +12,8 @@ pub(crate) fn emit_case_audit_record(
     event: &str,
 ) -> CommitResult {
     let case = world.workflow_case(case_role);
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut world.runtime,
-        branch_id,
-    );
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&world.runtime, branch_id);
     txn.push_batch(
         WorkerIntentBatch::new(format!("audit-{}", event.replace(' ', "-"))).push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -46,8 +44,9 @@ pub(crate) fn emit_case_audit_record(
                 },
             )),
         ),
-    );
-    txn.commit(&mut world.runtime).unwrap()
+    )
+    .expect("test staging stays within configured resource budgets");
+    txn.commit(&world.runtime).unwrap()
 }
 
 pub(crate) fn emit_trade_correction_audit_record(

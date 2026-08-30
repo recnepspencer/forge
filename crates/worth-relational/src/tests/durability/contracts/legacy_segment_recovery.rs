@@ -21,7 +21,7 @@ fn worth_query_9_16_1_1_native_tail_recovers_through_current_schema_authority() 
 
     let mut recovered = persisted_runtime_with_test_schema();
     let outcome = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("current runtime recovers the legacy native tail");
     assert_eq!(outcome.recovered_commits, 1);
@@ -48,7 +48,7 @@ fn worth_query_9_16_1_1_native_tail_recovers_through_current_schema_authority() 
         Some("9.16.1.1-native-fixture".to_owned())
     );
 
-    let continued = create_entity_outcome(&mut recovered, "post-legacy-recovery");
+    let continued = create_entity_outcome(&recovered, "post-legacy-recovery");
     assert_eq!(
         continued.patch_position(),
         crate::publication::patch::data::PatchStreamPosition(2)
@@ -78,7 +78,7 @@ fn worth_query_9_16_1_1_native_tail_rejects_schema_authority_substitution() {
 
     let mut recovered = persisted_runtime_with_mismatched_legacy_registry();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("a configured registry cannot replace mismatched legacy authority");
     assert_eq!(
@@ -108,7 +108,7 @@ fn worth_query_9_16_1_1_non_main_tail_reconstructs_its_parent_branch() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("legacy non-main branch is reconstructed from its first parent");
     assert_eq!(
@@ -185,7 +185,7 @@ fn worth_query_9_16_1_1_metadata_lineage_tail_preserves_lineage_semantics() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("legacy metadata-lineage publication recovers");
     let envelope = recovered
@@ -239,7 +239,7 @@ fn worth_query_9_16_1_1_rejected_correspondence_is_typed_unsupported() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("unsupported legacy lineage cannot be silently discarded");
     assert_eq!(

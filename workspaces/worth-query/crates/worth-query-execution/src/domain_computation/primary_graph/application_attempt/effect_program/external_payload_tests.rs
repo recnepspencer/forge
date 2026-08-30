@@ -14,6 +14,9 @@ const EXTERNAL_PROTOCOL: ApplicationExternalEffectProtocol = ApplicationExternal
 
 #[derive(Clone)]
 struct ExternalPayload(Vec<u8>);
+worth_query_declaration::worth_query_portable_type!(
+    ExternalPayload => "worth.query.test.external-payload.v1"
+);
 
 impl ApplicationEffectPayload for ExternalPayload {
     fn retained_bytes(&self) -> u64 {
@@ -96,7 +99,7 @@ fn contract(effect: &str) -> InstalledExternalEffectContract {
             )
             .unwrap(),
         effect: effect.to_owned(),
-        rust_payload_type: std::any::type_name::<ExternalPayload>().to_owned(),
+        rust_payload_type: <ExternalPayload as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY,
         protocol: EXTERNAL_PROTOCOL,
         maximum_payload_bytes: ExternalPayload::MAX_EXTERNAL_BYTES,
     }

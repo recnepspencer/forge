@@ -6,6 +6,9 @@ use crate::domain_computation::WorthQueryWorkflowExecutionResourceAttempt;
 pub enum WorthQueryManagedWorkflowRunAdmissionFailureKind {
     QueryAuthority,
     RelationalBasis,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     BridgePlanning,
     InstalledStepContract,
     BridgeExecutionBasis,

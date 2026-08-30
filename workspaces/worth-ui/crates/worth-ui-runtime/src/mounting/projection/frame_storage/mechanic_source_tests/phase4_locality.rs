@@ -329,6 +329,11 @@ fn semantic_projection_with_width(
             static_paint: None,
             semantic_text: Some(seed),
             hit_test: None,
+            focus_support: crate::capability::ComponentFocusSupport::not_focusable(),
+            focus_scope: None,
+            focus_container_owner: None,
+            component_id: None,
+            portal_child_owner: None,
         }],
         vec![UiMountedProjectionSurface {
             surface,

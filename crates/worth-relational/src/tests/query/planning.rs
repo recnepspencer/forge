@@ -2,8 +2,8 @@ use crate::tests::support::*;
 
 #[test]
 fn query_planning_context_binds_snapshot_runtime_and_schema_identity() {
-    let mut runtime = runtime_with_test_schema();
-    let committed = create_entity_outcome(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let committed = create_entity_outcome(&runtime, "first");
 
     let context = runtime
         .read_truth()
@@ -28,8 +28,8 @@ fn query_planning_context_binds_snapshot_runtime_and_schema_identity() {
 
 #[test]
 fn packetized_query_planning_marks_single_target_packets_serial_preferred() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "single");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "single");
     let entity = changed_entities(&created)[0];
     let plan = planned_explicit_query(
         &runtime,
@@ -49,9 +49,9 @@ fn packetized_query_planning_marks_single_target_packets_serial_preferred() {
 
 #[test]
 fn packetized_query_planning_marks_single_chunk_packets_serial_preferred() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
+    let runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
     let targets = vec![
         RecordRef::Entity(changed_entities(&first)[0]),
         RecordRef::Entity(changed_entities(&second)[0]),
@@ -70,8 +70,8 @@ fn packetized_query_planning_marks_single_chunk_packets_serial_preferred() {
 
 #[test]
 fn traversal_query_packets_are_legal_read_only_snapshots_and_narrow_traversals_stay_serial() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "seed");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "seed");
     let seed = changed_entities(&created)[0];
     let context = runtime
         .read_truth()
@@ -111,12 +111,12 @@ fn traversal_query_packets_are_legal_read_only_snapshots_and_narrow_traversals_s
 
 #[test]
 fn multi_seed_traversal_query_packets_become_profitable_after_seed_packetization() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "seed-1");
-    let second = create_entity_outcome(&mut runtime, "seed-2");
-    let third = create_entity_outcome(&mut runtime, "seed-3");
-    let fourth = create_entity_outcome(&mut runtime, "seed-4");
-    let fifth = create_entity_outcome(&mut runtime, "seed-5");
+    let runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "seed-1");
+    let second = create_entity_outcome(&runtime, "seed-2");
+    let third = create_entity_outcome(&runtime, "seed-3");
+    let fourth = create_entity_outcome(&runtime, "seed-4");
+    let fifth = create_entity_outcome(&runtime, "seed-5");
     let seeds = [
         changed_entities(&first)[0],
         changed_entities(&second)[0],
@@ -157,8 +157,8 @@ fn multi_seed_traversal_query_packets_become_profitable_after_seed_packetization
 
 #[test]
 fn query_planning_rejects_packets_with_forged_context() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "forged");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "forged");
     let entity = changed_entities(&created)[0];
     let mut context = runtime
         .read_truth()
@@ -189,8 +189,8 @@ fn query_planning_rejects_packets_with_forged_context() {
 
 #[test]
 fn packetized_plan_key_is_deterministic_for_identical_inputs() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "plan-key");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "plan-key");
     let entity = changed_entities(&created)[0];
 
     let first = planned_explicit_query(
@@ -212,7 +212,7 @@ fn packetized_plan_key_is_deterministic_for_identical_inputs() {
 
 #[test]
 fn empty_runtime_query_planning_uses_explicit_genesis_basis() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let snapshot = runtime.visibility_authority().snapshot();
 
     let context = runtime

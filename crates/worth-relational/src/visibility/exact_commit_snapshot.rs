@@ -9,6 +9,8 @@ pub enum RelationalRetainedCommitSnapshotDenialKind {
     BranchMismatch,
     CommitMismatch,
     SnapshotNotRetained,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    SnapshotIdentityExhausted,
     SnapshotBindingMismatch,
     EntityKindMismatch,
 }
@@ -81,7 +83,7 @@ impl RelationalRetainedCommitSnapshot {
 }
 
 impl RelationalRetainedCommitProjectionWork {
-    const fn opened_snapshot() -> Self {
+    pub(crate) const fn opened_snapshot() -> Self {
         Self {
             canonical_version_probes: 1,
             retained_snapshot_probes: 1,

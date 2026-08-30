@@ -2,6 +2,7 @@ mod admission;
 mod authoring_basis;
 mod batch;
 mod batch_admission;
+mod batch_artifact_metrics;
 mod batch_execution;
 mod certification;
 mod counter_profiles;
@@ -9,9 +10,12 @@ mod counters;
 mod diagnostics;
 mod eligibility;
 mod envelope;
+mod exact_snapshot_closeout;
 mod execution;
 mod execution_artifacts;
 mod execution_bridge;
+mod execution_control_stop;
+mod execution_deferred_kind;
 mod execution_relational_batch;
 mod execution_relational_scalar;
 mod intent;
@@ -22,7 +26,9 @@ mod normalized;
 mod oracle;
 mod planning;
 mod receipt;
+mod receipt_snapshot_release;
 mod receipt_transitions;
+mod relational_execution_deferred;
 mod relational_execution_failure;
 mod settlement_repair;
 mod support_contract;
@@ -43,8 +49,9 @@ pub use batch_admission::{
     EffectBatchIntentDraft, EffectBatchIntentDraftWithBasis,
 };
 pub use batch_execution::{
-    EffectBatchExecutionDeferred, EffectBatchExecutionDenial, EffectBatchExecutionDenialKind,
-    EffectBatchExecutionStop, EffectBatchSettlementDeferred, ExecutedEffectBatchPlan,
+    EffectBatchExecutionControlStopped, EffectBatchExecutionDeferred, EffectBatchExecutionDenial,
+    EffectBatchExecutionDenialKind, EffectBatchExecutionStop, EffectBatchSettlementDeferred,
+    ExecutedEffectBatchPlan,
 };
 pub use certification::{
     certify_effect_execution_pipeline, EffectExecutionCertificationBundle,
@@ -62,10 +69,12 @@ pub use envelope::{
     EffectEnvelopePrimaryResult, EffectEnvelopeSourceRefs, SelfDescribingEffectEnvelope,
 };
 pub use execution::{
-    EffectExecutionAuthority, EffectExecutionDeferred, EffectExecutionDenial,
-    EffectExecutionDenialKind, EffectExecutionSettlementDeferred, EffectExecutionStop,
-    ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
+    EffectExecutionAuthority, EffectExecutionControlStopped, EffectExecutionDeferred,
+    EffectExecutionDenial, EffectExecutionDenialKind, EffectExecutionSettlementDeferred,
+    EffectExecutionStop, ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
 };
+pub use execution_control_stop::EffectExecutionControlStopKind;
+pub use execution_deferred_kind::EffectExecutionDeferredKind;
 pub use intent::{normalize_raw_effect_intent, RawEffectIntent};
 pub use inventory::{
     effect_lifecycle_family_inventory, effect_lifecycle_family_row_for_key,

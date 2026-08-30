@@ -23,6 +23,9 @@ use crate::domain_computation::primary_graph::{
 pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
 pub struct ActivitySequenceSlot;
+worth_query_declaration::worth_query_portable_type!(ActivitiesSlot => "worth.query.test.execution.governed_hidden.activities_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivityIdentitySlot => "worth.query.test.execution.governed_hidden.activity_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitySequenceSlot => "worth.query.test.execution.governed_hidden.activity_sequence_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GovernedHiddenOrderingActivity {
@@ -35,6 +38,7 @@ pub struct GovernedHiddenOrderingActivity {
 pub struct GovernedHiddenOrderingResult {
     activities: WorthQueryApplicationDisclosed<Vec<GovernedHiddenOrderingActivity>>,
 }
+worth_query_declaration::worth_query_portable_type!(GovernedHiddenOrderingResult => "worth.query.test.execution.governed_hidden.result.v1");
 
 impl GovernedHiddenOrderingActivity {
     pub const fn identity(&self) -> &WorthQueryApplicationDisclosed<String> {

@@ -7,5 +7,6 @@
 
 mod domain_computation;
 mod execution_digest;
+mod relational_snapshot_release;
 
 pub mod facade;

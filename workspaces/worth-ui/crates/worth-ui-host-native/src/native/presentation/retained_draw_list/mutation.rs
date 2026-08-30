@@ -332,7 +332,7 @@ pub(super) fn visible_bounds(command: &UiMountedPaintCommand) -> Option<UiMounte
     .ok()
 }
 
-fn update_damage(
+pub(super) fn update_damage(
     index: &mut UiNativeDamageIndex<UiMountedPaintCommandIdentity>,
     identity: UiMountedPaintCommandIdentity,
     old: Option<UiMountedCanonicalBox>,

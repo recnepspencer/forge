@@ -39,9 +39,9 @@ impl ResourceRuntimeState {
     pub fn prove_active_resource_revalidation_handle(
         &self,
         handle: ResourceRequestHandle,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<ActiveResourceRevalidationProof> {
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.resource_revalidation_active_handle_proof_check_count += 1;
             telemetry.resource_hot_in_flight_lookup_count += 1;
         }
@@ -105,9 +105,9 @@ impl ResourceRuntimeState {
         &self,
         node: ResourceNodeId,
         node_state: NodeState,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<DependencyChangeResourceRevalidationProof> {
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.resource_revalidation_dependency_change_proof_check_count += 1;
         }
         let descriptor = self.descriptor_for_node(node)?;
@@ -176,9 +176,9 @@ impl ResourceRuntimeState {
     pub fn prove_terminal_state_resource_revalidation(
         &self,
         node: ResourceNodeId,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<TerminalStateResourceRevalidationProof> {
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.resource_revalidation_terminal_state_proof_check_count += 1;
         }
         let descriptor = self.descriptor_for_node(node)?;
@@ -231,9 +231,9 @@ impl ResourceRuntimeState {
     pub fn prove_fulfilled_lifecycle_resource_revalidation(
         &self,
         node: ResourceNodeId,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<FulfilledLifecycleResourceRevalidationProof> {
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.resource_revalidation_fulfilled_lifecycle_proof_check_count += 1;
         }
         let descriptor = self.descriptor_for_node(node)?;

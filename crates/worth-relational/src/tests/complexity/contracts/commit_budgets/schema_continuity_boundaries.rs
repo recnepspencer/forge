@@ -3,15 +3,17 @@ use super::*;
 #[test]
 fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() {
     let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let _ = create_entity_outcome(&runtime, "anchor");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
 
     runtime.performance_access().reset_counters();
     let mut txn = {
@@ -31,8 +33,9 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
-    txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    txn.commit(&runtime).unwrap();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.schema_transition_atoms_inspected, 1);
@@ -46,15 +49,17 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
 #[test]
 fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
     let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let _ = create_entity_outcome(&runtime, "anchor");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -72,8 +77,9 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
-    txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    txn.commit(&runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let _ = runtime
@@ -90,17 +96,19 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
 #[test]
 fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_local() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "anchor");
+    let baseline = create_entity_outcome(&runtime, "anchor");
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
 
     runtime.performance_access().reset_counters();
     let mut txn = {
@@ -120,8 +128,9 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("after-boundary"));
-    let transitioned = txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("after-boundary"))
+        .expect("test staging stays within configured resource budgets");
+    let transitioned = txn.commit(&runtime).unwrap();
     let schema_counters = runtime.performance_access().counters();
 
     assert_eq!(schema_counters.schema_transition_atoms_inspected, 1);
@@ -183,7 +192,7 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
             segment_commit_capacity: 2,
         })
         .build();
-    let _ = recovered.durability_authority().recover(plan).unwrap();
+    let _ = recovered.durability_recovery().recover(plan).unwrap();
     let recovered_counters = recovered.performance_access().counters();
 
     assert!(recovered_counters.replay_digest_parity_checks >= 1);

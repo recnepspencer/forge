@@ -6,7 +6,9 @@ use worth_ui_host_contract::{
     UiGlyphRasterTransactionOutcome,
 };
 
-use self::text_atlas_upload::{RealTextAtlasUploadPort, UiNativeTextAtlasUploadPort};
+use self::text_atlas_upload::RealTextAtlasUploadPort;
+#[cfg(test)]
+use self::text_atlas_upload::UiNativeTextAtlasUploadPort;
 
 pub(super) fn perform(
     state: &mut UiNativeHostState,
@@ -55,6 +57,7 @@ pub(super) fn release_pins(
     )
 }
 
+#[cfg(test)]
 fn perform_with_upload_port(
     state: &mut UiNativeHostState,
     presentation_basis: crate::native::physical_work_signal::UiNativePhysicalPresentationBasis,

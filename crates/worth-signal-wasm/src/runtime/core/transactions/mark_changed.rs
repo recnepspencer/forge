@@ -47,27 +47,31 @@ impl RuntimeCore {
         let store = self.store.clone();
         let evaluator = self.evaluator();
 
-        let result = self.runtime.transaction(&mut self.store, move |tx| {
-            {
-                let mut locked = store
-                    .lock()
-                    .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
-                let source = locked
-                    .sources
-                    .get_mut(id)
-                    .ok_or_else(|| SignalError::invalid_input(format!("unknown source `{id}`")))?;
-                source.version = bump_aspects(source.version, &aspects);
-            }
+        let branch = self.runtime.current_branch();
+        let basis = self.native_branch_basis(branch)?;
+        let result = self
+            .runtime
+            .advance_signal_branch(&mut self.store, &basis, move |tx| {
+                {
+                    let mut locked = store
+                        .lock()
+                        .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
+                    let source = locked.sources.get_mut(id).ok_or_else(|| {
+                        SignalError::invalid_input(format!("unknown source `{id}`"))
+                    })?;
+                    source.version = bump_aspects(source.version, &aspects);
+                }
 
-            for aspect in &aspects {
-                tx.mark_changed_with_regions(node, *aspect, &changed_regions)?;
-            }
-            tx.evaluate_dirty(&evaluator)?;
-            Ok(())
-        });
+                for aspect in &aspects {
+                    tx.mark_changed_with_regions(node, *aspect, &changed_regions)?;
+                }
+                tx.evaluate_dirty(&evaluator)?;
+                Ok(())
+            });
 
         match result {
-            Ok(result) => {
+            Ok(outcome) => {
+                let (_, result) = outcome.into_parts();
                 self.apply_pending_callback_dependency_patches()?;
                 self.advance_current_authored_graph_generation();
                 let active_branch_id = self.runtime.current_branch().id.0;
@@ -93,12 +97,14 @@ impl RuntimeCore {
             }
             Err(err) => {
                 wasm_debug(format!(
-                    "[worth-signals-wasm] tx:regions-error elapsed_ms={:.1} message={}",
+                    "[worth-signals-wasm] tx:regions-error elapsed_ms={:.1} denial={:?}",
                     perf_now_ms() - started_at,
                     err
                 ));
                 self.restore_store(previous)?;
-                Err(WorthSignalJsError::from(err))
+                Err(WorthSignalJsError::invalid_input(format!(
+                    "Signal branch advance denied: {err:?}"
+                )))
             }
         }
     }

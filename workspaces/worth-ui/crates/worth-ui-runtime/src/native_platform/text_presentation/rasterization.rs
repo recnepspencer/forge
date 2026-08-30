@@ -15,6 +15,7 @@ pub(crate) struct UiNativeTextRasterWorkReport {
 }
 
 impl UiNativeTextRasterWorkReport {
+    #[cfg(test)]
     pub(crate) const fn not_admitted() -> Self {
         Self {
             rasterized_glyphs: 0,

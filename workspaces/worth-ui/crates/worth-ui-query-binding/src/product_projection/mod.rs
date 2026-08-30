@@ -15,6 +15,7 @@ pub use source_lifecycle::{
     WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionExecution,
     WorthUiScalarProjectionActionIndeterminate, WorthUiScalarProjectionActionInstallation,
     WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
+    WorthUiScalarProjectionActionPreconditionDenial,
     WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
     WorthUiScalarProjectionAdvance, WorthUiScalarProjectionAdvanceError,
     WorthUiScalarProjectionInstallation, WorthUiScalarProjectionLiveOwner,

@@ -10,8 +10,8 @@ fn committed_root_and_envelope() -> (
     Arc<super::RelationalBranchRoot>,
     crate::history::data::CanonicalCommitEnvelope,
 ) {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let performed = create_entity_outcome(&mut runtime, "branch-root-axis-binding");
+    let runtime = persisted_runtime_with_test_schema();
+    let performed = create_entity_outcome(&runtime, "branch-root-axis-binding");
     let root = runtime
         .history
         .branch_cell(&BranchId("main".to_owned()))
@@ -27,14 +27,14 @@ fn committed_root_and_envelope() -> (
 
 #[test]
 fn publication_cost_distinguishes_new_and_reused_schema_authority() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "schema-authority-allocation-owner");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "schema-authority-allocation-owner");
     let first = runtime
         .history
         .branch_cell(&BranchId("main".to_owned()))
         .and_then(|cell| cell.root())
         .expect("first commit installs a root");
-    create_entity_outcome(&mut runtime, "schema-authority-reuse");
+    create_entity_outcome(&runtime, "schema-authority-reuse");
     let second = runtime
         .history
         .branch_cell(&BranchId("main".to_owned()))
@@ -57,7 +57,10 @@ fn relink_rejects_schema_authority_mutation() {
     envelope.schema_authority.primary_schema_id = Some(SchemaId("mutated-schema".to_owned()));
 
     let denial = root
-        .relink_canonical_envelope(Arc::new(envelope), &runtime.services.symbols)
+        .relink_canonical_envelope(
+            Arc::new(envelope),
+            &runtime.services.symbols.interner_snapshot(),
+        )
         .expect_err("canonical schema authority mutation cannot be readmitted");
 
     assert!(matches!(
@@ -72,7 +75,10 @@ fn relink_rejects_visibility_tuple_mutation() {
     envelope.patch.authoritative_record_patches[0].contains_opaque_aspect ^= true;
 
     let denial = root
-        .relink_canonical_envelope(Arc::new(envelope), &runtime.services.symbols)
+        .relink_canonical_envelope(
+            Arc::new(envelope),
+            &runtime.services.symbols.interner_snapshot(),
+        )
         .expect_err("visibility tuple mutation cannot replace the committed envelope");
 
     assert!(matches!(
@@ -84,7 +90,7 @@ fn relink_rejects_visibility_tuple_mutation() {
 #[test]
 fn completeness_recomputes_visibility_commitment() {
     let (runtime, root, mut altered_envelope) = committed_root_and_envelope();
-    assert!(root.is_complete(&runtime.services.symbols));
+    assert!(root.is_complete(&runtime.services.symbols.interner_snapshot()));
     altered_envelope.patch.authoritative_record_patches[0].contains_opaque_aspect ^= true;
     let mut corrupted = root.as_ref().clone();
     let committed = corrupted
@@ -99,7 +105,7 @@ fn completeness_recomputes_visibility_commitment() {
     );
 
     assert!(
-        !corrupted.is_complete(&runtime.services.symbols),
+        !corrupted.is_complete(&runtime.services.symbols.interner_snapshot()),
         "completeness must reject a commitment to any different visible tuple"
     );
 }
@@ -192,8 +198,11 @@ fn visibility_commitment_binds_every_visible_tuple_axis() {
             "{axis} must change the visibility commitment"
         );
         assert!(
-            root.relink_canonical_envelope(Arc::new(mutant), &runtime.services.symbols)
-                .is_err(),
+            root.relink_canonical_envelope(
+                Arc::new(mutant),
+                &runtime.services.symbols.interner_snapshot(),
+            )
+            .is_err(),
             "{axis} mutation must not relink to the committed root"
         );
     }

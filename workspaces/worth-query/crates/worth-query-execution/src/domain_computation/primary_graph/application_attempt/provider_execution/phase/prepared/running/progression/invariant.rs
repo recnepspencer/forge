@@ -37,14 +37,31 @@ pub(super) fn progress_invariant_candidate<'run>(
             WorthQueryInvariantStateLocator::new("application-proposed-state", fact.identity())
         })
         .collect::<Result<Vec<_>, _>>();
-    let _candidate_admission =
-        match provider.admit_primary_candidate(inspection.provider_session_view()) {
-            Ok(admission) => admission,
-            Err(_) => {
-                inspection.discard();
-                return Err(progression_denied(DenialStage::InvariantExecution));
-            }
-        };
+    let _candidate_admission = match provider
+        .admit_primary_candidate(inspection.provider_session_view())
+    {
+        Ok(admission) => admission,
+        Err(failure) => {
+            inspection.discard();
+            return Err(match failure.kind() {
+                    crate::domain_computation::WorthQueryInvariantExecutionDenialKind::RetentionCapacityExhausted => {
+                        WorthQueryProviderProgressionOutcome::Denied(
+                            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                                DenialStage::InvariantExecution,
+                            ),
+                        )
+                    }
+                    crate::domain_computation::WorthQueryInvariantExecutionDenialKind::RetentionIdentityExhausted => {
+                        WorthQueryProviderProgressionOutcome::Denied(
+                            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                                DenialStage::InvariantExecution,
+                            ),
+                        )
+                    }
+                    _ => progression_denied(DenialStage::InvariantExecution),
+                });
+        }
+    };
     let receipts = match locators.and_then(|locators| {
         let slots = inspection
             .installed_invariant_requirements()

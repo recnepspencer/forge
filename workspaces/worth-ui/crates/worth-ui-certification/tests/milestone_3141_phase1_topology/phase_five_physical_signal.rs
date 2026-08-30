@@ -90,15 +90,15 @@ fn phase_five_physical_signal_owner_is_single_native_and_query_free() {
 fn phase_five_physical_signal_owns_exact_basis_currentness_and_winit_wakes() {
     let inventory = workspace_source_inventory();
     let identity = inventory
-        .source(&format!("{ROOT}/identity.rs"))
+        .source(format!("{ROOT}/identity.rs"))
         .expect("complete physical Signal topology must own exact work identities")
         .text();
     let request = inventory
-        .source(&format!("{ROOT}/routing/request.rs"))
+        .source(format!("{ROOT}/routing/request.rs"))
         .expect("complete physical Signal topology must own routed requests")
         .text();
     let observation = inventory
-        .source(&format!("{ROOT}/routing/external_observation.rs"))
+        .source(format!("{ROOT}/routing/external_observation.rs"))
         .expect("complete physical Signal topology must own external observations")
         .text();
     assert!(identity.contains("UiNativePhysicalPresentationBasis"));

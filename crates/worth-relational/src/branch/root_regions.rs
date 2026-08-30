@@ -9,17 +9,14 @@ use super::root::{
 
 const PARTITION_KEY_BITS: u32 = u32::BITS;
 
-/// Exact immutable radix index for one branch root.
-///
-/// A replacement copies at most one fixed 32-bit key path. Reads never walk
-/// publication ancestry, so ordinary cost is independent of branch history.
+/// Exact immutable radix index whose fixed 32-bit paths keep ordinary reads
+/// and replacements independent of publication ancestry.
 #[derive(Debug, Clone)]
 pub(crate) struct RelationalPersistentRegionSet {
     set_id: u64,
     index_root: Option<Arc<RelationalPersistentRegionNode>>,
     count: usize,
 }
-
 #[derive(Debug)]
 struct RelationalPersistentRegionNode {
     node_id: u64,
@@ -28,16 +25,13 @@ struct RelationalPersistentRegionNode {
     leaf: Option<RelationalPersistentRegionLeaf>,
     commitment: [u8; 32],
 }
-
 #[derive(Debug)]
 enum RelationalPersistentRegionLeaf {
     Present(Box<RelationalRootRegionReference>),
     Removed(Box<RelationalRemovedPartition>),
 }
-
 #[derive(Debug)]
 struct RelationalRootRegionReference(Arc<RelationalRootRegion>);
-
 #[derive(Debug)]
 struct RelationalRemovedPartition(PartitionId);
 
@@ -120,7 +114,6 @@ impl RelationalPersistentRegionSet {
     pub(crate) fn values(&self) -> impl Iterator<Item = Arc<RelationalRootRegion>> {
         self.materialize().into_values()
     }
-
     pub(crate) fn get(&self, partition_id: PartitionId) -> Option<&Arc<RelationalRootRegion>> {
         get_region(self.index_root.as_ref(), partition_id)
     }
@@ -128,7 +121,6 @@ impl RelationalPersistentRegionSet {
     pub(crate) fn len(&self) -> usize {
         self.count
     }
-
     pub(crate) fn commitment(&self) -> [u8; 32] {
         self.index_root
             .as_ref()
@@ -369,3 +361,6 @@ pub(crate) struct RelationalPersistentRegionNodeObservation {
 #[cfg(test)]
 #[path = "root_regions_tests.rs"]
 mod tests;
+
+#[path = "root_regions_reclamation_accounting.rs"]
+mod reclamation_accounting;

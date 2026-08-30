@@ -1,18 +1,15 @@
-use worth_ui::facade::intent::{
-    UiIntentDefinition, UiIntentExecutionProvider, UiIntentRuntimeServiceDestination,
-};
+use worth_ui::facade::intent::{UiIntentDefinition, UiIntentExecutionProvider};
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
 use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 
 use super::super::facts::OperabilityFacts;
-use super::super::intent_types::{PrimaryIntent, SecondaryIntent, UnsupportedIntent};
+use super::super::intent_types::{PrimaryIntent, SecondaryIntent};
 
 pub(super) struct OperabilityApplicationInput<P> {
     source: WorthUiRustAuthoredArtifactInput,
     primary_provider: P,
-    unsupported: bool,
 }
 
 impl<P> OperabilityApplicationInput<P> {
@@ -20,13 +17,7 @@ impl<P> OperabilityApplicationInput<P> {
         Self {
             source,
             primary_provider,
-            unsupported: false,
         }
-    }
-
-    pub(super) fn with_unsupported_definition(mut self) -> Self {
-        self.unsupported = true;
-        self
     }
 }
 
@@ -65,17 +56,6 @@ where
             worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<SecondaryIntent>::new(),
         )
         .unwrap();
-    let builder = if input.unsupported {
-        builder
-            .register_unsupported_intent_definition(
-                UiIntentDefinition::<UnsupportedIntent>::runtime_service(
-                    UiIntentRuntimeServiceDestination::InvokeCommand,
-                ),
-            )
-            .unwrap()
-    } else {
-        builder
-    };
     builder
         .with_rust_authored_input(input.source)
         .freeze()

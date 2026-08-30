@@ -1,11 +1,11 @@
 # Relational certification worlds
 
 Milestone 9.17.1 uses **Supply Chain** as its canonical semantic world. This
-document describes the Phase 2 pure world/oracle, the Phase 3 causal
-production adapter, and the landed Phase 4-6 branch root and exact-observation
-slices. It is deliberately not a complete branch-local MVCC guide: detached
-transactions, candidate preparation, publication, lifecycle reclamation, and
-production history/replay certification remain later phases.
+document freezes the semantic model, pure oracle, causal production compiler,
+branch-local MVCC execution, seeded stateful model, reproduction records, and
+cost lanes completed through Phase 12. The runtime feature itself is documented
+in [`BRANCH_LOCAL_MVCC.md`](./BRANCH_LOCAL_MVCC.md); this file owns the test
+world and the extension contract retained for later merge certification.
 
 ## Authority split
 
@@ -233,8 +233,19 @@ its recorded pre-mutation input. A caller-supplied false first divergence is
 rejected, typed delta-application errors retain their step and source, and
 repeated replay is deterministic across Court, Standard, Scale, and the
 non-empty named baselines. The replay fingerprint is supplemental evidence and
-does not replace execution. Runtime pause schedules and production failure
-traces are deferred to later phases.
+does not replace execution.
+
+The production seeded model compiles every generated delta through the same
+public schema, transaction, observation, and publication facades as the named
+cases. It maintains a separate semantic model state, compares every accepted
+step with an independently derived production observation, and records seed,
+step, branch, operation, owner outcome, and first semantic divergence. Failure
+records shrink by removing individual scenarios, normalizing the retained
+scenario lifecycle labels, and replaying each candidate; a shrunk record must
+preserve the same failure identity against a fresh runtime rather than a
+captured production DTO. Controlled pause schedules cover the named
+cancellation boundaries and keep pre-linearization interruption distinct from
+performed work with a late interruption.
 
 The Court ordinary lane permits one immutable definition, eight accepted delta
 steps, 128 trace steps, 512 observations, 128 cargo lots, and 512 setup
@@ -254,28 +265,76 @@ deletion markers. Each has a valid positive state and a one-axis negative twin;
 the six named trace controls are executable and the remaining controls are
 covered by direct comparator/application courts. Production mutations such as
 eager fork cloning, latest-root reads, global publication locks, and partial
-root swaps are later MVCC release-court obligations, not Phase 2 claims.
+root swaps are exercised by the MVCC root, selection, publication, and cost
+courts; they are not inferred from the pure oracle.
 
-## Phase 5 ordinary and scheduled evidence commands
+## Ordinary and scheduled evidence commands
 
-The ordinary Phase 5 certification command is:
+The ordinary certification command is:
 
 ```text
 cargo test -p worth-relational --test relational_certification --no-fail-fast
 ```
 
-The complete Scale admission court and maximum 4,096-fork slope are scheduled
-tests so the ordinary loop stays responsive. Run them explicitly with:
+Two public examples are executable compatibility contracts rather than
+compile-only samples. The `Run tests` step of the `build-and-test` job runs
+`cargo test --workspace`, and that command executes each example's own `main`.
+No separate lane exists or is wanted: the manifest keys alone place these
+examples in the lane that already runs.
+
+| Executable example | Manifest declaration | Local reproduction |
+| --- | --- | --- |
+| `crates/worth-signal/examples/branch_bases.rs` | `[[example]] name = "branch_bases", test = true, harness = false` | `cargo test -p worth-signal --examples` |
+| `crates/worth-relational/examples/branch_local_mvcc.rs` | `[[example]] name = "branch_local_mvcc", test = true, harness = false` | `cargo test -p worth-relational --examples` |
+
+Cargo leaves an example at `test = false` by default, so an unregistered example
+builds and never runs while the command above still reports success. `test =
+true` is what makes it evidence, and `harness = false` makes `main` the whole
+test, so there is no `test result:` line to count and the proof is the example's
+own named output.
+
+The complete Scale admission court, maximum 4,096-fork slope, and maximum
+retained-history ceiling are `#[ignore]`d so the ordinary loop stays
+responsive. They are not optional evidence: the `WORTH Relational scheduled
+certification` job executes all three on the nightly schedule and on
+`workflow_dispatch`, each under its own step and its exact compiled name.
+
+| Scheduled proof (exact compiled name) | CI step in the `WORTH Relational scheduled certification` job |
+| --- | --- |
+| `scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning` | Run mandatory ignored Scale admission proof |
+| `root_fork_sharing::phase5_standard_fork_copy_slope_is_flat_through_4096_forks` | Run mandatory ignored maximum fork-slope proof |
+| `root_cost_scale_axes::selected_publication_cost_is_flat_through_documented_retention_ceiling` | Run mandatory ignored retained-history ceiling proof |
+
+Each step runs the command below verbatim, so a local reproduction and its lane
+cannot drift apart:
 
 ```text
-cargo test -p worth-relational --test relational_certification \
-  scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning \
-  -- --ignored --exact --nocapture --test-threads=1
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --exact --ignored \
+  --selection scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
 
-cargo test -p worth-relational --test relational_certification \
-  root::sharing::fork::phase5_standard_fork_copy_slope_is_flat_through_4096_forks \
-  -- --ignored --exact --nocapture --test-threads=1
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --exact --ignored \
+  --selection root_fork_sharing::phase5_standard_fork_copy_slope_is_flat_through_4096_forks
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --exact --ignored \
+  --selection root_cost_scale_axes::selected_publication_cost_is_flat_through_documented_retention_ceiling
 ```
+
+Those are compiled test names, not source paths. The certification target
+declares every module with `#[path]`, so `root/sharing/fork.rs` compiles as
+`root_fork_sharing` and `root/cost/scale_axes.rs` as `root_cost_scale_axes`; a
+filter written from the directory layout selects nothing and a bare
+`cargo test` reports that as `0 passed`. The selection authority is what turns
+that into a red lane: under `--ignored` it counts what will really execute and
+fails at zero, so a renamed module, a deleted proof, or a proof that quietly
+lost its `#[ignore]` convicts here instead of passing silently. `--exact` is
+kept because `selected_publication_cost_is_flat_through_ordinary_retained_histories`
+shares the ceiling proof's prefix.
+
+The same job runs the two hostile CDC resume certifications as `--lib`
+selections through that one authority.
 
 Scale is scheduled because its production installation is the complete
 106,563-record causal world, not a reduced substitute. The scheduled test
@@ -284,24 +343,136 @@ baseline-publication ceilings, direct GraphComposition `Touched` result and
 one-call counters, ordinary publication lowering, ordinary graph exclusion,
 and duplicate-rejection behavior.
 
-## Phase 2 and Phase 3 evidence commands
+## Feature-gated evidence commands
 
-The shared target is `cargo test -p worth-relational --test
-relational_certification --no-fail-fast`; the Phase 3 baseline closed with 77
-tests, while the current target (including the Phase 4 fork/currentness slice)
-passes 91 tests. The focused owner-correspondence unit target passes four
-tests (normal, relation-aspect, bulk, and missing-endpoint denial). The
-owner-correspondence unit target
-`transactions::data::outcomes::created_relation_bindings` passes one test, and
-the Fintech/CAD/Chip preservation target `cargo test -p worth-relational --lib
-tests::domains --no-fail-fast` passes 22 tests. The phases also require
-formatting, the scoped whole-subtree source/dependency fence,
-boundary-check, generated agent-context validation, and dirty Rust line-cap
-checks. Strict Relational Clippy is a required command; existing unrelated
-repository Clippy debt is reported separately and cannot be cited as
-semantic-world evidence. Phase 3 additionally runs the branch-reference
-contract/compile-fail suites and receives independent review of the final diff
-and direct results.
+Two features hold evidence out of the ordinary command above.
+
+Three certification courts are compiled only under the `test-operation-control`
+feature, because they need the test-only boundary pause hook. The feature
+supplies observation and pausing only; it cannot change authority, outcome
+meaning, or production transition logic.
+
+The allocation-slope court is compiled only under `allocation-probes`, which
+installs a counting global allocator. An ordinary run must not pay for that
+instrumentation, so without the feature the court does not exist rather than
+being skipped.
+
+The ordinary command compiles neither family, so each court has its own push/PR
+CI step that names it exactly:
+
+| Court | Gating feature | CI step in the `build-and-test` job |
+| --- | --- | --- |
+| `mvcc_cancellation_publication_boundaries::` (2 tests) | `test-operation-control` | worth-relational operation-control cancellation lane |
+| `mvcc_owner_phase_locality::…preparation…` | `test-operation-control` | worth-relational operation-control preparation locality lane |
+| `mvcc_owner_phase_locality::…publication…` | `test-operation-control` | worth-relational operation-control publication locality lane |
+| `mvcc_owner_phase_locality::…settlement…` | `test-operation-control` | worth-relational operation-control settlement locality lane |
+| `schema_transition_cancellation::…` | `test-operation-control` | worth-relational operation-control schema transition cancellation lane |
+| `substrate_edition_budgets::allocation_slope::` (4 tests) | `allocation-probes` | worth-relational allocation-slope lane |
+
+Each step runs the command below verbatim, so a local reproduction and its lane
+cannot drift apart:
+
+```text
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control \
+  --selection mvcc_cancellation_publication_boundaries::
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
+  --selection mvcc_owner_phase_locality::paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
+  --selection mvcc_owner_phase_locality::paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
+  --selection mvcc_owner_phase_locality::paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
+  --selection schema_transition_cancellation::cancelled_schema_transition_leaves_no_target_or_branch_residue
+
+bash scripts/ci/check_relational_allocation_probes.sh
+```
+
+The allocation lane keeps a wrapper because its declaration is long, not because
+it is a second engine: `check_relational_allocation_probes.sh` names the four
+tests it requires and then `exec`s the same selection authority.
+
+That script is the single selection authority for named Relational lanes. Its
+preflight and its execution share one filter vector, so a lane cannot assert one
+selection and run another, and it fails the lane when the filter reaches zero
+compiled tests or only `#[ignore]`d ones. The three locality selections are
+`--exact` on purpose: a namespace filter proves only that some court ran, so a
+deleted or renamed court would keep the lane green.
+
+Reaching one executable test is the floor, and it is not enough for a lane whose
+claim depends on a known set of tests running together. Such a lane declares
+that set with repeated `--expect-name`, and the authority then requires the
+declared names to be exactly the executable ones. The allocation-slope lane
+needs that: its two driver tests re-execute the test binary with the probe gate
+set, and its two isolated probes return immediately and pass when that gate is
+absent, so deleting a driver would leave a selection that still lists tests,
+still executes them, and still measures no slope at all.
+
+The locality courts park one Supply Chain branch inside a real owner phase, at
+the first `CandidatePreparation` observation, at `BeforeCriticalSection`, and at
+the `Settlement` observation inside the one settlement executor, and require an
+unrelated branch to complete a full ordinary commit through the public facade
+while that park is held. The evidence is exact zero coordination contact and
+wait deltas on the parked branch, an unchanged parked branch reference, a
+maintenance head that advances exactly one canonical commit, and an oracle match
+once both phases finish. A regression to a whole-runtime exclusive borrow
+convicts at compile time rather than here; what these courts convict is a
+runtime gate that serializes independent branches.
+
+The settlement court is the one that reaches the pending-settlement registry
+every owner phase contacts. Its park holds an installed record in `Executing`,
+that record's per-commit executor gate, a published-snapshot slot, and a moved
+but still unsettled canonical route, so migrating the single-executor gate to
+registry scope, or holding the registry index lock across the settlement effect,
+deadlocks any unrelated branch's ordinary commit and is convicted here. The
+court proves its park position before relying on it, since a branch that has
+already moved and still retains its pending record cannot be parked at an
+earlier boundary, and it proves resumption leaves no residue: the exact commit
+identity settles, the observed head is that canonical commit, and no pending
+record survives.
+
+Their reach is bounded accordingly. Preparation parks near the top of its phase
+and cannot speak for a gate taken later in it. Settlement parks after the
+durable append and derived completion have already returned, so it cannot speak
+for a lock taken and released inside them, and the certified world is
+memory-resident, so no durable-I/O locality is claimed.
+`paused_settlement_locality::phase3_paused_settlement_does_not_block_an_unrelated_branch_commit`
+makes the same settlement claim at the focused lib boundary, against a synthetic
+schema rather than the production Supply Chain world.
+
+Every wait in these courts is bounded and every exit opens the park before it
+returns. That is load-bearing rather than tidy: a parked branch holds an
+admitted runtime operation, and the owner close that dropping the world runs
+waits on exactly that, so a court that panicked with its park still closed would
+hang in drop and print no diagnostic at all. Each court therefore holds its
+release in a guard it declares after the runtime, so drop order opens the park
+before the close that waits on it, and the two exits that a scope join reaches
+first open it themselves.
+
+## Preservation evidence
+
+Supply Chain is additive evidence. It does not replace Fintech, CAD, Chip, or
+generic runtime behavior. The preservation lanes are:
+
+```text
+cargo test -p worth-relational --lib tests::domains --no-fail-fast
+cargo test -p worth-relational --lib
+cargo test -p worth-relational --test relational_certification --no-fail-fast
+```
+
+Focused owner-correspondence, branch-reference, and phase-boundary courts remain
+required when their seams change. Strict Relational `--no-deps` Clippy,
+formatting, boundary-check, generated agent-context validation, and dirty Rust
+line-cap checks are closure gates. Existing unrelated workspace warning debt is
+reported separately and cannot be cited as world or MVCC evidence.
 
 ## Phase 4 currentness and compatibility-court requirements
 
@@ -344,18 +515,67 @@ consumer-facing current/latest adapters: snapshot, history, merge-basis, and
 Bridge reads require an admitted exact observation, while replay remains a
 separate cert-only lane.
 
-The current Phase-4 evidence commands are:
+The current boundary evidence commands are:
 
 ```text
 cargo test -p worth-relational --lib
 cargo test -p worth-relational --test relational_certification --no-fail-fast
 cargo test -p worth-relational --lib merge_replay_continuity
 cargo test -p worth-relational --test branch_reference_contract --quiet
+cargo test -p worth-relational --test branch_reference_compile_time --quiet
 cargo test -p worth-relational --test phase_boundaries_compile_fail --quiet
-cargo test -p worth-relational --test ui --quiet
 cargo clippy -p worth-relational --lib --no-deps -- -D warnings
 ```
 
 The repository-wide Clippy command still reports known unrelated
 `worth-signal` production warnings; those are recorded as debt and do not
 replace the Relational `--no-deps` gate above.
+
+## Phase 12 MVCC closure contract
+
+The production court executes all eight named deltas through branch-bound
+transactions and compares every exact-basis observation with the independent
+oracle. It includes sibling isolation, shared ancestry, independent branch
+progress, same-reference races, atomic old-or-new root visibility, stale and
+foreign red controls, archive/delete behavior, cancellation before and after
+linearization, and deterministic seeded mixed-operation traces.
+
+Structural evidence is causal rather than inferential. Fork counters prove zero
+copied truth and commit envelopes; allocation identities prove unchanged roots,
+regions, and admitted schema registries remain shared at both small and large
+registry sizes; touched-region counters prove write amplification follows the
+declared footprint; and branch-local contact/wait counters prove unrelated
+branches contribute no coordination work. Logical bytes and unique physical
+authoritative bytes remain separate observations.
+
+The Version Boundary lane installs Hazard Classification V2 through the public
+schema transition, executes V1/V2 acceptance and rejection cases, observes
+exact pre- and post-transition roots, and proves canonical replay and recovery
+preserve schema meaning. The controlled transition-cancellation test is gated
+by `test-operation-control`, so the ordinary certification command above does
+not compile its test-only pause hook. The push/PR operation-control lanes build
+the feature-enabled target and execute this court under its own exact named
+selection; see [Feature-gated evidence commands](#feature-gated-evidence-commands).
+
+## Contract retained for merge certification
+
+Later merge work may add new branch programs, merge-specific observations, and
+merge comparisons. It must not change these existing authorities:
+
+- `SupplyChainDefinition` and its named baselines remain immutable semantic
+  input, not production fixtures.
+- `SupplyChainScenarioDelta` remains the sole vocabulary for the eight shipped
+  domain changes; merge planning cannot reinterpret or mutate a delta.
+- `OracleState`, `OracleAncestry`, and `OracleBranch` remain independent of
+  production roots, queries, indexes, digests, and merge algorithms.
+- Production observations continue to originate from exact owner bases and
+  public snapshot/read facades.
+- The comparator continues to check fields, absence, endpoints, duplicates,
+  schema identity, ancestry, and accepted-delta order independently of digest
+  equality.
+- Reproduction records continue to rebuild a fresh runtime from semantic input;
+  captured production state is not an oracle.
+
+Merge certification therefore extends the world at named modules and typed
+comparison seams. It does not replace the baseline, delta, observation, or
+oracle rules with a merge-aware fixture.

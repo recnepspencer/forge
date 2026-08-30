@@ -52,7 +52,7 @@ fn dsl_compilation_report(
     gateway: &str,
 ) -> WorthUiDslCompileReport {
     match result {
-        Err(WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report)) => report,
+        Err(WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report)) => *report,
         Err(other) => panic!("{gateway} stopped outside DSL compilation: {other:?}"),
         Ok(_) => panic!("{gateway} unexpectedly produced a runtime candidate"),
     }

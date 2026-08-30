@@ -12,6 +12,8 @@ pub struct UiInteractionBatchReceipt {
     pub(super) transitions: Box<[UiInteractionTransition]>,
     pub(super) ignored_reports: usize,
     pub(super) state: UiInteractionStateSnapshot,
+    pub(super) scroll_observations: Box<[crate::runtime::scroll::UiHostScrollObservationOutcome]>,
+    pub(super) command_routes: Box<[crate::runtime::UiCommandRoutingOutcome]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -40,6 +42,58 @@ pub struct UiInteractionShutdownReport {
 }
 
 impl UiInteractionBatchReceipt {
+    pub(crate) fn retain_scroll_observations(
+        &mut self,
+        observations: Vec<crate::runtime::scroll::UiHostScrollObservationOutcome>,
+    ) {
+        self.scroll_observations = observations.into_boxed_slice();
+    }
+
+    pub(crate) fn scroll_observations(
+        &self,
+    ) -> &[crate::runtime::scroll::UiHostScrollObservationOutcome] {
+        &self.scroll_observations
+    }
+
+    pub(crate) fn retain_command_routes(
+        &mut self,
+        routes: Vec<crate::runtime::UiCommandRoutingOutcome>,
+    ) {
+        self.command_routes = routes.into_boxed_slice();
+    }
+
+    pub fn command_routes(&self) -> &[crate::runtime::UiCommandRoutingOutcome] {
+        &self.command_routes
+    }
+
+    pub(crate) fn into_routing_parts(
+        self,
+    ) -> (
+        Box<[UiInteractionTransition]>,
+        Box<[crate::runtime::UiCommandRoutingOutcome]>,
+    ) {
+        (self.transitions, self.command_routes)
+    }
+
+    pub(crate) fn retain_service_dismissal(&mut self, dismissal: super::UiDismissInteraction) {
+        let already_retained = self.transitions.iter().any(|transition| {
+            matches!(
+                transition,
+                UiInteractionTransition::DismissRequested(retained)
+                    if retained.sequence() == dismissal.sequence()
+                        && retained.cause() == dismissal.cause()
+            )
+        });
+        if already_retained {
+            return;
+        }
+        let retained = std::mem::take(&mut self.transitions).into_vec();
+        let mut transitions = Vec::with_capacity(retained.len().saturating_add(1));
+        transitions.extend(retained);
+        transitions.push(UiInteractionTransition::DismissRequested(dismissal));
+        self.transitions = transitions.into_boxed_slice();
+    }
+
     pub const fn canonical_core(&self) -> UiHostObservationCanonicalCore {
         self.core
     }

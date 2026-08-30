@@ -1,10 +1,10 @@
 use crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration;
-use crate::runtime::RelationalRuntime;
 use crate::validation::data::CustomInvariantScopePlanner;
 use crate::validation::engine::InvariantExecutionRequest;
+use crate::validation::engine::InvariantRuntimeView;
 
 pub(super) fn eligible_registrations<'runtime, 'state>(
-    runtime: &'runtime RelationalRuntime,
+    runtime: &'runtime InvariantRuntimeView,
     request: &'state InvariantExecutionRequest<'state>,
 ) -> Vec<InvariantPacketRegistration>
 where

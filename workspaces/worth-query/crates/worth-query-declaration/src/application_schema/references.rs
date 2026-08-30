@@ -2,7 +2,12 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::{AspectContractRevision, AspectIdentity};
 
-use super::ApplicationAspectMarkerIdentity;
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
+
+use super::{
+    ApplicationAspectMarkerIdentity, ApplicationEffectMarkerIdentity,
+    ApplicationOperationMarkerIdentity,
+};
 
 macro_rules! named_reference {
     ($name:ident, $($marker:ident),+) => {
@@ -187,10 +192,22 @@ impl<Schema, Relation, From, To> ApplicationRelationRef<Schema, Relation, From, 
 
 pub struct ApplicationOperationRef<Schema, Operation, Input> {
     name: &'static str,
+    input_identity: &'static str,
+    _membership: ApplicationOperationMembership<Schema, Operation, Input>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation)>,
 }
 
-impl<Schema, Operation, Input> Copy for ApplicationOperationRef<Schema, Operation, Input> {}
+struct ApplicationOperationMembership<Schema, Operation, Input>(
+    PhantomData<fn(Input) -> (Schema, Operation)>,
+);
+
+impl<Schema, Operation, Input> Copy for ApplicationOperationMembership<Schema, Operation, Input> {}
+
+impl<Schema, Operation, Input> Clone for ApplicationOperationMembership<Schema, Operation, Input> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 
 impl<Schema, Operation, Input> Clone for ApplicationOperationRef<Schema, Operation, Input> {
     fn clone(&self) -> Self {
@@ -205,38 +222,63 @@ impl<Schema, Operation, Input> std::fmt::Debug
         formatter
             .debug_struct("ApplicationOperationRef")
             .field("name", &self.name)
+            .field("input_identity", &self.input_identity)
             .finish_non_exhaustive()
     }
 }
 
 impl<Schema, Operation, Input> PartialEq for ApplicationOperationRef<Schema, Operation, Input> {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        (self.name, &self.input_identity) == (other.name, &other.input_identity)
     }
 }
 
 impl<Schema, Operation, Input> Eq for ApplicationOperationRef<Schema, Operation, Input> {}
 
-impl<Schema, Operation, Input> ApplicationOperationRef<Schema, Operation, Input> {
+impl<Schema, Operation, Input> ApplicationOperationRef<Schema, Operation, Input>
+where
+    Operation: ApplicationOperationMarkerIdentity<Schema = Schema, Input = Input>,
+    Input: WorthQueryPortableType,
+{
     #[doc(hidden)]
-    pub const fn from_schema_identifier(name: &'static str) -> Self {
+    pub const fn from_declaration() -> Self {
         Self {
-            name,
+            name: Operation::IDENTIFIER,
+            input_identity: Input::PORTABLE_TYPE_NAME,
+            _membership: ApplicationOperationMembership(PhantomData),
             _marker: PhantomData,
         }
     }
+}
 
+impl<Schema, Operation, Input> ApplicationOperationRef<Schema, Operation, Input> {
     pub const fn name(&self) -> &'static str {
         self.name
+    }
+
+    pub const fn input_identity(&self) -> WorthQueryPortableTypeIdentity {
+        WorthQueryPortableTypeIdentity::declared(self.input_identity)
     }
 }
 
 pub struct ApplicationEffectRef<Schema, Effect, Payload> {
     name: &'static str,
+    payload_identity: &'static str,
+    _membership: ApplicationEffectMembership<Schema, Effect, Payload>,
     _marker: PhantomData<fn(Payload) -> (Schema, Effect)>,
 }
 
-impl<Schema, Effect, Payload> Copy for ApplicationEffectRef<Schema, Effect, Payload> {}
+struct ApplicationEffectMembership<Schema, Effect, Payload>(
+    PhantomData<fn(Payload) -> (Schema, Effect)>,
+);
+
+impl<Schema, Effect, Payload> Copy for ApplicationEffectMembership<Schema, Effect, Payload> {}
+
+impl<Schema, Effect, Payload> Clone for ApplicationEffectMembership<Schema, Effect, Payload> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 
 impl<Schema, Effect, Payload> Clone for ApplicationEffectRef<Schema, Effect, Payload> {
     fn clone(&self) -> Self {
@@ -249,28 +291,44 @@ impl<Schema, Effect, Payload> std::fmt::Debug for ApplicationEffectRef<Schema, E
         formatter
             .debug_struct("ApplicationEffectRef")
             .field("name", &self.name)
+            .field("payload_identity", &self.payload_identity)
             .finish_non_exhaustive()
     }
 }
 
 impl<Schema, Effect, Payload> PartialEq for ApplicationEffectRef<Schema, Effect, Payload> {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        (self.name, &self.payload_identity) == (other.name, &other.payload_identity)
     }
 }
 
 impl<Schema, Effect, Payload> Eq for ApplicationEffectRef<Schema, Effect, Payload> {}
 
-impl<Schema, Effect, Payload> ApplicationEffectRef<Schema, Effect, Payload> {
+impl<Schema, Effect, Payload> ApplicationEffectRef<Schema, Effect, Payload>
+where
+    Effect: ApplicationEffectMarkerIdentity<Schema = Schema, Payload = Payload>,
+    Payload: WorthQueryPortableType,
+{
     #[doc(hidden)]
-    pub const fn from_schema_identifier(name: &'static str) -> Self {
+    pub const fn from_declaration() -> Self {
         Self {
-            name,
+            name: Effect::IDENTIFIER,
+            payload_identity: Payload::PORTABLE_TYPE_NAME,
+            _membership: ApplicationEffectMembership(PhantomData),
             _marker: PhantomData,
         }
     }
+}
 
+impl<Schema, Effect, Payload> ApplicationEffectRef<Schema, Effect, Payload> {
     pub const fn name(&self) -> &'static str {
         self.name
     }
+
+    pub const fn payload_identity(&self) -> WorthQueryPortableTypeIdentity {
+        WorthQueryPortableTypeIdentity::declared(self.payload_identity)
+    }
 }
+impl<Schema, Operation, Input> Copy for ApplicationOperationRef<Schema, Operation, Input> {}
+
+impl<Schema, Effect, Payload> Copy for ApplicationEffectRef<Schema, Effect, Payload> {}

@@ -12,11 +12,12 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationAspectMarkerIdentity, ApplicationAspectRef, ApplicationEntityMarkerIdentity,
     ApplicationEntityRef, ApplicationExternalEffectProtocol, ApplicationFieldMarkerIdentity,
     ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
-    ApplicationOperationProgramTarget, ApplicationOperationRef, ApplicationSchema,
-    ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
+    ApplicationOperationMarkerIdentity, ApplicationOperationProgramTarget, ApplicationOperationRef,
+    ApplicationSchema, ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
     ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember, DeclaredApplicationFieldValue,
     RequiredApplicationFieldValue, WorthQueryExternalEffectCorrelationFamily,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity;
 
 use super::operation_compilation::WorthQueryApplicationOperationCompilation;
 use crate::application_operation::{
@@ -24,10 +25,19 @@ use crate::application_operation::{
     WorthQueryCompiledApplicationOperationContracts,
 };
 
+mod portable_source_seam;
+
 struct Schema;
 struct Entity;
 struct Aspect;
 struct Field;
+struct CompilationOperation;
+
+impl ApplicationOperationMarkerIdentity for CompilationOperation {
+    type Schema = Schema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "CompilationOperation";
+}
 
 impl ApplicationSchema for Schema {
     const OWNER: &'static str = "worth-query-installation-tests";
@@ -148,7 +158,7 @@ fn emit_only_operation_has_external_effect_but_no_graph_touch_or_mutation_effect
         ApplicationSchemaMember::OperationExternalEffect {
             operation: "freeze".to_owned(),
             effect: "notification".to_owned(),
-            rust_payload_type: "NotificationPayload".to_owned(),
+            rust_payload_type: WorthQueryPortableTypeIdentity::declared("NotificationPayload"),
             protocol: ApplicationExternalEffectProtocol::new(
                 BoundaryProtocolIdentity::new("test.notification"),
                 BoundaryProtocolVersion::new(1),
@@ -225,6 +235,16 @@ fn compile(
     WorthQueryCompiledApplicationOperationContracts,
     WorthQueryApplicationOperationInstallationDenial,
 > {
+    compile_with_portable_members(members, members)
+}
+
+fn compile_with_portable_members(
+    members: &[ApplicationSchemaMember],
+    portable_members: &[ApplicationSchemaMember],
+) -> Result<
+    WorthQueryCompiledApplicationOperationContracts,
+    WorthQueryApplicationOperationInstallationDenial,
+> {
     let binding = ApplicationSchemaBindingIdentity::from_installed_parts(
         1,
         1,
@@ -236,14 +256,28 @@ fn compile(
         declaration.erased().identity(),
     )
     .expect("fixture schema identity is canonical");
-    let catalog = crate::application_schema::compile_native_contract_catalog(
-        &binding,
-        declaration.erased(),
-        schema_work,
+    let native =
+        crate::application_schema::compile_portable_native_contract_records(declaration.erased())
+            .expect("fixture portable native contracts compile");
+    let catalog =
+        crate::application_schema::compile_native_contract_catalog(&binding, &native, schema_work)
+            .expect("fixture native catalog compiles");
+    let portable = crate::application_operation::compile_portable_operation_contract_record(
+        Schema::NAME,
+        portable_members,
+        &native,
+        "freeze",
+        WorthQueryPortableTypeIdentity::declared("FixtureInput"),
     )
-    .expect("fixture native catalog compiles");
-    WorthQueryApplicationOperationCompilation::resolve(binding, members, "freeze", "FixtureInput")?
-        .compile_contracts(Vec::new(), &catalog)
+    .expect("fixture portable operation contract compiles");
+    WorthQueryApplicationOperationCompilation::resolve(
+        binding,
+        members,
+        &portable,
+        "freeze",
+        "FixtureInput",
+    )?
+    .compile_contracts(Vec::new(), &catalog)
 }
 
 fn members(
@@ -283,7 +317,7 @@ fn members(
 fn operation(operation: &str) -> ApplicationSchemaMember {
     ApplicationSchemaMember::Operation {
         operation: operation.to_owned(),
-        input_type: "FixtureInput".to_owned(),
+        input_type: WorthQueryPortableTypeIdentity::declared("FixtureInput"),
     }
 }
 
@@ -299,20 +333,30 @@ fn recorded_inverse_member(operation: &'static str, bound: usize) -> Application
     let contract = DeclaredApplicationAftermathContract::runtime_alone(
         DeclaredCorrectionMechanism::RecordedInverse(inverse),
     );
-    let definition = ApplicationOperationRef::<Schema, (), ()>::from_schema_identifier(operation)
-        .definition()
-        .no_external_effect()
-        .aftermath(contract)
-        .finish();
+    let definition =
+        ApplicationOperationRef::<Schema, CompilationOperation, ()>::from_declaration()
+            .definition()
+            .no_external_effect()
+            .aftermath(contract)
+            .finish();
     let declaration = ApplicationSchemaDeclarationBuilder::<Schema>::for_schema()
         .operation(definition)
         .build()
         .expect("the matching operation builder associates the aftermath");
-    declaration
+    let mut member = declaration
         .erased()
         .members()
         .iter()
         .find(|member| matches!(member, ApplicationSchemaMember::OperationAftermath { .. }))
         .expect("the matching operation emits its portable aftermath member")
-        .clone()
+        .clone();
+    let ApplicationSchemaMember::OperationAftermath {
+        operation: installed,
+        ..
+    } = &mut member
+    else {
+        unreachable!()
+    };
+    *installed = operation.to_owned();
+    member
 }

@@ -13,6 +13,9 @@ pub(super) struct PlanningLiveEvent {
     account: u64,
     activity: u64,
 }
+worth_query_declaration::worth_query_portable_type!(
+    PlanningLiveEvent => "worth.query.test.planning-live-event.v1"
+);
 
 impl ApplicationEffectPayload for PlanningLiveEvent {
     fn retained_bytes(&self) -> u64 {
@@ -25,6 +28,9 @@ worth_query_effect!(
 );
 
 pub(super) struct PlanningLiveCause;
+worth_query_declaration::worth_query_portable_type!(
+    PlanningLiveCause => "worth.query.test.planning-live-cause.v1"
+);
 
 impl ApplicationQueryLiveCauseBinding<PlanningTestSchema, ActivityQuery, Account, Activity>
     for PlanningLiveCause

@@ -14,6 +14,11 @@ pub enum RelationalMergeRequestBindingDenial {
         actual_runtime_instance_id: u64,
     },
     UnknownBranch(BranchId),
+    ArchivedBranch(BranchId),
+    DeletingBranch(BranchId),
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     IdentityMismatch,
 }
 
@@ -129,6 +134,21 @@ impl From<RelationalMergeRequestBindingDenial> for crate::branch::RelationalBran
             },
             RelationalMergeRequestBindingDenial::UnknownBranch(branch) => {
                 Self::UnknownBranch(branch)
+            }
+            RelationalMergeRequestBindingDenial::ArchivedBranch(branch) => {
+                Self::ArchivedBranch(branch)
+            }
+            RelationalMergeRequestBindingDenial::DeletingBranch(branch) => {
+                Self::DeletingBranch(branch)
+            }
+            RelationalMergeRequestBindingDenial::RetentionCapacityExhausted => {
+                Self::RetentionCapacityExhausted
+            }
+            RelationalMergeRequestBindingDenial::RetentionIdentityExhausted => {
+                Self::RetentionIdentityExhausted
+            }
+            RelationalMergeRequestBindingDenial::SnapshotIdentityExhausted => {
+                Self::SnapshotIdentityExhausted
             }
             RelationalMergeRequestBindingDenial::IdentityMismatch => {
                 Self::MixedAxis(crate::branch::RelationalBranchBasisMismatchAxis::Branch)

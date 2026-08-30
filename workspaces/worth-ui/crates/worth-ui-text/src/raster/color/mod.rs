@@ -166,7 +166,7 @@ fn rasterize_candidates(
     admission: UiColorRasterAdmission,
     rasterized: &mut HashSet<UiGlyphRasterKey>,
     selected: Option<&HashSet<UiGlyphRasterKey>>,
-    mut cache: Option<&mut super::UiGlyphRasterCache>,
+    cache: Option<&mut super::UiGlyphRasterCache>,
 ) -> Result<UiColorRasterization, UiGlyphRasterizationDenial> {
     let mut records = Vec::with_capacity(admission.unique_records());
     let mut cached_records = Vec::with_capacity(admission.unique_records());
@@ -205,7 +205,7 @@ fn rasterize_candidates(
         .into_iter()
         .map(|(record, candidate)| job.rasterize(record, candidate))
         .collect::<Result<Vec<_>, _>>()?;
-    if let Some(cache) = cache.as_deref_mut() {
+    if let Some(cache) = cache {
         for record in &raster_records {
             cache.insert(record);
         }

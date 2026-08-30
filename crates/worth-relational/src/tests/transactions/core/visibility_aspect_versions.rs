@@ -4,11 +4,10 @@ use worth_foundational::facade::AspectKey;
 
 #[test]
 fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared_fields() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&runtime, "alpha");
     let entity = changed_entities(&created)[0];
-    let updated = update_entity(&mut runtime, entity, "beta");
+    let updated = update_entity(&runtime, entity, "beta");
     let versions = runtime.read_truth().entity_aspect_versions(entity).unwrap();
 
     assert_eq!(
@@ -29,7 +28,7 @@ fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared
         ]
     );
 
-    let relation = create_relation(&mut runtime, entity, entity, "edge");
+    let relation = create_relation(&runtime, entity, entity, "edge");
     let relation_versions = runtime
         .read_truth()
         .relation_aspect_versions(relation)
@@ -50,9 +49,8 @@ fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared
 
 #[test]
 fn visibility_aspect_versions_reject_stale_generation_ids() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity = create_entity(&mut runtime, "before");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&runtime, "before");
     let stale = EntityId::new(
         entity.partition_id,
         entity.local_slot.0,

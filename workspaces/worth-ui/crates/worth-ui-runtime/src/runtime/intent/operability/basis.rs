@@ -34,6 +34,7 @@ pub(crate) fn observe_operability_basis(
     view: &super::super::payload::UiIntentInputBasisView<'_>,
     declaration: &crate::declaration::UiCanonicalIntentDeclaration,
     definition: &crate::capability::IntentDefinitionDescriptor,
+    binding_support: crate::runtime::intent_execution::UiIntentExecutionBindingSupport,
     occupancy: &UiIntentOccupancyState,
 ) -> UiIntentOperabilityBasis {
     let mut query_inputs = Vec::new();
@@ -55,7 +56,7 @@ pub(crate) fn observe_operability_basis(
     let confirmation = observe_confirmation(view, declaration.confirmation());
     UiIntentOperabilityBasis {
         contract_identity: declaration.operability().identity().into(),
-        support: support(definition.execution_destination()),
+        support: support(binding_support),
         mutability,
         readiness,
         occupancy: occupancy.observe(
@@ -209,14 +210,12 @@ fn retain_projection(
     current
 }
 
-fn support(destination: crate::capability::UiIntentExecutionDestination) -> UiIntentSupportPosture {
-    match destination {
-        crate::capability::UiIntentExecutionDestination::ApplicationEffect
-        | crate::capability::UiIntentExecutionDestination::UiTransition(_) => {
+const fn support(
+    binding: crate::runtime::intent_execution::UiIntentExecutionBindingSupport,
+) -> UiIntentSupportPosture {
+    match binding {
+        crate::runtime::intent_execution::UiIntentExecutionBindingSupport::Supported => {
             UiIntentSupportPosture::Supported
-        }
-        crate::capability::UiIntentExecutionDestination::RuntimeService(_) => {
-            UiIntentSupportPosture::Unsupported
         }
     }
 }

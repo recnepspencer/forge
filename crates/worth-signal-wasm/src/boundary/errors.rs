@@ -55,6 +55,16 @@ impl WorthSignalJsError {
         }
     }
 
+    pub fn restore_token_capacity_exhausted(maximum_pending_tokens: usize) -> Self {
+        Self {
+            code: "restoreTokenCapacityExhausted".to_owned(),
+            message: format!(
+                "restore token capacity exhausted at {maximum_pending_tokens} pending artifacts"
+            ),
+            context: None,
+        }
+    }
+
     pub fn internal(message: impl Into<String>) -> Self {
         Self {
             code: "internal".to_owned(),

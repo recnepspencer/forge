@@ -168,8 +168,28 @@ impl WorthUiActiveApplicationSession {
         node: UiMountedGraphNodeHandle,
         surface: UiSemanticSurfaceIdentity,
     ) -> Result<UiMountedInstanceIdentity, UiMountedIdentityDenial> {
-        self.mounted
-            .mount_instance(self.application.graph(), node, surface)
+        let mounted = self
+            .mounted
+            .mount_instance(self.application.graph(), node, surface)?;
+        let basis = self
+            .mounted
+            .current_mounted_identity_basis(mounted)
+            .expect("a newly mounted identity has its exact mounted basis");
+        if self.scroll.is_installed() {
+            let incarnation =
+                crate::runtime::scroll::UiScrollOwnerIncarnation::from_mount_incarnation(
+                    basis.mount_incarnation(),
+                );
+            self.application.install_scroll_ownership(
+                self.scroll
+                    .as_mut()
+                    .expect("Scroll installation was checked above"),
+                mounted,
+                incarnation,
+                &basis,
+            );
+        }
+        Ok(mounted)
     }
 
     pub(crate) fn unmount_instance(

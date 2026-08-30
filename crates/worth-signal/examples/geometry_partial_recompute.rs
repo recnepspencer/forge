@@ -72,20 +72,29 @@ fn main() -> Result<(), SignalError> {
         Ok::<_, SignalError>(result)
     };
 
-    runtime.transaction(&mut state, |tx| {
-        tx.read_many(&[airframe, wing_skin, tail_skin], &evaluate)?;
-        Ok(())
-    })?;
+    let basis = runtime
+        .observe_signal_branch_basis(runtime.current_branch())
+        .expect("the live branch should admit a basis");
+    let basis = runtime
+        .advance_signal_branch(&mut state, &basis, |tx| {
+            tx.read_many(&[airframe, wing_skin, tail_skin], &evaluate)?;
+            Ok(())
+        })
+        .expect("the initial geometry build should advance the branch")
+        .into_basis();
 
     state.airframe_version += 1;
     state.wing_skin_version += 1;
     state.changed_partition = "wing".to_string();
 
-    runtime.transaction(&mut state, |tx| {
-        tx.mark_changed_with_regions(airframe, AIRFRAME, &[ChangedRegion::new("wing")])?;
-        tx.read_many(&[wing_skin, tail_skin], &evaluate)?;
-        Ok(())
-    })?;
+    let _basis = runtime
+        .advance_signal_branch(&mut state, &basis, |tx| {
+            tx.mark_changed_with_regions(airframe, AIRFRAME, &[ChangedRegion::new("wing")])?;
+            tx.read_many(&[wing_skin, tail_skin], &evaluate)?;
+            Ok(())
+        })
+        .expect("the wing edit should advance the branch")
+        .into_basis();
     state.changed_partition.clear();
 
     let versions = runtime.read_many(&[wing_skin, tail_skin], &state, &evaluate)?;

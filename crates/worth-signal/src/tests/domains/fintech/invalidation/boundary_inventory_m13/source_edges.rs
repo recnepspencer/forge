@@ -10,7 +10,7 @@ use source_files::SOURCE_FILES;
 
 #[test]
 fn phase_1_inventory_freezes_complete_writer_and_publication_owners() {
-    assert_eq!(owner_bodies().count(), 52);
+    assert_eq!(owner_bodies().count(), 51);
     assert_eq!(
         owner_bodies()
             .map(|owner| (owner.responsibility, owner_body_digest(owner, owner.source)))

@@ -30,6 +30,14 @@ pub(super) fn attach_rejection(
         TransactionCommitError::Preparation { error, .. } => {
             commit_log.record_rejection(phase, Some(error.code()), None, error.detail());
         }
+        TransactionCommitError::Interrupted { .. } => {
+            commit_log.record_rejection(phase, None, None, error.detail());
+        }
+        TransactionCommitError::PublicationDenied { .. }
+        | TransactionCommitError::PublicationDeferred { .. }
+        | TransactionCommitError::PublicationFailed { .. } => {
+            commit_log.record_rejection(phase, None, None, error.detail());
+        }
         TransactionCommitError::PerformedButDurabilityDeferred { .. } => {}
     }
     error.with_commit_log(commit_log.clone())

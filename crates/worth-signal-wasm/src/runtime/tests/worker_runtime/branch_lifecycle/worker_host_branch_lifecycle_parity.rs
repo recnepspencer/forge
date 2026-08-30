@@ -178,6 +178,8 @@ fn worker_runtime_branch_restore_uses_branch_local_snapshot_identity() {
     worker_shell.publish_graph(publication).unwrap();
     define_portable_counter_graph(&mut compatibility_runtime);
 
+    let worker_main = worker_shell.current_branch();
+    let compatibility_main = compatibility_runtime.current_branch();
     let worker_baseline_snapshot = worker_shell.export_worker_snapshot_envelope().unwrap();
     let compatibility_baseline_snapshot = compatibility_runtime.snapshot().unwrap();
     let worker_feature = worker_shell.create_branch("feature".to_owned()).unwrap();
@@ -210,6 +212,28 @@ fn worker_runtime_branch_restore_uses_branch_local_snapshot_identity() {
         .branch_snapshot(compatibility_feature.id.0)
         .unwrap();
 
+    let worker_denial = worker_shell
+        .restore_snapshot(worker_baseline_snapshot.clone())
+        .unwrap_err();
+    let compatibility_denial = compatibility_runtime
+        .restore_snapshot(compatibility_baseline_snapshot.clone())
+        .unwrap_err();
+    assert!(worker_denial.message.contains("while active branch"));
+    assert!(compatibility_denial.message.contains("while active branch"));
+    assert_eq!(worker_shell.current_branch().id, worker_feature.id);
+    assert_eq!(
+        compatibility_runtime.current_branch().id,
+        compatibility_feature.id
+    );
+    assert_eq!(
+        worker_shell.read_value("counter").unwrap(),
+        SignalValue::Number(11.0)
+    );
+
+    worker_shell.switch_branch(worker_main.id.0).unwrap();
+    compatibility_runtime
+        .switch_branch(compatibility_main.id.0)
+        .unwrap();
     worker_shell
         .restore_snapshot(worker_baseline_snapshot)
         .unwrap();

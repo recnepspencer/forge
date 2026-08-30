@@ -19,12 +19,14 @@
       "uses: ./.github/actions/setup-worth-ui",
       "python3 scripts/ci/test_worth_ui_test_topology.py",
       "python3 scripts/ci/test_worth_ui_test_lane.py",
+      "python3 scripts/ci/test_worth_ui_native_features.py",
       "python3 scripts/ci/check_worth_ui_test_topology.py",
       "python3 scripts/ci/run_worth_ui_test_lane.py fast",
       "python3 scripts/ci/run_worth_ui_test_lane.py documentation",
       "python3 scripts/ci/run_worth_ui_test_lane.py compile-contracts",
       "python3 scripts/ci/run_worth_ui_test_lane.py hostile-certification",
       "python3 scripts/ci/run_worth_ui_test_lane.py dependency-contract",
+      "python3 scripts/ci/run_worth_ui_test_lane.py compile-only-platform",
       "python scripts/ci/run_worth_ui_test_lane.py platform-check",
       "cargo fmt --all --manifest-path workspaces/worth-ui/Cargo.toml -- --check",
       "cargo clippy --workspace --all-targets --all-features --manifest-path workspaces/worth-ui/Cargo.toml -- -D warnings",
@@ -71,6 +73,9 @@
     ],
     "dependency-contract": [
       "worth-ui-certification:host_contract_only_adapter"
+    ],
+    "compile-only-platform": [
+      "worth-ui-platform-pulse:executable_world"
     ]
   },
   "external_proof_targets": [
@@ -103,6 +108,13 @@
       "manifest": "workspaces/worth-ui/crates/worth-ui-host-contract/Cargo.toml",
       "max_integration_targets": 0,
       "expected_integration_targets": []
+    },
+    "worth-ui-platform-pulse": {
+      "manifest": "workspaces/worth-ui/apps/platform-pulse/Cargo.toml",
+      "max_integration_targets": 1,
+      "expected_integration_targets": [
+        "executable_world"
+      ]
     }
   },
   "max_compile_contract_targets": 0,

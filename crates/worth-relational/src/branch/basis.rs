@@ -19,6 +19,7 @@ pub const RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION: u16 = 2;
 pub enum RelationalBranchBasisPosture {
     Live,
     Archived,
+    Deleting,
 }
 
 /// Serializable description of one exact Relational branch basis.
@@ -51,7 +52,10 @@ pub(crate) struct RelationalLiveBranchBasisDescriptorAxes {
 }
 
 impl RelationalBranchBasisDescriptor {
-    pub(crate) fn live(axes: RelationalLiveBranchBasisDescriptorAxes) -> Self {
+    pub(crate) fn with_posture(
+        axes: RelationalLiveBranchBasisDescriptorAxes,
+        posture: RelationalBranchBasisPosture,
+    ) -> Self {
         Self {
             descriptor_version: RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
             runtime_instance_id: axes.runtime_instance_id,
@@ -61,7 +65,7 @@ impl RelationalBranchBasisDescriptor {
             root_identity: axes.root_identity,
             schema_commitment: axes.schema_commitment,
             visibility_commitment: axes.visibility_commitment,
-            posture: RelationalBranchBasisPosture::Live,
+            posture,
         }
     }
 
@@ -153,6 +157,8 @@ pub(crate) struct AdmittedRelationalBranchBasisInner {
     pub(crate) root: Arc<RelationalBranchRoot>,
     pub(crate) _authority: super::RelationalBranchObservationAuthority,
     pub(crate) retention: crate::history::retention::RelationalObservationRetentionObligation,
+    pub(crate) retention_binding: crate::history::retention::RelationalBranchRetentionBinding,
+    pub(crate) publication_cell: super::RelationalBranchPublicationCell,
     pub(super) registry_lease: OnceLock<super::basis_registry::RelationalBasisRegistryLease>,
 }
 
@@ -175,5 +181,34 @@ impl AdmittedRelationalBranchBasis {
 
     pub fn retention_reason(&self) -> crate::history::retention::RelationalBasisRetentionReason {
         self.inner.retention.reason()
+    }
+
+    pub(crate) fn publication_cell(&self) -> &super::RelationalBranchPublicationCell {
+        &self.inner.publication_cell
+    }
+
+    pub(crate) fn is_current(&self) -> bool {
+        let cell = self.publication_cell();
+        let state = cell.enter_state();
+        cell.identity() == self.identity()
+            && state.lifecycle_posture() == super::RelationalBranchLifecyclePosture::Live
+            && state.observation() == self.reference()
+            && state.truth_version() == self.truth_version()
+    }
+
+    /// Commit identity carried by this exact owner-admitted immutable root.
+    pub(crate) fn commit_identity(&self) -> Option<crate::history::RelationalCommitIdentity> {
+        let target = match self.reference().target() {
+            worth_foundational::FoundationalBranchTarget::Empty => return None,
+            worth_foundational::FoundationalBranchTarget::Basis(target) => target,
+        };
+        let envelope = self.inner.root.canonical_envelope()?;
+        (envelope.commit.commit_id.0 == target.selected_commit_id()).then(|| {
+            crate::history::RelationalCommitIdentity::new(
+                envelope.commit.commit_id,
+                envelope.commit.version_id,
+                envelope.branch_context.clone(),
+            )
+        })
     }
 }

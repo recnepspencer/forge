@@ -19,6 +19,7 @@ mod freshness;
 mod granular_invalidation;
 mod index_currency;
 mod index_refresh;
+mod initial_schema_denial;
 mod invariant_projection;
 mod live_delivery;
 mod managed_bridge;
@@ -51,7 +52,10 @@ pub(in crate::domain_computation) use application_attempt::application_resource_
 pub(in crate::domain_computation) use application_attempt::precondition_binding::{
     bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
 };
-pub(in crate::domain_computation) use application_attempt::WorthQueryApplicationSnapshotLease;
+pub(in crate::domain_computation) use application_attempt::{
+    WorthQueryApplicationSnapshotLease, WorthQueryApplicationSnapshotLeaseDenial,
+};
+pub(in crate::domain_computation) use exact_basis_access::WorthQueryExactBasisSnapshotDenial;
 pub(in crate::domain_computation) use application_attempt::WorthQueryApplicationObservedFact;
 pub(in crate::domain_computation) use application_attempt::{
     progression_denied, WorthQueryApplicationAttemptAffinity, WorthQueryApplicationAttemptBasis,
@@ -62,11 +66,13 @@ pub(crate) use application_attempt::WorthQueryRetainedGovernedInput;
 pub(crate) use application_attempt::WorthQueryPerformedExternalRedispatchSeal;
 pub(crate) use provider::WorthQueryRetainedPreImageSeal;
 pub(in crate::domain_computation) use provider::WorthQueryPrimaryGraphApplicationDecisionFact;
+pub(in crate::domain_computation) use provider::WorthQueryAftermathCausalityReadDenial;
 pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitDenial,
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitDeferredKind,
+    WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationCommitOutcomeIdentity,
     WorthQueryApplicationCommitPublicationExternalEffect,
     WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
@@ -148,7 +154,7 @@ pub use conditional_operation::{
     WorthQueryConditionalClockObservationOutcome,
     WorthQueryConditionalClockObservationPort,
     WorthQueryConditionalClockObservationReceipt,
-    WorthQueryConditionalExecutionProvenance,
+    WorthQueryConditionalExecutionCause, WorthQueryConditionalExecutionProvenance,
     WorthQueryConditionalExecutionTerminal, WorthQueryConditionalSignalDecision,
     WorthQueryConditionalRuntimeInstallationDenial,
     WorthQueryConditionalRuntimeInstallationDenialKind,
@@ -163,6 +169,7 @@ pub use conditional_operation::{
     WorthQueryTemporalInvocationFailureKind, WorthQueryTemporalOperationExecution,
     WorthQueryTemporalOperationInvoker,
     WorthQueryTemporalOperationAuthorization, WorthQueryTemporalQueryAuthorization,
+    WorthQueryTemporalQueryAuthorizationDenial,
 };
 pub use denial::{
     WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
@@ -199,6 +206,7 @@ pub use invariant_projection::{
     WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,
     WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantDecisionPlanDenialKind,
     WorthQueryInvariantEntityIdentity, WorthQueryInvariantMutationTarget,
+    WorthQueryInvariantProjectionDenial, WorthQueryInvariantProjectionDenialKind,
     WorthQueryInvariantProjectionTraversalDenial,
     WorthQueryInvariantProjectionTraversalDenialKind, WorthQueryInvariantProjectionWork,
     WorthQueryInvariantRelation, WorthQueryOperationProjectionDenial,

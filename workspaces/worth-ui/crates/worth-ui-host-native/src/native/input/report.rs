@@ -9,7 +9,7 @@ use worth_ui_host_contract::{
 pub enum UiNativeInputObservationEventFamily {
     Pointer,
     Keyboard,
-    Focus,
+    WindowFocus,
     Text,
     Ime,
     Scroll,
@@ -221,7 +221,7 @@ impl UiNativeInputObservationEventFamily {
         match self {
             Self::Pointer => Some(2),
             Self::Keyboard => Some(4),
-            Self::Focus => Some(5),
+            Self::WindowFocus => Some(5),
             Self::Text => Some(9),
             Self::Ime => Some(10),
             Self::Scroll => Some(6),

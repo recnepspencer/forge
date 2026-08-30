@@ -1,6 +1,7 @@
 mod commit_admission_denials;
 mod commit_artifact_publication;
 mod descriptor_identity;
+mod ordinary_registry_allocation;
 mod publication_bundle;
 mod registry_authority_basis;
 mod transition_admission;

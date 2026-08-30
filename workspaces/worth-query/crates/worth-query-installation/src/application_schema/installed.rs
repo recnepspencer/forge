@@ -25,14 +25,19 @@ use crate::application_query::{
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::installed_index::WorthQueryInstalledPackageAuthority;
 use crate::package::WorthQueryPortableDomainPackageIdentity;
+use crate::package::{
+    WorthQueryPortableApplicationOperationContractRecord,
+    WorthQueryPortableNativeAspectContractRecord,
+};
 use worth_foundational::facade::CanonicalDigestId;
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationEntityRef, ApplicationOperationRef,
     ApplicationPrincipalBindingRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
-    ApplicationSchemaBindingIdentity, ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
-    TypedApplicationValue, TypedEffectIntentBuilder, TypedOperationBuilder,
-    TypedReadDeclarationBuilder,
+    ApplicationSchemaBindingIdentity, ApplicationSchemaMember, ApplicationSchemaMemberProvenance,
+    ErasedApplicationSchemaDeclaration, TypedApplicationValue, TypedEffectIntentBuilder,
+    TypedOperationBuilder, TypedReadDeclarationBuilder,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableType;
 
 /// Opaque proof that one typed schema declaration belongs to an exact
 /// installed package, runtime, and generation.
@@ -41,9 +46,12 @@ pub struct WorthQueryInstalledApplicationSchema<Schema> {
     pub(crate) schema_name: String,
     pub(crate) schema_identity: CanonicalDigestId,
     pub(crate) schema: ErasedApplicationSchemaDeclaration,
+    pub(crate) member_provenance: ApplicationSchemaMemberProvenance,
     pub(crate) capability_registry: ApplicationCapabilityRegistry,
     authorization_policy_registry: ApplicationAuthorizationPolicyRegistry,
     native_contract_catalog: Arc<WorthQueryInstalledApplicationSchemaContractCatalog>,
+    portable_native_contracts: Arc<Vec<WorthQueryPortableNativeAspectContractRecord>>,
+    portable_operation_contracts: Arc<Vec<WorthQueryPortableApplicationOperationContractRecord>>,
     installation_canonical_work: WorthQueryCanonicalWorkEvidence,
     _schema: PhantomData<fn() -> Schema>,
 }
@@ -69,9 +77,12 @@ where
             schema_name: compiled.schema_name,
             schema_identity: compiled.schema_identity,
             schema: compiled.schema,
+            member_provenance: compiled.member_provenance,
             capability_registry: compiled.capability_registry,
             authorization_policy_registry: compiled.authorization_policy_registry,
             native_contract_catalog: compiled.native_contract_catalog,
+            portable_native_contracts: compiled.portable_native_contracts,
+            portable_operation_contracts: compiled.portable_operation_contracts,
             installation_canonical_work: compiled.installation_canonical_work,
             _schema: compiled.marker,
         }
@@ -81,6 +92,7 @@ where
         ApplicationSchemaAuthoringContext::from_installed_declaration(
             self.binding_identity(),
             &self.schema,
+            &self.member_provenance,
         )
     }
 
@@ -124,6 +136,18 @@ where
         Arc::clone(&self.native_contract_catalog)
     }
 
+    pub(crate) fn portable_native_contracts(
+        &self,
+    ) -> &[WorthQueryPortableNativeAspectContractRecord] {
+        self.portable_native_contracts.as_ref()
+    }
+
+    pub(crate) fn portable_operation_contracts(
+        &self,
+    ) -> &[WorthQueryPortableApplicationOperationContractRecord] {
+        self.portable_operation_contracts.as_ref()
+    }
+
     pub fn installed_ability_requirement(
         &self,
         ability: &str,
@@ -145,17 +169,23 @@ where
         TypedReadDeclarationBuilder::new(entity).with_installed_context(self.authoring_context())
     }
 
-    pub fn operation<Operation, Input>(
+    pub fn operation<Operation: 'static, Input>(
         &self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
-    ) -> TypedOperationBuilder<Schema, Operation, Input> {
+    ) -> TypedOperationBuilder<Schema, Operation, Input>
+    where
+        Input: WorthQueryPortableType + 'static,
+    {
         TypedOperationBuilder::new(operation).with_installed_context(self.authoring_context())
     }
 
-    pub fn effects<Operation, Input>(
+    pub fn effects<Operation: 'static, Input>(
         &self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
-    ) -> TypedEffectIntentBuilder<Schema, Operation, Input> {
+    ) -> TypedEffectIntentBuilder<Schema, Operation, Input>
+    where
+        Input: WorthQueryPortableType + 'static,
+    {
         TypedEffectIntentBuilder::new(operation).with_installed_context(self.authoring_context())
     }
 
@@ -255,18 +285,21 @@ where
         ))
     }
 
-    pub fn installed_operation<Operation, Input>(
+    pub fn installed_operation<Operation: 'static, Input>(
         &self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
     ) -> Result<
         WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
         WorthQueryApplicationOperationInstallationDenial,
-    > {
+    >
+    where
+        Input: WorthQueryPortableType + 'static,
+    {
         WorthQueryInstalledApplicationOperation::from_installed_schema(self, operation.name())
     }
 
     #[doc(hidden)]
-    pub fn installed_operation_for_capability<Capability, Operation, Input>(
+    pub fn installed_operation_for_capability<Capability, Operation: 'static, Input>(
         &self,
         capability: &WorthQueryInstalledApplicationCapability<Schema, Capability, Operation, Input>,
     ) -> Result<
@@ -276,7 +309,10 @@ where
             Input,
         >,
         WorthQueryApplicationOperationInstallationDenial,
-    > {
+    >
+    where
+        Input: WorthQueryPortableType + 'static,
+    {
         WorthQueryInstalledApplicationOperation::graph_authority_from_installed_schema(
             self, capability,
         )

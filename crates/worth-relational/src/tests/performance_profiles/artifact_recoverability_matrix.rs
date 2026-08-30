@@ -9,36 +9,33 @@ fn perf_artifact_recoverability_matrix() {
         suite,
         "geometry_diagnostics_summary_vs_trace_recoverability",
         || {
-            let mut runtime = persisted_runtime_with_test_schema_profile(
+            let runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::GeometryKernel,
             );
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
-            let source = create_entity_outcome(&mut runtime, "recover-geometry-source");
-            let middle = create_entity_outcome(&mut runtime, "recover-geometry-middle");
-            let target = create_entity_outcome(&mut runtime, "recover-geometry-target");
+            let source = create_entity_outcome(&runtime, "recover-geometry-source");
+            let middle = create_entity_outcome(&runtime, "recover-geometry-middle");
+            let target = create_entity_outcome(&runtime, "recover-geometry-target");
             let source_entity = changed_entities(&source)[0];
             let middle_entity = changed_entities(&middle)[0];
             let target_entity = changed_entities(&target)[0];
             create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 source_entity,
                 middle_entity,
                 "recover-geometry-link-a",
             );
             create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 middle_entity,
                 target_entity,
                 "recover-geometry-link-b",
             );
 
             let hot_commit_started_at = Instant::now();
-            let hot_commit = update_entity(
-                &mut runtime,
-                middle_entity,
-                "recover-geometry-middle-updated",
-            );
+            let hot_commit =
+                update_entity(&runtime, middle_entity, "recover-geometry-middle-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let hot_bundle = runtime
                 .publication()
@@ -62,7 +59,7 @@ fn perf_artifact_recoverability_matrix() {
             );
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("geometry recoverability recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();
@@ -186,11 +183,11 @@ fn perf_artifact_recoverability_matrix() {
             );
 
             let source =
-                create_entity_in_partition(&mut runtime, "recover-chip-source", PartitionId(7));
+                create_entity_in_partition(&runtime, "recover-chip-source", PartitionId(7));
             let sinks = (0..8)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("recover-chip-sink-{index}"),
                         if index % 2 == 0 {
                             PartitionId(11)
@@ -202,7 +199,7 @@ fn perf_artifact_recoverability_matrix() {
                 .collect::<Vec<_>>();
             for (index, sink) in sinks.iter().enumerate() {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     source,
                     *sink,
                     &format!("recover-chip-link-{index}"),
@@ -211,7 +208,7 @@ fn perf_artifact_recoverability_matrix() {
             }
 
             let hot_commit_started_at = Instant::now();
-            let hot_commit = update_entity(&mut runtime, source, "recover-chip-updated");
+            let hot_commit = update_entity(&runtime, source, "recover-chip-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
                 .history()
@@ -248,7 +245,7 @@ fn perf_artifact_recoverability_matrix() {
             );
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("chip recoverability recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

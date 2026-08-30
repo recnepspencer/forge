@@ -1,0 +1,15 @@
+[package]
+name = "worth-query-package-archive"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Deterministic store-neutral release archive protocol for Worth Query packages."
+
+[dependencies]
+sha2.workspace = true
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-query-declaration = { path = "../worth-query-declaration" }
+worth-query-installation = { path = "../worth-query-installation" }
+
+[lints]
+workspace = true

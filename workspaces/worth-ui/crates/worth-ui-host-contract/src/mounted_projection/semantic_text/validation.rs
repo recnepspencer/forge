@@ -86,6 +86,63 @@ pub(super) fn semantic_digest(input: &UiMountedSemanticTextCompletionInput) -> u
     digest
 }
 
+pub(super) fn semantic_digest_mechanic(mechanic: &UiMountedSemanticTextMechanic) -> u64 {
+    let mut digest = 0x7365_6d61_6e74_6578_u64;
+    for value in [
+        u64::from(UiMountedTextSchemaVersion::current().revision()),
+        mechanic.content_generation.diagnostic_value(),
+        mechanic.frame.diagnostic_value(),
+        mechanic.surface.diagnostic_value(),
+        mechanic.binding.diagnostic_value(),
+        mechanic.mounted_instance.diagnostic_value(),
+        mechanic.node_receipt.diagnostic_value(),
+        mechanic.allocation_basis.receipt_identity(),
+        mechanic.allocation_basis.receipt_generation(),
+        u64::from(mechanic.origin_x.to_bits()),
+        u64::from(mechanic.origin_y.to_bits()),
+        u64::from(mechanic.layer_semantic_order),
+        mechanic.capability_generation.as_u64(),
+        mechanic.capability_profile_digest,
+        slot_digest(mechanic.slot),
+    ] {
+        digest = fold(digest, value);
+    }
+    for byte in mechanic.text.bytes() {
+        digest = fold(digest, u64::from(byte));
+    }
+    for byte in mechanic.layout_identity.digest() {
+        digest = fold(digest, u64::from(byte));
+    }
+    if let Some(row) = &mechanic.collection_row {
+        for byte in row.0 {
+            digest = fold(digest, u64::from(byte));
+        }
+    }
+    for foreground in mechanic.foregrounds.iter() {
+        digest = fold(digest, u64::from(foreground.original_range().start()));
+        digest = fold(digest, u64::from(foreground.original_range().end()));
+        for byte in foreground.identity().digest() {
+            digest = fold(digest, u64::from(byte));
+        }
+        for channel in foreground.color().channels() {
+            digest = fold(digest, u64::from(channel));
+        }
+    }
+    for value in [
+        u64::from(mechanic.profile.size_millipoints()),
+        u64::from(mechanic.profile.weight()),
+        match mechanic.profile.wrap() {
+            UiSemanticTextWrapPosture::Clip => 1,
+        },
+        match mechanic.profile.baseline() {
+            UiSemanticTextBaselinePosture::Alphabetic => 1,
+        },
+    ] {
+        digest = fold(digest, value);
+    }
+    digest
+}
+
 fn matching_foregrounds(input: &UiMountedSemanticTextCompletionInput) -> bool {
     let styles = input.layout.styles();
     if input.text.is_empty() {

@@ -6,14 +6,14 @@ use crate::runtime::RelationalRuntime;
 
 pub(crate) trait DiagnosticArtifactSink {
     fn push_diagnostic_entries(
-        &mut self,
+        &self,
         scope: DiagnosticsScope,
         kind: DiagnosticsArtifactKind,
         entries: Vec<RelationalDiagnosticsEntry>,
     );
 
     fn emit_failure_diagnostic(
-        &mut self,
+        &self,
         scope: DiagnosticsScope,
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -33,15 +33,11 @@ pub(crate) trait DiagnosticArtifactSink {
 
 impl DiagnosticArtifactSink for RelationalRuntime {
     fn push_diagnostic_entries(
-        &mut self,
+        &self,
         scope: DiagnosticsScope,
         kind: DiagnosticsArtifactKind,
         entries: Vec<RelationalDiagnosticsEntry>,
     ) {
-        self.publication_authority()
-            .diagnostic(scope)
-            .kind(kind)
-            .entries(entries)
-            .emit();
+        self.push_bounded_preparation_diagnostic(scope, kind, entries);
     }
 }

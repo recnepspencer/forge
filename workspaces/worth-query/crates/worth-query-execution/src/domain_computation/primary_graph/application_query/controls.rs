@@ -65,7 +65,10 @@ pub(super) enum WorthQueryApplicationQueryBasis<Schema> {
     Pinned(WorthQueryApplicationPinnedBasis<Schema>),
     Historical(WorthQueryApplicationHistoricalBasis<Schema>),
     Preview(WorthQueryApplicationPreviewBasis<Schema>),
-    Continuation(worth_relational::facade::branch::RelationalBranchBasisDescriptor),
+    Continuation {
+        descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
+        retention: worth_relational::facade::branch::RelationalBranchRetentionLease,
+    },
 }
 
 impl<'a, Schema> WorthQueryApplicationQueryControls<'a, Schema> {
@@ -185,7 +188,7 @@ impl<'a, Schema> WorthQueryApplicationQueryControls<'a, Schema> {
             WorthQueryApplicationQueryBasis::Preview(_) => {
                 WorthQueryApplicationQueryBasisPosture::Preview
             }
-            WorthQueryApplicationQueryBasis::Continuation(_) => {
+            WorthQueryApplicationQueryBasis::Continuation { .. } => {
                 WorthQueryApplicationQueryBasisPosture::Pinned
             }
         }
@@ -252,7 +255,9 @@ impl<'a, Schema> WorthQueryApplicationQueryControls<'a, Schema> {
             WorthQueryApplicationQueryBasis::Pinned(basis) => Some(basis.expires_at()),
             WorthQueryApplicationQueryBasis::Historical(basis) => Some(basis.expires_at()),
             WorthQueryApplicationQueryBasis::Preview(basis) => Some(basis.expires_at()),
-            WorthQueryApplicationQueryBasis::Continuation(_) => Some(self.request_scope.deadline()),
+            WorthQueryApplicationQueryBasis::Continuation { .. } => {
+                Some(self.request_scope.deadline())
+            }
         };
         let admitted = WorthQueryAdmittedApplicationQueryControls {
             basis: self.basis_posture(),
@@ -269,10 +274,14 @@ impl<'a, Schema> WorthQueryApplicationQueryControls<'a, Schema> {
 
     pub(super) fn continuation_resume(
         descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
+        retention: worth_relational::facade::branch::RelationalBranchRetentionLease,
         controls: WorthQueryApplicationQueryResumeControls<'a>,
     ) -> Self {
         Self {
-            basis: WorthQueryApplicationQueryBasis::Continuation(descriptor),
+            basis: WorthQueryApplicationQueryBasis::Continuation {
+                descriptor,
+                retention,
+            },
             lane: WorthQueryApplicationQueryLane::Continuation,
             maximum_result_count: controls.maximum_page_width,
             maximum_work: controls.maximum_work,

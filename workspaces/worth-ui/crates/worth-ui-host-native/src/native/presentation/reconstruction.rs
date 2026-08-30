@@ -97,7 +97,7 @@ pub(crate) fn present_cold_reconstruction<Port: UiNativePresentationPort>(
         Err(UiNativePresentationFailure::Pending(pending)) => {
             return Err(UiNativeReconstructionFailure::Pending(
                 pending.with_settlement(super::UiNativePendingSurfaceSettlement::Reconstruction {
-                    retained,
+                    retained: Box::new(retained),
                     recovery,
                 }),
             ));
@@ -138,6 +138,17 @@ fn build_plan(
         match command {
             UiMountedPaintCommand::FilledRect { mechanic, .. } => {
                 let rect = raster_rect(*mechanic, graphics).map_err(|_| malformed())?;
+                rendered_pixels = rendered_pixels
+                    .checked_add(u64::from(rect.physical_width) * u64::from(rect.physical_height))
+                    .ok_or_else(malformed)?;
+                operations.push(UiNativeRasterOperation::FilledRect {
+                    rect,
+                    source_rgba8: mechanic.color().channels(),
+                });
+            }
+            UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                let rect = super::raster::raster_portal_overlay(*mechanic, graphics)
+                    .map_err(|_| malformed())?;
                 rendered_pixels = rendered_pixels
                     .checked_add(u64::from(rect.physical_width) * u64::from(rect.physical_height))
                     .ok_or_else(malformed)?;

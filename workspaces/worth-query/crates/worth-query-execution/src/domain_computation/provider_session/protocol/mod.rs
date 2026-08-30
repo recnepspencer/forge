@@ -1,3 +1,4 @@
+mod control_stopped;
 mod counters;
 mod declared_closure;
 #[cfg(test)]
@@ -14,6 +15,7 @@ mod settlement_deferred;
 mod terminal_binding;
 mod terminal_outcome;
 
+pub use control_stopped::*;
 pub use counters::*;
 pub(crate) use declared_closure::WorthQueryProviderPlanDeclarations;
 pub use denial::*;

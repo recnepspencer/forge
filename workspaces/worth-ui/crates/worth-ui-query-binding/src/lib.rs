@@ -5,6 +5,8 @@
 //! observation.
 
 mod application_binding;
+#[cfg(test)]
+mod application_item_key_tests;
 #[cfg(any(test, feature = "certification-construction"))]
 pub mod certification;
 mod collection_delivery;
@@ -85,7 +87,8 @@ pub use collection_delivery::{
 };
 pub use declaration::WorthUiProjectionField;
 pub use declaration::{
-    IdentityAspect, IdentityIdField, MeasurementAspect, MeasurementValueField, QueryRevisionAspect,
+    CollectionItemAspect, CollectionItemKeyField, CollectionItemStatusField, IdentityAspect,
+    IdentityIdField, MeasurementAspect, MeasurementValueField, QueryRevisionAspect,
     QueryRevisionValueField, QueryTextAspect, QueryTextStatusField, SizeAspect, SizeValueField,
     UiCollectionProjectionRegistration, UiCollectionSchemaRequirement,
     UiCollectionSchemaRequirementError, UiInstalledProjectionView, UiMeasurementValue,
@@ -181,13 +184,14 @@ pub use product_projection::{
     WorthUiScalarProjectionActionDenied, WorthUiScalarProjectionActionEvidence,
     WorthUiScalarProjectionActionExecution, WorthUiScalarProjectionActionIndeterminate,
     WorthUiScalarProjectionActionInstallation, WorthUiScalarProjectionActionLiveOwner,
-    WorthUiScalarProjectionActionOutcome, WorthUiScalarProjectionActionPublicationCompletion,
-    WorthUiScalarProjectionActionRequest, WorthUiScalarProjectionAdvance,
-    WorthUiScalarProjectionAdvanceError, WorthUiScalarProjectionHostCompletion,
-    WorthUiScalarProjectionHostPlan, WorthUiScalarProjectionInstallation,
-    WorthUiScalarProjectionInstallationError, WorthUiScalarProjectionLiveOwner,
-    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseError,
-    WorthUiScalarProjectionSourceCloseReceipt, WorthUiScalarProjectionSourceRecord,
+    WorthUiScalarProjectionActionOutcome, WorthUiScalarProjectionActionPreconditionDenial,
+    WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
+    WorthUiScalarProjectionAdvance, WorthUiScalarProjectionAdvanceError,
+    WorthUiScalarProjectionHostCompletion, WorthUiScalarProjectionHostPlan,
+    WorthUiScalarProjectionInstallation, WorthUiScalarProjectionInstallationError,
+    WorthUiScalarProjectionLiveOwner, WorthUiScalarProjectionPublicationCompletion,
+    WorthUiScalarProjectionSourceCloseError, WorthUiScalarProjectionSourceCloseReceipt,
+    WorthUiScalarProjectionSourceRecord,
 };
 pub use projection_binding::{
     UiCollectionProjectionBinding, UiCollectionProjectionBindingAdmission,
@@ -215,10 +219,10 @@ pub use projection_consumption::{
     UiProjectionFactStopReceipt, UiProjectionInputCollectionRow, UiProjectionInputFactReference,
     UiProjectionInputFactTransition, UiProjectionInputPosture, UiProjectionInputRevision,
     UiProjectionInputSlot, UiProjectionInputTransitionStopKind, UiProjectionInputTransitionWork,
-    UiProjectionOptionReference, UiProjectionPostureTrace, UiProjectionRetainedActivityKind,
-    UiProjectionRetainedActivityReceipt, UiProjectionTransitionPosture,
-    UiProjectionUnavailableKind, UiProjectionUnavailableReceipt, UiScalarProjectionFactReceipt,
-    UiScalarProjectionInputFact, UiScalarProjectionWorkCounters,
+    UiProjectionOptionReference, UiProjectionOptionStableKey, UiProjectionPostureTrace,
+    UiProjectionRetainedActivityKind, UiProjectionRetainedActivityReceipt,
+    UiProjectionTransitionPosture, UiProjectionUnavailableKind, UiProjectionUnavailableReceipt,
+    UiScalarProjectionFactReceipt, UiScalarProjectionInputFact, UiScalarProjectionWorkCounters,
 };
 pub use projection_invalidation::{
     UiScalarProjectionBatchOutcome, UiScalarProjectionInitialError,

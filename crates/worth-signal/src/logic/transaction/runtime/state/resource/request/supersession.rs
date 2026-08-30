@@ -43,7 +43,7 @@ impl ResourceRuntimeState {
                 telemetry.resource_supersession_lineage_width.max(2);
         }
         let overlap_admission = if permits_overlap_admission {
-            if let Some(telemetry) = telemetry.as_deref_mut() {
+            if let Some(telemetry) = telemetry {
                 telemetry.resource_overlapping_generation_admission_count += 1;
                 if requests_old_host_work_cancel {
                     telemetry.resource_old_host_work_advisory_cancelled_count += 1;

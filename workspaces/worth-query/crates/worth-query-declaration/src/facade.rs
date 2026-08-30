@@ -53,6 +53,10 @@ pub mod identity {
     pub use crate::identity::*;
 }
 
+pub mod portable_identity {
+    pub use crate::portable_identity::*;
+}
+
 pub mod identity_authority {
     pub use crate::identity_authority::QueryCanonicalAuthority;
 }

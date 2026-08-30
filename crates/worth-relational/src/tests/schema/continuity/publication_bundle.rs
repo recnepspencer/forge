@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "a");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "a");
     let mut envelope = outcome.envelope().clone();
     let fingerprint = SchemaBoundaryFingerprint::new([13_u8; 32]);
     let transition = SchemaTransitionArtifact::new(
@@ -62,6 +62,7 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
     envelope.schema_continuation_descriptor = Some(transition.continuation_descriptor.clone());
     envelope.schema_reconciliation_descriptor = None;
     let plan = SchemaContinuityPlan {
+        target_schema_registry: None,
         target_schema_version: envelope.schema_version,
         target_schema_authority: envelope.schema_authority.clone(),
         descriptor_semantics_version: DescriptorSemanticsVersion::default(),
@@ -70,8 +71,9 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
         schema_reconciliation_descriptor: None,
     };
 
+    let preparation = runtime.preparation_runtime_snapshot();
     let error = validate_schema_continuity_publication(
-        &mut runtime,
+        &preparation,
         &BranchId("main".to_string()),
         &plan,
         &envelope,
@@ -92,8 +94,8 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
 
 #[test]
 fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "a");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "a");
     let fingerprint = SchemaBoundaryFingerprint::new([17_u8; 32]);
     let transition = SchemaTransitionArtifact::new(
         SchemaId("test".to_string()),
@@ -153,6 +155,7 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
     envelope.schema_reconciliation_descriptor = Some(transition.reconciliation_descriptor.clone());
     envelope.descriptor_semantics_version = DescriptorSemanticsVersion::default();
     let plan = SchemaContinuityPlan {
+        target_schema_registry: None,
         target_schema_version: envelope.schema_version,
         target_schema_authority: envelope.schema_authority.clone(),
         descriptor_semantics_version: DescriptorSemanticsVersion::default(),
@@ -161,8 +164,9 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
         schema_reconciliation_descriptor: Some(transition.reconciliation_descriptor.clone()),
     };
 
+    let preparation = runtime.preparation_runtime_snapshot();
     let error = validate_schema_continuity_publication(
-        &mut runtime,
+        &preparation,
         &BranchId("main".to_string()),
         &plan,
         &envelope,
@@ -183,8 +187,8 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
 
 #[test]
 fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "a");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "a");
     let fingerprint = SchemaBoundaryFingerprint::new([23_u8; 32]);
     let bridge_fingerprint = SchemaBoundaryFingerprint::new([24_u8; 32]);
     let transition = SchemaTransitionArtifact::new(

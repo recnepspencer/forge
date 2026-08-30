@@ -1,6 +1,6 @@
 use super::{
     UiMountedPresentationDelta, UiMountedPresentationInitial, UiMountedPresentationReconstruction,
-    UiMountedPresentationUnchanged,
+    UiMountedPresentationSample, UiMountedPresentationUnchanged,
 };
 
 #[derive(Clone, Copy)]
@@ -8,6 +8,7 @@ pub enum UiMountedPresentationWorkView<'work> {
     Initial(&'work UiMountedPresentationInitial),
     Delta(&'work UiMountedPresentationDelta),
     Reconstruction(&'work UiMountedPresentationReconstruction),
+    Sample(&'work UiMountedPresentationSample),
     Unchanged(&'work UiMountedPresentationUnchanged),
 }
 
@@ -17,6 +18,7 @@ impl UiMountedPresentationWorkView<'_> {
             Self::Initial(initial) => initial.affinity(),
             Self::Delta(delta) => delta.affinity(),
             Self::Reconstruction(reconstruction) => reconstruction.affinity(),
+            Self::Sample(sample) => sample.affinity(),
             Self::Unchanged(unchanged) => unchanged.affinity(),
         }
     }
@@ -26,6 +28,7 @@ impl UiMountedPresentationWorkView<'_> {
             Self::Initial(initial) => initial.production_cost(),
             Self::Delta(delta) => delta.production_cost(),
             Self::Reconstruction(reconstruction) => reconstruction.production_cost(),
+            Self::Sample(sample) => sample.production_cost(),
             Self::Unchanged(unchanged) => unchanged.production_cost(),
         }
     }
@@ -46,6 +49,7 @@ impl UiMountedPresentationWorkView<'_> {
                 .commands()
                 .iter()
                 .any(is_semantic_text_command),
+            Self::Sample(_) => false,
             Self::Unchanged(_) => false,
         }
     }

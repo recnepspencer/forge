@@ -87,7 +87,7 @@ pub(super) const PLANNER_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../../logic/planner/apply/stage/concurrent.rs",
         Function,
         "run_grouped_concurrent_apply_pass",
-        "4ab3b1197695ca5849d9bccedad6d4d30e3f8ae2069a5beb37d7f23aea8d4d93"
+        "701aec255cae95e6a769535f8e07137794bf9c504b0c0f45cd235a2a06eb5f19"
     ),
     owner!(
         "parallel packet construction",

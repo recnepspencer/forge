@@ -2,11 +2,13 @@ mod identity;
 mod inspection;
 mod interaction;
 mod layout_reconstruction;
+mod motion_sampling;
 mod projection;
 mod publication;
 mod raster_cache_reconstruction;
 mod replacement;
 
+pub(crate) use motion_sampling::UiMountedMotionSampleSettlement;
 pub(crate) use publication::{
     UiMountedHostObservationTransition, UiMountedObservationValidationBasis,
     UiMountedPublicationTransition,
@@ -26,6 +28,7 @@ pub(crate) struct WorthUiMountedSessionState {
     identity: super::UiMountedIdentityState,
     retention: super::UiMountedFrameRetentionCoordinator,
     presentation: super::UiMountedPresentationCoordinator,
+    motion_sampling: super::presentation::motion_sampling::UiMountedMotionSampler,
     publication_reservations:
         BTreeMap<UiMountedPresentationAttemptIdentity, super::UiMountedFramePublicationCandidate>,
     reconciliation_reservations: BTreeMap<
@@ -46,6 +49,7 @@ impl WorthUiMountedSessionState {
             identity: super::UiMountedIdentityState::new(host_session)?,
             retention: super::UiMountedFrameRetentionCoordinator::with_budget(retention_budget),
             presentation: super::UiMountedPresentationCoordinator::new(presentation_async),
+            motion_sampling: Default::default(),
             publication_reservations: BTreeMap::new(),
             reconciliation_reservations: BTreeMap::new(),
         })
@@ -53,6 +57,33 @@ impl WorthUiMountedSessionState {
 
     pub(crate) fn has_active_presentation_attempt(&self) -> bool {
         self.presentation.has_active_attempt()
+    }
+
+    pub(crate) fn place_semantic_focus(
+        &mut self,
+        basis: super::UiMountedFocusPlacementRequestBasis,
+        supported: bool,
+        host: crate::facade::UiHostEffectPort<'_>,
+    ) -> Result<
+        worth_ui_host_contract::UiHostFocusPlacementAcknowledgement,
+        super::UiMountedFocusPlacementDenial,
+    > {
+        self.presentation
+            .place_semantic_focus(basis, supported, host)
+    }
+
+    pub(crate) fn reconcile_focus_placement(
+        &mut self,
+        observation: worth_ui_host_contract::UiHostFocusPlacementObservation,
+    ) -> Result<
+        super::UiFocusHostPlacementReconciliationReceipt,
+        super::UiFocusHostPlacementReconciliationDenial,
+    > {
+        self.presentation.reconcile_focus_placement(observation)
+    }
+
+    pub(crate) fn shutdown_focus_placement(&mut self) -> super::UiFocusHostPlacementShutdownReport {
+        self.presentation.shutdown_focus_placement()
     }
 
     pub(crate) fn shutdown_presentation(
@@ -63,6 +94,7 @@ impl WorthUiMountedSessionState {
         Vec<super::UiMountedPresentationOutcome>,
         Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup>,
     ) {
+        let _ = self.presentation.cancel_motion_sample(host.effect_port());
         self.presentation.shutdown(host.effect_port())
     }
 

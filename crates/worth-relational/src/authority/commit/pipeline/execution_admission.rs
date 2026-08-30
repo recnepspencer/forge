@@ -2,7 +2,7 @@ use super::authority_context::AuthoritativeCommitContext;
 use super::bulk_mutation_telemetry::record_bulk_mutation_telemetry;
 use super::rejection::stale_strategy_validation_basis;
 use crate::mvcc::RelationalTransactionValidationInput;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{
     CommitConflict, CommitLog, CommitPhaseTiming, ConflictClass, MergedCommitPlan,
     TransactionCommitError, TransactionId,
@@ -22,7 +22,7 @@ pub(super) struct AdmittedCommitExecution {
     prevalidated_mutation_sensitive: Option<crate::validation::engine::InvariantExecutionResult>,
     prevalidated_snapshot_publication: Option<crate::validation::engine::InvariantExecutionResult>,
     strategy_commit_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
-    diagnostics_start: usize,
+    diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
     complexity_before: crate::performance::data::RuntimeComplexityCounters,
     prior_complexity_delta: crate::performance::data::RuntimeComplexityCounters,
 }
@@ -92,6 +92,10 @@ impl AdmittedCommitExecution {
         &self.validation_input
     }
 
+    pub(super) fn release_transaction_retention(&mut self) {
+        self.validation_input.release_transaction_retention();
+    }
+
     pub(super) fn take_prepared_scope(
         &mut self,
     ) -> Option<super::authority_context::PreparedAuthorityScope> {
@@ -159,7 +163,7 @@ impl AdmittedCommitExecution {
         CommitPhaseTiming,
         CommitLog,
         Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
-        usize,
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
         crate::performance::data::RuntimeComplexityCounters,
         crate::performance::data::RuntimeComplexityCounters,
     ) {
@@ -168,18 +172,24 @@ impl AdmittedCommitExecution {
             self.phase_timing,
             self.commit_log,
             self.strategy_commit_artifacts,
-            self.diagnostics_start,
+            self.diagnostics,
             self.complexity_before,
             self.prior_complexity_delta,
         )
     }
+
+    pub(super) fn append_diagnostics(
+        &mut self,
+        diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    ) {
+        self.diagnostics.extend(diagnostics);
+    }
 }
 
 pub(super) fn admit_commit_execution(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     context: AuthoritativeCommitContext,
 ) -> Result<AdmittedCommitExecution, TransactionCommitError> {
-    let diagnostics_start = runtime.publication().diagnostic_access().artifact_count();
     let complexity_before = context
         .complexity_baseline
         .clone()
@@ -231,14 +241,14 @@ pub(super) fn admit_commit_execution(
         prevalidated_mutation_sensitive: context.prevalidated_mutation_sensitive,
         prevalidated_snapshot_publication: context.prevalidated_snapshot_publication,
         strategy_commit_artifacts: context.strategy_commit_artifacts,
-        diagnostics_start,
+        diagnostics: Vec::new(),
         complexity_before,
         prior_complexity_delta: context.prior_complexity_delta,
     })
 }
 
 fn enforce_validated_strategy_basis(
-    runtime: &RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     transaction_id: TransactionId,
     validation_input: &crate::mvcc::RelationalTransactionValidationInput,
     validated_against_commit_id: Option<crate::history::data::CommitId>,
@@ -269,7 +279,7 @@ fn enforce_validated_strategy_basis(
             ));
         }
     }
-    if !runtime.admitted_branch_basis_is_current(validation_input.basis()) {
+    if !validation_input.basis().is_current() {
         return Err(stale_strategy_validation_basis(
             "transaction branch binding is no longer current",
         ));
@@ -290,7 +300,7 @@ fn enforce_validated_strategy_basis(
             ));
         }
     }
-    let current_commit = runtime.admitted_branch_basis_commit(validation_input.basis());
+    let current_commit = validation_input.basis().commit_identity();
     let current_version = runtime.admitted_branch_basis_version(validation_input.basis());
     validate_version_basis(current_version, validated_against_version_id)?;
     if validated_against_commit_id.is_some()

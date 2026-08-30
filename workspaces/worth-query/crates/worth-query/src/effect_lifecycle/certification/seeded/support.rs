@@ -51,8 +51,11 @@ pub(super) fn create_entity(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
+    let identity = runtime
+        .branch_identity(&branch)
+        .expect("seed branch identity remains owner-issued");
     let options = runtime
-        .admit_named_branch_basis(&branch)
+        .admit_branch_basis(&identity)
         .expect("seed branch remains owner-admissible");
     let mut txn = runtime
         .begin_branch_transaction(
@@ -70,16 +73,22 @@ pub(super) fn create_entity(
                     .expect("seed name aspect patch"),
             }),
         )),
-    );
+    )
+    .expect("seeded effect fixture staging fits the configured transaction budget");
     let outcome = txn.commit(runtime).expect("seed commit should succeed");
-    outcome
+    let entity = outcome
         .changed_records
         .iter()
         .find_map(|record| match record {
             RecordRef::Entity(entity_id) => Some(*entity_id),
             RecordRef::Relation(_) => None,
         })
-        .expect("seed commit should touch one entity")
+        .expect("seed commit should touch one entity");
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("seed fixture releases its exact published snapshot");
+    entity
 }
 
 pub(super) fn fork_seed_branch_from_main(runtime: &mut RelationalRuntime, branch: &str) {
@@ -117,6 +126,7 @@ pub(super) fn branch_snapshot_identity(
 ) -> WorthQuerySnapshotIdentity {
     crate::memory_workspace::snapshot_identity_from_branch(runtime, &BranchId(branch.to_string()))
         .expect("certification branch snapshot requires a current owner basis")
+        .expect("certification branch requires a current head")
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {

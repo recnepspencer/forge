@@ -3,8 +3,9 @@ use std::sync::Arc;
 use worth_query_decl::facade::application_schema::ApplicationFieldRef;
 
 use super::{
-    IdentityIdField, MeasurementValueField, QueryRevisionValueField, QueryTextStatusField,
-    SizeValueField, WorthUiApplicationSchema, WorthUiProjectionField,
+    CollectionItemKeyField, CollectionItemStatusField, IdentityIdField, MeasurementValueField,
+    QueryRevisionValueField, QueryTextStatusField, SizeValueField, WorthUiApplicationSchema,
+    WorthUiProjectionField,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -82,6 +83,14 @@ impl UiProjectionFieldRequirement {
 
     pub fn query_revision() -> Self {
         Self::from_worth_ui_field(QueryRevisionValueField::reference())
+    }
+
+    pub fn collection_item_status() -> Self {
+        Self::from_worth_ui_field(CollectionItemStatusField::reference())
+    }
+
+    pub fn collection_item_key() -> Self {
+        Self::from_worth_ui_field(CollectionItemKeyField::reference())
     }
 
     /// Bind a Worth UI schema field. Names remain diagnostic only.

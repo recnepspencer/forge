@@ -14,6 +14,7 @@ use super::{
     UiHeadlessRecorderCapacity, UiHeadlessResolvedClip, UiHeadlessResourceContact,
 };
 
+mod portal_overlay;
 pub(super) mod semantic_text;
 pub(super) mod static_paint;
 mod unperformed_effects;
@@ -30,10 +31,12 @@ pub(super) fn translate_headless_frame(
     logical_damage: &[worth_ui_host_contract::UiMountedLogicalDamage],
 ) -> Result<UiHeadlessMountedFrameTranscript, UiHostSurfacePresentationDenial> {
     static_paint::validate_protocol(view, projection)?;
+    portal_overlay::validate(view, projection)?;
     validate_mechanic_capacity(projection, capacity)?;
     validate_external_batch_alignment(projection)?;
     let clips = translate_clips(projection)?;
     let filled_rects = static_paint::translate_filled_rects(projection)?;
+    let portal_overlays = projection.portal_overlays().rows().to_vec();
     let semantic_text = semantic_text::translate(view, projection)?;
     let mut paint_batches = translate_paint_batches(projection)?;
     paint_batches.sort_by_key(paint_order);
@@ -49,6 +52,7 @@ pub(super) fn translate_headless_frame(
             nodes,
             clips,
             filled_rects,
+            portal_overlays,
             semantic_text,
             paint_batches,
             paint_order: mounted_order.to_vec(),
@@ -81,6 +85,7 @@ pub(super) fn translate_auxiliary_delta(
             nodes: translate_nodes(projection)?,
             clips,
             filled_rects: retained.filled_rects().to_vec(),
+            portal_overlays: retained.portal_overlays().to_vec(),
             semantic_text: retained.semantic_text().to_vec(),
             paint_batches,
             paint_order: mounted_order.to_vec(),
@@ -127,6 +132,7 @@ fn validate_mechanic_capacity(
         projection.nodes().len(),
         projection.clips().rows().len(),
         projection.filled_rects().rows().len(),
+        projection.portal_overlays().rows().len(),
         projection.semantic_text().rows().len(),
         projection.paint_batches().rows().len(),
         projection.spatial_batches().rows().len(),
@@ -251,8 +257,7 @@ fn translate_nodes(
     projection
         .nodes()
         .iter()
-        .enumerate()
-        .map(|(authored_position, node)| {
+        .map(|node| {
             let paint = match node.paint() {
                 UiMountedPaintProjection::Omitted(reason) => {
                     UiHeadlessNodePaintMechanic::Omitted(reason)
@@ -275,8 +280,7 @@ fn translate_nodes(
             };
             Ok(UiHeadlessNodeMechanic::new(UiHeadlessNodeMechanicInput {
                 mounted_instance: node.mounted_instance(),
-                authored_position: u64::try_from(authored_position)
-                    .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+                authored_position: node.authored_position(),
                 role: node.role(),
                 participation: node.participation(),
                 allocation: node.allocation(),

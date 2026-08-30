@@ -8,14 +8,10 @@ use crate::tests::support::{
 
 #[test]
 fn execute_prepared_merge_records_attempt_without_success_on_failure() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -24,7 +20,7 @@ fn execute_prepared_merge_records_attempt_without_success_on_failure() {
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge execution");
-    create_entity_outcome(&mut runtime, "head-drift");
+    create_entity_outcome(&runtime, "head-drift");
     runtime.performance_access().reset_counters();
 
     let error = runtime

@@ -1,10 +1,7 @@
-use worth_foundational::facade::{
-    AspectKey, AspectValue, CanonicalFieldPath, FieldKey, StructAspectValue,
-};
+use worth_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
 
 pub(crate) enum WorthQueryEntityNativeReplacementValue {
     Scalar(AspectValue),
-    Struct(StructAspectValue),
     Absent,
 }
 

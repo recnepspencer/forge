@@ -21,8 +21,10 @@ pub(crate) use native_client_area::{
     ProcessBoundNativeClientAreaObservation,
 };
 #[cfg(target_os = "windows")]
-pub(crate) use native_input_delivery::{NativeInputDeliveryObservation, NativeInputProbeKind};
+pub(crate) use native_input_delivery::{
+    NativeInputDeliveryObservation, NativeInputProbeKind, NativeKeyboardCommand,
+};
 #[cfg(target_os = "windows")]
 pub(crate) use process_liveness::{
-    observe_stable_process_liveness, StableProcessLivenessFailure, StableProcessLivenessObservation,
+    begin_stable_process_liveness, StableProcessLivenessFailure, StableProcessLivenessObservation,
 };

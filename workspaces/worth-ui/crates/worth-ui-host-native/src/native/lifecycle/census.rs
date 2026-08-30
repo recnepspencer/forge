@@ -88,37 +88,42 @@ impl UiNativeResourceCensus {
         mut self,
         atlas: crate::native::text_atlas::UiNativeTextAtlasCensus,
     ) -> Self {
-        let crate::native::text_atlas::UiNativeTextAtlasCensus {
-            plans,
-            reservations,
-            pins,
-            recoveries,
-            alpha_pages,
-            color_pages,
-            alpha_entries,
-            color_entries,
-            staging_buffers,
-            upload_submissions,
-            in_flight_transactions,
-            recovery_authorities,
-        } = atlas;
-        self.alpha_atlas_pages = self.alpha_atlas_pages.max(alpha_pages);
-        self.color_atlas_pages = self.color_atlas_pages.max(color_pages);
-        self.atlas_staging_buffers = self.atlas_staging_buffers.max(staging_buffers);
-        self.text_atlas_plans = self.text_atlas_plans.max(plans);
-        self.text_atlas_reservations = self.text_atlas_reservations.max(reservations);
-        self.text_atlas_pins = self.text_atlas_pins.max(pins);
-        self.text_atlas_recoveries = self.text_atlas_recoveries.max(recoveries);
-        self.text_atlas_alpha_entries = self.text_atlas_alpha_entries.max(alpha_entries);
-        self.text_atlas_color_entries = self.text_atlas_color_entries.max(color_entries);
-        self.text_atlas_upload_submissions =
-            self.text_atlas_upload_submissions.max(upload_submissions);
-        self.text_atlas_in_flight_transactions = self
-            .text_atlas_in_flight_transactions
-            .max(in_flight_transactions);
-        self.text_atlas_recovery_authorities = self
-            .text_atlas_recovery_authorities
-            .max(recovery_authorities);
+        use crate::native::text_atlas::UiNativeTextAtlasResourceClass as Class;
+        for (class, count) in atlas.classified_entries() {
+            match class {
+                Class::Plan => self.text_atlas_plans = self.text_atlas_plans.max(count),
+                Class::Reservation => {
+                    self.text_atlas_reservations = self.text_atlas_reservations.max(count)
+                }
+                Class::Pin => self.text_atlas_pins = self.text_atlas_pins.max(count),
+                Class::Recovery => {
+                    self.text_atlas_recoveries = self.text_atlas_recoveries.max(count)
+                }
+                Class::AlphaPage => self.alpha_atlas_pages = self.alpha_atlas_pages.max(count),
+                Class::ColorPage => self.color_atlas_pages = self.color_atlas_pages.max(count),
+                Class::AlphaEntry => {
+                    self.text_atlas_alpha_entries = self.text_atlas_alpha_entries.max(count)
+                }
+                Class::ColorEntry => {
+                    self.text_atlas_color_entries = self.text_atlas_color_entries.max(count)
+                }
+                Class::StagingBuffer => {
+                    self.atlas_staging_buffers = self.atlas_staging_buffers.max(count)
+                }
+                Class::UploadSubmission => {
+                    self.text_atlas_upload_submissions =
+                        self.text_atlas_upload_submissions.max(count)
+                }
+                Class::InFlightTransaction => {
+                    self.text_atlas_in_flight_transactions =
+                        self.text_atlas_in_flight_transactions.max(count)
+                }
+                Class::RecoveryAuthority => {
+                    self.text_atlas_recovery_authorities =
+                        self.text_atlas_recovery_authorities.max(count)
+                }
+            }
+        }
         self
     }
 

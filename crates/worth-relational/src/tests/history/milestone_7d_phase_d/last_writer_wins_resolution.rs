@@ -16,7 +16,7 @@ fn built_in_last_writer_wins_reject_retained_envelope_is_stable_across_recovery(
             "base",
         ),
     );
-    create_branch_from_main(&mut runtime, "feature");
+    create_branch_from_main(&runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
@@ -79,7 +79,7 @@ fn built_in_last_writer_wins_reject_retained_envelope_is_stable_across_recovery(
         crate::facade::merge::LoweredRecordDecision::Reject(_)
     ));
 
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         runtime_with_aspect_field_merge_policy(
             AspectKey::new("value").unwrap(),
             field_key("value"),
@@ -134,7 +134,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         ),
         BranchId("main".to_string()),
     );
-    create_branch_from_main(&mut runtime, "feature");
+    create_branch_from_main(&runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
@@ -208,7 +208,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("live merge envelope");
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         runtime_with_aspect_field_merge_policy(
             AspectKey::new("value").unwrap(),
             field_key("value"),
@@ -252,7 +252,7 @@ fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_bindin
             "base",
         ),
     );
-    create_branch_from_main(&mut runtime, "feature");
+    create_branch_from_main(&runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,

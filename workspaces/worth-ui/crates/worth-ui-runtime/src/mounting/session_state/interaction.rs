@@ -8,6 +8,24 @@ impl WorthUiMountedSessionState {
         crate::mounting::UiPresentedHitTestBasis,
         crate::mounting::UiPresentedFrameBasisDenial,
     > {
+        if self
+            .presentation
+            .binding_requires_reconstruction(presentation.binding())
+        {
+            return Err(crate::mounting::UiPresentedFrameBasisDenial::PresentationTruthUnavailable);
+        }
+        let mut basis = self.retention.interaction_hit_test_basis(presentation)?;
+        basis.apply_motion_samples(&self.motion_sampling);
+        Ok(basis)
+    }
+
+    pub(crate) fn semantic_focus_placement_basis(
+        &self,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+    ) -> Result<
+        crate::mounting::UiPresentedHitTestBasis,
+        crate::mounting::UiPresentedFrameBasisDenial,
+    > {
         self.retention.interaction_hit_test_basis(presentation)
     }
 

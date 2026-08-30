@@ -1,6 +1,6 @@
 use crate::capability::{
-    ComponentDescriptor, ComponentHitTestContract, ComponentStaticPaintContract,
-    ComponentStaticPaintOrder, ThemeTokenId,
+    ComponentDescriptor, ComponentFocusSupport, ComponentHitTestContract,
+    ComponentStaticPaintContract, ComponentStaticPaintOrder, ThemeTokenId,
 };
 
 use super::digest::{fold, fold_text};
@@ -56,6 +56,16 @@ impl WorthUiComponentPlanMeaning {
         self.descriptor.hit_test_contract()
     }
 
+    pub(crate) fn focus_support(&self) -> ComponentFocusSupport {
+        self.descriptor.focus()
+    }
+
+    pub(crate) fn portal_child_owner(&self) -> Option<&crate::capability::ComponentId> {
+        self.descriptor
+            .portal_child_contract()
+            .map(crate::capability::ComponentPortalChildContract::owner)
+    }
+
     fn static_paint_contract(&self) -> Option<&ComponentStaticPaintContract> {
         self.descriptor.static_paint_contract()
     }
@@ -71,11 +81,15 @@ impl WorthUiComponentPlanMeaning {
         let digest = self
             .semantic_text_layer_order()
             .map_or(digest, |order| fold(digest, u64::from(order)));
-        self.hit_test_contract().map_or(digest, |contract| {
+        let digest = self.hit_test_contract().map_or(digest, |contract| {
             fold(
                 fold(digest, 0x6869_745f_7465_7374),
                 u64::from(contract.order().rank()),
             )
+        });
+        let digest = fold_text(digest, self.focus_support().as_str());
+        self.portal_child_owner().map_or(digest, |owner| {
+            fold_text(fold(digest, 0x706f_7274_616c_6368), owner.as_str())
         })
     }
 
@@ -103,8 +117,9 @@ impl WorthUiComponentPlanMeaning {
 mod tests {
     use crate::capability::{
         ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
-        ComponentId, ComponentPropSchema, ComponentStateOwnership, ComponentStaticPaintContract,
-        ComponentStaticPaintOrder, ComponentViewportInset, ThemeTokenId,
+        ComponentFocusSupport, ComponentId, ComponentPropSchema, ComponentStateOwnership,
+        ComponentStaticPaintContract, ComponentStaticPaintOrder, ComponentViewportInset,
+        ThemeTokenId,
     };
 
     use super::WorthUiComponentPlanMeaning;
@@ -149,6 +164,21 @@ mod tests {
             inset.static_paint_order(),
             Some(ComponentStaticPaintOrder::back_to_front(1))
         );
+    }
+
+    #[test]
+    fn focus_support_survives_into_semantic_plan_meaning() {
+        let plain = meaning(component());
+        let focusable = meaning(component().with_focus(ComponentFocusSupport::focusable()));
+        assert_eq!(
+            plain.focus_support(),
+            ComponentFocusSupport::not_focusable()
+        );
+        assert_eq!(
+            focusable.focus_support(),
+            ComponentFocusSupport::focusable()
+        );
+        assert_ne!(plain.semantic_digest(), focusable.semantic_digest());
     }
 
     fn component() -> ComponentDescriptor {

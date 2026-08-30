@@ -25,9 +25,8 @@ pub(crate) fn admissible_access_path(
                 IndexQueryRejectionClass::MissingGeneration
             } else if runtime
                 .indexes
-                .generations
-                .values()
-                .flat_map(|generations| generations.iter())
+                .all_generations()
+                .iter()
                 .any(|generation| generation.applicability.version_id <= plan.snapshot.version_id)
             {
                 IndexQueryRejectionClass::UnsupportedScope
@@ -37,7 +36,7 @@ pub(crate) fn admissible_access_path(
         };
     };
 
-    match index_rejection_for_packet(runtime, &plan.packet, generation, &branch_id) {
+    match index_rejection_for_packet(runtime, &plan.packet, &generation, &branch_id) {
         Some(rejection) => QueryAccessPath::DerivedIndexRejectedStorageRead { rejection },
         None => QueryAccessPath::DerivedIndexGeneration {
             generation_id: generation.generation_id,
@@ -67,8 +66,7 @@ fn index_rejection_for_packet(
     if generation.applicability.branch_id != *branch_id
         && runtime
             .indexes
-            .definitions
-            .get(&generation.index_id)
+            .definition(generation.index_id)
             .is_some_and(|definition| definition.branch_scoped)
     {
         return Some(IndexQueryRejectionClass::UnsupportedBranch);
@@ -109,11 +107,8 @@ fn index_rejection_for_packet(
             }
         }
     }
-    match (
-        &packet.scope,
-        &generation.entries,
-        runtime.indexes.definitions.get(&generation.index_id),
-    ) {
+    let definition = runtime.indexes.definition(generation.index_id);
+    match (&packet.scope, &generation.entries, definition.as_deref()) {
         (
             QueryScope::EntityFieldEquals { field_locator, .. },
             DerivedIndexEntries::EntityField(_),
@@ -148,17 +143,17 @@ fn index_rejection_for_packet(
     }
 }
 
-fn candidate_generation_for_packet<'a>(
-    runtime: &'a RelationalRuntime,
+fn candidate_generation_for_packet(
+    runtime: &RelationalRuntime,
     packet: &PlannedQueryPacket,
     branch_id: &BranchId,
-) -> Option<&'a DerivedIndexGeneration> {
+) -> Option<std::sync::Arc<DerivedIndexGeneration>> {
     match &packet.scope {
         QueryScope::EntityFieldEquals { field_locator, .. }
         | QueryScope::EntityFieldAnyOf { field_locator, .. } => runtime
             .indexes
-            .definitions
-            .values()
+            .definitions()
+            .into_iter()
             .filter(|definition| {
                 matches!(
                     &definition.kind,
@@ -166,24 +161,22 @@ fn candidate_generation_for_packet<'a>(
                         if indexed_field_locator == field_locator
                 )
             })
-            .flat_map(|definition| {
-                runtime
-                    .indexes
-                    .generations
-                    .get(&definition.index_id)
-                    .into_iter()
-                    .flatten()
-            })
+            .flat_map(|definition| runtime.indexes.generations_for(definition.index_id))
             .max_by(|left, right| {
-                generation_preference(runtime, left, packet, branch_id)
-                    .cmp(&generation_preference(runtime, right, packet, branch_id))
+                generation_preference(runtime, left.as_ref(), packet, branch_id)
+                    .cmp(&generation_preference(
+                        runtime,
+                        right.as_ref(),
+                        packet,
+                        branch_id,
+                    ))
                     .then_with(|| left.generation_id.cmp(&right.generation_id))
             }),
         QueryScope::RelationFieldEquals { field_locator, .. }
         | QueryScope::RelationFieldAnyOf { field_locator, .. } => runtime
             .indexes
-            .definitions
-            .values()
+            .definitions()
+            .into_iter()
             .filter(|definition| {
                 matches!(
                     &definition.kind,
@@ -191,17 +184,15 @@ fn candidate_generation_for_packet<'a>(
                         if indexed_field_locator == field_locator
                 )
             })
-            .flat_map(|definition| {
-                runtime
-                    .indexes
-                    .generations
-                    .get(&definition.index_id)
-                    .into_iter()
-                    .flatten()
-            })
+            .flat_map(|definition| runtime.indexes.generations_for(definition.index_id))
             .max_by(|left, right| {
-                generation_preference(runtime, left, packet, branch_id)
-                    .cmp(&generation_preference(runtime, right, packet, branch_id))
+                generation_preference(runtime, left.as_ref(), packet, branch_id)
+                    .cmp(&generation_preference(
+                        runtime,
+                        right.as_ref(),
+                        packet,
+                        branch_id,
+                    ))
                     .then_with(|| left.generation_id.cmp(&right.generation_id))
             }),
         _ => None,
@@ -215,7 +206,7 @@ fn matching_index_definition_exists(
     match &packet.scope {
         QueryScope::EntityFieldEquals { field_locator, .. }
         | QueryScope::EntityFieldAnyOf { field_locator, .. } => {
-            runtime.indexes.definitions.values().any(|definition| {
+            runtime.indexes.definitions().iter().any(|definition| {
                 matches!(
                     &definition.kind,
                     DerivedIndexKind::EntityField { field_locator: indexed_field_locator }
@@ -225,7 +216,7 @@ fn matching_index_definition_exists(
         }
         QueryScope::RelationFieldEquals { field_locator, .. }
         | QueryScope::RelationFieldAnyOf { field_locator, .. } => {
-            runtime.indexes.definitions.values().any(|definition| {
+            runtime.indexes.definitions().iter().any(|definition| {
                 matches!(
                     &definition.kind,
                     DerivedIndexKind::RelationField { field_locator: indexed_field_locator }
@@ -243,13 +234,13 @@ fn generation_preference(
     packet: &PlannedQueryPacket,
     branch_id: &BranchId,
 ) -> (bool, bool, bool, bool, crate::identity::data::VersionId) {
-    let branch_applicable = runtime
-        .indexes
-        .definitions
-        .get(&generation.index_id)
-        .is_none_or(|definition| {
-            !definition.branch_scoped || generation.applicability.branch_id == *branch_id
-        });
+    let branch_applicable =
+        runtime
+            .indexes
+            .definition(generation.index_id)
+            .is_none_or(|definition| {
+                !definition.branch_scoped || generation.applicability.branch_id == *branch_id
+            });
     let version_applicable = generation.applicability.version_id == packet.context_id.version_id;
     let schema_applicable =
         generation.applicability.schema_version == packet.context_id.schema_version;

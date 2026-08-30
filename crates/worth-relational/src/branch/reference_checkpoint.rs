@@ -1,16 +1,31 @@
 use worth_foundational::FoundationalBranchTarget;
 
 use super::{
-    RelationalBranchCellCheckpoint, RelationalBranchCellDenial, RelationalBranchIdentity,
+    BranchId, RelationalBranchCellDenial, RelationalBranchIdentity,
     RelationalBranchObservationConstructionDenial, RelationalBranchReferenceCell,
+    RelationalBranchReferenceObservation, RelationalBranchVersion,
 };
+
+/// Exact durable image of one owner branch cell. This is intentionally a
+/// checkpoint DTO rather than the live cell: restoring it must validate the
+/// runtime-affine identity and never synthesize currentness from a legacy
+/// branch-head projection.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct RelationalBranchCellCheckpoint {
+    pub(crate) runtime_instance_id: u64,
+    pub(crate) branch_id: BranchId,
+    pub(crate) observation: RelationalBranchReferenceObservation,
+    pub(crate) truth_version: RelationalBranchVersion,
+    pub(crate) fork_provenance: Option<RelationalBranchReferenceObservation>,
+    pub(crate) fork_source_branch_id: Option<BranchId>,
+}
 
 impl RelationalBranchReferenceCell {
     /// Replace the descriptive target prepared during preflight with the
     /// storage owner's content-backed target. Generation/truth progression
     /// was already checked and advanced by `advance_truth`.
     pub(crate) fn replace_truth_target(
-        &mut self,
+        &self,
         target: FoundationalBranchTarget<super::RelationalBranchTarget>,
     ) {
         if let FoundationalBranchTarget::Basis(target) = &target {
@@ -76,7 +91,7 @@ impl RelationalBranchReferenceCell {
                 super::RelationalBranchReferenceMutableState {
                     observation: checkpoint.observation,
                     truth_version: checkpoint.truth_version,
-                    head_retention_obligations: checkpoint.head_retention_obligations,
+                    lifecycle: super::super::RelationalBranchLifecyclePosture::Live,
                     fork_provenance: checkpoint.fork_provenance,
                     fork_source_branch_id: checkpoint.fork_source_branch_id,
                     root,
@@ -87,6 +102,8 @@ impl RelationalBranchReferenceCell {
                 checkpoint.runtime_instance_id,
                 &checkpoint.branch_id,
             ),
+            head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
+            sharing_costs: crate::branch::RelationalBranchSharingCostCell::default(),
         };
         cell.rebind_runtime(expected_runtime_instance_id)
             .map_err(|denial| match denial {

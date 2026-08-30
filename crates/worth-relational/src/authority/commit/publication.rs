@@ -15,13 +15,12 @@ use crate::publication::patch::data::{
     CanonicalAuthoritativePatch, PatchOrdering, PatchPublicationMode,
     PublishedAuthoritativeRecordPatch,
 };
-use crate::runtime::RelationalRuntime;
 use crate::transactions::data::RecordRef;
 use rayon::prelude::*;
 use std::collections::BTreeSet;
 
 pub(super) fn assemble_patch(
-    runtime: &RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     fragments: Vec<FoundationalPatchFragment>,
 ) -> CanonicalAuthoritativePatch {
     let records = prepare_patch_fragments(
@@ -40,7 +39,7 @@ pub(super) fn assemble_patch(
 }
 
 fn prepare_patch_fragments(
-    runtime: &RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     authoritative_record_patches: Vec<PublishedAuthoritativeRecordPatch>,
 ) -> Vec<PublishedAuthoritativeRecordPatch> {
     use crate::authority::commit::preparation::packets::diff::{

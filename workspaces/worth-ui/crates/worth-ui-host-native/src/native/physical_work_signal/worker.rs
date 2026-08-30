@@ -109,13 +109,10 @@ impl UiNativePhysicalSignalWorker {
         {
             return None;
         }
-        let Some(index) = self
+        let index = self
             .requests
             .iter()
-            .position(|request| request.handle == handle && request.work == predecessor)
-        else {
-            return None;
-        };
+            .position(|request| request.handle == handle && request.work == predecessor)?;
         let performed = self
             .graph
             .perform_transition(self.requests[index].operation, successor)

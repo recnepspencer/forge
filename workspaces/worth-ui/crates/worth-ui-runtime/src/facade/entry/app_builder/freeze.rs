@@ -16,7 +16,9 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied
         let intent_execution_bindings = self
             .intent_execution_bindings
             .freeze(capability_snapshot.intent_definitions())
-            .map_err(WorthUiApplicationPreparationDenial::IntentExecutionBinding)?;
+            .map_err(|denial| {
+                WorthUiApplicationPreparationDenial::IntentExecutionBinding(Box::new(denial))
+            })?;
         let preparation_source = match self.preparation_source {
             WorthUiApplicationBuilderPreparationSource::RustAuthored(input) => {
                 WorthUiApplicationPreparationSource::rust_authored(&input, &capability_snapshot)?
@@ -28,6 +30,20 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied
                 )?
             }
         };
+        let service_support = intent_execution_bindings
+            .runtime_service_support()
+            .union(preparation_source.runtime_service_support())
+            .union(capability_snapshot.commands().runtime_service_support())
+            .union(
+                capability_snapshot
+                    .mosaic_regions()
+                    .runtime_service_support(),
+            );
+        let service_policy_plan = crate::declaration::UiNormalizedServicePolicyPlan::normalize(
+            self.service_policy_defaults,
+            preparation_source.authored_service_policy_defaults(),
+            service_support,
+        );
         let prepared = prepare_application_authority(WorthUiApplicationPreparationInput {
             capability_snapshot,
             preparation_source,
@@ -42,6 +58,8 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied
             query_binding_plan: self.query_binding_plan,
             intent_application_facts: self.intent_application_facts,
             intent_execution_bindings,
+            service_policy_defaults: self.service_policy_defaults,
+            service_policy_plan,
             change_profile: self.change_profile.profile,
         })?;
         Ok(HostNeutralFreeze {

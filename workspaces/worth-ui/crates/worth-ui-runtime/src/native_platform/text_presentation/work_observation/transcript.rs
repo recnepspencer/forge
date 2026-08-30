@@ -70,7 +70,7 @@ fn digest_set(rows: &mut Vec<Vec<u8>>) -> [u8; 32] {
     digest_ordered(rows)
 }
 
-fn digest_rows(rows: &mut Vec<Vec<u8>>) -> [u8; 32] {
+fn digest_rows(rows: &mut [Vec<u8>]) -> [u8; 32] {
     let mut row_hashes = rows
         .iter()
         .map(|row| Sha256::digest(row).to_vec())

@@ -66,6 +66,7 @@ impl UiNativePointerState {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(super) const fn capture_epoch(&self) -> u64 {
         self.capture_epoch
     }

@@ -9,6 +9,50 @@ pub(crate) struct UiMountedPaintAttribution {
 }
 
 impl WorthUiMountedSessionState {
+    pub(crate) fn current_mounted_identity_basis(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Option<crate::mounting::UiMountedIdentityBasis> {
+        self.identity
+            .projection_instance(instance)
+            .map(|view| view.basis().clone())
+    }
+
+    pub(crate) fn current_surface_for_binding(
+        &self,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    ) -> Option<worth_ui_host_contract::UiSemanticSurfaceIdentity> {
+        self.identity
+            .current_projection()?
+            .view_for(binding)
+            .ok()
+            .map(|view| view.surface())
+    }
+
+    pub(crate) fn current_surfaces(
+        &self,
+    ) -> impl Iterator<Item = worth_ui_host_contract::UiSemanticSurfaceIdentity> + '_ {
+        self.identity
+            .view()
+            .surface_bindings()
+            .iter()
+            .map(|binding| binding.semantic_surface_identity())
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    pub(crate) fn current_portal_owner_for_child(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Option<(
+        crate::graph::UiGraphNodeIdentity,
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+    )> {
+        self.identity
+            .current_projection()?
+            .portal_owner_for_child(instance)
+    }
+
     pub(crate) fn native_paint_attribution(
         &self,
         frame: worth_ui_host_contract::UiMountedFrameIdentity,

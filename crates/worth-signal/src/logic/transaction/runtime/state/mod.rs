@@ -1,6 +1,7 @@
 mod async_capability;
 mod branching;
 mod builder;
+mod canonical_merge_guidance;
 mod guided;
 mod inspection;
 mod merge;
@@ -30,13 +31,15 @@ pub use branching::{
     SignalBranchForkDenial, SignalBranchForkReceipt, SignalBranchForkRequest,
     SignalBranchForkRequestBasis, SignalBranchHeadPosture, SignalBranchRestorePosture,
     SignalBranchRetirementBatchDenial, SignalBranchRetirementBatchReceipt,
-    SignalBranchRetirementBatchRequest, SignalBranchRetirementDenial, SignalBranchRetirementReason,
-    SignalBranchRetirementReceipt, SignalBranchRetirementRequest, SignalBranchTransactionHead,
-    StaleSignalBranchBasisArtifact, ValidatedBranchTargetedTransactionRequest,
-    SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
+    SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
+    SignalBranchTransactionHead, StaleSignalBranchBasisArtifact,
+    ValidatedBranchTargetedTransactionRequest, SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
 };
 pub use builder::SignalRuntimeBuilder;
-pub use guided::{PlannedRuntimeMerge, RuntimeHistory, RuntimeMerge};
+pub use canonical_merge_guidance::{PlannedRuntimeMerge, RuntimeMerge};
+#[cfg(test)]
+pub(crate) use guided::RawRuntimeMerge;
+pub use guided::RuntimeHistory;
 pub use inspection::{
     SignalBranchBasisInspectionRow, SignalCompatibilityInspectionRow,
     SignalMergeSupportInspectionAbsence, SignalMergeSupportInspectionAbsenceKind,

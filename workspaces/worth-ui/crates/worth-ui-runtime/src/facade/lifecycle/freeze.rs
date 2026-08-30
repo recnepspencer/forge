@@ -23,6 +23,8 @@ pub(crate) struct WorthUiApplicationPreparationInput {
     pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     pub(crate) intent_execution_bindings:
         crate::runtime::intent_execution::FrozenIntentExecutionBindings,
+    pub(crate) service_policy_defaults: crate::declaration::UiServicePolicyDefaults,
+    pub(crate) service_policy_plan: crate::declaration::UiNormalizedServicePolicyPlan,
     pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
@@ -39,6 +41,8 @@ pub(crate) fn prepare_application_authority(
         query_binding_plan,
         intent_application_facts,
         intent_execution_bindings,
+        service_policy_defaults,
+        service_policy_plan,
         change_profile,
     } = input;
     let capability_snapshot = Rc::new(capability_snapshot);
@@ -50,13 +54,13 @@ pub(crate) fn prepare_application_authority(
         declaration_artifacts,
     ) = preparation_source.into_prepared_parts();
     let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
-        .map_err(WorthUiApplicationPreparationDenial::GraphHandoff)?;
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(denial)))?;
     let graph_handoffs =
         expand_runtime_instance_handoffs(&graph_handoffs, &runtime_instance_basis_admissions);
     let graph_snapshot = admit_graph_handoffs(&graph_handoffs, &runtime_instance_basis_admissions)
-        .map_err(WorthUiApplicationPreparationDenial::GraphAdmission)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphAdmission(Box::new(denial)))?
         .commit_initial_generation(graph_world_profile)
-        .map_err(WorthUiApplicationPreparationDenial::GraphCommit)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphCommit(Box::new(denial)))?
         .into_committed_snapshot();
     let intent_catalog = crate::declaration::UiIntentCatalog::prepare(
         semantic_handoff.intent_material(),
@@ -65,7 +69,7 @@ pub(crate) fn prepare_application_authority(
         &query_binding_plan,
         &intent_application_facts,
     )
-    .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
+    .map_err(|denial| WorthUiApplicationPreparationDenial::IntentCatalog(Box::new(denial)))?;
     let retained_measurement_inspection_evidence = measurement_inspection_evidence.clone();
     let lifecycle = WorthUiFacadeLifecycleBootstrap::bootstrap_with_inspection_scope_inventory(
         &declaration_artifacts,
@@ -87,6 +91,8 @@ pub(crate) fn prepare_application_authority(
             query_binding_plan,
             intent_application_facts,
             intent_execution_bindings,
+            service_policy_defaults,
+            service_policy_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence: retained_measurement_inspection_evidence,
@@ -120,15 +126,15 @@ pub(crate) fn prepare_successor_application_authority(
         .into_replacement_parts();
     let (declaration_artifacts, declaration_source_identity) = declaration_material.into_parts();
     let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
-        .map_err(WorthUiApplicationPreparationDenial::GraphHandoff)?;
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphHandoff(Box::new(denial)))?;
     let admissions = current.runtime_instance_basis_admissions();
     let graph_handoffs = expand_runtime_instance_handoffs(&graph_handoffs, admissions);
     let graph_snapshot = admit_graph_handoffs(&graph_handoffs, admissions)
-        .map_err(WorthUiApplicationPreparationDenial::GraphAdmission)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphAdmission(Box::new(denial)))?
         .commit_successor_generation(crate::graph::UiGraphAuthority::new(
             current.graph_snapshot(),
         ))
-        .map_err(WorthUiApplicationPreparationDenial::GraphCommit)?
+        .map_err(|denial| WorthUiApplicationPreparationDenial::GraphCommit(Box::new(denial)))?
         .into_committed_snapshot();
     let intent_catalog = crate::declaration::UiIntentCatalog::prepare(
         semantic_handoff.intent_material(),
@@ -137,7 +143,7 @@ pub(crate) fn prepare_successor_application_authority(
         current.query_binding_plan(),
         current.intent_application_fact_plan(),
     )
-    .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
+    .map_err(|denial| WorthUiApplicationPreparationDenial::IntentCatalog(Box::new(denial)))?;
     let measurement_inspection_evidence = current
         .measurement_inspection_evidence()
         .to_vec()
@@ -146,6 +152,21 @@ pub(crate) fn prepare_successor_application_authority(
         &declaration_artifacts,
         measurement_inspection_evidence.clone(),
         worth_ui_inspection::RUNTIME_INSPECTION_SCOPE_INVENTORY,
+    );
+    let service_policy_plan = crate::declaration::UiNormalizedServicePolicyPlan::normalize(
+        current.service_policy_defaults(),
+        semantic_handoff.authored_service_policy_defaults(),
+        current
+            .intent_execution_bindings()
+            .runtime_service_support()
+            .union(semantic_handoff.runtime_service_support())
+            .union(current.capabilities().commands().runtime_service_support())
+            .union(
+                current
+                    .capabilities()
+                    .mosaic_regions()
+                    .runtime_service_support(),
+            ),
     );
     let authority =
         WorthUiPreparedApplicationAuthority::seal(WorthUiPreparedApplicationAuthorityInput {
@@ -164,6 +185,8 @@ pub(crate) fn prepare_successor_application_authority(
             query_binding_plan: current.query_binding_plan().clone(),
             intent_application_facts: current.intent_application_fact_plan().clone(),
             intent_execution_bindings: current.intent_execution_bindings().clone(),
+            service_policy_defaults: current.service_policy_defaults(),
+            service_policy_plan,
             visual_inspection_policy: current.visual_inspection_policy(),
             runtime_instance_basis_admissions: admissions.to_vec().into_boxed_slice(),
             measurement_inspection_evidence,

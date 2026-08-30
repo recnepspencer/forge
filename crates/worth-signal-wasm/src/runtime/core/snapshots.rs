@@ -6,12 +6,31 @@ use crate::runtime::summaries::{ReplaySummary, RuntimeSnapshotEnvelope};
 use super::RuntimeCore;
 
 impl RuntimeCore {
+    #[cfg(test)]
+    pub(crate) fn snapshot_owner_registry_counts(&self) -> (usize, usize, usize) {
+        (
+            self.runtime_snapshots.len(),
+            self.admitted_runtime_snapshots.len(),
+            self.snapshot_states.len(),
+        )
+    }
+
     pub fn snapshot(&mut self) -> Result<RuntimeSnapshotEnvelope, WorthSignalJsError> {
-        let snapshot: RuntimeSnapshot = {
-            let mut history = self.runtime.history();
-            history.snapshot().map_err(WorthSignalJsError::from)?
-        };
+        let branch = self.runtime.current_branch();
+        let basis = self.native_branch_basis(branch)?;
+        let (admitted_snapshot, _) = self
+            .runtime
+            .capture_signal_branch_snapshot(&basis)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!(
+                    "Signal snapshot capture denied: {error:?}"
+                ))
+            })?
+            .into_parts();
+        let snapshot = admitted_snapshot.snapshot().clone();
         let snapshot_key = runtime_snapshot_key(&snapshot);
+        self.admitted_runtime_snapshots
+            .insert(snapshot_key, admitted_snapshot);
         self.runtime_snapshots
             .insert(snapshot_key, snapshot.clone());
         self.snapshot_states
@@ -27,9 +46,27 @@ impl RuntimeCore {
         envelope: RuntimeSnapshotEnvelope,
     ) -> Result<(), WorthSignalJsError> {
         self.ensure_callback_snapshot_availability(&envelope.state)?;
+        let snapshot_key = runtime_snapshot_key(&envelope.snapshot);
+        let active_branch_id = self.runtime.current_branch().id.0;
+        if envelope.snapshot.meta.branch_id.0 != active_branch_id {
+            return Err(WorthSignalJsError::invalid_input(format!(
+                "runtime snapshot restore targets branch `{}` while active branch is `{active_branch_id}`",
+                envelope.snapshot.meta.branch_id.0
+            )));
+        }
+        let admitted_snapshot = self
+            .admitted_runtime_snapshots
+            .get(&snapshot_key)
+            .ok_or_else(|| unavailable_snapshot(snapshot_key))?;
+        require_exact_snapshot_payload(&envelope.snapshot, admitted_snapshot.snapshot())?;
+        let basis = self.native_branch_basis_by_id(active_branch_id)?;
         self.runtime
-            .restore_snapshot(&envelope.snapshot)
-            .map_err(WorthSignalJsError::from)?;
+            .restore_signal_branch(&basis, admitted_snapshot)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!(
+                    "Signal snapshot restore denied: {error:?}"
+                ))
+            })?;
         self.restore_runtime_store_snapshot(envelope.state)?;
         Ok(())
     }
@@ -52,11 +89,20 @@ impl RuntimeCore {
             .ok_or_else(|| {
                 WorthSignalJsError::invalid_input(format!("unknown branch `{branch_id}`"))
             })?;
-        let mut history = self.runtime.history();
-        let snapshot = history
-            .branch_snapshot(branch)
-            .map_err(WorthSignalJsError::from)?;
+        let basis = self.native_branch_basis(branch)?;
+        let (admitted_snapshot, _) = self
+            .runtime
+            .capture_signal_branch_snapshot(&basis)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!(
+                    "Signal branch snapshot capture denied: {error:?}"
+                ))
+            })?
+            .into_parts();
+        let snapshot = admitted_snapshot.snapshot().clone();
         let snapshot_key = runtime_snapshot_key(&snapshot);
+        self.admitted_runtime_snapshots
+            .insert(snapshot_key, admitted_snapshot);
         self.runtime_snapshots
             .insert(snapshot_key, snapshot.clone());
         self.snapshot_states
@@ -104,15 +150,19 @@ impl RuntimeCore {
                 ))
             })?;
         self.ensure_callback_snapshot_availability(&state.store)?;
-        let branch = self
-            .runtime
-            .branch_handle(RuntimeBranchId(branch_id))
-            .ok_or_else(|| {
-                WorthSignalJsError::invalid_input(format!("unknown branch `{branch_id}`"))
-            })?;
+        let admitted_snapshot = self
+            .admitted_runtime_snapshots
+            .get(&snapshot_key)
+            .ok_or_else(|| unavailable_snapshot(snapshot_key))?;
+        require_exact_snapshot_payload(&snapshot, admitted_snapshot.snapshot())?;
+        let basis = self.native_branch_basis_by_id(branch_id)?;
         self.runtime
-            .restore_branch_snapshot(branch, &snapshot)
-            .map_err(WorthSignalJsError::from)?;
+            .restore_signal_branch(&basis, admitted_snapshot)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!(
+                    "Signal branch snapshot restore denied: {error:?}"
+                ))
+            })?;
         self.branch_states.insert(branch_id, state.clone());
         if self.runtime.current_branch().id.0 == branch_id {
             self.restore_branch_state(state)?;
@@ -140,4 +190,28 @@ impl RuntimeCore {
 
 fn runtime_snapshot_key(snapshot: &RuntimeSnapshot) -> (u64, u64) {
     (snapshot.meta.branch_id.0, snapshot.meta.snapshot_id.0)
+}
+
+fn require_exact_snapshot_payload(
+    supplied: &RuntimeSnapshot,
+    admitted: &RuntimeSnapshot,
+) -> Result<(), WorthSignalJsError> {
+    let supplied = serde_json::to_vec(supplied).map_err(|error| {
+        WorthSignalJsError::invalid_input(format!("snapshot payload encoding failed: {error}"))
+    })?;
+    let admitted = serde_json::to_vec(admitted).map_err(|error| {
+        WorthSignalJsError::internal(format!("admitted snapshot encoding failed: {error}"))
+    })?;
+    if supplied == admitted {
+        return Ok(());
+    }
+    Err(WorthSignalJsError::invalid_input(
+        "snapshot payload does not match the owner-admitted snapshot",
+    ))
+}
+
+fn unavailable_snapshot((branch_id, snapshot_id): (u64, u64)) -> WorthSignalJsError {
+    WorthSignalJsError::invalid_input(format!(
+        "snapshot `{branch_id}:{snapshot_id}` is not admitted by this runtime"
+    ))
 }

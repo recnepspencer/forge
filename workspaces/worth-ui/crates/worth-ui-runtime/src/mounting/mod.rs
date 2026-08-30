@@ -2,6 +2,7 @@ mod assembly;
 mod counters;
 mod delta;
 mod denial;
+mod focus_participation;
 mod frame_assembler;
 mod frame_manifest_validation;
 mod host_truth;
@@ -10,6 +11,7 @@ mod identity_overlay;
 mod identity_state;
 mod identity_trace_basis;
 mod identity_view;
+mod portal_overlay;
 pub(crate) mod presentation;
 mod projection;
 mod projection_changes;
@@ -30,6 +32,9 @@ pub(crate) use counters::{UiMountCostOverflow, UiMountStageCounters};
 pub use counters::{UiMountCostReport, UiMountNamedCounters, UiMountWorkClass};
 pub use delta::UiMountedFrameDelta;
 pub use denial::UiMountedIdentityDenial;
+pub(crate) use focus_participation::{
+    UiMountedFocusParticipant, UiMountedFocusParticipationSnapshot,
+};
 pub(crate) use frame_assembler::{
     UiMountedFrameAssembler, UiMountedFrameAssemblyInput, UiMountedLaneAssembly,
     UiMountedPlanProjectionSource,
@@ -48,7 +53,10 @@ pub use identity_view::{
     UiMountedFrameIdentityView, UiMountedIdentityView, UiMountedInstanceIdentityView,
     UiSurfaceBindingIdentityView,
 };
+pub(crate) use portal_overlay::UiMountedPortalOverlayProjectionInput;
 pub use presentation::{
+    UiFocusHostPlacementReconciliationDenial, UiFocusHostPlacementReconciliationOutcome,
+    UiFocusHostPlacementReconciliationReceipt, UiFocusHostPlacementShutdownReport,
     UiHostPresentationReconciliation, UiMountedIndeterminateFrame, UiMountedPresentationAdmission,
     UiMountedPresentationAdmissionDenial, UiMountedPresentationAdmissionRejection,
     UiMountedPresentationAttempt, UiMountedPresentationCompletionDenial,
@@ -60,11 +68,14 @@ pub use presentation::{
     UiPresentationIndeterminateReport,
 };
 pub(crate) use presentation::{
+    UiFocusHostPlacementSettlementDenial, UiMotionSamplePresentationOutcome,
+    UiMountedFocusPlacementDenial, UiMountedFocusPlacementRequestBasis,
     UiMountedHostPresentationAuthority, UiMountedPresentationCoordinator,
     UiMountedSupersedingPresentationBasis,
 };
 #[allow(unused_imports)]
 pub(crate) use projection::compile_presentation_sources;
+pub(crate) use projection::UiMountedFocusScope;
 pub(crate) use projection::{
     prepare_projection, UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,
     UiMountedPresentationDeltaSource, UiMountedPreviewProjectionInput, UiMountedProjectionInput,
@@ -85,6 +96,7 @@ pub(crate) use publication::{
     UiMountedFrameReconciliationCandidate,
 };
 pub(crate) use receipt_basis::UiMountedNodeReceiptBasis;
+pub(crate) use retention::UiPresentedHitTestRow;
 pub(crate) use retention::{
     UiMountedDiagnosticInspectionBasis, UiMountedDiagnosticInspectionDenial,
     UiMountedDiagnosticRetentionLease, UiMountedFrameInspectionBasis,
@@ -118,11 +130,13 @@ pub(crate) use session_state::{
     UiMountedGraphReplacementAdmission, UiMountedGraphReplacementInFlight,
     UiMountedGraphReplacementPreparation, UiMountedGraphReplacementPresentation,
     UiMountedGraphReplacementSuccessor, UiMountedHostObservationTransition,
-    UiMountedObservationValidationBasis, UiMountedPublicationTransition,
-    WorthUiMountedSessionState,
+    UiMountedMotionSampleSettlement, UiMountedObservationValidationBasis,
+    UiMountedPublicationTransition, WorthUiMountedSessionState,
 };
 pub use surface_binding::{UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile};
-pub(crate) use visual_region_basis::{UiMountedUnsupportedPaintBasis, UiMountedVisualRegionBasis};
+pub(crate) use visual_region_basis::{
+    UiMountedHitTestPresentation, UiMountedUnsupportedPaintBasis, UiMountedVisualRegionBasis,
+};
 
 pub use assembly::{
     UiMountedFramePreparationDenial, UiMountedFrameReceipt, UiMountedFrameRequest,

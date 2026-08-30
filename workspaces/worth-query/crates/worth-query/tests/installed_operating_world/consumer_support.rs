@@ -30,7 +30,7 @@ fn bound_projection_mints_one_query_owned_support_contract() {
         contract.collection(),
         &bound.definition().semantics().collection
     );
-    assert_eq!(contract.replay(), bound.definition().semantics().replay);
+    assert_eq!(contract.replay(), &bound.definition().semantics().replay);
     assert_eq!(
         contract.aftermath(),
         bound.definition().semantics().aftermath.as_ref()

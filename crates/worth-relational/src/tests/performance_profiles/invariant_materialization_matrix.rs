@@ -7,13 +7,13 @@ fn perf_invariant_materialization_matrix() {
 
     let custom_surface_samples =
         capture_perf_samples(suite, "custom_structural_surface_commit_wave", || {
-            let mut runtime = runtime_with_test_schema_profile_and_custom_invariant(
+            let runtime = runtime_with_test_schema_profile_and_custom_invariant(
                 RelationalRuntimeProfile::CertificationCore,
             );
             let entities = (0..12)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("invariant-node-{index}"),
                         PartitionId((index % 4) as u32 + 1),
                     )
@@ -21,7 +21,7 @@ fn perf_invariant_materialization_matrix() {
                 .collect::<Vec<_>>();
             for index in 0..(entities.len() - 1) {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     entities[index],
                     entities[index + 1],
                     &format!("invariant-link-{index}"),
@@ -32,7 +32,7 @@ fn perf_invariant_materialization_matrix() {
             runtime.performance_access().reset_counters();
             let started_at = Instant::now();
             let outcome = create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 entities[2],
                 entities[9],
                 "invariant-wave-bridge",

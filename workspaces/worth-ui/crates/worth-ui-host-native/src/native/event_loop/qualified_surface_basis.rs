@@ -2,7 +2,10 @@
 
 use winit::event_loop::ActiveEventLoop;
 
-use super::{UiNativeEventLoopApplication, UiNativeEventLoopClient, UiNativeEventLoopRunDenial};
+#[cfg(feature = "certification-support")]
+use super::UiNativeEventLoopRunDenial;
+use super::{UiNativeEventLoopApplication, UiNativeEventLoopClient};
+#[cfg(feature = "certification-support")]
 use crate::native::UiNativeHostState;
 
 impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {

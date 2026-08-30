@@ -35,6 +35,14 @@ pub(crate) enum PulseInstallationFailure {
         primary: PulseEntrySourcePreparationFailure,
         rollback: Result<PulseInstallationCleanupEvidence, PulseInstallationCleanupFailure>,
     },
+    PreparePortalCancelSource {
+        primary: PulseEntrySourcePreparationFailure,
+        rollback: Result<PulseInstallationCleanupEvidence, PulseInstallationCleanupFailure>,
+    },
+    PreparePortalPrimarySource {
+        primary: PulseEntrySourcePreparationFailure,
+        rollback: Result<PulseInstallationCleanupEvidence, PulseInstallationCleanupFailure>,
+    },
 }
 
 #[derive(Debug)]
@@ -70,6 +78,26 @@ impl fmt::Display for PulseInstallationFailure {
                 write!(
                     formatter,
                     "prepare isolated intent source: {primary}; rollback: "
+                )?;
+                match rollback {
+                    Ok(evidence) => write!(formatter, "released={}", evidence.removed_owned_root),
+                    Err(failure) => write!(formatter, "failed({failure})"),
+                }
+            }
+            Self::PreparePortalCancelSource { primary, rollback } => {
+                write!(
+                    formatter,
+                    "prepare isolated portal_cancel.wui: {primary}; rollback: "
+                )?;
+                match rollback {
+                    Ok(evidence) => write!(formatter, "released={}", evidence.removed_owned_root),
+                    Err(failure) => write!(formatter, "failed({failure})"),
+                }
+            }
+            Self::PreparePortalPrimarySource { primary, rollback } => {
+                write!(
+                    formatter,
+                    "prepare isolated portal_action.wui: {primary}; rollback: "
                 )?;
                 match rollback {
                     Ok(evidence) => write!(formatter, "released={}", evidence.removed_owned_root),
@@ -133,6 +161,18 @@ impl IsolatedPulseInstallation {
             let rollback = installation.close();
             return Err(PulseInstallationFailure::PrepareEntrySource { primary, rollback });
         }
+        if let Err(primary) =
+            installation.write_source("portal_action.wui", canonical.portal_primary_source_bytes())
+        {
+            let rollback = installation.close();
+            return Err(PulseInstallationFailure::PreparePortalPrimarySource { primary, rollback });
+        }
+        if let Err(primary) =
+            installation.write_source("portal_cancel.wui", canonical.portal_cancel_source_bytes())
+        {
+            let rollback = installation.close();
+            return Err(PulseInstallationFailure::PreparePortalCancelSource { primary, rollback });
+        }
         if let Err(primary) = installation.write_source(
             "platform-pulse-intent.json",
             canonical.intent_source_bytes(),
@@ -153,6 +193,14 @@ impl IsolatedPulseInstallation {
 
     pub(crate) fn intent_source(&self) -> PathBuf {
         self.root.join("platform-pulse-intent.json")
+    }
+
+    pub(crate) fn portal_cancel_source(&self) -> PathBuf {
+        self.root.join("portal_cancel.wui")
+    }
+
+    pub(crate) fn portal_primary_source(&self) -> PathBuf {
+        self.root.join("portal_action.wui")
     }
 
     pub(crate) fn failure_source_snapshot(&self) -> Option<Box<[u8]>> {
@@ -237,6 +285,14 @@ mod tests {
                 .expect("installation");
         let source = std::fs::read(installation.source_root().join("main.wui")).expect("source");
         assert_eq!(source, CanonicalPlatformPulse::checked_in().source_bytes());
+        assert_eq!(
+            std::fs::read(installation.portal_primary_source()).expect("portal primary source"),
+            CanonicalPlatformPulse::checked_in().portal_primary_source_bytes()
+        );
+        assert_eq!(
+            std::fs::read(installation.portal_cancel_source()).expect("portal cancel source"),
+            CanonicalPlatformPulse::checked_in().portal_cancel_source_bytes()
+        );
         assert!(installation.close().expect("cleanup").removed_owned_root());
     }
 

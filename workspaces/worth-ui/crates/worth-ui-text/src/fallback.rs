@@ -66,6 +66,7 @@ enum UiCachedFontProbe {
 }
 
 impl UiFallbackTextParagraph {
+    #[cfg(test)]
     pub(crate) fn select(
         analyzed: UiAnalyzedTextParagraph,
         fonts: Arc<UiGlobalFontCollection>,
@@ -332,6 +333,7 @@ impl UiSelectedTextCluster {
         self.bidi_level
     }
 
+    #[cfg(test)]
     pub const fn is_rgi_emoji(self) -> bool {
         self.rgi_emoji
     }

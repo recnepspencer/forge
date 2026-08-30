@@ -5,6 +5,10 @@ use worth_ui_host_contract::{
 
 use super::super::UiMountedProjectionDenial;
 
+#[cfg(test)]
+#[path = "formatting_tests.rs"]
+mod tests;
+
 #[derive(Clone, PartialEq)]
 pub(in crate::mounting::projection) struct UiMountedSemanticTextFormattingSeed {
     default: UiMountedSemanticTextDefault,
@@ -16,6 +20,7 @@ pub(in crate::mounting::projection) struct UiMountedSemanticTextFormattingSeed {
 pub(in crate::mounting::projection) struct UiMountedSemanticTextDefault {
     color: UiMountedRgba8,
     style: Option<worth_ui_text::UiTextStyle>,
+    line_height_millipoints: Option<u32>,
     paint_identity: UiMountedTextPaintSpanIdentity,
 }
 
@@ -30,7 +35,7 @@ pub(in crate::mounting::projection) struct UiMountedSemanticTextResolvedSpan {
 #[derive(Clone, Copy)]
 pub(in crate::mounting::projection) enum UiMountedSemanticTextRowFormatting<'a> {
     Default(&'a UiMountedSemanticTextDefault),
-    ScalarSpans(&'a [UiMountedSemanticTextResolvedSpan]),
+    ScalarSpans(&'a [UiMountedSemanticTextResolvedSpan], Option<u32>),
 }
 
 pub(in crate::mounting::projection) fn lower_semantic_text_formatting(
@@ -68,6 +73,7 @@ pub(in crate::mounting::projection) fn lower_semantic_text_formatting(
     let default = UiMountedSemanticTextDefault {
         color: resolve_color(plan, theme_values, contract.theme_token())?,
         style: contract.style().cloned(),
+        line_height_millipoints: contract.line_height_millipoints(),
         paint_identity: UiMountedTextPaintSpanIdentity::from_runtime_mounting(
             contract.default_paint_identity(),
         ),
@@ -100,6 +106,7 @@ fn lower_directive(
     let default = UiMountedSemanticTextDefault {
         color: resolve_directive_color(directive, contract.theme_token())?,
         style: contract.style().cloned(),
+        line_height_millipoints: contract.line_height_millipoints(),
         paint_identity: UiMountedTextPaintSpanIdentity::from_runtime_mounting(
             contract.default_paint_identity(),
         ),
@@ -185,12 +192,16 @@ impl UiMountedSemanticTextFormattingSeed {
         if self.scalar_spans.is_empty() {
             self.default_row()
         } else {
-            UiMountedSemanticTextRowFormatting::ScalarSpans(&self.scalar_spans)
+            UiMountedSemanticTextRowFormatting::ScalarSpans(
+                &self.scalar_spans,
+                self.default.line_height_millipoints,
+            )
         }
     }
 
     pub(in crate::mounting::projection) fn same_layout_as(&self, other: &Self) -> bool {
         self.default.style == other.default.style
+            && self.default.line_height_millipoints == other.default.line_height_millipoints
             && self.scalar_spans.len() == other.scalar_spans.len()
             && self
                 .scalar_spans
@@ -222,6 +233,7 @@ impl UiMountedSemanticTextFormattingSeed {
             default: UiMountedSemanticTextDefault {
                 color,
                 style: None,
+                line_height_millipoints: None,
                 paint_identity: UiMountedTextPaintSpanIdentity::from_runtime_mounting([1; 32]),
             },
             scalar_spans: Box::new([]),
@@ -231,6 +243,13 @@ impl UiMountedSemanticTextFormattingSeed {
 }
 
 impl UiMountedSemanticTextRowFormatting<'_> {
+    pub(super) const fn line_height_millipoints(self) -> Option<u32> {
+        match self {
+            Self::Default(default) => default.line_height_millipoints,
+            Self::ScalarSpans(_, line_height_millipoints) => line_height_millipoints,
+        }
+    }
+
     pub(super) fn materialize(
         self,
         source: &str,
@@ -247,7 +266,7 @@ impl UiMountedSemanticTextRowFormatting<'_> {
         }
         match self {
             Self::Default(default) => materialize_default(default, source, constraints),
-            Self::ScalarSpans(spans) => materialize_spans(spans, source),
+            Self::ScalarSpans(spans, _) => materialize_spans(spans, source),
         }
     }
 
@@ -272,7 +291,7 @@ impl UiMountedSemanticTextRowFormatting<'_> {
                     ),
                 ]))
             }
-            Self::ScalarSpans(spans) => {
+            Self::ScalarSpans(spans, _) => {
                 validate_scalar_span_source(spans, source)?;
                 Ok(spans
                     .iter()

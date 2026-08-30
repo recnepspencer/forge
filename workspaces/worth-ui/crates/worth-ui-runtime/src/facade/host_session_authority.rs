@@ -48,7 +48,7 @@ pub(crate) struct WorthUiHostSessionAuthority {
 
 /// Move-only authority retained when terminal host release cannot yet be proved.
 pub struct WorthUiHostSessionReleaseRecovery {
-    authority: WorthUiHostSessionAuthority,
+    authority: Box<WorthUiHostSessionAuthority>,
 }
 
 #[derive(Clone, Copy)]
@@ -214,7 +214,9 @@ impl WorthUiHostSessionAuthority {
 
 impl WorthUiHostSessionReleaseRecovery {
     pub(crate) fn retain(authority: WorthUiHostSessionAuthority) -> Self {
-        Self { authority }
+        Self {
+            authority: Box::new(authority),
+        }
     }
 
     pub fn retry(mut self) -> Result<UiHostSessionReleaseReceipt, Self> {

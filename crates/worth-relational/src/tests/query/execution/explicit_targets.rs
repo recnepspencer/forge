@@ -2,9 +2,9 @@ use super::*;
 
 #[test]
 fn planned_query_execution_reduces_explicit_targets_into_canonical_entity_order() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
+    let runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
     let first_id = changed_entities(&first)[0];
     let second_id = changed_entities(&second)[0];
 
@@ -37,9 +37,9 @@ fn planned_query_execution_reduces_explicit_targets_into_canonical_entity_order(
 
 #[test]
 fn planned_query_execution_is_deterministic_for_identical_inputs() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
+    let runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
     let first_id = changed_entities(&first)[0];
     let second_id = changed_entities(&second)[0];
     let first_outcome = execute_explicit_query(
@@ -61,40 +61,16 @@ fn planned_query_execution_is_deterministic_for_identical_inputs() {
 
 #[test]
 fn planned_query_execution_uses_staged_parallel_packets_for_profitable_cross_partition_reads() {
-    let mut runtime = runtime_with_test_schema_execution_model(
+    let runtime = runtime_with_test_schema_execution_model(
         crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     let targets = vec![
-        RecordRef::Entity(create_entity_in_partition(
-            &mut runtime,
-            "a-1",
-            PartitionId(7),
-        )),
-        RecordRef::Entity(create_entity_in_partition(
-            &mut runtime,
-            "b-1",
-            PartitionId(11),
-        )),
-        RecordRef::Entity(create_entity_in_partition(
-            &mut runtime,
-            "a-2",
-            PartitionId(7),
-        )),
-        RecordRef::Entity(create_entity_in_partition(
-            &mut runtime,
-            "b-2",
-            PartitionId(11),
-        )),
-        RecordRef::Entity(create_entity_in_partition(
-            &mut runtime,
-            "a-3",
-            PartitionId(7),
-        )),
-        RecordRef::Entity(create_entity_in_partition(
-            &mut runtime,
-            "b-3",
-            PartitionId(11),
-        )),
+        RecordRef::Entity(create_entity_in_partition(&runtime, "a-1", PartitionId(7))),
+        RecordRef::Entity(create_entity_in_partition(&runtime, "b-1", PartitionId(11))),
+        RecordRef::Entity(create_entity_in_partition(&runtime, "a-2", PartitionId(7))),
+        RecordRef::Entity(create_entity_in_partition(&runtime, "b-2", PartitionId(11))),
+        RecordRef::Entity(create_entity_in_partition(&runtime, "a-3", PartitionId(7))),
+        RecordRef::Entity(create_entity_in_partition(&runtime, "b-3", PartitionId(11))),
     ];
     let snapshot = runtime.visibility_authority().snapshot();
     runtime.performance_access().reset_counters();
@@ -116,11 +92,11 @@ fn planned_query_execution_uses_staged_parallel_packets_for_profitable_cross_par
 
 #[test]
 fn planned_query_execution_explicit_targets_do_not_claim_fragment_scratch_reuse() {
-    let mut runtime = runtime_with_test_schema_execution_model(
+    let runtime = runtime_with_test_schema_execution_model(
         crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution,
     );
-    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let left = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
 
     runtime.performance_access().reset_counters();

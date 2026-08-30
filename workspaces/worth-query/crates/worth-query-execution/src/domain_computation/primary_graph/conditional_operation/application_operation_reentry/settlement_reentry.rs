@@ -8,6 +8,10 @@ pub(super) enum WorthQuerySettlementReentry {
     AlreadyCommitted,
     Indeterminate(String),
     Deferred(WorthQueryApplicationSettlementDeferred),
+    SnapshotBackpressured(WorthQueryApplicationSettlementDeferred, usize),
+    RetentionBackpressured(WorthQueryApplicationSettlementDeferred),
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
 }
 
 pub(super) fn repair<Schema>(
@@ -36,6 +40,20 @@ where
             WorthQueryApplicationSettlementRecoveryError::Durability(_)
             | WorthQueryApplicationSettlementRecoveryError::Publication(_),
         ) => WorthQuerySettlementReentry::Deferred(deferred),
+        Err(WorthQueryApplicationSettlementRecoveryError::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        }) => {
+            WorthQuerySettlementReentry::SnapshotBackpressured(deferred, maximum_active_snapshots)
+        }
+        Err(WorthQueryApplicationSettlementRecoveryError::RetentionCapacityExhausted) => {
+            WorthQuerySettlementReentry::RetentionBackpressured(deferred)
+        }
+        Err(WorthQueryApplicationSettlementRecoveryError::RetentionIdentityExhausted) => {
+            WorthQuerySettlementReentry::RetentionIdentityExhausted
+        }
+        Err(WorthQueryApplicationSettlementRecoveryError::SnapshotIdentityExhausted) => {
+            WorthQuerySettlementReentry::SnapshotIdentityExhausted
+        }
     }
 }
 
@@ -90,6 +108,29 @@ where
             WorthQueryApplicationSettlementRecoveryError::Durability(_)
             | WorthQueryApplicationSettlementRecoveryError::Publication(_),
         ) => super::WorthQueryTemporalReentryOutcome::SettlementDeferred(deferred),
+        Err(WorthQueryApplicationSettlementRecoveryError::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        }) => super::WorthQueryTemporalReentryOutcome::SettlementSnapshotCapacityBackpressured {
+            deferred,
+            maximum_active_snapshots,
+        },
+        Err(WorthQueryApplicationSettlementRecoveryError::RetentionCapacityExhausted) => {
+            super::WorthQueryTemporalReentryOutcome::RetentionCapacityBackpressured
+        }
+        Err(WorthQueryApplicationSettlementRecoveryError::RetentionIdentityExhausted) => {
+            super::WorthQueryTemporalReentryOutcome::TerminalFailure(
+                super::WorthQueryTemporalTerminalFailure::ApplicationCommit(
+                    crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::RetentionIdentityExhausted,
+                ),
+            )
+        }
+        Err(WorthQueryApplicationSettlementRecoveryError::SnapshotIdentityExhausted) => {
+            super::WorthQueryTemporalReentryOutcome::TerminalFailure(
+                super::WorthQueryTemporalTerminalFailure::ApplicationCommit(
+                    crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::SnapshotIdentityExhausted,
+                ),
+            )
+        }
     };
     retry_attempt(outcome, canonical_work)
 }

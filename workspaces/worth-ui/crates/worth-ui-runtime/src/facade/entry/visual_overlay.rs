@@ -115,7 +115,12 @@ impl WorthUiActiveApplicationSession {
             .visual_overlays
             .active_selection()
             .map(|(identity, selection)| mounted_overlay_input(identity, selection));
+        let (portal_revision, portal_overlays) = self.portal.as_ref().map_or_else(
+            || (0, Vec::new()),
+            |owner| (owner.revision(), owner.current_mounted_projection_inputs()),
+        );
         crate::mounting::UiMountedFrameRequest::all_bound_surfaces()
+            .with_portal_overlays(portal_revision, portal_overlays)
             .with_visual_overlay(self.visual_overlays.revision(), overlay)
     }
 }

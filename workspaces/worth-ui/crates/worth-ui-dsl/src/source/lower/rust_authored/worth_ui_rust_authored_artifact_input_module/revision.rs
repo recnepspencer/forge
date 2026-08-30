@@ -119,6 +119,7 @@ fn fold_atom(digest: &mut u64, atom: &WorthUiArtifactInputBodyAtom) {
         WorthUiArtifactInputBodyAtom::RightBrace => "right-brace",
         WorthUiArtifactInputBodyAtom::Semicolon => "semicolon",
         WorthUiArtifactInputBodyAtom::Equals => "equals",
+        WorthUiArtifactInputBodyAtom::Plus => "plus",
     };
     fold_text(digest, token);
 }

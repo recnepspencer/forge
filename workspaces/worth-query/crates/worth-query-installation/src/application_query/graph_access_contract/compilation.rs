@@ -113,9 +113,9 @@ fn install_ordering(
 ) -> WorthQueryInstalledGraphOrdering {
     let projection = projections
         .iter()
-        .find(|projection| projection.slot_type.as_ref() == term.slot_type())
+        .find(|projection| projection.slot_type.as_str() == term.slot_type())
         .expect("validated ordering selectors resolve to one result projection");
-    debug_assert_eq!(projection.query_type, term.query_type());
+    debug_assert_eq!(projection.query_type.as_str(), term.query_type());
     debug_assert_eq!(
         (
             projection.entity.as_str(),
@@ -126,12 +126,12 @@ fn install_ordering(
     );
     debug_assert_eq!(projection.output_name, term.output_name());
     debug_assert_eq!(projection.scalar_family, term.scalar_family());
-    debug_assert_eq!(projection.value_type, term.value_type());
+    debug_assert_eq!(projection.value_type.as_str(), term.value_type());
     WorthQueryInstalledGraphOrdering {
         result_path: projection.result_path.to_string(),
         collection_path: parent_path(&projection.result_path).to_string(),
         query_type: projection.query_type.clone(),
-        slot_type: projection.slot_type.to_string(),
+        slot_type: projection.slot_type.clone(),
         entity: projection.entity.clone(),
         aspect: projection.aspect.clone(),
         field: projection.field.clone(),
@@ -153,14 +153,14 @@ fn flatten_shape(
         WorthQueryInstalledGraphProjection {
             slot_key: Arc::new(field.slot_key()),
             result_path: format!("{parent_path}/field[{index}]").into(),
-            query_type: field.query_type().to_string(),
-            slot_type: field.slot_type().into(),
+            query_type: field.query_identity(),
+            slot_type: field.slot_identity(),
             entity: field.entity().to_string(),
             aspect: admitted_aspect_key(field.aspect()),
             field: admitted_field_key(field.field()),
             output_name: field.output_name().to_string(),
             scalar_family: field.scalar_family(),
-            value_type: field.value_type().to_string(),
+            value_type: field.value_identity(),
             presence: field.presence(),
         }
     }));
@@ -169,8 +169,8 @@ fn flatten_shape(
         relations.push(WorthQueryInstalledGraphRelation {
             slot_key: Arc::new(relation.slot_key()),
             result_path: result_path.clone().into(),
-            query_type: relation.query_type().to_string(),
-            slot_type: relation.slot_type().into(),
+            query_type: relation.query_identity(),
+            slot_type: relation.slot_identity(),
             relation: relation.relation().to_string(),
             from: relation.from().to_string(),
             to: relation.to().to_string(),

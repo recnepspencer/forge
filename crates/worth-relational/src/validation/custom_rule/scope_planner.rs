@@ -1,7 +1,7 @@
 use crate::identity::data::VersionId;
-use crate::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::engine::state_view::InvariantStateView;
+use crate::validation::engine::InvariantRuntimeView;
 use crate::validation::engine::{InvariantObservation, InvariantObservationKind};
 
 use super::structural_views::{StructuralAspectStateView, StructuralRelationView};
@@ -50,22 +50,23 @@ pub struct CustomInvariantScopePlanner<'runtime> {
 impl<'runtime> CustomInvariantScopePlanner<'runtime> {
     #[cfg(test)]
     pub(crate) fn new(
-        runtime: &'runtime RelationalRuntime,
+        runtime: &'runtime crate::runtime::RelationalRuntime,
         observation: &'runtime InvariantObservation<'runtime>,
         version_id: VersionId,
         prepared_scope: &PreparedCustomInvariantScope,
     ) -> Self {
+        let view = InvariantRuntimeView::from_runtime(runtime);
         Self::new_at_current_version(
-            runtime,
+            &view,
             observation,
             version_id,
-            runtime.current_version_id(),
+            view.current_version_id(),
             prepared_scope,
         )
     }
 
     pub(crate) fn new_at_current_version(
-        runtime: &'runtime RelationalRuntime,
+        runtime: &InvariantRuntimeView<'runtime>,
         observation: &'runtime InvariantObservation<'runtime>,
         version_id: VersionId,
         current_version_id: VersionId,

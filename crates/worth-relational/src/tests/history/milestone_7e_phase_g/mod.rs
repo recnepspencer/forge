@@ -163,11 +163,11 @@ fn retained_merge_correspondence_witness_preserves_authority_basis_distinctions(
 
 #[test]
 fn retained_merge_correspondence_witness_preserves_runtime_declared_key_ambiguity_as_denial() {
-    let mut runtime = runtime_with_declared_key_identity_registry();
-    create_entity(&mut runtime, "shared-name");
-    create_entity(&mut runtime, "shared-name");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "shared-name", BranchId("feature".to_string()));
+    let runtime = runtime_with_declared_key_identity_registry();
+    create_entity(&runtime, "shared-name");
+    create_entity(&runtime, "shared-name");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "shared-name", BranchId("feature".to_string()));
 
     let artifact = runtime
         .merge()
@@ -199,12 +199,12 @@ fn retained_merge_correspondence_witness_preserves_runtime_declared_key_ambiguit
 
 #[test]
 fn retained_merge_correspondence_witness_survives_publication_and_recovery() {
-    let mut runtime = merge_ready_runtime();
-    let outcome = execute_merge(&mut runtime);
+    let runtime = merge_ready_runtime();
+    let outcome = execute_merge(&runtime);
     let live_witness = outcome.execution_summary.correspondence_witness.clone();
     let live_authority = published_merge_authority(&runtime, outcome.commit.commit.commit_id);
     let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_authority =
         published_merge_authority(&recovered, outcome.commit.commit.commit_id);
 
@@ -229,21 +229,17 @@ fn retained_merge_correspondence_witness_survives_publication_and_recovery() {
 }
 
 fn merge_ready_runtime() -> RelationalRuntime {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, shared, "shared-value");
+    let runtime = persisted_runtime_with_test_schema();
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, shared, "shared-value");
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         shared,
         "shared-value",
         BranchId("feature".to_string()),
     );
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     runtime
 }
 
@@ -293,7 +289,7 @@ fn merge_request() -> MergeExecutionRequest {
     )
 }
 
-fn execute_merge(runtime: &mut RelationalRuntime) -> MergeExecutionOutcome {
+fn execute_merge(runtime: &RelationalRuntime) -> MergeExecutionOutcome {
     let prepared = runtime
         .merge()
         .prepare_merge_execution(merge_request())

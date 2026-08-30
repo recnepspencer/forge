@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use super::admission::{candidate_entry_mut, next_entry_after_plan};
 use super::ownership::UiNativeTextAtlas;
+use super::pinning::UiNativeTextAtlasPin;
 use super::recovery::{UiNativeTextAtlasDenial, UiNativeTextAtlasRecovery};
 use super::settlement::{UiNativeTextAtlasCommitOutcome, UiNativeTextAtlasCommitReceipt};
 use super::transaction::{UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasTransactionPlan};
@@ -97,7 +98,18 @@ fn commit_submitted(
         core.pins.remove(release);
     }
     for addition in &plan.pin_additions {
-        core.pins.insert(*addition);
+        let identity = super::ownership::PinIdentity::new(addition.layout(), addition.key());
+        let core_ref: &mut super::ownership::AtlasCore = &mut core;
+        let entry = candidate_entry_mut(&mut core_ref.alpha, &mut core_ref.color, addition.key())
+            .expect("validated pin addition must name a committed atlas entry")
+            .identity;
+        let pin = UiNativeTextAtlasPin::from_native_host(
+            addition.layout(),
+            addition.key(),
+            entry,
+            plan.candidate_generation,
+        );
+        core.pins.insert(identity, pin);
     }
     update_changed_pin_counts(&mut core, plan);
     core.next_entry = core.next_entry.max(next_entry_after_plan(plan));
@@ -164,7 +176,7 @@ fn update_changed_pin_counts(
         .copied()
         .chain(plan.misses.iter().map(|demand| demand.key()))
     {
-        let count = u32::try_from(core.pins.iter().filter(|pin| pin.key_matches(key)).count())
+        let count = u32::try_from(core.pins.values().filter(|pin| pin.key() == key).count())
             .unwrap_or(u32::MAX);
         if let Some(entry) = candidate_entry_mut(&mut core.alpha, &mut core.color, key) {
             entry.pin_count = count;

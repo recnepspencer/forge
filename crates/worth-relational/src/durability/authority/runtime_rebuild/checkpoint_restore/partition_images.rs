@@ -8,7 +8,7 @@ use crate::storage::overlay::PartitionState;
 pub(super) type RestoredPartitions = BTreeMap<PartitionId, PartitionState>;
 
 pub(super) fn restore_unique_partition_images(
-    restored: &RelationalRuntime,
+    restored: &mut RelationalRuntime,
     images: &[PartitionCheckpointImage],
     aspect_contracts: &crate::durability::checkpoints::aspect_state_images::CheckpointAspectContractCatalog,
     owner: &str,

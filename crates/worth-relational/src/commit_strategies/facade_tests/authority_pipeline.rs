@@ -2,7 +2,7 @@ use super::native_strategy_fixtures::*;
 
 #[test]
 fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summary() {
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
@@ -10,10 +10,10 @@ fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summa
     let execution = execution_draft(&request);
     let lowered = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
@@ -26,7 +26,7 @@ fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summa
     let validated = {
         let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated lowered strategy plan")
     };
 
@@ -54,12 +54,12 @@ fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summa
 
 #[test]
 fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling_advance() {
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
 
-    let mut seed = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut seed = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     seed.push_batch(
         WorkerIntentBatch::new("main-before-fork").push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -69,8 +69,9 @@ fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling
                 fields: strategy_name_and_replicas_patch("main-before-fork", 1),
             }),
         )),
-    );
-    seed.commit(&mut runtime).expect("pre-fork main commit");
+    )
+    .expect("test staging stays within configured resource budgets");
+    seed.commit(&runtime).expect("pre-fork main commit");
     let (_, basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains forkable");
@@ -83,33 +84,35 @@ fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling
     let child = BranchId("strategy-version-child".to_owned());
     let validated = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, Some(child));
+            crate::tests::support::test_owner_strategy_authority(&runtime, Some(child));
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("child strategy lowers against its selected root");
         authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("child strategy validates before sibling advance")
     };
     let validated_version = validated.proposal_identity().proposed_version_id();
 
-    let mut sibling = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    sibling.push_batch(WorkerIntentBatch::new("main-after-validation").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId(1),
-            kind_id: KindId(1),
-            client_key: ClientKey::from("main-after-validation"),
-            fields: strategy_name_and_replicas_patch("main-after-validation", 1),
-        })),
-    ));
+    let mut sibling = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     sibling
-        .commit(&mut runtime)
-        .expect("unrelated sibling commit");
+        .push_batch(
+            WorkerIntentBatch::new("main-after-validation").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId(1),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::from("main-after-validation"),
+                    fields: strategy_name_and_replicas_patch("main-after-validation", 1),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    sibling.commit(&runtime).expect("unrelated sibling commit");
 
     assert_ne!(
         validated_version,
@@ -120,7 +123,7 @@ fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling
     let commit = {
         let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("unrelated sibling progress remains admissible")
     };
     assert_eq!(commit.version_id, validated_version);
@@ -128,7 +131,7 @@ fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling
 
 #[test]
 fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritative_pipeline() {
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
@@ -136,24 +139,24 @@ fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritat
     let execution = execution_draft(&request);
     let validated = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered strategy plan");
         authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated lowered strategy plan")
     };
 
     let commit = {
         let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("validated strategy commit executed")
     };
 
@@ -188,7 +191,7 @@ fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritat
 
 #[test]
 fn validate_lowered_plan_rejects_stale_basis_with_zero_residue() {
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
@@ -196,28 +199,29 @@ fn validate_lowered_plan_rejects_stale_basis_with_zero_residue() {
     let execution = execution_draft(&request);
     let lowered = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered strategy plan")
     };
-    let mut intervening =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    intervening.push_batch(WorkerIntentBatch::new("advance-before-validation").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId(1),
-            kind_id: KindId(1),
-            client_key: ClientKey::from("advance-before-validation"),
-            fields: strategy_name_and_replicas_patch("advance-before-validation", 1),
-        })),
-    ));
+    let mut intervening = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     intervening
-        .commit(&mut runtime)
+        .push_batch(WorkerIntentBatch::new("advance-before-validation").push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId(1),
+                kind_id: KindId(1),
+                client_key: ClientKey::from("advance-before-validation"),
+                fields: strategy_name_and_replicas_patch("advance-before-validation", 1),
+            })),
+        ))
+        .expect("test staging stays within configured resource budgets");
+    intervening
+        .commit(&runtime)
         .expect("intervening commit advances the exact branch");
     let symbols_before = runtime.services.symbols.clone();
     let configured_symbols_before = runtime.config().identity.symbol_table.clone();
@@ -227,7 +231,7 @@ fn validate_lowered_plan_rejects_stale_basis_with_zero_residue() {
     let complexity_before = runtime.performance_access().counters();
 
     let error = CommitStrategiesAuthorityFacade::new()
-        .validate_lowered_plan(&mut runtime, lowered)
+        .validate_lowered_plan(&runtime, lowered)
         .expect_err("validation rejects a lowered plan after its branch moves");
 
     assert!(matches!(
@@ -260,7 +264,7 @@ fn validate_lowered_plan_rejects_stale_basis_with_zero_residue() {
 
 #[test]
 fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_commit() {
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
@@ -268,32 +272,35 @@ fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_com
     let execution = execution_draft(&request);
     let validated = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered strategy plan");
         authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated lowered strategy plan")
     };
 
-    let mut ordinary_txn =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    ordinary_txn.push_batch(WorkerIntentBatch::new("ordinary-create").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId(1),
-            kind_id: KindId(1),
-            client_key: ClientKey::from("ordinary-a"),
-            fields: strategy_name_and_replicas_patch("ordinary-a", 1),
-        })),
-    ));
+    let mut ordinary_txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     ordinary_txn
-        .commit(&mut runtime)
+        .push_batch(
+            WorkerIntentBatch::new("ordinary-create").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId(1),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::from("ordinary-a"),
+                    fields: strategy_name_and_replicas_patch("ordinary-a", 1),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    ordinary_txn
+        .commit(&runtime)
         .expect("ordinary commit succeeds");
     let symbols_before = runtime.services.symbols.clone();
     let configured_symbols_before = runtime.config().identity.symbol_table.clone();
@@ -305,7 +312,7 @@ fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_com
     let error = {
         let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect_err("stale validated strategy plan should be rejected")
     };
 

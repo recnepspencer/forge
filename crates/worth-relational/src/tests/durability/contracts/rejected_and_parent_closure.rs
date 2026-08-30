@@ -28,15 +28,15 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         root_path: unique_test_store_path("worth-relational-rejected-relation-integrity-recovery"),
         segment_commit_capacity: 2,
     };
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(fixture.build_registry())
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout.clone())
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let target_b = create_entity(&mut runtime, "target-b");
-    let accepted = create_relation_outcome(&mut runtime, source, target_a, "accepted");
+    let source = create_entity(&runtime, "source");
+    let target_a = create_entity(&runtime, "target-a");
+    let target_b = create_entity(&runtime, "target-b");
+    let accepted = create_relation_outcome(&runtime, source, target_a, "accepted");
     let relation = changed_relations(&accepted)[0];
     let latest_commit_before = runtime.history().latest_commit();
     let latest_patch_before = runtime.publication().latest_patch().unwrap().position;
@@ -47,7 +47,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         None,
     );
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("illegal-overflow").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -59,8 +59,9 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
-    let error = txn.commit(&mut runtime).unwrap_err();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);
@@ -70,6 +71,14 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         }
         TransactionCommitError::Preparation { error, .. } => {
             panic!("expected relation-integrity conflict, got preparation error: {error:?}")
+        }
+        TransactionCommitError::Interrupted { interruption, .. } => {
+            panic!("expected relation-integrity conflict, got interruption: {interruption:?}")
+        }
+        TransactionCommitError::PublicationDenied { .. }
+        | TransactionCommitError::PublicationDeferred { .. }
+        | TransactionCommitError::PublicationFailed { .. } => {
+            panic!("expected relation-integrity conflict, got typed publication outcome")
         }
         TransactionCommitError::PerformedButDurabilityDeferred { .. } => {
             panic!("relation-integrity denial must happen before movement")
@@ -100,7 +109,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout)
         .build();
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let outcome = recovered.durability_recovery().recover(plan).unwrap();
 
     assert_eq!(outcome.latest_commit, latest_commit_before.clone());
     assert_eq!(
@@ -120,9 +129,9 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
 
 #[test]
 fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit() {
-    let mut runtime = runtime_with_test_schema();
-    let parent = create_entity_outcome(&mut runtime, "main-a");
-    let child = create_entity_outcome(&mut runtime, "main-b");
+    let runtime = runtime_with_test_schema();
+    let parent = create_entity_outcome(&runtime, "main-a");
+    let child = create_entity_outcome(&runtime, "main-b");
     let child_envelope = runtime
         .replay()
         .canonical_commit_envelope(child.commit.commit_id)
@@ -167,7 +176,7 @@ fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit(
     );
     let mut recovered = runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(corrupt_plan)
         .unwrap_err();
 

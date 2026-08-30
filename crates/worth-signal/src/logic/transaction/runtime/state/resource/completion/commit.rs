@@ -59,7 +59,6 @@ impl ResourceRuntimeState {
         let envelope = ResourceBoundaryPerformanceEnvelope::completion_commit(1)
             .with_output_continuity_classification_width(1);
         let performance = telemetry
-            .as_deref_mut()
             .map(|telemetry| Self::record_boundary_performance(telemetry, envelope))
             .unwrap_or(envelope);
 

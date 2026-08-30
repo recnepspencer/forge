@@ -219,7 +219,26 @@ where
         let entity_resolution = graph.retain_entity_resolution_context();
         let policy = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = super::super::exact_basis_access::open_current_main_snapshot(runtime)
-                .expect("installed primary graph retains an exact main-branch basis");
+                .map_err(|basis_denial| {
+                    let kind = match basis_denial {
+                        super::super::WorthQueryExactBasisSnapshotDenial::ActiveSnapshotCapacityExhausted {
+                            maximum_active_snapshots,
+                        } => WorthQueryApplicationQueryAdmissionDenialKind::ActiveSnapshotCapacityExhausted {
+                            maximum_active_snapshots,
+                        },
+                        super::super::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+                            WorthQueryApplicationQueryAdmissionDenialKind::RetentionCapacityExhausted
+                        }
+                        super::super::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+                            WorthQueryApplicationQueryAdmissionDenialKind::RetentionIdentityExhausted
+                        }
+                        super::super::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+                            WorthQueryApplicationQueryAdmissionDenialKind::SnapshotIdentityExhausted
+                        }
+                        _ => WorthQueryApplicationQueryAdmissionDenialKind::TruthViewUnavailable,
+                    };
+                    denial(kind, query.name())
+                })?;
             let result = if !graph_work.admits_snapshot(&snapshot) {
                 Err(denial(
                     WorthQueryApplicationQueryAdmissionDenialKind::GraphWorkAdmissionUnavailable,
@@ -265,7 +284,7 @@ where
                     .map_err(map_authorization_denial)
                 })
             };
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             result
         })?;
         let work = WorthQueryApplicationAuthorizationWorkEvidence::from_dependencies(&policy);

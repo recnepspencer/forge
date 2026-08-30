@@ -35,6 +35,13 @@ impl RelationalBranchReferenceCell {
         self.basis_registry.bind_metrics(metrics);
     }
 
+    pub(crate) fn reset_basis_registry(
+        &mut self,
+        metrics: Arc<super::super::RelationalBranchBasisRegistryMetrics>,
+    ) {
+        self.basis_registry = super::super::RelationalBranchBasisRegistry::with_metrics(metrics);
+    }
+
     #[cfg(test)]
     pub(crate) fn clear_root_for_test(&mut self) {
         self.state().root = None;

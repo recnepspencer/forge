@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::commit_strategies::{
     data::CommitStrategyExecutionRegistration, FrozenCommitStrategyExecutorRegistry,
     FrozenCommitStrategyRegistry,
@@ -7,11 +5,14 @@ use crate::commit_strategies::{
 use crate::runtime::{
     CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
     LineageSubsystem, PublicationSubsystem, RecordIdentitySubsystem, RuntimeServices,
-    RuntimeSubsystem, SchemaContractRuntimeSubsystem, VisibilitySubsystem,
+    RuntimeSubsystem, SchemaContractRuntimeSubsystem, StorageSubsystem, VisibilitySubsystem,
 };
 use crate::validation::data::CustomInvariantRegistration;
 use crate::validation::FrozenCustomInvariantRegistry;
 
+use super::state::{
+    RelationalRuntimeConfiguration, RelationalRuntimeOwner, RelationalRuntimePublicationOwner,
+};
 use super::RelationalRuntime;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,22 +133,37 @@ impl RelationalRuntime {
         extensions: RuntimeExtensions,
     ) -> Self {
         let services = extensions.build_runtime_services();
+        services
+            .symbols
+            .initialize_configuration_snapshot(config.identity.symbol_table.clone());
         let mut history = <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch);
         history.set_runtime_instance_id(services.runtime_instance_id());
-        Self {
-            schema_contract_runtime: extensions.build_schema_contract_runtime_subsystem(&config),
-            commit_strategies: extensions.build_commit_strategy_subsystem(&config),
+        let initial_root = crate::branch::RelationalBranchRoot::empty_with_schema(
+            &config.schema.registry,
+            crate::schema::data::runtime_descriptor_semantics_policy().current_write_version(),
+        );
+        history
+            .install_branch_root(&config.history.main_branch, initial_root)
+            .expect("the configured main branch fits the initial retention budget");
+        let schema_contract_runtime = extensions.build_schema_contract_runtime_subsystem(&config);
+        let commit_strategies = extensions.build_commit_strategy_subsystem(&config);
+        let durability = <DurabilitySubsystem as RuntimeSubsystem>::new(&config);
+        let visibility = <VisibilitySubsystem as RuntimeSubsystem>::new(&config);
+        Self::from_state(crate::runtime::RelationalRuntimeState {
+            commit_strategies,
             history,
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
             lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),
-            durability: <DurabilitySubsystem as RuntimeSubsystem>::new(&config),
+            durability,
             record_identity: <RecordIdentitySubsystem as RuntimeSubsystem>::new(&()),
             services,
-            partitions: BTreeMap::new(),
-            visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
+            owner_lifecycle: RelationalRuntimeOwner::new(),
+            publication_owner: RelationalRuntimePublicationOwner::new(),
+            partitions: <StorageSubsystem as RuntimeSubsystem>::new(&()),
+            visibility,
             publication: extensions.build_publication_subsystem(),
-            config,
-        }
+            configuration: RelationalRuntimeConfiguration::new(config, schema_contract_runtime),
+        })
     }
 
     pub fn fork(&self) -> Result<Self, RelationalRuntimeForkDenial> {
@@ -155,11 +171,12 @@ impl RelationalRuntime {
         let services = RuntimeSubsystem::fork(&self.services);
         let runtime_instance_id = services.runtime_instance_id();
         history.bind_fork_runtime(runtime_instance_id);
-        Ok(Self {
-            config: self.config.clone(),
-            schema_contract_runtime: RuntimeSubsystem::fork(&self.schema_contract_runtime),
+        let config = self.config.as_ref().clone();
+        let schema_contract_runtime = RuntimeSubsystem::fork(self.schema_contract_runtime.as_ref());
+        Ok(Self::from_state(crate::runtime::RelationalRuntimeState {
+            configuration: RelationalRuntimeConfiguration::new(config, schema_contract_runtime),
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
-            partitions: self.partitions.clone(),
+            partitions: self.fork_partitions(),
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),
             history,
@@ -168,6 +185,8 @@ impl RelationalRuntime {
             durability: RuntimeSubsystem::fork(&self.durability),
             record_identity: RuntimeSubsystem::fork(&self.record_identity),
             services,
-        })
+            owner_lifecycle: RelationalRuntimeOwner::new(),
+            publication_owner: RelationalRuntimePublicationOwner::new(),
+        }))
     }
 }

@@ -7,23 +7,17 @@ use super::{
     ApplicationQueryCanonicalArtifact,
 };
 use crate::application_query::{
-    ApplicationQueryAuthorizationRequirement, ApplicationQueryDefinition,
-    ApplicationQueryDisclosurePosture, ApplicationQueryOrderingDirection,
+    ApplicationQueryAuthorizationRequirement, ApplicationQueryDisclosurePosture,
+    ApplicationQueryOrderingDirection, WorthQueryPortableApplicationQueryParts,
 };
 
 mod disclosure;
 use disclosure::append_disclosure;
 
-pub(in crate::application_query) fn prepare_definition_basis<
-    Schema,
-    Query,
-    Parameters,
-    QueryResult,
-    Scope,
->(
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+pub(in crate::application_query) fn prepare_definition_basis(
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) -> ApplicationQueryCanonicalArtifact {
-    let mut entries = definition_header::<Query, Parameters, QueryResult, Scope>(definition);
+    let mut entries = definition_header(definition);
     append_parameters(&mut entries, definition);
     append_root_paths(&mut entries, definition);
     append_result_shape(&mut entries, definition.result_shape(), "result");
@@ -37,9 +31,9 @@ pub(in crate::application_query) fn prepare_definition_basis<
     prepare_artifact(entries)
 }
 
-fn append_root_paths<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_root_paths(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     for (path_index, root_path) in definition.root_paths().iter().enumerate() {
         let path = format!("root-path[{path_index}]");
@@ -90,21 +84,15 @@ fn append_root_paths<Schema, Query, Parameters, QueryResult, Scope>(
     }
 }
 
-fn definition_header<Query, Parameters, QueryResult, Scope>(
-    definition: &ApplicationQueryDefinition<impl Sized, Query, Parameters, QueryResult, Scope>,
+fn definition_header(
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) -> Vec<CanonicalBasisEntry> {
     vec![
         text("definition.name", definition.name()),
-        text("definition.query-type", std::any::type_name::<Query>()),
-        text(
-            "definition.parameter-type",
-            std::any::type_name::<Parameters>(),
-        ),
-        text(
-            "definition.result-type",
-            std::any::type_name::<QueryResult>(),
-        ),
-        text("definition.scope-type", std::any::type_name::<Scope>()),
+        text("definition.query-type", definition.query_type()),
+        text("definition.parameter-type", definition.parameter_type()),
+        text("definition.result-type", definition.result_type()),
+        text("definition.scope-type", definition.scope_type()),
         text("definition.root-entity", definition.root_entity()),
         text("definition.scope-entity", definition.scope_entity()),
         text(
@@ -114,9 +102,9 @@ fn definition_header<Query, Parameters, QueryResult, Scope>(
     ]
 }
 
-fn append_parameters<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_parameters(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     for (index, parameter) in definition.parameters().iter().enumerate() {
         let path = format!("parameter[{index}]");
@@ -131,9 +119,9 @@ fn append_parameters<Schema, Query, Parameters, QueryResult, Scope>(
     }
 }
 
-fn append_predicates<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_predicates(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     for (index, predicate) in definition.predicates().iter().enumerate() {
         let path = format!("predicate[{index}]");
@@ -151,9 +139,9 @@ fn append_predicates<Schema, Query, Parameters, QueryResult, Scope>(
     }
 }
 
-fn append_ordering<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_ordering(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     for (index, ordering) in definition.ordering().iter().enumerate() {
         let path = format!("ordering[{index}]");
@@ -178,9 +166,9 @@ fn append_ordering<Schema, Query, Parameters, QueryResult, Scope>(
     }
 }
 
-fn append_continuation<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_continuation(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     let Some(continuation) = definition.continuation() else {
         entries.push(null("continuation"));
@@ -199,9 +187,9 @@ fn append_continuation<Schema, Query, Parameters, QueryResult, Scope>(
     ]);
 }
 
-fn append_authorization<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_authorization(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     match definition.authorization() {
         ApplicationQueryAuthorizationRequirement::Public => {
@@ -213,16 +201,16 @@ fn append_authorization<Schema, Query, Parameters, QueryResult, Scope>(
         } => {
             entries.extend([
                 text("authorization.posture", "ability"),
-                text("authorization.ability", *ability),
-                text("authorization.scope-entity", *scope_entity),
+                text("authorization.ability", ability),
+                text("authorization.scope-entity", scope_entity),
             ]);
         }
     }
 }
 
-fn append_live_cause<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_live_cause(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     let Some(live) = definition.live_cause() else {
         entries.push(null("live-cause"));
@@ -257,9 +245,9 @@ fn append_live_cause<Schema, Query, Parameters, QueryResult, Scope>(
     ]);
 }
 
-fn append_controls<Schema, Query, Parameters, QueryResult, Scope>(
+fn append_controls(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     let ceiling = definition.dependency_ceiling();
     entries.extend([

@@ -2,6 +2,7 @@ mod batch;
 pub(crate) mod draft;
 pub(crate) mod gesture;
 mod semantic;
+mod service_event;
 mod settlement;
 mod snapshot;
 mod source;
@@ -33,12 +34,15 @@ pub use semantic::{
     UiKeyboardActivationEvidence, UiSelectionCommitInteraction, UiSelectionCommitStop,
     UiSelectionCommitStopReason, UiSemanticInteraction, UiSubmitInteraction,
 };
+pub use service_event::{UiDismissInteraction, UiDismissInteractionCause};
 pub use settlement::UiInteractionLifecycleSettlementReceipt;
 pub use snapshot::{UiInteractionLifecycleCounters, UiInteractionStateSnapshot};
 pub use source::UiIntentRouteSource;
+pub(crate) use source::{command_evidence_input, UiIntentRouteSourceMaterial};
 pub(crate) use state::{UiInteractionLifecycleStopReason, UiInteractionRuntimeState};
 pub use targeting::{
     UiInteractionTargetingDenial, UiPresentedInteractionTarget, UiPresentedInteractionTargetView,
     UiPresentedTargetFrameRelation,
 };
+pub(crate) use targeting::{UiPresentedInteractionGeometry, UiPresentedViewportGeometry};
 pub use transition::{UiInteractionStop, UiInteractionTransition};

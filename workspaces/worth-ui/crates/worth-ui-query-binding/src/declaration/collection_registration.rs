@@ -56,6 +56,19 @@ impl UiCollectionProjectionRegistration {
         &self.requirement
     }
 
+    /// Declares one selected application field as the stable unsigned item
+    /// key consumed by UI Selection. The field must already be part of this
+    /// projection's selected payload.
+    pub fn with_unsigned64_application_item_key_field(
+        mut self,
+        field: UiProjectionFieldRequirement,
+    ) -> Self {
+        self.requirement = self
+            .requirement
+            .with_unsigned64_application_item_key_field(field);
+        self
+    }
+
     pub fn admit(
         self,
         workspace: &worth_query::facade::runtime::WorthQueryWorkspace,

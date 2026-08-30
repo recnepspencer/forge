@@ -26,10 +26,13 @@ pub use clock::{
 pub(crate) use consequence::UiIntentConsequenceLease;
 pub use consequence::{
     UiIntentConsequenceCompletionReceipt, UiIntentConsequenceHandle, UiIntentConsequenceRecovery,
-    UiIntentConsequenceStop, UiIntentConsequenceStopReason,
+    UiIntentConsequenceStop, UiIntentConsequenceStopReason, UiIntentPortalPlacementStopReason,
+    UiRuntimeServiceFamilyStopReason, UiRuntimeServiceProposalStop,
+    UiRuntimeServiceProposalStopReason,
 };
 pub(crate) use provider::{
-    FrozenIntentExecutionBindings, UiIntentExecutionBindingPlan, UiPreparedIntentExecution,
+    FrozenIntentExecutionBindings, UiIntentExecutionBindingPlan, UiIntentExecutionBindingSupport,
+    UiPreparedIntentExecution,
 };
 pub use provider::{
     UiIntentExecutionAttempt, UiIntentExecutionAttemptIdentity,

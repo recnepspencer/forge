@@ -309,6 +309,39 @@ fn surface_successor_frames_ignore_same_basis_redraw_generations() {
     assert!(host.presentation_calls() > calls_before_same_basis);
 }
 
+#[test]
+fn installed_but_inactive_motion_does_not_arm_native_readiness() {
+    use std::{sync::mpsc, time::Duration};
+
+    use crate::runtime::tests::active_application_session_test_support::source_backed_component_app_with_host;
+
+    let host = crate::certification_support::ScriptedPresentationHost::native_display();
+    let shell = source_backed_component_app_with_host(host)
+        .launch_native_surface()
+        .expect("native test shell should launch without active Motion tracks");
+    let mut driver = super::UiNativeApplicationDriver::from_launched_shell_for_test(shell);
+    driver.motion_support_installed = true;
+
+    let (signal_sender, signals) = mpsc::channel();
+    driver.motion_readiness = Some(super::UiNativeMotionReadinessLane::start_for_test(
+        move || signal_sender.send(()).map_err(|_| ()),
+    ));
+
+    assert_eq!(driver.application_readiness_owner_count().get(), 1);
+    assert!(!driver.motion_can_request_readiness());
+    driver.arm_motion_readiness_now();
+    assert!(matches!(
+        signals.recv_timeout(Duration::from_millis(60)),
+        Err(mpsc::RecvTimeoutError::Timeout)
+    ));
+
+    driver
+        .motion_readiness
+        .take()
+        .expect("installed Motion owns its readiness lane")
+        .shutdown();
+}
+
 #[cfg(feature = "certification-support")]
 fn retryable_program() -> (
     crate::certification_support::ScriptedPresentationHost,

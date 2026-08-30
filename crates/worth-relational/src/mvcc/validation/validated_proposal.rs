@@ -122,41 +122,30 @@ pub(crate) struct StrategyProposalDecoration {
 
 #[cfg(test)]
 mod tests {
+    use crate::mvcc::RelationalBranchTransactionAdmissionDenial;
     use crate::tests::support::{create_entity, runtime_with_test_schema};
     use crate::transactions::data::{CommitConflict, ConflictClass, TransactionCommitError};
 
     #[test]
-    fn stale_owner_binding_is_rejected_during_validation() {
-        let mut runtime = runtime_with_test_schema();
+    fn stale_owner_binding_is_rejected_during_transaction_admission() {
+        let runtime = runtime_with_test_schema();
         let identity = runtime.main_branch_identity();
         let stale_options = runtime
             .transaction_validation_input_for(&identity)
             .expect("main branch owner binding");
-        let _ = create_entity(&mut runtime, "head-advance");
+        let _ = create_entity(&runtime, "head-advance");
 
-        let transaction = runtime
-            .begin_branch_transaction(stale_options.basis(), stale_options.intent().clone())
-            .expect("stale basis still belongs to the same runtime");
-        let denied = match transaction.validate(&mut runtime) {
-            Err(denied) => denied,
-            Ok(_) => panic!("Relational must reject a stale expected head"),
-        };
-
-        assert!(matches!(
-            denied,
-            TransactionCommitError::Conflict {
-                error: CommitConflict {
-                    class: ConflictClass::StaleValidationBasis { .. },
-                    ..
-                },
-                ..
-            }
-        ));
+        assert_eq!(
+            runtime
+                .begin_branch_transaction(stale_options.basis(), stale_options.intent().clone())
+                .unwrap_err(),
+            RelationalBranchTransactionAdmissionDenial::StaleBasis
+        );
     }
 
     #[test]
     fn owner_rechecks_head_after_validation_before_commit() {
-        let mut runtime = runtime_with_test_schema();
+        let runtime = runtime_with_test_schema();
         let identity = runtime.main_branch_identity();
         let validation_input = runtime
             .transaction_validation_input_for(&identity)
@@ -164,11 +153,11 @@ mod tests {
         let candidate = runtime
             .begin_branch_transaction(validation_input.basis(), validation_input.intent().clone())
             .expect("current basis belongs to the same runtime")
-            .validate(&mut runtime)
+            .validate(&runtime)
             .expect("head is current at validation");
         let candidate_ordinal = candidate.proposal_identity.ordinal();
 
-        let _ = create_entity(&mut runtime, "post-validation-advance");
+        let _ = create_entity(&runtime, "post-validation-advance");
         let denied = runtime
             .prepare_validated_proposal(candidate)
             .expect_err("Relational must close the validate/commit race");
@@ -190,7 +179,7 @@ mod tests {
         let fresh = runtime
             .begin_branch_transaction(fresh_options.basis(), fresh_options.intent().clone())
             .expect("fresh basis belongs to the same runtime")
-            .validate(&mut runtime)
+            .validate(&runtime)
             .expect("fresh validation remains admissible");
         assert_eq!(
             fresh.proposal_identity.ordinal(),

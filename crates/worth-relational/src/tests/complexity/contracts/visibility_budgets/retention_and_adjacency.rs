@@ -2,24 +2,27 @@ use crate::tests::support::*;
 
 #[test]
 fn complexity_budget_live_history_trimming_is_touched_record_bounded() {
-    let mut runtime = runtime_with_test_schema();
-    let create_a = create_entity_outcome(&mut runtime, "a");
+    let runtime = runtime_with_test_schema();
+    let create_a = create_entity_outcome(&runtime, "a");
     let entity_a = changed_entities(&create_a)[0];
-    let create_b = create_entity_outcome(&mut runtime, "b");
+    let create_b = create_entity_outcome(&runtime, "b");
     let entity_b = changed_entities(&create_b)[0];
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&create_a.snapshot));
+        .release_snapshot(&create_a.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&create_b.snapshot));
+        .release_snapshot(&create_b.snapshot)
+        .is_ok());
 
     runtime.performance_access().reset_counters();
-    let update_a1 = update_entity(&mut runtime, entity_a, "a-1");
+    let update_a1 = update_entity(&runtime, entity_a, "a-1");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&update_a1.snapshot));
-    let _ = update_entity(&mut runtime, entity_a, "a-2");
+        .release_snapshot(&update_a1.snapshot)
+        .is_ok());
+    let _ = update_entity(&runtime, entity_a, "a-2");
     let counters = runtime.performance_access().counters();
 
     assert_eq!(runtime.entity_history_len_for_test(entity_a), 1);
@@ -29,10 +32,10 @@ fn complexity_budget_live_history_trimming_is_touched_record_bounded() {
 
 #[test]
 fn complexity_budget_bidirectional_adjacency_avoids_relation_scans() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation = create_relation(&mut runtime, source, target, "r0");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation = create_relation(&runtime, source, target, "r0");
     let version_id = runtime.history().latest_commit().unwrap().version_id;
 
     runtime.performance_access().reset_counters();

@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evidence() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity_in_partition(&mut runtime, "source", PartitionId(7));
-    let target = create_entity_in_partition(&mut runtime, "target", PartitionId(11));
+    let runtime = runtime_with_test_schema();
+    let source = create_entity_in_partition(&runtime, "source", PartitionId(7));
+    let target = create_entity_in_partition(&runtime, "target", PartitionId(11));
 
     runtime.performance_access().reset_counters();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("entities").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -31,7 +31,8 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
                 ],
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("relations").push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -45,7 +46,8 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
                 field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let plan = txn
         .plan_bulk_mutation_batch(&runtime)
@@ -67,12 +69,12 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
 
 #[test]
 fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_commit() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
 
     runtime.performance_access().reset_counters();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("relation-batch").push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -86,7 +88,8 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
                 field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let admitted = txn
         .admit_provenance_complete_bulk_mutation_batch(&runtime)
@@ -102,24 +105,24 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
     assert_eq!(preflight_counters.bulk_mutation_lineage_transition_count, 0);
     assert_eq!(preflight_counters.bulk_mutation_provenance_record_count, 0);
 
-    let mut commit_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    commit_txn.push_batch(
-        WorkerIntentBatch::new("relation-batch").push(MutationIntent::Create(
-            CreateIntent::BulkRelations(BulkRelationCreateIntent {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_keys: vec![crate::symbols::data::ClientKey::raw("edge-commit")],
-                endpoints: vec![(
-                    crate::transactions::data::EntityReference::Existing(source),
-                    crate::transactions::data::EntityReference::Existing(target),
-                )],
-                field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
-            }),
-        )),
-    );
-    let _ = commit_txn
-        .commit(&mut runtime)
-        .expect("commit should succeed");
+    let mut commit_txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    commit_txn
+        .push_batch(
+            WorkerIntentBatch::new("relation-batch").push(MutationIntent::Create(
+                CreateIntent::BulkRelations(BulkRelationCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_keys: vec![crate::symbols::data::ClientKey::raw("edge-commit")],
+                    endpoints: vec![(
+                        crate::transactions::data::EntityReference::Existing(source),
+                        crate::transactions::data::EntityReference::Existing(target),
+                    )],
+                    field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    let _ = commit_txn.commit(&runtime).expect("commit should succeed");
     let committed_counters = runtime.performance_access().counters();
 
     assert_eq!(committed_counters.bulk_mutation_batch_count, 1);

@@ -41,6 +41,9 @@ impl<'a> WorthQueryManagedLowerBinding<'a> {
 pub(in crate::domain_computation) enum WorthQueryManagedLowerAdmissionFailureKind {
     BridgeSourceProfile,
     RelationalBasis,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     BridgePlanning,
     InstalledStepContract,
     BridgeExecutionBasis,
@@ -72,22 +75,18 @@ pub(in crate::domain_computation) fn admit_managed_lower_execution_basis(
     );
     let relational_basis = relational
         .readmit_branch_basis(&descriptor)
-        .map_err(|denial| WorthQueryManagedLowerAdmissionFailure {
-            kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
-            detail: Arc::from(format!("{denial:?}")),
-        })?;
+        .map_err(relational_basis_failure)?;
     let current_at_admission = relational
         .observe_branch_basis(relational_basis.identity())
-        .is_ok_and(|(current, _)| current == descriptor);
+        .map_err(relational_basis_failure)?
+        .0
+        == descriptor;
     let relational_basis = WorthQueryManagedRelationalObservation::retain(
         relational,
         relational_basis,
         current_at_admission,
     )
-    .map_err(|denial| WorthQueryManagedLowerAdmissionFailure {
-        kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
-        detail: Arc::from(format!("{denial:?}")),
-    })?;
+    .map_err(relational_basis_failure)?;
     let snapshot = relational_basis.identity().snapshot_identity().clone();
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::branch_snapshot(branch.clone(), snapshot.clone()),
@@ -120,6 +119,27 @@ pub(in crate::domain_computation) fn admit_managed_lower_execution_basis(
         bridge: bridge_basis,
         relational: relational_basis,
     })
+}
+
+fn relational_basis_failure(
+    denial: worth_relational::facade::branch::RelationalBranchBasisDenial,
+) -> WorthQueryManagedLowerAdmissionFailure {
+    let kind = match denial {
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+            WorthQueryManagedLowerAdmissionFailureKind::RetentionCapacityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+            WorthQueryManagedLowerAdmissionFailureKind::RetentionIdentityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+            WorthQueryManagedLowerAdmissionFailureKind::SnapshotIdentityExhausted
+        }
+        _ => WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
+    };
+    WorthQueryManagedLowerAdmissionFailure {
+        kind,
+        detail: Arc::from(format!("{denial:?}")),
+    }
 }
 
 fn lower_installed_step_contract(

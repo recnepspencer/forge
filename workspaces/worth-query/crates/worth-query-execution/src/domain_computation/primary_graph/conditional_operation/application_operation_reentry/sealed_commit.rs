@@ -97,12 +97,45 @@ fn classify_commit(
         WorthQueryApplicationCommitOutcome::AlreadyCommitted(_) => {
             WorthQueryTemporalReentryOutcome::AlreadyCommitted
         }
+        WorthQueryApplicationCommitOutcome::Stale(_) => WorthQueryTemporalReentryOutcome::Obsolete,
+        WorthQueryApplicationCommitOutcome::Cancelled => {
+            WorthQueryTemporalReentryOutcome::ControlStopped(
+                super::WorthQueryTemporalControlStop::Cancelled,
+            )
+        }
+        WorthQueryApplicationCommitOutcome::TimedOut => {
+            WorthQueryTemporalReentryOutcome::ControlStopped(
+                super::WorthQueryTemporalControlStop::TimedOut,
+            )
+        }
+        WorthQueryApplicationCommitOutcome::Denied(denial) => {
+            match denial.kind() {
+                crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::ActiveSnapshotCapacityExhausted {
+                    maximum_active_snapshots,
+                } => WorthQueryTemporalReentryOutcome::SnapshotCapacityBackpressured {
+                    maximum_active_snapshots,
+                },
+                crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::RetentionCapacityExhausted => {
+                    WorthQueryTemporalReentryOutcome::RetentionCapacityBackpressured
+                }
+                kind => WorthQueryTemporalReentryOutcome::TerminalFailure(
+                    super::WorthQueryTemporalTerminalFailure::ApplicationCommit(kind),
+                ),
+            }
+        }
+        WorthQueryApplicationCommitOutcome::Aborted => {
+            WorthQueryTemporalReentryOutcome::RetryableFailure(
+                "temporal application commit aborted before effect".to_string(),
+            )
+        }
+        WorthQueryApplicationCommitOutcome::Deferred(deferred) => {
+            WorthQueryTemporalReentryOutcome::ProviderCommitBackpressured(deferred)
+        }
         WorthQueryApplicationCommitOutcome::SettlementDeferred(deferred) => {
             WorthQueryTemporalReentryOutcome::SettlementDeferred(deferred)
         }
         WorthQueryApplicationCommitOutcome::Indeterminate(evidence) => {
             WorthQueryTemporalReentryOutcome::Indeterminate(evidence.detail().to_string())
         }
-        other => WorthQueryTemporalReentryOutcome::RetryableFailure(format!("{other:?}")),
     }
 }

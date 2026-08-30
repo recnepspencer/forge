@@ -1,6 +1,6 @@
 use crate::identity::data::VersionId;
-use crate::runtime::RelationalRuntime;
 use crate::validation::engine::state_view::InvariantStateView;
+use crate::validation::engine::InvariantRuntimeView;
 use crate::validation::engine::{InvariantObservation, InvariantObservationKind};
 
 use super::structural_views::{StructuralAspectStateView, StructuralRelationView};
@@ -38,7 +38,7 @@ pub struct CustomInvariantProvenance {
 
 impl<'runtime> CustomInvariantExecutionContext<'runtime> {
     pub(crate) fn new(
-        runtime: &'runtime RelationalRuntime,
+        runtime: &InvariantRuntimeView<'runtime>,
         observation: &'runtime InvariantObservation<'runtime>,
         version_id: VersionId,
         current_version_id: VersionId,

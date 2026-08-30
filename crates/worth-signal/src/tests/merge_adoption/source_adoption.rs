@@ -56,7 +56,9 @@ fn merge_branch_introduces_source_only_node_with_new_target_id_and_merge_traces(
     runtime.switch_branch(main.clone()).unwrap();
     let main_node_count_before = runtime.graph().active_node_count();
 
-    let result = runtime.merge_branch(feature.clone(), main.clone()).unwrap();
+    let result = runtime
+        .merge_branch_raw(feature.clone(), main.clone())
+        .unwrap();
     assert_eq!(
         result.reconciliation_policy.conflict,
         ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
@@ -169,7 +171,7 @@ fn merge_branch_introduces_multiple_source_only_nodes_with_internal_dependencies
         .unwrap();
 
     runtime.switch_branch(main.clone()).unwrap();
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
 
     let introduced_upstream = result
         .records
@@ -236,7 +238,7 @@ fn merge_branch_skips_non_adoptable_source_only_nodes() {
 
     runtime.switch_branch(main.clone()).unwrap();
     let main_node_count_before = runtime.graph().active_node_count();
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
     let skipped = result
         .records
         .iter()
@@ -283,7 +285,7 @@ fn merge_branch_counters_and_summary_surface_match_introduced_work() {
 
     runtime.switch_branch(main).unwrap();
     let result = runtime
-        .merge_branch(feature, runtime.observe().current_branch())
+        .merge_branch_raw(feature, runtime.observe().current_branch())
         .unwrap();
 
     assert_eq!(

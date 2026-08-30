@@ -44,10 +44,10 @@ impl RecordIdentitySubsystem {
     }
 
     pub(crate) fn stage_replay_allocations_with_leading_gaps(
-        &mut self,
+        &self,
         allocations: Vec<CanonicalRecordAllocation>,
     ) -> Result<(), &'static str> {
-        if self.staged_replay_allocations.is_some() {
+        if self.lock().staged_replay_allocations.is_some() {
             return Err("record allocation replay evidence is already staged");
         }
         let mut first_append_slots = BTreeMap::new();
@@ -69,13 +69,12 @@ impl RecordIdentitySubsystem {
                 *frontier = first_slot;
             }
         }
-        drop(state);
-        self.staged_replay_allocations = Some(allocations);
+        state.staged_replay_allocations = Some(allocations);
         Ok(())
     }
 
-    pub(crate) fn clear_staged_replay_allocations(&mut self) -> bool {
-        self.staged_replay_allocations.take().is_some()
+    pub(crate) fn clear_staged_replay_allocations(&self) -> bool {
+        self.lock().staged_replay_allocations.take().is_some()
     }
 
     pub(crate) fn reusable_snapshot(&self) -> Vec<RecordSlotKey> {

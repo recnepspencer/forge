@@ -43,6 +43,16 @@ pub(super) fn prepare(
         .enumerate()
         .map(|(index, route)| ((route.graph_node(), route.interaction()), index))
         .collect();
+    let mut command_index =
+        std::collections::HashMap::<crate::capability::UiIntentId, Vec<u32>>::new();
+    for (index, declaration) in declarations.iter().enumerate() {
+        let intent = definitions.definition_at(declaration.definition()).id();
+        command_index.entry(intent).or_default().push(index as u32);
+    }
+    let command_index = command_index
+        .into_iter()
+        .map(|(intent, indexes)| (intent, indexes.into_boxed_slice()))
+        .collect();
     let confirmation_index = routes
         .confirmation
         .iter()
@@ -59,6 +69,7 @@ pub(super) fn prepare(
         product_routes: routes.product.into_boxed_slice(),
         confirmation_routes: routes.confirmation.into_boxed_slice(),
         product_index,
+        command_index,
         confirmation_index,
         definition_count: definitions.len(),
     })

@@ -127,7 +127,7 @@ impl CompiledFinancialWorld {
             .map(|subscription| {
                 DependencyEdge::partition_detail(
                     self.handles.factor(subscription.factor).0,
-                    factor_signal_aspect(&final_definition, subscription.factor),
+                    factor_signal_aspect(final_definition, subscription.factor),
                     subscription.partition,
                     subscription.detail,
                 )
@@ -156,7 +156,7 @@ impl CompiledFinancialWorld {
             new_source,
             [DependencyEdge::new(
                 risk,
-                factor_signal_aspect(&final_definition, new_factor),
+                factor_signal_aspect(final_definition, new_factor),
             )],
         );
         let cycle_rejected =

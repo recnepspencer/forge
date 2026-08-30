@@ -4,9 +4,9 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_propagates_declared_contract_identity_into_checkpoints() {
-    let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
-    let _second = create_entity_outcome(&mut runtime, "b");
+    let runtime = runtime_with_test_schema();
+    let _first = create_entity_outcome(&runtime, "a");
+    let _second = create_entity_outcome(&runtime, "b");
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.geometry.v1".to_string(),
         ..SubscriberContractDeclaration::default()

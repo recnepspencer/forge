@@ -152,7 +152,7 @@ fn scoped_merge_preview_execution_and_replay_preserve_the_same_proof_packet() {
     ];
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects(request.clone())
@@ -161,7 +161,7 @@ fn scoped_merge_preview_execution_and_replay_preserve_the_same_proof_packet() {
     let plan_report =
         merge_plan_proof_report(planned.plan(), planned.plan().registry_bundle_digest());
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_aspects(request.clone())
@@ -261,14 +261,14 @@ fn full_branch_scoped_merge_proof_carries_the_normalized_request_truth_forward()
         .to_owned();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
         .expect("full-branch merge should plan");
     let planned_proof = planned.plan().scoped_merge_proof().clone();
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main.clone())
         .run()
@@ -296,7 +296,7 @@ fn full_branch_scoped_merge_proof_carries_the_normalized_request_truth_forward()
 fn restore_after_merge_preserves_branch_local_scoped_merge_truth_without_widening() {
     let (mut runtime, feature, main, _support, primary, companion) = build_scoped_proof_runtime();
     let merged = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .selected_nodes([primary])
@@ -328,7 +328,7 @@ fn restore_after_merge_preserves_branch_local_scoped_merge_truth_without_widenin
     let (mut repeated_runtime, repeated_feature, repeated_main, _support, repeated_primary, _) =
         build_scoped_proof_runtime();
     let replayed = repeated_runtime
-        .merge()
+        .merge_raw()
         .from(repeated_feature)
         .into(repeated_main)
         .selected_nodes([repeated_primary])

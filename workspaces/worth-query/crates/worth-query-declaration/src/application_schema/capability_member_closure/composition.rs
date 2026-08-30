@@ -95,7 +95,7 @@ fn anchor_is_closed(
 ) -> bool {
     let slot = anchor.slot();
     slot.context() == contract.constraints().context()
-        && slot.context_type() == contract.constraints().context_type()
+        && slot.context_identity().as_str() == contract.constraints().context_type()
         && dimensions.entity_slot_exists(slot)
         && matching_traversal_count(path, anchor) == 1
 }

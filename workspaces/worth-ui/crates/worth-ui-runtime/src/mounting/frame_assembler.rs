@@ -32,6 +32,7 @@ pub(crate) struct UiMountedFrameAssemblyInput<'input, 'graph> {
     pub lanes: UiMountedLaneAssembly,
     pub preview: Option<UiMountedPreviewProjectionInput>,
     pub visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
+    pub portal_overlays: std::rc::Rc<[super::UiMountedPortalOverlayProjectionInput]>,
     pub semantic_content: super::UiMountedSemanticContentInput,
     pub theme_values: super::UiMountedThemeValueSource,
     pub font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
@@ -75,6 +76,19 @@ impl UiMountedPlanProjectionSource<'_> {
     > {
         match self {
             Self::Executed(plan) => plan.mounted_projection_ordinary_meaning(plan_index),
+            Self::PreviewOnly => None,
+        }
+    }
+
+    pub(crate) fn ordinary_meaning_for_identity(
+        self,
+        identity: &str,
+    ) -> Option<(
+        u32,
+        std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+    )> {
+        match self {
+            Self::Executed(plan) => plan.mounted_projection_ordinary_meaning_for_identity(identity),
             Self::PreviewOnly => None,
         }
     }
@@ -176,6 +190,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
                 requested_surfaces: &surfaces,
                 preview: input.preview,
                 visual_overlay: input.visual_overlay,
+                portal_overlays: input.portal_overlays,
                 semantic_content: &input.semantic_content,
                 theme_values: &input.theme_values,
                 font_collection: input.font_collection,

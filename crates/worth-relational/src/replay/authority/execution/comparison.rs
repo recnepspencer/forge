@@ -15,7 +15,7 @@ pub(super) fn select_replay_lineage_authority<'a>(
     runtime: &'a RelationalRuntime,
     envelope: &'a CanonicalCommitEnvelope,
     verification_mode: ReplayVerificationMode,
-) -> Result<super::super::SelectedPublishedLineageAuthority<'a>, ()> {
+) -> Result<super::super::SelectedPublishedLineageAuthority, ()> {
     let selected = select_published_lineage_authority(runtime, envelope);
     runtime
         .performance_access()
@@ -42,7 +42,7 @@ pub(super) fn replay_comparison_outcome(
     admission: &ReplayAdmission,
     compared_surfaces: &[ReplayObservableSurface],
     mismatches: Vec<ReplayMismatch>,
-    selected_lineage: Option<&super::super::SelectedPublishedLineageAuthority<'_>>,
+    selected_lineage: Option<&super::super::SelectedPublishedLineageAuthority>,
 ) -> RelationalReplayOutcome {
     RelationalReplayOutcome {
         requested: request,
@@ -56,8 +56,8 @@ pub(super) fn replay_comparison_outcome(
                 ReplayLineageDigestMode::ExactCanonicalArtifactDigest,
                 selected.artifact.digest_basis().lineage_event_count(),
                 selected.artifact.digest_basis().lineage_decision_count(),
-                lineage_event_batch_comparison_basis(selected.artifact),
-                lineage_decision_log_comparison_basis(selected.artifact),
+                lineage_event_batch_comparison_basis(&selected.artifact),
+                lineage_decision_log_comparison_basis(&selected.artifact),
             )
         }),
         compared_surfaces: compared_surfaces.to_vec(),

@@ -11,6 +11,7 @@ use super::super::{
 };
 use super::contract_slots::DeclaredExternalEffectSlot;
 use super::definition::ApplicationOperationDefinition;
+use crate::portable_identity::WorthQueryPortableType;
 
 /// Typestate authoring for one operation's singleton static contracts.
 ///
@@ -42,7 +43,10 @@ impl<Schema> AftermathAssociationAuthority<Schema> {
     }
 }
 
-impl<Schema, Operation, Input> ApplicationOperationRef<Schema, Operation, Input> {
+impl<Schema, Operation, Input> ApplicationOperationRef<Schema, Operation, Input>
+where
+    Input: WorthQueryPortableType,
+{
     /// Starts the operation definition that must explicitly select both static
     /// singleton contract slots before schema registration.
     pub fn definition(
@@ -81,13 +85,13 @@ impl<Schema, Operation, Input, const AFTERMATH_DECIDED: bool>
     ) -> ApplicationOperationDefinitionBuilder<Schema, Operation, Input, true, AFTERMATH_DECIDED>
     where
         Effect: OperationEmits<Operation>,
-        Payload: ApplicationExternalEffectPayload,
+        Payload: ApplicationExternalEffectPayload + WorthQueryPortableType,
     {
         ApplicationOperationDefinitionBuilder {
             operation: self.operation,
             external_effect: Some(DeclaredExternalEffectSlot {
                 effect: effect.name().to_string(),
-                rust_payload_type: std::any::type_name::<Payload>().to_string(),
+                rust_payload_type: Payload::PORTABLE_TYPE_IDENTITY,
                 protocol: Payload::PROTOCOL,
                 maximum_payload_bytes: Payload::MAX_EXTERNAL_BYTES,
                 correlation_family,
@@ -146,11 +150,13 @@ impl<Schema, Operation, Input, const EXTERNAL_EFFECT_DECIDED: bool>
 
 impl<Schema, Operation, Input>
     ApplicationOperationDefinitionBuilder<Schema, Operation, Input, true, true>
+where
+    Input: WorthQueryPortableType,
 {
     pub fn finish(self) -> ApplicationOperationDefinition<Schema, Operation, Input> {
         ApplicationOperationDefinition {
             operation: self.operation,
-            input_type: std::any::type_name::<Input>(),
+            input_type: Input::PORTABLE_TYPE_IDENTITY,
             external_effect: self.external_effect,
             aftermath: self.aftermath,
             marker: PhantomData,
@@ -165,18 +171,24 @@ mod tests {
     };
 
     use super::ApplicationOperationRef;
+    use crate::application_schema::ApplicationOperationMarkerIdentity;
 
     struct Schema;
     struct Operation;
 
+    impl ApplicationOperationMarkerIdentity for Operation {
+        type Schema = Schema;
+        type Input = ();
+        const IDENTIFIER: &'static str = "Operation";
+    }
+
     #[test]
     fn matching_schema_builder_is_the_portable_aftermath_association_owner() {
-        let definition =
-            ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation")
-                .definition()
-                .no_external_effect()
-                .aftermath(DeclaredApplicationAftermathContract::<Schema>::not_correctable())
-                .finish();
+        let definition = ApplicationOperationRef::<Schema, Operation, ()>::from_declaration()
+            .definition()
+            .no_external_effect()
+            .aftermath(DeclaredApplicationAftermathContract::<Schema>::not_correctable())
+            .finish();
 
         let contract = definition.aftermath.expect("aftermath was associated");
         assert_eq!(

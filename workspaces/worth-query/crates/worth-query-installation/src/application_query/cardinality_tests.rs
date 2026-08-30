@@ -8,7 +8,7 @@ use worth_query_declaration::facade::application_query::{
 };
 use worth_query_declaration::{
     worth_query_application_query, worth_query_application_schema, worth_query_aspect,
-    worth_query_entity, worth_query_field, worth_query_relation,
+    worth_query_entity, worth_query_field, worth_query_portable_type, worth_query_relation,
 };
 
 use crate::facade::{
@@ -70,6 +70,12 @@ struct ParentIdSlot;
 struct ChildIdSlot;
 struct ChildrenSlot;
 
+worth_query_portable_type!(ParentResult => "worth.query.test.cardinality.parent-result.v1");
+worth_query_portable_type!(ChildResult => "worth.query.test.cardinality.child-result.v1");
+worth_query_portable_type!(ParentIdSlot => "worth.query.test.cardinality.parent-id-slot.v1");
+worth_query_portable_type!(ChildIdSlot => "worth.query.test.cardinality.child-id-slot.v1");
+worth_query_portable_type!(ChildrenSlot => "worth.query.test.cardinality.children-slot.v1");
+
 worth_query_application_query!(
     OptionalChildQuery in CardinalitySchema,
     parameters OptionalChildQueryParameters,
@@ -118,7 +124,7 @@ fn nested_cardinality_changes_installed_graph_binding_and_planning_identity() {
     );
 }
 
-fn query_definition<Query: 'static, Parameters>(
+fn query_definition<Query, Parameters>(
     reference: ApplicationQueryReference<
         CardinalitySchema,
         Query,
@@ -127,7 +133,10 @@ fn query_definition<Query: 'static, Parameters>(
         Parent,
     >,
     cardinality: ApplicationQueryCardinality,
-) -> ApplicationQueryDefinition<CardinalitySchema, Query, Parameters, ParentResult, Parent> {
+) -> ApplicationQueryDefinition<CardinalitySchema, Query, Parameters, ParentResult, Parent>
+where
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+{
     let child =
         ApplicationQueryResultShapeBuilder::<CardinalitySchema, Query, Child, ChildResult>::new(
             Child::reference(),

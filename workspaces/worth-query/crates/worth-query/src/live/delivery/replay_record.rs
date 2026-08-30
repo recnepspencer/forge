@@ -1,7 +1,13 @@
+#[cfg(test)]
 use super::super::locality::{LocalityMatchClass, LocalityWideningDecision};
+#[cfg(test)]
+use super::super::LivePolicyCounters;
+#[cfg(test)]
+use super::super::LiveReplayBundle;
+#[cfg(test)]
 use super::super::RegionScopedExecutionReport;
-use super::super::{LivePolicyCounters, LiveReplayBundle};
 use super::query_contract::DeliveryLocalityOutcome;
+#[cfg(test)]
 use crate::identity::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -15,6 +21,7 @@ pub struct DeliveryContractReplayRecord {
 }
 
 impl DeliveryContractReplayRecord {
+    #[cfg(test)]
     pub(in crate::live) fn from_region_execution(
         report: &RegionScopedExecutionReport,
         replay_bundle: &LiveReplayBundle,
@@ -35,6 +42,7 @@ impl DeliveryContractReplayRecord {
             stream_contract_digest: None,
         }
     }
+    #[cfg(test)]
     pub(in crate::live) fn with_stream_contract_digest(
         &self,
         stream_contract_digest: &str,
@@ -81,6 +89,7 @@ impl DeliveryContractReplayRecord {
 }
 
 impl DeliveryLocalityOutcome {
+    #[cfg(test)]
     pub(in crate::live) fn from_region_scoped_report(report: &RegionScopedExecutionReport) -> Self {
         match (report.locality_match_class(), report.widening_decision()) {
             (LocalityMatchClass::RegionMatch(_), None) => Self::InRegionRegion,
@@ -108,6 +117,7 @@ impl DeliveryLocalityOutcome {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RegionScopedReplayBundle {
     pub(in crate::live) locality_digest: String,
@@ -115,11 +125,8 @@ pub struct RegionScopedReplayBundle {
     pub(in crate::live) bundle: LiveReplayBundle,
 }
 
+#[cfg(test)]
 impl RegionScopedReplayBundle {
-    pub fn locality_digest(&self) -> &str {
-        &self.locality_digest
-    }
-
     pub fn replay_record(&self) -> &DeliveryContractReplayRecord {
         &self.replay_record
     }

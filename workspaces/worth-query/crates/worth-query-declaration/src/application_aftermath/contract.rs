@@ -119,11 +119,7 @@ impl<Schema> DeclaredApplicationAftermathContract<Schema> {
     }
 }
 
-/// Portable, public-read aftermath meaning stored in a schema declaration.
-///
-/// Construction is owner-sealed: only the schema-affine operation builder can
-/// mint this value. Installation consumers may inspect or clone the meaning,
-/// but cannot author it positionally.
+/// Portable, authority-free aftermath meaning stored in a schema declaration.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct PortableApplicationAftermathContract {
     authority: DeclaredCorrectionAuthority,
@@ -132,6 +128,20 @@ pub struct PortableApplicationAftermathContract {
 }
 
 impl PortableApplicationAftermathContract {
+    /// Reconstructs untrusted descriptive meaning without minting schema
+    /// admission or installed-package authority.
+    pub fn from_untrusted_fields(
+        authority: DeclaredCorrectionAuthority,
+        mechanism: Option<PortableCorrectionMechanism>,
+        reconciliation: Option<DeclaredReconciliationProcedure>,
+    ) -> Self {
+        Self {
+            authority,
+            mechanism,
+            reconciliation,
+        }
+    }
+
     pub const fn authority(&self) -> DeclaredCorrectionAuthority {
         self.authority
     }

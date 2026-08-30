@@ -103,3 +103,13 @@ fn query_free_and_installed_query_apps_share_the_active_session_lifecycle() {
         query_installed.capabilities().digest()
     );
 }
+
+#[test]
+fn production_launch_and_shutdown_keep_unused_service_compilation_at_exact_zero() {
+    let session = source_backed_component_session();
+    let receipt = session.shutdown();
+    let proposals = receipt.service_proposal_shutdown();
+    assert_eq!(proposals.abandoned_proposals(), 0);
+    assert_eq!(proposals.abandoned_leases(), 0);
+    assert!(proposals.final_census().is_zero());
+}

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::world::supply_chain::{
     certified_supply_chain_world, commit_branch_batch, fork_supply_chain_branch_from_main,
-    lower_phase5_production_delta, DeltaId, SupplyChainScale,
+    lower_supply_chain_production_delta, DeltaId, SupplyChainScale,
 };
 use worth_relational::facade::branch::RelationalBranchBasisDenial;
 use worth_relational::facade::history::BranchId;
@@ -10,18 +10,18 @@ use worth_relational::facade::history::BranchId;
 #[test]
 fn external_component_pin_is_the_last_readmission_obligation() {
     let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
-    let mut runtime = world.runtime;
+    let runtime = world.runtime;
     let program = world.program;
     let handles = world.handles;
     let branch_id = BranchId("storm".to_owned());
-    fork_supply_chain_branch_from_main(&mut runtime, branch_id.clone());
+    fork_supply_chain_branch_from_main(&runtime, branch_id.clone());
     let identity = runtime.branch_identity(&branch_id).unwrap();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let descriptor = basis.descriptor().clone();
     let external = runtime.retain_component_basis(&basis).unwrap();
 
-    let batch = lower_phase5_production_delta(
-        &mut runtime,
+    let batch = lower_supply_chain_production_delta(
+        &runtime,
         &program,
         &handles,
         &branch_id,
@@ -29,7 +29,7 @@ fn external_component_pin_is_the_last_readmission_obligation() {
         DeltaId::StormRerouteAurora,
     )
     .unwrap();
-    commit_branch_batch(&mut runtime, branch_id, batch);
+    commit_branch_batch(&runtime, branch_id, batch);
     drop(basis);
 
     let retained = runtime
@@ -49,18 +49,18 @@ fn external_component_pin_is_the_last_readmission_obligation() {
 #[test]
 fn foreign_release_denial_preserves_the_owner_obligation() {
     let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
-    let mut runtime = world.runtime;
+    let runtime = world.runtime;
     let program = world.program;
     let handles = world.handles;
     let branch_id = BranchId("storm".to_owned());
-    fork_supply_chain_branch_from_main(&mut runtime, branch_id.clone());
+    fork_supply_chain_branch_from_main(&runtime, branch_id.clone());
     let identity = runtime.branch_identity(&branch_id).unwrap();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let descriptor = basis.descriptor().clone();
     let external = runtime.retain_component_basis(&basis).unwrap();
 
-    let batch = lower_phase5_production_delta(
-        &mut runtime,
+    let batch = lower_supply_chain_production_delta(
+        &runtime,
         &program,
         &handles,
         &branch_id,
@@ -68,7 +68,7 @@ fn foreign_release_denial_preserves_the_owner_obligation() {
         DeltaId::StormRerouteAurora,
     )
     .unwrap();
-    commit_branch_batch(&mut runtime, branch_id, batch);
+    commit_branch_batch(&runtime, branch_id, batch);
     drop(basis);
 
     let foreign = certified_supply_chain_world(SupplyChainScale::court())

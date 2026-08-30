@@ -9,9 +9,7 @@ use worth_query_installation::facade::{
     WorthQueryPrincipalBindingInstallationDenialKind, WorthQueryPrincipalMappingStatus,
 };
 use worth_relational::facade::identity::KindId;
-use worth_relational::facade::runtime::{
-    RelationalInitialSchemaInstallationDenialKind, RelationalRuntime, RelationalRuntimeApi,
-};
+use worth_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use worth_relational::facade::storage::{
     authoritative_aspect_value_field_comparison_key, AuthoritativeFieldComparisonKey,
 };
@@ -22,6 +20,7 @@ use crate::domain_computation::execution_runtime::{
 };
 
 use super::bootstrap_publication::{build_identity_indexes, commit_bootstrap_rows};
+use super::initial_schema_denial::map_initial_schema_installation_denial;
 use super::schema_layout::{WorthQueryPrimaryGraphLayout, WorthQueryPrimaryPrincipalBindingLayout};
 use super::{
     WorthQueryApplicationPrincipalKey, WorthQueryPrimaryGraph,
@@ -135,21 +134,6 @@ impl WorthQueryExecutionInstallationAuthority {
             _schema: PhantomData,
         })
     }
-}
-
-fn map_initial_schema_installation_denial(
-    denial: worth_relational::facade::runtime::RelationalInitialSchemaInstallationDenial,
-) -> WorthQueryPrimaryGraphInstallationDenial {
-    let kind = match denial.kind() {
-        RelationalInitialSchemaInstallationDenialKind::RuntimeAlreadyCommitted => {
-            WorthQueryPrimaryGraphInstallationDenialKind::RelationalRuntimeAlreadyPublished
-        }
-        RelationalInitialSchemaInstallationDenialKind::SchemaRejected
-        | RelationalInitialSchemaInstallationDenialKind::BranchTransitionRejected => {
-            WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected
-        }
-    };
-    primary_graph_denial(kind, denial.detail())
 }
 
 impl<Schema> WorthQueryPrimaryGraphBootstrap<Schema>

@@ -79,10 +79,10 @@ where
 {
     let receipt = match staged.read_authority().capture_decision_read_set(requests) {
         Ok(receipt) => receipt,
-        Err(_) => {
+        Err(failure) => {
             let _ = staged.abort();
-            return WorthQueryProviderReadSetProgression::Terminal(progression_denied(
-                DenialStage::DecisionReadSet,
+            return WorthQueryProviderReadSetProgression::Terminal(decision_read_set_denied(
+                failure,
             ));
         }
     };
@@ -96,12 +96,33 @@ where
         Ok(WorthQueryDecisionReadSetFreshnessOutcome::Stale(stale)) => {
             resolve_stale_provider_read_set(staged, stale.stale_fact_count(), authority)
         }
-        Err(_) => {
+        Err(failure) => {
             let _ = staged.abort();
-            WorthQueryProviderReadSetProgression::Terminal(progression_denied(
-                DenialStage::DecisionReadSet,
-            ))
+            WorthQueryProviderReadSetProgression::Terminal(decision_read_set_denied(failure))
         }
+    }
+}
+
+fn decision_read_set_denied(
+    failure: crate::domain_computation::WorthQueryDecisionReadSetFailure,
+) -> WorthQueryProviderProgressionOutcome {
+    match failure.kind() {
+        crate::domain_computation::WorthQueryDecisionReadSetDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => WorthQueryProviderProgressionOutcome::Denied(
+            WorthQueryApplicationCommitDenial::active_snapshot_capacity_exhausted(
+                DenialStage::DecisionReadSet,
+                maximum_active_snapshots,
+            ),
+        ),
+        crate::domain_computation::WorthQueryDecisionReadSetDenialKind::RetentionCapacityExhausted => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                    DenialStage::DecisionReadSet,
+                ),
+            )
+        }
+        _ => progression_denied(DenialStage::DecisionReadSet),
     }
 }
 
@@ -172,7 +193,38 @@ where
                 stale_fact_count,
             ))
         }
-        Ok(Err(_)) => progression_denied(DenialStage::Idempotency),
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        })) => WorthQueryProviderProgressionOutcome::Denied(
+            WorthQueryApplicationCommitDenial::active_snapshot_capacity_exhausted(
+                DenialStage::Idempotency,
+                maximum_active_snapshots,
+            ),
+        ),
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::Unavailable)) => {
+            progression_denied(DenialStage::Idempotency)
+        }
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionCapacityExhausted)) => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionIdentityExhausted)) => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::SnapshotIdentityExhausted)) => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::snapshot_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
     };
     let _ = staged.abort();
     WorthQueryProviderReadSetProgression::Terminal(outcome)

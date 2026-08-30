@@ -2,9 +2,9 @@ use super::*;
 
 #[test]
 fn successful_commit_surfaces_descriptor_semantics_version_in_result_and_envelope() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
 
-    let outcome = create_entity_outcome(&mut runtime, "a");
+    let outcome = create_entity_outcome(&runtime, "a");
 
     assert_eq!(
         outcome.descriptor_semantics_version(),
@@ -23,13 +23,15 @@ fn successful_commit_surfaces_descriptor_semantics_version_in_result_and_envelop
 #[test]
 fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -89,8 +91,9 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
                 ),
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     let transition = outcome.schema_transition_summary().unwrap();
     assert_eq!(transition.changed_atom_count, 1);
@@ -178,13 +181,15 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
 #[test]
 fn schema_certification_transition_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -245,8 +250,9 @@ fn schema_certification_transition_is_explained_and_counted() {
                 ),
             },
         )),
-    ));
-    let outcome = txn.commit(&mut runtime).unwrap();
+    ))
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
 
     let diagnostics = outcome.diagnostics();
     let detailed_trace = diagnostics

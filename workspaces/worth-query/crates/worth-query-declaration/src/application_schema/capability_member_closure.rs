@@ -7,6 +7,7 @@ use crate::application_capability::{
 use super::member_closure::ClosureIndex;
 use super::{ApplicationSchemaDeclarationDenial, ApplicationSchemaMember};
 
+mod canonical_structure;
 mod capability_revocation_program;
 mod composition;
 mod declared_dimensions;
@@ -15,6 +16,7 @@ mod dependencies;
 mod elevation_lifecycle_program;
 mod topology;
 
+use canonical_structure::validate_canonical_structure;
 use capability_revocation_program::revocation_programs_are_framework_owned;
 use composition::composition_is_closed;
 use declared_dimensions::DeclaredCapabilityDimensions;
@@ -45,6 +47,7 @@ pub(super) fn validate_application_capability_members(
         if !identities.insert((contract.name(), contract.capability_type())) {
             return Err(ApplicationSchemaDeclarationDenial::DuplicateApplicationCapability);
         }
+        validate_canonical_structure(contract)?;
         validate_contract(members, &closure, &dimensions, contract)?;
     }
     if !activation_programs_are_framework_owned(members, &contracts) {

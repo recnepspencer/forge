@@ -3,12 +3,12 @@ use super::fixed_host::FixedCertificationHostBinding;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
-    ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentId,
-    ComponentPropSchema, ComponentSemanticTextContract, ComponentStateOwnership,
-    ComponentStaticPaintContract, ComponentStaticPaintOrder, ComponentViewportInset,
-    SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass,
-    ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
-    ThemeTokenSource, ThemeTokenValue,
+    ComponentFocusSupport, ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder,
+    ComponentId, ComponentPortalChildContract, ComponentPropSchema, ComponentSemanticTextContract,
+    ComponentStateOwnership, ComponentStaticPaintContract, ComponentStaticPaintOrder,
+    ComponentViewportInset, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
+    SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
+    ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
 };
 
 type WorthUiApplicationBuilder = FixedCertificationApplicationBuilder;
@@ -104,6 +104,41 @@ where
     )
 }
 
+pub(crate) fn focusable_semantic_text_action_application_builder_with_host<Host>(
+    host: Host,
+) -> WorthUiApplicationBuilder
+where
+    Host: FixedCertificationHostBinding,
+{
+    visual_identity_builder_with_profile(
+        host,
+        ComponentHitTestOrder::front_to_back(0),
+        ComponentStaticPaintOrder::back_to_front(7),
+        Some(ComponentHitTestInset::symmetric(12, 8)),
+        true,
+        true,
+        worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+    )
+}
+
+pub(crate) fn portal_semantic_text_action_application_builder_with_host<Host>(
+    host: Host,
+) -> WorthUiApplicationBuilder
+where
+    Host: FixedCertificationHostBinding,
+{
+    visual_identity_builder_with_profile_and_portal_child(
+        host,
+        ComponentHitTestOrder::front_to_back(0),
+        ComponentStaticPaintOrder::back_to_front(7),
+        Some(ComponentHitTestInset::symmetric(12, 8)),
+        true,
+        true,
+        worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+        Some(VISUAL_PAINT_AND_HIT_COMPONENT),
+    )
+}
+
 pub(crate) fn single_semantic_text_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
@@ -163,6 +198,7 @@ where
         ComponentStaticPaintOrder::back_to_front(7),
         Some(ComponentHitTestInset::symmetric(12, 8)),
         true,
+        false,
         profile,
     )
 }
@@ -183,6 +219,7 @@ where
         paint_only_order,
         hit_only_clip,
         paint_and_hit_semantic_text,
+        false,
         worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
     )
 }
@@ -193,7 +230,34 @@ fn visual_identity_builder_with_profile<Host>(
     paint_only_order: ComponentStaticPaintOrder,
     hit_only_clip: Option<ComponentHitTestInset>,
     paint_and_hit_semantic_text: bool,
+    paint_and_hit_focusable: bool,
     profile: worth_ui::facade::rebind::UiChangeProfile,
+) -> WorthUiApplicationBuilder
+where
+    Host: FixedCertificationHostBinding,
+{
+    visual_identity_builder_with_profile_and_portal_child(
+        host,
+        paint_and_hit_order,
+        paint_only_order,
+        hit_only_clip,
+        paint_and_hit_semantic_text,
+        paint_and_hit_focusable,
+        profile,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn visual_identity_builder_with_profile_and_portal_child<Host>(
+    host: Host,
+    paint_and_hit_order: ComponentHitTestOrder,
+    paint_only_order: ComponentStaticPaintOrder,
+    hit_only_clip: Option<ComponentHitTestInset>,
+    paint_and_hit_semantic_text: bool,
+    paint_and_hit_focusable: bool,
+    profile: worth_ui::facade::rebind::UiChangeProfile,
+    portal_child_owner: Option<&str>,
 ) -> WorthUiApplicationBuilder
 where
     Host: FixedCertificationHostBinding,
@@ -210,6 +274,29 @@ where
             ComponentHitTestOrder::front_to_back(1),
             hit_only_allocation,
         ),
+    };
+    let hit_only = match portal_child_owner {
+        Some(_) => text_component(VISUAL_HIT_ONLY_COMPONENT),
+        None => component(VISUAL_HIT_ONLY_COMPONENT),
+    }
+    .with_hit_test(hit_only_contract);
+    let hit_only = match portal_child_owner {
+        Some(owner) => hit_only
+            .with_static_paint(
+                ComponentStaticPaintContract::opaque_fill(
+                    token_id(VISUAL_PAINT_AND_HIT_TOKEN),
+                    ComponentStaticPaintOrder::back_to_front(4),
+                ),
+                hit_only_allocation,
+            )
+            .with_semantic_text(ComponentSemanticTextContract::body_default(
+                token_id(VISUAL_PAINT_AND_HIT_TOKEN),
+                5,
+            ))
+            .with_portal_child(ComponentPortalChildContract::new(
+                ComponentId::new(owner).expect("valid portal child owner component id"),
+            )),
+        None => hit_only,
     };
     let paint_and_hit = component(VISUAL_PAINT_AND_HIT_COMPONENT)
         .with_static_paint(
@@ -231,6 +318,11 @@ where
     } else {
         paint_and_hit
     };
+    let paint_and_hit = if paint_and_hit_focusable {
+        paint_and_hit.with_focus(ComponentFocusSupport::focusable())
+    } else {
+        paint_and_hit
+    };
     let builder = WorthUi::app()
         .with_change_profile(profile)
         .register_component(component(VISUAL_PAINT_ONLY_COMPONENT).with_static_paint(
@@ -240,7 +332,7 @@ where
             ),
             ComponentAllocationMeasurementContract::fill_viewport(),
         ))
-        .register_component(component(VISUAL_HIT_ONLY_COMPONENT).with_hit_test(hit_only_contract))
+        .register_component(hit_only)
         .register_component(paint_and_hit)
         .register_component(component(VISUAL_NEITHER_COMPONENT))
         .register_surface(SurfaceDescriptor::new(
@@ -263,6 +355,15 @@ fn component(id: &str) -> ComponentDescriptor {
         ComponentId::new(id).expect("valid visual identity component id"),
         ComponentPropSchema::named(format!("{id}.props")),
         ComponentChildPolicy::no_children(),
+        ComponentStateOwnership::runtime_owned(),
+    )
+}
+
+fn text_component(id: &str) -> ComponentDescriptor {
+    ComponentDescriptor::new(
+        ComponentId::new(id).expect("valid visual identity text component id"),
+        ComponentPropSchema::named(format!("{id}.props")),
+        ComponentChildPolicy::text_children(),
         ComponentStateOwnership::runtime_owned(),
     )
 }

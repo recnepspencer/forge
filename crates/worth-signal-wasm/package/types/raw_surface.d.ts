@@ -76,6 +76,9 @@ import type {
   WorkerRuntimeShellLock,
 } from "./worker_runtime_bridge.js";
 
+/** Release one unused single-use exact restore token. */
+export function discardRestoreToken(token: string): boolean;
+
 export class InputSignal {
   private constructor();
   free(): void;

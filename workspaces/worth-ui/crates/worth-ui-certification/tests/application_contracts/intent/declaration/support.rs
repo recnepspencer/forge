@@ -33,7 +33,7 @@ const SURFACE: &str = "visual.identity.surface.main";
 const PAINT_ONLY_TOKEN: &str = "theme.visual_identity.paint_only";
 const PAINT_AND_HIT_TOKEN: &str = "theme.visual_identity.paint_and_hit";
 
-pub(super) struct AdvancePayload;
+pub(in crate::intent) struct AdvancePayload;
 
 impl UiIntentPayload for AdvancePayload {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("platform.pulse.advance_payload", 1);
@@ -47,7 +47,7 @@ impl UiIntentPayload for AdvancePayload {
     }
 }
 
-pub(super) struct AdvanceOutcome;
+pub(in crate::intent) struct AdvanceOutcome;
 
 impl UiIntentProductOutcome for AdvanceOutcome {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("platform.pulse.advance_outcome", 1);
@@ -59,7 +59,7 @@ impl UiIntentProductOutcome for AdvanceOutcome {
     }
 }
 
-pub(super) struct AdvanceStatus;
+pub(in crate::intent) struct AdvanceStatus;
 
 impl UiIntent for AdvanceStatus {
     type Payload = AdvancePayload;
@@ -164,6 +164,43 @@ pub(super) fn routed_rust_input() -> WorthUiRustAuthoredArtifactInput {
         .with_token(PAINT_ONLY_TOKEN, "theme.visual_identity.red")
         .with_token(PAINT_AND_HIT_TOKEN, "theme.visual_identity.purple")
         .with_intent_declaration(declaration);
+    WorthUiRustAuthoredArtifactInput::from_modules([module])
+}
+
+pub(in crate::intent) fn routed_command_input() -> WorthUiRustAuthoredArtifactInput {
+    routed_command_input_with_relocated_route(false)
+}
+
+pub(in crate::intent) fn routed_command_replacement_input() -> WorthUiRustAuthoredArtifactInput {
+    routed_command_input_with_relocated_route(true)
+}
+
+fn routed_command_input_with_relocated_route(
+    replacement: bool,
+) -> WorthUiRustAuthoredArtifactInput {
+    let declaration = UiIntentDeclaration::<AdvanceStatus>::activate(DECLARATION)
+        .expect("typed declaration accepts command activation");
+    let route = WorthUiIntentInteractionRoute::product(
+        WorthUiIntentInteractionFamily::Activate,
+        DECLARATION,
+    );
+    let module =
+        WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_component(PAINT_ONLY);
+    let module = if replacement {
+        module
+            .with_component(HIT_ONLY)
+            .with_control_routes(PAINT_AND_HIT, [route])
+    } else {
+        module
+            .with_control_routes(HIT_ONLY, [route])
+            .with_component(PAINT_AND_HIT)
+    };
+    let module = module
+        .with_component(NEITHER)
+        .with_surface(SURFACE)
+        .with_token(PAINT_ONLY_TOKEN, "theme.visual_identity.red")
+        .with_token(PAINT_AND_HIT_TOKEN, "theme.visual_identity.purple")
+        .with_intent_declaration(bind_operability(declaration));
     WorthUiRustAuthoredArtifactInput::from_modules([module])
 }
 

@@ -1,11 +1,11 @@
 use std::time::{Duration, Instant};
 
-use crate::product_process::{Closed, FinalRecovered, Published, PulseExecutableWorld};
+use crate::product_process::{Closed, Published, PulseExecutableWorld};
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
 
-pub(super) fn close_recovered_at_sequence(
-    recovered: PulseExecutableWorld<Published<FinalRecovered>>,
+pub(super) fn close_recovered_at_sequence<Stage>(
+    recovered: PulseExecutableWorld<Published<Stage>>,
     expected_shutdown_sequence: u64,
 ) -> PulseExecutableWorld<Closed> {
     let closed = recovered

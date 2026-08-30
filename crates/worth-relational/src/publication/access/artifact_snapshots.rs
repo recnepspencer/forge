@@ -8,6 +8,7 @@ use super::{PublicationArtifactsAccess, PublicationDiagnosticsAccess};
 impl<'runtime> PublicationArtifactsAccess<'runtime> {
     pub fn observation(&self) -> PublicationObservationSnapshot {
         let latest_bundle = self.latest_bundle();
+        let latest_bundle = latest_bundle.as_deref();
         let latest_patch = latest_bundle.map(|bundle| &bundle.patch);
         let latest_replay = latest_bundle.map(|bundle| &bundle.replay);
 
@@ -30,8 +31,8 @@ impl<'runtime> PublicationArtifactsAccess<'runtime> {
 
         PublicationArtifactSnapshot {
             observation: self.observation(),
-            latest_patch: latest_bundle.map(|bundle| bundle.patch.clone()),
-            latest_replay: latest_bundle.map(|bundle| bundle.replay.clone()),
+            latest_patch: latest_bundle.as_ref().map(|bundle| bundle.patch.clone()),
+            latest_replay: latest_bundle.as_ref().map(|bundle| bundle.replay.clone()),
         }
     }
 }

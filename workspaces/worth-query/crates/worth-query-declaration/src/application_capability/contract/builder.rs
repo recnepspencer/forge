@@ -1,3 +1,4 @@
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 use std::marker::PhantomData;
 
 use crate::application_schema::{ApplicationEntityRef, ApplicationOperationRef};
@@ -22,7 +23,7 @@ use crate::application_capability::{
 /// };
 /// struct Schema;
 /// struct Capability;
-/// struct Operation;
+/// worth_query_declaration::worth_query_operation!(Operation(()) in Schema);
 /// struct Grant;
 ///
 /// let builder = ApplicationCapabilityContractBuilder::<
@@ -32,7 +33,7 @@ use crate::application_capability::{
 ///     (),
 /// >::new(
 ///     ApplicationCapabilityRef::from_schema_identifier("Capability"),
-///     ApplicationOperationRef::from_schema_identifier("Operation"),
+///     Operation::reference(),
 ///     ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
 /// );
 /// let _ = builder.build();
@@ -49,9 +50,9 @@ pub struct ApplicationCapabilityContractBuilder<
     Elevation = Missing,
 > {
     name: &'static str,
-    capability_type: &'static str,
+    capability_type: crate::portable_identity::WorthQueryPortableTypeIdentity,
     operation: &'static str,
-    operation_type: &'static str,
+    operation_type: WorthQueryPortableTypeIdentity,
     grant_entity: &'static str,
     target: Target,
     constraints: Constraints,
@@ -71,9 +72,9 @@ impl<Schema, Capability, Operation, Input>
     ) -> Self {
         Self {
             name: capability.name(),
-            capability_type: std::any::type_name::<Capability>(),
+            capability_type: capability.marker_identity(),
             operation: operation.name(),
-            operation_type: std::any::type_name::<Operation>(),
+            operation_type: WorthQueryPortableTypeIdentity::declared(operation.name()),
             grant_entity: grant.name(),
             target: Missing,
             constraints: Missing,
@@ -313,14 +314,17 @@ impl<Schema, Capability, Operation, Input>
         Present<ApplicationCapabilityElevationRule>,
     >
 {
-    pub fn build(self) -> ApplicationCapabilityContract<Schema, Capability, Operation, Input> {
+    pub fn build(self) -> ApplicationCapabilityContract<Schema, Capability, Operation, Input>
+    where
+        Input: WorthQueryPortableType,
+    {
         ApplicationCapabilityContract {
             erased: ErasedApplicationCapabilityContract {
                 name: self.name.to_string(),
-                capability_type: self.capability_type.to_string(),
+                capability_type: self.capability_type,
                 operation: self.operation.to_string(),
-                operation_type: self.operation_type.to_string(),
-                input_type: std::any::type_name::<Input>().to_string(),
+                operation_type: self.operation_type,
+                input_type: Input::PORTABLE_TYPE_IDENTITY,
                 grant_entity: self.grant_entity.to_string(),
                 target: self.target.0,
                 constraints: self.constraints.0,

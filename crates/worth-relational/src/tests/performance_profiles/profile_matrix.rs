@@ -9,7 +9,7 @@ fn perf_profile_matrix() {
         suite,
         "certification_core_rich_commit_query_round_trip",
         || {
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
@@ -17,11 +17,12 @@ fn perf_profile_matrix() {
             let commit_started_at = Instant::now();
             let commit_outcome = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 for index in 0..24 {
-                    txn.push_batch(batch_create(&format!("profile-certification-{index}")));
+                    txn.push_batch(batch_create(&format!("profile-certification-{index}")))
+                        .expect("test staging stays within configured resource budgets");
                 }
-                txn.commit(&mut runtime).expect("certification-core commit")
+                txn.commit(&runtime).expect("certification-core commit")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();
 
@@ -127,7 +128,7 @@ fn perf_profile_matrix() {
         suite,
         "geometry_kernel_rich_commit_query_round_trip",
         || {
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
@@ -135,11 +136,12 @@ fn perf_profile_matrix() {
             let commit_started_at = Instant::now();
             let commit_outcome = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 for index in 0..24 {
-                    txn.push_batch(batch_create(&format!("profile-geometry-{index}")));
+                    txn.push_batch(batch_create(&format!("profile-geometry-{index}")))
+                        .expect("test staging stays within configured resource budgets");
                 }
-                txn.commit(&mut runtime).expect("geometry-kernel commit")
+                txn.commit(&runtime).expect("geometry-kernel commit")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();
 
@@ -248,19 +250,22 @@ fn perf_profile_matrix() {
         || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 for index in 0..24 {
-                    txn.push_batch(batch_create(&format!("profile-zero-{index}")));
+                    txn.push_batch(batch_create(&format!("profile-zero-{index}")))
+                        .expect("test staging stays within configured resource budgets");
                 }
-                txn.commit(&mut runtime)
+                txn.commit(&runtime)
                     .expect("zero-diagnostics certification-core commit")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();

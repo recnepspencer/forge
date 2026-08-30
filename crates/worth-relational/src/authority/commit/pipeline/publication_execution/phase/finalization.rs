@@ -20,10 +20,13 @@ pub(super) struct FinalizationInput<'a> {
     pub(super) merge_parent_branches: &'a [crate::history::data::BranchId],
     pub(super) phase_timing:
         &'a mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
+    pub(super) published_snapshot_basis:
+        crate::visibility::snapshot_states::VisibilitySnapshotBasis,
+    pub(super) published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
 }
 
 pub(super) fn finalize_published_commit(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     input: FinalizationInput<'_>,
 ) {
     let FinalizationInput {
@@ -41,6 +44,8 @@ pub(super) fn finalize_published_commit(
         patch_position,
         merge_parent_branches,
         phase_timing,
+        published_snapshot_basis,
+        published_snapshot_slot,
     } = input;
     let index_refresh_basis = prepared_history.index_refresh_basis().clone();
     publish_storage(
@@ -61,14 +66,20 @@ pub(super) fn finalize_published_commit(
         branch_id,
         previous_branch_head_version,
         version_id,
-        changed_records,
+        &published_snapshot_basis,
         phase_timing,
     );
     run_retention(runtime, changed_records, version_id, phase_timing);
     compact_durability(runtime, phase_timing);
-    let snapshot_id =
-        publish_artifacts(runtime, version_id, artifacts, patch_position, phase_timing);
-    run_configured_retention_pass(runtime, phase_timing);
+    let snapshot_id = publish_artifacts(
+        runtime,
+        version_id,
+        artifacts,
+        patch_position,
+        published_snapshot_basis,
+        published_snapshot_slot,
+        phase_timing,
+    );
     consume_post_commit_artifacts(
         runtime,
         PostCommitArtifactInput {
@@ -84,7 +95,7 @@ pub(super) fn finalize_published_commit(
 }
 
 fn publish_storage(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     clone_mode: crate::storage::overlay::PartitionCloneMode,
     committed_partitions: std::collections::BTreeMap<
@@ -104,7 +115,7 @@ fn publish_storage(
 }
 
 fn refresh_indexes(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     basis: &crate::mvcc::PreparedIndexRefreshBasis,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
@@ -119,11 +130,11 @@ fn refresh_indexes(
 }
 
 fn advance_visibility(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     previous_branch_head_version: Option<crate::identity::data::VersionId>,
     version_id: crate::identity::data::VersionId,
-    changed_records: &[crate::transactions::data::RecordRef],
+    published_snapshot_basis: &crate::visibility::snapshot_states::VisibilitySnapshotBasis,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
@@ -133,32 +144,26 @@ fn advance_visibility(
             branch_id,
             previous_branch_head_version,
             Some(version_id),
-        );
-    runtime
-        .visibility_pins()
-        .advance_branch_pins_for_changed_records(
-            previous_branch_head_version,
-            version_id,
-            changed_records,
+            Some(published_snapshot_basis),
         );
     timing.visibility_pin_micros = started.elapsed().as_micros() as u64;
 }
 
 fn run_retention(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     version_id: crate::identity::data::VersionId,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
-    let mut retention = runtime.retention();
+    let retention = runtime.retention();
     retention.reconcile_changed_record_states(changed_records, version_id);
     retention.trim_live_history_for_records(changed_records, version_id);
     timing.retention_trim_micros = started.elapsed().as_micros() as u64;
 }
 
 fn compact_durability(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
@@ -167,33 +172,24 @@ fn compact_durability(
 }
 
 fn publish_artifacts(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     version_id: crate::identity::data::VersionId,
     artifacts: crate::storage::overlay::PublicationArtifacts,
     patch_position: crate::publication::patch::data::PatchStreamPosition,
+    basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
+    slot: crate::runtime::PublishedSnapshotSlotReservation,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) -> crate::snapshots::data::SnapshotId {
     let started = std::time::Instant::now();
-    let snapshot_id =
-        runtime
-            .publication_authority()
-            .publish_artifacts(version_id, artifacts, patch_position);
+    let snapshot_id = runtime.publication_authority().publish_artifacts(
+        version_id,
+        artifacts,
+        patch_position,
+        basis,
+        slot,
+    );
     timing.bundle_publish_micros = started.elapsed().as_micros() as u64;
     snapshot_id
-}
-
-fn run_configured_retention_pass(
-    runtime: &mut crate::runtime::RelationalRuntime,
-    timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
-) {
-    if runtime.config.storage.mvcc.auto_reclaim_deleted_records
-        || runtime.config.storage.mvcc.snapshot_release_policy
-            == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
-    {
-        let started = std::time::Instant::now();
-        let _ = runtime.retention().run_pass();
-        timing.retention_pass_micros = started.elapsed().as_micros() as u64;
-    }
 }
 
 struct PostCommitArtifactInput<'a> {
@@ -206,7 +202,7 @@ struct PostCommitArtifactInput<'a> {
 }
 
 fn consume_post_commit_artifacts(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     input: PostCommitArtifactInput<'_>,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {

@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::facade::{DiagnosticsTier, SignalRuntimePolicy, StageExecutor};
+use crate::facade::{SignalRuntimePolicy, StageExecutor};
 use crate::tests::domains::fintech::{
     compile_financial_locality_world_with_policy, FinancialWorldDefinition,
 };
@@ -62,10 +62,30 @@ impl PerformancePacketContext {
     }
 }
 
+impl std::fmt::Display for PerformancePacketContext {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "seed={} principal_nodes={} scheduled_node_bound={} batches={} batch_width={} trial_count={} os={} arch={} profile={} threads={} thread_posture={} features={}",
+            self.seed,
+            self.principal_nodes,
+            self.scheduled_node_bound,
+            self.batches,
+            self.batch_width,
+            self.trial_count,
+            self.hardware_os,
+            self.hardware_arch,
+            self.build_profile,
+            self.thread_count,
+            self.thread_posture,
+            self.feature_posture,
+        )
+    }
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct PerformanceProfile {
     pub(crate) name: &'static str,
-    pub(crate) tier: DiagnosticsTier,
     pub(crate) policy: SignalRuntimePolicy,
     pub(crate) explicit_observation: bool,
 }
@@ -81,7 +101,6 @@ pub(crate) fn profiles() -> [PerformanceProfile; 6] {
     [
         PerformanceProfile {
             name: "balanced_continuous",
-            tier: DiagnosticsTier::Operational,
             policy: SignalRuntimePolicy::operational()
                 .with_execution_objective(ExecutionObjectiveProfile::Balanced)
                 .with_observation_activation(ObservationActivationProfile::Continuous),
@@ -89,20 +108,17 @@ pub(crate) fn profiles() -> [PerformanceProfile; 6] {
         },
         PerformanceProfile {
             name: "throughput_idle",
-            tier: DiagnosticsTier::Operational,
             policy: SignalRuntimePolicy::operational(),
             explicit_observation: false,
         },
         PerformanceProfile {
             name: "throughput_observed",
-            tier: DiagnosticsTier::Operational,
             policy: SignalRuntimePolicy::operational()
                 .with_observation_activation(ObservationActivationProfile::OnDemand),
             explicit_observation: true,
         },
         PerformanceProfile {
             name: "throughput_rich_session",
-            tier: DiagnosticsTier::Forensic,
             policy: SignalRuntimePolicy::forensic()
                 .with_execution_objective(ExecutionObjectiveProfile::Throughput)
                 .with_observation_activation(ObservationActivationProfile::OnDemand),
@@ -110,7 +126,6 @@ pub(crate) fn profiles() -> [PerformanceProfile; 6] {
         },
         PerformanceProfile {
             name: "introspective",
-            tier: DiagnosticsTier::Forensic,
             policy: SignalRuntimePolicy::forensic()
                 .with_execution_objective(ExecutionObjectiveProfile::Balanced)
                 .with_observation_activation(ObservationActivationProfile::Continuous),
@@ -118,7 +133,6 @@ pub(crate) fn profiles() -> [PerformanceProfile; 6] {
         },
         PerformanceProfile {
             name: "latency_bounded",
-            tier: DiagnosticsTier::Operational,
             policy: SignalRuntimePolicy::operational()
                 .with_execution_objective(ExecutionObjectiveProfile::LatencyBounded)
                 .with_observation_activation(ObservationActivationProfile::OnDemand),
@@ -140,7 +154,7 @@ pub(super) fn partitioned_world_for_output_floor(
     // generator whose node count only happens to exceed the floor.
     let regions = u16::try_from(min_outputs.saturating_sub(5).div_ceil(2).max(1))
         .expect("throughput output floor must fit the partitioned region axis");
-    FinancialWorldDefinition::partitioned_curve_universe(seed, regions, 1, 1)
+    FinancialWorldDefinition::partitioned_curve_universe_performance(seed, regions, 1, 1)
 }
 
 pub(super) fn operational_digest_for(

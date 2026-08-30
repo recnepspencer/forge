@@ -607,6 +607,11 @@ without inventing incompatible transaction, version, or receipt folklore.
 
 ### Query Milestone 9.17.1 Vocabulary Extension
 
+Status: Closed on 2026-08-28. The canonical cross-runtime descriptive grammar is
+[`branch-references.md`](../../crates/worth-foundational/docs/branching-merging-and-commit-vocabulary/branch-references.md).
+It grants no component operating authority and defines no compatibility
+conversion from the earlier epoch/equivalence vocabulary.
+
 [Query Milestone 9.17.1](../WORTH-query/milestone-9.17.1.md) extends this closed
 vocabulary milestone with the exact mutable-reference grammar required by both
 Relational and Signal. The extension separates immutable target basis from

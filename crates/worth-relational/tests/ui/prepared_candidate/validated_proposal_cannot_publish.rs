@@ -6,7 +6,7 @@ fn deny(mut runtime: RelationalRuntime, proposal: ValidatedRelationalProposal) {
     runtime.commit_validated_proposal(proposal);
 
     let mut strategies = CommitStrategiesAuthorityFacade::default();
-    strategies.execute_validated_commit(&mut runtime, proposal);
+    strategies.execute_validated_commit(&runtime, proposal);
 }
 
 fn main() {}

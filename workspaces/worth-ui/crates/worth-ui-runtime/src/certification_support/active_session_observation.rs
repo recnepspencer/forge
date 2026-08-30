@@ -12,6 +12,17 @@ use crate::runtime::{
     WorthUiVirtualizedPlanSummaryRequest,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiSemanticTextCertificationDenial {
+    Registration,
+    Admission,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiPresentationFrameCertificationDenial {
+    Preparation,
+}
+
 /// Certification-only observation of raw runtime plans and host capability authority.
 pub trait WorthUiActiveSessionCertificationExt {
     fn inspect_runtime(&self) -> WorthUiActiveRuntimeObservation;
@@ -78,6 +89,19 @@ pub trait WorthUiActiveSessionCertificationExt {
         &self,
         fact: &UiProducedFact,
     ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial>;
+
+    fn register_and_apply_component_semantic_text(
+        &mut self,
+        changes: &[crate::facade::entry::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), WorthUiSemanticTextCertificationDenial>;
+
+    fn prepare_application_presentation_frame(
+        &mut self,
+        request: crate::facade::mounted::UiMountedFrameRequest,
+    ) -> Result<
+        crate::facade::mounted::UiPreparedMountedFrame,
+        WorthUiPresentationFrameCertificationDenial,
+    >;
 }
 
 impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
@@ -180,5 +204,49 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
         fact: &UiProducedFact,
     ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial> {
         WorthUiActiveApplicationSession::lookup_consumed_fact_for_certification(self, fact)
+    }
+
+    fn register_and_apply_component_semantic_text(
+        &mut self,
+        changes: &[crate::facade::entry::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), WorthUiSemanticTextCertificationDenial> {
+        let graph_nodes = {
+            let graph = self.graph();
+            graph
+                .node_identities()
+                .filter_map(|identity| {
+                    let lookup = graph.lookup().graph_node(identity)?;
+                    let semantic = lookup
+                        .value()
+                        .declaration_identity()
+                        .authored_semantic_name()
+                        .to_owned();
+                    semantic
+                        .starts_with("component:")
+                        .then(|| (identity, Box::<str>::from(semantic)))
+                })
+                .collect::<Vec<_>>()
+        };
+        for (graph_node, authored_semantic_identity) in graph_nodes {
+            WorthUiActiveApplicationSession::register_application_semantic_text(
+                self,
+                authored_semantic_identity,
+                graph_node,
+            )
+            .map_err(|_| WorthUiSemanticTextCertificationDenial::Registration)?;
+        }
+        WorthUiActiveApplicationSession::admit_application_semantic_text(self, changes)
+            .map_err(|_| WorthUiSemanticTextCertificationDenial::Admission)
+    }
+
+    fn prepare_application_presentation_frame(
+        &mut self,
+        request: crate::facade::mounted::UiMountedFrameRequest,
+    ) -> Result<
+        crate::facade::mounted::UiPreparedMountedFrame,
+        WorthUiPresentationFrameCertificationDenial,
+    > {
+        self.prepare_mounted_frame_with_application_presentation(request, |_| {})
+            .map_err(|_| WorthUiPresentationFrameCertificationDenial::Preparation)
     }
 }

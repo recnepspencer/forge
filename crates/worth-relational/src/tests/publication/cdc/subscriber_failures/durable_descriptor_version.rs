@@ -4,8 +4,8 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_rejects_durable_only_checkpoint_with_descriptor_version_mismatch() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "anchor");
     runtime.durability_authority().checkpoint().unwrap();
 
     assert!(runtime

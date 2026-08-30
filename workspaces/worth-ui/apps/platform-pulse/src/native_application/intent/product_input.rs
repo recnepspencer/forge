@@ -2,8 +2,8 @@ use worth_ui::facade::app::WorthUiNativeApplicationShell;
 use worth_ui_platform_pulse::intent::{
     platform_pulse_action_confirmation_fact, platform_pulse_action_mutability_fact,
     platform_pulse_action_policy_fact, platform_pulse_action_readiness_fact,
-    platform_pulse_action_revision_fact, PlatformPulseIntentInputEvent,
-    PlatformPulseIntentInputRecord,
+    platform_pulse_action_revision_fact, platform_pulse_query_denial_fact,
+    PlatformPulseIntentInputEvent, PlatformPulseIntentInputRecord,
 };
 
 use super::super::{PlatformPulseApplicationRuntime, PlatformPulseTerminalError};
@@ -70,5 +70,9 @@ fn apply_intent_facts(
     )?;
     shell
         .update_intent_unsigned64_fact(&platform_pulse_action_revision_fact(), record.revision())?;
+    shell.update_intent_boolean_fact(
+        &platform_pulse_query_denial_fact(),
+        record.query_denial_requested(),
+    )?;
     Ok(())
 }

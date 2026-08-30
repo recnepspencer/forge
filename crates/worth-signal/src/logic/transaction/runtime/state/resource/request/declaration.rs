@@ -74,7 +74,7 @@ impl ResourceRuntimeState {
         ) {
             Ok(descriptor) => descriptor,
             Err(err) => {
-                if let Some(telemetry) = telemetry.as_deref_mut() {
+                if let Some(telemetry) = telemetry {
                     telemetry.resource_policy_resolution_denial_count += 1;
                 }
                 return Err(resource_policy_resolution_signal_error(err));

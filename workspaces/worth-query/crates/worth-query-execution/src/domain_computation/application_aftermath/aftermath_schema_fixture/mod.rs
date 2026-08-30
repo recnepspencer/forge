@@ -19,10 +19,15 @@ use declaration::{
     ReleaseEstate, Transfer, TransferLarge, TransferSmall, WireTransferFinal,
 };
 
-fn op<Operation>(
-    name: &'static str,
-) -> ApplicationOperationRef<AftermathFixtureSchema, Operation, FixtureInput> {
-    ApplicationOperationRef::from_schema_identifier(name)
+fn op<Operation>() -> ApplicationOperationRef<AftermathFixtureSchema, Operation, FixtureInput>
+where
+    Operation:
+        worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity<
+                Schema = AftermathFixtureSchema,
+                Input = FixtureInput,
+            > + 'static,
+{
+    ApplicationOperationRef::from_declaration()
 }
 
 fn installed_schema(
@@ -50,9 +55,17 @@ fn installed_schema(
         .unwrap()
 }
 
-fn aftermath_of<Operation>(name: &'static str) -> WorthQueryInstalledAftermathContract {
+fn aftermath_of<Operation>() -> WorthQueryInstalledAftermathContract
+where
+    Operation:
+        'static
+            + worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity<
+                Schema = AftermathFixtureSchema,
+                Input = FixtureInput,
+            >,
+{
     installed_schema()
-        .installed_operation(op::<Operation>(name))
+        .installed_operation(op::<Operation>())
         .expect("operation installs")
         .contracts()
         .aftermath()
@@ -61,45 +74,45 @@ fn aftermath_of<Operation>(name: &'static str) -> WorthQueryInstalledAftermathCo
 }
 
 pub(crate) fn release_estate() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<ReleaseEstate>("ReleaseEstate")
+    aftermath_of::<ReleaseEstate>()
 }
 pub(crate) fn transfer() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<Transfer>("transfer")
+    aftermath_of::<Transfer>()
 }
 pub(crate) fn transfer_small() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<TransferSmall>("transfer-small")
+    aftermath_of::<TransferSmall>()
 }
 pub(crate) fn transfer_large() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<TransferLarge>("transfer-large")
+    aftermath_of::<TransferLarge>()
 }
 pub(crate) fn freeze_account() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<FreezeAccount>("freeze-account")
+    aftermath_of::<FreezeAccount>()
 }
 pub(crate) fn freeze_account_fields() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<FreezeAccountFields>("freeze-account-fields")
+    aftermath_of::<FreezeAccountFields>()
 }
 pub(crate) fn notify_death() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<NotifyDeath>("notify-death")
+    aftermath_of::<NotifyDeath>()
 }
 pub(crate) fn legal_hold() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<LegalHold>("legal-hold")
+    aftermath_of::<LegalHold>()
 }
 pub(crate) fn audit_retention() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<AuditRetention>("audit-retention")
+    aftermath_of::<AuditRetention>()
 }
 pub(crate) fn approve_emergency_access() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<ApproveEmergencyAccess>("ApproveEmergencyAccess")
+    aftermath_of::<ApproveEmergencyAccess>()
 }
 pub(crate) fn wire_transfer_final() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<WireTransferFinal>("wire-transfer-final")
+    aftermath_of::<WireTransferFinal>()
 }
 pub(crate) fn freeze_note() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<FreezeNote>("freeze-note")
+    aftermath_of::<FreezeNote>()
 }
 
 pub(crate) fn freeze_account_fields_read_scope(field: &str) -> WorthQueryOperationGraphReadScope {
     installed_schema()
-        .installed_operation(op::<FreezeAccountFields>("freeze-account-fields"))
+        .installed_operation(op::<FreezeAccountFields>())
         .expect("operation installs")
         .contracts()
         .graph_reads()
@@ -122,8 +135,8 @@ pub(crate) fn freeze_account_fields_read_scope(field: &str) -> WorthQueryOperati
         .expect("fixture operation installs the requested field read")
 }
 pub(crate) fn freeze_balance() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<FreezeBalance>("freeze-balance")
+    aftermath_of::<FreezeBalance>()
 }
 pub(crate) fn charge() -> WorthQueryInstalledAftermathContract {
-    aftermath_of::<Charge>("charge")
+    aftermath_of::<Charge>()
 }

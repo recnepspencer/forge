@@ -37,13 +37,13 @@ impl RetainedScaleFixture {
 }
 
 fn retained_scale_fixture(replacement_count: usize) -> RetainedScaleFixture {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "flat-lineage-source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "flat-lineage-source");
     let original = changed_entities(&created)[0];
     let mut current = original;
     for replacement in 1..=replacement_count {
         replace_entity_on_branch(
-            &mut runtime,
+            &runtime,
             current,
             &format!("flat-lineage-successor-{replacement}"),
             BranchId("main".to_owned()),
@@ -93,7 +93,7 @@ fn retained_resolution(
 }
 
 fn assert_owner_history_scale(unrelated_commit_count: usize) {
-    let mut fixture = retained_scale_fixture(1);
+    let fixture = retained_scale_fixture(1);
     let baseline = fixture.resolution();
     let baseline_commit_count = fixture.runtime.history().immutable_commit_count();
     let baseline_branch_count = fixture.runtime.history.branch_count();
@@ -104,7 +104,7 @@ fn assert_owner_history_scale(unrelated_commit_count: usize) {
             .history_authority()
             .fork_branch_from(branch.clone(), &BranchId("main".to_owned()))
             .expect("owner-created scale branch");
-        create_entity_on_branch(&mut fixture.runtime, branch, ordinal);
+        create_entity_on_branch(&fixture.runtime, branch, ordinal);
     }
 
     let scaled = fixture.resolution();
@@ -122,45 +122,47 @@ fn assert_owner_history_scale(unrelated_commit_count: usize) {
 }
 
 fn create_entity_on_branch(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     branch: BranchId,
     ordinal: usize,
 ) {
     let key = format!("owner-scale-entity-{ordinal}");
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_branch(runtime, branch);
-    transaction.push_batch(
-        WorkerIntentBatch::new(key.clone()).push(MutationIntent::Create(CreateIntent::Entity(
-            EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: crate::facade::identity::KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw(&key),
-                fields: crate::tests::support::single_string_aspect_field_patch(
-                    crate::tests::support::aspect_key("name"),
-                    crate::tests::support::field_key("name"),
-                    &key,
-                ),
-            },
-        ))),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new(key.clone()).push(MutationIntent::Create(CreateIntent::Entity(
+                EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw(&key),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        &key,
+                    ),
+                },
+            ))),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction
         .commit(runtime)
         .expect("owner-created scale commit");
 }
 
 fn assert_same_branch_history_scale(unrelated_commit_count: usize, checkpoints: &[usize]) {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "same-branch-scale-source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "same-branch-scale-source");
     let original = changed_entities(&created)[0];
     replace_entity_on_branch(
-        &mut runtime,
+        &runtime,
         original,
         "same-branch-scale-successor",
         BranchId("main".to_owned()),
     );
     let mut expected_metrics = None;
     for ordinal in 1..=unrelated_commit_count {
-        create_entity_on_branch(&mut runtime, BranchId("main".to_owned()), ordinal);
+        create_entity_on_branch(&runtime, BranchId("main".to_owned()), ordinal);
         if checkpoints.contains(&ordinal) {
             let identity = runtime.main_branch_identity();
             let (_, basis) = runtime

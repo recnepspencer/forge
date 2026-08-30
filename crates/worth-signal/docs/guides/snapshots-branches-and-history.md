@@ -7,41 +7,51 @@ Read these first if you need them:
 - [../core-concepts/diagnostics-and-history.md](../core-concepts/diagnostics-and-history.md)
 - [debugging-and-diagnostics.md](./debugging-and-diagnostics.md)
 
-This guide is for:
-
-- snapshots
-- replay
-- branch inspection
-- seeing how something changed over time
+This guide covers owner-admitted snapshots and branch operations alongside
+read-only replay, branch, and lineage inspection.
 
 ## Main Surfaces
 
-- `runtime.history()`
-- `history.snapshot()`
-- `history.branch_snapshot(...)`
-- `history.branches()`
-- `history.replay_for_branch(...)`
-- `history.replay_for_node(...)`
-- `history.lineage_for_node(...)`
-- `runtime.merge()`
+- `runtime.observe_signal_branch_basis(...)`
+- `runtime.capture_signal_branch_snapshot(...)`
+- `runtime.restore_signal_branch(...)`
+- `runtime.fork_signal_branch(...)`
+- `runtime.merge()` and `runtime.merge_branch(...)`
+- `runtime.history().branches()`
+- `runtime.history().replay_for_branch(...)`
+- `runtime.history().replay_for_node(...)`
+- `runtime.history().lineage_for_node(...)`
 
 ## The Main Rule
 
-`runtime.history()` is the starting point. Do not start from the lower-level
-history types unless you have a real reason.
+Branch state changes require an owner-issued `AdmittedSignalBranchBasis`.
+Observe the exact live branch first, then pass that basis to capture, restore,
+fork, merge, retirement, or advancement. `runtime.history()` is read-only
+inspection; it does not issue snapshot or mutation authority.
 
-## Example
+## Capture And Inspect
 
 ```rust
 use worth_signal::facade::*;
 
 let mut runtime = SignalRuntime::build_for::<()>(SignalGraph::new());
-
-let snapshot = runtime.history().snapshot();
+let branch = runtime.current_branch();
+let basis = runtime
+    .observe_signal_branch_basis(branch)
+    .expect("the live branch should admit an owner basis");
+let (snapshot, captured_basis) = runtime
+    .capture_signal_branch_snapshot(&basis)
+    .expect("capture requires the exact live basis")
+    .into_parts();
 let branches = runtime.history().branches();
 
-let _ = (snapshot, branches);
+let _ = (snapshot, captured_basis, branches);
 ```
+
+An admitted snapshot is bound to the runtime owner that captured or
+reconstructed it. Serialized payload alone cannot restore a graph or runtime;
+after a trust boundary, reconstruct it through
+`runtime.reconstruct_signal_branch_snapshot(...)` before requesting restore.
 
 ## Replay vs lineage
 
@@ -49,32 +59,32 @@ let _ = (snapshot, branches);
 - lineage answers how one result changed over time
 
 If you are starting from a runtime question, begin with `runtime.history()`.
-
-Concrete questions:
-
-- "What happened during that bad import job?"
-- "What changed on this branch after the refactor?"
-- "Why does this result look different now than it did yesterday?"
-
-This is another place where Worth Signal shows its shape.
-The runtime keeps the sequence of changes, not just the latest answer.
-If a branch diverges, restores, or rolls back, that should still be visible
-after the fact.
+The runtime keeps the sequence of changes, not just the latest answer. Branch
+divergence and admitted restoration therefore remain inspectable after the
+fact.
 
 ## Merge
 
-Guided merge flow:
+Merge planning and execution consume exact source and target bases. Successful
+execution returns both the merge result and the newly admitted target basis.
 
 ```rust
 # use worth_signal::facade::*;
 # let mut runtime = SignalRuntime::build_for::<()>(SignalGraph::new());
-# let source = runtime.history().current_branch();
-# let target = runtime.history().current_branch();
-let planned = runtime.merge()
-    .from(source)
-    .into(target)
-    .plan()?;
+let target = runtime
+    .observe_signal_branch_basis(runtime.current_branch())
+    .expect("target basis");
+let (_, source) = runtime
+    .fork_signal_branch("feature", &target)
+    .expect("source fork")
+    .into_parts();
+let planned = runtime.merge().from(&source).into(&target).plan()?;
+let outcome = planned.execute()?;
+let next_target = outcome.target_basis();
 
-let _result = planned.execute()?;
+# let _ = next_target;
 # Ok::<(), SignalError>(())
 ```
+
+Do not keep using the old target basis after a successful merge. Its reference
+generation is stale, and a later governed operation will reject it.

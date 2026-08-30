@@ -12,12 +12,12 @@ fn phase5_inspection_rejects_foreign_and_rootless_identities() {
     assert_oracle_matches(&world, &expected);
     let foreign_runtime = world.runtime.fork().expect("settled runtime forks");
     assert!(matches!(
-        foreign_runtime.inspect_branch_sharing(&[world.runtime.main_branch_identity()]),
+        foreign_runtime.observe_branch_sharing(&[world.runtime.main_branch_identity()]),
         Err(RelationalBranchSharingInspectionDenial::ForeignRuntime)
     ));
     let empty_runtime = canonical_empty_supply_chain_runtime(SupplyChainScale::court());
     assert!(matches!(
-        empty_runtime.inspect_branch_sharing(&[empty_runtime.main_branch_identity()]),
+        empty_runtime.observe_branch_sharing(&[empty_runtime.main_branch_identity()]),
         Err(RelationalBranchSharingInspectionDenial::RootUnavailable)
     ));
 }
@@ -30,7 +30,7 @@ fn phase5_inspection_rejects_duplicate_branch_scope() {
     assert!(matches!(
         world
             .runtime
-            .inspect_branch_sharing(&[identity.clone(), identity]),
+            .observe_branch_sharing(&[identity.clone(), identity]),
         Err(RelationalBranchSharingInspectionDenial::DuplicateBranch)
     ));
 }
@@ -65,7 +65,7 @@ fn phase5_public_inspection_artifacts_are_read_only_complete_root_evidence() {
     let identity = world.runtime.main_branch_identity();
     let sharing = world
         .runtime
-        .inspect_branch_sharing(std::slice::from_ref(&identity))
+        .observe_branch_sharing(std::slice::from_ref(&identity))
         .expect("sharing observation is publicly readable");
     let ledger = world
         .runtime

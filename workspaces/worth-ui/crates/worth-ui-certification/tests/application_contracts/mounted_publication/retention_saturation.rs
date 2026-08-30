@@ -192,6 +192,7 @@ fn fill_quarantine_capacity(
         UiMountedFrameOutcome::PresentationIndeterminate(_)
     ));
     let basis = PresentedObservationBasis {
+        host_surface: current.host_surface,
         frame: indeterminate_frame,
         epoch: current.epoch,
         instance: current.instance,

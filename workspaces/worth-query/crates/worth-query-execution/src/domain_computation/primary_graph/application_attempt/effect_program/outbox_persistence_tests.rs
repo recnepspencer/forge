@@ -45,6 +45,9 @@ const EXTERNAL_PROTOCOL: ApplicationExternalEffectProtocol = ApplicationExternal
 
 #[derive(Clone)]
 struct DeathNotice(Vec<u8>);
+worth_query_declaration::worth_query_portable_type!(
+    DeathNotice => "worth.query.test.death-notice.v1"
+);
 
 impl ApplicationEffectPayload for DeathNotice {
     fn retained_bytes(&self) -> u64 {
@@ -228,7 +231,7 @@ fn installed_contract() -> InstalledExternalEffectContract {
             worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(FAMILY)
                 .unwrap(),
         effect: EFFECT.to_owned(),
-        rust_payload_type: std::any::type_name::<DeathNotice>().to_owned(),
+        rust_payload_type: <DeathNotice as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY,
         protocol: EXTERNAL_PROTOCOL,
         maximum_payload_bytes: DeathNotice::MAX_EXTERNAL_BYTES,
     }

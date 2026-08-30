@@ -28,8 +28,9 @@ pub(crate) enum UiNativeQualificationSurfaceBasisChange {
     DpiScaleMultiplierMilli(u32),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum UiNativeQualificationPlanDenial {
+    #[default]
     ZeroPresentationPollOrdinal,
     PresentationPollOrdinalCapacityExceeded,
     InvalidSurfaceBasis,
@@ -248,10 +249,4 @@ fn validate_presentation_ordinal(
         return Err(UiNativeQualificationPlanDenial::PresentationPollOrdinalCapacityExceeded);
     }
     Ok(())
-}
-
-impl Default for UiNativeQualificationPlanDenial {
-    fn default() -> Self {
-        Self::ZeroPresentationPollOrdinal
-    }
 }

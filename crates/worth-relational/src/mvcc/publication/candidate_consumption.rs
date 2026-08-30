@@ -2,19 +2,20 @@ use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{CommitResult, TransactionCommitError};
 
 impl RelationalRuntime {
+    pub fn reap_expired_prepared_candidates(&self) -> usize {
+        self.publication_binding().reap_expired_candidates()
+    }
+
     pub fn discard_prepared_candidate(
-        &mut self,
+        &self,
         candidate: crate::mvcc::PreparedRelationalCommitCandidate,
     ) -> Result<crate::mvcc::DiscardedRelationalCommitCandidate, TransactionCommitError> {
-        self.ensure_candidate_owner(&candidate)?;
-        let discarded = crate::mvcc::DiscardedRelationalCommitCandidate::from_candidate(&candidate);
-        self.history.record_candidate_discard(candidate.branch());
-        drop(candidate);
-        Ok(discarded)
+        self.preparation_port()
+            .discard_prepared_candidate(candidate)
     }
 
     pub(crate) fn publish_prepared_candidate(
-        &mut self,
+        &self,
         candidate: crate::mvcc::PreparedRelationalCommitCandidate,
     ) -> Result<CommitResult, TransactionCommitError> {
         self.ensure_candidate_owner(&candidate)?;

@@ -10,7 +10,7 @@ use crate::runtime::RelationalRuntime;
 use crate::schema::ValidatedSchemaContinuityBundle;
 
 pub struct ReplayAuthority<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 struct ValidatedReplayContinuityEnvelope<'a> {
@@ -21,20 +21,25 @@ struct ValidatedReplayContinuityEnvelope<'a> {
     lineage_basis: Option<DescriptorComparisonBasis>,
 }
 
-struct SelectedPublishedLineageAuthority<'a> {
+/// The published lineage artifact replay compares against, owned because a
+/// durable-log or checkpoint artifact is read out of the durability subsystem
+/// rather than borrowed from it.
+struct SelectedPublishedLineageAuthority {
     kind: ReplayAuthorityBasisKind,
+    /// `Some` exactly when the artifact came from durable storage rather than
+    /// from the envelope being audited.
     indexed_source: Option<ReplayLineageAuthorityIndexedSource>,
-    artifact: &'a crate::lineage::data::PublishedLineageArtifact,
+    artifact: crate::lineage::data::PublishedLineageArtifact,
 }
 
 impl<'runtime> ReplayAuthority<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 }
 
 impl RelationalRuntime {
-    pub fn replay_authority(&mut self) -> ReplayAuthority<'_> {
+    pub fn replay_authority(&self) -> ReplayAuthority<'_> {
         ReplayAuthority::new(self)
     }
 }

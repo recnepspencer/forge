@@ -138,13 +138,14 @@ let evaluate = |view: &mut EvaluationContext<'_, BuildState>| {
     Ok::<_, SignalError>(result)
 };
 
-runtime.transaction(&mut state, |tx| {
+let basis = runtime.observe_signal_branch_basis(runtime.current_branch())?;
+let basis = runtime.advance_signal_branch(&mut state, &basis, |tx| {
     tx.read_many(
         &[source_file, symbol_index, diagnostics_panel, app_bundle],
         &evaluate,
     )?;
     Ok(())
-})?;
+})?.into_basis();
 ```
 
 This gives the runtime a clean baseline to compare against.
@@ -152,10 +153,9 @@ This gives the runtime a clean baseline to compare against.
 ## 4. Save A Snapshot Before The Edit
 
 ```rust
-let snapshot = {
-    let mut history = runtime.history();
-    history.snapshot()
-};
+let (snapshot, basis) = runtime
+    .capture_signal_branch_snapshot(&basis)?
+    .into_parts();
 ```
 
 This matters because the runtime is not just answering "what is true now?"
@@ -169,11 +169,11 @@ state.symbols_version += 1;
 state.diagnostics_version += 1;
 state.bundle_version += 1;
 
-runtime.transaction(&mut state, |tx| {
+let _basis = runtime.advance_signal_branch(&mut state, &basis, |tx| {
     tx.mark_changed(source_file, SOURCE_TEXT)?;
     tx.read_many(&[diagnostics_panel, app_bundle], &evaluate)?;
     Ok(())
-})?;
+})?.into_basis();
 ```
 
 This is the part that tends to get messy in hand-rolled systems.
@@ -226,7 +226,7 @@ assert!(
     replay
         .frames
         .iter()
-        .any(|frame| frame.snapshot_id == Some(snapshot.meta.snapshot_id)),
+        .any(|frame| frame.snapshot_id == Some(snapshot.snapshot().snapshot_id())),
 );
 ```
 

@@ -53,7 +53,7 @@ impl SignalSnapshotV1 {
         &self.diagnostic_graph
     }
 
-    pub fn authority_graph(&self) -> Result<SignalGraph, crate::data::error::SignalError> {
+    pub(crate) fn authority_graph(&self) -> Result<SignalGraph, crate::data::error::SignalError> {
         SignalGraph::restore_from_checkpoint_image(&self.checkpoint_image)
     }
 

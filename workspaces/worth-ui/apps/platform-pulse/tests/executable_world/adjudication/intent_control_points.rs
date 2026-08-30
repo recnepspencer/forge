@@ -1,14 +1,23 @@
 use std::fmt;
 
-use super::platform_pulse_control_points::{checked_in, PlatformPulseControlPointManifestFailure};
+use super::visual_contract_manifest::{
+    action_control, confirmation_control, portal_control, PlatformPulseNativeControlContract,
+    PlatformPulseVisualContractFailure,
+};
 use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoint};
 
 const MINIMUM_INTERIOR_PIXELS: usize = 9;
+const MINIMUM_LABEL_INK_PIXELS: usize = 3;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct PlatformPulseActionControlPoint {
     point: NativeClientPixelPoint,
     region: NativeControlPixelRegion,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct PlatformPulsePortalControlPoint {
+    point: NativeClientPixelPoint,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -30,11 +39,15 @@ pub(crate) struct VisibleControlPixelChange {
 
 #[derive(Debug)]
 pub(crate) enum IntentControlPointFailure {
-    ControlPointManifest(PlatformPulseControlPointManifestFailure),
+    VisualContract(PlatformPulseVisualContractFailure),
     InsufficientInteriorPixels {
         control: &'static str,
         matching_pixels: usize,
         interior_pixels: usize,
+    },
+    LabelInkMissing {
+        control: &'static str,
+        differing_pixels: usize,
     },
     InvalidSelectedPixel,
     IndistinguishableControls,
@@ -48,32 +61,24 @@ pub(crate) enum IntentControlPointFailure {
 pub(crate) fn adjudicate_action_control_point(
     capture: &NativeClientPixelCapture,
 ) -> Result<PlatformPulseActionControlPoint, IntentControlPointFailure> {
-    let manifest = checked_in().map_err(IntentControlPointFailure::ControlPointManifest)?;
-    let (point, region) = select_interior_pixel(
-        capture,
-        "action",
-        manifest.target_rgba()[..3].try_into().expect("RGB prefix"),
-        manifest.action_control_logical_point(),
-        manifest.logical_client_extent(),
-        manifest.channel_tolerance(),
-    )?;
+    let contract = action_control().map_err(IntentControlPointFailure::VisualContract)?;
+    let (point, region) = select_interior_pixel(capture, "action", contract)?;
     Ok(PlatformPulseActionControlPoint { point, region })
+}
+
+pub(crate) fn adjudicate_portal_control_point(
+    capture: &NativeClientPixelCapture,
+) -> Result<PlatformPulsePortalControlPoint, IntentControlPointFailure> {
+    let contract = portal_control().map_err(IntentControlPointFailure::VisualContract)?;
+    let (point, _) = select_interior_pixel(capture, "portal", contract)?;
+    Ok(PlatformPulsePortalControlPoint { point })
 }
 
 pub(crate) fn adjudicate_confirmation_control_point(
     capture: &NativeClientPixelCapture,
 ) -> Result<PlatformPulseConfirmationControlPoint, IntentControlPointFailure> {
-    let manifest = checked_in().map_err(IntentControlPointFailure::ControlPointManifest)?;
-    let (point, region) = select_interior_pixel(
-        capture,
-        "confirmation",
-        manifest.confirmation_rgba()[..3]
-            .try_into()
-            .expect("RGB prefix"),
-        manifest.confirmation_control_logical_point(),
-        manifest.logical_client_extent(),
-        manifest.channel_tolerance(),
-    )?;
+    let contract = confirmation_control().map_err(IntentControlPointFailure::VisualContract)?;
+    let (point, region) = select_interior_pixel(capture, "confirmation", contract)?;
     Ok(PlatformPulseConfirmationControlPoint { point, region })
 }
 
@@ -122,33 +127,23 @@ pub(crate) fn adjudicate_visible_control_change(
 fn select_interior_pixel(
     capture: &NativeClientPixelCapture,
     control: &'static str,
-    expected: [u8; 3],
-    preferred_logical_point: [u32; 2],
-    logical_extent: [u32; 2],
-    channel_tolerance: u8,
+    contract: PlatformPulseNativeControlContract,
 ) -> Result<(NativeClientPixelPoint, NativeControlPixelRegion), IntentControlPointFailure> {
-    let mut matching_pixels = 0;
-    let mut interior = Vec::new();
-    let mut minimum = [u32::MAX, u32::MAX];
-    let mut maximum = [0, 0];
-    for y in 0..capture.height() {
-        for x in 0..capture.width() {
-            if !matches_at(capture, x, y, expected, channel_tolerance) {
-                continue;
-            }
-            matching_pixels += 1;
-            minimum = [minimum[0].min(x), minimum[1].min(y)];
-            maximum = [maximum[0].max(x), maximum[1].max(y)];
-            if x > 0
-                && y > 0
-                && x + 1 < capture.width()
-                && y + 1 < capture.height()
-                && neighborhood_matches(capture, x, y, expected, channel_tolerance)
-            {
-                interior.push((x, y));
-            }
-        }
-    }
+    let background = contract.background_rgba();
+    let expected = [background[0], background[1], background[2]];
+    let channel_tolerance = contract.channel_tolerance();
+    let target = project_rect(
+        contract.target_rect(),
+        capture,
+        contract.logical_client_extent(),
+    )?;
+    let label = project_rect(
+        contract.label_rect(),
+        capture,
+        contract.logical_client_extent(),
+    )?;
+    let (matching_pixels, interior) =
+        collect_interior_pixels(capture, target, expected, channel_tolerance);
     if interior.len() < MINIMUM_INTERIOR_PIXELS {
         return Err(IntentControlPointFailure::InsufficientInteriorPixels {
             control,
@@ -156,16 +151,23 @@ fn select_interior_pixel(
             interior_pixels: interior.len(),
         });
     }
+    let differing_pixels = count_differing_pixels(capture, label, expected, channel_tolerance);
+    if differing_pixels < MINIMUM_LABEL_INK_PIXELS {
+        return Err(IntentControlPointFailure::LabelInkMissing {
+            control,
+            differing_pixels,
+        });
+    }
     let preferred = [
         scale_axis(
-            preferred_logical_point[0],
+            contract.preferred_logical_point()[0],
             capture.width(),
-            logical_extent[0],
+            contract.logical_client_extent()[0],
         ),
         scale_axis(
-            preferred_logical_point[1],
+            contract.preferred_logical_point()[1],
             capture.height(),
-            logical_extent[1],
+            contract.logical_client_extent()[1],
         ),
     ];
     let (x, y) = interior
@@ -174,7 +176,79 @@ fn select_interior_pixel(
         .ok_or(IntentControlPointFailure::InvalidSelectedPixel)?;
     let point = NativeClientPixelPoint::interior(capture, x, y, 1)
         .ok_or(IntentControlPointFailure::InvalidSelectedPixel)?;
-    Ok((point, NativeControlPixelRegion { minimum, maximum }))
+    Ok((
+        point,
+        NativeControlPixelRegion {
+            minimum: [target[0], target[1]],
+            maximum: [target[2] - 1, target[3] - 1],
+        },
+    ))
+}
+
+fn collect_interior_pixels(
+    capture: &NativeClientPixelCapture,
+    target: [u32; 4],
+    expected: [u8; 3],
+    channel_tolerance: u8,
+) -> (usize, Vec<(u32, u32)>) {
+    let mut matching_pixels = 0;
+    let mut interior = Vec::new();
+    for y in target[1]..target[3] {
+        for x in target[0]..target[2] {
+            if !matches_at(capture, x, y, expected, channel_tolerance) {
+                continue;
+            }
+            matching_pixels += 1;
+            if x > target[0]
+                && y > target[1]
+                && x + 1 < target[2]
+                && y + 1 < target[3]
+                && neighborhood_matches(capture, x, y, expected, channel_tolerance)
+            {
+                interior.push((x, y));
+            }
+        }
+    }
+    (matching_pixels, interior)
+}
+
+fn project_rect(
+    logical: [u32; 4],
+    capture: &NativeClientPixelCapture,
+    logical_extent: [u32; 2],
+) -> Result<[u32; 4], IntentControlPointFailure> {
+    let right = logical[0]
+        .checked_add(logical[2])
+        .ok_or(IntentControlPointFailure::InvalidSelectedPixel)?;
+    let bottom = logical[1]
+        .checked_add(logical[3])
+        .ok_or(IntentControlPointFailure::InvalidSelectedPixel)?;
+    let projected = [
+        scale_axis(logical[0], capture.width(), logical_extent[0]),
+        scale_axis(logical[1], capture.height(), logical_extent[1]),
+        scale_axis(right, capture.width(), logical_extent[0]),
+        scale_axis(bottom, capture.height(), logical_extent[1]),
+    ];
+    if projected[0] >= projected[2]
+        || projected[1] >= projected[3]
+        || projected[2] > capture.width()
+        || projected[3] > capture.height()
+    {
+        return Err(IntentControlPointFailure::InvalidSelectedPixel);
+    }
+    Ok(projected)
+}
+
+fn count_differing_pixels(
+    capture: &NativeClientPixelCapture,
+    rect: [u32; 4],
+    expected: [u8; 3],
+    channel_tolerance: u8,
+) -> usize {
+    (rect[1]..rect[3])
+        .flat_map(|y| (rect[0]..rect[2]).map(move |x| (x, y)))
+        .filter(|&(x, y)| !matches_at(capture, x, y, expected, channel_tolerance))
+        .count()
 }
 
 fn neighborhood_matches(
@@ -241,6 +315,12 @@ impl PlatformPulseActionControlPoint {
     }
 }
 
+impl PlatformPulsePortalControlPoint {
+    pub(crate) fn point(self) -> NativeClientPixelPoint {
+        self.point
+    }
+}
+
 impl PlatformPulseConfirmationControlPoint {
     pub(crate) fn point(self) -> NativeClientPixelPoint {
         self.point
@@ -260,8 +340,8 @@ impl VisibleControlPixelChange {
 impl fmt::Display for IntentControlPointFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ControlPointManifest(failure) => {
-                write!(formatter, "test-owned control-point manifest: {failure:?}")
+            Self::VisualContract(failure) => {
+                write!(formatter, "independent visual contract: {failure:?}")
             }
             Self::InsufficientInteriorPixels {
                 control,
@@ -271,6 +351,13 @@ impl fmt::Display for IntentControlPointFailure {
                 formatter,
                 "{control} control had {matching_pixels} matching pixels but only \
                  {interior_pixels} independently clickable interior pixels"
+            ),
+            Self::LabelInkMissing {
+                control,
+                differing_pixels,
+            } => write!(
+                formatter,
+                "{control} control label painted only {differing_pixels} non-background pixels"
             ),
             Self::InvalidSelectedPixel => {
                 formatter.write_str("selected control pixel was outside its source capture")

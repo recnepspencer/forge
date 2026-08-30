@@ -39,11 +39,11 @@ fn foreign_runtime_basis_denies_in_graph_admission_before_authority_seal() {
     );
     assert_eq!(
         denial,
-        WorthUiApplicationPreparationDenial::GraphAdmission(
+        WorthUiApplicationPreparationDenial::GraphAdmission(Box::new(
             UiGraphInstantiationDenial::RuntimeBasisTargetsUnknownDeclaration {
                 declaration_identity: foreign_identity,
             },
-        )
+        ))
     );
 }
 
@@ -68,12 +68,12 @@ fn contradictory_runtime_basis_replay_returns_equivalent_graph_admission_denial(
     assert_eq!(first, second);
     assert_eq!(
         first,
-        WorthUiApplicationPreparationDenial::GraphAdmission(
+        WorthUiApplicationPreparationDenial::GraphAdmission(Box::new(
             UiGraphInstantiationDenial::RuntimeBasisDenied {
                 declaration_identity,
                 denial: UiRepeatedInstanceBasisDenial::ContradictoryBasis,
             },
-        )
+        ))
     );
 }
 

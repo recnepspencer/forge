@@ -11,14 +11,11 @@ pub(super) fn execute_feature_into_main_merge() -> (
     CommitId,
     CommitId,
 ) {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    let feature_head = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    let feature_head =
+        create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),

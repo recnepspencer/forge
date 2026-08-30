@@ -27,6 +27,8 @@ mod owner_allocation_ledger;
 mod readmission;
 #[path = "root_schema.rs"]
 mod schema;
+#[path = "root_schema_meaning.rs"]
+mod schema_meaning;
 #[cfg(test)]
 #[path = "root_tests.rs"]
 mod tests;
@@ -109,6 +111,8 @@ struct RelationalCommittedBranchRoot {
 pub(crate) struct RelationalBranchRoot {
     id: u64,
     regions: Arc<RelationalPersistentRegionSet>,
+    entity_slot_count: usize,
+    relation_slot_count: usize,
     content_accumulator: [u8; 32],
     schema_authority: Arc<RelationalBranchRootSchemaAuthority>,
     committed: Option<RelationalCommittedBranchRoot>,
@@ -146,11 +150,13 @@ impl RelationalBranchRootState {
 impl RelationalBranchRoot {
     #[cfg(test)]
     pub(crate) fn empty() -> Arc<Self> {
-        let mut issuer = RelationalBranchRootIdentityIssuer::default();
+        let issuer = RelationalBranchRootIdentityIssuer::default();
         Arc::new(Self {
             id: 0,
-            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &mut issuer)
+            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &issuer)
                 .expect("empty test root has reachability capacity"),
+            entity_slot_count: 0,
+            relation_slot_count: 0,
             content_accumulator: [0; 32],
             schema_authority: RelationalBranchRootSchemaAuthority::empty(),
             committed: None,
@@ -161,15 +167,17 @@ impl RelationalBranchRoot {
         registry: &crate::schema::data::RelationalSchemaRegistry,
         descriptor_semantics_version: crate::schema::data::DescriptorSemanticsVersion,
     ) -> Arc<Self> {
-        let mut issuer = RelationalBranchRootIdentityIssuer::default();
+        let issuer = RelationalBranchRootIdentityIssuer::default();
         let expected = registry.authority_snapshot();
         let schema_authority_id = issuer
             .issue_schema_authority_id()
             .expect("empty root has schema authority capacity");
         Arc::new(Self {
             id: 0,
-            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &mut issuer)
+            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &issuer)
                 .expect("empty root has reachability capacity"),
+            entity_slot_count: 0,
+            relation_slot_count: 0,
             content_accumulator: [0; 32],
             schema_authority: RelationalBranchRootSchemaAuthority::capture(
                 schema_authority_id,
@@ -203,6 +211,14 @@ impl RelationalBranchRoot {
     }
     pub(crate) const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub(crate) const fn entity_slot_count(&self) -> usize {
+        self.entity_slot_count
+    }
+
+    pub(crate) const fn relation_slot_count(&self) -> usize {
+        self.relation_slot_count
     }
 
     pub(crate) fn descriptor(&self) -> Option<&RelationalBranchRootDescriptor> {
@@ -297,6 +313,17 @@ impl RelationalBranchRoot {
             .as_ref()
             .map(|root| root.publication_cost)
             .unwrap_or_default()
+    }
+
+    pub(crate) fn reclaimable_unique_authoritative_bytes(&self) -> u64 {
+        let mut bytes = std::mem::size_of::<Self>() as u64;
+        bytes = bytes.saturating_add(
+            RelationalPersistentRegionSet::reclaimable_unique_authoritative_bytes(&self.regions),
+        );
+        if Arc::strong_count(&self.schema_authority) == 1 {
+            bytes = bytes.saturating_add(self.schema_authority.authoritative_allocation_bytes());
+        }
+        bytes
     }
 
     pub(crate) fn links_envelope(&self, envelope: &Arc<CanonicalCommitEnvelope>) -> bool {

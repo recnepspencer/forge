@@ -1,12 +1,12 @@
 use crate::facade::application_schema::{
     ApplicationAspectMarkerIdentity, ApplicationAspectRef, ApplicationEntityRef,
-    ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationRef, ApplicationSchema,
-    ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenialKind,
-    ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial, ApplicationUnitMarker,
-    DeclaredApplicationFieldValue, DeclaredApplicationUnit, EqualityPredicate, OperationCreates,
-    OperationExpectsFact, ReadOnly, TypedApplicationValue, TypedOperationBuilder,
-    TypedUnitApplicationValue,
+    ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationMarkerIdentity,
+    ApplicationOperationRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
+    ApplicationSchemaAuthoringDenialKind, ApplicationSchemaBindingIdentity,
+    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+    ApplicationSchemaDeclarationDenial, ApplicationUnitMarker, DeclaredApplicationFieldValue,
+    DeclaredApplicationUnit, EqualityPredicate, OperationCreates, OperationExpectsFact, ReadOnly,
+    TypedApplicationValue, TypedOperationBuilder, TypedUnitApplicationValue,
 };
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
@@ -18,15 +18,29 @@ struct CurrencyField;
 struct Usd;
 struct UsdCurrency;
 struct CurrencyValue;
+crate::worth_query_portable_type!(CurrencyValue => "worth.query.test.currency_value.v1");
 struct ProgramSchema;
 struct ProgramEntity;
 struct ProgramOperation;
 struct SchemaOperation;
 struct SchemaInput;
+worth_query_portable_type!(SchemaInput => "worth.query.test.schema-input");
 struct NamespacedSchema;
 struct InvalidOwnerSchema;
 struct DottedMemberSchema;
 struct IdentifierEntity;
+
+impl ApplicationOperationMarkerIdentity for SchemaOperation {
+    type Schema = Schema;
+    type Input = SchemaInput;
+    const IDENTIFIER: &'static str = "SchemaOperation";
+}
+
+impl ApplicationOperationMarkerIdentity for ProgramOperation {
+    type Schema = ProgramSchema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "ProgramOperation";
+}
 
 impl ApplicationAspectMarkerIdentity for Aspect {
     type Schema = Schema;
@@ -227,6 +241,7 @@ fn compile_capability_without_installed_operation_edge_is_denied() {
     let context = ApplicationSchemaAuthoringContext::from_installed_declaration(
         binding,
         declaration.erased(),
+        declaration.member_provenance(),
     );
     let denial = TypedOperationBuilder::new(program_operation())
         .with_installed_context(context)
@@ -313,7 +328,7 @@ fn field() -> ApplicationFieldRef<Schema, Entity, Aspect, Field, u64, ReadOnly, 
 }
 
 fn schema_operation() -> ApplicationOperationRef<Schema, SchemaOperation, SchemaInput> {
-    ApplicationOperationRef::from_schema_identifier("SchemaOperation")
+    ApplicationOperationRef::from_declaration()
 }
 
 fn currency_field() -> ApplicationFieldRef<
@@ -334,5 +349,5 @@ fn program_entity() -> ApplicationEntityRef<ProgramSchema, ProgramEntity> {
 }
 
 fn program_operation() -> ApplicationOperationRef<ProgramSchema, ProgramOperation, ()> {
-    ApplicationOperationRef::from_schema_identifier("ProgramOperation")
+    ApplicationOperationRef::from_declaration()
 }

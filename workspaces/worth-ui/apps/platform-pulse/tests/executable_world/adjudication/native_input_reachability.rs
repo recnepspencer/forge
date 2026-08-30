@@ -1,6 +1,7 @@
 use std::fmt;
 
 use worth_ui_platform_pulse::observation_contract::{
+    PlatformPulseIntentInteractionFamily, PlatformPulseIntentRoutingStoppedObservation,
     PlatformPulseLifecycleObservation, PlatformPulseLifecycleObservationEnvelope,
     PlatformPulseNativeInputIngressPosture, PlatformPulseNativeInputReached,
 };
@@ -22,6 +23,7 @@ pub(crate) struct ExecutableNativeInputReachabilityEvidence {
     pointer_reached: PlatformPulseNativeInputReached,
     keyboard_reached: PlatformPulseNativeInputReached,
     pointer_sequence: u64,
+    keyboard_routing_stop_sequence: u64,
     keyboard_sequence: u64,
     pixels: NativeClientPixelCapture,
     color: NativeColorVerdict,
@@ -34,6 +36,7 @@ pub(crate) struct NativeInputFamilyObservation {
 
 pub(crate) struct NativeInputReachabilityObservationSet {
     pointer: NativeInputFamilyObservation,
+    keyboard_routing_stop: PlatformPulseLifecycleObservationEnvelope,
     keyboard: NativeInputFamilyObservation,
     pixels: NativeClientPixelCapture,
 }
@@ -48,6 +51,8 @@ pub(crate) enum ExecutableNativeInputReachabilityFailure {
         delivered: u32,
     },
     MissingReachabilityOutcome(NativeInputProbeKind),
+    MissingKeyboardRoutingStop,
+    InvalidKeyboardRoutingStop,
     ForeignRun,
     UnexpectedSequence {
         kind: NativeInputProbeKind,
@@ -76,6 +81,7 @@ pub(crate) fn adjudicate_native_input_reachability(
 ) -> Result<ExecutableNativeInputReachabilityEvidence, ExecutableNativeInputReachabilityFailure> {
     let NativeInputReachabilityObservationSet {
         pointer,
+        keyboard_routing_stop,
         keyboard,
         pixels,
     } = observations;
@@ -93,9 +99,11 @@ pub(crate) fn adjudicate_native_input_reachability(
         first_frame,
         keyboard.envelope,
         NativeInputProbeKind::Keyboard,
-        6,
-        PlatformPulseNativeInputIngressPosture::Stopped,
+        7,
+        PlatformPulseNativeInputIngressPosture::Retained,
     )?;
+    let keyboard_routing_stop_sequence =
+        require_keyboard_routing_stop(first_frame, keyboard_routing_stop)?;
     let color = adjudicate_native_color(&pixels, ExpectedNativeColor::Blue)
         .map_err(ExecutableNativeInputReachabilityFailure::NativeColor)?;
     Ok(ExecutableNativeInputReachabilityEvidence {
@@ -104,6 +112,7 @@ pub(crate) fn adjudicate_native_input_reachability(
         pointer_reached,
         keyboard_reached,
         pointer_sequence,
+        keyboard_routing_stop_sequence,
         keyboard_sequence,
         pixels,
         color,
@@ -122,15 +131,48 @@ impl NativeInputFamilyObservation {
 impl NativeInputReachabilityObservationSet {
     pub(crate) fn new(
         pointer: NativeInputFamilyObservation,
+        keyboard_routing_stop: PlatformPulseLifecycleObservationEnvelope,
         keyboard: NativeInputFamilyObservation,
         pixels: NativeClientPixelCapture,
     ) -> Self {
         Self {
             pointer,
+            keyboard_routing_stop,
             keyboard,
             pixels,
         }
     }
+}
+
+fn require_keyboard_routing_stop(
+    first_frame: &ExecutableFirstFrameEvidence,
+    envelope: PlatformPulseLifecycleObservationEnvelope,
+) -> Result<u64, ExecutableNativeInputReachabilityFailure> {
+    if envelope.run().value() != first_frame.run_identity() {
+        return Err(ExecutableNativeInputReachabilityFailure::ForeignRun);
+    }
+    let PlatformPulseLifecycleObservation::IntentRoutingStopped(
+        PlatformPulseIntentRoutingStoppedObservation::Unrouted {
+            graph_node,
+            interaction,
+        },
+    ) = envelope.outcome()
+    else {
+        return Err(ExecutableNativeInputReachabilityFailure::MissingKeyboardRoutingStop);
+    };
+    if *graph_node == 0 || *interaction != PlatformPulseIntentInteractionFamily::Activate {
+        return Err(ExecutableNativeInputReachabilityFailure::InvalidKeyboardRoutingStop);
+    }
+    let observed = envelope.sequence().value();
+    if observed != 6 {
+        return Err(
+            ExecutableNativeInputReachabilityFailure::UnexpectedSequence {
+                kind: NativeInputProbeKind::Keyboard,
+                observed,
+            },
+        );
+    }
+    Ok(observed)
 }
 
 fn require_delivery_target(
@@ -206,8 +248,12 @@ impl ExecutableNativeInputReachabilityEvidence {
             .saturating_add(self.keyboard_delivery.delivered_event_count())
     }
 
-    pub(crate) fn sequences(&self) -> (u64, u64) {
-        (self.pointer_sequence, self.keyboard_sequence)
+    pub(crate) fn sequences(&self) -> (u64, u64, u64) {
+        (
+            self.pointer_sequence,
+            self.keyboard_routing_stop_sequence,
+            self.keyboard_sequence,
+        )
     }
 
     pub(crate) fn pointer_button_events(&self) -> u64 {
@@ -249,6 +295,10 @@ impl fmt::Display for ExecutableNativeInputReachabilityFailure {
             Self::MissingReachabilityOutcome(kind) => {
                 write!(formatter, "child did not publish {kind:?} reachability")
             }
+            Self::MissingKeyboardRoutingStop => formatter
+                .write_str("keyboard probe did not publish the expected unrouted observation"),
+            Self::InvalidKeyboardRoutingStop => formatter
+                .write_str("keyboard probe published invalid unrouted observation evidence"),
             Self::ForeignRun => formatter.write_str("reachability belongs to a foreign run"),
             Self::UnexpectedSequence { kind, observed } => {
                 write!(formatter, "{kind:?} reachability sequence was {observed}")

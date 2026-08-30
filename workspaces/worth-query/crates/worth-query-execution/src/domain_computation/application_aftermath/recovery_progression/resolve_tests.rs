@@ -77,7 +77,9 @@ fn baseline_parts() -> WorthQueryRecoveryHandleBindingAxisProbe {
                 )
                 .unwrap(),
                 effect: "EstateDeathNotificationEffect".to_owned(),
-                rust_payload_type: "fixture::EstateDeathNotificationRequest".to_owned(),
+                rust_payload_type: worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                    "worth.query.test.estate-death-notification-request.v1",
+                ),
                 protocol: ApplicationExternalEffectProtocol::new(
                     BoundaryProtocolIdentity::new("test.estate-death-notification"),
                     BoundaryProtocolVersion::new(1),

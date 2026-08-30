@@ -14,6 +14,34 @@ pub enum EffectExecutionDenialKind {
     BridgePolicyAdmissionFailed,
     BridgeWritebackExecutionFailed,
     RelationalAuthorityBindingMalformed,
+    ActiveSnapshotCapacityExhausted {
+        maximum_active_snapshots: usize,
+    },
+    SnapshotIdentityExhausted,
+    CandidateIdentityExhausted,
+    TransactionRetentionOwnerUnavailable,
+    TransactionRetentionIdentityExhausted,
+    TransactionRetentionInvariantViolation,
+    TransactionSavepointIdentityExhausted,
+    TransactionOverlayBudgetExceeded {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    TransactionFootprintBudgetExceeded {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    TransactionSavepointBudgetExceeded {
+        maximum_savepoints: usize,
+    },
+    TransactionSavepointFootprintBudgetExceeded {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    PreparedRootBudgetExceeded {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
     RelationalExactBasisStale,
     RelationalStrategyCanonicalizationFailed,
     RelationalStrategyExecutionFailed,
@@ -33,6 +61,30 @@ impl EffectExecutionDenialKind {
             Self::BridgePolicyAdmissionFailed => "bridge_policy_admission_failed",
             Self::BridgeWritebackExecutionFailed => "bridge_writeback_execution_failed",
             Self::RelationalAuthorityBindingMalformed => "relational_authority_binding_malformed",
+            Self::ActiveSnapshotCapacityExhausted { .. } => "active_snapshot_capacity_exhausted",
+            Self::SnapshotIdentityExhausted => "snapshot_identity_exhausted",
+            Self::CandidateIdentityExhausted => "candidate_identity_exhausted",
+            Self::TransactionRetentionOwnerUnavailable => "transaction_retention_owner_unavailable",
+            Self::TransactionRetentionIdentityExhausted => {
+                "transaction_retention_identity_exhausted"
+            }
+            Self::TransactionRetentionInvariantViolation => {
+                "transaction_retention_invariant_violation"
+            }
+            Self::TransactionSavepointIdentityExhausted => {
+                "transaction_savepoint_identity_exhausted"
+            }
+            Self::TransactionOverlayBudgetExceeded { .. } => "transaction_overlay_budget_exceeded",
+            Self::TransactionFootprintBudgetExceeded { .. } => {
+                "transaction_footprint_budget_exceeded"
+            }
+            Self::TransactionSavepointBudgetExceeded { .. } => {
+                "transaction_savepoint_budget_exceeded"
+            }
+            Self::TransactionSavepointFootprintBudgetExceeded { .. } => {
+                "transaction_savepoint_footprint_budget_exceeded"
+            }
+            Self::PreparedRootBudgetExceeded { .. } => "prepared_root_budget_exceeded",
             Self::RelationalExactBasisStale => "relational_exact_basis_stale",
             Self::RelationalStrategyCanonicalizationFailed => {
                 "relational_strategy_canonicalization_failed"
@@ -77,6 +129,16 @@ impl<'a> EffectExecutionAuthority<'a> {
             relational: Some(relational),
             bridge: Some(bridge),
         }
+    }
+
+    pub fn repair_pending_settlement(
+        self,
+        commit_id: worth_relational::facade::history::CommitId,
+    ) -> Result<
+        worth_relational::facade::history::RelationalCommitReceipt,
+        super::super::EffectSettlementRepairError,
+    > {
+        super::super::settlement_repair::repair_pending_effect_settlement(self, commit_id)
     }
 
     pub(crate) fn relational_runtime(&mut self) -> Option<&mut RelationalRuntime> {

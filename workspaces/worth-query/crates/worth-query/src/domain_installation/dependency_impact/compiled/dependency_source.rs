@@ -75,7 +75,7 @@ pub enum WorthQuerySemanticAspectDependencyView<'a> {
     TouchScope(&'a str),
     EffectFamily(worth_query_installation::facade::WorthQueryOperationEffectFamily),
     InstalledInvariant(&'a str),
-    ReplayContract(worth_query_installation::facade::WorthQueryOperationReplayContract),
+    ReplayContract(&'a worth_query_installation::facade::WorthQueryOperationReplayContract),
     LineageContract(worth_query_installation::facade::WorthQueryOperationLineageContract),
     SupportContract(worth_query_installation::facade::WorthQueryOperationSupportRequirements),
     WorkflowStageRead {

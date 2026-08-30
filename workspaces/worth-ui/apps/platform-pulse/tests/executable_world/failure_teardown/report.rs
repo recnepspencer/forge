@@ -15,7 +15,8 @@ use crate::installation::{
 };
 use crate::native_platform::NativePlatformFailure;
 use crate::product_process::{
-    EmergencyPlatformPulseExit, EmergencyPlatformPulseExitFailure, PlatformPulseProcessExitFailure,
+    EmergencyPlatformPulseExit, EmergencyPlatformPulseExitFailure,
+    PlatformPulseNativeCloseEvidenceFailure, PlatformPulseProcessExitFailure,
     PlatformPulseProcessLaunchFailure, PlatformPulseQuiescenceFailure,
     WatchedPulseObservationFailure,
 };
@@ -44,7 +45,9 @@ pub(crate) enum PulseExecutableWorldFailure {
     SchemaTransition(ExecutableSchemaTransitionFailure),
     Preservation(ExecutablePredecessorPreservationFailure),
     IntentJourney(crate::product_process::PlatformPulseIntentJourneyFailure),
+    PortalJourney(crate::product_process::PlatformPulsePortalJourneyFailure),
     ProcessExit(PlatformPulseProcessExitFailure),
+    NativeCloseEvidence(PlatformPulseNativeCloseEvidenceFailure),
     Cleanup(ExecutableLifecycleCleanupFailure),
     Quiescence(PlatformPulseQuiescenceFailure),
 }
@@ -277,7 +280,11 @@ impl fmt::Display for PulseExecutableWorldFailure {
                 write!(formatter, "predecessor preservation: {failure}")
             }
             Self::IntentJourney(failure) => write!(formatter, "intent journey: {failure}"),
+            Self::PortalJourney(failure) => write!(formatter, "portal journey: {failure}"),
             Self::ProcessExit(failure) => write!(formatter, "process exit: {failure}"),
+            Self::NativeCloseEvidence(failure) => {
+                write!(formatter, "native close evidence: {failure}")
+            }
             Self::Cleanup(failure) => write!(formatter, "lifecycle cleanup: {failure}"),
             Self::Quiescence(failure) => write!(formatter, "product quiescence: {failure}"),
         }

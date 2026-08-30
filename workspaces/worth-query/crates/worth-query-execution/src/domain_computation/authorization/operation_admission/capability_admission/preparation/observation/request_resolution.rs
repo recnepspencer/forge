@@ -91,9 +91,9 @@ impl WorthQueryCapabilityContextKey {
     fn from_slot(slot: &ApplicationCapabilityContextEntitySlotBinding) -> Self {
         Self {
             context: slot.context().to_string(),
-            context_type: slot.context_type().to_string(),
+            context_type: slot.context_identity().as_str().to_string(),
             slot: slot.slot().to_string(),
-            slot_type: slot.slot_type().to_string(),
+            slot_type: slot.slot_identity().as_str().to_string(),
             entity: slot.entity().to_string(),
         }
     }
@@ -134,9 +134,9 @@ where
         let evidence = resolve_erased_selector(truth, schema, selector)?;
         let key = WorthQueryCapabilityContextKey {
             context: slot.context().to_string(),
-            context_type: slot.context_type().to_string(),
+            context_type: slot.context_identity().as_str().to_string(),
             slot: slot.slot().to_string(),
-            slot_type: slot.slot_type().to_string(),
+            slot_type: slot.slot_identity().as_str().to_string(),
             entity: slot.entity().to_string(),
         };
         if context.insert(key, evidence.entity_id()).is_some() {

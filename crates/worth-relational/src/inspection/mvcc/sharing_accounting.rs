@@ -42,12 +42,9 @@ impl RelationalAuthoritativeAllocationAccounting {
     pub(super) fn allocations(&self) -> Vec<RelationalAuthoritativeAllocationObservation> {
         self.allocations
             .iter()
-            .map(
-                |(locator, bytes)| RelationalAuthoritativeAllocationObservation {
-                    locator: *locator,
-                    authoritative_bytes: *bytes,
-                },
-            )
+            .map(|(locator, bytes)| {
+                RelationalAuthoritativeAllocationObservation::new(*locator, *bytes)
+            })
             .collect()
     }
 
@@ -58,7 +55,7 @@ impl RelationalAuthoritativeAllocationAccounting {
     pub(super) fn unique_bytes_for(&self, kind: RelationalAuthoritativeAllocationKind) -> u64 {
         self.allocations
             .iter()
-            .filter(|(locator, _)| locator.kind == kind)
+            .filter(|(locator, _)| locator.kind() == kind)
             .map(|(_, bytes)| *bytes)
             .sum()
     }
@@ -123,33 +120,33 @@ impl RelationalAuthoritativeAllocationAccounting {
                 .saturating_add(region.root_region_bytes)
                 .saturating_add(region.partition_state_bytes);
             self.insert(
-                RelationalAuthoritativeAllocationLocator {
+                RelationalAuthoritativeAllocationLocator::new(
                     runtime_instance_id,
-                    kind: RelationalAuthoritativeAllocationKind::PartitionPayload,
-                    owner_id: region.region_id,
-                    creation_owner_id: region.creation_root_id,
-                    partition_id: Some(region.partition_id),
-                },
+                    RelationalAuthoritativeAllocationKind::PartitionPayload,
+                    region.region_id,
+                    region.creation_root_id,
+                    Some(region.partition_id),
+                ),
                 region.authoritative_bytes,
             );
             self.insert(
-                RelationalAuthoritativeAllocationLocator {
+                RelationalAuthoritativeAllocationLocator::new(
                     runtime_instance_id,
-                    kind: RelationalAuthoritativeAllocationKind::RootRegionObject,
-                    owner_id: region.region_id,
-                    creation_owner_id: region.creation_root_id,
-                    partition_id: Some(region.partition_id),
-                },
+                    RelationalAuthoritativeAllocationKind::RootRegionObject,
+                    region.region_id,
+                    region.creation_root_id,
+                    Some(region.partition_id),
+                ),
                 region.root_region_bytes,
             );
             self.insert(
-                RelationalAuthoritativeAllocationLocator {
+                RelationalAuthoritativeAllocationLocator::new(
                     runtime_instance_id,
-                    kind: RelationalAuthoritativeAllocationKind::PartitionStateObject,
-                    owner_id: region.region_id,
-                    creation_owner_id: region.creation_root_id,
-                    partition_id: Some(region.partition_id),
-                },
+                    RelationalAuthoritativeAllocationKind::PartitionStateObject,
+                    region.region_id,
+                    region.creation_root_id,
+                    Some(region.partition_id),
+                ),
                 region.partition_state_bytes,
             );
             self.excluded_allocations.insert(
@@ -205,13 +202,13 @@ impl RelationalAuthoritativeAllocationAccounting {
                 }
             };
             self.insert(
-                RelationalAuthoritativeAllocationLocator {
+                RelationalAuthoritativeAllocationLocator::new(
                     runtime_instance_id,
                     kind,
-                    owner_id: allocation.owner_id,
-                    creation_owner_id: allocation.owner_id,
-                    partition_id: None,
-                },
+                    allocation.owner_id,
+                    allocation.owner_id,
+                    None,
+                ),
                 allocation.authoritative_bytes,
             );
         }
@@ -242,13 +239,13 @@ impl RelationalAuthoritativeAllocationAccounting {
                 .logical_canonical_commit_bytes
                 .saturating_add(allocation.authoritative_bytes);
             self.insert(
-                RelationalAuthoritativeAllocationLocator {
+                RelationalAuthoritativeAllocationLocator::new(
                     runtime_instance_id,
                     kind,
-                    owner_id: artifact.commit_id().0,
-                    creation_owner_id: artifact.commit_id().0,
-                    partition_id: None,
-                },
+                    artifact.commit_id().0,
+                    artifact.commit_id().0,
+                    None,
+                ),
                 allocation.authoritative_bytes,
             );
         }

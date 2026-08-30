@@ -192,9 +192,10 @@ fn artifact_package(
     semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::NotRequired;
     semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
     semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
-        comparator: domain::WorthQueryOperationReplayComparatorContract {
-            family: "artifact-workflow-exact-v1",
-        },
+        comparator: domain::WorthQueryOperationReplayComparatorContract::new(
+            "artifact-workflow-exact-v1",
+        )
+        .expect("static replay comparator family is portable"),
     };
     semantics.lowering = domain::WorthQueryOperationLoweringContract {
         family: "artifact-workflow-v1".into(),

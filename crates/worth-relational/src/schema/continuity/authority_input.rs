@@ -11,6 +11,7 @@ use crate::schema::data::{
 /// the runtime's final schema.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SchemaContinuityAuthorityInput {
+    target_schema_registry: Option<std::sync::Arc<crate::schema::data::RelationalSchemaRegistry>>,
     target_schema_version: SchemaVersionId,
     target_schema_authority: SchemaAuthoritySnapshot,
     target_schema_basis: Option<(SchemaId, SchemaVersionId)>,
@@ -19,23 +20,35 @@ pub(crate) struct SchemaContinuityAuthorityInput {
 }
 
 impl SchemaContinuityAuthorityInput {
-    pub(crate) fn from_runtime(runtime: &crate::runtime::RelationalRuntime) -> Self {
-        use crate::capabilities::{SchemaSource, SchemaVersionSource};
-
-        Self::new(
-            runtime.primary_schema_version_id(),
-            runtime.schema_registry().authority_snapshot(),
-            runtime
-                .config
-                .schema
-                .descriptor_semantics_policy
-                .current_write_version(),
-            runtime
-                .config
-                .schema
-                .descriptor_canonical_basis_policy
-                .current_write_version(),
+    pub(crate) fn from_registry(
+        target_schema_registry: crate::schema::data::RelationalSchemaRegistry,
+        descriptor_semantics_version: DescriptorSemanticsVersion,
+        descriptor_canonical_basis_version: DescriptorCanonicalBasisVersion,
+    ) -> Self {
+        Self::from_shared_registry(
+            std::sync::Arc::new(target_schema_registry),
+            descriptor_semantics_version,
+            descriptor_canonical_basis_version,
         )
+    }
+
+    pub(crate) fn from_shared_registry(
+        target_schema_registry: std::sync::Arc<crate::schema::data::RelationalSchemaRegistry>,
+        descriptor_semantics_version: DescriptorSemanticsVersion,
+        descriptor_canonical_basis_version: DescriptorCanonicalBasisVersion,
+    ) -> Self {
+        let target_schema_authority = target_schema_registry.authority_snapshot();
+        let target_schema_version = target_schema_authority
+            .primary_schema_version_id
+            .unwrap_or(SchemaVersionId(0));
+        let mut input = Self::new(
+            target_schema_version,
+            target_schema_authority,
+            descriptor_semantics_version,
+            descriptor_canonical_basis_version,
+        );
+        input.target_schema_registry = Some(target_schema_registry);
+        input
     }
 
     pub(crate) fn new(
@@ -49,12 +62,19 @@ impl SchemaContinuityAuthorityInput {
             .clone()
             .zip(target_schema_authority.primary_schema_version_id);
         Self {
+            target_schema_registry: None,
             target_schema_version,
             target_schema_authority,
             target_schema_basis,
             descriptor_semantics_version,
             descriptor_canonical_basis_version,
         }
+    }
+
+    pub(crate) fn target_schema_registry(
+        &self,
+    ) -> Option<&std::sync::Arc<crate::schema::data::RelationalSchemaRegistry>> {
+        self.target_schema_registry.as_ref()
     }
 
     pub(crate) const fn target_schema_version(&self) -> SchemaVersionId {

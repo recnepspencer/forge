@@ -20,11 +20,6 @@ impl CompiledFinancialLocalityWorld {
         self.operational_digest_with_work(&BTreeMap::new())
     }
 
-    pub(super) fn operational_digest(&self) -> Result<CanonicalDigestId, SignalError> {
-        let performed_work = self.performed_canonical_work();
-        self.operational_digest_with_work(&performed_work)
-    }
-
     pub(super) fn operational_digest_with_work(
         &self,
         performed_bindings: &super::FinancialPerformedCanonicalWork,

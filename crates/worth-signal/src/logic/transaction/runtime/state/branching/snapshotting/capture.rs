@@ -12,8 +12,18 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn capture_snapshot(&mut self) -> Result<SignalSnapshotV1, SignalError> {
+    pub(crate) fn capture_snapshot(&mut self) -> Result<SignalSnapshotV1, SignalError> {
+        self.ensure_branch_snapshot_storage_available()?;
         Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
+        let branch_id = self.graph.current_branch().id;
+        let next_generation = self
+            .branches
+            .next_branch_head_generation(branch_id)
+            .map_err(|denial| {
+                SignalError::internal(format!(
+                    "Signal snapshot generation cannot advance: {denial:?}"
+                ))
+            })?;
         let mut snapshot = self.graph.capture_snapshot();
         let retained_replay = self
             .graph
@@ -88,29 +98,45 @@ where
         branch_state
             .mutation_ledger_mut()
             .clear_all(Some(snapshot.meta.snapshot_id));
+        self.branches
+            .set_branch_head_snapshot(branch_id, snapshot.meta.snapshot_id);
+        self.project_branch_catalog();
+        self.branches
+            .project_catalog(branch_id, branch_state.graph_mut());
+        self.branches
+            .project_catalog(branch_id, &mut snapshot.diagnostic_graph);
         self.branches.insert_snapshot(
             SnapshotBranchState::from_branch_state(&branch_state).packet(snapshot.meta.snapshot_id),
         );
         self.branches.store_branch_state(branch_state);
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.branches
+            .commit_branch_head_generation(branch_id, next_generation);
         Ok(snapshot)
     }
 
-    pub fn capture_branch_snapshot(
+    pub(crate) fn capture_branch_snapshot(
         &mut self,
         branch: SignalBranchHandle,
     ) -> Result<SignalSnapshotV1, SignalError> {
         if branch.id == self.graph.current_branch().id {
             return self.capture_snapshot();
         }
+        self.ensure_branch_snapshot_storage_available()?;
         let stored_state = self
             .branches
             .branch_state(branch.id)
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
         Self::ensure_managed_queue_branch_transfer_allowed(stored_state.resource())?;
+        let next_generation = self
+            .branches
+            .next_branch_head_generation(branch.id)
+            .map_err(|denial| {
+                SignalError::internal(format!(
+                    "Signal snapshot generation cannot advance: {denial:?}"
+                ))
+            })?;
         self.graph.interrupt_observation_at_boundary();
-        let Some((snapshot, branch_catalog, snapshot_state)) =
+        let Some((mut snapshot, snapshot_state)) =
             self.branches.with_stored_branch_state_mut(branch.id, |state| {
             state.graph_mut().interrupt_observation_at_boundary();
             let installed = state.graph().installed_runtime_policy();
@@ -121,10 +147,6 @@ where
                 .graph_mut()
                 .diagnostics_state_mut()
                 .allocate_snapshot_meta(request_metadata, artifact_retention);
-            state
-                .graph_mut()
-                .diagnostics_state_mut()
-                .set_branch_head_snapshot(branch.id, meta.snapshot_id);
             crate::diagnostics::recorder::record_snapshot_event(
                 state.graph_mut(),
                 crate::diagnostics::replay::ReplayEventKind::SnapshotCaptured,
@@ -138,9 +160,11 @@ where
             let captures_telemetry = state.graph().captures_observation_surface(
                 crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
             );
-            let graph_telemetry = captures_telemetry
-                .then(|| *state.graph().telemetry())
-                .unwrap_or_default();
+            let graph_telemetry = if captures_telemetry {
+                *state.graph().telemetry()
+            } else {
+                Default::default()
+            };
             let retained_replay = state
                 .graph()
                 .observe()
@@ -229,21 +253,32 @@ where
                     ),
                 ),
             };
-            let branch_catalog = state.graph().diagnostics_state().branch_catalog().clone();
             state
                 .mutation_ledger_mut()
                 .clear_all(Some(snapshot.meta.snapshot_id));
-            (
-                snapshot,
-                branch_catalog,
-                SnapshotBranchState::from_branch_state(state),
-            )
+            (snapshot, SnapshotBranchState::from_branch_state(state))
         }) else {
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
         self.branches
             .insert_snapshot(snapshot_state.packet(snapshot.meta.snapshot_id));
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.branches
+            .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
+        self.branches
+            .project_catalog(branch.id, &mut snapshot.diagnostic_graph);
+        self.project_branch_catalog();
+        self.branches
+            .commit_branch_head_generation(branch.id, next_generation);
         Ok(snapshot)
+    }
+
+    fn ensure_branch_snapshot_storage_available(&self) -> Result<(), SignalError> {
+        self.branches
+            .ensure_snapshot_storage_available()
+            .map_err(|denial| {
+                SignalError::invalid_input(format!(
+                    "Signal branch snapshot storage exhausted before movement: {denial:?}"
+                ))
+            })
     }
 }

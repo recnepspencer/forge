@@ -111,6 +111,12 @@ impl WorthUiPreparedApplicationLoweringAuthority {
         self.facts.capability_snapshot.mosaic_state_slots()
     }
 
+    pub(crate) fn mosaic_sizing_capabilities(
+        &self,
+    ) -> &crate::capability::FrozenMosaicSizingCapabilities {
+        self.facts.capability_snapshot.mosaic_sizing_contracts()
+    }
+
     #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn synthetic_successor_for_certification(
         &self,

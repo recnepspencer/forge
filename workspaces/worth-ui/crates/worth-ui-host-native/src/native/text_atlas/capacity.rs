@@ -1,5 +1,6 @@
 //! Exact qualified atlas capacity dimensions and staging limits.
 
+#[cfg(test)]
 use super::recovery::UiNativeTextAtlasDenial;
 use worth_ui_host_contract::UiGlyphRasterSource;
 
@@ -40,6 +41,7 @@ pub struct UiNativeTextAtlasQualifiedCapacity {
     staged_upload_bytes: u64,
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiNativeTextAtlasCapacityPosture {
     qualified: UiNativeTextAtlasQualifiedCapacity,
@@ -99,8 +101,8 @@ impl UiNativeTextAtlasQualifiedCapacity {
     }
 }
 
+#[cfg(test)]
 impl UiNativeTextAtlasCapacityPosture {
-    #[allow(dead_code, reason = "reserved for native atlas effect ownership")]
     pub(crate) const fn from_native_host(
         live_entries: u32,
         live_pins: u32,
@@ -161,5 +163,8 @@ mod tests {
             .expect("two layouts may independently pin one shared raster entry");
         assert_eq!(shared.live_entries(), 1);
         assert_eq!(shared.live_pins(), 2);
+        assert_eq!(shared.qualified(), capacity);
+        assert_eq!(shared.retained_texel_bytes(), 16);
+        assert_eq!(shared.staged_bytes(), 0);
     }
 }

@@ -1,4 +1,7 @@
+mod command;
 mod envelope;
+mod focus;
+mod focus_projection;
 mod intent;
 mod launch;
 mod lifecycle;
@@ -16,6 +19,10 @@ mod visual_projection;
 mod visual_tests;
 mod visual_value_projection;
 
+pub use command::{
+    PlatformPulseCommandLosingCandidateInspection, PlatformPulseCommandLossReasonInspection,
+    PlatformPulseCommandScopeInspection, PlatformPulseCommandTransitionInspection,
+};
 pub use envelope::{
     PlatformPulseDecodedLifecycleObservation, PlatformPulseInheritedLifecycleOnly,
     PlatformPulseLifecycleObservationCodecDenial, PlatformPulseLifecycleObservationEnvelope,
@@ -23,6 +30,11 @@ pub use envelope::{
     PlatformPulseObservationSequence, PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY,
     PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION,
     PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX,
+};
+pub use focus::{
+    PlatformPulseFocusTransitionInspection, PlatformPulseSemanticFocusCause,
+    PlatformPulseSemanticFocusOutcome, PlatformPulseSemanticFocusParticipant,
+    PlatformPulseSemanticFocusPhysicalOutcome, PlatformPulseSemanticFocusPublished,
 };
 pub use intent::{
     PlatformPulseIntentAdmissionTrace, PlatformPulseIntentAttemptObservationReference,
@@ -32,9 +44,10 @@ pub use intent::{
     PlatformPulseIntentOperabilityObservation, PlatformPulseIntentOperabilityTrace,
     PlatformPulseIntentOutcomeTrace, PlatformPulseIntentPayloadTrace,
     PlatformPulseIntentPostureObservation, PlatformPulseIntentPosturePublished,
-    PlatformPulseIntentRouteTrace, PlatformPulseIntentSourceTrace,
-    PlatformPulseIntentTraceProjectionDenial, PlatformPulseIntentWatcherShutdownEvidence,
-    PlatformPulseQueryActionObservation,
+    PlatformPulseIntentRouteTrace, PlatformPulseIntentRoutingStoppedObservation,
+    PlatformPulseIntentSourceTrace, PlatformPulseIntentTraceProjectionDenial,
+    PlatformPulseIntentWatcherShutdownEvidence, PlatformPulseQueryActionObservation,
+    PlatformPulseQueryActionPreconditionDenial,
 };
 pub use launch::{
     PlatformPulseLaunchConfigurationDenial, PlatformPulseLaunchConfigurationDenialKind,
@@ -43,11 +56,12 @@ pub use lifecycle::{
     PlatformPulseApplicationGenerationObservation, PlatformPulseFirstFramePublished,
     PlatformPulseLifecycleObservation, PlatformPulseMountedFrameObservation,
     PlatformPulseNativeRebindDenialStage, PlatformPulseNativeRebindPreparationDenial,
-    PlatformPulseProcessStarted, PlatformPulseReplacementDenialFamily,
-    PlatformPulseReplacementPreserved, PlatformPulseReplacementPublished,
-    PlatformPulseShutdownCompleted, PlatformPulseSourceSnapshotObservation,
-    PlatformPulseTerminalFailure, PlatformPulseTerminalFailureFamily,
-    PlatformPulseVisualComparison, PlatformPulseWatcherBackendObservation,
+    PlatformPulsePortalDismissed, PlatformPulseProcessStarted,
+    PlatformPulseReplacementDenialFamily, PlatformPulseReplacementPreserved,
+    PlatformPulseReplacementPublished, PlatformPulseShutdownCompleted,
+    PlatformPulseSourceSnapshotObservation, PlatformPulseTerminalFailure,
+    PlatformPulseTerminalFailureFamily, PlatformPulseVisualComparison,
+    PlatformPulseWatcherBackendObservation,
 };
 pub use native_input::{PlatformPulseNativeInputIngressPosture, PlatformPulseNativeInputReached};
 pub use projection::{

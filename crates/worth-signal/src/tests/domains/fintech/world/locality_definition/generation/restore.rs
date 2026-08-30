@@ -117,7 +117,7 @@ fn dense(
     seed: u64,
     total_outputs: u32,
 ) -> (Vec<FinancialLocalityOutput>, Vec<FinancialLocalityMutation>) {
-    assert!(total_outputs >= 5 && total_outputs % 5 == 0);
+    assert!(total_outputs >= 5 && total_outputs.is_multiple_of(5));
     let mut outputs = vec![source(seed, 0, FinancialAspect::Price)];
     let affected = total_outputs / 5 * 4;
     for ordinal in 1..total_outputs {

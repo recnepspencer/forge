@@ -32,16 +32,6 @@ impl BitsetFrontier {
         self.current.marked_indices()
     }
 
-    /// Current frontier indices in ascending deterministic order.
-    pub fn current_iter(&self) -> impl Iterator<Item = usize> + '_ {
-        self.current.iter_marked()
-    }
-
-    /// Whether the current board is non-empty.
-    pub fn has_current(&self) -> bool {
-        self.current.any()
-    }
-
     /// Advance one step.
     pub fn advance(&mut self) {
         std::mem::swap(&mut self.current, &mut self.next);

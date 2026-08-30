@@ -3,10 +3,10 @@ use worth_foundational::{FoundationalBranchReferenceObservation, FoundationalBra
 
 #[test]
 fn durability_contract_recovery_rejects_tail_target_without_immutable_artifact() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "checkpoint-basis");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "checkpoint-basis");
     runtime.durability_authority().checkpoint().unwrap();
-    let second = create_entity_outcome(&mut runtime, "tail-commit");
+    let second = create_entity_outcome(&runtime, "tail-commit");
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -35,7 +35,7 @@ fn durability_contract_recovery_rejects_tail_target_without_immutable_artifact()
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("tail admission must validate its target artifact");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);

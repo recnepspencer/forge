@@ -16,6 +16,8 @@ pub struct UiMountedFrameRequest {
     virtualized_range: Option<crate::runtime::WorthUiVisibleRange>,
     visual_overlay_revision: u64,
     visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
+    portal_overlay_revision: u64,
+    portal_overlays: std::rc::Rc<[super::UiMountedPortalOverlayProjectionInput]>,
     reuse_identity: UiMountedFrameRequestIdentity,
 }
 
@@ -44,7 +46,7 @@ pub enum UiMountedFramePreparationDenial {
 #[derive(Clone)]
 pub struct UiMountedSurfaceReceipt {
     requirement: UiMountedSurfaceBindingRequirement,
-    projection_frame: std::sync::Arc<super::UiMountedProjectionFrame>,
+    projection_frame: std::rc::Rc<super::UiMountedProjectionFrame>,
     projection: std::cell::OnceCell<UiMountedProjectionView>,
 }
 
@@ -86,6 +88,8 @@ impl UiMountedFrameRequest {
             virtualized_range: None,
             visual_overlay_revision: 0,
             visual_overlay: None,
+            portal_overlay_revision: 0,
+            portal_overlays: std::rc::Rc::from([]),
             reuse_identity: UiMountedFrameRequestIdentity(std::rc::Rc::new(())),
         }
     }
@@ -96,6 +100,8 @@ impl UiMountedFrameRequest {
             virtualized_range: None,
             visual_overlay_revision: 0,
             visual_overlay: None,
+            portal_overlay_revision: 0,
+            portal_overlays: std::rc::Rc::from([]),
             reuse_identity: UiMountedFrameRequestIdentity(std::rc::Rc::new(())),
         }
     }
@@ -129,6 +135,23 @@ impl UiMountedFrameRequest {
         &self,
     ) -> Option<super::UiMountedVisualOverlayProjectionInput> {
         self.visual_overlay
+    }
+
+    pub(crate) fn with_portal_overlays(
+        mut self,
+        revision: u64,
+        portal_overlays: Vec<super::UiMountedPortalOverlayProjectionInput>,
+    ) -> Self {
+        self.portal_overlay_revision = revision;
+        self.portal_overlays = portal_overlays.into();
+        self.reuse_identity = UiMountedFrameRequestIdentity(std::rc::Rc::new(()));
+        self
+    }
+
+    pub(crate) fn portal_overlays(
+        &self,
+    ) -> std::rc::Rc<[super::UiMountedPortalOverlayProjectionInput]> {
+        std::rc::Rc::clone(&self.portal_overlays)
     }
 
     pub(crate) fn reuse_identity(&self) -> UiMountedFrameRequestIdentity {
@@ -170,6 +193,8 @@ impl PartialEq for UiMountedFrameRequest {
             && self.virtualized_range == other.virtualized_range
             && self.visual_overlay_revision == other.visual_overlay_revision
             && self.visual_overlay == other.visual_overlay
+            && self.portal_overlay_revision == other.portal_overlay_revision
+            && self.portal_overlays == other.portal_overlays
     }
 }
 
@@ -202,8 +227,8 @@ impl UiMountedSurfaceReceipt {
         })
     }
 
-    pub(crate) fn projection_owner(&self) -> std::sync::Arc<super::UiMountedProjectionFrame> {
-        std::sync::Arc::clone(&self.projection_frame)
+    pub(crate) fn projection_owner(&self) -> std::rc::Rc<super::UiMountedProjectionFrame> {
+        std::rc::Rc::clone(&self.projection_frame)
     }
 
     pub(crate) fn presentation_effects(

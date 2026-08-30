@@ -5,8 +5,7 @@ pub use super::async_result_state::{
 };
 pub use super::owned_async_source::{
     WorthQueryInstalledOwnedAsyncDeclaration, WorthQueryOwnedAsyncRequestDeclaration,
-    WorthQueryOwnedAsyncRuntimeDenial,
-    WorthQueryOwnedAsyncRuntimeTopology,
+    WorthQueryOwnedAsyncRuntimeDenial, WorthQueryOwnedAsyncRuntimeTopology,
 };
 
 pub use super::async_source_binding::{
@@ -27,14 +26,15 @@ pub use super::backend::{
     SubscriptionActivationReceipt, WorthQueryBackendEntityLookup, WorthQueryBackendInspectionError,
     WorthQueryBackendInspectionErrorKind, WorthQueryBackendMergeAuthority,
     WorthQueryBridgeBackedRuntimeBackend, WorthQueryIntentAuthorityAdapter,
-    WorthQueryPrimaryGraphBackendHandle, WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
-    WorthQueryRuntimeDeclarationInitializationAdapter,
+    WorthQueryMergeSnapshotOwner, WorthQueryPrimaryGraphBackendHandle, WorthQueryRuntimeBackend,
+    WorthQueryRuntimeBackendParts, WorthQueryRuntimeDeclarationInitializationAdapter,
     WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeInspectorEvidenceAdapter,
     WorthQueryRuntimeIntentAuthorityAdapter, WorthQueryRuntimePreviewBasisAdapter,
     WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
     WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
     WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeWriteAuthorityAdapter,
-    WorthQueryUnpublishedPrimaryGraphRuntime, WriteAuthorityExecutionReceipt,
+    WorthQuerySettlementRecoveryBackend, WorthQueryUnpublishedPrimaryGraphRuntime,
+    WriteAuthorityExecutionReceipt,
 };
 
 pub use super::branch::WorthQueryBranchSession;

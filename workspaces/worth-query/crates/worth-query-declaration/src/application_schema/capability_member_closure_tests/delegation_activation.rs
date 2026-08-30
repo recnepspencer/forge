@@ -8,6 +8,12 @@ struct ActivationContextRelation;
 struct OtherCapability;
 struct OtherAction;
 
+impl ApplicationOperationMarkerIdentity for ActivationOperation {
+    type Schema = Schema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "Activate";
+}
+
 #[test]
 fn activation_operation_installs_without_an_application_program_inventory() {
     assert_eq!(build_from_members(activation_members()), Ok(()));
@@ -148,7 +154,9 @@ fn activation_members_for(contract: ErasedContract) -> Vec<ApplicationSchemaMemb
     members.push(field_member("Identity"));
     members.push(ApplicationSchemaMember::Operation {
         operation: "Activate".to_owned(),
-        input_type: std::any::type_name::<()>().to_owned(),
+        input_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "worth.rust.unit",
+        ),
     });
     members
 }
@@ -156,7 +164,7 @@ fn activation_members_for(contract: ErasedContract) -> Vec<ApplicationSchemaMemb
 fn activated_contract(context_relation: ApplicationCapabilityRelationBinding) -> ErasedContract {
     ApplicationCapabilityContractBuilder::new(
         ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
         ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
     .target(target_definition(false, false))
@@ -164,9 +172,7 @@ fn activated_contract(context_relation: ApplicationCapabilityRelationBinding) ->
     .delegation(
         delegation_definition().with_activation(
             ApplicationCapabilityDelegationActivationDefinition::new(
-                ApplicationOperationRef::<Schema, ActivationOperation, ()>::from_schema_identifier(
-                    "Activate",
-                ),
+                ApplicationOperationRef::<Schema, ActivationOperation, ()>::from_declaration(),
                 binding::<Identity>("Identity"),
             )
             .with_context_relations([context_relation]),
@@ -197,7 +203,7 @@ fn second_activated_contract(
         ApplicationCapabilityRef::<Schema, OtherCapability>::from_schema_identifier(
             "OtherCapability",
         ),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
         ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
     .target(target)
@@ -205,9 +211,7 @@ fn second_activated_contract(
     .delegation(
         delegation_definition().with_activation(
             ApplicationCapabilityDelegationActivationDefinition::new(
-                ApplicationOperationRef::<Schema, ActivationOperation, ()>::from_schema_identifier(
-                    "Activate",
-                ),
+                ApplicationOperationRef::<Schema, ActivationOperation, ()>::from_declaration(),
                 binding::<Identity>("Identity"),
             )
             .with_context_relations([context_relation]),

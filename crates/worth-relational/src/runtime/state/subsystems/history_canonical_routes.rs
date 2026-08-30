@@ -4,28 +4,14 @@ use crate::history::data::{CanonicalCommitEnvelope, CommitId};
 use crate::identity::data::VersionId;
 use crate::publication::patch::data::PatchStreamPosition;
 
-use super::{
-    HistorySubsystem, PreparedCanonicalPublicationRoute, RelationalCanonicalPublicationRoutes,
-};
+use super::{HistorySubsystem, RelationalCanonicalPublicationRoutes};
 
 impl HistorySubsystem {
-    pub(crate) fn reserve_canonical_publication_route(
-        &self,
-        envelope: Arc<CanonicalCommitEnvelope>,
-        root: Arc<crate::branch::RelationalBranchRoot>,
-    ) -> Result<PreparedCanonicalPublicationRoute, &'static str> {
-        RelationalCanonicalPublicationRoutes::reserve(
-            &self.canonical_publication_routes,
-            envelope,
-            root,
-        )
-    }
-
     pub(crate) fn canonical_envelope(
         &self,
         commit_id: CommitId,
     ) -> Option<Arc<CanonicalCommitEnvelope>> {
-        if let Some(artifact) = self.commit_catalog.get(commit_id) {
+        if let Some(artifact) = self.commit_artifact(commit_id) {
             return Some(Arc::clone(artifact.envelope()));
         }
         self.canonical_publication_routes.by_commit(commit_id)

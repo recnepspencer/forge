@@ -24,6 +24,7 @@ pub(crate) use compilation::{
     ApplicationSchemaCompilationInput,
 };
 pub(crate) use native_contract::{
-    compile_native_contract_catalog, WorthQueryApplicationSchemaContractCatalogDenial,
+    compile_native_contract_catalog, compile_portable_native_contract_records,
+    WorthQueryApplicationSchemaContractCatalogDenial,
     WorthQueryApplicationSchemaContractCatalogDenialKind,
 };

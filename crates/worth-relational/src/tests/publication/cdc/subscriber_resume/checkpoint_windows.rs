@@ -2,10 +2,10 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_resume_uses_checkpoint_type_and_batches_without_duplication() {
-    let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
-    let _second = create_entity_outcome(&mut runtime, "b");
-    let _third = create_entity_outcome(&mut runtime, "c");
+    let runtime = runtime_with_test_schema();
+    let _first = create_entity_outcome(&runtime, "a");
+    let _second = create_entity_outcome(&runtime, "b");
+    let _third = create_entity_outcome(&runtime, "c");
 
     let first_batch = runtime
         .publication()

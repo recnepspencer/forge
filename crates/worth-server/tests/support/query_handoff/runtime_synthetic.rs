@@ -209,6 +209,10 @@ impl TestQueryRuntimeBackend {
     }
 }
 
+impl worth_query::facade::runtime::WorthQuerySettlementRecoveryBackend for TestQueryRuntimeBackend {}
+
+impl worth_query::facade::runtime::WorthQueryMergeSnapshotOwner for TestQueryRuntimeBackend {}
+
 impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()

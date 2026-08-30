@@ -14,7 +14,7 @@ impl UiNativeRasterBasis {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(super) const fn new(extent: [u32; 2], scale_factor: f32) -> Self {
         Self {
             extent,
@@ -85,6 +85,20 @@ pub(super) struct GlyphVertex {
 
 pub(super) fn raster_rect(
     mechanic: worth_ui_host_contract::UiMountedFilledRectMechanic,
+    graphics: &UiNativePresentationAccess,
+) -> Result<RasterRect, ()> {
+    let bounds = mechanic.bounds();
+    let clip = mechanic.clip_bounds();
+    raster_from_basis(
+        [bounds.x(), bounds.y(), bounds.width(), bounds.height()],
+        [clip.x(), clip.y(), clip.width(), clip.height()],
+        graphics.extent(),
+        graphics.scale_factor() as f32,
+    )
+}
+
+pub(super) fn raster_portal_overlay(
+    mechanic: worth_ui_host_contract::UiMountedPortalOverlayMechanic,
     graphics: &UiNativePresentationAccess,
 ) -> Result<RasterRect, ()> {
     let bounds = mechanic.bounds();
@@ -175,6 +189,40 @@ fn snap_axis(
     (maximum > minimum).then_some((minimum, maximum)).ok_or(())
 }
 
+pub(super) fn rectangle_vertices(rect: RasterRect, rgba: [u8; 4]) -> [RasterVertex; 6] {
+    let alpha = f32::from(rgba[3]) / 255.0;
+    let color = [
+        linear_channel(rgba[0]) * alpha,
+        linear_channel(rgba[1]) * alpha,
+        linear_channel(rgba[2]) * alpha,
+        alpha,
+    ];
+    [
+        vertex(rect.left, rect.bottom, color),
+        vertex(rect.right, rect.bottom, color),
+        vertex(rect.left, rect.top, color),
+        vertex(rect.left, rect.top, color),
+        vertex(rect.right, rect.bottom, color),
+        vertex(rect.right, rect.top, color),
+    ]
+}
+
+fn vertex(x: f32, y: f32, color: [f32; 4]) -> RasterVertex {
+    RasterVertex {
+        position: [x, y],
+        color,
+    }
+}
+
+fn linear_channel(channel: u8) -> f32 {
+    let encoded = f32::from(channel) / 255.0;
+    if encoded <= 0.040_45 {
+        encoded / 12.92
+    } else {
+        ((encoded + 0.055) / 1.055).powf(2.4)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{raster_from_basis, rectangle_vertices};
@@ -246,39 +294,5 @@ mod tests {
             1.0,
         )
         .is_err());
-    }
-}
-
-pub(super) fn rectangle_vertices(rect: RasterRect, rgba: [u8; 4]) -> [RasterVertex; 6] {
-    let alpha = f32::from(rgba[3]) / 255.0;
-    let color = [
-        linear_channel(rgba[0]) * alpha,
-        linear_channel(rgba[1]) * alpha,
-        linear_channel(rgba[2]) * alpha,
-        alpha,
-    ];
-    [
-        vertex(rect.left, rect.bottom, color),
-        vertex(rect.right, rect.bottom, color),
-        vertex(rect.left, rect.top, color),
-        vertex(rect.left, rect.top, color),
-        vertex(rect.right, rect.bottom, color),
-        vertex(rect.right, rect.top, color),
-    ]
-}
-
-fn vertex(x: f32, y: f32, color: [f32; 4]) -> RasterVertex {
-    RasterVertex {
-        position: [x, y],
-        color,
-    }
-}
-
-fn linear_channel(channel: u8) -> f32 {
-    let encoded = f32::from(channel) / 255.0;
-    if encoded <= 0.040_45 {
-        encoded / 12.92
-    } else {
-        ((encoded + 0.055) / 1.055).powf(2.4)
     }
 }

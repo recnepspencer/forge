@@ -9,6 +9,7 @@ use crate::data::tier::TierPolicy;
 use crate::runtime_policy::SignalRuntimePolicy;
 use crate::schema::data::SignalSchemaRegistry;
 
+use super::branching::DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS;
 use super::merge::{
     FrozenAspectMergePolicyRegistry, FrozenConflictIsolationRegistry, FrozenConflictPolicyRegistry,
     FrozenDeletionPolicyRegistry, FrozenIdentityMatcherRegistry, FrozenMergeBaseStrategyRegistry,
@@ -53,6 +54,7 @@ pub struct SignalRuntimeBuilder<
     checkpoint_policy: CheckpointPolicy<D>,
     fallback_comparator: VersionComparatorPolicy,
     runtime_policy: SignalRuntimePolicy,
+    maximum_stored_branch_snapshots: usize,
     tier_policies: Vec<TierPolicy<T>>,
     _marker: PhantomData<fn(CheckpointState, ComparatorState, I, E, Ctx, T)>,
 }
@@ -80,6 +82,7 @@ where
             checkpoint_policy: CheckpointPolicy::new(CheckpointBarrier::PerOperation),
             fallback_comparator: VersionComparatorPolicy::Exact,
             runtime_policy: SignalRuntimePolicy::default(),
+            maximum_stored_branch_snapshots: DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS,
             tier_policies: Vec::new(),
             _marker: PhantomData,
         }

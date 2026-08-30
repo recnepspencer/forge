@@ -10,6 +10,7 @@ use super::super::refresh::{
     CoalescingDecision, LiveCoalescingError, LiveRefreshError, PatchWidthAssessment,
     PatchWidthResolution, RefreshFallback,
 };
+#[cfg(test)]
 use super::super::RegionScopedLiveError;
 use super::LivePolicyCounters;
 
@@ -272,6 +273,7 @@ impl LivePolicyCounters {
         }
     }
 
+    #[cfg(test)]
     pub fn from_region_scoped_error(error: &RegionScopedLiveError) -> Self {
         match error {
             RegionScopedLiveError::UnsupportedLocalityFamily => Self {
@@ -327,6 +329,7 @@ impl LivePolicyCounters {
     pub(crate) fn add_replay_change_count(&mut self, replay_change_count: usize) {
         self.live_replay_change_count += replay_change_count;
     }
+    #[cfg(test)]
     pub(crate) fn add_locality_replay_change_count(&mut self, replay_change_count: usize) {
         self.locality_replay_change_count += replay_change_count;
     }

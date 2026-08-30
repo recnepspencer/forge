@@ -141,6 +141,15 @@ pub(super) fn inspection_family(family: UiObligationFamily) -> UiInspectionOblig
         UiObligationFamily::MotionSupportRequirement => {
             UiInspectionObligationFamily::MotionSupportRequirement
         }
+        UiObligationFamily::ScrollRoutingRequirement => {
+            UiInspectionObligationFamily::ScrollRoutingRequirement
+        }
+        UiObligationFamily::SelectionStateRequirement => {
+            UiInspectionObligationFamily::SelectionStateRequirement
+        }
+        UiObligationFamily::CommandRouteRequirement => {
+            UiInspectionObligationFamily::CommandRouteRequirement
+        }
         UiObligationFamily::AccessibilityRequirement => {
             UiInspectionObligationFamily::AccessibilityRequirement
         }

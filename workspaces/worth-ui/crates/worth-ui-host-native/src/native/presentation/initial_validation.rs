@@ -54,6 +54,19 @@ pub(super) fn validate_initial(
             {
                 Ok((*identity, command.clone()))
             }
+            UiMountedPaintCommand::PortalOverlay { identity, mechanic }
+                if *identity
+                    == worth_ui_host_contract::UiMountedPaintCommandIdentity::portal_overlay(
+                        mechanic,
+                    )
+                    && initial
+                        .projection()
+                        .portal_overlays()
+                        .rows()
+                        .contains(mechanic) =>
+            {
+                Ok((*identity, command.clone()))
+            }
             _ => Err(UiHostSurfacePresentationDenial::MalformedProjection),
         })
         .collect::<Result<std::collections::HashMap<_, _>, _>>()?;
@@ -100,6 +113,14 @@ pub(super) fn initial_operations(
             UiMountedPaintCommand::FilledRect { mechanic, .. } => {
                 let rect =
                     raster_rect(*mechanic, graphics).map_err(|_| before_effects_malformed())?;
+                operations.push(UiNativeRasterOperation::FilledRect {
+                    rect,
+                    source_rgba8: mechanic.color().channels(),
+                });
+            }
+            UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                let rect = super::raster::raster_portal_overlay(*mechanic, graphics)
+                    .map_err(|_| before_effects_malformed())?;
                 operations.push(UiNativeRasterOperation::FilledRect {
                     rect,
                     source_rgba8: mechanic.color().channels(),

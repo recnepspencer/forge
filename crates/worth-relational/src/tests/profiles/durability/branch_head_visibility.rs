@@ -3,7 +3,7 @@ use crate::tests::support::*;
 
 #[test]
 fn branch_head_visibility_updates_incrementally_under_branch_churn() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -14,7 +14,7 @@ fn branch_head_visibility_updates_incrementally_under_branch_churn() {
         })
         .build();
 
-    let base = create_entity_outcome(&mut runtime, "base");
+    let base = create_entity_outcome(&runtime, "base");
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
@@ -26,7 +26,7 @@ fn branch_head_visibility_updates_incrementally_under_branch_churn() {
 
     runtime.performance_access().reset_counters();
     for revision in 0..3 {
-        let _ = update_entity(&mut runtime, entity, &format!("base-r{revision}"));
+        let _ = update_entity(&runtime, entity, &format!("base-r{revision}"));
     }
 
     let stats = runtime.storage_access().storage_stats();
@@ -40,7 +40,7 @@ fn branch_head_visibility_updates_incrementally_under_branch_churn() {
 
 #[test]
 fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -51,7 +51,7 @@ fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
         })
         .build();
 
-    let base = create_entity_outcome(&mut runtime, "base");
+    let base = create_entity_outcome(&runtime, "base");
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
@@ -60,7 +60,7 @@ fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let _ = update_entity(&mut runtime, entity, "base-updated");
+    let _ = update_entity(&runtime, entity, "base-updated");
 
     let stats = runtime.storage_access().storage_stats();
 

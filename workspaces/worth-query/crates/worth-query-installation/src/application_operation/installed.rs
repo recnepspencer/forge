@@ -15,6 +15,7 @@ use std::sync::Arc;
 use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaBindingIdentity,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableType;
 
 use super::contract_resolution::ability_requirements;
 use super::installed_contract_support::{
@@ -34,6 +35,11 @@ use crate::graph_obligation::{
     WorthQueryApplicationOperationObligationSource, WorthQueryInstalledGraphCapabilityRequirement,
     WorthQueryInstalledGraphObligationInspection, WorthQueryInstalledGraphObligationSet,
 };
+use crate::package::{
+    WorthQueryPortableApplicationOperationContractRecord,
+    WorthQueryPortableInstalledReconciliationProcedureRecord,
+    WorthQueryPortableNativeAspectContractRecord,
+};
 
 mod aftermath_installation_source_seal {
     pub trait Sealed {}
@@ -51,7 +57,7 @@ pub(crate) trait WorthQueryOperationAftermathInstallationSource:
 
     fn operation(&self) -> &str;
 
-    fn decision_reads(
+    fn portable_decision_reads(
         &self,
     ) -> &[worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget];
 
@@ -62,6 +68,10 @@ pub(crate) trait WorthQueryOperationAftermathInstallationSource:
     ) -> Option<
         &worth_query_declaration::facade::application_aftermath::PortableApplicationAftermathContract,
     >;
+
+    fn portable_reconciliation(
+        &self,
+    ) -> Option<&WorthQueryPortableInstalledReconciliationProcedureRecord>;
 }
 
 pub struct WorthQueryInstalledApplicationOperation<Schema, Operation, Input> {
@@ -73,6 +83,8 @@ pub struct WorthQueryInstalledApplicationOperation<Schema, Operation, Input> {
     contracts: WorthQueryCompiledApplicationOperationContracts,
     native_contracts:
         Arc<crate::application_schema::WorthQueryInstalledApplicationSchemaContractCatalog>,
+    portable_native_contracts: Arc<Vec<WorthQueryPortableNativeAspectContractRecord>>,
+    portable_contract: WorthQueryPortableApplicationOperationContractRecord,
     obligations: WorthQueryInstalledGraphObligationSet,
     authority_identity: AuthoritySeal,
     _marker: PhantomData<fn(Input) -> (Schema, Operation)>,
@@ -123,8 +135,11 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
     ) -> Result<Self, WorthQueryApplicationOperationInstallationDenial>
     where
         Schema: ApplicationSchema,
+        Operation: 'static,
+        Input: WorthQueryPortableType + 'static,
     {
-        let declaration = resolve_operation_declaration::<Schema, Input>(schema, operation)?;
+        let declaration =
+            resolve_operation_declaration::<Schema, Operation, Input>(schema, operation)?;
         Self::install_executable_operation(schema, &declaration)
     }
 
@@ -142,8 +157,10 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
     >
     where
         Schema: ApplicationSchema,
+        Operation: 'static,
+        Input: WorthQueryPortableType + 'static,
     {
-        let declaration = resolve_operation_declaration::<Schema, Input>(
+        let declaration = resolve_operation_declaration::<Schema, Operation, Input>(
             schema,
             capability.contract().operation(),
         )?;
@@ -181,15 +198,29 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
     ) -> Result<Self, WorthQueryApplicationOperationInstallationDenial>
     where
         Schema: ApplicationSchema,
+        Input: WorthQueryPortableType,
     {
         let operation = declaration.operation();
         let input_type = declaration.input_type();
         let abilities = ability_requirements(schema, operation)?;
         let binding_identity = schema.binding_identity();
+        let portable_contract = schema
+            .portable_operation_contracts()
+            .iter()
+            .find(|record| {
+                record.operation() == operation && record.input_type().as_str() == input_type
+            })
+            .ok_or_else(|| {
+                super::installed_contract_support::operation_denial(
+                    super::WorthQueryApplicationOperationInstallationDenialKind::InvalidGraphObligationContract,
+                    operation,
+                )
+            })?;
         let compilation =
             operation_compilation::WorthQueryApplicationOperationCompilation::resolve(
                 binding_identity.clone(),
                 schema.installed_declaration().members(),
+                portable_contract,
                 operation,
                 input_type,
             )?;
@@ -229,6 +260,8 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             input_type: input_type.to_string(),
             contracts,
             native_contracts: schema.retain_native_contracts(),
+            portable_native_contracts: Arc::new(schema.portable_native_contracts().to_vec()),
+            portable_contract: portable_contract.clone(),
             obligations,
             authority_identity,
             _marker: PhantomData,
@@ -253,6 +286,10 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
 
     pub fn contracts(&self) -> &WorthQueryCompiledApplicationOperationContracts {
         &self.contracts
+    }
+
+    pub fn input_type(&self) -> &str {
+        &self.input_type
     }
 
     pub const fn execution_posture(

@@ -87,13 +87,12 @@ impl WorthUiScalarProjectionHostCompletion {
         installation: runtime::WorthQueryExecutionRuntimeInstallation,
     ) -> Result<super::WorthUiScalarProjectionInstallation, WorthUiScalarProjectionInstallationError>
     {
-        let runtime = self
-            .inner
-            .complete(installation)
-            .map_err(WorthUiScalarProjectionInstallationError::RuntimeCompletion)?;
+        let runtime = self.inner.complete(installation).map_err(|error| {
+            WorthUiScalarProjectionInstallationError::RuntimeCompletion(Box::new(error))
+        })?;
         let workspace = runtime
             .workspace("worth-ui-platform-pulse")
-            .map_err(WorthUiScalarProjectionInstallationError::Runtime)?;
+            .map_err(|error| WorthUiScalarProjectionInstallationError::Runtime(Box::new(error)))?;
         evaluate_product_projection_support(&workspace).map_err(|error| {
             WorthUiScalarProjectionInstallationError::SourceLifecycle(format!(
                 "Query support pin denied product projection installation: {error}"
@@ -105,32 +104,34 @@ impl WorthUiScalarProjectionHostCompletion {
 
 #[derive(Debug)]
 pub enum WorthUiScalarProjectionInstallationError {
-    AspectContract(runtime::WorthQueryAspectContractRegistrationDenial),
+    AspectContract(Box<runtime::WorthQueryAspectContractRegistrationDenial>),
     Bridge(String),
-    DomainPackage(domain::WorthQueryDomainPackageInstallationError),
-    Runtime(runtime::WorthQueryRuntimeError),
-    RuntimeCompletion(runtime::WorthQueryHostRuntimeCompletionError),
+    DomainPackage(Box<domain::WorthQueryDomainPackageInstallationError>),
+    Runtime(Box<runtime::WorthQueryRuntimeError>),
+    RuntimeCompletion(Box<runtime::WorthQueryHostRuntimeCompletionError>),
     SourceLifecycle(String),
 }
 
-#[allow(
-    clippy::result_large_err,
-    reason = "cold runtime construction preserves exact Query failure topology"
-)]
 pub(crate) fn projection_runtime_builder(
     source: SharedSourceState,
     bridge: worth_runtime_bridge::facade::RuntimeBridge,
 ) -> Result<runtime::WorthQueryRuntimeBuilder, WorthUiScalarProjectionInstallationError> {
     let builder = runtime::WorthQueryRuntime::builder()
         .domain_package(crate::worth_ui_domain_package())
-        .map_err(WorthUiScalarProjectionInstallationError::DomainPackage)?
+        .map_err(|error| WorthUiScalarProjectionInstallationError::DomainPackage(Box::new(error)))?
         .domain_package(crate::presentation_async::worth_ui_presentation_async_domain_package())
-        .map_err(WorthUiScalarProjectionInstallationError::DomainPackage)?;
+        .map_err(|error| {
+            WorthUiScalarProjectionInstallationError::DomainPackage(Box::new(error))
+        })?;
     let builder = crate::install_worth_ui_operation_executors(builder)
         .aspect_contracts(crate::worth_ui_native_aspect_contracts())
-        .map_err(WorthUiScalarProjectionInstallationError::AspectContract)?;
+        .map_err(|error| {
+            WorthUiScalarProjectionInstallationError::AspectContract(Box::new(error))
+        })?;
     let builder = crate::presentation_async::install_worth_ui_presentation_async_runtime(builder)
-        .map_err(WorthUiScalarProjectionInstallationError::AspectContract)?;
+        .map_err(|error| {
+        WorthUiScalarProjectionInstallationError::AspectContract(Box::new(error))
+    })?;
     Ok(projection_consumer_support(
         configure_product_projection_backend(builder, bridge, source),
     ))

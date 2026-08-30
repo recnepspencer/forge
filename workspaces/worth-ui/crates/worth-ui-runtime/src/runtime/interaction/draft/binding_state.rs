@@ -12,6 +12,29 @@ use super::{
 use crate::runtime::interaction::UiActivateInteraction;
 
 impl UiDraftRuntimeState {
+    pub(crate) fn bind_focused_submit<Install>(
+        &mut self,
+        target: crate::runtime::interaction::UiPresentedInteractionTargetView,
+        context: super::recipient_affinity::UiLocalInputRecipientBindingContext<'_>,
+        install: Install,
+    ) -> Result<UiLocalInputRecipientBindingReceipt, UiLocalInputRecipientBindingStopReason>
+    where
+        Install: FnOnce(worth_ui_host_contract::UiHostInputRecipientBindingReceipt) -> bool,
+    {
+        let (next_active, binding, host_binding, started_session) =
+            self.prepare_binding(target, context, UiLocalInputRecipientContract::submit())?;
+        debug_assert!(started_session.is_none());
+        if !install(host_binding) {
+            return Err(UiLocalInputRecipientBindingStopReason::HostAffinityInstallationDenied);
+        }
+        self.suspend_active(super::UiLocalInputStopReason::RecipientReplaced);
+        self.active = Some(next_active);
+        self.active_affinity =
+            Some(super::recipient_affinity::UiLocalInputRecipientAffinityLease::new(host_binding));
+        self.counters.recipients_bound = next(self.counters.recipients_bound);
+        Ok(binding)
+    }
+
     pub(crate) fn new() -> Self {
         Self {
             next_identity: Some(1),

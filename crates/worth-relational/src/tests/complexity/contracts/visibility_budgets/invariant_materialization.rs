@@ -3,16 +3,16 @@ use crate::validation::data::InvariantVerdict;
 
 #[test]
 fn complexity_contract_invariant_materialization_is_declared_and_measured() {
-    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
+    let runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
             InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
         )],
         ..InvariantCatalog::default()
     });
-    let entity = create_entity(&mut runtime, "a");
+    let entity = create_entity(&runtime, "a");
 
     runtime.performance_access().reset_counters();
-    let _ = update_entity(&mut runtime, entity, "a-2");
+    let _ = update_entity(&runtime, entity, "a-2");
     let counters = runtime.performance_access().counters();
 
     assert!(counters.invariant_entity_slot_scans >= 1);
@@ -24,13 +24,13 @@ fn complexity_contract_invariant_materialization_is_declared_and_measured() {
 
 #[test]
 fn complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version() {
-    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+    let runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::snapshot_publication_blocking(
             InvariantRule::MaxSnapshotEntities(1),
         )],
         ..InvariantCatalog::default()
     });
-    let _ = create_entity(&mut runtime, "visible");
+    let _ = create_entity(&runtime, "visible");
 
     runtime.performance_access().reset_counters();
     let results = runtime

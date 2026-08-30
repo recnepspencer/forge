@@ -62,10 +62,11 @@ pub use contract::{
     UiNativeClientVisualCoordinateRounding, UiNativeClientVisualPixelColorSpace,
     UiNativeClientVisualSnapshotInput, UiNativeClientVisualSnapshotObservation,
     UiNativeClientVisualSnapshotRelation, UiNativeEventLoopClient, UiNativeEventLoopClientCleanup,
-    UiNativeEventLoopClientClose, UiNativeEventLoopDirective, UiNativeEventLoopRunDenial,
-    UiNativeEventLoopRunReport, UiNativeEventLoopShutdownOverlapObservation,
-    UiNativeEventLoopStopReport, UiNativeInputReachability, UiNativeObservationReadinessGrant,
-    UiNativePhysicalProgressClass, UiNativePhysicalProgressGrant, UiNativeReadinessGrant,
+    UiNativeEventLoopClientClose, UiNativeEventLoopClientFailure, UiNativeEventLoopDirective,
+    UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
+    UiNativeEventLoopShutdownOverlapObservation, UiNativeEventLoopStopReport,
+    UiNativeInputReachability, UiNativeObservationReadinessGrant, UiNativePhysicalProgressClass,
+    UiNativePhysicalProgressGrant, UiNativeReadinessGrant, UiNativeReducedMotionPosture,
 };
 use physical_clock::UiNativePhysicalEventClock;
 pub use presentation_correlation::UiNativePhysicalPresentationCorrelation;

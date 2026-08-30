@@ -75,6 +75,24 @@ pub struct WorthQueryPortableDomainOperationDefinition {
 }
 
 impl WorthQueryPortableDomainOperationDefinition {
+    pub(crate) fn reconstruct_exact(
+        identity: WorthQueryDomainOperationIdentity,
+        semantics: WorthQueryDomainOperationSemanticClosure,
+    ) -> Result<Self, ()> {
+        let mut canonical = semantics.clone();
+        canonicalize_semantics(&mut canonical);
+        if canonical != semantics {
+            return Err(());
+        }
+        let canonical_identity =
+            super::canonical_identity::canonical_operation_identity(&identity, &semantics);
+        Ok(Self {
+            identity,
+            semantics,
+            canonical_identity,
+        })
+    }
+
     pub fn identity(&self) -> &WorthQueryDomainOperationIdentity {
         &self.identity
     }
@@ -85,6 +103,18 @@ impl WorthQueryPortableDomainOperationDefinition {
 
     pub fn canonical_identity(&self) -> &str {
         &self.canonical_identity
+    }
+
+    pub(crate) fn canonical_encoded_bytes(&self) -> u64 {
+        super::canonical_identity::canonical_operation_encoded_bytes(
+            &self.identity,
+            &self.semantics,
+        )
+        .saturating_add(
+            self.semantics
+                .canonical_query
+                .portable_record_logical_bytes(),
+        )
     }
 }
 

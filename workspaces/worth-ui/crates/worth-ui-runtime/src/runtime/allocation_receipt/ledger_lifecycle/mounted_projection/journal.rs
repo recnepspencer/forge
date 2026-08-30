@@ -117,6 +117,16 @@ impl UiMountedAllocationProjectionSource {
         self.catalog.projection(graph_node)
     }
 
+    pub(crate) fn viewport_bounds(
+        &self,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<
+        Option<super::UiCommittedViewportGeometry>,
+        super::UiMountedAllocationProjectionDenial,
+    > {
+        self.catalog.viewport_bounds(graph_node)
+    }
+
     pub(crate) fn delta(&self) -> &UiMountedAllocationProjectionDelta {
         &self.delta
     }

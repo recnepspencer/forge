@@ -23,8 +23,8 @@ pub(super) fn planned_index_definitions(
     let mut missing_indexes = Vec::new();
 
     for index_id in index_ids {
-        if let Some(definition) = runtime.indexes.definitions.get(index_id).cloned() {
-            definitions.push(definition);
+        if let Some(definition) = runtime.indexes.definition(*index_id) {
+            definitions.push(definition.as_ref().clone());
         } else {
             missing_indexes.push(*index_id);
         }

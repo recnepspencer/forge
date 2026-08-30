@@ -23,7 +23,7 @@ fn complexity_contract_registry_covers_runtime_hot_paths() {
         .any(|contract| contract.id == "runtime.unique_entity_invariant_lookup"));
     assert!(contracts
         .iter()
-        .any(|contract| contract.id == "runtime.current_state.clone"));
+        .any(|contract| contract.id == "runtime.partition_edition.acquire"));
     assert!(contracts
         .iter()
         .any(|contract| contract.id == "runtime.snapshot_pin_maintenance"));

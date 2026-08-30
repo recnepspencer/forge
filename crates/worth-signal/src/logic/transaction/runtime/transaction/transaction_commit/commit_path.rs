@@ -57,6 +57,28 @@ where
             );
         }
 
+        let generation_branch_id = self.graph.current_branch().id;
+        let next_branch_generation = match self
+            .branches
+            .next_branch_head_generation(generation_branch_id)
+        {
+            Ok(generation) => generation,
+            Err(denial) => {
+                let error = SignalError::internal(format!(
+                    "Signal branch reference generation cannot advance: {denial:?}"
+                ));
+                return self.fail_and_rollback(
+                    "branch reference generation exhausted",
+                    Some(error.clone()),
+                    None,
+                    ExecutionFailurePhase::CommitPromotion,
+                    false,
+                    Err(error),
+                    commit_start,
+                );
+            }
+        };
+
         if matches!(self.commit_posture, TransactionCommitPosture::Visible) {
             if let Err(err) = self
                 .event_bus
@@ -257,7 +279,7 @@ where
             .branch_mutation_ledger_mut(current_branch.id, current_branch.head_snapshot_id)
             .absorb_records(self.graph.pending_branch_mutation_records());
         self.branches
-            .advance_branch_head_generation(current_branch.id);
+            .commit_branch_head_generation(current_branch.id, next_branch_generation);
         self.graph.clear_branch_mutation_nodes();
         let staged_patch_count = self.scratch.staged_patch_count;
         self.with_telemetry(|telemetry| {

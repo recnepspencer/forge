@@ -26,6 +26,12 @@ pub struct NoteSlot;
 pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
 pub struct ActivitySequenceSlot;
+worth_query_declaration::worth_query_portable_type!(StatusSlot => "worth.query.test.execution.governed_omission.status_slot.v1");
+worth_query_declaration::worth_query_portable_type!(LabelSlot => "worth.query.test.execution.governed_omission.label_slot.v1");
+worth_query_declaration::worth_query_portable_type!(NoteSlot => "worth.query.test.execution.governed_omission.note_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitiesSlot => "worth.query.test.execution.governed_omission.activities_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivityIdentitySlot => "worth.query.test.execution.governed_omission.activity_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitySequenceSlot => "worth.query.test.execution.governed_omission.activity_sequence_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GovernedAccountOmissionResult {
@@ -34,6 +40,7 @@ pub struct GovernedAccountOmissionResult {
     note: WorthQueryApplicationDisclosed<Option<String>>,
     activities: WorthQueryApplicationDisclosed<usize>,
 }
+worth_query_declaration::worth_query_portable_type!(GovernedAccountOmissionResult => "worth.query.test.execution.governed_omission.result.v1");
 
 impl GovernedAccountOmissionResult {
     pub const fn status(&self) -> &WorthQueryApplicationDisclosed<String> {

@@ -6,7 +6,7 @@ use super::super::world::supply_chain::{
     entity_kind_id, snapshot_for_supply_chain_identity, EntityKind,
 };
 
-pub(super) fn vessel_call_signs(runtime: &mut RelationalRuntime, branch: &BranchId) -> Vec<String> {
+pub(super) fn vessel_call_signs(runtime: &RelationalRuntime, branch: &BranchId) -> Vec<String> {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
@@ -33,7 +33,7 @@ pub(super) fn vessel_call_signs(runtime: &mut RelationalRuntime, branch: &Branch
         .collect()
 }
 
-pub(super) fn live_record_count(runtime: &mut RelationalRuntime, branch: &BranchId) -> usize {
+pub(super) fn live_record_count(runtime: &RelationalRuntime, branch: &BranchId) -> usize {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
@@ -45,7 +45,7 @@ pub(super) fn live_record_count(runtime: &mut RelationalRuntime, branch: &Branch
     view.entities().len() + view.relations().len()
 }
 
-pub(super) fn current_snapshot_version(runtime: &mut RelationalRuntime, branch: &BranchId) -> u64 {
+pub(super) fn current_snapshot_version(runtime: &RelationalRuntime, branch: &BranchId) -> u64 {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");

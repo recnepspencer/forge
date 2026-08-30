@@ -206,7 +206,7 @@ pub(super) fn persisted_intent_runtime_with_failing_executor(
 }
 
 pub(crate) fn execute_persisted_intent_strategy_commit(
-    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
+    runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity: EntityId,
 ) -> crate::facade::transactions::CommitResult {
     let request = runtime
@@ -239,20 +239,15 @@ pub(crate) fn execute_persisted_intent_strategy_commit(
         .execute(&request, &snapshot)
         .expect("strategy execution");
     let (transaction_validation_input, mut authority) =
-        crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+        crate::tests::support::test_owner_strategy_authority(runtime, None);
     let lowered = authority
-        .lower_execution_with_input(
-            &mut runtime,
-            &request,
-            &execution,
-            transaction_validation_input,
-        )
+        .lower_execution_with_input(runtime, &request, &execution, transaction_validation_input)
         .expect("lowered strategy plan");
     let validated = authority
-        .validate_lowered_plan(&mut runtime, lowered)
+        .validate_lowered_plan(runtime, lowered)
         .expect("validated strategy plan");
     authority
-        .execute_validated_commit(&mut runtime, validated)
+        .execute_validated_commit(runtime, validated)
         .expect("validated strategy commit")
 }
 

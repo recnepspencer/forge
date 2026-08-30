@@ -96,12 +96,9 @@ impl UiGlyphRasterDemandRecord {
             UiGlyphRasterSource::ColorOutline | UiGlyphRasterSource::ColorBitmap => 4,
             UiGlyphRasterSource::AlphaOutline | UiGlyphRasterSource::LastResort => 1,
         };
-        let Some(staged_bytes) = (extent.width() as u64)
+        let staged_bytes = (extent.width() as u64)
             .checked_mul(extent.height() as u64)
-            .and_then(|pixels| pixels.checked_mul(channels))
-        else {
-            return None;
-        };
+            .and_then(|pixels| pixels.checked_mul(channels))?;
         Some(Self {
             key,
             attribution,

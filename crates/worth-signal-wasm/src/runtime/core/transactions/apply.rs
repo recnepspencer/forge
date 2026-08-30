@@ -55,24 +55,28 @@ impl RuntimeCore {
         ));
         let committed_dependency_patches_for_tx = committed_dependency_patches.clone();
 
-        let result = self.runtime.transaction(&mut self.store, move |tx| {
-            wasm_debug("[worth-signals-wasm] tx:apply-start");
-            apply_set_changes(tx, &store, &dense_grids, &changes)?;
+        let branch = self.runtime.current_branch();
+        let basis = self.native_branch_basis(branch)?;
+        let result = self
+            .runtime
+            .advance_signal_branch(&mut self.store, &basis, move |tx| {
+                wasm_debug("[worth-signals-wasm] tx:apply-start");
+                apply_set_changes(tx, &store, &dense_grids, &changes)?;
 
-            wasm_debug("[worth-signals-wasm] tx:evaluate-dirty-start");
-            tx.evaluate_dirty(&evaluator)?;
-            wasm_debug("[worth-signals-wasm] tx:evaluate-dirty-done");
-            let (pending, runtime_read_breadth) =
-                apply_pending_dependency_patches_in_transaction(tx, &store)?;
-            *committed_dependency_patches_for_tx
-                .lock()
-                .map_err(|_| SignalError::internal("dependency patch receipt mutex poisoned"))? =
-                Some((pending, runtime_read_breadth));
-            Ok(())
-        });
+                wasm_debug("[worth-signals-wasm] tx:evaluate-dirty-start");
+                tx.evaluate_dirty(&evaluator)?;
+                wasm_debug("[worth-signals-wasm] tx:evaluate-dirty-done");
+                let (pending, runtime_read_breadth) =
+                    apply_pending_dependency_patches_in_transaction(tx, &store)?;
+                *committed_dependency_patches_for_tx.lock().map_err(|_| {
+                    SignalError::internal("dependency patch receipt mutex poisoned")
+                })? = Some((pending, runtime_read_breadth));
+                Ok(())
+            });
 
         match result {
-            Ok(result) => {
+            Ok(outcome) => {
+                let (_, result) = outcome.into_parts();
                 let (pending, runtime_read_breadth) = committed_dependency_patches
                     .lock()
                     .map_err(|_| {
@@ -108,12 +112,14 @@ impl RuntimeCore {
             }
             Err(err) => {
                 wasm_debug(format!(
-                    "[worth-signals-wasm] tx:error elapsed_ms={:.1} message={}",
+                    "[worth-signals-wasm] tx:error elapsed_ms={:.1} denial={:?}",
                     perf_now_ms() - started_at,
                     err
                 ));
                 self.restore_store(previous)?;
-                Err(WorthSignalJsError::from(err))
+                Err(WorthSignalJsError::invalid_input(format!(
+                    "Signal branch advance denied: {err:?}"
+                )))
             }
         }
     }

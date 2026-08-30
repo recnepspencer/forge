@@ -3,13 +3,6 @@ use crate::data::resource::*;
 use crate::data::telemetry::ResourceTelemetry;
 
 impl ResourceRuntimeState {
-    pub fn summary_read_report(
-        &self,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRuntimeSummaryReadReport {
-        self.summary_read_report_optional(Some(telemetry))
-    }
-
     pub fn summary_read_report_optional(
         &self,
         mut telemetry: Option<&mut ResourceTelemetry>,
@@ -18,7 +11,7 @@ impl ResourceRuntimeState {
             telemetry.resource_retained_summary_read_count += 1;
         }
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::summary_read(),
         );
         ResourceRuntimeSummaryReadReport::new(self.summary(), performance)

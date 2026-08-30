@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn replay_contract_success_reproduces_canonical_surfaces() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "replayable");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "replayable");
     let replay = runtime
         .replay_authority()
         .replay_commit(RelationalReplayRequest {
@@ -28,8 +28,8 @@ fn replay_contract_success_reproduces_canonical_surfaces() {
 
 #[test]
 fn replay_contract_failure_wrong_branch_is_explicit() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "replayable");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "replayable");
     let replay = runtime
         .replay_authority()
         .replay_commit(RelationalReplayRequest {
@@ -44,9 +44,9 @@ fn replay_contract_failure_wrong_branch_is_explicit() {
 
 #[test]
 fn replay_uses_canonical_root_parent_when_catalog_accelerator_is_missing() {
-    let mut runtime = runtime_with_test_schema();
-    let parent = create_entity_outcome(&mut runtime, "parent");
-    let child = create_entity_outcome(&mut runtime, "child");
+    let runtime = runtime_with_test_schema();
+    let parent = create_entity_outcome(&runtime, "parent");
+    let child = create_entity_outcome(&runtime, "child");
 
     assert!(runtime
         .history_authority()
@@ -70,8 +70,8 @@ fn replay_uses_canonical_root_parent_when_catalog_accelerator_is_missing() {
 
 #[test]
 fn replay_contract_success_preserves_merge_parent_order() {
-    let mut runtime = runtime_with_test_schema();
-    let main = create_entity_outcome(&mut runtime, "main");
+    let runtime = runtime_with_test_schema();
+    let main = create_entity_outcome(&runtime, "main");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -80,9 +80,9 @@ fn replay_contract_success_preserves_merge_parent_order() {
         )
         .unwrap();
     let feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let merge = merge_commit_from_branches(
-        &mut runtime,
+        &runtime,
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
@@ -120,8 +120,8 @@ fn replay_contract_success_preserves_merge_parent_order() {
 
 #[test]
 fn replay_contract_reports_structured_patch_drift_when_canonical_envelope_is_tampered() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "replayable");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "replayable");
     assert!(runtime.history_authority().tamper_commit_patch_for_test(
         outcome.commit.commit_id,
         |patch| {
@@ -152,8 +152,8 @@ fn replay_contract_reports_structured_patch_drift_when_canonical_envelope_is_tam
 
 #[test]
 fn replay_contract_reports_diagnostics_drift_at_digest_layer_when_envelope_is_tampered() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "replayable");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "replayable");
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
         |envelope| {

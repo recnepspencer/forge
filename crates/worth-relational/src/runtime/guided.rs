@@ -12,7 +12,7 @@ use crate::visibility::materialization::read_records::VisibilityReadContext;
 use crate::visibility::retention::VisibilityRetentionAuthority;
 
 impl RelationalRuntime {
-    pub fn snapshots(&mut self) -> VisibilityAuthority<'_> {
+    pub fn snapshots(&self) -> VisibilityAuthority<'_> {
         self.visibility_authority()
     }
 
@@ -28,11 +28,11 @@ impl RelationalRuntime {
         self.simulation_access()
     }
 
-    pub fn compiled_artifacts_authority(&mut self) -> SimulationAuthority<'_> {
+    pub fn compiled_artifacts_authority(&self) -> SimulationAuthority<'_> {
         self.simulation_authority()
     }
 
-    pub fn retention(&mut self) -> VisibilityRetentionAuthority<'_> {
+    pub fn retention(&self) -> VisibilityRetentionAuthority<'_> {
         self.retention_authority()
     }
 

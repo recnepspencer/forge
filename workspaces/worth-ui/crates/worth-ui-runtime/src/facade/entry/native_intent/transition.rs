@@ -14,7 +14,7 @@ impl NativePostureTarget {
     pub(super) fn product(route: &crate::facade::intent::UiResolvedProductIntentRoute) -> Self {
         Self {
             graph_node: route.graph_node(),
-            target: route.source().target(),
+            target: route.target(),
             definition: route.definition_id(),
         }
     }

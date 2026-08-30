@@ -3,7 +3,8 @@ use std::collections::{HashMap, HashSet};
 use worth_ui_host_contract::{
     UiMountedPaintCommandChange, UiMountedPresentationAuxiliaryState,
     UiMountedPresentationDeltaInput, UiMountedPresentationInitialInput,
-    UiMountedPresentationReconstructionInput, UiMountedPresentationUnchangedInput,
+    UiMountedPresentationReconstructionInput, UiMountedPresentationSampleInput,
+    UiMountedPresentationUnchangedInput,
 };
 
 pub(super) fn validate_initial(input: &UiMountedPresentationInitialInput) {
@@ -92,6 +93,17 @@ pub(super) fn validate_reconstruction(input: &UiMountedPresentationReconstructio
             .reconstruct(&command_map)
             .expect("reconstruction work must rebuild its complete projection");
     assert_eq!(reconstructed, input.projection);
+}
+
+pub(super) fn validate_sample(input: &UiMountedPresentationSampleInput) {
+    let identities = input
+        .changes
+        .iter()
+        .map(|change| change.command())
+        .collect::<HashSet<_>>();
+    assert_eq!(identities.len(), input.changes.len());
+    assert!(!input.changes.is_empty());
+    assert!(!input.damage.is_empty());
 }
 
 pub(super) fn validate_unchanged(input: &UiMountedPresentationUnchangedInput) {

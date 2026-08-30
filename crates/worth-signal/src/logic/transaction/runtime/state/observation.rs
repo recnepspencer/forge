@@ -6,6 +6,8 @@ use crate::diagnostics::profile::DiagnosticsTier;
 use crate::runtime_policy::SignalRuntimePolicy;
 use crate::runtime_policy::SignalRuntimePolicyCompilationDenial;
 
+#[cfg(test)]
+use super::RawRuntimeMerge;
 use super::{
     runtime_observation::{
         MatchingObserverSet, ObservationHandle, ObservationListener, ObservationPolicy,
@@ -44,6 +46,11 @@ where
 
     pub fn merge(&mut self) -> RuntimeMerge<'_, D, I, E, Ctx, T> {
         RuntimeMerge::new(self)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn merge_raw(&mut self) -> RawRuntimeMerge<'_, D, I, E, Ctx, T> {
+        RawRuntimeMerge::new(self)
     }
 
     pub fn observe_nodes(

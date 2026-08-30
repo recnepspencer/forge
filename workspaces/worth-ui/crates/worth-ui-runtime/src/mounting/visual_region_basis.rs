@@ -9,10 +9,23 @@ pub(crate) struct UiMountedVisualRegionBasis {
         worth_ui_host_contract::UiMountedHitTestMechanic,
     >,
     semantic_text: crate::mounting::projection::UiMountedSemanticMechanicSource,
+    portal_overlays: std::rc::Rc<[worth_ui_host_contract::UiMountedPortalOverlayMechanic]>,
+    portal_children: std::rc::Rc<
+        std::collections::BTreeMap<
+            worth_ui_host_contract::UiMountedInstanceIdentity,
+            Option<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
+        >,
+    >,
     binding: Option<worth_ui_host_contract::UiSurfaceBindingGeneration>,
     receipts: Option<super::UiMountedNodeReceiptBasis>,
     #[cfg(test)]
     materialized: Option<UiMaterializedVisualRegionBasis>,
+}
+
+pub(crate) struct UiMountedHitTestPresentation {
+    mechanic: worth_ui_host_contract::UiMountedHitTestMechanic,
+    portal: Option<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
+    owns_presented_portal: bool,
 }
 
 #[cfg(test)]
@@ -48,6 +61,8 @@ impl UiMountedVisualRegionBasis {
             paint,
             hit_test,
             semantic_text,
+            portal_overlays: std::rc::Rc::from([]),
+            portal_children: Default::default(),
             binding: None,
             receipts: None,
             #[cfg(test)]
@@ -64,6 +79,8 @@ impl UiMountedVisualRegionBasis {
             paint: Default::default(),
             hit_test: Default::default(),
             semantic_text: Default::default(),
+            portal_overlays: std::rc::Rc::from([]),
+            portal_children: Default::default(),
             binding: None,
             receipts: None,
             materialized: Some(UiMaterializedVisualRegionBasis {
@@ -83,6 +100,8 @@ impl UiMountedVisualRegionBasis {
             paint: self.paint.clone(),
             hit_test: self.hit_test.clone(),
             semantic_text: self.semantic_text.clone(),
+            portal_overlays: std::rc::Rc::clone(&self.portal_overlays),
+            portal_children: std::rc::Rc::clone(&self.portal_children),
             binding: Some(binding),
             receipts: Some(receipts),
             #[cfg(test)]
@@ -90,21 +109,51 @@ impl UiMountedVisualRegionBasis {
         }
     }
 
-    pub(crate) fn hit_test(&self) -> Box<[worth_ui_host_contract::UiMountedHitTestMechanic]> {
+    pub(crate) fn hit_test(&self) -> Box<[UiMountedHitTestPresentation]> {
         #[cfg(test)]
         if let Some(materialized) = &self.materialized {
-            return materialized.hit_test.iter().copied().collect();
+            return materialized
+                .hit_test
+                .iter()
+                .copied()
+                .map(|mechanic| UiMountedHitTestPresentation {
+                    mechanic,
+                    portal: None,
+                    owns_presented_portal: false,
+                })
+                .collect();
+        }
+        let mut portal_owners = std::collections::BTreeSet::new();
+        for portal in self.portal_overlays.iter().copied() {
+            portal_owners.insert(portal.owner());
         }
         self.hit_test
             .iter()
             .map(|(_, row)| *row)
             .filter(|row| self.binding.is_none_or(|binding| row.binding() == binding))
-            .map(|row| {
-                let Some(receipts) = self.receipts.as_ref() else {
-                    return row;
-                };
-                crate::mounting::projection::reattribute_hit_test(row, receipts.frame(), receipts)
+            .filter_map(|row| {
+                let row = self.receipts.as_ref().map_or(row, |receipts| {
+                    crate::mounting::projection::reattribute_hit_test(
+                        row,
+                        receipts.frame(),
+                        receipts,
+                    )
                     .expect("retained hit rows belong to the presented receipt basis")
+                });
+                let (mechanic, portal) = match self.portal_children.get(&row.mounted_instance()) {
+                    None => Some((row, None)),
+                    Some(None) => None,
+                    Some(Some(portal)) => Some((
+                        row.presented_within_portal(*portal)
+                            .expect("validated Portal-relative hit region remains canonical"),
+                        Some(*portal),
+                    )),
+                }?;
+                Some(UiMountedHitTestPresentation {
+                    mechanic,
+                    portal,
+                    owns_presented_portal: portal_owners.contains(&mechanic.mounted_instance()),
+                })
             })
             .collect()
     }
@@ -118,16 +167,24 @@ impl UiMountedVisualRegionBasis {
             .iter()
             .map(|(_, row)| *row)
             .filter(|row| self.binding.is_none_or(|binding| row.binding() == binding))
-            .map(|row| {
+            .filter_map(|row| {
                 let Some(receipts) = self.receipts.as_ref() else {
-                    return row;
+                    return Some(row);
                 };
-                crate::mounting::projection::reattribute_filled_rect(
+                let row = crate::mounting::projection::reattribute_filled_rect(
                     row,
                     receipts.frame(),
                     receipts,
                 )
-                .expect("retained paint rows belong to the presented receipt basis")
+                .expect("retained paint rows belong to the presented receipt basis");
+                match self.portal_children.get(&row.mounted_instance()) {
+                    None => Some(row),
+                    Some(None) => None,
+                    Some(Some(portal)) => Some(
+                        row.presented_within_portal(*portal)
+                            .expect("validated Portal-relative paint remains canonical"),
+                    ),
+                }
             })
             .collect()
     }
@@ -140,18 +197,60 @@ impl UiMountedVisualRegionBasis {
         self.semantic_text
             .visual_mechanics()
             .filter(|row| self.binding.is_none_or(|binding| row.binding() == binding))
-            .map(|row| UiMountedUnsupportedPaintBasis {
-                node_receipt: self
-                    .receipts
-                    .as_ref()
-                    .and_then(|receipts| receipts.receipt_for(row.mounted_instance()))
-                    .unwrap_or_else(|| row.node_receipt()),
-                bounds: row.bounds(),
-                clip: row.clip_bounds(),
-                semantic_order: row.layer_semantic_order(),
-                source_digest: row.semantic_digest(),
+            .filter_map(|row| {
+                let presented = match self.portal_children.get(&row.mounted_instance()) {
+                    None => Some(row.clone()),
+                    Some(None) => None,
+                    Some(Some(portal)) => Some(
+                        row.presented_within_portal(*portal)
+                            .expect("validated Portal-relative text remains canonical"),
+                    ),
+                }?;
+                Some(UiMountedUnsupportedPaintBasis {
+                    node_receipt: self
+                        .receipts
+                        .as_ref()
+                        .and_then(|receipts| receipts.receipt_for(presented.mounted_instance()))
+                        .unwrap_or_else(|| presented.node_receipt()),
+                    bounds: presented.bounds(),
+                    clip: presented.clip_bounds(),
+                    semantic_order: presented.layer_semantic_order(),
+                    source_digest: presented.semantic_digest(),
+                })
             })
+            .chain(
+                self.portal_overlays
+                    .iter()
+                    .copied()
+                    .filter(|row| self.binding.is_none_or(|binding| row.binding() == binding))
+                    .map(|row| UiMountedUnsupportedPaintBasis {
+                        node_receipt: row.owner_receipt(),
+                        bounds: row.bounds(),
+                        clip: row.clip_bounds(),
+                        semantic_order: row.layer_semantic_order(),
+                        source_digest: row.semantic_digest(),
+                    }),
+            )
             .collect()
+    }
+
+    pub(in crate::mounting) fn with_portal_overlays(
+        mut self,
+        portal_overlays: Vec<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
+    ) -> Self {
+        self.portal_overlays = portal_overlays.into();
+        self
+    }
+
+    pub(in crate::mounting) fn with_portal_children(
+        mut self,
+        portal_children: std::collections::BTreeMap<
+            worth_ui_host_contract::UiMountedInstanceIdentity,
+            Option<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
+        >,
+    ) -> Self {
+        self.portal_children = std::rc::Rc::new(portal_children);
+        self
     }
 
     #[cfg(test)]
@@ -187,7 +286,45 @@ impl UiMountedVisualRegionBasis {
         self.paint
             .retained_structural_bytes()?
             .checked_add(self.hit_test.retained_structural_bytes()?)?
-            .checked_add(self.semantic_text.retained_structural_bytes()?)
+            .checked_add(self.semantic_text.retained_structural_bytes()?)?
+            .checked_add(self.portal_overlays.len().checked_mul(std::mem::size_of::<
+                worth_ui_host_contract::UiMountedPortalOverlayMechanic,
+            >())?)?
+            .checked_add(
+                self.portal_children
+                    .len()
+                    .checked_mul(std::mem::size_of::<(
+                        worth_ui_host_contract::UiMountedInstanceIdentity,
+                        Option<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
+                    )>())?,
+            )
+    }
+}
+
+impl UiMountedHitTestPresentation {
+    pub(crate) const fn mechanic(&self) -> worth_ui_host_contract::UiMountedHitTestMechanic {
+        self.mechanic
+    }
+
+    pub(crate) const fn portal(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiMountedPortalOverlayMechanic> {
+        self.portal
+    }
+
+    pub(crate) const fn owns_presented_portal(&self) -> bool {
+        self.owns_presented_portal
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn for_test(
+        mechanic: worth_ui_host_contract::UiMountedHitTestMechanic,
+    ) -> Self {
+        Self {
+            mechanic,
+            portal: None,
+            owns_presented_portal: false,
+        }
     }
 }
 

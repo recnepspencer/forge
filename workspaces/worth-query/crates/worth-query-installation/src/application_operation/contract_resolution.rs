@@ -20,10 +20,12 @@ use worth_query_declaration::facade::application_capability::{
 mod aftermath;
 mod cardinality_denial;
 mod elevation_lifecycle_program;
+#[cfg(test)]
 mod external_effect;
 pub(super) use aftermath::operation_aftermath;
 pub(super) use cardinality_denial::WorthQueryOperationContractCardinalityDenial;
 use elevation_lifecycle_program::{lifecycle_program_targets, lifecycle_resource_decision_read};
+#[cfg(test)]
 pub(super) use external_effect::operation_external_effect;
 
 #[cfg(test)]

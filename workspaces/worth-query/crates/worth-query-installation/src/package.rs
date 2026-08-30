@@ -4,7 +4,11 @@ mod conditional_operation_validation;
 mod definition;
 mod identity;
 mod member_validation;
+mod portable_records;
+mod reconstruction;
 mod validation_denial;
+
+pub(crate) use reconstruction::work_observation::text as reconstruction_text_bytes;
 
 use worth_proof::{
     Artifact, AuthorityMarker, AuthorityProves, AuthorityWitness, CurrentValidity,
@@ -13,6 +17,32 @@ use worth_proof::{
 
 pub use definition::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
 pub use identity::{WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackageIdentity};
+pub use portable_records::{
+    WorthQueryPortableApplicationContractSpine,
+    WorthQueryPortableApplicationOperationContractParts,
+    WorthQueryPortableApplicationOperationContractRecord, WorthQueryPortableDomainOperationParts,
+    WorthQueryPortableDomainOperationRecord, WorthQueryPortableDomainOperationSemanticParts,
+    WorthQueryPortableDomainOperationSemanticRecord, WorthQueryPortableExternalEffectContractParts,
+    WorthQueryPortableExternalEffectContractRecord,
+    WorthQueryPortableInstalledReconciliationProcedureRecord,
+    WorthQueryPortableNativeAspectContractParts, WorthQueryPortableNativeAspectContractRecord,
+    WorthQueryPortableOperationGraphReadScope, WorthQueryPortableOperationTouchScope,
+    WorthQueryPortablePackageExportDenial, WorthQueryPortablePackageExportDenialKind,
+    WorthQueryPortablePackageExportLimits, WorthQueryPortablePackageManifest,
+    WorthQueryPortablePackageManifestVersion, WorthQueryPortablePackageRecord,
+    WorthQueryPortablePackageRecordFamily, WorthQueryPortablePackageRecordSet,
+    WorthQueryPortablePackageRecordView, WORTH_QUERY_PORTABLE_PACKAGE_MANIFEST_VERSION,
+    WORTH_QUERY_PORTABLE_PACKAGE_MAX_LOGICAL_EXPORT_BYTES,
+    WORTH_QUERY_PORTABLE_PACKAGE_MAX_RECORDS,
+};
+pub use reconstruction::{
+    WorthQueryExpectedPortablePackageIdentity, WorthQueryPortablePackageReconstruction,
+    WorthQueryPortablePackageReconstructionCandidate,
+    WorthQueryPortablePackageReconstructionDenial, WorthQueryPortablePackageReconstructionLimits,
+    WorthQueryPortablePackageReconstructionWork, WorthQueryReconstructedPortablePackageCandidate,
+    WORTH_QUERY_PORTABLE_PACKAGE_MAX_RECONSTRUCTION_CANONICAL_BYTES,
+    WORTH_QUERY_PORTABLE_PACKAGE_MAX_RECONSTRUCTION_ENTRIES,
+};
 pub use validation_denial::{
     WorthQueryPortablePackageValidationDenial, WorthQueryPortablePackageValidationDenialKind,
 };
@@ -26,7 +56,12 @@ use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::{
     WorthQueryPortableDomainOperationDefinition, WorthQueryValidatedDomainOperation,
 };
-use crate::package::{identity::canonical_identity, member_validation::validate_package_members};
+use crate::package::portable_records::compile_application_contract_spine;
+#[cfg(test)]
+pub(crate) use crate::package::portable_records::verify_source_closure_for_test;
+use crate::package::{
+    identity::canonical_identity_with_maximum_bytes, member_validation::validate_package_members,
+};
 use crate::package_requirements::{
     WorthQueryInstallationCapabilityFamily, WorthQueryInstallationConfigSectionFamily,
     WorthQueryInstallationContributionCategory, WorthQueryInstallationOperatingRequirement,
@@ -152,13 +187,26 @@ impl WorthQueryPortableDomainPackage {
     }
 
     pub fn validate(
+        self,
+    ) -> Result<WorthQueryValidatedPortableDomainPackage, WorthQueryPortablePackageValidationDenial>
+    {
+        self.validate_with_canonical_work_limit(u64::MAX)
+    }
+
+    pub(crate) fn validate_with_canonical_work_limit(
         mut self,
+        maximum_canonical_work_bytes: u64,
     ) -> Result<WorthQueryValidatedPortableDomainPackage, WorthQueryPortablePackageValidationDenial>
     {
         validate_package_members(&mut self)?;
         let validated_domain_operations = admit_domain_operations(&self.domain_operations)?;
+        let application_contract_spine =
+            compile_application_contract_spine(&self.application_schemas)?;
+        let maximum_canonical_work_bytes =
+            usize::try_from(maximum_canonical_work_bytes).unwrap_or(usize::MAX);
         let (identity, canonical_work) =
-            canonical_identity(&self).map_err(map_package_canonical_denial)?;
+            canonical_identity_with_maximum_bytes(&self, maximum_canonical_work_bytes)
+                .map_err(map_package_canonical_denial)?;
         let authority =
             AuthorityWitness::from_authority_marker(PortablePackageValidationAuthority {
                 _private: (),
@@ -174,6 +222,7 @@ impl WorthQueryPortableDomainPackage {
             identity,
             canonical_work,
             validated_domain_operations,
+            application_contract_spine,
         })
     }
 }
@@ -200,6 +249,7 @@ pub struct WorthQueryValidatedPortableDomainPackage {
     identity: WorthQueryPortableDomainPackageIdentity,
     canonical_work: WorthQueryCanonicalWorkEvidence,
     validated_domain_operations: Vec<WorthQueryValidatedDomainOperation>,
+    application_contract_spine: WorthQueryPortableApplicationContractSpine,
 }
 
 #[derive(Clone, Debug)]
@@ -292,8 +342,30 @@ impl WorthQueryValidatedPortableDomainPackage {
         &self.validated_domain_operations
     }
 
+    /// Exact typed application contracts retained when this package was validated.
+    ///
+    /// The spine is descriptive and carries no runtime binding or installation authority.
+    pub fn application_contract_spine(&self) -> &WorthQueryPortableApplicationContractSpine {
+        &self.application_contract_spine
+    }
+
     pub fn contribution_policy(&self) -> &[WorthQueryInstallationContributionCategory] {
         &self.artifact.payload().contributions
+    }
+
+    /// Export complete authority-free logical meaning under the default cold-path limits.
+    pub fn export_typed_records(
+        &self,
+    ) -> Result<WorthQueryPortablePackageRecordSet, WorthQueryPortablePackageExportDenial> {
+        self.export_typed_records_with_limits(WorthQueryPortablePackageExportLimits::DEFAULT)
+    }
+
+    /// Export complete authority-free logical meaning under caller-narrowed limits.
+    pub fn export_typed_records_with_limits(
+        &self,
+        limits: WorthQueryPortablePackageExportLimits,
+    ) -> Result<WorthQueryPortablePackageRecordSet, WorthQueryPortablePackageExportDenial> {
+        portable_records::export_validated_package_records(self, limits)
     }
 }
 

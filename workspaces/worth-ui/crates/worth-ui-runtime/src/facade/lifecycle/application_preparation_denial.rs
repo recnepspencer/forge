@@ -11,20 +11,20 @@ pub enum WorthUiApplicationPreparationPhase {
 /// Phase-local denial from the single public application-preparation lane.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiApplicationPreparationDenial {
-    DslCompilation(worth_ui_dsl::WorthUiDslCompileReport),
-    RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
-    Candidate(crate::runtime::WorthUiReplacementCandidateDenial),
-    IntentCatalog(crate::declaration::UiIntentCatalogPreparationDenial),
+    DslCompilation(Box<worth_ui_dsl::WorthUiDslCompileReport>),
+    RuntimePreparation(Box<crate::runtime::WorthUiSemanticHandoffPreparationDenial>),
+    Candidate(Box<crate::runtime::WorthUiReplacementCandidateDenial>),
+    IntentCatalog(Box<crate::declaration::UiIntentCatalogPreparationDenial>),
     IntentExecutionBinding(
-        crate::runtime::intent_execution::UiIntentExecutionBindingPreparationDenial,
+        Box<crate::runtime::intent_execution::UiIntentExecutionBindingPreparationDenial>,
     ),
     CandidateSnapshotMismatch {
         candidate_snapshot_digest: u64,
         prepared_snapshot_digest: u64,
     },
-    GraphHandoff(UiDeclarationGraphHandoffDenial),
-    GraphAdmission(UiGraphInstantiationDenial),
-    GraphCommit(UiGraphMutationCommitDenial),
+    GraphHandoff(Box<UiDeclarationGraphHandoffDenial>),
+    GraphAdmission(Box<UiGraphInstantiationDenial>),
+    GraphCommit(Box<UiGraphMutationCommitDenial>),
 }
 
 impl WorthUiApplicationPreparationDenial {

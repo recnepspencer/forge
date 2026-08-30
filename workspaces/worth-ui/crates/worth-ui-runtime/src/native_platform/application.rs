@@ -24,7 +24,7 @@ pub trait UiNativeApplicationDefinition: Sized {
 
 #[must_use]
 pub enum UiNativeApplicationPreparationOutcome {
-    Prepared(UiPreparedNativeApplication),
+    Prepared(Box<UiPreparedNativeApplication>),
     Denied(UiNativeApplicationPreparationDenial),
 }
 
@@ -175,8 +175,8 @@ impl UiNativeApplicationPreparation {
             return self.deny(UiNativeApplicationPreparationDenialCause::ChangeProfileMissing);
         };
         match builder.freeze() {
-            Ok(application) => {
-                UiNativeApplicationPreparationOutcome::Prepared(UiPreparedNativeApplication {
+            Ok(application) => UiNativeApplicationPreparationOutcome::Prepared(Box::new(
+                UiPreparedNativeApplication {
                     application,
                     binding: self.binding,
                     program: self.program.take().unwrap_or_else(|| {
@@ -188,8 +188,8 @@ impl UiNativeApplicationPreparation {
                     }),
                     presentation_async: self.presentation_async.take(),
                     application_runtime: self.application_runtime.take(),
-                })
-            }
+                },
+            )),
             Err(_) => {
                 self.deny(UiNativeApplicationPreparationDenialCause::ApplicationFreezeRejected)
             }

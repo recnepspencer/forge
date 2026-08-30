@@ -11,6 +11,7 @@ mod mosaic_state;
 mod native_capability;
 mod plugin_slot;
 mod runtime_outcome_projection;
+mod runtime_service;
 mod settings;
 mod surface;
 mod task_presentation;
@@ -19,7 +20,15 @@ mod view_binding;
 
 pub(crate) use command::CommandAcceptedRegistrationProof;
 pub(crate) use command::CommandRegistry;
-pub use command::{CommandCategory, CommandDescriptor, FrozenCommandCapabilities};
+pub use command::{
+    CommandCategory, CommandDescriptor, FrozenCommandCapabilities, UiCommandContextConsumption,
+    UiCommandKeyCode, UiCommandLogicalKey, UiCommandModifierSet, UiCommandPhysicalKey,
+    UiCommandRegistrationGeneration, UiCommandRegistrationOwner,
+    UiCommandRegistrationOwnerIdentity, UiCommandRepeatPolicy, UiCommandRouteDeclaration,
+    UiCommandRouteDestination, UiCommandRoutePriority, UiCommandRouteScope,
+    UiCommandRouteScopeIdentity, UiCommandShortcutKey, UiCommandShortcutPlatform,
+    UiCommandShortcutSequence, UiCommandShortcutStroke, UiCommandTextInputPolicy,
+};
 pub(crate) use command_projection::{
     CommandProjectionAcceptedRegistrationProof, CommandProjectionRegistry,
 };
@@ -34,13 +43,15 @@ pub(crate) use component::{ComponentAcceptedRegistrationProof, ComponentRegistry
 pub use component::{
     ComponentAccessibilitySupport, ComponentAllocationMeasurementContract,
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor,
-    ComponentExecutionLane, ComponentFocusSupport, ComponentHitTestClipContract,
-    ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentPropSchema,
-    ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
+    ComponentExecutionLane, ComponentFocusContainerPolicy, ComponentFocusNavigationAxis,
+    ComponentFocusSupport, ComponentHitTestClipContract, ComponentHitTestContract,
+    ComponentHitTestInset, ComponentHitTestOrder, ComponentPortalChildContract,
+    ComponentPropSchema, ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
     ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
     ComponentSemanticTextContract, ComponentSemanticTextContractDenial,
     ComponentSemanticTextSpanContract, ComponentStateOwnership, ComponentStaticPaintContract,
-    ComponentStaticPaintOrder, ComponentViewportInset, FrozenComponentCapabilities,
+    ComponentStaticPaintOrder, ComponentViewportAxisPlacement, ComponentViewportInset,
+    ComponentViewportRegion, FrozenComponentCapabilities,
 };
 pub(crate) use family_names::{
     COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
@@ -126,6 +137,9 @@ pub use runtime_outcome_projection::{
 };
 pub(crate) use runtime_outcome_projection::{
     RuntimeOutcomeProjectionAcceptedRegistrationProof, RuntimeOutcomeProjectionRegistry,
+};
+pub(crate) use runtime_service::{
+    UiRuntimeServiceFamily, UiRuntimeServiceSupport, UiRuntimeServiceSupportPosture,
 };
 pub use settings::{
     ArbitraryKeyValueSettingBag, FrozenSettingCapabilities, FrozenSettingEntry,

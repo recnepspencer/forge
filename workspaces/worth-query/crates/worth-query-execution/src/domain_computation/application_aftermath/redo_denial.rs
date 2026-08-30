@@ -5,6 +5,12 @@
 pub enum WorthQueryRedoDenialKind {
     /// Binding or intent is stale against current truth.
     Stale,
+    ActiveSnapshotCapacityExhausted {
+        maximum_active_snapshots: usize,
+    },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     /// Fresh capability/policy admission denied — proved undo is not current authority.
     NewlyUnauthorized,
     /// Intent was copied / not derived from this proved undo path.
@@ -37,6 +43,24 @@ impl WorthQueryRedoDenial {
 
     pub const fn stale() -> Self {
         Self::new(WorthQueryRedoDenialKind::Stale)
+    }
+
+    pub const fn active_snapshot_capacity_exhausted(maximum_active_snapshots: usize) -> Self {
+        Self::new(WorthQueryRedoDenialKind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        })
+    }
+
+    pub const fn retention_capacity_exhausted() -> Self {
+        Self::new(WorthQueryRedoDenialKind::RetentionCapacityExhausted)
+    }
+
+    pub const fn retention_identity_exhausted() -> Self {
+        Self::new(WorthQueryRedoDenialKind::RetentionIdentityExhausted)
+    }
+
+    pub const fn snapshot_identity_exhausted() -> Self {
+        Self::new(WorthQueryRedoDenialKind::SnapshotIdentityExhausted)
     }
 
     pub const fn newly_unauthorized() -> Self {

@@ -15,17 +15,12 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
             crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
         );
         let mut recovered = FintechWorld::setup_persisted_world().runtime;
-        let outcome = recovered.durability_authority().recover(plan).unwrap();
+        let outcome = recovered.durability_recovery().recover(plan).unwrap();
         capture_recovery_probe(&recovered, &outcome)
     };
 
     let (recovered, outcome) = recover_persisted_world(&world).unwrap();
-    let recovered_snapshot = recovered
-        .publication()
-        .latest_bundle()
-        .unwrap()
-        .snapshot
-        .clone();
+    let recovered_snapshot = recovered.visibility_authority().snapshot();
     let packet = {
         let context = recovered
             .read_truth()
@@ -57,6 +52,10 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
         ProbeStage::PostMutation,
     );
     let recovery_probe = capture_recovery_probe(&recovered, &outcome);
+    recovered
+        .snapshots()
+        .release_snapshot(&recovered_snapshot)
+        .unwrap();
 
     assert_eq!(result.entities.len(), 3);
     assert_eq!(
@@ -143,9 +142,9 @@ fn fintech_failure_injection_helpers_cover_savepoints_replay_and_checkpoint_corr
     assert_eq!(invalid_code, DiagnosticCode::InvalidSavepoint);
 
     let _correction = correct_seeded_trade_candidate(&mut world, analysis);
-    let removed = drop_latest_parent_envelope_for_replay(&mut world.runtime);
+    let removed = drop_latest_parent_envelope_for_replay(&world.runtime);
     assert!(removed.is_some());
-    let wrong_branch = replay_latest_commit_on_wrong_branch(&mut world.runtime).unwrap();
+    let wrong_branch = replay_latest_commit_on_wrong_branch(&world.runtime).unwrap();
     assert_eq!(
         wrong_branch.failure,
         Some(ReplayFailureClass::BranchMismatch)
@@ -199,7 +198,7 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
     );
 
     let compaction = compact_world_store(&mut world).unwrap();
-    let (mut recovered, outcome) = recover_persisted_world(&world).unwrap();
+    let (recovered, outcome) = recover_persisted_world(&world).unwrap();
     let recovered_probe = capture_recovery_probe(&recovered, &outcome);
 
     assert!(
@@ -314,11 +313,10 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     let corrupted = corrupt_latest_checkpoint_file(&plan);
     assert!(corrupted.is_some());
 
-    let (mut recovered, outcome) =
-        recover_runtime_from_plan(world.runtime.durability().recovery_plan(
-            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-        ))
-        .unwrap();
+    let (recovered, outcome) = recover_runtime_from_plan(world.runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    ))
+    .unwrap();
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let packet = {
         let context = recovered

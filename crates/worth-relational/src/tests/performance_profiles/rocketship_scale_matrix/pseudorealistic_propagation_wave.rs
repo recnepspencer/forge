@@ -18,19 +18,17 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_propagation_wave(
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime
-                .config
-                .publication
-                .policy
-                .max_patch_records_per_commit = node_count * 2;
+            runtime.configure_for_test(|config| {
+                config.publication.policy.max_patch_records_per_commit = node_count * 2
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
-                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+                seed_pseudorealistic_rocketship_world(&runtime, node_count, query_target_count);
 
             runtime.performance_access().reset_counters();
             let hot_update_started_at = Instant::now();
             let update = update_entity(
-                &mut runtime,
+                &runtime,
                 seeded.hot_update_target,
                 "rocket.plumbing_and_feed.propagation_patch",
             );

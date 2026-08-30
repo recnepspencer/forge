@@ -14,8 +14,8 @@ use fixtures::{
 
 #[test]
 fn merge_support_inspection_witness_parity_survives_live_replay_recovery_and_compatibility_lane() {
-    let mut runtime = runtime_with_schema_declared_entity_policy(true);
-    let prepared = prepared_merge(&mut runtime);
+    let runtime = runtime_with_schema_declared_entity_policy(true);
+    let prepared = prepared_merge(&runtime);
     let outcome = runtime
         .execute_prepared_merge(prepared)
         .expect("executed merge");
@@ -28,7 +28,7 @@ fn merge_support_inspection_witness_parity_survives_live_replay_recovery_and_com
         .inspect_what_happened()
         .prepare_published_merge_support_inspection_witness(&published_authority)
         .expect("published support");
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         runtime_with_schema_declared_entity_policy(true)
     });
     let recovered_authority =
@@ -61,8 +61,8 @@ fn merge_support_inspection_witness_parity_survives_live_replay_recovery_and_com
 
 #[test]
 fn merge_support_inspection_witness_denies_inconsistent_retained_proof_authority() {
-    let mut runtime = runtime_with_schema_declared_entity_policy(false);
-    let prepared = prepared_merge(&mut runtime);
+    let runtime = runtime_with_schema_declared_entity_policy(false);
+    let prepared = prepared_merge(&runtime);
     let outcome = runtime
         .execute_prepared_merge(prepared)
         .expect("executed merge");
@@ -100,8 +100,8 @@ fn merge_support_inspection_witness_denies_inconsistent_retained_proof_authority
 
 #[test]
 fn merge_support_inspection_witness_denies_missing_required_proof_family() {
-    let mut runtime = runtime_with_schema_declared_entity_policy(false);
-    let prepared = prepared_merge(&mut runtime);
+    let runtime = runtime_with_schema_declared_entity_policy(false);
+    let prepared = prepared_merge(&runtime);
     let correspondence = runtime
         .merge()
         .retain_merge_correspondence_witness_from_prepared_execution(&prepared);

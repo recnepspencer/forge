@@ -1,6 +1,6 @@
 //! Installed reconciliation meaning retained for public inspection.
 
-use worth_query_declaration::facade::application_aftermath::DeclaredReconciliationProcedure;
+use crate::package::WorthQueryPortableInstalledReconciliationProcedureRecord;
 
 /// Exact installed procedure selected for external-owner reconciliation.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -9,9 +9,11 @@ pub struct WorthQueryInstalledReconciliationProcedure {
 }
 
 impl WorthQueryInstalledReconciliationProcedure {
-    pub(crate) fn from_declared(declared: &DeclaredReconciliationProcedure) -> Self {
+    pub(crate) fn from_portable(
+        portable: &WorthQueryPortableInstalledReconciliationProcedureRecord,
+    ) -> Self {
         Self {
-            procedure_slot: declared.procedure_slot().to_owned(),
+            procedure_slot: portable.procedure_slot().to_owned(),
         }
     }
 

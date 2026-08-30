@@ -62,20 +62,20 @@ impl WorthQueryApplicationDisclosureReceipt {
             .iter()
             .map(
                 |(slot, required_disclosure)| WorthQueryApplicationDisclosureDecisionFact {
-                    slot: *slot,
+                    slot: slot.clone(),
                     required_disclosure: required_disclosure.clone(),
                     outcome: WorthQueryApplicationDisclosureOutcome::Disclosed,
                 },
             )
             .chain(omitted.iter().map(|(slot, required_disclosure)| {
                 WorthQueryApplicationDisclosureDecisionFact {
-                    slot: *slot,
+                    slot: slot.clone(),
                     required_disclosure: required_disclosure.clone(),
                     outcome: WorthQueryApplicationDisclosureOutcome::Omitted,
                 }
             }))
             .collect::<Vec<_>>();
-        decisions.sort_by_key(|decision| decision.slot);
+        decisions.sort_by(|left, right| left.slot.cmp(&right.slot));
         Self {
             outcome_identity: WorthQueryApplicationDisclosureOutcomeIdentity::mint(),
             posture: WorthQueryApplicationDisclosureReceiptPosture::Governed,

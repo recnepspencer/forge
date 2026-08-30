@@ -78,6 +78,20 @@ fn validate_chunks(bytes: &[u8]) -> Result<(), UiFontCollectionAdmissionDenial> 
     }
 }
 
+pub(super) fn png_crc(kind: &[u8], data: &[u8]) -> u32 {
+    kind.iter().chain(data).fold(u32::MAX, |crc, byte| {
+        (0..8).fold(crc ^ u32::from(*byte), |value, _| {
+            (value >> 1) ^ (0xEDB8_8320 & 0_u32.wrapping_sub(value & 1))
+        })
+    }) ^ u32::MAX
+}
+
+fn be_u32(bytes: &[u8], start: usize) -> Option<u32> {
+    Some(u32::from_be_bytes(
+        bytes.get(start..start.checked_add(4)?)?.try_into().ok()?,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::validate_png;
@@ -101,18 +115,4 @@ mod tests {
         output.extend_from_slice(data);
         output.extend_from_slice(&super::png_crc(kind, data).to_be_bytes());
     }
-}
-
-pub(super) fn png_crc(kind: &[u8], data: &[u8]) -> u32 {
-    kind.iter().chain(data).fold(u32::MAX, |crc, byte| {
-        (0..8).fold(crc ^ u32::from(*byte), |value, _| {
-            (value >> 1) ^ (0xEDB8_8320 & 0_u32.wrapping_sub(value & 1))
-        })
-    }) ^ u32::MAX
-}
-
-fn be_u32(bytes: &[u8], start: usize) -> Option<u32> {
-    Some(u32::from_be_bytes(
-        bytes.get(start..start.checked_add(4)?)?.try_into().ok()?,
-    ))
 }

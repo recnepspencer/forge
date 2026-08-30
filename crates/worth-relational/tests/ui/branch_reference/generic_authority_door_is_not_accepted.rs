@@ -4,7 +4,7 @@ use worth_relational::facade::runtime::RelationalRuntime;
 use worth_proof::{AuthorityMarker, AuthorityWitness};
 
 fn generic_door<Auth: AuthorityMarker>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     target: BranchId,
     authority: AuthorityWitness<Auth>,
 ) {

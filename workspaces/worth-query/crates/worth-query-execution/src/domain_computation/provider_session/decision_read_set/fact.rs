@@ -330,6 +330,10 @@ pub enum WorthQueryDecisionReadSetDenialKind {
     IncompleteRequiredFamilies,
     IncompleteRequiredFacts,
     DecisionFactBudgetExceeded,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     ProviderRejected,
     ProviderPanicked,
 }

@@ -30,14 +30,10 @@ fn test_patch_target(aspect: &str, field: &str) -> AspectFieldLocator {
 
 #[test]
 fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -96,14 +92,14 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(registry)
         .build();
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, shared, "same");
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, shared, "same");
     crate::tests::support::update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         shared,
         "same",
         BranchId("feature".to_string()),
@@ -166,7 +162,7 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(registry)
         .build();
 
@@ -180,25 +176,27 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             )
             .expect("owner-admitted transaction context")
     };
-    main_txn.push_batch(
-        crate::facade::transactions::WorkerIntentBatch::new("main-seed").push(
-            MutationIntent::Create(CreateIntent::Entity(
-                crate::transactions::data::EntitySpec {
-                    partition_id: crate::facade::identity::PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: crate::symbols::data::ClientKey::raw("main-shared"),
-                    fields: crate::tests::support::single_string_aspect_field_patch(
-                        crate::tests::support::aspect_key("name"),
-                        crate::tests::support::field_key("name"),
-                        "shared-name",
-                    ),
-                },
-            )),
-        ),
-    );
-    main_txn.commit(&mut runtime).unwrap();
+    main_txn
+        .push_batch(
+            crate::facade::transactions::WorkerIntentBatch::new("main-seed").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
+                        partition_id: crate::facade::identity::PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: crate::symbols::data::ClientKey::raw("main-shared"),
+                        fields: crate::tests::support::single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                            "shared-name",
+                        ),
+                    },
+                )),
+            ),
+        )
+        .expect("test staging stays within configured resource budgets");
+    main_txn.commit(&runtime).unwrap();
 
-    create_branch_from_main(&mut runtime, "feature");
+    create_branch_from_main(&runtime, "feature");
     let mut feature_txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_branch(
@@ -212,30 +210,32 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             )
             .expect("owner-admitted transaction context")
     };
-    feature_txn.push_batch(
-        crate::facade::transactions::WorkerIntentBatch::new("feature-seed").push(
-            MutationIntent::Create(CreateIntent::Entity(
-                crate::transactions::data::EntitySpec {
-                    partition_id: crate::facade::identity::PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
-                    fields: crate::tests::support::string_aspect_field_patch([
-                        (
-                            crate::tests::support::aspect_key("name"),
-                            crate::tests::support::field_key("name"),
-                            "shared-name",
-                        ),
-                        (
-                            crate::tests::support::aspect_key("status"),
-                            crate::tests::support::field_key("status"),
-                            "active",
-                        ),
-                    ]),
-                },
-            )),
-        ),
-    );
-    feature_txn.commit(&mut runtime).unwrap();
+    feature_txn
+        .push_batch(
+            crate::facade::transactions::WorkerIntentBatch::new("feature-seed").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
+                        partition_id: crate::facade::identity::PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
+                        fields: crate::tests::support::string_aspect_field_patch([
+                            (
+                                crate::tests::support::aspect_key("name"),
+                                crate::tests::support::field_key("name"),
+                                "shared-name",
+                            ),
+                            (
+                                crate::tests::support::aspect_key("status"),
+                                crate::tests::support::field_key("status"),
+                                "active",
+                            ),
+                        ]),
+                    },
+                )),
+            ),
+        )
+        .expect("test staging stays within configured resource budgets");
+    feature_txn.commit(&runtime).unwrap();
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -264,14 +264,10 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
 
 #[test]
 fn derive_merge_commit_mutation_plan_does_not_rely_on_raw_lowered_record_arrays() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let mut prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

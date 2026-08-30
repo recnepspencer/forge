@@ -12,7 +12,8 @@ mod scalar_registration;
 mod schema_requirement;
 
 pub use application_schema::{
-    IdentityAspect, IdentityIdField, MeasurementAspect, MeasurementValueField, QueryRevisionAspect,
+    CollectionItemAspect, CollectionItemKeyField, CollectionItemStatusField, IdentityAspect,
+    IdentityIdField, MeasurementAspect, MeasurementValueField, QueryRevisionAspect,
     QueryRevisionValueField, QueryTextAspect, QueryTextStatusField, SizeAspect, SizeValueField,
     UiMeasurementValue, UiSizeValue, WorthUiApplicationSchema, WorthUiNativeField,
     WorthUiProjectionField, WorthUiRecord,

@@ -35,11 +35,12 @@ fn custom_scope_planner_preserves_owner_selected_current_version() {
     let runtime = RelationalRuntimeApi::builder()
         .schema_registry(RelationalSchemaRegistry::new())
         .build();
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, None);
     let selected_version = crate::identity::data::VersionId(77);
+    let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);
     let planner = CustomInvariantScopePlanner::new_at_current_version(
-        &runtime,
+        &view,
         &observation,
         selected_version,
         selected_version,
@@ -145,10 +146,11 @@ fn traversal_budget_is_session_wide() {
     let runtime = RelationalRuntimeApi::builder()
         .schema_registry(RelationalSchemaRegistry::new())
         .build();
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, None);
+    let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);
     let context = CustomInvariantExecutionContext::new(
-        &runtime,
+        &view,
         &observation,
         runtime.current_version_id(),
         runtime.current_version_id(),
@@ -172,11 +174,11 @@ fn traversal_budget_is_session_wide() {
 
 #[test]
 fn touched_scope_tracks_planned_relation_endpoint_updates() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let new_target = create_entity(&mut runtime, "new-target");
-    let relation_id = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let new_target = create_entity(&runtime, "new-target");
+    let relation_id = create_relation(&runtime, source, old_target, "edge");
     let intent = MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(
         UpdateRelationEndpointsIntent {
             relation_id,
@@ -185,13 +187,14 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
             target: EntityReference::Existing(new_target),
         },
     ));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()));
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()))
+        .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,
@@ -218,10 +221,10 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
 
 #[test]
 fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let relation_id = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let relation_id = create_relation(&runtime, source, old_target, "edge");
     let created_target = CreatedEntityRef {
         partition_id: crate::identity::data::PartitionId(1),
         kind_id: KindId(1),
@@ -241,17 +244,18 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
             target: EntityReference::Created(created_target.clone()),
         },
     ));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-to-created")
             .push(create_target.clone())
             .push(update_relation.clone()),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![create_target, update_relation],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,
@@ -273,20 +277,21 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
 
 #[test]
 fn touched_scope_tracks_planned_relation_deletes() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_id = create_relation(&mut runtime, source, target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_id = create_relation(&runtime, source, target, "edge");
     let intent = MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
         relation_id,
     }));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()));
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()))
+        .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,
@@ -308,18 +313,19 @@ fn touched_scope_tracks_planned_relation_deletes() {
 
 #[test]
 fn touched_scope_tracks_planned_entity_deletes() {
-    let mut runtime = runtime_with_test_schema();
-    let entity_id = create_entity(&mut runtime, "entity");
+    let runtime = runtime_with_test_schema();
+    let entity_id = create_entity(&runtime, "entity");
     let intent = MutationIntent::Entity(crate::facade::transactions::EntityMutationIntent::Delete(
         DeleteEntityIntent { entity_id },
     ));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()));
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()))
+        .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
     };
-    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let observation = InvariantObservation::committed(runtime.storage_access().current_edition());
     let prepared_scope = prepared_scope(&runtime, &observation, Some(&merged_plan));
     let planner = CustomInvariantScopePlanner::new(
         &runtime,

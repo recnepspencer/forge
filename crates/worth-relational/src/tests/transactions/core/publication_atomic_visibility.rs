@@ -5,9 +5,9 @@ use std::sync::Arc;
 
 #[test]
 fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "atomic-reader-anchor");
-    let old_basis = runtime.admit_main_branch_basis().expect("old basis");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "atomic-reader-anchor");
+    let old_basis = crate::tests::support::test_owner_main_basis(&runtime).expect("old basis");
     let old_root_id = old_basis.descriptor().root_identity();
 
     let mut transaction = runtime
@@ -16,11 +16,13 @@ fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
             crate::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("reader-race transaction binds");
-    transaction.push_batch(batch_create("atomic-reader-new-root"));
+    transaction
+        .push_batch(batch_create("atomic-reader-new-root"))
+        .expect("test staging stays within configured resource budgets");
     let candidate = runtime
         .prepare_branch_transaction(transaction)
         .expect("reader-race candidate prepares");
-    let publication_cell = candidate.publication_cell.clone();
+    let publication_cell = candidate.publication_cell_for_test();
     let publication_gate = Arc::clone(publication_cell.coordination());
     let held_gate = publication_gate.enter();
 
@@ -104,7 +106,7 @@ fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
         .recv_timeout(std::time::Duration::from_secs(1))
         .expect("reader-race publication completes within one second");
     let performed = match publisher.join().expect("publisher joins") {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("reader-race candidate performs: {outcome:?}"),
     };
     let (runtime, observations) = reader.join().expect("public reader joins");
@@ -130,9 +132,9 @@ fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
 
 #[test]
 fn fork_and_publication_consume_complete_old_and_new_roots() {
-    let mut runtime = runtime_with_test_schema();
-    let old_commit = create_entity_outcome(&mut runtime, "fork-race-anchor");
-    let old_basis = runtime.admit_main_branch_basis().expect("old basis");
+    let runtime = runtime_with_test_schema();
+    let old_commit = create_entity_outcome(&runtime, "fork-race-anchor");
+    let old_basis = crate::tests::support::test_owner_main_basis(&runtime).expect("old basis");
     let old_root_id = old_basis.descriptor().root_identity();
     let (_, fork_source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
@@ -144,11 +146,14 @@ fn fork_and_publication_consume_complete_old_and_new_roots() {
             crate::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("fork-race transaction binds");
-    transaction.push_batch(batch_create("fork-race-new-root"));
+    transaction
+        .push_batch(batch_create("fork-race-new-root"))
+        .expect("test staging stays within configured resource budgets");
     let candidate = runtime
         .prepare_branch_transaction(transaction)
         .expect("fork-race candidate prepares");
-    let publication_gate = Arc::clone(candidate.publication_cell.coordination());
+    let publication_cell = candidate.publication_cell_for_test();
+    let publication_gate = Arc::clone(publication_cell.coordination());
     let held_gate = publication_gate.enter();
     let publisher_done = Arc::new(AtomicBool::new(false));
     let publisher_done_signal = Arc::clone(&publisher_done);
@@ -217,11 +222,11 @@ fn fork_and_publication_consume_complete_old_and_new_roots() {
         .recv_timeout(std::time::Duration::from_secs(1))
         .expect("fork-race publication completes within one second");
     let performed = match publisher.join().expect("publisher joins") {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("source advances to the complete new root: {outcome:?}"),
     };
     let (runtime, successful_forks, _stale_count) = forker.join().expect("fork racer joins");
-    let new_main = runtime.admit_main_branch_basis().expect("new main basis");
+    let new_main = crate::tests::support::test_owner_main_basis(&runtime).expect("new main basis");
     assert_eq!(
         new_main.descriptor().root_identity(),
         performed.next_basis().descriptor().root_identity()

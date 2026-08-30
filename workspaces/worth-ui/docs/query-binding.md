@@ -3,9 +3,11 @@
 ## What This Feature Is
 
 Query-backed views let Worth UI mount native values produced by an installed
-Worth Query runtime. Query owns execution, result posture, compatibility,
-recovery, and resource lifecycle. Worth UI owns the declared projection
-requirement, UI consequence, mounted identity, and presentation.
+Worth Query runtime. Query is the application-facing composition authority and
+owns its execution contract, result posture, compatibility, recovery, and
+resource lifecycle; the domain and lower runtimes retain the truth they own.
+Worth UI owns the declared projection requirement, UI consequence, mounted
+identity, and presentation.
 
 ## Why You Use It
 
@@ -31,6 +33,15 @@ requirement, UI consequence, mounted identity, and presentation.
 
 There is no product `WorthUiQueryWorkspaceExt` import. Query-free applications
 do not install a dummy Query runtime or register a dummy projection.
+
+The governing Query audience crates are:
+
+- `worth-query-decl` for application declarations and requirements;
+- `worth-query-host` for hosted installation and progression; and
+- `worth-query-replay` only for certification-owned replay or reconstruction.
+
+Ordinary UI code does not use `worth-query-replay`, and product applications do
+not import the raw Query engine as a convenience surface.
 
 ## Core Mental Model
 
@@ -86,15 +97,17 @@ Platform Pulse demonstrates the concrete hosted scalar route:
 ```text
 WorthUiScalarProjectionHostPlan::prepare()
 -> split request and completion
--> WorthQueryExecutionRuntimeInstaller::install(...)
+-> pass the declared request through the worth-query-decl audience
+-> worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::install(...)
 -> completion.complete(installation)
 -> split installed registration and initial projection advance
 -> register the scalar projection on WorthUi::app()
 ```
 
 The completion verifies the Query Consumer Kit support contract for the actual
-backend before opening the live projection. The host installer remains the
-Query authority boundary; Worth UI does not emulate it.
+backend before opening the live projection. The host audience remains the
+Query progression boundary; Worth UI does not emulate it or reach into the raw
+engine.
 
 ## Observe And Rebind
 
@@ -131,8 +144,9 @@ ordering used by the rest of the application. Runtime follows declared
 consumer indexes; it does not poll Query, scan the mounted graph, or introduce a
 second executor.
 
-Milestone 3.14 supplies the native production ingress used by this path. It
-does not move Query execution authority into the runtime or product facade.
+The closed Milestone 3.14.1 host supplies the native production ingress used by
+this path. It does not move Query execution authority into the UI runtime or
+product facade.
 
 ## Cost And Lifecycle
 
@@ -160,6 +174,8 @@ construct a fact, or publish.
 - Converting native values through JSON, debug text, or widened numbers.
 - Reassembling authority from identities, digests, reports, or inspection.
 - Querying from a renderer or host adapter.
+- Importing raw `worth-query` from product code or ordinary UI services.
+- Importing `worth-query-replay` from ordinary inspection or live binding.
 - Treating collection continuation as scalar posture.
 - Retrying or replacing without consuming the returned affine owner.
 
@@ -171,9 +187,17 @@ composition remain additive successor work. Intent payloads may consume
 admitted projection observations; they do not replace this binding,
 observation, or publication path.
 
+The current `worth-ui-query-binding` manifest still contains a temporarily
+admitted raw `worth-query` predecessor edge. That is implementation debt, not a
+supported application API or destination topology. New work must not widen the
+edge; the binding owner must remove the remaining raw-engine imports so
+`worth-query-decl` and `worth-query-host` are its only ordinary Query audiences
+before broader Query-facing capabilities are added.
+
 ## Related Docs
 
 - [Application lifecycle](./application-lifecycle.md)
 - [Worth UI architecture](./architecture.md)
 - [Runtime subsystems](./runtime-subsystems.md)
 - [Application inspection](./inspection.md)
+- [Worth Query AI README](../../worth-query/crates/worth-query/docs/AI_README.md)

@@ -1,5 +1,5 @@
 use super::{
-    PlatformPulseActionAttempt, PlatformPulseActionAttemptReference,
+    settled_poll, PlatformPulseActionAttempt, PlatformPulseActionAttemptReference,
     PlatformPulseActionAttemptState, PlatformPulseActionPort, PlatformPulseExecutorGate,
 };
 use crate::intent::PlatformPulseActionPayload;
@@ -35,7 +35,7 @@ fn intent_product_port_admits_sixteen_requests_and_rejects_the_seventeenth() {
     for attempt in &mut attempts {
         assert!(matches!(
             attempt.submit(),
-            UiIntentProviderPoll::PendingEffectMayHaveBegun
+            UiIntentProviderPoll::PendingBeforeEffect
         ));
     }
     let mut overflow = action_attempt(&port, &gate, 17);
@@ -60,6 +60,29 @@ fn intent_product_port_admits_sixteen_requests_and_rejects_the_seventeenth() {
     assert_eq!(census.received(), 16);
     assert_eq!(census.settled(), 16);
     assert_eq!(census.retained(), 0);
+}
+
+#[test]
+fn product_port_keeps_rejection_before_effect_until_the_owner_begins_work() {
+    let (port, owner) = PlatformPulseActionPort::bounded();
+    let gate = PlatformPulseExecutorGate::at(1, false);
+    let mut attempt = action_attempt(&port, &gate, 1);
+    assert!(matches!(
+        attempt.submit(),
+        UiIntentProviderPoll::PendingBeforeEffect
+    ));
+    let request = owner.try_next().expect("one admitted product request");
+    assert!(request.reject_before_effect());
+    let settlement = match &mut attempt.state {
+        PlatformPulseActionAttemptState::AwaitingProduct { receiver, .. } => receiver
+            .try_recv()
+            .expect("the owner settlement reaches the provider"),
+        _ => panic!("the submitted attempt awaits its product owner"),
+    };
+    assert!(matches!(
+        settled_poll(settlement),
+        UiIntentProviderPoll::Settled(UiIntentProviderSettlement::RejectedBeforeEffect(_))
+    ));
 }
 
 fn action_attempt(

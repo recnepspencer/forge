@@ -8,6 +8,7 @@ use worth_query_declaration::facade::{
         ApplicationQueryParameterDefinition, ErasedApplicationQueryDefinition,
     },
     application_schema::{ApplicationSchema, ApplicationSchemaBindingIdentity},
+    portable_identity::WorthQueryPortableTypeIdentity,
 };
 
 use crate::{
@@ -50,8 +51,8 @@ pub struct WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryR
     authority_identity: AuthoritySeal,
     name: String,
     scope_entity: String,
-    parameter_type: String,
-    result_type: String,
+    parameter_type: WorthQueryPortableTypeIdentity,
+    result_type: WorthQueryPortableTypeIdentity,
     parameters: Vec<ApplicationQueryParameterDefinition>,
     read_family: WorthQueryInstalledApplicationReadFamilyBinding,
     continuation: Option<WorthQueryInstalledApplicationContinuationContract>,
@@ -83,8 +84,8 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         )
         .map_err(|denial| canonical_work_denial(definition.name(), denial))?;
         let binding_identity = schema.binding_identity();
-        let parameter_type = definition.parameter_type().to_string();
-        let result_type = definition.result_type().to_string();
+        let parameter_type = definition.parameter_identity();
+        let result_type = definition.result_identity();
         let canonical = prepare_installed_query_basis(
             binding_identity.package_identity(),
             binding_identity.schema_identity(),
@@ -197,11 +198,11 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
     }
 
     pub fn parameter_type(&self) -> &str {
-        &self.parameter_type
+        self.parameter_type.as_str()
     }
 
     pub fn result_type(&self) -> &str {
-        &self.result_type
+        self.result_type.as_str()
     }
 
     pub fn parameters(&self) -> &[ApplicationQueryParameterDefinition] {

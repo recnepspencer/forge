@@ -8,23 +8,25 @@ pub(super) fn certify_geometry_hot_commit_vs_replay_reconstruction(suite: &'stat
             let mut runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::GeometryKernel,
             );
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
 
-            let source = create_entity_outcome(&mut runtime, "hot-cold-geometry-source");
-            let middle = create_entity_outcome(&mut runtime, "hot-cold-geometry-middle");
-            let target = create_entity_outcome(&mut runtime, "hot-cold-geometry-target");
+            let source = create_entity_outcome(&runtime, "hot-cold-geometry-source");
+            let middle = create_entity_outcome(&runtime, "hot-cold-geometry-middle");
+            let target = create_entity_outcome(&runtime, "hot-cold-geometry-target");
             let source_entity = changed_entities(&source)[0];
             let middle_entity = changed_entities(&middle)[0];
             let target_entity = changed_entities(&target)[0];
             create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 source_entity,
                 middle_entity,
                 "hot-cold-geometry-link-a",
             );
             create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 middle_entity,
                 target_entity,
                 "hot-cold-geometry-link-b",
@@ -32,11 +34,8 @@ pub(super) fn certify_geometry_hot_commit_vs_replay_reconstruction(suite: &'stat
 
             runtime.performance_access().reset_counters();
             let hot_commit_started_at = Instant::now();
-            let hot_commit = update_entity(
-                &mut runtime,
-                middle_entity,
-                "hot-cold-geometry-middle-updated",
-            );
+            let hot_commit =
+                update_entity(&runtime, middle_entity, "hot-cold-geometry-middle-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
 
             let snapshot = runtime.visibility_authority().snapshot();
@@ -77,7 +76,7 @@ pub(super) fn certify_geometry_hot_commit_vs_replay_reconstruction(suite: &'stat
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("geometry hot/cold recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

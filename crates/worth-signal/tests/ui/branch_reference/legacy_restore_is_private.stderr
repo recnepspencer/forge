@@ -1,0 +1,28 @@
+error[E0624]: method `restore_snapshot` is private
+ --> tests/ui/branch_reference/legacy_restore_is_private.rs:7:21
+  |
+7 |       let _ = runtime.restore_snapshot(snapshot);
+  |                       ^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/logic/transaction/runtime/state/branching/snapshotting.rs
+  |
+  | /     pub(crate) fn restore_snapshot(
+  | |         &mut self,
+  | |         snapshot: &SignalSnapshotV1,
+  | |     ) -> Result<(), SignalError> {
+  | |________________________________- private method defined here
+
+error[E0624]: method `restore_branch_snapshot` is private
+ --> tests/ui/branch_reference/legacy_restore_is_private.rs:8:21
+  |
+8 |       let _ = runtime.restore_branch_snapshot(runtime.current_branch(), snapshot);
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/logic/transaction/runtime/state/branching/snapshotting.rs
+  |
+  | /     pub(crate) fn restore_branch_snapshot(
+  | |         &mut self,
+  | |         branch: SignalBranchHandle,
+  | |         snapshot: &SignalSnapshotV1,
+  | |     ) -> Result<(), SignalError> {
+  | |________________________________- private method defined here

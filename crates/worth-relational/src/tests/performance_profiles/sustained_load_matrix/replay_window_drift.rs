@@ -3,15 +3,14 @@ use super::*;
 pub(super) fn certify_replay_window_drift_stability(suite: &'static str) {
     let replay_window_drift_samples =
         capture_perf_samples(suite, "replay_window_drift_stability", || {
-            let mut runtime = persisted_runtime_with_test_schema_profile(
+            let runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::CertificationCore,
             );
             const HISTORY_DEPTH: usize = 48;
             const REPLAY_WINDOW: usize = 32;
             let mut commit_ids = Vec::with_capacity(HISTORY_DEPTH);
             for index in 0..HISTORY_DEPTH {
-                let outcome =
-                    create_entity_outcome(&mut runtime, &format!("replay-window-{index}"));
+                let outcome = create_entity_outcome(&runtime, &format!("replay-window-{index}"));
                 commit_ids.push(outcome.commit.commit_id);
             }
 

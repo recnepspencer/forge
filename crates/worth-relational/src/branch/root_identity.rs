@@ -1,47 +1,43 @@
 use super::{RelationalBranchRoot, RelationalBranchRootCaptureDenial};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+
+#[derive(Debug, Clone)]
+pub(crate) struct RelationalBranchRootIdentityIssuer {
+    counters: Arc<RelationalBranchRootIdentityCounters>,
+}
 
 #[derive(Debug)]
-pub(crate) struct RelationalBranchRootIdentityIssuer {
+struct RelationalBranchRootIdentityCounters {
     next_root_id: AtomicU64,
     next_schema_authority_id: AtomicU64,
     next_region_id: AtomicU64,
     next_reachability_id: AtomicU64,
 }
 
-impl Clone for RelationalBranchRootIdentityIssuer {
-    fn clone(&self) -> Self {
-        Self {
-            next_root_id: AtomicU64::new(self.next_root_id.load(Ordering::Relaxed)),
-            next_schema_authority_id: AtomicU64::new(
-                self.next_schema_authority_id.load(Ordering::Relaxed),
-            ),
-            next_region_id: AtomicU64::new(self.next_region_id.load(Ordering::Relaxed)),
-            next_reachability_id: AtomicU64::new(self.next_reachability_id.load(Ordering::Relaxed)),
-        }
-    }
-}
-
 impl Default for RelationalBranchRootIdentityIssuer {
     fn default() -> Self {
         Self {
-            next_root_id: AtomicU64::new(1),
-            next_schema_authority_id: AtomicU64::new(1),
-            next_region_id: AtomicU64::new(1),
-            next_reachability_id: AtomicU64::new(1),
+            counters: Arc::new(RelationalBranchRootIdentityCounters {
+                next_root_id: AtomicU64::new(1),
+                next_schema_authority_id: AtomicU64::new(1),
+                next_region_id: AtomicU64::new(1),
+                next_reachability_id: AtomicU64::new(1),
+            }),
         }
     }
 }
 
 impl RelationalBranchRootIdentityIssuer {
     pub(super) fn next_reachability_id(&self) -> u64 {
-        self.next_reachability_id.load(Ordering::Relaxed)
+        self.counters.next_reachability_id.load(Ordering::Relaxed)
     }
 
     pub(crate) fn observe_root(&self, root: &RelationalBranchRoot) {
-        self.next_root_id
+        self.counters
+            .next_root_id
             .fetch_max(root.id.saturating_add(1), Ordering::Relaxed);
-        self.next_schema_authority_id.fetch_max(
+        self.counters.next_schema_authority_id.fetch_max(
             root.schema_authority().allocation_id().saturating_add(1),
             Ordering::Relaxed,
         );
@@ -49,8 +45,9 @@ impl RelationalBranchRootIdentityIssuer {
             .storage_regions()
             .map(|region| region.region_id.saturating_add(1))
             .max()
-            .unwrap_or_else(|| self.next_region_id.load(Ordering::Relaxed));
-        self.next_region_id
+            .unwrap_or_else(|| self.counters.next_region_id.load(Ordering::Relaxed));
+        self.counters
+            .next_region_id
             .fetch_max(next_region_id, Ordering::Relaxed);
         let next_reachability_id = root
             .regions
@@ -58,8 +55,9 @@ impl RelationalBranchRootIdentityIssuer {
             .into_iter()
             .map(|node| node.node_id.saturating_add(1))
             .max()
-            .unwrap_or_else(|| self.next_reachability_id.load(Ordering::Relaxed));
-        self.next_reachability_id
+            .unwrap_or_else(|| self.counters.next_reachability_id.load(Ordering::Relaxed));
+        self.counters
+            .next_reachability_id
             .fetch_max(next_reachability_id, Ordering::Relaxed);
     }
 
@@ -67,15 +65,18 @@ impl RelationalBranchRootIdentityIssuer {
         &self,
         touched_regions: usize,
     ) -> Result<(), RelationalBranchRootCaptureDenial> {
-        self.next_root_id
+        self.counters
+            .next_root_id
             .load(Ordering::Relaxed)
             .checked_add(1)
             .ok_or(RelationalBranchRootCaptureDenial::RootIdentityExhausted)?;
-        self.next_schema_authority_id
+        self.counters
+            .next_schema_authority_id
             .load(Ordering::Relaxed)
             .checked_add(1)
             .ok_or(RelationalBranchRootCaptureDenial::SchemaAuthorityIdentityExhausted)?;
-        self.next_region_id
+        self.counters
+            .next_region_id
             .load(Ordering::Relaxed)
             .checked_add(touched_regions as u64)
             .ok_or(RelationalBranchRootCaptureDenial::RegionIdentityExhausted)?;
@@ -83,7 +84,8 @@ impl RelationalBranchRootIdentityIssuer {
             .checked_mul(33)
             .and_then(|nodes| nodes.checked_add(1))
             .ok_or(RelationalBranchRootCaptureDenial::ReachabilityIdentityExhausted)?;
-        self.next_reachability_id
+        self.counters
+            .next_reachability_id
             .load(Ordering::Relaxed)
             .checked_add(maximum_path_nodes)
             .ok_or(RelationalBranchRootCaptureDenial::ReachabilityIdentityExhausted)?;
@@ -92,7 +94,7 @@ impl RelationalBranchRootIdentityIssuer {
 
     pub(super) fn issue_root_id(&self) -> Result<u64, RelationalBranchRootCaptureDenial> {
         issue(
-            &self.next_root_id,
+            &self.counters.next_root_id,
             RelationalBranchRootCaptureDenial::RootIdentityExhausted,
         )
     }
@@ -101,23 +103,43 @@ impl RelationalBranchRootIdentityIssuer {
         &self,
     ) -> Result<u64, RelationalBranchRootCaptureDenial> {
         issue(
-            &self.next_schema_authority_id,
+            &self.counters.next_schema_authority_id,
             RelationalBranchRootCaptureDenial::SchemaAuthorityIdentityExhausted,
         )
     }
 
     pub(super) fn issue_region_id(&self) -> Result<u64, RelationalBranchRootCaptureDenial> {
         issue(
-            &self.next_region_id,
+            &self.counters.next_region_id,
             RelationalBranchRootCaptureDenial::RegionIdentityExhausted,
         )
     }
 
     pub(crate) fn issue_reachability_id(&self) -> Result<u64, RelationalBranchRootCaptureDenial> {
         issue(
-            &self.next_reachability_id,
+            &self.counters.next_reachability_id,
             RelationalBranchRootCaptureDenial::ReachabilityIdentityExhausted,
         )
+    }
+
+    /// Capture an independent allocator frontier for a detached runtime fork.
+    pub(crate) fn detached_owner_snapshot(&self) -> Self {
+        Self {
+            counters: Arc::new(RelationalBranchRootIdentityCounters {
+                next_root_id: AtomicU64::new(self.counters.next_root_id.load(Ordering::Relaxed)),
+                next_schema_authority_id: AtomicU64::new(
+                    self.counters
+                        .next_schema_authority_id
+                        .load(Ordering::Relaxed),
+                ),
+                next_region_id: AtomicU64::new(
+                    self.counters.next_region_id.load(Ordering::Relaxed),
+                ),
+                next_reachability_id: AtomicU64::new(
+                    self.counters.next_reachability_id.load(Ordering::Relaxed),
+                ),
+            }),
+        }
     }
 }
 

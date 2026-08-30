@@ -66,13 +66,13 @@ fn checkpoint_rejects_same_commit_schema_root_relabeling() {
 
 #[test]
 fn tail_rejects_same_commit_root_descriptor_substitution() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "tail-descriptor-checkpoint");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "tail-descriptor-checkpoint");
     runtime
         .durability_authority()
         .checkpoint()
         .expect("production checkpoint succeeds");
-    let tail_commit = create_entity_outcome(&mut runtime, "tail-descriptor-commit");
+    let tail_commit = create_entity_outcome(&runtime, "tail-descriptor-commit");
     let mut plan = runtime
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
@@ -99,8 +99,8 @@ fn tail_rejects_same_commit_root_descriptor_substitution() {
 
 #[test]
 fn tail_replay_reconstructs_the_owner_content_root() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "tail-content-root-parity");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "tail-content-root-parity");
     let expected = current_main_descriptor(&runtime);
     let plan = runtime
         .durability()
@@ -108,7 +108,7 @@ fn tail_replay_reconstructs_the_owner_content_root() {
 
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("one production tail commit reconstructs");
 
@@ -130,8 +130,8 @@ fn checkpoint_owner_root_is_stable_across_fingerprint_symbol_ids() {
 }
 
 fn checkpoint_recovery_plan(label: &str) -> RecoveryPlan {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, label);
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, label);
     runtime
         .durability_authority()
         .checkpoint()
@@ -255,7 +255,7 @@ fn corrupt_recovery_error(
         .iter()
         .all(|cell| matches!(cell.observation.target(), FoundationalBranchTarget::Empty)));
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("corrupt root binding cannot be readmitted");
 

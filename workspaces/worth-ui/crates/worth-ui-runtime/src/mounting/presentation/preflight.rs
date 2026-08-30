@@ -95,8 +95,7 @@ fn supports_effect(report: &WorthUiHostCapabilityReport, effect: UiMountedEffect
         UiMountedEffectFamily::Accessibility => {
             report.supports(WorthUiHostCapability::Accessibility)
         }
-        UiMountedEffectFamily::Focus => report.supports(WorthUiHostCapability::NativeFocus),
-        UiMountedEffectFamily::Motion | UiMountedEffectFamily::Diagnostic => false,
+        UiMountedEffectFamily::Diagnostic => false,
         UiMountedEffectFamily::IdentityOverlay => {
             report.supports(WorthUiHostCapability::IdentityOverlay)
         }

@@ -39,8 +39,8 @@ fn phase_two_external_effect_ports_are_concrete_and_vendor_scoped() {
         );
     }
 
-    assert_port_outputs_are_mechanical(&inventory);
-    assert_native_vendors_are_confined(&inventory);
+    assert_port_outputs_are_mechanical(inventory);
+    assert_native_vendors_are_confined(inventory);
 }
 
 fn assert_native_vendors_are_confined(

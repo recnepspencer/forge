@@ -11,15 +11,17 @@ use crate::tests::support::*;
 #[test]
 fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let _ = create_entity_outcome(&runtime, "anchor");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -37,8 +39,9 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("after-boundary"));
-    txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("after-boundary"))
+        .expect("test staging stays within configured resource budgets");
+    txn.commit(&runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let batch = runtime
@@ -69,17 +72,19 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
 #[test]
 fn diff_cdc_truth_parity_test() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "anchor");
+    let baseline = create_entity_outcome(&runtime, "anchor");
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn_v2 = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -97,16 +102,20 @@ fn diff_cdc_truth_parity_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn_v2.push_batch(batch_create("after-v2"));
-    txn_v2.commit(&mut runtime).unwrap();
+    txn_v2
+        .push_batch(batch_create("after-v2"))
+        .expect("test staging stays within configured resource budgets");
+    txn_v2.commit(&runtime).unwrap();
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(3),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(3),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn_v3 = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -124,8 +133,10 @@ fn diff_cdc_truth_parity_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn_v3.push_batch(batch_create("after-v3"));
-    txn_v3.commit(&mut runtime).unwrap();
+    txn_v3
+        .push_batch(batch_create("after-v3"))
+        .expect("test staging stays within configured resource budgets");
+    txn_v3.commit(&runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let live_batch = runtime
@@ -157,7 +168,7 @@ fn diff_cdc_truth_parity_test() {
         live_counters.schema_normalized_descriptor_compositions,
     );
 
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         let registry = AspectSchemaFixture {
             schema_version_id: SchemaVersionId(3),
             ..AspectSchemaFixture::with_default_declared_aspects(

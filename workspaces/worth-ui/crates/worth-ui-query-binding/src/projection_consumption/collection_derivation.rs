@@ -13,7 +13,9 @@ use super::{
 pub(crate) struct UiCollectionDerivationContext<'a> {
     pub binding: &'a crate::UiCollectionProjectionBinding,
     pub consumer: &'a collection::WorthQueryCollectionConsumerWindow,
-    pub accesses: &'a [crate::application_binding::WorthUiCollectionTextNativeAccess],
+    pub text_accesses: &'a [crate::application_binding::WorthUiCollectionTextNativeAccess],
+    pub application_item_key_access:
+        Option<&'a crate::application_binding::WorthUiCollectionTextNativeAccess>,
     pub budget: crate::UiCollectionProjectionBudget,
 }
 
@@ -45,7 +47,10 @@ pub(crate) fn derive_collection_projection(
         result_generation_identity: result_identity.clone(),
     });
     let mut work = UiCollectionProjectionWorkCounters::default();
-    for access in context.accesses {
+    for access in context.text_accesses {
+        work.record_key_resolution(access.resolution_counters());
+    }
+    if let Some(access) = context.application_item_key_access {
         work.record_key_resolution(access.resolution_counters());
     }
     let availability = if changes.len() > context.budget.max_change_operations() {
@@ -154,8 +159,8 @@ fn derive_rows(
     let mut rows = Vec::with_capacity(selected_rows.len());
     for row in selected_rows {
         work.visit_row();
-        let mut values = Vec::with_capacity(context.accesses.len());
-        for access in context.accesses {
+        let mut values = Vec::with_capacity(context.text_accesses.len());
+        for access in context.text_accesses {
             let fact = context
                 .consumer
                 .native_value(row, access.key())
@@ -188,14 +193,53 @@ fn derive_rows(
             work.record_native_access(fact.counters(), text.len());
             values.push(UiNativeTextValue::from_raw(text));
         }
+        let application_item_key = context
+            .application_item_key_access
+            .map(|access| derive_application_item_key(context, row, access, work))
+            .transpose()?;
         rows.push(UiCollectionProjectionTextRow::admitted(
             UiCollectionProjectionRowReference::query_issued(
                 row.entity_identity().evidence_identity(),
             ),
             values,
+            application_item_key,
         ));
     }
     Ok(rows.into_boxed_slice())
+}
+
+fn derive_application_item_key(
+    context: &UiCollectionDerivationContext<'_>,
+    row: &collection::WorthQueryCollectionRowHandle,
+    access: &crate::application_binding::WorthUiCollectionTextNativeAccess,
+    work: &mut UiCollectionProjectionWorkCounters,
+) -> Result<core::num::NonZeroU64, Box<UiProjectionFactStopReceipt>> {
+    let fact = context
+        .consumer
+        .native_value(row, access.key())
+        .map_err(|_| {
+            Box::new(stop_receipt(
+                UiProjectionFactStopKind::WrongWorld,
+                &context.consumer.result_generation_identity_evidence(),
+                "Query rejected the application item-key authority",
+            ))
+        })?;
+    let Some(AspectValue::UInt64(value)) = fact.native_value().scalar() else {
+        return Err(Box::new(stop_receipt(
+            UiProjectionFactStopKind::NativeFamilyMismatch,
+            &context.consumer.result_generation_identity_evidence(),
+            "the application item-key value is not unsigned64",
+        )));
+    };
+    let Some(value) = core::num::NonZeroU64::new(*value) else {
+        return Err(Box::new(stop_receipt(
+            UiProjectionFactStopKind::PayloadShapeMismatch,
+            &context.consumer.result_generation_identity_evidence(),
+            "the application item-key value is zero",
+        )));
+    };
+    work.record_native_access(fact.counters(), core::mem::size_of::<u64>());
+    Ok(value)
 }
 
 fn stopped(

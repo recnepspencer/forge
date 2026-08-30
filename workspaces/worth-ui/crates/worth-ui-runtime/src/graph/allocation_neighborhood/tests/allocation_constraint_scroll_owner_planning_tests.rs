@@ -55,11 +55,10 @@ fn scroll_owner_basis_admits_as_typed_planning_input() {
         .expect("scroll constraint basis should admit");
     let planning_basis =
         crate::runtime::WorthUiAllocationPlanningBasis::from_admitted(constraint_basis, None);
-    let planning =
-        crate::runtime::scroll_owned_allocation::UiAdmittedScrollPlanningAuthority::seal(
-            &planning_basis,
-        )
-        .expect("declared scroll owner should seal planning authority");
+    let planning = crate::runtime::scroll::allocation::UiAdmittedScrollPlanningAuthority::seal(
+        &planning_basis,
+    )
+    .expect("declared scroll owner should seal planning authority");
     let planning = planning.expect("declared scroll owner has admitted sources");
     let witness = basis
         .evidence_inputs()

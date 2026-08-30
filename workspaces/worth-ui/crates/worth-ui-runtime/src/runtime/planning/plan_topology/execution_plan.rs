@@ -232,6 +232,17 @@ impl WorthUiExecutionPlan {
             .mounted_projection_ordinary_meaning(plan_index)
     }
 
+    pub(crate) fn mounted_projection_ordinary_meaning_for_identity(
+        &self,
+        identity: &str,
+    ) -> Option<(
+        u32,
+        std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+    )> {
+        self.region_store
+            .mounted_projection_ordinary_meaning_for_identity(identity)
+    }
+
     pub(crate) fn mounted_projection_theme_token(
         &self,
         token_id: &crate::capability::ThemeTokenId,

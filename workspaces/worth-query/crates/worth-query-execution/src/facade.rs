@@ -56,9 +56,10 @@ pub mod primary_graph {
         WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationAuthorizationExplanationCause,
         WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationBasisObservation,
         WorthQueryApplicationBasisObserver, WorthQueryApplicationCommitAuthorityBinding,
-        WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitDenial,
-        WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-        WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitOutcomeIdentity,
+        WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitDeferredKind,
+        WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
+        WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
+        WorthQueryApplicationCommitOutcomeIdentity,
         WorthQueryApplicationCommitPublicationExternalEffect,
         WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
         WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationCommitTerminalEvidence,
@@ -120,9 +121,9 @@ pub mod primary_graph {
         WorthQueryConditionalClockObservationFailure,
         WorthQueryConditionalClockObservationFailureKind,
         WorthQueryConditionalClockObservationOutcome, WorthQueryConditionalClockObservationPort,
-        WorthQueryConditionalClockObservationReceipt, WorthQueryConditionalExecutionProvenance,
-        WorthQueryConditionalExecutionTerminal, WorthQueryConditionalRuntimeInspection,
-        WorthQueryConditionalRuntimeInstallationDenial,
+        WorthQueryConditionalClockObservationReceipt, WorthQueryConditionalExecutionCause,
+        WorthQueryConditionalExecutionProvenance, WorthQueryConditionalExecutionTerminal,
+        WorthQueryConditionalRuntimeInspection, WorthQueryConditionalRuntimeInstallationDenial,
         WorthQueryConditionalRuntimeInstallationDenialKind,
         WorthQueryConditionalRuntimeLifecycleProbe,
         WorthQueryConditionalRuntimeReinstallationReceipt, WorthQueryConditionalSignalDecision,
@@ -142,6 +143,7 @@ pub mod primary_graph {
         WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,
         WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantDecisionPlanDenialKind,
         WorthQueryInvariantEntityIdentity, WorthQueryInvariantMutationTarget,
+        WorthQueryInvariantProjectionDenial, WorthQueryInvariantProjectionDenialKind,
         WorthQueryInvariantProjectionTraversalDenial,
         WorthQueryInvariantProjectionTraversalDenialKind, WorthQueryInvariantProjectionWork,
         WorthQueryInvariantRelation, WorthQueryMandatoryReview,
@@ -167,8 +169,8 @@ pub mod primary_graph {
         WorthQueryTemporalOperationExecution, WorthQueryTemporalOperationInvoker,
         WorthQueryTemporalPrincipalAdmission, WorthQueryTemporalPrincipalFailure,
         WorthQueryTemporalPrincipalFailureKind, WorthQueryTemporalPrincipalSource,
-        WorthQueryTemporalQueryAuthorization, WorthQueryTemporalReconstructionAccess,
-        WorthQueryTouchedRecordIdentity,
+        WorthQueryTemporalQueryAuthorization, WorthQueryTemporalQueryAuthorizationDenial,
+        WorthQueryTemporalReconstructionAccess, WorthQueryTouchedRecordIdentity,
     };
     pub use crate::domain_computation::primary_graph::{
         WorthQueryCommittedDispatchOutboxObservation, WorthQueryCommittedDispatchOutboxReadDenial,
@@ -243,6 +245,40 @@ pub mod integration {
             runtime,
             installed_schema,
             relational_runtime,
+        )
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "test-primary-graph-faults")]
+    pub fn prepare_primary_graph_with_active_snapshot_limit_for_test<Schema>(
+        authority: &WorthQueryExecutionInstallationAuthority,
+        runtime: &WorthQueryExecutionRuntime,
+        installed_schema: &WorthQueryInstalledApplicationSchema<Schema>,
+        maximum_active_snapshots: usize,
+    ) -> Result<WorthQueryPrimaryGraphBootstrap<Schema>, WorthQueryPrimaryGraphInstallationDenial>
+    where
+        Schema: ApplicationSchema,
+    {
+        let relational = worth_relational::facade::runtime::RelationalRuntimeApi::builder()
+            .profile(worth_relational::facade::config::RelationalRuntimeProfile::AiWorkflow)
+            .publication(worth_relational::facade::config::PublicationConfig {
+                coherent_publication_required: true,
+                max_patch_records_per_commit: 4_096,
+                max_published_snapshot_handles: 256,
+                max_active_snapshot_handles: maximum_active_snapshots,
+                max_transaction_overlay_bytes: 268_435_456,
+                max_transaction_footprint_loci: 262_144,
+                max_transaction_savepoints: 4_096,
+                max_prepared_candidates: 1_024,
+                candidate_max_lifetime_millis: 30_000,
+                max_prepared_root_bytes: 268_435_456,
+            })
+            .build();
+        prepare_primary_graph_with_relational_runtime(
+            authority,
+            runtime,
+            installed_schema,
+            relational,
         )
     }
 

@@ -9,6 +9,7 @@ use crate::external_observation::{
     LifecycleStreamMeasurement, NormalNativeCloseRequestObservation,
 };
 use crate::installation::PulseInstallationCleanupEvidence;
+use crate::product_process::PlatformPulseNativeCloseEvidence;
 use crate::product_process::SuccessfulPlatformPulseExit;
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ pub(crate) struct ExecutableLifecycleCleanupEvidence {
     lifecycle_measurement: LifecycleStreamMeasurement,
     lifecycle_envelopes: Vec<PlatformPulseLifecycleObservationEnvelope>,
     successful_exit: SuccessfulPlatformPulseExit,
+    native_close_evidence: PlatformPulseNativeCloseEvidence,
     installation_cleanup: PulseInstallationCleanupEvidence,
 }
 
@@ -33,6 +35,7 @@ pub(crate) struct CausalLifecycleCleanupObservationSet {
 pub(crate) struct ExecutableLifecycleCleanupObservationSet {
     causal: CausalLifecycleCleanupObservationSet,
     successful_exit: SuccessfulPlatformPulseExit,
+    native_close_evidence: PlatformPulseNativeCloseEvidence,
     installation_cleanup: PulseInstallationCleanupEvidence,
 }
 
@@ -147,6 +150,7 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
     let ExecutableLifecycleCleanupObservationSet {
         causal,
         successful_exit,
+        native_close_evidence,
         installation_cleanup,
     } = observations;
     let shutdown = match causal.shutdown_envelope.outcome() {
@@ -184,6 +188,7 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
         lifecycle_measurement: causal.lifecycle_measurement,
         lifecycle_envelopes: causal.lifecycle_envelopes,
         successful_exit,
+        native_close_evidence,
         installation_cleanup,
     })
 }
@@ -293,11 +298,13 @@ impl CausalLifecycleCleanupObservationSet {
     pub(crate) fn join_resource_disposition(
         self,
         successful_exit: SuccessfulPlatformPulseExit,
+        native_close_evidence: PlatformPulseNativeCloseEvidence,
         installation_cleanup: PulseInstallationCleanupEvidence,
     ) -> ExecutableLifecycleCleanupObservationSet {
         ExecutableLifecycleCleanupObservationSet {
             causal: self,
             successful_exit,
+            native_close_evidence,
             installation_cleanup,
         }
     }
@@ -330,6 +337,10 @@ impl ExecutableLifecycleCleanupEvidence {
 
     pub(crate) fn successful_exit(&self) -> SuccessfulPlatformPulseExit {
         self.successful_exit
+    }
+
+    pub(crate) const fn native_close_evidence(&self) -> &PlatformPulseNativeCloseEvidence {
+        &self.native_close_evidence
     }
 
     pub(crate) fn installation_removed(&self) -> bool {

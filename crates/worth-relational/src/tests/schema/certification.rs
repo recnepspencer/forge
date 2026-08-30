@@ -58,15 +58,16 @@ fn schema_transition_for_subscriber_impact(
 #[test]
 fn schema_evolution_cdc_contract_test() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "anchor");
+    let baseline = create_entity_outcome(&runtime, "anchor");
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
-    runtime.config.schema.registry = AspectSchemaFixture {
+    let schema_v2 = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
         ..AspectSchemaFixture::default()
     }
     .build_registry();
+    runtime.set_schema_registry_for_test(schema_v2);
 
     let context = crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
         .with_schema_transition(
@@ -79,8 +80,9 @@ fn schema_evolution_cdc_contract_test() {
     let mut txn = runtime
         .begin_branch_transaction(context.basis(), context.intent().clone())
         .expect("owner-admitted transaction context");
-    txn.push_batch(batch_create("boundary"));
-    let committed = txn.commit(&mut runtime).unwrap();
+    txn.push_batch(batch_create("boundary"))
+        .expect("test staging stays within configured resource budgets");
+    let committed = txn.commit(&runtime).unwrap();
 
     let live_batch = runtime
         .publication()
@@ -117,7 +119,7 @@ fn schema_evolution_cdc_contract_test() {
     );
     let descriptor_semantics_version = committed.envelope().descriptor_semantics_version;
 
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         let registry = AspectSchemaFixture {
             schema_version_id: SchemaVersionId(2),
             ..AspectSchemaFixture::default()

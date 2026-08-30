@@ -11,7 +11,7 @@ use crate::symbols::data::ClientKey;
 
 #[test]
 fn stale_strategy_basis_denies_before_raw_key_normalization() {
-    let mut runtime = crate::runtime::builder::RelationalRuntimeBuilder::new()
+    let runtime = crate::runtime::builder::RelationalRuntimeBuilder::new()
         .schema_registry(crate::tests::support::test_schema_registry())
         .client_key_symbol_policy(crate::symbols::data::ClientKeySymbolPolicy::RequireInterned)
         .build();
@@ -20,7 +20,7 @@ fn stale_strategy_basis_denies_before_raw_key_normalization() {
     let transaction = runtime
         .begin_branch_transaction_with_owner_inputs(validation_input)
         .expect("owner context opens a branch-bound transaction");
-    crate::tests::support::create_entity_outcome(&mut runtime, "strategy-basis-advance");
+    crate::tests::support::create_entity_outcome(&runtime, "strategy-basis-advance");
     let symbols_before = runtime.services.symbols.clone();
     let configured_symbols_before = runtime.config().identity.symbol_table.clone();
     let branch_cells_before = runtime.history().branch_cells_snapshot();
@@ -30,7 +30,7 @@ fn stale_strategy_basis_denies_before_raw_key_normalization() {
     let request = canonical_request();
     let execution = execution_draft(&request);
 
-    let error = lower_execution(&mut runtime, &request, &execution, transaction)
+    let error = lower_execution(&runtime, &request, &execution, transaction)
         .expect_err("stale basis denies before strategy key normalization");
 
     assert!(matches!(
@@ -66,7 +66,7 @@ fn foreign_strategy_basis_preserves_taxonomy_and_exact_target_state() {
     let runtime_a = crate::tests::support::runtime_with_test_schema();
     let validation_input =
         crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime_a);
-    let mut runtime_b = crate::runtime::builder::RelationalRuntimeBuilder::new()
+    let runtime_b = crate::runtime::builder::RelationalRuntimeBuilder::new()
         .schema_registry(crate::tests::support::test_schema_registry())
         .client_key_symbol_policy(crate::symbols::data::ClientKeySymbolPolicy::RequireInterned)
         .build();
@@ -80,7 +80,7 @@ fn foreign_strategy_basis_preserves_taxonomy_and_exact_target_state() {
     let execution = execution_draft(&request);
 
     let error = crate::commit_strategies::facade::CommitStrategiesAuthorityFacade::new()
-        .lower_execution_with_input(&mut runtime_b, &request, &execution, validation_input)
+        .lower_execution_with_input(&runtime_b, &request, &execution, validation_input)
         .expect_err("foreign strategy basis is rejected at admission");
 
     assert!(matches!(
@@ -113,13 +113,15 @@ fn foreign_strategy_basis_preserves_taxonomy_and_exact_target_state() {
 
 #[test]
 fn sibling_strategy_target_denies_before_normalization_with_zero_residue() {
-    let mut runtime = require_interned_runtime();
-    crate::tests::support::create_entity_outcome(&mut runtime, "shared-strategy-root");
-    fork_from_main(&mut runtime, "strategy-storm");
-    fork_from_main(&mut runtime, "strategy-maintenance");
+    let runtime = require_interned_runtime();
+    crate::tests::support::create_entity_outcome(&runtime, "shared-strategy-root");
+    fork_from_main(&runtime, "strategy-storm");
+    fork_from_main(&runtime, "strategy-maintenance");
     let mut storm = begin_on(&runtime, "strategy-storm");
-    storm.push_batch(create_batch("storm-only-strategy-entity"));
-    let storm_outcome = storm.commit(&mut runtime).expect("storm create commits");
+    storm
+        .push_batch(create_batch("storm-only-strategy-entity"))
+        .expect("test staging stays within configured resource budgets");
+    let storm_outcome = storm.commit(&runtime).expect("storm create commits");
     let storm_only = storm_outcome
         .changed_records
         .iter()
@@ -144,7 +146,7 @@ fn sibling_strategy_target_denies_before_normalization_with_zero_residue() {
     );
     let before = RuntimeState::capture(&runtime);
 
-    let error = lower_execution(&mut runtime, &request, &execution, transaction)
+    let error = lower_execution(&runtime, &request, &execution, transaction)
         .expect_err("strategy lowering rejects sibling-only targets");
 
     assert!(matches!(
@@ -160,8 +162,8 @@ fn sibling_strategy_target_denies_before_normalization_with_zero_residue() {
 
 #[test]
 fn unowned_strategy_created_endpoint_denies_with_zero_residue() {
-    let mut runtime = require_interned_runtime();
-    let transaction = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = require_interned_runtime();
+    let transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     let request = canonical_request();
     let missing = CreatedEntityRef {
         partition_id: PartitionId::main(),
@@ -185,7 +187,7 @@ fn unowned_strategy_created_endpoint_denies_with_zero_residue() {
     );
     let before = RuntimeState::capture(&runtime);
 
-    let error = lower_execution(&mut runtime, &request, &execution, transaction)
+    let error = lower_execution(&runtime, &request, &execution, transaction)
         .expect_err("strategy created endpoints must belong to the transaction");
 
     assert!(matches!(
@@ -217,7 +219,7 @@ fn create_batch(client_key: &str) -> WorkerIntentBatch {
     )))
 }
 
-fn fork_from_main(runtime: &mut crate::runtime::RelationalRuntime, branch: &str) {
+fn fork_from_main(runtime: &crate::runtime::RelationalRuntime, branch: &str) {
     let (_, basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main has a committed fork source");
@@ -253,7 +255,7 @@ struct RuntimeState {
 impl RuntimeState {
     fn capture(runtime: &crate::runtime::RelationalRuntime) -> Self {
         Self {
-            symbols: runtime.services.symbols.clone(),
+            symbols: runtime.services.symbols.interner_snapshot(),
             configured_symbols: runtime.config().identity.symbol_table.clone(),
             branch_cells: runtime.history().branch_cells_snapshot(),
             catalog: runtime.history().commit_envelopes_snapshot(),
@@ -263,7 +265,7 @@ impl RuntimeState {
     }
 
     fn assert_unchanged(&self, runtime: &crate::runtime::RelationalRuntime) {
-        assert_eq!(runtime.services.symbols, self.symbols);
+        assert_eq!(runtime.services.symbols.interner_snapshot(), self.symbols);
         assert_eq!(
             runtime.config().identity.symbol_table,
             self.configured_symbols

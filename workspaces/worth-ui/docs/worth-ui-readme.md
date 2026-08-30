@@ -52,9 +52,15 @@ domain application / product shell
 -> worth-ui-host-* adapters
 -> native host mechanics
 
-worth-ui-query-binding
--> worth-query
--> worth-runtime-bridge
+application Query entry
+-> worth-query-decl / worth-query-host
+-> installed Query audience products
+-> worth-ui-query-binding
+
+current temporary internal edge:
+worth-ui-query-binding -> worth-query
+
+worth-query -> worth-runtime-bridge
 -> worth-relational + worth-signal
 ```
 
@@ -67,10 +73,11 @@ hot rebind, diagnostics, and host boundary contracts.
 
 The host adapter owns native mechanics only.
 
-Worth Query owns domain/runtime truth, query declarations, touched graph
-authority, access planning, projection consumption, live/query state, support
-posture, basis, intent admission, async/resource posture, and lower-runtime
-routing.
+Worth Query is the application-facing composition authority. It owns query
+declarations, application-operation admission, touched graph authority, access
+planning, projection consumption, live/query state, support posture, basis,
+async/resource posture, and routing into the domain and lower runtimes that own
+their respective truth.
 
 Ordinary UI work starts at Worth UI. Ordinary domain/read/write work starts at
 Query. Use lower layers to understand semantics, not as permission to bypass
@@ -293,6 +300,9 @@ Interpretation:
 | Portal topology | Runtime portal service |
 | Focus routing | Runtime focus service |
 | Motion/animation meaning | Runtime motion service |
+| Typed shortcut matching and command winner | Runtime command-routing service |
+| Semantic offset, nested routing, bounds, and anchoring | Runtime scroll service |
+| Stable-key set and range posture | Runtime selection service |
 | Aspect publication and subscription | UI graph + aspect indexes |
 | Hot reload | Invalidation + rebind planning |
 | Failure explanation | Typed diagnostics/evidence |
@@ -848,13 +858,17 @@ The Query analogy is direct:
 Use this category when UI state depends on domain/runtime truth.
 
 Worth UI must not become a local Query clone. It consumes Query-owned artifacts
-through admitted binding/projection lanes.
+through admitted binding/projection lanes. The destination audience boundary
+is `worth-query-decl` for declared application requirements and
+`worth-query-host` for hosted progression. `worth-query-replay` is
+certification-only and is not an ordinary UI binding dependency.
 
 The ordinary application path is:
 
 ```text
 prepare a WorthUiScalarProjectionHostPlan or another binding-owned installation
--> install its request through the Query host
+-> express the requirement through the Query declaration audience
+-> install and progress its request through the Query host audience
 -> complete installation into a shape-specific registration and initial advance
 -> register_scalar_projection(...) or register_collection_projection(...) on WorthUi::app()
 -> freeze and launch one active application session
@@ -902,7 +916,7 @@ made the binding honest, the UI runtime has already lost its proof boundary.
 
 The UI may project product-facing state from Query results, but Query remains
 the authority for query meaning, basis, projection facts, async posture, live
-state, and intent admission.
+state, and application-operation admission.
 
 Query also remains the owner of installed-domain and live-resource activation,
 maintenance, recovery, and disposal. Worth UI binds admitted references to its
@@ -912,6 +926,13 @@ subscription manager, session data cache, or local Query runtime.
 
 View shape is not UI-only sugar. It can affect planning, invalidation, live
 patch shape, delivery formatting, and binding support.
+
+Current implementation note: `worth-ui-query-binding` still carries a
+temporarily admitted raw `worth-query` dependency. That edge is predecessor
+debt, not a public application contract. New UI work must not widen it. The
+binding owner must remove the remaining raw-engine imports so
+`worth-query-decl` and `worth-query-host` are its only ordinary Query audiences
+before broader Query-facing surface work lands.
 
 Minimum binding postures:
 
@@ -1228,7 +1249,7 @@ Mistakes to avoid:
 Runtime services are cross-cutting topology/behavior authorities. They are not
 optional convenience modules.
 
-Initial service families:
+Shipped runtime-service families:
 
 ```text
 portal
@@ -1237,27 +1258,28 @@ motion
 command-routing
 scroll
 selection
-drag
-accessibility
-async-resource-presentation
 ```
 
-A service follows the same rule:
+Each family owns its own request, state, lifecycle, rebind law, receipts, and
+cost. There is no universal service transition. Intent-origin Portal and
+Command Routing requests cross the ordinary interaction and intent admission
+path. Focus may also begin from window-focus observation or restoration;
+Motion from a clock tick, policy change, or continuation; Scroll from a delta,
+reveal, or rebind; and Selection from an admitted selection operation or
+rebind. Graph obligations, mounted receipts, and host effects participate only
+when that family's operation actually requires them.
 
-```text
-declaration
--> admission
--> graph touch
--> selected obligations
--> service plan
--> mounted receipt
--> host observations
--> service rebind
-```
+Every family still binds its declared meaning and currentness through the
+canonical graph, mounting, rebind, and host contracts. A family that needs an
+adapter-local state table or a parallel admission path is not finished.
 
-Each service must bind through the same graph/index discipline as structure and
-layout work. A service that needs ad hoc side tables in host code is not
-finished.
+Families never call one another. They emit typed requirements to the
+non-publishing proposal compiler, which validates one coherent generation,
+surface, presentation, causal basis, occupancy set, and resource budget. The
+existing application/mounted publication boundary accepts or rejects the
+whole batch. Physical settlement remains with the existing presentation and
+host-truth owners. See [Runtime services](./runtime-services.md) for the public
+facade, examples, inspection methods, and current limits.
 
 ### Portal Service
 
@@ -1279,13 +1301,10 @@ Portal examples:
 
 ```text
 dropdown
-tooltip
 context-menu
 dialog
 popover
-toast
 command-palette
-drag-preview
 ```
 
 ### Focus Service
@@ -1329,9 +1348,30 @@ They are:
 command declaration
 + active scope
 + operability posture
-+ intent admission
++ UI route admission
 + dispatch receipt
 ```
+
+If dispatch requests an application operation, Query admits that operation
+separately. A UI dispatch receipt cannot authorize it. Undo and redo are also
+not implied by command routing: they remain unsupported until the owning
+operation runtime publishes governed history and execution capability. Query's
+`provisional_aftermath` experiment is not that product contract.
+
+### Scroll Service
+
+Scroll owns the semantic offset, bounds, nested owner chain, anchor, and
+programmatic reveal result. A Query collection may supply admitted extent; it
+cannot become offset, cursor, or routing authority. Rich host scroll reports
+carry input source, phase, precision, presentation basis, and exact target
+affinity before runtime routing.
+
+### Selection Service
+
+Selection owns stable application item keys, selection mode, anchor, lead,
+ordered selected-key set where required, and rebind reconciliation. A row index
+or Query identity is not an application item key. Focus and selection move
+together only when one declared interaction produces a coherent proposal set.
 
 Mistakes to avoid:
 
@@ -1340,6 +1380,9 @@ Mistakes to avoid:
 - animation clocks that own runtime meaning
 - keyboard shortcuts handled outside command routing
 - focus state kept only in native widget instances
+- Query cursors used as scroll offsets
+- row indexes or Query identities retained as selection identity
+- direct service-to-service calls or a generic service manager
 
 ---
 
@@ -1614,7 +1657,15 @@ crates/
       measurement/
       rebind/
       mounting/
-      services/
+      runtime/
+        portal/
+        focus/
+        motion/
+        command_routing/
+        scroll/
+        selection/
+        session/
+          service_proposal/
       diagnostics/
       inspection/
 
@@ -1686,6 +1737,9 @@ worth-ui
   -> worth-ui-query-binding
   -> worth-ui-host-contract
 
+application Query entry
+  -> worth-query-decl / worth-query-host
+
 worth-ui-host-native
   -> worth-ui-host-contract
 
@@ -1695,6 +1749,7 @@ worth-ui-host-headless
 worth-ui-certification
   -> worth-ui
   -> worth-ui-host-contract
+  -> worth-query-replay when Query reconstruction is required
 
 apps/*
   -> worth-ui
@@ -1710,7 +1765,7 @@ Rules:
 ```text
 facade exposes durable product capabilities
 runtime owns UI meaning
-query binding consumes Query authority
+query binding consumes Query audience products
 host contract defines boundary facts
 host adapter owns native translation only
 apps author declarations
@@ -1792,6 +1847,7 @@ sequenceDiagram
     participant Interaction as Interaction Runtime
     participant Intent as Intent Runtime
     participant Portal as Portal Service
+    participant Proposal as Service Proposal Compiler
     participant Focus as Focus Service
     participant Measure as Measurement
     participant Mount as Mounted Receipts
@@ -1800,8 +1856,10 @@ sequenceDiagram
     Obs->>Interaction: exact presented-frame target
     Interaction->>Intent: activate routes portal request
     Intent->>Portal: admitted typed service request
-    Portal->>Focus: focus/dismissal obligations
+    Portal->>Proposal: sealed stage + focus/motion requirements
+    Proposal->>Focus: request sealed focus stage
     Portal->>Measure: portal anchor measurement
+    Proposal->>Mount: coherent owner fact/work references
     Measure->>Mount: portal mounted receipt
     Mount->>Host: portal layer frame
 ```
@@ -1921,7 +1979,7 @@ obligations
 Need data/schema/view-shaped state?
 
 ```text
-worth-ui-query-binding + worth-query projection consumption
+worth-ui-query-binding + worth-query-decl/worth-query-host audience products
 ```
 
 Need layout, resize, intrinsic sizing, scroll, or portal placement?
@@ -1943,12 +2001,14 @@ accessibility bridge?
 host-contract + host adapter
 ```
 
-Need dropdowns, dialogs, focus, animation, command routing, drag, or scroll
-coordination?
+Need portal, focus, motion, command-routing, scroll, or selection meaning?
 
 ```text
-services
+worth-ui-runtime/src/runtime/{portal,focus,motion,command_routing,scroll,selection}
 ```
+
+Need drag/resize interaction meaning? Extend its existing interaction and
+drag-resize owner; it is not a seventh runtime-service family.
 
 Need to respond to source/state/host/capability changes?
 

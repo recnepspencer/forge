@@ -69,6 +69,7 @@ const fn terminal_for(
         WorthQueryProviderProgressionOutcome::Cancelled => {
             WorthQueryManagedRunTerminalKind::Cancelled
         }
+        WorthQueryProviderProgressionOutcome::TimedOut => WorthQueryManagedRunTerminalKind::Failed,
         WorthQueryProviderProgressionOutcome::Denied(_)
         | WorthQueryProviderProgressionOutcome::Deferred(_)
         | WorthQueryProviderProgressionOutcome::Aborted

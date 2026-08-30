@@ -1,49 +1,47 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink as Sink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 
-use super::{bool_name, conditional_nodes::hash_conditional_nodes, hash_sequence};
+use super::{
+    bool_name, conditional_nodes::hash_conditional_nodes, hash_sequence,
+    WorthQueryDomainOperationCanonicalSemantics,
+};
 use crate::domain_operation::*;
 
 pub(super) fn hash_input_and_graph_contracts(
-    hasher: &mut Sha256,
-    semantics: &WorthQueryDomainOperationSemanticClosure,
+    hasher: &mut impl Sink,
+    semantics: &impl WorthQueryDomainOperationCanonicalSemantics,
 ) {
-    hash_parameters(hasher, &semantics.parameters);
+    hash_parameters(hasher, semantics.parameters());
     hash_sequence(
         hasher,
         "required-domain",
-        semantics.required_domains.iter().map(|role| role.as_str()),
+        semantics
+            .required_domains()
+            .iter()
+            .map(|role| role.as_str()),
     );
-    hash_native_projection(hasher, &semantics.native_projection);
-    hash_text_field(
-        hasher,
-        "query-intent",
-        semantics.canonical_query.query().digest().as_str(),
-    );
-    hash_text_field(
-        hasher,
-        "result-shape",
-        semantics.canonical_query.result_shape().digest().as_str(),
-    );
-    hash_collection(hasher, &semantics.collection);
+    hash_native_projection(hasher, semantics.native_projection());
+    hash_text_field(hasher, "query-intent", semantics.query_intent_digest());
+    hash_text_field(hasher, "result-shape", semantics.result_shape_digest());
+    hash_collection(hasher, semantics.collection());
     hash_sequence(
         hasher,
         "required-capability",
         semantics
-            .required_capabilities
+            .required_capabilities()
             .iter()
             .map(|capability| capability.as_str()),
     );
-    hash_conditional_nodes(hasher, &semantics.conditional_nodes, "operation-condition");
-    hash_graph_reads(hasher, &semantics.graph_reads);
-    hash_touches(hasher, &semantics.touches);
-    hash_effects(hasher, &semantics.effects);
-    hash_invariants(hasher, &semantics.invariants);
-    hash_invariant_execution(hasher, &semantics.invariant_execution);
+    hash_conditional_nodes(hasher, semantics.conditional_nodes(), "operation-condition");
+    hash_graph_reads(hasher, semantics.graph_reads());
+    hash_touches(hasher, semantics.touches());
+    hash_effects(hasher, semantics.effects());
+    hash_invariants(hasher, semantics.invariants());
+    hash_invariant_execution(hasher, semantics.invariant_execution());
 }
 
-fn hash_parameters(hasher: &mut Sha256, contract: &WorthQueryOperationParameterContract) {
+fn hash_parameters(hasher: &mut impl Sink, contract: &WorthQueryOperationParameterContract) {
     match contract {
         WorthQueryOperationParameterContract::NotRequired => {
             hash_text_field(hasher, "parameters", "not-required");
@@ -73,7 +71,7 @@ fn hash_parameters(hasher: &mut Sha256, contract: &WorthQueryOperationParameterC
 }
 
 fn hash_native_projection(
-    hasher: &mut Sha256,
+    hasher: &mut impl Sink,
     contract: &WorthQueryOperationNativeProjectionContract,
 ) {
     hash_text_field(
@@ -93,7 +91,7 @@ fn hash_native_projection(
     }
 }
 
-fn hash_collection(hasher: &mut Sha256, contract: &WorthQueryOperationCollectionContract) {
+fn hash_collection(hasher: &mut impl Sink, contract: &WorthQueryOperationCollectionContract) {
     match contract {
         WorthQueryOperationCollectionContract::NotCollection => {
             hash_text_field(hasher, "collection", "not-collection");
@@ -135,7 +133,7 @@ fn hash_collection(hasher: &mut Sha256, contract: &WorthQueryOperationCollection
 }
 
 fn hash_collection_field(
-    hasher: &mut Sha256,
+    hasher: &mut impl Sink,
     label: &str,
     field: &WorthQueryOperationCollectionField,
 ) {
@@ -145,7 +143,7 @@ fn hash_collection_field(
     }
 }
 
-fn hash_graph_reads(hasher: &mut Sha256, contract: &WorthQueryOperationGraphReadContract) {
+fn hash_graph_reads(hasher: &mut impl Sink, contract: &WorthQueryOperationGraphReadContract) {
     match contract {
         WorthQueryOperationGraphReadContract::NotRequired => {
             hash_text_field(hasher, "graph-read", "not-required");
@@ -177,7 +175,7 @@ fn hash_graph_reads(hasher: &mut Sha256, contract: &WorthQueryOperationGraphRead
 }
 
 fn hash_graph_participation(
-    hasher: &mut Sha256,
+    hasher: &mut impl Sink,
     participation: &WorthQueryOperationGraphParticipation,
 ) {
     match participation {
@@ -191,7 +189,7 @@ fn hash_graph_participation(
     }
 }
 
-fn hash_application_read_scope(hasher: &mut Sha256, scope: &WorthQueryOperationGraphReadScope) {
+fn hash_application_read_scope(hasher: &mut impl Sink, scope: &WorthQueryOperationGraphReadScope) {
     match scope {
         WorthQueryOperationGraphReadScope::Entity(entity) => {
             hash_text_field(hasher, "graph-read-scope", "entity");
@@ -219,7 +217,7 @@ fn hash_application_read_scope(hasher: &mut Sha256, scope: &WorthQueryOperationG
     }
 }
 
-fn hash_touches(hasher: &mut Sha256, contract: &WorthQueryOperationTouchContract) {
+fn hash_touches(hasher: &mut impl Sink, contract: &WorthQueryOperationTouchContract) {
     match contract {
         WorthQueryOperationTouchContract::NotRequired => {
             hash_text_field(hasher, "touch", "not-required");
@@ -241,7 +239,7 @@ fn hash_touches(hasher: &mut Sha256, contract: &WorthQueryOperationTouchContract
     }
 }
 
-fn hash_touch_scope(hasher: &mut Sha256, scope: &WorthQueryOperationTouchScope) {
+fn hash_touch_scope(hasher: &mut impl Sink, scope: &WorthQueryOperationTouchScope) {
     match scope {
         WorthQueryOperationTouchScope::CreateEntity(entity)
         | WorthQueryOperationTouchScope::DeleteEntity(entity) => {
@@ -288,7 +286,7 @@ fn hash_touch_scope(hasher: &mut Sha256, scope: &WorthQueryOperationTouchScope) 
 }
 
 fn hash_binding(
-    hasher: &mut Sha256,
+    hasher: &mut impl Sink,
     binding: &worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity,
 ) {
     hash_text_field(
@@ -313,7 +311,7 @@ fn hash_binding(
     );
 }
 
-fn hash_effects(hasher: &mut Sha256, contract: &WorthQueryOperationEffectContract) {
+fn hash_effects(hasher: &mut impl Sink, contract: &WorthQueryOperationEffectContract) {
     match contract {
         WorthQueryOperationEffectContract::NotRequired => {
             hash_text_field(hasher, "effect", "not-required");
@@ -329,7 +327,7 @@ fn hash_effects(hasher: &mut Sha256, contract: &WorthQueryOperationEffectContrac
     }
 }
 
-fn hash_invariants(hasher: &mut Sha256, contract: &WorthQueryOperationInvariantContract) {
+fn hash_invariants(hasher: &mut impl Sink, contract: &WorthQueryOperationInvariantContract) {
     match contract {
         WorthQueryOperationInvariantContract::NotRequired => {
             hash_text_field(hasher, "invariant", "not-required");
@@ -342,7 +340,10 @@ fn hash_invariants(hasher: &mut Sha256, contract: &WorthQueryOperationInvariantC
     }
 }
 
-fn hash_invariant_execution(hasher: &mut Sha256, contract: &WorthQueryInvariantExecutionContract) {
+fn hash_invariant_execution(
+    hasher: &mut impl Sink,
+    contract: &WorthQueryInvariantExecutionContract,
+) {
     match contract {
         WorthQueryInvariantExecutionContract::NotRequired => {
             hash_text_field(hasher, "invariant-execution", "not-required");

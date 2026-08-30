@@ -20,7 +20,7 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(registry)
         .commit_strategy(
             CommitStrategyRegistration::new(aspect_descriptor.clone())
@@ -37,9 +37,9 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
             &replica_descriptor,
         ))
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "shared");
+    let entity = crate::tests::support::create_entity(&runtime, "shared");
     let feature_branch =
-        crate::tests::support::create_branch_from_main(&mut runtime, "feature-aspects");
+        crate::tests::support::create_branch_from_main(&runtime, "feature-aspects");
 
     {
         let request = runtime
@@ -69,20 +69,20 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
             .execute(&request, &snapshot)
             .expect("aspect execution");
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered aspect plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated aspect plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("aspect strategy commit");
     }
 
@@ -109,22 +109,22 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
             .expect("replica execution");
         let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(
-                &mut runtime,
+                &runtime,
                 Some(feature_branch.clone()),
             );
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered replica plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated replica plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("replica strategy commit");
     }
 
@@ -175,7 +175,7 @@ fn merge_planning_classifies_same_declared_aspect_field_as_strategy_intent_confl
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(registry)
         .commit_strategy(
             CommitStrategyRegistration::new(aspect_descriptor.clone())
@@ -185,9 +185,9 @@ fn merge_planning_classifies_same_declared_aspect_field_as_strategy_intent_confl
             &aspect_descriptor,
         ))
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "shared");
+    let entity = crate::tests::support::create_entity(&runtime, "shared");
     let feature_branch =
-        crate::tests::support::create_branch_from_main(&mut runtime, "feature-same-aspect");
+        crate::tests::support::create_branch_from_main(&runtime, "feature-same-aspect");
 
     for (branch, desired_value) in [
         (None, "main-name"),
@@ -233,17 +233,17 @@ fn merge_planning_classifies_same_declared_aspect_field_as_strategy_intent_confl
         let mut authority = runtime.commit_strategies_authority();
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered aspect plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated aspect plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("aspect strategy commit");
     }
 

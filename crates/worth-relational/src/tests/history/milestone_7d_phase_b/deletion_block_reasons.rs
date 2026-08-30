@@ -12,9 +12,9 @@ use crate::tests::support::{
 #[test]
 fn lowered_plan_preserves_source_deleted_target_live_block_reason() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     assert_blocked_deletion_lowering(
         &mut runtime,
@@ -28,15 +28,10 @@ fn lowered_plan_preserves_source_deleted_target_live_block_reason() {
 #[test]
 fn lowered_plan_preserves_source_live_target_deleted_block_reason() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity_on_branch(
-        &mut runtime,
-        entity,
-        "shared",
-        BranchId("feature".to_string()),
-    );
-    delete_entity(&mut runtime, entity);
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity_on_branch(&runtime, entity, "shared", BranchId("feature".to_string()));
+    delete_entity(&runtime, entity);
 
     assert_blocked_deletion_lowering(
         &mut runtime,
@@ -50,10 +45,10 @@ fn lowered_plan_preserves_source_live_target_deleted_block_reason() {
 #[test]
 fn lowered_plan_preserves_deleted_vs_modified_block_reason() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, entity, "main-modified");
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, entity, "main-modified");
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     assert_blocked_deletion_lowering(
         &mut runtime,

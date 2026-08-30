@@ -55,11 +55,7 @@ where
         let result = f(state);
         let ancestry = state.ancestry().clone();
         let mutation_ledger = state.mutation_ledger().clone();
-        let live_handle = state.graph().branch_handle(branch_id);
         let _ = state;
-        if let Some(handle) = live_handle {
-            self.live_branch_catalog.insert(branch_id, handle);
-        }
         self.record_branch_meta(branch_id, ancestry, mutation_ledger);
         Some(result)
     }

@@ -4,11 +4,26 @@ use crate::application_capability::{
     ApplicationCapabilityLifecycleEffect, ErasedApplicationCapabilityContract,
 };
 use crate::application_schema::{
-    ApplicationEffectRef, ApplicationOperationProgramTarget, OperationEmits,
+    ApplicationEffectMarkerIdentity, ApplicationEffectRef, ApplicationOperationMarkerIdentity,
+    ApplicationOperationProgramTarget, OperationEmits, WorthQueryPortableApplicationSchemaRecord,
 };
 
-pub struct ActivityEffect;
+pub(crate) struct ActivityEffect;
 struct RejectingInput;
+worth_query_portable_type!(RejectingInput => "worth.query.test.rejecting-input");
+struct RejectingRequestOperation;
+
+impl ApplicationEffectMarkerIdentity for ActivityEffect {
+    type Schema = Schema;
+    type Payload = String;
+    const IDENTIFIER: &'static str = "ActivityEffect";
+}
+
+impl ApplicationOperationMarkerIdentity for RejectingRequestOperation {
+    type Schema = Schema;
+    type Input = RejectingInput;
+    const IDENTIFIER: &'static str = "RejectingRequest";
+}
 
 #[derive(Clone, Copy)]
 pub(super) enum EffectPosture {
@@ -23,13 +38,14 @@ pub(super) enum ResourceRelationPosture {
 }
 
 impl OperationEmits<RequestOperation> for ActivityEffect {}
+impl OperationEmits<RejectingRequestOperation> for ActivityEffect {}
 
 impl ApplicationCapabilityLifecycleEffect<Schema, RequestOperation> for () {
     type Effect = ActivityEffect;
     type Payload = String;
 
     fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload> {
-        ApplicationEffectRef::from_schema_identifier("ActivityEffect")
+        ApplicationEffectRef::from_declaration()
     }
 
     fn lifecycle_effect(&self) -> Option<Self::Payload> {
@@ -37,12 +53,12 @@ impl ApplicationCapabilityLifecycleEffect<Schema, RequestOperation> for () {
     }
 }
 
-impl ApplicationCapabilityLifecycleEffect<Schema, RequestOperation> for RejectingInput {
+impl ApplicationCapabilityLifecycleEffect<Schema, RejectingRequestOperation> for RejectingInput {
     type Effect = ActivityEffect;
     type Payload = String;
 
     fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload> {
-        ApplicationEffectRef::from_schema_identifier("ActivityEffect")
+        ApplicationEffectRef::from_declaration()
     }
 
     fn lifecycle_effect(&self) -> Option<Self::Payload> {
@@ -91,7 +107,8 @@ fn lifecycle_effect_requires_the_exact_declared_payload_type() {
     let Some(ApplicationSchemaMember::Effect { payload_type, .. }) = effect else {
         panic!("fixture must declare the lifecycle effect")
     };
-    *payload_type = std::any::type_name::<u64>().to_owned();
+    *payload_type =
+        crate::portable_identity::WorthQueryPortableTypeIdentity::declared("worth.rust.u64");
     assert_eq!(
         build_from_members(members),
         Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
@@ -106,9 +123,78 @@ fn bound_lifecycle_effect_derives_only_from_the_typed_input() {
         .derive_from_retained_input(&() as &dyn std::any::Any)
         .expect("typed input derives one payload");
     assert_eq!(derived.effect(), "ActivityEffect");
-    assert_eq!(derived.payload_type(), std::any::type_name::<String>());
+    assert_eq!(derived.payload_type(), "worth.rust.string");
     assert!(binding
         .derive_from_retained_input(&1_u64 as &dyn std::any::Any)
+        .is_none());
+}
+
+#[test]
+fn portable_lifecycle_effect_retains_meaning_without_retaining_derivation() {
+    let typed = lifecycle_contract(EffectPosture::Derived, ResourceRelationPosture::Governed);
+    let portable_parts = typed.parts();
+    let reconstructed =
+        ErasedApplicationCapabilityContract::from_untrusted_parts(portable_parts.clone());
+    let typed_transition = typed
+        .elevation()
+        .definition()
+        .unwrap()
+        .lifecycle()
+        .request();
+    let reconstructed_transition = reconstructed
+        .elevation()
+        .definition()
+        .unwrap()
+        .lifecycle()
+        .request();
+
+    assert_eq!(reconstructed, typed);
+    assert_eq!(reconstructed.parts(), portable_parts);
+    assert!(typed_transition
+        .lifecycle_effect()
+        .unwrap()
+        .derive_from_retained_input(&() as &dyn std::any::Any)
+        .is_some());
+    assert!(reconstructed_transition
+        .lifecycle_effect()
+        .unwrap()
+        .derive_from_retained_input(&() as &dyn std::any::Any)
+        .is_none());
+}
+
+#[test]
+fn portable_schema_carriage_strips_the_live_lifecycle_recipe() {
+    let record = WorthQueryPortableApplicationSchemaRecord::from_untrusted_parts(
+        super::super::super::WorthQueryPortableApplicationSchemaParts {
+            owner: "WORTH.tests".to_owned(),
+            name: "callback-free-capability".to_owned(),
+            major: 1,
+            minor: 0,
+            members: vec![ApplicationSchemaMember::ApplicationCapability {
+                contract: lifecycle_contract(
+                    EffectPosture::Derived,
+                    ResourceRelationPosture::Governed,
+                ),
+            }],
+        },
+    );
+    let binding = record
+        .members()
+        .iter()
+        .find_map(|member| {
+            let ApplicationSchemaMember::ApplicationCapability { contract } = member else {
+                return None;
+            };
+            contract
+                .elevation()
+                .definition()
+                .and_then(|elevation| elevation.lifecycle().request().lifecycle_effect())
+        })
+        .expect("portable schema retains descriptive lifecycle-effect meaning");
+
+    assert_eq!(binding.effect(), "ActivityEffect");
+    assert!(binding
+        .derive_from_retained_input(&() as &dyn std::any::Any)
         .is_none());
 }
 
@@ -118,9 +204,7 @@ fn typed_lifecycle_effect_rejection_derives_no_payload() {
         ApplicationCapabilityRef::<Schema, RequestCapability>::from_schema_identifier(
             "RequestCapability",
         ),
-        ApplicationOperationRef::<Schema, RequestOperation, RejectingInput>::from_schema_identifier(
-            "Request",
-        ),
+        ApplicationOperationRef::<Schema, RejectingRequestOperation, RejectingInput>::from_declaration(),
     );
     let binding = transition.lifecycle_effect().expect("effect is bound");
 
@@ -139,7 +223,9 @@ fn effect_members() -> Vec<ApplicationSchemaMember> {
     ));
     members.push(ApplicationSchemaMember::Effect {
         effect: "ActivityEffect".to_owned(),
-        payload_type: std::any::type_name::<String>().to_owned(),
+        payload_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "worth.rust.string",
+        ),
     });
     members
 }

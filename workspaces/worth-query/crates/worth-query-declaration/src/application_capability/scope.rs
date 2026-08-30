@@ -9,6 +9,15 @@ use super::{
     ApplicationCapabilityProvenanceRef,
 };
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityConstraintParts,
+    WorthQueryPortableApplicationCapabilityDelegationParts,
+    WorthQueryPortableApplicationCapabilityFieldBindingParts,
+    WorthQueryPortableApplicationCapabilityRelationBindingParts,
+    WorthQueryPortableApplicationCapabilityValueBindingParts,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityFieldBinding {
     entity: String,
@@ -224,7 +233,7 @@ pub struct ApplicationCapabilityConstraintDefinition {
     cardinality: ApplicationCapabilityCardinalityDimension,
     currentness: ApplicationCapabilityCurrentnessDefinition,
     context: String,
-    context_type: String,
+    context_type: crate::portable_identity::WorthQueryPortableTypeIdentity,
 }
 
 impl ApplicationCapabilityConstraintDefinition {
@@ -239,7 +248,7 @@ impl ApplicationCapabilityConstraintDefinition {
             cardinality,
             currentness,
             context: context.name().to_string(),
-            context_type: context.marker_type().to_string(),
+            context_type: context.marker_identity(),
         }
     }
 
@@ -260,7 +269,11 @@ impl ApplicationCapabilityConstraintDefinition {
     }
 
     pub fn context_type(&self) -> &str {
-        &self.context_type
+        self.context_type.as_str()
+    }
+
+    pub fn context_identity(&self) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
+        self.context_type.clone()
     }
 }
 
@@ -271,7 +284,7 @@ pub struct ApplicationCapabilityDelegationDefinition {
     grantee: ApplicationCapabilityRelationBinding,
     limit: ApplicationCapabilityFieldBinding,
     provenance: String,
-    provenance_type: String,
+    provenance_type: crate::portable_identity::WorthQueryPortableTypeIdentity,
     activation: Option<super::ApplicationCapabilityDelegationActivationDefinition>,
     revocation: Option<super::ApplicationCapabilityRevocationDefinition>,
 }
@@ -290,7 +303,7 @@ impl ApplicationCapabilityDelegationDefinition {
             grantee,
             limit,
             provenance: provenance.name().to_string(),
-            provenance_type: provenance.marker_type().to_string(),
+            provenance_type: provenance.marker_identity(),
             activation: None,
             revocation: None,
         }
@@ -333,7 +346,11 @@ impl ApplicationCapabilityDelegationDefinition {
     }
 
     pub fn provenance_type(&self) -> &str {
-        &self.provenance_type
+        self.provenance_type.as_str()
+    }
+
+    pub fn provenance_identity(&self) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
+        self.provenance_type.clone()
     }
 
     pub const fn activation(

@@ -7,7 +7,7 @@ fn perf_query_packet_matrix() {
 
     let explicit_target_samples =
         capture_perf_samples(suite, "explicit_targets_cross_partition", || {
-            let mut runtime = runtime_with_test_schema_execution_model(
+            let runtime = runtime_with_test_schema_execution_model(
                 crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
             );
             let targets = (0..64)
@@ -19,7 +19,7 @@ fn perf_query_packet_matrix() {
                         _ => PartitionId(7),
                     };
                     RecordRef::Entity(create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("target-{index}"),
                         partition_id,
                     ))
@@ -90,7 +90,7 @@ fn perf_query_packet_matrix() {
 
     let kind_scan_samples =
         capture_perf_samples(suite, "entity_kind_scan_partition_matrix", || {
-            let mut runtime = runtime_with_test_schema_execution_model(
+            let runtime = runtime_with_test_schema_execution_model(
                 crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
             );
             for index in 0..128 {
@@ -100,11 +100,8 @@ fn perf_query_packet_matrix() {
                     2 => PartitionId(5),
                     _ => PartitionId(7),
                 };
-                let _ = create_entity_in_partition(
-                    &mut runtime,
-                    &format!("scan-{index}"),
-                    partition_id,
-                );
+                let _ =
+                    create_entity_in_partition(&runtime, &format!("scan-{index}"), partition_id);
             }
             let snapshot = runtime.visibility_authority().snapshot();
             let context = runtime
@@ -196,13 +193,13 @@ fn perf_query_packet_matrix() {
 
     let traversal_samples =
         capture_perf_samples(suite, "connectivity_traversal_cross_partition", || {
-            let mut runtime = runtime_with_test_schema_execution_model(
+            let runtime = runtime_with_test_schema_execution_model(
                 crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
             );
             let seeds = (0..12)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("seed-{index}"),
                         PartitionId(10 + index as u32),
                     )
@@ -211,7 +208,7 @@ fn perf_query_packet_matrix() {
             let neighbors = (0..12)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("neighbor-{index}"),
                         PartitionId(40 + index as u32),
                     )
@@ -219,7 +216,7 @@ fn perf_query_packet_matrix() {
                 .collect::<Vec<_>>();
             for (index, (seed, neighbor)) in seeds.iter().zip(neighbors.iter()).enumerate() {
                 let _ = create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     *seed,
                     *neighbor,
                     &format!("edge-{index}"),

@@ -52,6 +52,7 @@ impl UiScalarSchemaRequirement {
 pub struct UiCollectionSchemaRequirement {
     row_identity_field: UiProjectionFieldRequirement,
     selected_fields: Box<[UiProjectionFieldRequirement]>,
+    application_item_key_field: Option<UiProjectionFieldRequirement>,
     native_family: UiProjectionNativeFamily,
     lifecycle: UiProjectionLifecycleRequirement,
     requires_complete_result: bool,
@@ -104,6 +105,7 @@ impl UiCollectionSchemaRequirement {
         Ok(Self {
             row_identity_field,
             selected_fields,
+            application_item_key_field: None,
             native_family,
             lifecycle,
             requires_complete_result,
@@ -121,6 +123,21 @@ impl UiCollectionSchemaRequirement {
 
     pub fn selected_fields(&self) -> &[UiProjectionFieldRequirement] {
         &self.selected_fields
+    }
+
+    /// Declares which projected application field carries the stable unsigned
+    /// item-key value. Query transports the value but does not define its
+    /// identity semantics.
+    pub(crate) fn with_unsigned64_application_item_key_field(
+        mut self,
+        field: UiProjectionFieldRequirement,
+    ) -> Self {
+        self.application_item_key_field = Some(field);
+        self
+    }
+
+    pub fn application_item_key_field(&self) -> Option<&UiProjectionFieldRequirement> {
+        self.application_item_key_field.as_ref()
     }
 
     pub fn native_family(&self) -> UiProjectionNativeFamily {

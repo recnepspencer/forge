@@ -5,6 +5,7 @@ use super::recovery::UiNativeTextAtlasRecovery;
 use super::settlement::UiNativeTextAtlasSnapshot;
 
 impl UiNativeTextAtlas {
+    #[cfg(feature = "certification-support")]
     pub(crate) fn can_mutate_for_reconstruction(&self) -> bool {
         self.core.try_borrow_mut().is_ok()
     }
@@ -41,6 +42,7 @@ impl UiNativeTextAtlas {
         true
     }
 
+    #[cfg(feature = "certification-support")]
     pub(crate) fn remove_pins(
         &self,
         requests: &[worth_ui_host_contract::UiGlyphRasterPinRequest],
@@ -57,10 +59,6 @@ impl UiNativeTextAtlas {
         true
     }
 
-    #[allow(
-        dead_code,
-        reason = "host-state recovery is the event-loop lifecycle boundary"
-    )]
     pub(crate) fn recover(&self, recovery: &UiNativeTextAtlasRecovery) -> bool {
         let Ok(mut core) = self.core.try_borrow_mut() else {
             return false;

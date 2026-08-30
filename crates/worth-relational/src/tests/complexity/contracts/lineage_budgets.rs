@@ -11,8 +11,8 @@ use crate::tests::support::*;
 
 #[test]
 fn complexity_budget_lineage_historical_resolution_reports_branch_scoped_work() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
     let start_lineage = runtime
         .lineage_access()
@@ -22,7 +22,7 @@ fn complexity_budget_lineage_historical_resolution_reports_branch_scoped_work() 
 
     for index in 0..5 {
         let label = format!("noise-{index}");
-        let _ = create_entity_outcome(&mut runtime, &label);
+        let _ = create_entity_outcome(&runtime, &label);
     }
 
     runtime.performance_access().reset_counters();
@@ -50,8 +50,8 @@ fn complexity_budget_lineage_historical_resolution_reports_branch_scoped_work() 
 
 #[test]
 fn complexity_budget_lineage_branch_divergence_reports_breadth() {
-    let mut runtime = runtime_with_test_schema();
-    let _main = create_entity_outcome(&mut runtime, "main");
+    let runtime = runtime_with_test_schema();
+    let _main = create_entity_outcome(&runtime, "main");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -60,7 +60,7 @@ fn complexity_budget_lineage_branch_divergence_reports_breadth() {
         )
         .unwrap();
     let _feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
 
     runtime.performance_access().reset_counters();
     let divergence =
@@ -106,9 +106,9 @@ fn complexity_budget_lineage_branch_divergence_reports_breadth() {
 
 #[test]
 fn complexity_budget_lineage_graph_snapshot_reports_full_breadth() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "left");
-    create_entity_outcome(&mut runtime, "right");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "left");
+    create_entity_outcome(&runtime, "right");
 
     runtime.performance_access().reset_counters();
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
@@ -130,9 +130,9 @@ fn complexity_budget_lineage_graph_snapshot_reports_full_breadth() {
 
 #[test]
 fn complexity_budget_replay_lineage_parity_reports_authority_basis_and_digest_width() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "source");
-    let second = create_entity_outcome(&mut runtime, "target");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "source");
+    let second = create_entity_outcome(&runtime, "target");
     let replay_commit_id = second.commit.commit_id;
 
     runtime.performance_access().reset_counters();

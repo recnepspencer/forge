@@ -131,9 +131,9 @@ fn staged_parallel_commit_boundary_matches_serial_reference_results() {
 
 #[test]
 fn commit_boundary_metadata_exposes_proof_boundary_summary_for_packet_backed_execution() {
-    let mut runtime = relation_integrity_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = relation_integrity_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(3),
         merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(
@@ -165,9 +165,9 @@ fn commit_boundary_metadata_exposes_proof_boundary_summary_for_packet_backed_exe
 
 #[test]
 fn commit_boundary_symmetry_failure_fields_localize_missing_twin_endpoints() {
-    let mut runtime = relation_symmetry_runtime(SymmetryMode::PairedTwinRequired);
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = relation_symmetry_runtime(SymmetryMode::PairedTwinRequired);
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(4),
         merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(
@@ -217,10 +217,10 @@ fn commit_boundary_symmetry_failure_fields_localize_missing_twin_endpoints() {
 
 #[test]
 fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow() {
-    let mut runtime = relation_cardinality_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let target_b = create_entity(&mut runtime, "target-b");
+    let runtime = relation_cardinality_runtime();
+    let source = create_entity(&runtime, "source");
+    let target_a = create_entity(&runtime, "target-a");
+    let target_b = create_entity(&runtime, "target-b");
     let _accepted = {
         let mut txn = {
             let transaction_validation_input =
@@ -245,8 +245,9 @@ fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow
                     },
                 )),
             ),
-        );
-        txn.commit(&mut runtime).unwrap()
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).unwrap()
     };
     let overflow_plan = MergedCommitPlan {
         transaction_id: TransactionId(5),
@@ -299,7 +300,7 @@ fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow
 
 #[test]
 fn commit_boundary_reports_relation_integrity_scope_budget_violation_as_blocking_failure() {
-    let mut runtime = relation_integrity_runtime_with_scope_budget(
+    let runtime = relation_integrity_runtime_with_scope_budget(
         crate::config::data::RelationIntegrityScopeBudget {
             max_relation_kinds: 8,
             max_touched_entities: 16,
@@ -308,10 +309,10 @@ fn commit_boundary_reports_relation_integrity_scope_budget_violation_as_blocking
             max_planned_edges: 1,
         },
     );
-    let source_a = create_entity(&mut runtime, "source-a");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let source_b = create_entity(&mut runtime, "source-b");
-    let target_b = create_entity(&mut runtime, "target-b");
+    let source_a = create_entity(&runtime, "source-a");
+    let target_a = create_entity(&runtime, "target-a");
+    let source_b = create_entity(&runtime, "source-b");
+    let target_b = create_entity(&runtime, "target-b");
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(6),
         merged_intents: vec![MutationIntent::Create(CreateIntent::BulkRelations(

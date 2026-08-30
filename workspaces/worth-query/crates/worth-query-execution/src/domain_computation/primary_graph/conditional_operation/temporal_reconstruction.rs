@@ -20,8 +20,16 @@ use super::installation::{
 use super::reconstruction_authority::{
     WorthQueryTemporalPrincipalSource, WorthQueryTemporalReconstructionAccess,
 };
+mod denial;
 mod refresh;
 mod source_record_binding;
+pub(super) use denial::{
+    bridge_reconstruction_denial, reconstruction_denial, retention_capacity_reconstruction_denial,
+    retention_identity_reconstruction_denial, snapshot_capacity_reconstruction_denial,
+    snapshot_identity_reconstruction_denial,
+};
+#[cfg(test)]
+mod tests;
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessContext,
     WorthQueryApplicationQueryControls, WorthQueryPrimaryGraphApplicationRuntime,
@@ -159,12 +167,7 @@ where
             &request,
             WorthQueryPrincipalResolutionMode::Ordinary,
         )
-        .map_err(|denial| {
-            reconstruction_denial(
-                WorthQueryConditionalRuntimeInstallationDenialKind::ReconstructionPrincipal,
-                format!("{:?}: {}", denial.kind(), denial.binding()),
-            )
-        })?;
+        .map_err(denial::principal)?;
     let scope = runtime
         .resolve_entity(
             access.scope_field,
@@ -172,12 +175,7 @@ where
             &request,
             WorthQueryPrincipalResolutionMode::Ordinary,
         )
-        .map_err(|denial| {
-            reconstruction_denial(
-                WorthQueryConditionalRuntimeInstallationDenialKind::ReconstructionScope,
-                format!("{:?}: {}", denial.kind(), denial.subject()),
-            )
-        })?;
+        .map_err(denial::entity)?;
     let query_access = WorthQueryApplicationQueryAccessContext::new(&principal, &scope);
     let bounds = binding.bounds();
     let controls = WorthQueryApplicationQueryControls::current_one_shot(
@@ -196,20 +194,10 @@ where
             binding.parameters().clone(),
             controls,
         )
-        .map_err(|denial| {
-            reconstruction_denial(
-                WorthQueryConditionalRuntimeInstallationDenialKind::ReconstructionQuery,
-                denial,
-            )
-        })?;
+        .map_err(denial::query_authorization)?;
     let result = runtime
         .execute_application_query_one_shot(plan)
-        .map_err(|denial| {
-            reconstruction_denial(
-                WorthQueryConditionalRuntimeInstallationDenialKind::ReconstructionQuery,
-                format!("{:?}: {}", denial.kind(), denial.subject()),
-            )
-        })?;
+        .map_err(denial::one_shot)?;
     let receipt = result.receipt();
     let work = WorthQueryTemporalReconstructionWork {
         examined_candidates: receipt.examined_candidate_count(),
@@ -327,20 +315,4 @@ pub(super) fn reconcile_temporal_intents<Clock, Input>(
         intent.candidate().lifecycle() == WorthQueryTemporalIntentLifecycle::Active
     });
     Ok(())
-}
-
-pub(super) fn bridge_reconstruction_denial(
-    detail: impl Into<String>,
-) -> WorthQueryConditionalRuntimeInstallationDenial {
-    reconstruction_denial(
-        WorthQueryConditionalRuntimeInstallationDenialKind::ReconstructionIntent,
-        detail,
-    )
-}
-
-fn reconstruction_denial(
-    kind: WorthQueryConditionalRuntimeInstallationDenialKind,
-    detail: impl Into<String>,
-) -> WorthQueryConditionalRuntimeInstallationDenial {
-    WorthQueryConditionalRuntimeInstallationDenial::new(kind, detail)
 }

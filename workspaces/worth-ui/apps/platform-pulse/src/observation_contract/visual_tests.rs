@@ -74,6 +74,10 @@ fn retired_visual_pulse_rebases_without_inventing_a_predecessor_retirement() {
         PlatformPulseVisualObservationState::Retired.after_content_publication(21),
         Ok(PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 21 })
     );
+    assert_eq!(
+        PlatformPulseVisualObservationState::Retired.after_replacement(22),
+        Ok(PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 22 })
+    );
 }
 
 #[test]
@@ -122,6 +126,61 @@ fn in_flight_refresh_coalesces_only_monotonically_newer_content_frames() {
     assert_eq!(
         rebasing.after_content_publication(37),
         Ok(PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 37 })
+    );
+}
+
+#[test]
+fn content_replacement_interrupts_pending_comparison_without_losing_retirement_evidence() {
+    let awaiting = PlatformPulseVisualObservationState::AwaitingSuccessorSnapshot {
+        predecessor_snapshot: 17,
+        predecessor_frame: 19,
+        successor_frame: 23,
+    };
+    assert_eq!(
+        awaiting.after_content_publication(29),
+        Ok(
+            PlatformPulseVisualObservationState::AwaitingRefreshRetirement {
+                snapshot: 17,
+                snapshot_frame: 19,
+                refresh_frame: 29,
+            }
+        )
+    );
+    assert_eq!(
+        awaiting.after_content_publication(22),
+        Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete)
+    );
+}
+
+#[test]
+fn refreshed_snapshot_accepts_a_current_runtime_owned_successor_after_its_initiating_frame() {
+    let awaiting =
+        PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 139 };
+
+    assert_eq!(
+        awaiting.after_refreshed_snapshot(41, 144, true),
+        Ok(PlatformPulseVisualObservationState::Refreshed {
+            snapshot: 41,
+            frame: 144,
+        })
+    );
+    assert_eq!(
+        awaiting.after_refreshed_snapshot(41, 138, true),
+        Err(PlatformPulseLifecycleObservationProjectionDenial::
+            VisualRefreshSnapshotAffinityMismatch {
+                expected_frame: 139,
+                observed_frame: 138,
+                observed_current: true,
+            })
+    );
+    assert_eq!(
+        awaiting.after_refreshed_snapshot(41, 144, false),
+        Err(PlatformPulseLifecycleObservationProjectionDenial::
+            VisualRefreshSnapshotAffinityMismatch {
+                expected_frame: 139,
+                observed_frame: 144,
+                observed_current: false,
+            })
     );
 }
 

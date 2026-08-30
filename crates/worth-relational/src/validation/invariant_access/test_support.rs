@@ -188,12 +188,12 @@ pub(super) fn relation_integrity_runtime_with_scope_budget(
 }
 
 pub(super) fn create_entity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
     let mut txn = {
         let transaction_validation_input =
-            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime);
+            crate::tests::support::test_owner_transaction_validation_input_for_main(runtime);
         runtime
             .begin_branch_transaction(
                 transaction_validation_input.basis(),
@@ -212,7 +212,8 @@ pub(super) fn create_entity(
                 }),
             ))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(runtime).unwrap();
     match outcome.changed_records[0] {
         crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,

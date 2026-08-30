@@ -10,6 +10,7 @@ use worth_query_declaration::facade::application_schema::{
 };
 
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
+use crate::package::WorthQueryPortableNativeAspectContractRecord;
 
 use super::canonical_basis::CatalogCanonicalBudget;
 use super::denial::{
@@ -30,27 +31,24 @@ struct DeclaredAspectSeed {
 
 pub(crate) fn compile_native_contract_catalog(
     binding: &ApplicationSchemaBindingIdentity,
-    schema: &ErasedApplicationSchemaDeclaration,
+    portable: &[WorthQueryPortableNativeAspectContractRecord],
     schema_work: WorthQueryCanonicalWorkEvidence,
 ) -> Result<
     WorthQueryInstalledApplicationSchemaContractCatalog,
     WorthQueryApplicationSchemaContractCatalogDenial,
 > {
-    let mut aspects = collect_declared_aspects(schema)?;
-    collect_declared_fields(schema, &mut aspects)?;
-    let maximum_aspect_identity = aspects.values().map(|aspect| aspect.identity).max();
-    let field_count = aspects.values().map(|aspect| aspect.fields.len()).sum();
+    let maximum_aspect_identity = portable
+        .iter()
+        .map(|record| record.contract().identity())
+        .max();
+    let field_count = portable.iter().map(|record| record.fields().len()).sum();
     let mut canonical_budget = CatalogCanonicalBudget::from_schema_work(schema_work)?;
     let mut contracts =
         BTreeMap::<String, BTreeMap<String, WorthQueryInstalledApplicationAspectContract>>::new();
-    for ((entity, aspect), seed) in aspects {
-        let installed = compile_aspect_contract(
-            binding,
-            entity.clone(),
-            aspect.clone(),
-            seed,
-            &mut canonical_budget,
-        )?;
+    for record in portable.iter().cloned() {
+        let entity = record.entity().to_owned();
+        let aspect = record.aspect().as_str().to_owned();
+        let installed = install_aspect_contract(binding, record, &mut canonical_budget)?;
         contracts
             .entry(entity)
             .or_default()
@@ -66,6 +64,22 @@ pub(crate) fn compile_native_contract_catalog(
         counters,
         canonical_budget.work(),
     ))
+}
+
+pub(crate) fn compile_portable_native_contract_records(
+    schema: &ErasedApplicationSchemaDeclaration,
+) -> Result<
+    Vec<WorthQueryPortableNativeAspectContractRecord>,
+    WorthQueryApplicationSchemaContractCatalogDenial,
+> {
+    let mut aspects = collect_declared_aspects(schema)?;
+    collect_declared_fields(schema, &mut aspects)?;
+    aspects
+        .into_iter()
+        .map(|((entity, aspect), seed)| {
+            compile_portable_aspect_record(schema.name(), entity, aspect, seed)
+        })
+        .collect()
 }
 
 fn collect_declared_aspects(
@@ -163,32 +177,53 @@ fn collect_declared_fields(
     Ok(())
 }
 
-fn compile_aspect_contract(
-    binding: &ApplicationSchemaBindingIdentity,
+fn compile_portable_aspect_record(
+    schema: &str,
     entity: String,
     aspect_name: String,
     seed: DeclaredAspectSeed,
-    canonical_budget: &mut CatalogCanonicalBudget,
 ) -> Result<
-    WorthQueryInstalledApplicationAspectContract,
+    WorthQueryPortableNativeAspectContractRecord,
     WorthQueryApplicationSchemaContractCatalogDenial,
 > {
     let aspect_key = AspectKey::new(aspect_name.clone())
         .ok_or_else(|| denial(DenialKind::InvalidAspectKey, &aspect_name))?;
     let contract = build_foundational_contract(&aspect_key, &aspect_name, &seed)?;
     admit_declared_projection_mask(&contract, &aspect_name, seed.fields.keys())?;
-    let prepared = canonical_budget.prepare(&aspect_name, &contract)?;
     let fields = seed.fields.into_keys().collect::<BTreeSet<_>>();
-    let locus = WorthQueryInstalledApplicationAspectLocus::new(binding.clone(), entity, aspect_key);
     let aspect_field = FieldKey::new(aspect_name.clone())
         .ok_or_else(|| denial(DenialKind::InvalidFieldKey, &aspect_name))?;
-    Ok(WorthQueryInstalledApplicationAspectContract::new(
-        locus,
+    Ok(WorthQueryPortableNativeAspectContractRecord::new(
+        schema.to_owned(),
+        entity,
+        aspect_key,
         contract,
         fields,
         AspectBinding::EntityField {
             field: aspect_field,
         },
+    ))
+}
+
+fn install_aspect_contract(
+    binding: &ApplicationSchemaBindingIdentity,
+    record: WorthQueryPortableNativeAspectContractRecord,
+    canonical_budget: &mut CatalogCanonicalBudget,
+) -> Result<
+    WorthQueryInstalledApplicationAspectContract,
+    WorthQueryApplicationSchemaContractCatalogDenial,
+> {
+    let prepared = canonical_budget.prepare(record.aspect().as_str(), record.contract())?;
+    let locus = WorthQueryInstalledApplicationAspectLocus::new(
+        binding.clone(),
+        record.entity().to_owned(),
+        record.aspect().clone(),
+    );
+    Ok(WorthQueryInstalledApplicationAspectContract::new(
+        locus,
+        record.contract().clone(),
+        record.retained_fields(),
+        record.binding().clone(),
         prepared.basis,
         prepared.material,
     ))

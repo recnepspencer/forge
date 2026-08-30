@@ -1,6 +1,11 @@
 use worth_ui::facade::{
     app::WorthUi,
-    declaration::{CommandCategory, CommandDescriptor, CommandId, CommandProjectionId},
+    declaration::{
+        CommandCategory, CommandDescriptor, CommandId, CommandProjectionId, UiCommandKeyCode,
+        UiCommandModifierSet, UiCommandRouteDeclaration, UiCommandRouteDestination,
+        UiCommandRouteScope, UiCommandRouteScopeIdentity, UiCommandShortcutSequence,
+        UiCommandShortcutStroke,
+    },
     diagnostics::CapabilityDiagnosticCode,
 };
 
@@ -136,8 +141,7 @@ fn different_command_descriptor_meaning_produces_different_snapshot_digest() {
         .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             command_descriptor("workspace.open", "Open Workspace")
-                .with_description("Open an existing workspace")
-                .with_default_shortcut_reference("primary-open"),
+                .with_description("Open an existing workspace"),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -150,6 +154,179 @@ fn different_command_descriptor_meaning_produces_different_snapshot_digest() {
         plain.capabilities().digest(),
         richer.capabilities().digest()
     );
+}
+
+#[test]
+fn shortcut_without_typed_route_destination_is_rejected() {
+    let shortcut = UiCommandShortcutSequence::single(UiCommandShortcutStroke::logical(
+        UiCommandKeyCode::O,
+        UiCommandModifierSet::none().with_primary(),
+    ));
+    let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_command(
+            command_descriptor("workspace.open", "Open Workspace").with_default_shortcut(shortcut),
+        )
+        .freeze_with_registration_report();
+
+    assert!(report.has_errors());
+    assert!(report.accepted_snapshot().commands().is_empty());
+    assert_diagnostic_codes(
+        report.registration_diagnostics(),
+        &[CapabilityDiagnosticCode::MissingCommandRouteDestination],
+    );
+}
+
+#[test]
+fn shortcut_with_primary_and_platform_specific_alias_is_rejected() {
+    let shortcut = UiCommandShortcutSequence::single(UiCommandShortcutStroke::logical(
+        UiCommandKeyCode::O,
+        UiCommandModifierSet::none().with_primary().with_control(),
+    ));
+    let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_command(
+            command_descriptor("workspace.open", "Open Workspace")
+                .with_default_shortcut(shortcut)
+                .with_intent_destination::<ShortcutIntent>(),
+        )
+        .register_runtime_service_intent_definition(worth_ui::facade::intent::UiIntentDefinition::<
+            ShortcutIntent,
+        >::runtime_service(
+            worth_ui::facade::intent::UiIntentRuntimeServiceDestination::InvokeCommand,
+        ))
+        .expect("fixture intent registers")
+        .freeze_with_registration_report();
+
+    assert!(report.has_errors());
+    assert!(report.accepted_snapshot().commands().is_empty());
+    assert_diagnostic_codes(
+        report.registration_diagnostics(),
+        &[CapabilityDiagnosticCode::ConflictingCommandShortcutAlias],
+    );
+}
+
+#[test]
+fn active_region_command_scope_is_rejected_until_runtime_region_authority_exists() {
+    let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_command(
+            command_descriptor("workspace.open", "Open Workspace").with_route(
+                UiCommandRouteDeclaration::new(UiCommandRouteDestination::for_intent::<
+                    ShortcutIntent,
+                >())
+                .with_scope(UiCommandRouteScope::ActiveRegion),
+            ),
+        )
+        .register_runtime_service_intent_definition(worth_ui::facade::intent::UiIntentDefinition::<
+            ShortcutIntent,
+        >::runtime_service(
+            worth_ui::facade::intent::UiIntentRuntimeServiceDestination::InvokeCommand,
+        ))
+        .expect("fixture intent registers")
+        .freeze_with_registration_report();
+
+    assert!(report.has_errors());
+    assert!(report.accepted_snapshot().commands().is_empty());
+    assert_diagnostic_codes(
+        report.registration_diagnostics(),
+        &[CapabilityDiagnosticCode::UnsupportedCommandRouteScope],
+    );
+}
+
+#[test]
+fn focused_and_portal_routes_require_an_exact_authored_scope_identity() {
+    for scope in [
+        UiCommandRouteScope::FocusedControl,
+        UiCommandRouteScope::ActivePortal,
+    ] {
+        let report = WorthUi::app()
+            .with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            )
+            .register_command(
+                command_descriptor("workspace.open", "Open Workspace").with_route(
+                    UiCommandRouteDeclaration::new(UiCommandRouteDestination::for_intent::<
+                        ShortcutIntent,
+                    >())
+                    .with_scope(scope),
+                ),
+            )
+            .register_runtime_service_intent_definition(
+                worth_ui::facade::intent::UiIntentDefinition::<ShortcutIntent>::runtime_service(
+                    worth_ui::facade::intent::UiIntentRuntimeServiceDestination::InvokeCommand,
+                ),
+            )
+            .expect("fixture intent registers")
+            .freeze_with_registration_report();
+        assert_diagnostic_codes(
+            report.registration_diagnostics(),
+            &[CapabilityDiagnosticCode::MissingCommandRouteScopeIdentity],
+        );
+    }
+
+    let identity = UiCommandRouteScopeIdentity::for_authored_component("editor.control");
+    let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_command(
+            command_descriptor("workspace.open", "Open Workspace").with_route(
+                UiCommandRouteDeclaration::new(UiCommandRouteDestination::for_intent::<
+                    ShortcutIntent,
+                >())
+                .for_focused_control(identity),
+            ),
+        )
+        .register_runtime_service_intent_definition(worth_ui::facade::intent::UiIntentDefinition::<
+            ShortcutIntent,
+        >::runtime_service(
+            worth_ui::facade::intent::UiIntentRuntimeServiceDestination::InvokeCommand,
+        ))
+        .expect("fixture intent registers")
+        .freeze()
+        .expect("an exact authored scope binding is admitted");
+    assert_eq!(app.capabilities().commands().len(), 1);
+}
+
+struct ShortcutPayload;
+
+impl worth_ui::facade::intent::UiIntentPayload for ShortcutPayload {
+    const SCHEMA: worth_ui::facade::intent::UiIntentSchema =
+        worth_ui::facade::intent::UiIntentSchema::stable("command.shortcut.payload", 1);
+    const FIELDS: worth_ui::facade::intent::UiIntentPayloadFieldSet =
+        worth_ui::facade::intent::UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut worth_ui::facade::intent::UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, worth_ui::facade::intent::UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
+}
+
+struct ShortcutOutcome;
+
+impl worth_ui::facade::intent::UiIntentProductOutcome for ShortcutOutcome {
+    const SCHEMA: worth_ui::facade::intent::UiIntentSchema =
+        worth_ui::facade::intent::UiIntentSchema::stable("command.shortcut.outcome", 1);
+    const CONSEQUENCE_FAMILIES: worth_ui::facade::intent::UiIntentProductConsequenceFamilies =
+        worth_ui::facade::intent::UiIntentProductConsequenceFamilies::NONE;
+
+    fn into_consequences(self) -> worth_ui::facade::intent::UiIntentProductConsequences {
+        worth_ui::facade::intent::UiIntentProductConsequences::none()
+    }
+}
+
+struct ShortcutIntent;
+
+impl worth_ui::facade::intent::UiIntent for ShortcutIntent {
+    type Payload = ShortcutPayload;
+    type ProductOutcome = ShortcutOutcome;
+
+    const ID: worth_ui::facade::intent::UiIntentId =
+        worth_ui::facade::intent::UiIntentId::stable("command.shortcut.intent");
+    const ACCEPTED_INTERACTIONS: worth_ui::facade::intent::UiIntentAcceptedInteractions =
+        worth_ui::facade::intent::UiIntentAcceptedInteractions::new(&[
+            worth_ui::facade::intent::UiSemanticInteractionFamily::Activate,
+        ]);
 }
 
 fn command_descriptor(id: &str, label: &str) -> CommandDescriptor {

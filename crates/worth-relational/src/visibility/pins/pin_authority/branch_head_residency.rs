@@ -8,7 +8,7 @@ use crate::visibility::snapshot_states::VisibilitySnapshotBasis;
 use super::*;
 
 impl<'runtime> VisibilityPinAuthority<'runtime> {
-    pub(crate) fn rebuild_branch_head_visibility_residency(&mut self) {
+    pub(crate) fn rebuild_branch_head_visibility_residency(&self) {
         let tracked_states = self.runtime.visibility.tracked_branch_head_states();
         self.runtime
             .visibility
@@ -30,9 +30,11 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             else {
                 continue;
             };
-            let Some(basis) =
-                VisibilitySnapshotBasis::capture_current(self.runtime, &branch_id, version_id)
-            else {
+            let Some(basis) = VisibilitySnapshotBasis::capture_current_for_optional_maintenance(
+                self.runtime,
+                &branch_id,
+                version_id,
+            ) else {
                 continue;
             };
             protect_branch_head_state(self.runtime, &basis);
@@ -44,21 +46,17 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
     }
 
     pub(crate) fn move_branch_head_visibility_residency(
-        &mut self,
+        &self,
         branch_id: &crate::history::data::BranchId,
         previous_head: Option<crate::identity::data::VersionId>,
         next_head: Option<crate::identity::data::VersionId>,
+        next_basis: Option<&VisibilitySnapshotBasis>,
     ) {
         if !self.runtime.protect_branch_heads() || previous_head == next_head {
             return;
         }
-        if let Some(version_id) = previous_head {
-            let previous_key = self
-                .runtime
-                .visibility
-                .tracked_branch_head_states()
-                .into_iter()
-                .find(|key| key.branch_id() == branch_id && key.version_id() == version_id);
+        if previous_head.is_some() {
+            let previous_key = self.runtime.visibility.untrack_branch_head_state(branch_id);
             if let Some(previous_key) = previous_key {
                 bump_visibility_ref(self.runtime, &previous_key, |residency| {
                     residency.branch_head_refs = residency.branch_head_refs.saturating_sub(1);
@@ -66,14 +64,25 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             }
         }
         if let Some(version_id) = next_head {
-            if let Some(basis) =
-                VisibilitySnapshotBasis::capture_current(self.runtime, branch_id, version_id)
+            if let Some(basis) = next_basis
+                .filter(|basis| basis.branch_id() == branch_id && basis.version_id() == version_id)
+            {
+                protect_branch_head_state(self.runtime, basis);
+                self.runtime.services.instrumentation.count(|counters| {
+                    counters.visibility_cache_branch_head_promotions += 1;
+                });
+            } else if let Some(basis) =
+                VisibilitySnapshotBasis::capture_current_for_optional_maintenance(
+                    self.runtime,
+                    branch_id,
+                    version_id,
+                )
             {
                 protect_branch_head_state(self.runtime, &basis);
+                self.runtime.services.instrumentation.count(|counters| {
+                    counters.visibility_cache_branch_head_promotions += 1;
+                });
             }
-            self.runtime.services.instrumentation.count(|counters| {
-                counters.visibility_cache_branch_head_promotions += 1;
-            });
         }
         evict_cache_if_needed(self.runtime);
     }

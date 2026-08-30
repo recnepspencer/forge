@@ -6,6 +6,7 @@ use worth_ui_host_contract::{
 };
 
 mod admission;
+mod recipient;
 mod retention;
 
 const INPUT_OBSERVATION_HISTORY_CAPACITY: usize = 64;
@@ -28,6 +29,7 @@ pub(crate) enum UiNativeInputObservationDisposition {
 struct UiNativePendingPresentationContext {
     protocol: UiHostProtocolAgreement,
     host_session: u64,
+    host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
     binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
 }
 
@@ -95,6 +97,7 @@ impl UiNativeInputObservationState {
         self.event_tick = event_tick;
     }
 
+    #[cfg(test)]
     pub(crate) fn observe_profile_transition(
         &mut self,
         scale_factor: f64,
@@ -165,6 +168,7 @@ impl UiNativeInputObservationState {
         &mut self,
         protocol: UiHostProtocolAgreement,
         host_session: u64,
+        host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
         completion_identity: u64,
     ) -> bool {
@@ -185,6 +189,7 @@ impl UiNativeInputObservationState {
             UiNativePendingPresentationContext {
                 protocol,
                 host_session,
+                host_surface,
                 binding,
             },
         );
@@ -211,7 +216,7 @@ impl UiNativeInputObservationState {
         self.record_completed_presentation(
             context.protocol,
             context.host_session,
-            UiHostObservationPresentationBasis::new(frame, binding, epoch),
+            UiHostObservationPresentationBasis::new(context.host_surface, frame, binding, epoch),
         )
     }
 
@@ -243,28 +248,6 @@ impl UiNativeInputObservationState {
         host_session_identity: u64,
     ) -> worth_ui_host_contract::UiHostObservationDrain {
         self.retention.drain(host_session_identity)
-    }
-
-    pub(crate) fn install_input_recipient(
-        &mut self,
-        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
-    ) -> bool {
-        if self.active_host_session != Some(binding.host_session()) {
-            return false;
-        }
-        self.input_recipient = Some(binding);
-        true
-    }
-
-    pub(crate) fn clear_input_recipient(
-        &mut self,
-        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
-    ) -> bool {
-        if self.input_recipient != Some(binding) {
-            return false;
-        }
-        self.input_recipient = None;
-        true
     }
 
     pub(crate) fn has_retained_observations(&self) -> bool {

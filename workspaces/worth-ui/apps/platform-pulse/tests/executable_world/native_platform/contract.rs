@@ -1,4 +1,6 @@
+#[cfg(target_os = "windows")]
 use std::fmt;
+#[cfg(target_os = "windows")]
 use std::time::Instant;
 
 #[cfg(target_os = "windows")]
@@ -18,6 +20,7 @@ pub(crate) enum NativePlatformPosture {
 }
 
 #[derive(Debug)]
+#[cfg(target_os = "windows")]
 pub(crate) enum NativePlatformFailure {
     DpiAwareness(String),
     EnvironmentQualification(String),
@@ -42,10 +45,8 @@ pub(crate) enum NativePlatformFailure {
         client: crate::external_observation::NativeClientAreaBounds,
     },
     NormalClose(String),
-    #[cfg(target_os = "windows")]
     InputEnvironment(WindowsInputEnvironmentDenial),
     InputDelivery(String),
-    #[cfg(target_os = "windows")]
     InputDeliveryIndeterminate {
         kind: NativeInputProbeKind,
         delivered_event_count: u32,
@@ -54,6 +55,7 @@ pub(crate) enum NativePlatformFailure {
     ProcessWindowResidue(usize),
 }
 
+#[cfg(target_os = "windows")]
 impl fmt::Display for NativePlatformFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -113,12 +115,10 @@ impl fmt::Display for NativePlatformFailure {
             Self::NormalClose(error) => {
                 write!(formatter, "request normal native-window close: {error}")
             }
-            #[cfg(target_os = "windows")]
             Self::InputEnvironment(denial) => {
                 write!(formatter, "native input environment denied: {denial}")
             }
             Self::InputDelivery(error) => write!(formatter, "deliver native input: {error}"),
-            #[cfg(target_os = "windows")]
             Self::InputDeliveryIndeterminate {
                 kind,
                 delivered_event_count,
@@ -177,6 +177,12 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         &self,
         bound: &Self::BoundClientArea,
         point: NativeClientPixelPoint,
+    ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
+
+    fn deliver_keyboard_command(
+        &self,
+        bound: &Self::BoundClientArea,
+        command: crate::external_observation::NativeKeyboardCommand,
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
 
     fn deliver_wheel_deltas(

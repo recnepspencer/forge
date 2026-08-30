@@ -11,6 +11,40 @@ pub enum WorthQueryPrimaryGraphInstallationDenialKind {
     EmptyBootstrap,
     InvalidSchemaMember,
     RelationalCommitRejected,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    RetentionOwnerUnavailable,
+    RetentionRootSetTooLarge,
+    SnapshotIdentityExhausted,
+    TransactionOverlayCapacityExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    TransactionFootprintCapacityExhausted {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    SavepointCapacityExhausted {
+        maximum_savepoints: usize,
+    },
+    SavepointFootprintCapacityExhausted {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    SavepointIdentityExhausted,
+    CandidateCapacityExhausted {
+        maximum_candidates: usize,
+    },
+    PublishedSnapshotCapacityExhausted {
+        maximum_handles: usize,
+    },
+    CandidateIdentityExhausted,
+    PreparedRootBudgetExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    PatchPositionReservationContended,
+    ProposalIdentityExhausted,
     IndexBuildRejected,
     RelationalSchemaRejected,
     RelationalRuntimeAlreadyPublished,

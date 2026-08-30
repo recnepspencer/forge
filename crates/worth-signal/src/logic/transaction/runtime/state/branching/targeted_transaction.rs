@@ -331,13 +331,11 @@ where
         &self,
         branch: &SignalBranchHandle,
     ) -> Result<SignalBranchTransactionHead, BranchTargetedTransactionDenial> {
-        let live_branch = self
-            .graph
-            .branch_handle(branch.id)
-            .or_else(|| self.branches.branch_handle(branch.id))
-            .ok_or(BranchTargetedTransactionDenial::UnknownTargetBranch {
+        let live_branch = self.branches.branch_handle(branch.id).ok_or(
+            BranchTargetedTransactionDenial::UnknownTargetBranch {
                 branch_id: branch.id,
-            })?;
+            },
+        )?;
         Ok(SignalBranchTransactionHead::new(
             live_branch.id,
             live_branch.head_snapshot_id,

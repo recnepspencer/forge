@@ -50,7 +50,7 @@ where
         .target_state
         .graph_mut()
         .diagnostics_state_mut()
-        .set_branch_head_snapshot(request.target_branch.id, meta.snapshot_id);
+        .stage_branch_head_snapshot_projection(request.target_branch.id, meta.snapshot_id);
     let target_snapshot_after = Some(meta.snapshot_id);
     prepared
         .target_state

@@ -148,6 +148,15 @@ fn runtime_family(family: UiInspectionObligationFamily) -> UiObligationFamily {
         UiInspectionObligationFamily::MotionSupportRequirement => {
             UiObligationFamily::MotionSupportRequirement
         }
+        UiInspectionObligationFamily::ScrollRoutingRequirement => {
+            UiObligationFamily::ScrollRoutingRequirement
+        }
+        UiInspectionObligationFamily::SelectionStateRequirement => {
+            UiObligationFamily::SelectionStateRequirement
+        }
+        UiInspectionObligationFamily::CommandRouteRequirement => {
+            UiObligationFamily::CommandRouteRequirement
+        }
         UiInspectionObligationFamily::AccessibilityRequirement => {
             UiObligationFamily::AccessibilityRequirement
         }

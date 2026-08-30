@@ -33,6 +33,7 @@ pub(in crate::authority::commit::pipeline) struct PublicationFinalizeArtifacts {
     adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
     lineage_nodes: Vec<crate::lineage::data::LineageNode>,
     deferred_diagnostic_artifacts: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    target_schema_registry: Option<std::sync::Arc<crate::schema::data::RelationalSchemaRegistry>>,
 }
 
 pub(super) struct PublicationPreparationInput<'a> {
@@ -56,7 +57,7 @@ pub(super) struct PublicationPreparationInput<'a> {
 }
 
 pub(super) fn prepare_publication_artifacts(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     input: PublicationPreparationInput<'_>,
 ) -> Result<PublicationPreparation, TransactionCommitError> {
     let PublicationPreparationInput {
@@ -115,6 +116,7 @@ pub(super) fn prepare_publication_artifacts(
         traces,
         authority,
         deferred_diagnostic_artifacts,
+        target_schema_registry: schema_continuity.target_schema_registry.clone(),
     }))
 }
 
@@ -124,7 +126,7 @@ struct PublicationTraceCapture {
 }
 
 fn capture_publication_traces(
-    runtime: &crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     patch: &CanonicalAuthoritativePatch,
     canonical_deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
 ) -> PublicationTraceCapture {
@@ -181,17 +183,21 @@ struct PreparedPublicationAuthority {
 }
 
 fn prepare_authoritative_publication(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     input: PublicationAuthorityInput<'_>,
 ) -> Result<PreparedPublicationAuthority, TransactionCommitError> {
-    let artifacts = runtime.publication_authority().assemble_publication_bundle(
-        input.commit_reference.clone(),
-        input.version_id,
-        input.patch.clone(),
-        input.diagnostics_summary.clone(),
-    );
+    let artifacts = runtime
+        .publication_preparation_authority()
+        .assemble_publication_bundle(
+            input.commit_reference.clone(),
+            input.version_id,
+            input.patch.clone(),
+            input.diagnostics_summary.clone(),
+            input.schema_continuity.target_schema_authority().clone(),
+        )
+        .map_err(TransactionCommitError::publication_failed)?;
     let prepared_lineage = runtime
-        .lineage_authority()
+        .lineage_preparation_authority()
         .ensure_lineage_for_commit(
             input.working_state,
             input.commit_reference,
@@ -244,6 +250,7 @@ struct PublicationCompletionInput<'a> {
     traces: PublicationTraceCapture,
     authority: PreparedPublicationAuthority,
     deferred_diagnostic_artifacts: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    target_schema_registry: Option<std::sync::Arc<crate::schema::data::RelationalSchemaRegistry>>,
 }
 
 fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> PublicationPreparation {
@@ -256,6 +263,7 @@ fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> Publ
         traces,
         authority,
         deferred_diagnostic_artifacts,
+        target_schema_registry,
     } = input;
     let mut changed_records = changed_records;
     canonicalize_changed_records(&mut changed_records);
@@ -286,6 +294,7 @@ fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> Publ
             adjacency_deltas,
             lineage_nodes: authority.lineage_nodes,
             deferred_diagnostic_artifacts,
+            target_schema_registry,
         },
     }
 }
@@ -332,6 +341,7 @@ impl PublicationFinalizeArtifacts {
         Vec<crate::authority::mutation::AdjacencyDelta>,
         Vec<crate::lineage::data::LineageNode>,
         Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+        Option<std::sync::Arc<crate::schema::data::RelationalSchemaRegistry>>,
     ) {
         (
             self.artifacts,
@@ -340,6 +350,7 @@ impl PublicationFinalizeArtifacts {
             self.adjacency_deltas,
             self.lineage_nodes,
             self.deferred_diagnostic_artifacts,
+            self.target_schema_registry,
         )
     }
 }

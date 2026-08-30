@@ -12,7 +12,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     ) -> Self {
         self.push_member(ApplicationSchemaMember::ApplicationCapabilityContext {
             context: context.name().to_string(),
-            context_type: context.marker_type().to_string(),
+            context_type: context.marker_identity(),
         })
     }
 
@@ -23,9 +23,9 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         self.push_member(
             ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
                 context: slot.context().to_string(),
-                context_type: slot.context_type().to_string(),
+                context_type: slot.context_identity(),
                 slot: slot.slot().to_string(),
-                slot_type: slot.slot_type().to_string(),
+                slot_type: slot.slot_identity(),
                 entity: slot.entity().to_string(),
             },
         )
@@ -37,7 +37,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     ) -> Self {
         self.push_member(ApplicationSchemaMember::ApplicationCapabilityProvenance {
             provenance: provenance.name().to_string(),
-            provenance_type: provenance.marker_type().to_string(),
+            provenance_type: provenance.marker_identity(),
         })
     }
 

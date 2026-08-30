@@ -74,7 +74,7 @@ pub(crate) fn endpoint_deletion_runtime(
 }
 
 pub(crate) fn create_endpoint_deletion_relation_fixture(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     client_key: &str,
 ) -> (
     crate::facade::identity::EntityId,

@@ -8,6 +8,7 @@ use crate::{
 
 mod foreground;
 mod frame_affinity;
+mod table;
 mod validation;
 
 pub use foreground::{UiMountedTextForegroundSpan, UiMountedTextPaintSpanIdentity};
@@ -344,49 +345,40 @@ impl UiMountedSemanticTextMechanic {
     pub const fn semantic_digest(&self) -> u64 {
         self.semantic_digest
     }
-}
-
-impl UiMountedSemanticTextTable {
-    pub const MAX_ROWS: usize = 8_192;
-    pub const MAX_BYTES: usize = 8 * 1_024 * 1_024;
-
-    pub fn empty() -> Self {
-        Self {
-            schema: UiMountedTextSchemaVersion::current(),
-            rows: std::sync::Arc::from([]),
-        }
-    }
 
     #[doc(hidden)]
-    pub fn from_runtime_mounting(
-        rows: Vec<UiMountedSemanticTextMechanic>,
-    ) -> Result<Self, UiMountedSemanticTextTableDenial> {
-        if rows.len() > Self::MAX_ROWS {
-            return Err(UiMountedSemanticTextTableDenial::CapacityExceeded);
-        }
-        let bytes = rows
-            .iter()
-            .try_fold(0usize, |total, row| total.checked_add(row.text.len()));
-        if bytes.is_none_or(|bytes| bytes > Self::MAX_BYTES) {
-            return Err(UiMountedSemanticTextTableDenial::ByteCapacityExceeded);
-        }
-        Ok(Self {
-            schema: UiMountedTextSchemaVersion::current(),
-            rows: rows.into(),
-        })
-    }
-
-    pub const fn schema(&self) -> UiMountedTextSchemaVersion {
-        self.schema
-    }
-    pub fn rows(&self) -> &[UiMountedSemanticTextMechanic] {
-        &self.rows
-    }
-    pub fn resolve(
+    pub fn presented_within_portal(
         &self,
-        reference: UiMountedSemanticTextReference,
-    ) -> Option<&UiMountedSemanticTextMechanic> {
-        self.rows.get(usize::from(reference.index()))
+        portal: super::UiMountedPortalOverlayMechanic,
+    ) -> Result<Self, UiMountedSemanticTextCompletionDenial> {
+        let bounds =
+            super::UiMountedCanonicalBox::canonicalize(super::UiMountedCanonicalBoxInput {
+                x: portal.bounds().x() + self.bounds.x(),
+                y: portal.bounds().y() + self.bounds.y(),
+                width: self.bounds.width(),
+                height: self.bounds.height(),
+                coordinate_space: portal.bounds().coordinate_space(),
+            })
+            .map_err(|_| UiMountedSemanticTextCompletionDenial::NonAreaGeometry)?;
+        let mut presented = self.clone();
+        presented.bounds = bounds;
+        presented.clip_bounds = portal.bounds();
+        presented.origin_x = portal.bounds().x() + self.origin_x;
+        presented.origin_y = portal.bounds().y() + self.origin_y;
+        presented.layer_semantic_order = portal
+            .layer_semantic_order()
+            .saturating_add(1 + self.layer_semantic_order.min(1_024));
+        let max_x = bounds.x() + bounds.width();
+        let max_y = bounds.y() + bounds.height();
+        if presented.origin_x < bounds.x()
+            || presented.origin_x > max_x
+            || presented.origin_y < bounds.y()
+            || presented.origin_y > max_y
+        {
+            return Err(UiMountedSemanticTextCompletionDenial::InvalidTextOrigin);
+        }
+        presented.semantic_digest = validation::semantic_digest_mechanic(&presented);
+        Ok(presented)
     }
 }
 

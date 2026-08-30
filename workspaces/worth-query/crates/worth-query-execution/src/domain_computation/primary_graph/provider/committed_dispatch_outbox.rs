@@ -51,6 +51,8 @@ pub enum WorthQueryCommittedDispatchOutboxReadDenial {
     WrongRecordKind,
     NotAuthoritative,
     ExactCommitUnavailable,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    SnapshotIdentityExhausted,
     Malformed,
     CommitMismatch,
     RecordMismatch,
@@ -132,6 +134,12 @@ impl WorthQueryPrimaryGraphProvider {
     ) -> Result<WorthQueryCommittedDispatchOutboxObservation, Denial> {
         let layout = self.graph.layout.provider_dispatch_outbox().clone();
         let expected_commit = expected_commit.clone();
+        let retained_basis = self
+            .receipt_basis_retention
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .acquire(expected_commit.commit_id)
+            .ok_or(Denial::ExactCommitUnavailable)?;
         self.graph.with_runtime_mut(|runtime| {
             CommittedOutboxRead {
                 runtime,
@@ -139,6 +147,7 @@ impl WorthQueryPrimaryGraphProvider {
                 binding,
                 expected_commit: &expected_commit,
                 expected_runtime,
+                retained_basis: &retained_basis,
             }
             .resolve()
         })
@@ -152,6 +161,12 @@ fn map_retained_snapshot_denial(
     match denial.kind() {
         Kind::ForeignRuntime => Denial::ForeignRuntime,
         Kind::VersionUnavailable | Kind::SnapshotNotRetained => Denial::ExactCommitUnavailable,
+        Kind::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => Denial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        },
+        Kind::SnapshotIdentityExhausted => Denial::SnapshotIdentityExhausted,
         Kind::BranchMismatch | Kind::CommitMismatch | Kind::SnapshotBindingMismatch => {
             Denial::CommitMismatch
         }
@@ -178,6 +193,7 @@ struct CommittedOutboxRead<'a> {
     binding: &'a super::WorthQueryCommittedDispatchOutboxBinding,
     expected_commit: &'a worth_relational::facade::history::RelationalCommitReceipt,
     expected_runtime: u64,
+    retained_basis: &'a super::WorthQueryRetainedApplicationCommitBasis,
 }
 
 impl CommittedOutboxRead<'_> {
@@ -237,6 +253,7 @@ impl CommittedOutboxRead<'_> {
             .project_retained_entity_for_commit(
                 self.expected_runtime,
                 self.expected_commit,
+                self.retained_basis.lease(),
                 entity_id,
                 self.layout.entity_kind,
                 scope,

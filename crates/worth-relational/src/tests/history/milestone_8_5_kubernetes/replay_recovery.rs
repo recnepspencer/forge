@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn replay_commit(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     commit_id: crate::history::data::CommitId,
     branch_id: BranchId,
 ) -> crate::facade::replay::RelationalReplayOutcome {
@@ -75,7 +75,7 @@ pub(super) fn planning_evidence(
 }
 
 pub(super) fn recover_stage(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     root_path: std::path::PathBuf,
 ) -> RelationalRuntime {
     let (_recovery, recovered) =
@@ -105,7 +105,7 @@ pub(super) fn recover_stage_from_final_history(
     let replay_access = source.replay();
     let checkpoint = source
         .durable_checkpoints()
-        .iter()
+        .into_iter()
         .rev()
         .find(|checkpoint| {
             checkpoint
@@ -115,7 +115,7 @@ pub(super) fn recover_stage_from_final_history(
                 .map(|commit| chain.contains(&commit.commit_id))
                 .unwrap_or(false)
         })
-        .cloned();
+        .map(|checkpoint| checkpoint.as_ref().clone());
     let tail_start = checkpoint
         .as_ref()
         .and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref())
@@ -147,7 +147,7 @@ pub(super) fn recover_stage_from_final_history(
         .unwrap_or_default();
     let plan = crate::durability::data::RecoveryPlan::new(
         source.config().clone(),
-        source.durable_store().cloned(),
+        source.durable_store().map(|store| store.as_ref().clone()),
         None,
         checkpoint,
         tail_log
@@ -174,7 +174,7 @@ pub(super) fn recover_stage_from_final_history(
     .with_commit_strategy_executors(source.commit_strategy_executor_registry().clone());
     let mut recovered = persisted_strategy_runtime(root_path);
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("recover staged runtime from final history");
     if let Some(base_commit_id) = recovered

@@ -142,4 +142,8 @@ impl WorthQueryPortableArtifactContract {
     pub fn consumer_roles(&self) -> &[String] {
         &self.consumer_roles
     }
+
+    pub(crate) fn canonical_encoded_bytes(&self) -> u64 {
+        super::canonical_identity::canonical_artifact_contract_encoded_bytes(self)
+    }
 }

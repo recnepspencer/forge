@@ -45,9 +45,10 @@ impl SignalApp {
             self.values.insert(node, value);
         }
         self.pending_input_versions.retain(|node, candidate| {
-            self.graph
+            !self
+                .graph
                 .node_aspect_version(*node)
-                .map_or(true, |committed| committed != *candidate)
+                .is_ok_and(|committed| committed == *candidate)
         });
         mutex_value(meaningful_nodes, "meaningful-change")
     }
@@ -132,18 +133,20 @@ impl SignalApp {
         else {
             return Ok(());
         };
-        let mut telemetry_guard = self.graph.telemetry_mut();
-        let telemetry = telemetry_guard.as_deref_mut();
-        let Ok(admitted) = admit_or_error(
-            HostComputedApiFamily::EasyClosure,
-            node,
-            &dependencies,
-            prepared,
-            telemetry,
-        ) else {
-            return Ok(());
+        let admitted = {
+            let mut telemetry_guard = self.graph.telemetry_mut();
+            let telemetry = telemetry_guard.as_deref_mut();
+            let Ok(admitted) = admit_or_error(
+                HostComputedApiFamily::EasyClosure,
+                node,
+                &dependencies,
+                prepared,
+                telemetry,
+            ) else {
+                return Ok(());
+            };
+            admitted
         };
-        drop(telemetry_guard);
         let (prepared, reads, patch) = admitted.into_parts();
         self.values.insert(node, value);
         let mut snapshot = crate::data::dependency::DependencySnapshot::empty();

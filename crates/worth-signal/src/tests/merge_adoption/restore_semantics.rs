@@ -62,7 +62,7 @@ fn restore_branch_snapshot_after_merge_preserves_introduced_nodes_and_remapped_d
         .unwrap();
 
     runtime.switch_branch(main.clone()).unwrap();
-    let merge = runtime.merge_branch(feature, main.clone()).unwrap();
+    let merge = runtime.merge_branch_raw(feature, main.clone()).unwrap();
     let introduced_upstream = merge
         .records
         .iter()
@@ -154,7 +154,7 @@ fn restore_after_merge_does_not_emit_false_branch_merge_history() {
         .unwrap();
 
     runtime.switch_branch(main.clone()).unwrap();
-    runtime.merge_branch(feature, main.clone()).unwrap();
+    runtime.merge_branch_raw(feature, main.clone()).unwrap();
     let merged_snapshot = runtime.capture_branch_snapshot(main.clone()).unwrap();
 
     let branch_merge_replay_before = runtime
@@ -264,7 +264,7 @@ fn active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward
 
     runtime.restore_snapshot(&base_snapshot).unwrap();
 
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
     assert_eq!(
         result.merge_kind,
         BranchMergeKind::FastForward,

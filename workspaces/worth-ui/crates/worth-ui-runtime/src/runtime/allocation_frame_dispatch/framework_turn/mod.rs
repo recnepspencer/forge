@@ -23,7 +23,7 @@ pub(crate) use outcome::UiAllocationFrameTurnOutcome;
 pub use owner::{
     WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn, WorthUiHostMeasurementTurnSource,
     WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource, WorthUiResizePreviewTurnSource,
-    WorthUiScrollOffsetTurnSource,
+    WorthUiScrollExtentTurnSource,
 };
 pub(super) use pending_durable_transaction::UiPendingDurableResizeCommitPort;
 pub(crate) use pending_handoff::UiPendingAllocationFrameHandoff;

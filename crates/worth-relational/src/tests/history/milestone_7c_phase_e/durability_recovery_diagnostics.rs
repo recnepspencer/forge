@@ -9,17 +9,17 @@ use super::fixtures::execute_feature_into_main_merge;
 
 #[test]
 fn execute_prepared_merge_survives_durability_append_and_recovery() {
-    let (mut runtime, merge, _main_head_commit_id, _feature_head_commit_id) =
+    let (runtime, merge, _main_head_commit_id, _feature_head_commit_id) =
         execute_feature_into_main_merge();
-    let before_bundle = capture_aspect_truth_bundle(&mut runtime, &[], &[], &[]);
+    let before_bundle = capture_aspect_truth_bundle(&runtime, &[], &[], &[]);
     let merge_envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("live merge envelope");
 
-    let (_recovery, mut recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
-    let recovered_bundle = capture_aspect_truth_bundle(&mut recovered, &[], &[], &[]);
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
+    let recovered_bundle = capture_aspect_truth_bundle(&recovered, &[], &[], &[]);
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)

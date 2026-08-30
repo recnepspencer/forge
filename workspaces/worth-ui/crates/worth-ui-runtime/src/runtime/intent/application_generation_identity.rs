@@ -12,6 +12,14 @@ pub struct WorthUiActiveApplicationGenerationIdentity {
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
 }
 
+impl std::hash::Hash for WorthUiActiveApplicationGenerationIdentity {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // The session is a lawful coarse hash: equality additionally compares the
+        // complete prepared generation, and HashMap resolves collisions with Eq.
+        self.session.as_u64().hash(state);
+    }
+}
+
 impl WorthUiActiveApplicationGenerationIdentity {
     pub(crate) fn current(
         session: crate::lifecycle::WorthUiActiveApplicationSessionIdentity,

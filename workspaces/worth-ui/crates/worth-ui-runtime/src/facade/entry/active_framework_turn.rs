@@ -12,6 +12,7 @@ pub use mounted_projection::WorthUiMountedLaneProjectionDenial;
 
 /// One framework-turn result bound to the active application generation.
 pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
+    pub(super) application_session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
     pub(super) generation_identity: WorthUiPreparedApplicationGenerationIdentity,
     pub(super) visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
@@ -23,12 +24,16 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) focus: Option<&'session mut crate::runtime::focus::UiFocusRuntimeState>,
+    pub(super) portal: Option<&'session mut crate::runtime::portal::UiPortalRuntimeState>,
+    pub(super) interaction: &'session mut crate::runtime::interaction::UiInteractionRuntimeState,
     pub(super) presentation:
         &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,
 }
 
 /// Executable framework-turn authority lent by one active application session.
 pub struct WorthUiActiveFrameworkTurnExecution<'session> {
+    pub(super) application_session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
     pub(super) generation_identity: WorthUiPreparedApplicationGenerationIdentity,
     pub(super) visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
@@ -39,6 +44,9 @@ pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) focus: Option<&'session mut crate::runtime::focus::UiFocusRuntimeState>,
+    pub(super) portal: Option<&'session mut crate::runtime::portal::UiPortalRuntimeState>,
+    pub(super) interaction: &'session mut crate::runtime::interaction::UiInteractionRuntimeState,
     pub(super) presentation:
         &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,
     pub(super) host_protocol: worth_ui_host_contract::UiHostProtocolAgreement,
@@ -60,6 +68,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
         self,
     ) -> Result<WorthUiActiveFrameworkTurnExecution<'session>, Box<Self>> {
         let Self {
+            application_session_identity,
             generation_identity,
             visual_trace_source,
             graph,
@@ -70,12 +79,16 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             mounted,
             host_session,
             host_exchange,
+            focus,
+            portal,
+            interaction,
             presentation,
         } = self;
         let host_protocol = host_session.protocol();
         let capability_report = host_session.capability_report();
         match completion.into_execution() {
             Ok(execution) => Ok(WorthUiActiveFrameworkTurnExecution {
+                application_session_identity,
                 generation_identity,
                 visual_trace_source,
                 graph,
@@ -85,12 +98,16 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 mounted,
                 host_session,
                 host_exchange,
+                focus,
+                portal,
+                interaction,
                 presentation,
                 host_protocol,
                 host_capability_generation: capability_report.observation_generation(),
                 host_capability_profile_digest: capability_report.profile_identity_digest(),
             }),
             Err(completion) => Err(Box::new(Self {
+                application_session_identity,
                 generation_identity,
                 visual_trace_source,
                 graph,
@@ -101,6 +118,9 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 mounted,
                 host_session,
                 host_exchange,
+                focus,
+                portal,
+                interaction,
                 presentation,
             })),
         }

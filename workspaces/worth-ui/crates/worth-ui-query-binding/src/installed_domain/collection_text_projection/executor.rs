@@ -106,7 +106,8 @@ fn installed_read_declaration() -> &'static read::WorthQueryReadDeclaration {
                 |query| {
                     query
                         .project(selector("identity", "id"))
-                        .project(selector("query_text", "status"))
+                        .project(selector("collection_item", "status"))
+                        .project(selector("collection_item", "key"))
                         .order_by(
                             read::OrderingSelector::ascending("identity", "id")
                                 .expect("static collection ordering must admit"),
@@ -115,7 +116,16 @@ fn installed_read_declaration() -> &'static read::WorthQueryReadDeclaration {
                 |shape| {
                     shape
                         .field(result_field("identity", "id", "identity.id"))
-                        .field(result_field("query_text", "status", "query_text.status"))
+                        .field(result_field(
+                            "collection_item",
+                            "status",
+                            "collection_item.status",
+                        ))
+                        .field(result_field(
+                            "collection_item",
+                            "key",
+                            "collection_item.key",
+                        ))
                 },
             )
         })
@@ -133,9 +143,14 @@ fn projection_schema() -> read::QuerySchemaView {
                 ScalarAspectType::String,
             ),
             read::SchemaFieldView::new(
-                read::AspectName::new("query_text").expect("static aspect must admit"),
+                read::AspectName::new("collection_item").expect("static aspect must admit"),
                 read::FieldName::new("status").expect("static field must admit"),
                 ScalarAspectType::String,
+            ),
+            read::SchemaFieldView::new(
+                read::AspectName::new("collection_item").expect("static aspect must admit"),
+                read::FieldName::new("key").expect("static field must admit"),
+                ScalarAspectType::UInt64,
             ),
         ],
         [],

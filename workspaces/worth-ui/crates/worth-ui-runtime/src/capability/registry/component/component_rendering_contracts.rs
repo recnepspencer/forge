@@ -27,7 +27,27 @@ impl ComponentAccessibilitySupport {
 pub enum ComponentFocusSupport {
     NotFocusable,
     Focusable,
-    FocusContainer,
+    FocusContainer(ComponentFocusContainerPolicy),
+}
+
+/// Keyboard movement admitted by one declared focus container.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ComponentFocusContainerPolicy {
+    Roving {
+        axis: ComponentFocusNavigationAxis,
+        wrap: bool,
+    },
+    ActiveDescendant {
+        axis: ComponentFocusNavigationAxis,
+        wrap: bool,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ComponentFocusNavigationAxis {
+    Horizontal,
+    Vertical,
+    Both,
 }
 
 impl ComponentFocusSupport {
@@ -39,15 +59,90 @@ impl ComponentFocusSupport {
         Self::Focusable
     }
 
-    pub fn focus_container() -> Self {
-        Self::FocusContainer
+    pub fn roving_focus_container(axis: ComponentFocusNavigationAxis, wrap: bool) -> Self {
+        Self::FocusContainer(ComponentFocusContainerPolicy::Roving { axis, wrap })
+    }
+
+    pub fn active_descendant_focus_container(
+        axis: ComponentFocusNavigationAxis,
+        wrap: bool,
+    ) -> Self {
+        Self::FocusContainer(ComponentFocusContainerPolicy::ActiveDescendant { axis, wrap })
+    }
+
+    pub(crate) const fn container_policy(self) -> Option<ComponentFocusContainerPolicy> {
+        match self {
+            Self::FocusContainer(policy) => Some(policy),
+            Self::NotFocusable | Self::Focusable => None,
+        }
     }
 
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::NotFocusable => "not_focusable",
             Self::Focusable => "focusable",
-            Self::FocusContainer => "focus_container",
+            Self::FocusContainer(ComponentFocusContainerPolicy::Roving {
+                axis: ComponentFocusNavigationAxis::Horizontal,
+                wrap: false,
+            }) => "roving_horizontal_bounded",
+            Self::FocusContainer(ComponentFocusContainerPolicy::Roving {
+                axis: ComponentFocusNavigationAxis::Horizontal,
+                wrap: true,
+            }) => "roving_horizontal_wrapped",
+            Self::FocusContainer(ComponentFocusContainerPolicy::Roving {
+                axis: ComponentFocusNavigationAxis::Vertical,
+                wrap: false,
+            }) => "roving_vertical_bounded",
+            Self::FocusContainer(ComponentFocusContainerPolicy::Roving {
+                axis: ComponentFocusNavigationAxis::Vertical,
+                wrap: true,
+            }) => "roving_vertical_wrapped",
+            Self::FocusContainer(ComponentFocusContainerPolicy::Roving {
+                axis: ComponentFocusNavigationAxis::Both,
+                wrap: false,
+            }) => "roving_both_bounded",
+            Self::FocusContainer(ComponentFocusContainerPolicy::Roving {
+                axis: ComponentFocusNavigationAxis::Both,
+                wrap: true,
+            }) => "roving_both_wrapped",
+            Self::FocusContainer(ComponentFocusContainerPolicy::ActiveDescendant {
+                axis: ComponentFocusNavigationAxis::Horizontal,
+                wrap: false,
+            }) => "active_descendant_horizontal_bounded",
+            Self::FocusContainer(ComponentFocusContainerPolicy::ActiveDescendant {
+                axis: ComponentFocusNavigationAxis::Horizontal,
+                wrap: true,
+            }) => "active_descendant_horizontal_wrapped",
+            Self::FocusContainer(ComponentFocusContainerPolicy::ActiveDescendant {
+                axis: ComponentFocusNavigationAxis::Vertical,
+                wrap: false,
+            }) => "active_descendant_vertical_bounded",
+            Self::FocusContainer(ComponentFocusContainerPolicy::ActiveDescendant {
+                axis: ComponentFocusNavigationAxis::Vertical,
+                wrap: true,
+            }) => "active_descendant_vertical_wrapped",
+            Self::FocusContainer(ComponentFocusContainerPolicy::ActiveDescendant {
+                axis: ComponentFocusNavigationAxis::Both,
+                wrap: false,
+            }) => "active_descendant_both_bounded",
+            Self::FocusContainer(ComponentFocusContainerPolicy::ActiveDescendant {
+                axis: ComponentFocusNavigationAxis::Both,
+                wrap: true,
+            }) => "active_descendant_both_wrapped",
+        }
+    }
+}
+
+impl ComponentFocusContainerPolicy {
+    pub const fn axis(self) -> ComponentFocusNavigationAxis {
+        match self {
+            Self::Roving { axis, .. } | Self::ActiveDescendant { axis, .. } => axis,
+        }
+    }
+
+    pub const fn wraps(self) -> bool {
+        match self {
+            Self::Roving { wrap, .. } | Self::ActiveDescendant { wrap, .. } => wrap,
         }
     }
 }

@@ -9,6 +9,7 @@ pub enum ComponentSemanticTextContractDenial {
     EmptySpans,
     SpanCapacityExceeded,
     NonContiguousSpans,
+    EmptyLineHeight,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -16,6 +17,7 @@ pub struct ComponentSemanticTextContract {
     theme_token: ThemeTokenId,
     layer_semantic_order: u32,
     style: Option<worth_ui_text::UiTextStyle>,
+    line_height_millipoints: Option<u32>,
     scalar_spans: Box<[ComponentSemanticTextSpanContract]>,
     default_paint_identity: [u8; 32],
 }
@@ -27,6 +29,7 @@ impl ComponentSemanticTextContract {
             theme_token,
             layer_semantic_order,
             style: None,
+            line_height_millipoints: None,
             scalar_spans: Box::new([]),
             default_paint_identity,
         }
@@ -42,9 +45,30 @@ impl ComponentSemanticTextContract {
             theme_token,
             layer_semantic_order,
             style: Some(style),
+            line_height_millipoints: None,
             scalar_spans: Box::new([]),
             default_paint_identity,
         }
+    }
+
+    pub fn qualified_with_line_height(
+        theme_token: ThemeTokenId,
+        layer_semantic_order: u32,
+        style: worth_ui_text::UiTextStyle,
+        line_height_millipoints: u32,
+    ) -> Result<Self, ComponentSemanticTextContractDenial> {
+        if line_height_millipoints == 0 {
+            return Err(ComponentSemanticTextContractDenial::EmptyLineHeight);
+        }
+        let default_paint_identity = whole_paragraph_paint_identity(&theme_token);
+        Ok(Self {
+            theme_token,
+            layer_semantic_order,
+            style: Some(style),
+            line_height_millipoints: Some(line_height_millipoints),
+            scalar_spans: Box::new([]),
+            default_paint_identity,
+        })
     }
 
     pub fn spanned(
@@ -59,6 +83,7 @@ impl ComponentSemanticTextContract {
             theme_token,
             layer_semantic_order,
             style: None,
+            line_height_millipoints: None,
             scalar_spans: scalar_spans.into_boxed_slice(),
             default_paint_identity,
         })
@@ -74,6 +99,10 @@ impl ComponentSemanticTextContract {
 
     pub fn style(&self) -> Option<&worth_ui_text::UiTextStyle> {
         self.style.as_ref()
+    }
+
+    pub const fn line_height_millipoints(&self) -> Option<u32> {
+        self.line_height_millipoints
     }
 
     pub fn scalar_spans(&self) -> &[ComponentSemanticTextSpanContract] {
@@ -118,9 +147,10 @@ impl ComponentSemanticTextContract {
                 digest
             });
         format!(
-            "semantic-text:{}:{}:{style}",
+            "semantic-text:{}:{}:{style}:line-height:{:?}",
             self.theme_token.as_str(),
             self.layer_semantic_order,
+            self.line_height_millipoints,
         ) + &spans
     }
 }
@@ -171,6 +201,42 @@ mod tests {
             ComponentSemanticTextContract::spanned(token.clone(), 1, too_many),
             Err(ComponentSemanticTextContractDenial::SpanCapacityExceeded)
         );
+    }
+
+    #[test]
+    fn qualified_line_height_is_explicit_and_nonzero() {
+        let token = ThemeTokenId::new("theme.text").unwrap();
+        let constraints = worth_ui_text::UiTextParagraphConstraints::new(
+            worth_ui_text::UiTextParagraphConstraintsInput {
+                language: std::sync::Arc::from("und"),
+                base_direction: worth_ui_text::UiTextBaseDirection::Auto,
+                wrap: worth_ui_text::UiTextWrap::UnicodeWord,
+                alignment: worth_ui_text::UiTextAlignment::Start,
+                overflow: worth_ui_text::UiTextOverflow::Clip,
+                font_size_millipoints: 28_000,
+                width_millipoints: 320_000,
+                line_height_millipoints: 36_000,
+                letter_spacing_millipoints: 0,
+                word_spacing_millipoints: 0,
+                tab_interval_millipoints: 112_000,
+                maximum_lines: 1,
+            },
+        )
+        .unwrap();
+        let style = worth_ui_text::UiTextStyle::from_paragraph_constraints(&constraints);
+        assert_eq!(
+            ComponentSemanticTextContract::qualified_with_line_height(
+                token.clone(),
+                1,
+                style.clone(),
+                0,
+            ),
+            Err(ComponentSemanticTextContractDenial::EmptyLineHeight),
+        );
+        let contract =
+            ComponentSemanticTextContract::qualified_with_line_height(token, 1, style, 36_000)
+                .unwrap();
+        assert_eq!(contract.line_height_millipoints(), Some(36_000));
     }
 
     fn span(start: u32, end: u32, token: &ThemeTokenId) -> ComponentSemanticTextSpanContract {

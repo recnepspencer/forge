@@ -20,14 +20,6 @@ struct LifecycleCompactionCounts {
 }
 
 impl ResourceRuntimeState {
-    pub fn compact_lifecycle_history(
-        &mut self,
-        max_reclaimed: u32,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceLifecycleRetentionCompactionReport {
-        self.compact_lifecycle_history_optional(max_reclaimed, Some(telemetry))
-    }
-
     pub fn compact_lifecycle_history_optional(
         &mut self,
         max_reclaimed: u32,
@@ -37,19 +29,6 @@ impl ResourceRuntimeState {
             max_reclaimed,
             ResourceRetentionCompactionBudget::unbounded(),
             telemetry,
-        )
-    }
-
-    pub fn compact_lifecycle_history_with_retained_limit(
-        &mut self,
-        max_reclaimed: u32,
-        retained_history_limit: Option<u32>,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceLifecycleRetentionCompactionReport {
-        self.compact_lifecycle_history_with_retained_limit_optional(
-            max_reclaimed,
-            retained_history_limit,
-            Some(telemetry),
         )
     }
 
@@ -64,15 +43,6 @@ impl ResourceRuntimeState {
             ResourceRetentionCompactionBudget::retained_history_limit_only,
         );
         self.compact_lifecycle_history_with_budget_optional(max_reclaimed, budget, telemetry)
-    }
-
-    pub fn compact_lifecycle_history_with_budget(
-        &mut self,
-        max_reclaimed: u32,
-        budget: ResourceRetentionCompactionBudget,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceLifecycleRetentionCompactionReport {
-        self.compact_lifecycle_history_with_budget_optional(max_reclaimed, budget, Some(telemetry))
     }
 
     pub fn compact_lifecycle_history_with_budget_optional(
@@ -98,7 +68,7 @@ impl ResourceRuntimeState {
         let hot_in_flight_width = self.in_flight_by_request.len() as u32;
         let policy_provenance_digest = self.compaction_policy_provenance_digest();
         let performance = Self::record_boundary_performance_optional(
-            telemetry.as_deref_mut(),
+            telemetry,
             ResourceBoundaryPerformanceEnvelope::lifecycle_retention_compaction(
                 counts.selected_terminal_count,
                 counts.reclaimed_in_flight_count,

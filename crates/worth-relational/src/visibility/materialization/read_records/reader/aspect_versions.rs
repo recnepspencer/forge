@@ -5,10 +5,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         &self,
         entity_id: crate::identity::data::EntityId,
     ) -> Option<Vec<(AspectKey, u64)>> {
-        let partition = self
-            .runtime
-            .storage_access()
-            .partition_state(entity_id.partition_id)?;
+        let partition = self.runtime.partitions.partition(entity_id.partition_id)?;
         let slot = entity_id.slot_index();
         let slot_view = partition.entity_arena.get_slot(slot)?;
         if slot_view.generation() != entity_id.generation_value()
@@ -39,8 +36,8 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Option<Vec<(AspectKey, u64)>> {
         let partition = self
             .runtime
-            .storage_access()
-            .partition_state(relation_id.partition_id)?;
+            .partitions
+            .partition(relation_id.partition_id)?;
         let slot = relation_id.slot_index();
         let slot_view = partition.relation_arena.get_slot(slot)?;
         if slot_view.generation() != relation_id.generation_value()
@@ -79,19 +76,21 @@ mod tests {
 
     #[test]
     fn unresolved_symbolic_aspect_versions_are_not_exposed_as_foundational_keys() {
-        let mut runtime =
+        let runtime =
             runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-        let entity = create_entity(&mut runtime, "alpha");
-        let partition = runtime
-            .partitions
-            .get_mut(&PartitionId::main())
-            .expect("main partition");
-        let versions = partition
-            .entity_arena
-            .aspect_versions_at_mut(entity.slot_index())
-            .expect("test entity aspect version slot is materialized");
-        versions.clear();
-        versions.insert(crate::symbols::data::Symbol(41), 7);
+        let entity = create_entity(&runtime, "alpha");
+        {
+            let mut writer = runtime.edit_partitions();
+            let partition = writer
+                .partition_mut(PartitionId::main())
+                .expect("main partition");
+            let versions = partition
+                .entity_arena
+                .aspect_versions_at_mut(entity.slot_index())
+                .expect("test entity aspect version slot is materialized");
+            versions.clear();
+            versions.insert(crate::symbols::data::Symbol(41), 7);
+        }
 
         let observed = runtime
             .read_truth()

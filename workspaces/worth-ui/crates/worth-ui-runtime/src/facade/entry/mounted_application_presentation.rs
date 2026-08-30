@@ -12,17 +12,17 @@ type PendingHostMeasurements = (
 
 #[derive(Debug)]
 pub enum UiMountedHostMeasurementTransitionDenial {
-    AllocationReplanDenied(crate::runtime::UiAllocationReplanTransactionCommitDenial),
-    ViewportResizeDenied(crate::runtime::UiViewportResizeDenial),
-    AllocationReplanSelectionDenied(crate::graph::UiReplanLocalityDenial),
-    AllocationFrameResolutionDenied(crate::runtime::UiAllocationFrameRejection),
+    AllocationReplanDenied(Box<crate::runtime::UiAllocationReplanTransactionCommitDenial>),
+    ViewportResizeDenied(Box<crate::runtime::UiViewportResizeDenial>),
+    AllocationReplanSelectionDenied(Box<crate::graph::UiReplanLocalityDenial>),
+    AllocationFrameResolutionDenied(Box<crate::runtime::UiAllocationFrameRejection>),
     AllocationInvalidationNarrowingDenied(
-        crate::runtime::UiAllocationInvalidationNarrowingRejection,
+        Box<crate::runtime::UiAllocationInvalidationNarrowingRejection>,
     ),
-    FrameworkTransitionPlanningDenied(crate::runtime::UiFrameworkTransitionPlanningDenial),
-    FrameworkTransitionExecutionDenied(crate::runtime::UiFrameworkTransitionExecutionDenial),
+    FrameworkTransitionPlanningDenied(Box<crate::runtime::UiFrameworkTransitionPlanningDenial>),
+    FrameworkTransitionExecutionDenied(Box<crate::runtime::UiFrameworkTransitionExecutionDenial>),
     DispatcherDenied {
-        denial: crate::runtime::UiAllocationFrameDispatchDenial,
+        denial: Box<crate::runtime::UiAllocationFrameDispatchDenial>,
         counters: crate::runtime::UiAllocationFrameDispatcherCounters,
     },
     UnexpectedSuccessfulTransition(UiMountedHostMeasurementUnexpectedTransition),
@@ -38,8 +38,8 @@ pub enum UiMountedHostMeasurementUnexpectedTransition {
 
 pub(crate) enum UiMountedHostMeasurementSettlementStop {
     PublicationLease(crate::mounting::UiMountedPublicationLeaseDenial),
-    Evidence(crate::facade::host::UiHostMeasurementEvidenceDenial),
-    Transition(UiMountedHostMeasurementTransitionDenial),
+    Evidence(Box<crate::facade::host::UiHostMeasurementEvidenceDenial>),
+    Transition(Box<UiMountedHostMeasurementTransitionDenial>),
 }
 
 impl<'session> From<UiMountedHostMeasurementSettlementStop>
@@ -84,10 +84,12 @@ impl WorthUiActiveApplicationSession {
             .map_err(UiMountedHostMeasurementSettlementStop::PublicationLease)?;
         if let Some(denial) = evidence_denial {
             drop(completion);
-            return Err(UiMountedHostMeasurementSettlementStop::Evidence(denial));
+            return Err(UiMountedHostMeasurementSettlementStop::Evidence(Box::new(
+                denial,
+            )));
         }
         require_committed_host_measurement_transition(completion)
-            .map_err(UiMountedHostMeasurementSettlementStop::Transition)
+            .map_err(|denial| UiMountedHostMeasurementSettlementStop::Transition(Box::new(denial)))
     }
 
     pub(crate) fn execute_mounted_frame_with_application_presentation(
@@ -99,7 +101,7 @@ impl WorthUiActiveApplicationSession {
         let projection = self
             .presentation
             .project()
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         let completion = self
             .execute_framework_turn(|_| {})
             .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
@@ -114,13 +116,20 @@ impl WorthUiActiveApplicationSession {
                 projection.content(),
                 projection.theme_values(),
             )
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         execution.presentation.commit(&projection);
         let transition =
             execution
                 .mounted
                 .present_prepared_frame(execution.host_session, frame, deadline, now);
         Ok(finish_mounted_transition(
+            execution.mounted,
+            execution.focus,
+            execution.portal,
+            execution.interaction,
+            execution.host_session,
+            execution.application_session_identity,
+            &execution.generation_identity,
             execution.host_exchange,
             transition,
         ))
@@ -136,7 +145,7 @@ impl WorthUiActiveApplicationSession {
         let projection = self
             .presentation
             .project()
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         let completion = self
             .execute_framework_turn(|_| {})
             .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
@@ -152,13 +161,20 @@ impl WorthUiActiveApplicationSession {
                 projection.theme_values(),
                 replacements,
             )
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         execution.presentation.commit(&projection);
         let transition =
             execution
                 .mounted
                 .present_prepared_frame(execution.host_session, frame, deadline, now);
         Ok(finish_mounted_transition(
+            execution.mounted,
+            execution.focus,
+            execution.portal,
+            execution.interaction,
+            execution.host_session,
+            execution.application_session_identity,
+            &execution.generation_identity,
             execution.host_exchange,
             transition,
         ))
@@ -183,28 +199,29 @@ fn require_committed_host_measurement_transition(
         Completion::AllocationInvalidationsNarrowed {
             transaction: crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial),
             ..
-        } => Err(Denial::AllocationReplanDenied(denial)),
+        } => Err(Denial::AllocationReplanDenied(Box::new(denial))),
         Completion::ViewportResizeDenied { denial, .. } => {
-            Err(Denial::ViewportResizeDenied(denial))
+            Err(Denial::ViewportResizeDenied(Box::new(denial)))
         }
         Completion::AllocationReplanSelectionDenied { denial } => {
-            Err(Denial::AllocationReplanSelectionDenied(denial))
+            Err(Denial::AllocationReplanSelectionDenied(Box::new(denial)))
         }
         Completion::AllocationFrameResolutionDenied { rejection } => {
-            Err(Denial::AllocationFrameResolutionDenied(rejection))
+            Err(Denial::AllocationFrameResolutionDenied(Box::new(rejection)))
         }
-        Completion::AllocationInvalidationNarrowingDenied { rejection } => {
-            Err(Denial::AllocationInvalidationNarrowingDenied(rejection))
-        }
+        Completion::AllocationInvalidationNarrowingDenied { rejection } => Err(
+            Denial::AllocationInvalidationNarrowingDenied(Box::new(rejection)),
+        ),
         Completion::FrameworkTransitionPlanningDenied { denial } => {
-            Err(Denial::FrameworkTransitionPlanningDenied(denial))
+            Err(Denial::FrameworkTransitionPlanningDenied(Box::new(denial)))
         }
         Completion::FrameworkTransitionExecutionDenied { denial } => {
-            Err(Denial::FrameworkTransitionExecutionDenied(denial))
+            Err(Denial::FrameworkTransitionExecutionDenied(Box::new(denial)))
         }
-        Completion::Denied { denial, counters } => {
-            Err(Denial::DispatcherDenied { denial, counters })
-        }
+        Completion::Denied { denial, counters } => Err(Denial::DispatcherDenied {
+            denial: Box::new(denial),
+            counters,
+        }),
         Completion::ReadyToExecute { .. } => Err(Denial::UnexpectedSuccessfulTransition(
             Unexpected::ReadyToExecute,
         )),

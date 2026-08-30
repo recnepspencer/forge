@@ -6,6 +6,9 @@ use super::{
     WorthQueryOutputRelationship, WorthQuerySemanticTruthDependency,
 };
 
+mod portable_parts;
+pub use portable_parts::WorthQueryPortableConditionalNodeParts;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryPortableConditionalNodeDeclaration {
     identity: String,

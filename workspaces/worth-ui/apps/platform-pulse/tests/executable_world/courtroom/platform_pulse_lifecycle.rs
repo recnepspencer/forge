@@ -8,14 +8,13 @@ use crate::product_process::{
     InitialBlue, Installed, OverlayCleared, OverlayPublished, Published, PulseExecutableWorld,
     SecondCurrent, SnapshotCaptured, WatchedPulseObservationFailure, WatchedPulseTransition,
 };
-use crate::source_delta::{GreenPulseSourceDelta, QueryStatusV1, QueryStatusV2};
-
-use super::exclusive_native_courtroom::enter_exclusive_native_courtroom;
+use crate::source_delta::{
+    GreenPulseSourceDelta, PulseCausalActionManifest, QueryStatusV1, QueryStatusV2,
+};
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
 #[test]
 fn expired_first_frame_deadline_preserves_primary_failure_and_teardown_disposition() {
-    let _courtroom = enter_exclusive_native_courtroom();
     let installed: PulseExecutableWorld<Installed> =
         PulseExecutableWorld::install(CanonicalPlatformPulse::checked_in())
             .unwrap_or_else(|failure| panic!("install hostile world: {failure}"));
@@ -46,7 +45,6 @@ fn expired_first_frame_deadline_preserves_primary_failure_and_teardown_dispositi
 
 #[test]
 fn expired_green_observation_preserves_action_failure_and_teardown_disposition() {
-    let _courtroom = enter_exclusive_native_courtroom();
     let canonical = CanonicalPlatformPulse::checked_in();
     let green_delta = GreenPulseSourceDelta::from_checked_in(canonical)
         .unwrap_or_else(|failure| panic!("derive hostile green delta: {failure}"));
@@ -57,8 +55,11 @@ fn expired_green_observation_preserves_action_failure_and_teardown_disposition()
     let awaiting: PulseExecutableWorld<AwaitingFirstFrame> = installed
         .launch(binary)
         .unwrap_or_else(|failure| panic!("launch hostile replacement process: {failure}"));
+    let first_frame_deadline = PulseCausalActionManifest::checked_in()
+        .expect("checked-in causal deadlines are valid")
+        .first_frame_deadline();
     let published: PulseExecutableWorld<Published<InitialBlue>> = awaiting
-        .await_first_frame(Instant::now() + TRANSITION_DEADLINE)
+        .await_first_frame(Instant::now() + first_frame_deadline)
         .unwrap_or_else(|failure| panic!("reach hostile initial frame: {failure}"));
     let second_current = reach_second_current(published);
     let awaiting_green: PulseExecutableWorld<AwaitingReplacement> = second_current

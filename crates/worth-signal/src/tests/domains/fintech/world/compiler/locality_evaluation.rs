@@ -24,7 +24,6 @@ pub(super) struct LocalityEvaluationProgram {
     baseline_aspect_version: u64,
     mutations: Vec<FinancialLocalityMutation>,
     evaluated_outputs: Arc<Mutex<BTreeSet<LocalitySemanticOutputId>>>,
-    evaluated_sequence: Arc<Mutex<Vec<LocalitySemanticOutputId>>>,
 }
 
 struct LocalityValueState<'a> {
@@ -112,7 +111,6 @@ impl LocalityEvaluationProgram {
             baseline_aspect_version: definition.workload().baseline_aspect_version(),
             mutations: mutations.to_vec(),
             evaluated_outputs: Arc::new(Mutex::new(BTreeSet::new())),
-            evaluated_sequence: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -127,10 +125,6 @@ impl LocalityEvaluationProgram {
             .lock()
             .expect("locality evaluation identity lock poisoned")
             .insert(output.id);
-        self.evaluated_sequence
-            .lock()
-            .expect("locality evaluation sequence lock poisoned")
-            .push(output.id);
         for subscription in &output.subscriptions {
             let source = self.handles[&subscription.upstream];
             match subscription.edge_scope {
@@ -202,13 +196,6 @@ impl LocalityEvaluationProgram {
         self.evaluated_outputs
             .lock()
             .expect("locality evaluation identity lock poisoned")
-            .clone()
-    }
-
-    pub(super) fn evaluated_sequence(&self) -> Vec<LocalitySemanticOutputId> {
-        self.evaluated_sequence
-            .lock()
-            .expect("locality evaluation sequence lock poisoned")
             .clone()
     }
 }

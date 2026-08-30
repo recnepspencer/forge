@@ -50,6 +50,10 @@ pub enum UiHostObservationBatchConstructionDenial {
     ReportSequenceNotStrictlyIncreasing,
     ReportCountExceeded,
     ByteCountExceeded,
+    PayloadSurfaceMismatch,
+    PayloadPresentationMismatch,
+    PayloadMountedTargetFrameMismatch,
+    PayloadMountedTargetInstanceMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -208,6 +212,46 @@ fn validate_shape(
         .any(|report| !core.sequences.contains(report.sequence()))
     {
         return Err(UiHostObservationBatchConstructionDenial::ReportSequenceOutsideRange);
+    }
+    for report in reports {
+        match report.payload() {
+            super::UiHostObservationPayload::WindowFocus { surface, .. }
+                if *surface != core.presentation().host_surface() =>
+            {
+                return Err(UiHostObservationBatchConstructionDenial::PayloadSurfaceMismatch);
+            }
+            super::UiHostObservationPayload::ScrollDelta { target, .. }
+                if target.presentation() != core.presentation() =>
+            {
+                return Err(UiHostObservationBatchConstructionDenial::PayloadPresentationMismatch);
+            }
+            super::UiHostObservationPayload::ScrollDelta { target, .. } => {
+                if let Some(mounted) = target.mounted_target() {
+                    match crate::mounted_target_coherence::validate_mounted_target_coherence(
+                        target.presentation(),
+                        mounted.instance(),
+                        mounted.node_receipt(),
+                    ) {
+                        Ok(()) => {}
+                        Err(
+                            crate::mounted_target_coherence::UiMountedTargetCoherenceDenial::ForeignFrame,
+                        ) => {
+                            return Err(
+                                UiHostObservationBatchConstructionDenial::PayloadMountedTargetFrameMismatch,
+                            );
+                        }
+                        Err(
+                            crate::mounted_target_coherence::UiMountedTargetCoherenceDenial::ForeignInstance,
+                        ) => {
+                            return Err(
+                                UiHostObservationBatchConstructionDenial::PayloadMountedTargetInstanceMismatch,
+                            );
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
     }
     if reports
         .windows(2)

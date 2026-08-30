@@ -56,7 +56,7 @@ impl ResourceRuntimeState {
             return Err(ResourceRetryDenialClass::RetryAttemptLimitReached);
         }
         if retry_plan.max_jitter().is_some() {
-            if let Some(telemetry) = telemetry.as_deref_mut() {
+            if let Some(telemetry) = telemetry {
                 telemetry.resource_retry_jitter_decision_count += 1;
             }
         }

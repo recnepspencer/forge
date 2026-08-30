@@ -1,6 +1,7 @@
 use worth_relational::facade::commit_strategies::{
     CommitStrategyId, CommitStrategyRegistration, IntentReconciliationStrategy,
 };
+use worth_relational::facade::config::PublicationConfig;
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use worth_relational::facade::schema::{
@@ -32,6 +33,18 @@ pub(crate) fn relational_runtime_with_intent_strategy() -> RelationalRuntime {
     let descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(211));
     RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
+        .publication(PublicationConfig {
+            coherent_publication_required: true,
+            max_patch_records_per_commit: 4_096,
+            max_published_snapshot_handles: 8,
+            max_active_snapshot_handles: 4_096,
+            max_transaction_overlay_bytes: 268_435_456,
+            max_transaction_footprint_loci: 262_144,
+            max_transaction_savepoints: 4_096,
+            max_prepared_candidates: 1_024,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
+        })
         .commit_strategy(
             CommitStrategyRegistration::new(descriptor.clone()).expect("strategy registration"),
         )
@@ -47,8 +60,9 @@ pub(crate) fn create_entity(
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
     let mut txn = {
+        let identity = runtime.branch_identity(&branch).expect("branch identity");
         let transaction_validation_input = runtime
-            .admit_named_branch_basis(&branch)
+            .admit_branch_basis(&identity)
             .expect("branch binding");
         runtime
             .begin_branch_transaction(
@@ -67,16 +81,22 @@ pub(crate) fn create_entity(
                     .expect("seed name aspect patch"),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(runtime).expect("seed commit should succeed");
-    outcome
+    let entity = outcome
         .changed_records
         .iter()
         .find_map(|record| match record {
             RecordRef::Entity(entity_id) => Some(*entity_id),
             RecordRef::Relation(_) => None,
         })
-        .expect("seed commit should touch one entity")
+        .expect("seed commit should touch one entity");
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("effect fixture releases its exact seed snapshot");
+    entity
 }
 
 pub(crate) fn update_entity_name(
@@ -86,8 +106,9 @@ pub(crate) fn update_entity_name(
     branch: BranchId,
 ) -> worth_relational::facade::history::CommitId {
     let mut txn = {
+        let identity = runtime.branch_identity(&branch).expect("branch identity");
         let transaction_validation_input = runtime
-            .admit_named_branch_basis(&branch)
+            .admit_branch_basis(&identity)
             .expect("branch binding");
         runtime
             .begin_branch_transaction(
@@ -104,12 +125,17 @@ pub(crate) fn update_entity_name(
                     .expect("update name aspect patch"),
             }),
         )),
-    );
-    txn.commit(runtime)
-        .expect("intervening update should succeed")
-        .outcome()
-        .commit
-        .commit_id
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn
+        .commit(runtime)
+        .expect("intervening update should succeed");
+    let commit_id = outcome.outcome().commit.commit_id;
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("effect fixture releases its exact update snapshot");
+    commit_id
 }
 
 pub(crate) fn test_bridge() -> RuntimeBridge {
@@ -175,6 +201,7 @@ pub(crate) fn branch_snapshot_identity(
 ) -> WorthQuerySnapshotIdentity {
     crate::memory_workspace::snapshot_identity_from_branch(runtime, &BranchId(branch.to_string()))
         .expect("branch snapshot fixture requires a current owner basis")
+        .expect("branch snapshot fixture requires a current head")
 }
 
 pub(crate) fn exact_branch_head_commit_id(

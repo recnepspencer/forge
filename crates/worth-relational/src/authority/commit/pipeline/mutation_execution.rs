@@ -44,7 +44,7 @@ impl MutatedCommitExecution {
 }
 
 pub(super) fn mutate_commit_execution(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     mut validated: BoundaryValidatedCommitExecution,
 ) -> Result<MutatedCommitExecution, crate::transactions::data::TransactionCommitError> {
     let selected_branch_state = validated.prepared_mut().selected_branch_state().clone();

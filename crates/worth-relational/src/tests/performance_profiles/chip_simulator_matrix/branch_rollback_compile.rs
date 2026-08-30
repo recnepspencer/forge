@@ -4,11 +4,10 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
     let branch_rollback_compile_samples =
         capture_perf_samples(suite, "branch_rollback_compile_step_window", || {
             let feature_branch = BranchId("feature".to_string());
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
-            let source =
-                create_entity_in_partition(&mut runtime, "rollback-driver", PartitionId(7));
+            let source = create_entity_in_partition(&runtime, "rollback-driver", PartitionId(7));
             let stable_targets = (0..8)
                 .map(|index| {
                     let partition_id = match index % 4 {
@@ -18,7 +17,7 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                         _ => PartitionId(19),
                     };
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("rollback-stable-sink-{index}"),
                         partition_id,
                     )
@@ -33,16 +32,16 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                         _ => PartitionId(41),
                     };
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("rollback-transient-sink-{index}"),
                         partition_id,
                     )
                 })
                 .collect::<Vec<_>>();
-            create_branch_from_main(&mut runtime, "feature");
+            create_branch_from_main(&runtime, "feature");
             for (index, target) in stable_targets.iter().enumerate() {
                 create_relation_in_partition_on_branch(
-                    &mut runtime,
+                    &runtime,
                     source,
                     *target,
                     &format!("rollback-stable-edge-{index}"),
@@ -66,7 +65,7 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                     )
                     .expect("owner-admitted transaction context")
             };
-            let savepoint = txn.create_savepoint();
+            let savepoint = txn.create_savepoint().unwrap();
             let mut transient_batch = WorkerIntentBatch::new("chip-transient-fanout");
             for (index, target) in transient_targets.iter().enumerate() {
                 transient_batch = transient_batch.push(MutationIntent::Create(
@@ -82,7 +81,8 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                     }),
                 ));
             }
-            txn.push_batch(transient_batch);
+            txn.push_batch(transient_batch)
+                .expect("test staging stays within configured resource budgets");
 
             let rollback_started_at = Instant::now();
             let rollback = txn
@@ -116,9 +116,10 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                     ))
                     .into(),
                 ),
-            );
+            )
+            .expect("test staging stays within configured resource budgets");
             let commit_started_at = Instant::now();
-            let commit_outcome = txn.commit(&mut runtime).expect("chip branch step commit");
+            let commit_outcome = txn.commit(&runtime).expect("chip branch step commit");
             let commit_micros = commit_started_at.elapsed().as_micros();
 
             let feature_commit = runtime

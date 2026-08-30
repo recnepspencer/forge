@@ -21,6 +21,9 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 - [AI Agent Orientation](./AI_README.md)
   Canonical runtime, substrate, authority, facade, and support model for AI
   agents and contributors.
+- [Portable Query Packages](./portable-packages.md)
+  Bounded typed export of validated package meaning for inspection and later
+  store-neutral carriage.
 - [Domain Capabilities](./domain-capabilities/README.md)
   Typed domain entry, declaration pipeline, helpers, grouped work, remediation,
   continuation, and certification.

@@ -1,7 +1,7 @@
 use worth_ui_host_contract::{
-    UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostSurfacePresentationDenial,
-    UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedFrameConsumptionView,
-    UiMountedPaintCommand, UiMountedPresentationWorkView,
+    UiHostPresentationCostReport, UiHostSurfacePresentationDenial, UiMountedCanonicalBox,
+    UiMountedCanonicalBoxInput, UiMountedFrameConsumptionView, UiMountedPaintCommand,
+    UiMountedPresentationWorkView,
 };
 
 use super::port::UiNativePresentationPortObservation;
@@ -13,6 +13,10 @@ use super::{
     UiNativeRetainedDrawList,
 };
 use crate::native::{UiNativePresentationAccess, UiNativeResourceRegistry};
+
+#[path = "delta/cost.rs"]
+mod cost;
+pub(super) use cost::delta_cost;
 
 pub(crate) struct UiNativeDeltaPresentation {
     cost: UiHostPresentationCostReport,
@@ -195,9 +199,13 @@ fn build_plan(
         operations.push(UiNativeRasterOperation::Clear(clear));
         for identity in &region.replay {
             let command = retained.command(*identity).ok_or_else(malformed)?;
+            let sample = retained.sample_override(*identity);
+            let opacity = sample.map_or(1.0, |sample| sample.opacity().factor());
             match command {
                 UiMountedPaintCommand::FilledRect { mechanic, .. } => {
-                    let Some(bounds) = clipped_damage(command, region.damage.bounds())? else {
+                    let sampled = super::sample::sampled_command_bounds(command, sample)?;
+                    let Some(bounds) = clipped_sampled_damage(sampled, region.damage.bounds())?
+                    else {
                         continue;
                     };
                     let Some(rect) =
@@ -208,7 +216,24 @@ fn build_plan(
                     rendered_pixels = add_pixels(rendered_pixels, rect)?;
                     operations.push(UiNativeRasterOperation::FilledRect {
                         rect,
-                        source_rgba8: mechanic.color().channels(),
+                        source_rgba8: sampled_color(mechanic.color().channels(), opacity),
+                    });
+                }
+                UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                    let sampled = super::sample::sampled_command_bounds(command, sample)?;
+                    let Some(bounds) = clipped_sampled_damage(sampled, region.damage.bounds())?
+                    else {
+                        continue;
+                    };
+                    let Some(rect) =
+                        raster_damage_for_basis(bounds, basis).map_err(|_| malformed())?
+                    else {
+                        continue;
+                    };
+                    rendered_pixels = add_pixels(rendered_pixels, rect)?;
+                    operations.push(UiNativeRasterOperation::FilledRect {
+                        rect,
+                        source_rgba8: sampled_color(mechanic.color().channels(), opacity),
                     });
                 }
                 UiMountedPaintCommand::SemanticText { .. } => {
@@ -218,9 +243,20 @@ fn build_plan(
                         basis.extent(),
                     )
                     .map_err(|_| malformed())?;
-                    for glyph in glyphs.iter().copied().filter_map(|glyph| {
-                        super::text::clip_glyph_command(glyph, clear.physical_bounds())
-                    }) {
+                    for mut glyph in glyphs.iter().copied() {
+                        if let Some(transform) = sample.and_then(|sample| sample.transform()) {
+                            glyph.target = super::sample::transform_physical_box(
+                                glyph.target,
+                                transform,
+                                basis,
+                            )?;
+                        }
+                        glyph.opacity = opacity;
+                        let Some(glyph) =
+                            super::text::clip_glyph_command(glyph, clear.physical_bounds())
+                        else {
+                            continue;
+                        };
                         rendered_pixels = rendered_pixels
                             .checked_add(
                                 (glyph.target[2].ceil() as u64) * (glyph.target[3].ceil() as u64),
@@ -258,25 +294,17 @@ fn validate_replay_baseline(
         .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)
 }
 
-fn clipped_damage(
-    command: &UiMountedPaintCommand,
+fn clipped_sampled_damage(
+    bounds: UiMountedCanonicalBox,
     damage: UiMountedCanonicalBox,
 ) -> Result<Option<UiMountedCanonicalBox>, UiHostSurfacePresentationDenial> {
-    let bounds = command.bounds();
-    let clip = command.clip_bounds();
-    if bounds.coordinate_space() != clip.coordinate_space()
-        || bounds.coordinate_space() != damage.coordinate_space()
-    {
+    if bounds.coordinate_space() != damage.coordinate_space() {
         return Err(malformed());
     }
-    let left = bounds.x().max(clip.x()).max(damage.x());
-    let top = bounds.y().max(clip.y()).max(damage.y());
-    let right = edge(bounds, true)
-        .min(edge(clip, true))
-        .min(edge(damage, true));
-    let bottom = edge(bounds, false)
-        .min(edge(clip, false))
-        .min(edge(damage, false));
+    let left = bounds.x().max(damage.x());
+    let top = bounds.y().max(damage.y());
+    let right = edge(bounds, true).min(edge(damage, true));
+    let bottom = edge(bounds, false).min(edge(damage, false));
     if right <= left || bottom <= top {
         return Ok(None);
     }
@@ -291,70 +319,17 @@ fn clipped_damage(
     .map_err(|_| malformed())
 }
 
+fn sampled_color(mut color: [u8; 4], opacity: f32) -> [u8; 4] {
+    color[3] = (f32::from(color[3]) * opacity).round() as u8;
+    color
+}
+
 fn edge(bounds: UiMountedCanonicalBox, horizontal: bool) -> f32 {
     if horizontal {
         bounds.x() + bounds.width()
     } else {
         bounds.y() + bounds.height()
     }
-}
-
-fn delta_cost(
-    extent: [u32; 2],
-    counters: super::retained_draw_list::UiNativeRetainedMutationCounters,
-    operation_count: usize,
-    cleared_pixels: u64,
-    rendered_pixels: u64,
-    replayed_commands: u64,
-    node_changes: usize,
-) -> Result<UiHostPresentationCostReport, UiHostSurfacePresentationDenial> {
-    let physical = operation_count > 0;
-    let operations = u64::try_from(operation_count).map_err(|_| malformed())?;
-    let node_changes = u64::try_from(node_changes).map_err(|_| malformed())?;
-    let damage_index_probes = counters
-        .damage_index_branch_aabb_probes
-        .checked_add(counters.damage_index_leaf_command_bounds_probes)
-        .ok_or_else(malformed)?;
-    let presented_pixels = u64::from(extent[0]) * u64::from(extent[1]);
-    Ok(UiHostPresentationCostReport::from_adapter(
-        UiHostPresentationCostInput {
-            presented_surfaces: u64::from(physical),
-            translated_rows: counters
-                .draw_mutations
-                .checked_add(node_changes)
-                .ok_or_else(malformed)?,
-            native_resource_cache_hits: counters.replayed_commands,
-            delta_rows_carried: counters
-                .draw_mutations
-                .checked_add(node_changes)
-                .and_then(|value| value.checked_add(counters.order_mutations))
-                .and_then(|value| value.checked_add(counters.damage_rows_carried))
-                .ok_or_else(malformed)?,
-            draw_list_mutations: counters.draw_mutations,
-            order_mutations: counters.order_mutations,
-            order_index_lookups: counters.order_index_lookups,
-            order_index_node_touches: counters.order_index_node_touches,
-            order_index_rotations: counters.order_index_rotations,
-            order_index_high_water: counters.order_index_high_water,
-            logical_damage_regions: counters.damage_regions,
-            damage_index_probes,
-            damage_index_stored_records: counters.damage_index_stored_records,
-            damage_index_high_water: counters.damage_index_high_water,
-            damage_region_command_checks: counters.damage_region_command_checks,
-            intersecting_commands: counters.replayed_commands,
-            replayed_commands,
-            cleared_pixels,
-            rendered_pixels,
-            presented_pixels: physical.then_some(presented_pixels).unwrap_or(0),
-            gpu_writes: u64::from(physical && operations > 0),
-            render_passes: physical.then_some(2).unwrap_or(0),
-            surface_copies: u64::from(physical),
-            surface_acquisitions: u64::from(physical),
-            queue_submissions: u64::from(physical),
-            presents: u64::from(physical),
-            ..Default::default()
-        },
-    ))
 }
 
 fn add_pixels(total: u64, rect: super::RasterRect) -> Result<u64, UiHostSurfacePresentationDenial> {

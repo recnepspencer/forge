@@ -5,11 +5,10 @@ use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedStrin
 
 #[test]
 fn update_entity_fields_rejects_undeclared_aspect_targets() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity = create_entity(&mut runtime, "field-guard");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&runtime, "field-guard");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(WorkerIntentBatch::new("update-fields-undeclared").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {
@@ -25,9 +24,10 @@ fn update_entity_fields_rejects_undeclared_aspect_targets() {
                 ),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
 
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             match error.class {
@@ -78,7 +78,7 @@ fn update_entity_fields_state_conflict_is_typed_not_json() {
 
 #[test]
 fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
-    let mut runtime = AspectSchemaFixture {
+    let runtime = AspectSchemaFixture {
         entity_aspects: vec![
             entity_field_aspect(
                 crate::tests::support::aspect_key("title.scalar"),
@@ -93,7 +93,7 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
     }
     .build_runtime();
     let entity = super::struct_field_patch_authority::create_entity_with_summary_fields(
-        &mut runtime,
+        &runtime,
         "ambiguous-title",
         "before",
         "open",
@@ -101,7 +101,7 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
         true,
     );
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("mismatched-aspect-field").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -115,9 +115,10 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
             crate::transactions::data::ConflictClass::RecordAspectPatchDenied {
@@ -136,11 +137,10 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
 
 #[test]
 fn update_entity_fields_validation_denial_carries_aspect_field_path() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity = create_entity(&mut runtime, "type-denial");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&runtime, "type-denial");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("field-patch-type-denial").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -154,9 +154,10 @@ fn update_entity_fields_validation_denial_carries_aspect_field_path() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
             crate::transactions::data::ConflictClass::RecordAspectPatchDenied {

@@ -1,0 +1,10 @@
+error[E0624]: method `current_branch_basis_artifact` is private
+ --> tests/ui/branch_reference/legacy_basis_methods_are_private.rs:4:21
+  |
+4 |     let _ = runtime.current_branch_basis_artifact();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/logic/transaction/runtime/state/branching/basis_runtime.rs
+  |
+  |     pub(crate) fn current_branch_basis_artifact(&mut self) -> SignalBranchBasisArtifact {
+  |     ----------------------------------------------------------------------------------- private method defined here

@@ -85,10 +85,6 @@ impl SignalObservationDropCleanup for ObservationCaptureCleanup {
 }
 
 impl RuntimeObservation {
-    pub(crate) fn partition_interner_mut(&mut self) -> &mut PartitionInterner {
-        &mut self.partition_interner
-    }
-
     pub(crate) fn partition_interner(&self) -> &PartitionInterner {
         &self.partition_interner
     }

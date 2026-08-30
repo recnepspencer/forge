@@ -1,0 +1,59 @@
+use crate::state::SignalBranchHandle;
+use worth_foundational::FoundationalBranchReferenceMismatchAxis;
+
+use crate::data::error::SignalError;
+use crate::state::SignalBranchId;
+
+use super::SignalBranchIdentityConstructionDenial;
+use super::{AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial};
+
+#[derive(Debug)]
+pub enum SignalBranchForkOperationDenial {
+    UnknownBranch {
+        branch_id: SignalBranchId,
+    },
+    BasisMismatch {
+        axes: Vec<FoundationalBranchReferenceMismatchAxis>,
+    },
+    RetentionUnavailable {
+        denial: SignalBranchRetentionAcquisitionDenial,
+    },
+    InvalidIdentity {
+        denial: SignalBranchIdentityConstructionDenial,
+    },
+    BranchIdentityExhausted,
+    OwnerDeniedNoMovement {
+        error: SignalError,
+    },
+}
+
+/// Owner-issued result of a canonical Signal branch fork.
+#[derive(Debug, Clone)]
+pub struct SignalBranchForkOutcome {
+    created_branch: SignalBranchHandle,
+    created_basis: AdmittedSignalBranchBasis,
+}
+
+impl SignalBranchForkOutcome {
+    pub(crate) fn owner_issued(
+        created_branch: SignalBranchHandle,
+        created_basis: AdmittedSignalBranchBasis,
+    ) -> Self {
+        Self {
+            created_branch,
+            created_basis,
+        }
+    }
+
+    pub fn created_branch(&self) -> &SignalBranchHandle {
+        &self.created_branch
+    }
+
+    pub fn created_basis(&self) -> &AdmittedSignalBranchBasis {
+        &self.created_basis
+    }
+
+    pub fn into_parts(self) -> (SignalBranchHandle, AdmittedSignalBranchBasis) {
+        (self.created_branch, self.created_basis)
+    }
+}

@@ -43,15 +43,19 @@ pub use presentation_work::{
     UiMountedPresentationInitialInput, UiMountedPresentationNodeChange,
     UiMountedPresentationNodeHitTest, UiMountedPresentationNodePaint,
     UiMountedPresentationNodeState, UiMountedPresentationNodeStateInput,
-    UiMountedPresentationReconstruction, UiMountedPresentationReconstructionDenial,
-    UiMountedPresentationReconstructionInput, UiMountedPresentationUnchanged,
+    UiMountedPresentationOpacity, UiMountedPresentationReconstruction,
+    UiMountedPresentationReconstructionDenial, UiMountedPresentationReconstructionInput,
+    UiMountedPresentationSample, UiMountedPresentationSampleChange,
+    UiMountedPresentationSampleConstructionDenial, UiMountedPresentationSampleInput,
+    UiMountedPresentationTransform, UiMountedPresentationUnchanged,
     UiMountedPresentationUnchangedInput, UiMountedPresentationWorkView,
 };
 pub use protocol::{
     UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolAgreement,
     UiHostProtocolContract, UiHostProtocolDenial, UiHostProtocolIdentity,
     UiHostProtocolNegotiation, UiHostProtocolSchemaFamily, UiHostProtocolVersion,
-    UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
+    UiHostSolicitedEffectSchemaVersion, UiMountedFrameSchemaVersion,
+    UiMountedPresentationSchemaVersion,
 };
 pub use surface_registration::{
     UiHostSurfaceBaselineIdentity, UiHostSurfaceDeregistrationIndeterminate,

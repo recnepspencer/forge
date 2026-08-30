@@ -108,7 +108,7 @@ fn foundational_current_basis_bridge_and_readmission_preserve_exact_basis_truth(
 #[test]
 fn foundational_current_basis_lowering_rejects_published_historical_basis_in_live_and_recovered_lanes(
 ) {
-    let mut runtime = merge_ready_runtime();
+    let runtime = merge_ready_runtime();
     let prepared = runtime
         .prepare_merge_execution(crate::facade::merge::MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),
@@ -122,7 +122,7 @@ fn foundational_current_basis_lowering_rejects_published_historical_basis_in_liv
     let live_authority = published_merge_authority(&runtime, merge.commit.commit.commit_id);
 
     let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_authority = published_merge_authority(&recovered, merge.commit.commit.commit_id);
 
     assert_historical_summary_basis_denies_as_current(&runtime, &live_authority);
@@ -131,7 +131,7 @@ fn foundational_current_basis_lowering_rejects_published_historical_basis_in_liv
 
 #[test]
 fn foundational_current_basis_lowering_rejects_stale_relational_basis_before_publication() {
-    let mut runtime = merge_ready_runtime();
+    let runtime = merge_ready_runtime();
     let stale_basis = runtime
         .history()
         .resolve_merge_branch_basis(
@@ -140,11 +140,7 @@ fn foundational_current_basis_lowering_rejects_stale_relational_basis_before_pub
         )
         .expect("stale relational basis");
 
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-drift",
-        BranchId("feature".to_string()),
-    );
+    create_entity_outcome_on_branch(&runtime, "feature-drift", BranchId("feature".to_string()));
 
     match runtime
         .history()
@@ -166,14 +162,10 @@ fn foundational_current_basis_lowering_rejects_stale_relational_basis_before_pub
 }
 
 fn merge_ready_runtime() -> RelationalRuntime {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     runtime
 }
 

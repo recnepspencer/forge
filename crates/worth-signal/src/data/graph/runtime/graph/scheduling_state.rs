@@ -3,6 +3,7 @@ use crate::data::handle::NodeId;
 use super::SignalGraph;
 
 impl SignalGraph {
+    #[cfg(test)]
     pub(crate) fn record_repeated_invalidation_admission(&mut self, target: NodeId) {
         let count = self
             .pending_repeated_invalidation_admissions

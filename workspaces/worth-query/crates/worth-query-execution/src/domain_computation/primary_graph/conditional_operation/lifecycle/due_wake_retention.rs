@@ -63,6 +63,8 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
             already_committed_operation_count: 0,
             failed_operation_count: 0,
             indeterminate_operation_count: 0,
+            snapshot_capacity_backpressure: None,
+            retention_capacity_backpressure: false,
             execution_provenance: Vec::new(),
             granular_invalidations: Vec::new(),
         }
@@ -107,6 +109,8 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
         receipt.already_committed_operation_count = self.already_committed_operation_count;
         receipt.failed_operation_count = self.failed_operation_count;
         receipt.indeterminate_operation_count = self.indeterminate_operation_count;
+        receipt.snapshot_capacity_backpressure = counts.snapshot_capacity_backpressure;
+        receipt.retention_capacity_backpressure = counts.retention_capacity_backpressure;
         receipt
     }
 }

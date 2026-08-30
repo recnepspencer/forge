@@ -20,10 +20,17 @@ pub(super) use pending_completion::{complete_pending, owns_completion, stop_pend
 #[path = "presentation/failure.rs"]
 mod failure;
 pub(super) use failure::{adapter_declined, mark_presentation_indeterminate};
+
+#[path = "presentation/epoch.rs"]
+mod epoch;
+use epoch::presentation_epoch;
 use failure::{before_effects_declined, before_effects_malformed, malformed};
 
 #[path = "presentation/retained_frame.rs"]
 mod retained_frame;
+
+#[path = "presentation/sample.rs"]
+mod sample;
 
 #[path = "presentation/glyph_run_admission.rs"]
 pub(super) mod glyph_run_admission;
@@ -79,6 +86,7 @@ fn perform_surface_work(
         UiMountedPresentationWorkView::Initial(_) => perform_initial(state, view),
         UiMountedPresentationWorkView::Delta(_) => perform_delta(state, view),
         UiMountedPresentationWorkView::Reconstruction(_) => perform_reconstruction(state, view),
+        UiMountedPresentationWorkView::Sample(_) => sample::perform_sample(state, view),
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
             retained_frame::perform_unchanged(state, view, unchanged)
         }
@@ -151,6 +159,7 @@ fn perform_reconstruction(
         view,
         key,
         UiNativePresentationWorkKind::Reconstruction,
+        None,
         pixels,
         cost,
         port_crossings,
@@ -197,6 +206,7 @@ fn perform_initial(
     state.record_retained_frame_observation(UiNativeRetainedFrameObservation::observed(
         view.frame().diagnostic_value(),
         UiNativePresentationWorkKind::Initial,
+        None,
         [
             observation.retained_baseline_rgba8(),
             observation.retained_center_rgba8(),
@@ -234,6 +244,7 @@ fn perform_delta(
         view,
         key,
         UiNativePresentationWorkKind::Delta,
+        None,
         pixels,
         cost,
         port_crossings,
@@ -317,6 +328,7 @@ fn completed(
         view.protocol(),
         view.host_session_identity(),
         worth_ui_host_contract::UiHostObservationPresentationBasis::new(
+            view.requirement().host_surface(),
             view.frame(),
             view.binding(),
             epoch,
@@ -326,20 +338,6 @@ fn completed(
     #[cfg(feature = "certification-support")]
     state.apply_completed_qualified_derived_state_loss(key);
     outcome
-}
-
-fn presentation_epoch(
-    state: &mut UiNativeHostState,
-    key: u64,
-    attempt: u64,
-    painted: bool,
-) -> Option<worth_ui_host_contract::UiHostPresentationEpoch> {
-    if painted {
-        let epoch = worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(attempt);
-        state.presentation_epochs.insert(key, epoch);
-        return Some(epoch);
-    }
-    state.presentation_epochs.get(&key).copied()
 }
 
 fn settle_presentation_failure(
@@ -369,6 +367,7 @@ fn settle_presentation_failure(
             let _remembered = state.lifecycle.remember_pending_presentation(
                 view.protocol(),
                 view.host_session_identity(),
+                view.requirement().host_surface(),
                 view.binding(),
                 token.diagnostic_value(),
             );

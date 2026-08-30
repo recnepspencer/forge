@@ -14,10 +14,10 @@ use crate::tests::support::*;
 
 #[test]
 fn lineage_graph_delete_emits_retire_event() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "retired");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "retired");
     let entity = changed_entities(&created)[0];
-    let deleted = delete_entity(&mut runtime, entity);
+    let deleted = delete_entity(&runtime, entity);
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -36,11 +36,11 @@ fn lineage_graph_delete_emits_retire_event() {
 
 #[test]
 fn lineage_graph_replace_emits_replace_edge() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -57,8 +57,9 @@ fn lineage_graph_replace_emits_replace_edge() {
                 },
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -78,13 +79,13 @@ fn lineage_graph_replace_emits_replace_edge() {
 
 #[test]
 fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
-    let mut runtime = runtime_with_test_schema();
-    let left = create_entity_outcome(&mut runtime, "left");
-    let right = create_entity_outcome(&mut runtime, "right");
+    let runtime = runtime_with_test_schema();
+    let left = create_entity_outcome(&runtime, "left");
+    let right = create_entity_outcome(&runtime, "right");
     let left_entity = changed_entities(&left)[0];
     let right_entity = changed_entities(&right)[0];
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace-many")
             .push(MutationIntent::Entity(EntityMutationIntent::Replace(
@@ -117,8 +118,9 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
                     },
                 },
             ))),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -160,11 +162,11 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
 
 #[test]
 fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -181,8 +183,9 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
                 },
             }),
         )),
-    );
-    let outcome = txn.commit(&mut runtime).unwrap();
+    )
+    .expect("test staging stays within configured resource budgets");
+    let outcome = txn.commit(&runtime).unwrap();
     let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(outcome.commit.commit_id)

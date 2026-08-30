@@ -1,11 +1,14 @@
 mod admitted_projection;
+mod denial;
 mod invoker_isolation;
 mod processing;
+mod provider_commit_deferred;
 mod reentry_counts;
 mod sealed_commit;
 mod settlement_reentry;
 mod temporal_idempotency;
 mod wake_retirement;
+pub(in crate::domain_computation::primary_graph::conditional_operation) use denial::WorthQueryTemporalReentryDenial;
 pub(in crate::domain_computation::primary_graph::conditional_operation) use invoker_isolation::isolate_invoker;
 pub(super) use processing::reenter_retained_wakes;
 pub(super) use reentry_counts::WorthQueryTemporalReentryCounts;
@@ -32,10 +35,48 @@ pub(super) enum WorthQueryTemporalReentryOutcome {
     AlreadyCommitted,
     Obsolete,
     RetryableFailure(String),
+    SnapshotCapacityBackpressured {
+        maximum_active_snapshots: usize,
+    },
+    RetentionCapacityBackpressured,
+    TerminalFailure(WorthQueryTemporalTerminalFailure),
+    ProviderCommitBackpressured(
+        crate::domain_computation::primary_graph::WorthQueryApplicationCommitDeferred,
+    ),
+    ControlStopped(WorthQueryTemporalControlStop),
     SettlementDeferred(
         crate::domain_computation::primary_graph::WorthQueryApplicationSettlementDeferred,
     ),
+    SettlementSnapshotCapacityBackpressured {
+        deferred: crate::domain_computation::primary_graph::WorthQueryApplicationSettlementDeferred,
+        maximum_active_snapshots: usize,
+    },
     Indeterminate(String),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum WorthQueryTemporalControlStop {
+    Cancelled,
+    TimedOut,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum WorthQueryTemporalTerminalFailure {
+    ApplicationCommit(
+        crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind,
+    ),
+    Admission(WorthQueryTemporalAdmissionTerminalFailure),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum WorthQueryTemporalAdmissionTerminalFailure {
+    Principal(crate::domain_computation::primary_graph::WorthQueryPrincipalResolutionDenialKind),
+    Entity(crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind),
+    Authorization(
+        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind,
+    ),
+    Projection(crate::domain_computation::primary_graph::WorthQueryOperationProjectionDenialKind),
+    Invariant(crate::domain_computation::primary_graph::WorthQueryInvariantProjectionDenialKind),
 }
 
 pub(super) struct WorthQueryTemporalReentryAttempt {
@@ -176,7 +217,25 @@ where
     );
     let outcome = match result {
         Ok(outcome) => outcome,
-        Err(detail) => WorthQueryTemporalReentryOutcome::RetryableFailure(detail),
+        Err(WorthQueryTemporalReentryDenial::Retryable(detail)) => {
+            WorthQueryTemporalReentryOutcome::RetryableFailure(detail)
+        }
+        Err(WorthQueryTemporalReentryDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        }) => WorthQueryTemporalReentryOutcome::SnapshotCapacityBackpressured {
+            maximum_active_snapshots,
+        },
+        Err(WorthQueryTemporalReentryDenial::RetentionCapacityExhausted) => {
+            WorthQueryTemporalReentryOutcome::RetentionCapacityBackpressured
+        }
+        Err(WorthQueryTemporalReentryDenial::ControlStopped(cause)) => {
+            WorthQueryTemporalReentryOutcome::ControlStopped(cause)
+        }
+        Err(WorthQueryTemporalReentryDenial::Terminal(failure)) => {
+            WorthQueryTemporalReentryOutcome::TerminalFailure(
+                WorthQueryTemporalTerminalFailure::Admission(failure),
+            )
+        }
     };
     WorthQueryTemporalReentryAttempt {
         outcome,
@@ -268,7 +327,7 @@ fn try_reentry<
     >,
     candidate: &WorthQueryTemporalIntentCandidate<Clock, Input>,
     idempotency: &temporal_idempotency::WorthQueryPreparedTemporalIdempotency,
-) -> Result<WorthQueryTemporalReentryOutcome, String>
+) -> Result<WorthQueryTemporalReentryOutcome, WorthQueryTemporalReentryDenial>
 where
     Schema: ApplicationSchema,
     Input: Clone + Send + Sync + 'static,
@@ -307,5 +366,11 @@ where
     else {
         return Ok(WorthQueryTemporalReentryOutcome::Obsolete);
     };
-    execution.commit_projected_temporal_effect(runtime, candidate, current, projected, idempotency)
+    Ok(execution.commit_projected_temporal_effect(
+        runtime,
+        candidate,
+        current,
+        projected,
+        idempotency,
+    )?)
 }

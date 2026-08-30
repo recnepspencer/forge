@@ -1,12 +1,12 @@
 use crate::branch::AdmittedRelationalBranchBasis;
-use crate::capabilities::DiagnosticArtifactSink;
 use crate::diagnostics::data::{
-    DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
+    DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticFields,
+    RelationalDiagnosticValue, RelationalDiagnosticsEntry,
 };
 use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::mvcc::RelationalTransactionValidationInput;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{
     CommitHistorySummary, MergeCommitMutationPlan, TransactionCommitError,
 };
@@ -36,14 +36,14 @@ impl ResolvedCommitHistory {
 }
 
 pub(crate) fn resolve_commit_history(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     options: &RelationalTransactionValidationInput,
     version_id: VersionId,
 ) -> Result<ResolvedCommitHistory, TransactionCommitError> {
     let commit_id = reserve_commit_id(runtime)?;
     let branch_basis = options.basis().clone();
     let branch_id = branch_basis.identity().branch_id().clone();
-    if !runtime.admitted_branch_basis_is_current(&branch_basis) {
+    if !branch_basis.is_current() {
         return Err(TransactionCommitError::conflict(
             crate::transactions::data::CommitConflict::new(
                 crate::transactions::data::ConflictClass::StaleValidationBasis {
@@ -53,9 +53,7 @@ pub(crate) fn resolve_commit_history(
             ),
         ));
     }
-    let previous_branch_head_version = runtime
-        .admitted_branch_basis_commit(&branch_basis)
-        .map(|head| head.version_id());
+    let previous_branch_head_version = branch_basis.commit_identity().map(|head| head.version_id());
     let requested_merge_parent_count = options.merge_parent_bases().len();
     let (parents, merge_base_commits) = resolve_parent_commits(runtime, options, &branch_id)?;
     let effective_merge_parent_count = parents
@@ -80,14 +78,15 @@ pub(crate) fn resolve_commit_history(
 }
 
 fn resolve_parent_commits(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     options: &RelationalTransactionValidationInput,
     branch_id: &BranchId,
 ) -> Result<(Vec<CommitId>, Vec<CommitId>), TransactionCommitError> {
     let mut parents = Vec::new();
     let mut merge_bases = std::collections::BTreeSet::new();
-    let target_head = runtime
-        .admitted_branch_basis_commit(options.basis())
+    let target_head = options
+        .basis()
+        .commit_identity()
         .map(|identity| identity.commit_id());
     if let Some(head) = target_head {
         parents.push(head);
@@ -95,7 +94,7 @@ fn resolve_parent_commits(
     for merge_binding in options.merge_parent_bases() {
         let merge_branch = merge_binding.identity().branch_id().clone();
         let result = (|| {
-            if !runtime.admitted_branch_basis_is_current(merge_binding) {
+            if !merge_binding.is_current() {
                 return Err(crate::transactions::data::CommitConflict::new(
                     crate::transactions::data::ConflictClass::InvalidMergeParent {
                         detail: format!("merge parent is foreign or stale: {}", merge_branch.0),
@@ -105,8 +104,8 @@ fn resolve_parent_commits(
             if &merge_branch == branch_id {
                 return Ok(());
             }
-            let head = runtime
-                .admitted_branch_basis_commit(merge_binding)
+            let head = merge_binding
+                .commit_identity()
                 .map(|identity| identity.commit_id())
                 .ok_or_else(|| {
                     crate::transactions::data::CommitConflict::new(
@@ -118,7 +117,7 @@ fn resolve_parent_commits(
             if !parents.contains(&head) {
                 if target_head.is_some() {
                     let inspection = runtime
-                        .history()
+                        .history
                         .inspect_merge_from_bindings(merge_binding, options.basis())
                         .ok_or_else(|| {
                             crate::transactions::data::CommitConflict::new(
@@ -147,7 +146,8 @@ fn resolve_parent_commits(
             Ok(())
         })();
         if let Err(conflict) = result {
-            runtime.emit_failure_diagnostic(
+            emit_history_failure_diagnostic(
+                runtime,
                 DiagnosticsScope::History,
                 conflict.code,
                 conflict.detail.clone(),
@@ -163,7 +163,7 @@ fn resolve_parent_commits(
 }
 
 pub(crate) fn resolve_commit_history_for_merge(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     options: &RelationalTransactionValidationInput,
     merge_plan: &MergeCommitMutationPlan,
     version_id: VersionId,
@@ -183,7 +183,7 @@ pub(crate) fn resolve_commit_history_for_merge(
 }
 
 fn resolve_commit_history_for_runtime<F>(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     options: &RelationalTransactionValidationInput,
     merge_plan: Option<&MergeCommitMutationPlan>,
     version_id: VersionId,
@@ -218,7 +218,7 @@ where
             ),
         ));
     }
-    if !runtime.admitted_branch_basis_is_current(&branch_basis) {
+    if !branch_basis.is_current() {
         return Err(TransactionCommitError::conflict(
             crate::transactions::data::CommitConflict::new(
                 crate::transactions::data::ConflictClass::StaleValidationBasis {
@@ -228,13 +228,12 @@ where
             ),
         ));
     }
-    let previous_branch_head_version = runtime
-        .admitted_branch_basis_commit(&branch_basis)
-        .map(|head| head.version_id());
+    let previous_branch_head_version = branch_basis.commit_identity().map(|head| head.version_id());
     let (parents, merge_base_commits) = match resolve_parents(&branch_id) {
         Ok(result) => result,
         Err(conflict) => {
-            runtime.emit_failure_diagnostic(
+            emit_history_failure_diagnostic(
+                runtime,
                 DiagnosticsScope::History,
                 conflict.code,
                 conflict.detail.clone(),
@@ -264,6 +263,24 @@ where
     })
 }
 
+fn emit_history_failure_diagnostic(
+    runtime: &RelationalPreparationRuntime,
+    scope: DiagnosticsScope,
+    code: crate::diagnostics::data::DiagnosticCode,
+    message: impl Into<String>,
+    fields: impl Into<RelationalDiagnosticFields>,
+) {
+    runtime.push_bounded_preparation_diagnostic(
+        scope,
+        DiagnosticsArtifactKind::Failure,
+        vec![RelationalDiagnosticsEntry::new(
+            code,
+            message,
+            fields.into(),
+        )],
+    );
+}
+
 fn merge_parent_resolution_failure_fields(
     branch_id: &BranchId,
     merge_parent_branches: &[BranchId],
@@ -286,7 +303,7 @@ fn merge_parent_resolution_failure_fields(
 }
 
 fn reserve_commit_id(
-    runtime: &crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
 ) -> Result<CommitId, TransactionCommitError> {
     runtime.history.reserve_commit_id().ok_or_else(|| {
         TransactionCommitError::publication(crate::publication::data::PublicationError::new(

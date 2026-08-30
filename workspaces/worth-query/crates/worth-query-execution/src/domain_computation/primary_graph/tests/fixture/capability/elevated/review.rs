@@ -29,6 +29,9 @@ pub struct CompleteElevationReviewInput {
     pub elevation: String,
     pub review: String,
 }
+worth_query_declaration::worth_query_portable_type!(
+    CompleteElevationReviewInput => "worth.query.test.complete-elevation-review-input.v1"
+);
 
 worth_query_operation!(pub CompleteCapabilityReviewOperation(CompleteElevationReviewInput) in IdentityExecutionSchema);
 worth_query_operation_reads!(CompleteCapabilityReviewOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationResource, CapabilityElevationReview, CapabilityReviewResource, CapabilityReviewer]);

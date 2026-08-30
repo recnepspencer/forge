@@ -1,5 +1,7 @@
+#[cfg(any(test, feature = "certification-support"))]
 use winit::event::ElementState;
 use winit::event::WindowEvent;
+#[cfg(any(test, feature = "certification-support"))]
 use winit::keyboard::{Key, PhysicalKey};
 
 use super::{
@@ -9,6 +11,7 @@ use super::{
 };
 
 impl UiNativeInputObservationState {
+    #[cfg(test)]
     pub(crate) fn observe_window_event(
         &mut self,
         event: &WindowEvent,
@@ -16,6 +19,7 @@ impl UiNativeInputObservationState {
         self.observe_window_event_at(event, self.event_tick)
     }
 
+    #[cfg(test)]
     pub(crate) fn observe_window_event_at(
         &mut self,
         event: &WindowEvent,
@@ -41,11 +45,12 @@ impl UiNativeInputObservationState {
         event_focus::observe(self, event)
             .or_else(|| event_pointer::observe(self, event, pointer_witness))
             .or_else(|| event_keyboard::observe(self, event))
-            .or_else(|| event_scroll::observe(self, event))
+            .or_else(|| event_scroll::observe(self, event, pointer_witness))
             .or_else(|| event_ime::observe(self, event))
             .unwrap_or(UiNativeInputObservationDisposition::Ignored)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn observe_keyboard_components_at(
         &mut self,
         logical_key: &Key,

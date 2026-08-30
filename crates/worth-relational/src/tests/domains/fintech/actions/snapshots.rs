@@ -11,4 +11,5 @@ pub(crate) fn release_snapshot_handle(world: &mut FintechWorld, snapshot: &Snaps
         .runtime
         .visibility_authority()
         .release_snapshot(snapshot)
+        .is_ok()
 }

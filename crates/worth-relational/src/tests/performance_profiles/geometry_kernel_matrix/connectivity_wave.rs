@@ -3,32 +3,32 @@ use super::*;
 pub(super) fn certify_topology_bridge_connectivity_wave(suite: &'static str) {
     let topology_bridge_samples =
         capture_perf_samples(suite, "topology_bridge_connectivity_wave", || {
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let mut cluster_a = Vec::new();
             let mut cluster_b = Vec::new();
             for index in 0..6 {
                 cluster_a.push(create_entity_in_partition(
-                    &mut runtime,
+                    &runtime,
                     &format!("cluster-a-{index}"),
                     PartitionId((index % 3) as u32 + 1),
                 ));
                 cluster_b.push(create_entity_in_partition(
-                    &mut runtime,
+                    &runtime,
                     &format!("cluster-b-{index}"),
                     PartitionId((index % 3) as u32 + 5),
                 ));
             }
             for index in 0..(cluster_a.len() - 1) {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     cluster_a[index],
                     cluster_a[index + 1],
                     &format!("a-link-{index}"),
                     PartitionId(11),
                 );
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     cluster_b[index],
                     cluster_b[index + 1],
                     &format!("b-link-{index}"),
@@ -39,7 +39,7 @@ pub(super) fn certify_topology_bridge_connectivity_wave(suite: &'static str) {
             runtime.performance_access().reset_counters();
             let bridge_started_at = Instant::now();
             let bridge_outcome = create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 cluster_a[2],
                 cluster_b[2],
                 "bridge-topology-wave",
@@ -122,33 +122,33 @@ pub(super) fn certify_topology_bridge_connectivity_wave(suite: &'static str) {
         suite,
         "topology_bridge_connectivity_wave_rich_geometry_profile",
         || {
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let mut cluster_a = Vec::new();
             let mut cluster_b = Vec::new();
             for index in 0..6 {
                 cluster_a.push(create_entity_in_partition(
-                    &mut runtime,
+                    &runtime,
                     &format!("rich-cluster-a-{index}"),
                     PartitionId((index % 3) as u32 + 1),
                 ));
                 cluster_b.push(create_entity_in_partition(
-                    &mut runtime,
+                    &runtime,
                     &format!("rich-cluster-b-{index}"),
                     PartitionId((index % 3) as u32 + 5),
                 ));
             }
             for index in 0..(cluster_a.len() - 1) {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     cluster_a[index],
                     cluster_a[index + 1],
                     &format!("rich-a-link-{index}"),
                     PartitionId(11),
                 );
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     cluster_b[index],
                     cluster_b[index + 1],
                     &format!("rich-b-link-{index}"),
@@ -159,7 +159,7 @@ pub(super) fn certify_topology_bridge_connectivity_wave(suite: &'static str) {
             runtime.performance_access().reset_counters();
             let bridge_started_at = Instant::now();
             let bridge_outcome = create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 cluster_a[2],
                 cluster_b[2],
                 "bridge-topology-wave-rich",
@@ -251,33 +251,35 @@ pub(super) fn certify_topology_bridge_connectivity_wave(suite: &'static str) {
         || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let mut cluster_a = Vec::new();
             let mut cluster_b = Vec::new();
             for index in 0..6 {
                 cluster_a.push(create_entity_in_partition(
-                    &mut runtime,
+                    &runtime,
                     &format!("zero-cluster-a-{index}"),
                     PartitionId((index % 3) as u32 + 1),
                 ));
                 cluster_b.push(create_entity_in_partition(
-                    &mut runtime,
+                    &runtime,
                     &format!("zero-cluster-b-{index}"),
                     PartitionId((index % 3) as u32 + 5),
                 ));
             }
             for index in 0..(cluster_a.len() - 1) {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     cluster_a[index],
                     cluster_a[index + 1],
                     &format!("zero-a-link-{index}"),
                     PartitionId(11),
                 );
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     cluster_b[index],
                     cluster_b[index + 1],
                     &format!("zero-b-link-{index}"),
@@ -288,7 +290,7 @@ pub(super) fn certify_topology_bridge_connectivity_wave(suite: &'static str) {
             runtime.performance_access().reset_counters();
             let bridge_started_at = Instant::now();
             let bridge_outcome = create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 cluster_a[2],
                 cluster_b[2],
                 "bridge-topology-wave-zero",

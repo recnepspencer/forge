@@ -36,11 +36,7 @@ pub(crate) trait PatchStreamSource: CommitEnvelopeSource {
 
 impl PatchStreamSource for RelationalRuntime {
     fn latest_patch_stream_position(&self) -> Option<PatchStreamPosition> {
-        let projected = self
-            .history
-            .patch_stream_index
-            .last_key_value()
-            .map(|(position, _)| *position);
+        let projected = self.history.latest_recorded_patch_position();
         projected.max(
             self.history
                 .latest_canonical_patch_route()
@@ -53,9 +49,7 @@ impl PatchStreamSource for RelationalRuntime {
         position: PatchStreamPosition,
     ) -> Option<CommitId> {
         self.history
-            .patch_stream_index
-            .get(&position)
-            .copied()
+            .recorded_commit_at_patch_position(position)
             .or_else(|| {
                 self.history
                     .canonical_envelope_at_patch(position)
@@ -73,10 +67,8 @@ impl PatchStreamSource for RelationalRuntime {
             .unwrap_or(std::ops::Bound::Unbounded);
         let mut entries = self
             .history
-            .patch_stream_index
-            .range((start, std::ops::Bound::Unbounded))
-            .take(max_commits)
-            .map(|(position, commit_id)| (*position, *commit_id))
+            .recorded_patch_positions_after(after_position, max_commits)
+            .into_iter()
             .collect::<std::collections::BTreeMap<_, _>>();
         entries.extend(
             self.history

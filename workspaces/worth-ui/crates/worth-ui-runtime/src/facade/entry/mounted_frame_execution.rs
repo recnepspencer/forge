@@ -13,10 +13,10 @@ use super::{
 /// A typed stop before one ordinary mounted-frame request can publish.
 pub enum WorthUiMountedFrameExecutionStop<'session> {
     PublicationLease(UiMountedPublicationLeaseDenial),
-    HostMeasurement(crate::facade::host::UiHostMeasurementEvidenceDenial),
-    HostMeasurementTransition(super::UiMountedHostMeasurementTransitionDenial),
+    HostMeasurement(Box<crate::facade::host::UiHostMeasurementEvidenceDenial>),
+    HostMeasurementTransition(Box<super::UiMountedHostMeasurementTransitionDenial>),
     FrameworkTransition(WorthUiMountedFrameFrameworkTransitionStop<'session>),
-    Preparation(UiMountedFramePreparationDenial),
+    Preparation(Box<UiMountedFramePreparationDenial>),
 }
 
 /// Opaque framework-transition state retained by an ordinary mounted-frame stop.
@@ -51,62 +51,6 @@ impl WorthUiActiveApplicationSession {
         completion.execute_mounted_frame(request, deadline, now)
     }
 
-    pub(crate) fn execute_mounted_frame_with_content(
-        &mut self,
-        request: UiMountedFrameRequest,
-        deadline: UiPresentationDeadline,
-        now: u64,
-        semantic_content: crate::mounting::UiMountedSemanticContentInput,
-        collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
-    ) -> Result<UiMountedFrameOutcome, WorthUiMountedFrameExecutionStop<'_>> {
-        let completion = self
-            .execute_framework_turn(collect_sources)
-            .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
-        let execution = completion.into_execution().map_err(|completion| {
-            WorthUiMountedFrameExecutionStop::FrameworkTransition(
-                WorthUiMountedFrameFrameworkTransitionStop { completion },
-            )
-        })?;
-        let theme_values = execution.presentation.theme_values_source();
-        let frame = execution
-            .prepare_mounted_frame_with_content_internal(request, semantic_content, theme_values)
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
-        let transition =
-            execution
-                .mounted
-                .present_prepared_frame(execution.host_session, frame, deadline, now);
-        Ok(finish_mounted_transition(
-            execution.host_exchange,
-            transition,
-        ))
-    }
-
-    pub(crate) fn prepare_mounted_reconciliation_frame_with_content(
-        &mut self,
-        request: UiMountedFrameRequest,
-        semantic_content: crate::mounting::UiMountedSemanticContentInput,
-        replacements: &[crate::mounting::UiMountedSurfaceReconciliationBinding],
-        collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
-    ) -> Result<crate::mounting::UiPreparedMountedFrame, WorthUiMountedFrameExecutionStop<'_>> {
-        let completion = self
-            .execute_framework_turn(collect_sources)
-            .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
-        let execution = completion.into_execution().map_err(|completion| {
-            WorthUiMountedFrameExecutionStop::FrameworkTransition(
-                WorthUiMountedFrameFrameworkTransitionStop { completion },
-            )
-        })?;
-        let theme_values = execution.presentation.theme_values_source();
-        execution
-            .prepare_mounted_reconciliation_frame_with_content_internal(
-                request,
-                semantic_content,
-                theme_values,
-                replacements,
-            )
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)
-    }
-
     pub(crate) fn prepare_mounted_reconciliation_frame_with_application_presentation(
         &mut self,
         request: UiMountedFrameRequest,
@@ -116,7 +60,7 @@ impl WorthUiActiveApplicationSession {
         let projection = self
             .presentation
             .project()
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         let completion = self
             .execute_framework_turn(collect_sources)
             .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
@@ -132,7 +76,7 @@ impl WorthUiActiveApplicationSession {
                 projection.theme_values(),
                 replacements,
             )
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         execution.presentation.commit(&projection);
         Ok(frame)
     }
@@ -147,7 +91,7 @@ impl WorthUiActiveApplicationSession {
         let projection = self
             .presentation
             .project_complete()
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         let completion = self
             .execute_framework_turn(collect_sources)
             .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
@@ -163,7 +107,7 @@ impl WorthUiActiveApplicationSession {
                 theme_values,
                 replacements,
             )
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         execution.presentation.commit(&projection);
         Ok(frame)
     }
@@ -176,7 +120,7 @@ impl WorthUiActiveApplicationSession {
         let projection = self
             .presentation
             .project()
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         let completion = self
             .execute_framework_turn(collect_sources)
             .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
@@ -191,7 +135,7 @@ impl WorthUiActiveApplicationSession {
                 projection.content(),
                 projection.theme_values(),
             )
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         execution.presentation.commit(&projection);
         Ok(frame)
     }
@@ -205,7 +149,7 @@ impl WorthUiActiveApplicationSession {
         let projection = self
             .presentation
             .project()
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         let completion = self
             .execute_framework_turn(collect_sources)
             .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
@@ -221,7 +165,7 @@ impl WorthUiActiveApplicationSession {
                 projection.theme_values(),
                 predecessor,
             )
-            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+            .map_err(|denial| WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial)))?;
         execution.presentation.commit(&projection);
         Ok(frame)
     }
@@ -245,9 +189,12 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 witness.publication().clone(),
             )),
             UiMountedFrameReuse::ComparisonRequired(_) => {
-                let frame = execution
-                    .prepare_mounted_frame_internal(request)
-                    .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+                let frame =
+                    execution
+                        .prepare_mounted_frame_internal(request)
+                        .map_err(|denial| {
+                            WorthUiMountedFrameExecutionStop::Preparation(Box::new(denial))
+                        })?;
                 let transition = execution.mounted.present_prepared_frame(
                     execution.host_session,
                     frame,
@@ -255,6 +202,13 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                     now,
                 );
                 Ok(finish_mounted_transition(
+                    execution.mounted,
+                    execution.focus,
+                    execution.portal,
+                    execution.interaction,
+                    execution.host_session,
+                    execution.application_session_identity,
+                    &execution.generation_identity,
                     execution.host_exchange,
                     transition,
                 ))

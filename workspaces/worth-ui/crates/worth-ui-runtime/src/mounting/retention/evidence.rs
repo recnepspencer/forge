@@ -1,12 +1,13 @@
 use worth_ui_host_contract::{
-    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
-    UiSurfaceBindingGeneration,
+    UiHostPresentationEpoch, UiMountedFrameIdentity, UiMountedInstanceIdentity,
+    UiMountedNodeReceiptIdentity, UiSurfaceBindingGeneration,
 };
 
 #[derive(Clone)]
 pub(crate) struct UiRetainedPresentedFrame {
     frame: UiMountedFrameIdentity,
     bindings: Box<[UiSurfaceBindingGeneration]>,
+    presentation_epochs: Box<[(UiSurfaceBindingGeneration, UiHostPresentationEpoch)]>,
     presentation: Option<super::super::UiMountedPresentationReceipt>,
     receipts: super::super::UiMountedNodeReceiptBasis,
     visual_regions: super::super::UiMountedVisualRegionBasis,
@@ -36,6 +37,7 @@ pub(crate) enum UiPresentedFrameBasisDenial {
     Unknown,
     BindingNotPresented,
     PresentationEpochMismatch,
+    PresentationTruthUnavailable,
     InstanceNotPresented,
     NodeReceiptMismatch,
 }
@@ -51,6 +53,10 @@ impl UiRetainedPresentedFrame {
         let presentation_surface_bytes = bindings.len().checked_mul(std::mem::size_of::<
             super::super::UiMountedSurfacePresentationReceipt,
         >())?;
+        let presentation_epoch_bytes = bindings.len().checked_mul(std::mem::size_of::<(
+            UiSurfaceBindingGeneration,
+            UiHostPresentationEpoch,
+        )>())?;
         let visual_region_structural_bytes = input.visual_regions.retained_structural_bytes()?;
         let identity_trace_structural_bytes =
             input.identity_trace_basis.retained_structural_bytes()?;
@@ -60,12 +66,14 @@ impl UiRetainedPresentedFrame {
                 super::super::UiMountedPresentationReceipt,
             >())?
             .checked_add(presentation_surface_bytes)?
+            .checked_add(presentation_epoch_bytes)?
             .checked_add(input.receipts.retained_structural_bytes()?)?
             .checked_add(visual_region_structural_bytes)?
             .checked_add(identity_trace_structural_bytes)?;
         Some(Self {
             frame: input.frame,
             bindings: bindings.into_boxed_slice(),
+            presentation_epochs: Box::default(),
             presentation: None,
             receipts: input.receipts,
             visual_regions: input.visual_regions,
@@ -123,7 +131,29 @@ impl UiRetainedPresentedFrame {
         presentation: super::super::UiMountedPresentationReceipt,
     ) {
         debug_assert_eq!(presentation.frame(), self.frame);
+        let mut presentation_epochs = presentation
+            .surfaces()
+            .iter()
+            .map(|surface| (surface.binding(), surface.epoch()))
+            .collect::<Vec<_>>();
+        presentation_epochs.sort_by_key(|(binding, _)| *binding);
+        self.presentation_epochs = presentation_epochs.into_boxed_slice();
         self.presentation = Some(presentation);
+    }
+
+    pub(crate) fn update_presentation_epoch(
+        &mut self,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+    ) -> Result<(), UiPresentedFrameBasisDenial> {
+        if presentation.frame() != self.frame {
+            return Err(UiPresentedFrameBasisDenial::Unknown);
+        }
+        let index = self
+            .presentation_epochs
+            .binary_search_by_key(&presentation.binding(), |(binding, _)| *binding)
+            .map_err(|_| UiPresentedFrameBasisDenial::BindingNotPresented)?;
+        self.presentation_epochs[index].1 = presentation.epoch();
+        Ok(())
     }
 
     pub(crate) fn presentation_receipt(
@@ -150,16 +180,11 @@ impl UiRetainedPresentedFrame {
             return Err(UiPresentedFrameBasisDenial::BindingNotPresented);
         }
         let retained_epoch = self
-            .presentation
-            .as_ref()
-            .and_then(|receipt| {
-                receipt
-                    .surfaces()
-                    .iter()
-                    .find(|surface| surface.binding() == binding)
-            })
-            .ok_or(UiPresentedFrameBasisDenial::BindingNotPresented)?
-            .epoch();
+            .presentation_epochs
+            .binary_search_by_key(&binding, |(candidate, _)| *candidate)
+            .ok()
+            .map(|index| self.presentation_epochs[index].1)
+            .ok_or(UiPresentedFrameBasisDenial::BindingNotPresented)?;
         if retained_epoch != presentation.epoch() {
             return Err(UiPresentedFrameBasisDenial::PresentationEpochMismatch);
         }

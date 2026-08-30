@@ -14,6 +14,13 @@ struct UiPendingNativeViewportMeasurements {
 }
 
 impl WorthUiNativeApplicationShell {
+    /// Reports whether host-owned viewport evidence requires one successor
+    /// presentation. The extent and measurement authority remain inside the
+    /// runtime; applications use this only to avoid idle duplicate frames.
+    pub fn native_viewport_presentation_pending(&self) -> bool {
+        self.pending_viewport_basis.is_some()
+    }
+
     pub(crate) fn observe_native_viewport_readiness(
         &mut self,
         client_physical_extent: [u32; 2],
@@ -27,19 +34,20 @@ impl WorthUiNativeApplicationShell {
         };
         let changed = self.observed_viewport_basis != Some(basis);
         self.observed_viewport_basis = Some(basis);
-        if changed && submit_successor && !self.viewport_measurement_authority.is_empty() {
+        if changed && submit_successor && !self.session.viewport_measurement_witnesses().is_empty()
+        {
             self.pending_viewport_basis = Some(basis);
         }
     }
 
-    pub(super) fn observe_native_viewport_binding_successor(&mut self) {
+    pub(super) fn observe_native_viewport_binding_successor(&mut self, submit_successor: bool) {
         let Some(observed) = self.observed_viewport_basis else {
             return;
         };
         self.observe_native_viewport_readiness(
             observed.client_physical_extent,
             self.scale_factor_milli,
-            true,
+            submit_successor,
         );
     }
 
@@ -63,7 +71,8 @@ impl WorthUiNativeApplicationShell {
 
     fn pending_native_viewport_measurements(&self) -> Option<UiPendingNativeViewportMeasurements> {
         let basis = self.pending_viewport_basis?;
-        if self.viewport_measurement_authority.is_empty() {
+        let viewport_measurement_authority = self.session.viewport_measurement_witnesses();
+        if viewport_measurement_authority.is_empty() {
             return None;
         }
         let capability = self.session.host_measurement_capability();
@@ -74,13 +83,12 @@ impl WorthUiNativeApplicationShell {
             3,
             4,
         );
-        let inputs = self
-            .viewport_measurement_authority
+        let inputs = viewport_measurement_authority
             .iter()
             .copied()
             .map(|authority| {
                 crate::facade::WorthUiHostMeasurementSessionInput::new(
-                    authority.request(),
+                    authority.request_identity(),
                     worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
                     crate::host::UiHostMeasurementNeed::ViewportExtent(
                         worth_ui_host_contract::UiViewportExtentRequest,
@@ -120,6 +128,7 @@ mod tests {
             .rebind_native_surface_scale(2_000)
             .expect("scale successor should rebind the native surface");
         shell.observe_native_viewport_readiness([800, 600], 2_000, true);
+        assert!(shell.native_viewport_presentation_pending());
         let pending = shell
             .pending_viewport_basis
             .expect("complete basis change must schedule measurement");
@@ -131,6 +140,7 @@ mod tests {
         assert!(shell.present_frame(2, 0).is_ok());
         assert_eq!(host.viewport_measurement_calls(), baseline_calls + 1);
         assert_eq!(shell.pending_viewport_basis, None);
+        assert!(!shell.native_viewport_presentation_pending());
         assert_eq!(
             shell.observed_viewport_basis,
             Some(UiNativeViewportBasis {
@@ -159,6 +169,7 @@ mod tests {
         };
         shell.observe_native_viewport_readiness([800, 600], 1_000, false);
         shell.observe_native_viewport_readiness([960, 600], 1_000, true);
+        assert!(shell.native_viewport_presentation_pending());
         let pending = shell
             .pending_viewport_basis
             .expect("extent successor must schedule measurement");
@@ -174,5 +185,6 @@ mod tests {
         assert_eq!(host.presentation_calls(), 2);
         assert_eq!(host.viewport_measurement_calls(), baseline_calls + 1);
         assert_eq!(shell.pending_viewport_basis, None);
+        assert!(!shell.native_viewport_presentation_pending());
     }
 }

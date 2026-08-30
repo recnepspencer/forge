@@ -1,6 +1,6 @@
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
-use super::super::retirement::SignalBranchRetirementReceipt;
+use crate::branch::SignalBranchRetirementReceipt;
 
 use super::catalog::BranchManager;
 
@@ -44,6 +44,7 @@ where
         }
         self.active_merge_participants.remove(&branch_id);
         self.branch_head_generations.remove(&branch_id);
+        self.branch_restore_snapshot_ids.remove(&branch_id);
         self.live_branch_catalog.remove(&branch_id);
         Some(BranchRetirementReclaimedBreadth {
             branch_state_count: 1,

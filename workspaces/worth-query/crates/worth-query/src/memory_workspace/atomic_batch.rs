@@ -57,23 +57,32 @@ impl WorthQueryMemoryWorkspace {
             .checked_add(insert_count as u64)
             .ok_or_else(|| WorthQueryWorkspaceError::new("batch client-key space exhausted"))?;
         let (batch, prepared) = self.prepare_batch(mutations)?;
+        let main_identity = self.runtime.main_branch_identity();
         let options = self
             .runtime
-            .admit_main_branch_basis()
-            .expect("memory workspace main branch remains owner-admissible");
+            .admit_branch_basis(&main_identity)
+            .map_err(super::transaction_denial::basis)?;
         let mut transaction = self
             .runtime
             .begin_branch_transaction(
                 &options,
                 worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
             )
-            .expect("owner-admitted transaction context");
-        transaction.push_batch(batch);
+            .map_err(super::transaction_denial::admission)?;
+        transaction
+            .push_batch(batch)
+            .map_err(super::transaction_denial::staging)?;
         let result = transaction
-            .commit(&mut self.runtime)
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+            .commit(&self.runtime)
+            .map_err(super::transaction_denial::commit)?;
+        let published_snapshot = result.snapshot.clone();
         self.next_client_key = next_key;
-        self.batch_receipts(result, prepared)
+        let receipts = self.batch_receipts(result, prepared);
+        super::commit_snapshot_closeout::release_commit_snapshot(
+            &mut self.runtime,
+            &published_snapshot,
+        );
+        receipts
     }
 
     fn prepare_batch(

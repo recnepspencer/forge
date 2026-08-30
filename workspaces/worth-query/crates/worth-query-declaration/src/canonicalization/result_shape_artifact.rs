@@ -80,12 +80,25 @@ pub(super) fn build_result_shape_artifact(
         });
         events.push(NormalizationEvent::ResultFieldCollapsedDuplicate { delivered_name });
     }
-    let mut digest_parts = vec![canonical_result_shape_family_digest_part(&family)];
-    digest_parts.extend(ordered.iter().map(CanonicalResultField::digest_part));
+    Ok(build_result_shape_from_canonical_fields(family, ordered))
+}
 
-    Ok(CanonicalResultShapeArtifact {
-        digest: CanonicalResultShapeDigest::from_parts(&digest_parts),
+pub(super) fn build_result_shape_from_canonical_fields(
+    family: ResultShapeFamily,
+    fields: Vec<CanonicalResultField>,
+) -> CanonicalResultShapeArtifact {
+    CanonicalResultShapeArtifact {
+        digest: derive_result_shape_digest(&family, &fields),
         family,
-        fields: ordered,
-    })
+        fields,
+    }
+}
+
+pub(super) fn derive_result_shape_digest(
+    family: &ResultShapeFamily,
+    fields: &[CanonicalResultField],
+) -> CanonicalResultShapeDigest {
+    let mut digest_parts = vec![canonical_result_shape_family_digest_part(family)];
+    digest_parts.extend(fields.iter().map(CanonicalResultField::digest_part));
+    CanonicalResultShapeDigest::from_parts(&digest_parts)
 }

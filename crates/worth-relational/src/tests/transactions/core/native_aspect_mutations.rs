@@ -25,11 +25,11 @@ fn native_entity_patch_supports_optional_whole_clear() {
         }],
         ..AspectSchemaFixture::default()
     };
-    let mut runtime = fixture.build_runtime();
-    let created = commit_entity_create(&mut runtime, whole_set(&note, text("remember")));
+    let runtime = fixture.build_runtime();
+    let created = commit_entity_create(&runtime, whole_set(&note, text("remember")));
     let entity = changed_entities(&created)[0];
 
-    let cleared = commit_entity_patch(&mut runtime, entity, whole_clear(&note));
+    let cleared = commit_entity_patch(&runtime, entity, whole_clear(&note));
     let read = runtime
         .read_truth()
         .read_snapshot(&cleared.snapshot)
@@ -54,14 +54,14 @@ fn native_struct_field_clear_uses_exact_contract_basis() {
         entity_aspects: vec![binding],
         ..AspectSchemaFixture::default()
     };
-    let mut runtime = fixture.build_runtime();
+    let runtime = fixture.build_runtime();
     let value = StructAspectValue::new([
         (field_key("title"), text("before")),
         (field_key("status"), text("open")),
     ])
     .expect("struct value");
     let created = commit_entity_create(
-        &mut runtime,
+        &runtime,
         PortableRecordAspectPatch::new([PortableAspectPatchOperation::SetWhole {
             basis: PortableAspectContractBasis::from_contract(&contract),
             value: ContractValidationInput::Struct(value),
@@ -70,7 +70,7 @@ fn native_struct_field_clear_uses_exact_contract_basis() {
     let entity = changed_entities(&created)[0];
     let status = field_key("status");
     let updated = commit_entity_patch(
-        &mut runtime,
+        &runtime,
         entity,
         PortableRecordAspectPatch::new([PortableAspectPatchOperation::PatchFields {
             basis: PortableAspectContractBasis::from_contract(&contract),
@@ -102,16 +102,12 @@ fn native_relation_creation_synthesizes_endpoint_aspects_and_publishes_updates()
     let fixture = AspectSchemaFixture::with_default_declared_aspects(
         CascadeDeletePolicy::CascadeDeleteRelations,
     );
-    let mut runtime = fixture.build_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = fixture.build_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
     let label = contract_for_relation(&runtime, "label");
-    let created = commit_relation_create(
-        &mut runtime,
-        source,
-        target,
-        whole_set(&label, text("before")),
-    );
+    let created =
+        commit_relation_create(&runtime, source, target, whole_set(&label, text("before")));
     let relation = changed_relations(&created)[0];
     assert_eq!(
         created.patch()[0].authoritative_changed_aspects(),
@@ -135,7 +131,7 @@ fn native_relation_creation_synthesizes_endpoint_aspects_and_publishes_updates()
     assert!(state.get(&aspect_key("source")).is_some());
     assert!(state.get(&aspect_key("target")).is_some());
 
-    let updated = commit_relation_patch(&mut runtime, relation, whole_set(&label, text("after")));
+    let updated = commit_relation_patch(&runtime, relation, whole_set(&label, text("after")));
     assert_eq!(
         updated.patch()[0].authoritative_changed_aspects(),
         vec![aspect_key("label")]
@@ -144,9 +140,8 @@ fn native_relation_creation_synthesizes_endpoint_aspects_and_publishes_updates()
 
 #[test]
 fn stale_native_contract_basis_denies_without_mutating_truth() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity = create_entity(&mut runtime, "before");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&runtime, "before");
     let name = contract_for_entity(&runtime, "name");
     let stale = PortableRecordAspectPatch::new([PortableAspectPatchOperation::SetWhole {
         basis: PortableAspectContractBasis::new(
@@ -156,18 +151,19 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
         ),
         value: ContractValidationInput::Scalar(text("after")),
     }]);
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("stale-native-basis").push(
-        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
-            ApplyEntityAspectPatchIntent {
-                entity_id: entity,
-                aspect_patch: stale,
-            },
-        )),
-    ));
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("stale-native-basis").push(MutationIntent::Entity(
+                EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
+                    entity_id: entity,
+                    aspect_patch: stale,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("stale basis must deny");
     assert!(matches!(
         error,
@@ -179,12 +175,7 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
             ..
         }
     ));
-    let latest = runtime
-        .publication()
-        .latest_bundle()
-        .unwrap()
-        .snapshot
-        .clone();
+    let latest = runtime.visibility_authority().snapshot();
     let read = runtime.read_truth().read_snapshot(&latest).unwrap();
     let value = read
         .get_entity(entity)
@@ -199,6 +190,8 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
         ContractValidatedAspectValueView::Scalar(AspectValue::String(value))
             if value == &"before".into()
     ));
+    drop(read);
+    runtime.snapshots().release_snapshot(&latest).unwrap();
 }
 
 #[test]
@@ -213,12 +206,12 @@ fn native_patch_state_survives_checkpoint_readmission() {
         }],
         ..AspectSchemaFixture::default()
     };
-    let mut runtime = fixture.build_runtime();
-    let created = commit_entity_create(&mut runtime, whole_set(&note, text("durable")));
+    let runtime = fixture.build_runtime();
+    let created = commit_entity_create(&runtime, whole_set(&note, text("durable")));
     let entity = changed_entities(&created)[0];
     let recovery_fixture = fixture.clone();
     let (_, recovered) =
-        checkpoint_and_recover_with(&mut runtime, move || recovery_fixture.build_runtime());
+        checkpoint_and_recover_with(&runtime, move || recovery_fixture.build_runtime());
     let read = recovered.read_truth().read_version(created.version_id);
     assert!(read
         .get_entity(entity)
@@ -231,77 +224,85 @@ fn native_patch_state_survives_checkpoint_readmission() {
 }
 
 fn commit_entity_create(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-entity-create").push(
-        MutationIntent::Create(CreateIntent::EntityAspects(EntityAspectCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: crate::symbols::data::ClientKey::raw("native-entity"),
-            aspect_patch,
-        })),
-    ));
-    transaction.commit(&mut runtime).unwrap()
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-entity-create").push(MutationIntent::Create(
+                CreateIntent::EntityAspects(EntityAspectCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("native-entity"),
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    transaction.commit(runtime).unwrap()
 }
 
 fn commit_entity_patch(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity_id: EntityId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-entity-patch").push(
-        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
-            ApplyEntityAspectPatchIntent {
-                entity_id,
-                aspect_patch,
-            },
-        )),
-    ));
-    transaction.commit(&mut runtime).unwrap()
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-entity-patch").push(MutationIntent::Entity(
+                EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
+                    entity_id,
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    transaction.commit(runtime).unwrap()
 }
 
 fn commit_relation_create(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     source: EntityId,
     target: EntityId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-relation-create").push(
-        MutationIntent::Create(CreateIntent::RelationAspects(RelationAspectCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(2),
-            client_key: crate::symbols::data::ClientKey::raw("native-relation"),
-            source: EntityReference::Existing(source),
-            target: EntityReference::Existing(target),
-            aspect_patch,
-        })),
-    ));
-    transaction.commit(&mut runtime).unwrap()
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-relation-create").push(MutationIntent::Create(
+                CreateIntent::RelationAspects(RelationAspectCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::ClientKey::raw("native-relation"),
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    transaction.commit(runtime).unwrap()
 }
 
 fn commit_relation_patch(
-    mut runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     relation_id: RelationId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-relation-patch").push(
-        MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(
-            ApplyRelationAspectPatchIntent {
-                relation_id,
-                aspect_patch,
-            },
-        )),
-    ));
-    transaction.commit(&mut runtime).unwrap()
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-relation-patch").push(MutationIntent::Relation(
+                RelationMutationIntent::ApplyAspectPatch(ApplyRelationAspectPatchIntent {
+                    relation_id,
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    transaction.commit(runtime).unwrap()
 }
 
 fn whole_set(

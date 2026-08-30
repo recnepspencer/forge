@@ -10,6 +10,7 @@ pub(crate) use authority::{
     PreparedIndexRefreshBasis, PreparedRelationalPublication,
     PreparedRelationalPublicationAccelerators,
 };
+pub(crate) use candidate::{CandidatePayload, PreparedRelationalCandidateAdmissionStop};
 pub use candidate::{DiscardedRelationalCommitCandidate, PreparedRelationalCommitCandidate};
 pub use outcome::{
     PerformedRelationalCommit, PublishRelationalCommit, RelationalPublicationDeferred,

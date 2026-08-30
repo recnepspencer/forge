@@ -184,6 +184,22 @@ pub enum ConflictClass {
         expected_runtime_instance_id: u64,
         actual_runtime_instance_id: u64,
     },
+    TransactionFootprintBudgetExceeded {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    TransactionOverlayBudgetExceeded {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    TransactionSavepointBudgetExceeded {
+        maximum_savepoints: usize,
+    },
+    TransactionSavepointFootprintBudgetExceeded {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    TransactionSavepointIdentityExhausted,
     MergeConflictOverlap {
         detail: String,
     },

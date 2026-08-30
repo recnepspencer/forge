@@ -1,4 +1,5 @@
 mod aftermath_causality;
+pub(in crate::domain_computation) use aftermath_causality::WorthQueryAftermathCausalityReadDenial;
 mod application_attempt_state;
 mod application_attempt_work;
 mod application_decision_fact;
@@ -13,8 +14,11 @@ pub(in crate::domain_computation::primary_graph) mod fault_port;
 pub(in crate::domain_computation::primary_graph) mod dispatch_outbox;
 mod graph_participation;
 mod idempotency;
+mod installation;
 mod invariant_execution;
+mod invariant_execution_failure;
 mod mutation_work;
+mod pending_application_publication;
 mod provisional_state;
 mod publication_recovery;
 mod resource_support;
@@ -40,7 +44,9 @@ pub use committed_dispatch_outbox::{
     WorthQueryCommittedDispatchOutboxObservation, WorthQueryCommittedDispatchOutboxReadDenial,
     WorthQueryCommittedDispatchOutboxReadWork,
 };
-pub(super) use idempotency::WorthQueryProviderIdempotencyResolution;
+pub(super) use idempotency::{
+    WorthQueryProviderIdempotencyResolution, WorthQueryProviderIdempotencyResolutionDenial,
+};
 pub use mutation_work::{WorthQueryPrimaryMutationWorkEvidence, WorthQueryTouchedRecordIdentity};
 pub(in crate::domain_computation) use session_commit::WorthQueryCommittedDispatchOutboxBinding;
 pub(crate) use session_commit::WorthQueryRetainedPreImageSeal;
@@ -58,6 +64,8 @@ pub(super) struct WorthQueryPrimaryGraphProvider {
     application_attempt_work: application_attempt_work::WorthQueryApplicationAttemptWorkLedger,
     completed_commit_evidence: Mutex<session_commit::WorthQueryCompletedCommitEvidenceStore>,
     receipt_basis_retention: Mutex<session_commit::WorthQueryReceiptBasisRetentionStore>,
+    pending_application_publication:
+        Mutex<Option<pending_application_publication::WorthQueryPendingApplicationPublication>>,
     conditional_commit_journal:
         Mutex<conditional_commit_journal::WorthQueryConditionalCommitJournal>,
     conditional_maintenance_failure: Mutex<Option<String>>,
@@ -69,39 +77,6 @@ pub(in crate::domain_computation) struct WorthQueryApplicationCommitSerializatio
 }
 
 impl WorthQueryPrimaryGraphProvider {
-    pub(super) fn install(
-        graph: WorthQueryPrimaryGraphIntegrationHandle,
-        fault_port: Arc<dyn fault_port::WorthQueryPrimaryGraphFaultPort>,
-    ) -> (
-        Arc<crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor>,
-        Arc<Self>,
-    ){
-        let provider = Arc::new(Self {
-            graph,
-            resource_support: resource_support::WorthQueryPrimaryGraphResourceSupport::install(),
-            commit_serialization: Mutex::new(()),
-            live_delivery: super::live_delivery::WorthQueryLiveDeliverySource::default(),
-            attempts: Mutex::new(
-                application_attempt_state::WorthQueryPrimaryGraphApplicationAttemptStore::default(),
-            ),
-            application_attempt_work: Default::default(),
-            completed_commit_evidence: Mutex::new(
-                session_commit::WorthQueryCompletedCommitEvidenceStore::default(),
-            ),
-            receipt_basis_retention: Mutex::new(Default::default()),
-            conditional_commit_journal: Mutex::new(Default::default()),
-            conditional_maintenance_failure: Mutex::new(None),
-            fault_port,
-        });
-        let anchor = Arc::new(
-            crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor::install_invariant_capable::<
-                WorthQueryPrimaryLogicalGraph,
-                Arc<Self>,
-            >(Arc::clone(&provider)),
-        );
-        (anchor, provider)
-    }
-
     pub(in crate::domain_computation::primary_graph) fn conditional_commit_sequence(&self) -> u64 {
         self.conditional_commit_journal
             .lock()
@@ -318,6 +293,10 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(super) fn take_failed_index_publication(&self) -> bool {
         self.take_fault(fault_port::WorthQueryPrimaryGraphFault::FailedIndexPublication)
+    }
+
+    pub(super) fn take_failed_post_commit_snapshot(&self) -> bool {
+        self.take_fault(fault_port::WorthQueryPrimaryGraphFault::FailedPostCommitSnapshot)
     }
 
     #[cfg(feature = "test-primary-graph-faults")]

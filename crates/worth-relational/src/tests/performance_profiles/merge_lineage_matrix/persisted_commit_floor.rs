@@ -5,11 +5,11 @@ pub(super) fn certify_merge_execution_vs_persisted_commit_floor(suite: &'static 
         suite,
         "merge_execution_vs_persisted_commit_floor",
         || {
-            let mut merge_runtime = persisted_runtime_with_test_schema();
-            create_entity(&mut merge_runtime, "main-anchor");
-            create_branch_from_main(&mut merge_runtime, "feature");
+            let merge_runtime = persisted_runtime_with_test_schema();
+            create_entity(&merge_runtime, "main-anchor");
+            create_branch_from_main(&merge_runtime, "feature");
             let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-                &mut merge_runtime,
+                &merge_runtime,
                 BranchId("feature".to_string()),
             );
             txn.push_batch(
@@ -28,9 +28,10 @@ pub(super) fn certify_merge_execution_vs_persisted_commit_floor(suite: &'static 
                     ))
                     .into(),
                 ),
-            );
+            )
+            .expect("test staging stays within configured resource budgets");
             let _feature_only =
-                changed_entities(&txn.commit(&mut merge_runtime).expect("feature create"))[0];
+                changed_entities(&txn.commit(&merge_runtime).expect("feature create"))[0];
 
             let prepared = merge_runtime
                 .prepare_merge_execution(MergeExecutionRequest {
@@ -48,15 +49,15 @@ pub(super) fn certify_merge_execution_vs_persisted_commit_floor(suite: &'static 
             let merge_elapsed_micros = merge_started_at.elapsed().as_micros();
             let merge_counters = merge_runtime.performance_access().counters();
 
-            let mut control_runtime = persisted_runtime_with_test_schema();
+            let control_runtime = persisted_runtime_with_test_schema();
             control_runtime.performance_access().reset_counters();
             let control_started_at = Instant::now();
             let control_outcome = {
-                let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(
-                    &mut control_runtime,
-                );
-                txn.push_batch(batch_create("control-single"));
-                txn.commit(&mut control_runtime)
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&control_runtime);
+                txn.push_batch(batch_create("control-single"))
+                    .expect("test staging stays within configured resource budgets");
+                txn.commit(&control_runtime)
                     .expect("control persisted single create")
             };
             let control_elapsed_micros = control_started_at.elapsed().as_micros();

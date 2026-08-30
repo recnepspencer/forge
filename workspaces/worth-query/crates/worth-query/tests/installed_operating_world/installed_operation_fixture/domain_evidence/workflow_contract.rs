@@ -52,9 +52,10 @@ fn workflow_package_with_graph(
         deterministic: true,
     };
     semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
-        comparator: domain::WorthQueryOperationReplayComparatorContract {
-            family: "domain-evidence-workflow-exact-v1",
-        },
+        comparator: domain::WorthQueryOperationReplayComparatorContract::new(
+            "domain-evidence-workflow-exact-v1",
+        )
+        .expect("static replay comparator family is portable"),
     };
     semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
     if graph {

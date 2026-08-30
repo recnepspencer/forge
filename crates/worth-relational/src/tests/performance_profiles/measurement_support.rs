@@ -1,8 +1,8 @@
 use super::*;
 
 pub(super) fn commit_measurement(
-    runtime: &mut RelationalRuntime,
-    run: impl FnOnce(&mut RelationalRuntime) -> CommitResult,
+    runtime: &RelationalRuntime,
+    run: impl FnOnce(&RelationalRuntime) -> CommitResult,
 ) -> PerfMeasurement {
     runtime.performance_access().reset_counters();
     let started_at = Instant::now();

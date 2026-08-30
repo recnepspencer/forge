@@ -4,9 +4,9 @@ use crate::tests::support::*;
 
 #[test]
 fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
-    let mut runtime =
+    let runtime =
         runtime_with_test_schema_execution_model(RelationalExecutionModel::ParallelPreparation);
-    let result = create_entity_outcome(&mut runtime, "staged");
+    let result = create_entity_outcome(&runtime, "staged");
 
     assert!(result.complexity_delta().preparation_packet_count >= 1);
     assert!(result.complexity_delta().preparation_parallel_legal_count >= 1);
@@ -62,13 +62,13 @@ fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
 
 #[test]
 fn staged_parallel_patch_preparation_matches_serial_patch_surface() {
-    let mut serial_runtime =
+    let serial_runtime =
         runtime_with_test_schema_execution_model(RelationalExecutionModel::SingleLaneExecution);
-    let mut staged_runtime =
+    let staged_runtime =
         runtime_with_test_schema_execution_model(RelationalExecutionModel::ParallelPreparation);
 
-    let serial = create_entity_outcome(&mut serial_runtime, "patch-parity");
-    let staged = create_entity_outcome(&mut staged_runtime, "patch-parity");
+    let serial = create_entity_outcome(&serial_runtime, "patch-parity");
+    let staged = create_entity_outcome(&staged_runtime, "patch-parity");
 
     assert_eq!(serial.patch(), staged.patch());
     assert_eq!(serial.envelope().patch, staged.envelope().patch);

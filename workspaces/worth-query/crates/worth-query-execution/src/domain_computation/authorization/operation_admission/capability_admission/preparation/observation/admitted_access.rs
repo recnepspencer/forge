@@ -9,6 +9,7 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityRequest, ApplicationCapabilityRequestProjection,
     ApplicationCapabilityValidityTimeline,
 };
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 use worth_query_installation::facade::{
     ApplicationSchema, ApplicationSchemaBindingIdentity, WorthQueryCanonicalWorkEvidence,
 };
@@ -226,7 +227,7 @@ where
         runtime_authority: prepared.runtime.runtime.authority_identity(),
         binding_identity: prepared.capability.binding_identity().clone(),
         capability: prepared.capability.contract().name().into(),
-        capability_type: std::any::type_name::<Capability>().into(),
+        capability_type: prepared.capability.contract().capability_type().into(),
         operation: prepared.capability.contract().operation().into(),
         principal_entity_id: prepared.principal.principal_entity_id(),
         input,
@@ -260,6 +261,7 @@ where
     ) -> Result<(), crate::domain_computation::authorization::WorthQueryOperationAuthorizationDenial>
     where
         Schema: ApplicationSchema,
+        Operation: ApplicationOperationMarkerIdentity,
     {
         operation_progression::validate_capability_operation_authority(
             runtime,

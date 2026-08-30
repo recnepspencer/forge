@@ -5,7 +5,7 @@ use worth_ui_platform_pulse::observation_contract::PlatformPulseLifecycleObserva
 use crate::adjudication::{
     adjudicate_first_frame, CausalFirstFrameObservationSet, ExecutableFirstFrameEvidence,
 };
-use crate::external_observation::{observe_stable_process_liveness, PlatformPulseLifecycleStream};
+use crate::external_observation::{begin_stable_process_liveness, PlatformPulseLifecycleStream};
 use crate::failure_teardown::{
     teardown_native_bound_world, teardown_unbound_world, PulseExecutableWorldFailure,
     PulseExecutableWorldFailureReport, UnboundFailureWorldResources,
@@ -67,6 +67,7 @@ impl PulseExecutableWorld<AwaitingFirstFrame> {
                     installation,
                     process,
                     lifecycle,
+                    journey_started: launch_started,
                     platform: bound.platform,
                     native_client: bound.native_client,
                 },
@@ -119,12 +120,12 @@ fn adjudicate_bound_first_frame(
     bound: &BoundFirstFrameWorld,
     deadline: Instant,
 ) -> Result<ExecutableFirstFrameEvidence, PulseExecutableWorldFailure> {
+    let liveness =
+        begin_stable_process_liveness(process).map_err(PulseExecutableWorldFailure::Liveness)?;
     let client_area = bound
         .platform
         .observe_bound_client_area(&bound.native_client)
         .map_err(PulseExecutableWorldFailure::Native)?;
-    let liveness =
-        observe_stable_process_liveness(process).map_err(PulseExecutableWorldFailure::Liveness)?;
     let pixels = loop {
         let pixels = bound
             .platform
@@ -158,6 +159,9 @@ fn adjudicate_bound_first_frame(
         }
         std::thread::sleep(Duration::from_millis(20));
     };
+    let liveness = liveness
+        .finish(process)
+        .map_err(PulseExecutableWorldFailure::Liveness)?;
     let causal = CausalFirstFrameObservationSet::new(
         process.id(),
         bound.process_started.clone(),

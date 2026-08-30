@@ -3,7 +3,7 @@ use super::native_strategy_fixtures::*;
 #[test]
 fn replay_commit_certifies_strategy_surface_for_strategy_bearing_commit() {
     let descriptor = strategy_descriptor();
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .commit_strategy_executor(CommitStrategyExecutionRegistration::new(
@@ -32,20 +32,20 @@ fn replay_commit_certifies_strategy_surface_for_strategy_bearing_commit() {
         .expect("strategy executes against committed basis");
     let commit = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered strategy plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated lowered strategy plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("validated strategy commit executed")
     };
 
@@ -74,7 +74,7 @@ fn replay_commit_certifies_strategy_surface_for_strategy_bearing_commit() {
 #[test]
 fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
     let descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(61));
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(
             CommitStrategyRegistration::new(descriptor.clone())
@@ -84,7 +84,7 @@ fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
             &descriptor,
         ))
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "before");
+    let entity = crate::tests::support::create_entity(&runtime, "before");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -116,20 +116,20 @@ fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
         .expect("strategy executes against committed basis");
     let commit = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered strategy plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated strategy plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("validated strategy commit executed")
     };
 
@@ -177,7 +177,7 @@ fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
 #[test]
 fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_and_replays() {
     let descriptor = EntityReplacementReconciliationStrategy::descriptor(CommitStrategyId(62));
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(
             CommitStrategyRegistration::new(descriptor.clone())
@@ -187,7 +187,7 @@ fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_
             EntityReplacementReconciliationStrategy::execution_registration(&descriptor),
         )
         .build();
-    let entity = crate::tests::support::create_entity(&mut runtime, "before");
+    let entity = crate::tests::support::create_entity(&runtime, "before");
     let original_lineage = runtime
         .lineage_access()
         .for_record(entity)
@@ -216,20 +216,20 @@ fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_
         .expect("replacement strategy executes against committed basis");
     let commit = {
         let (transaction_validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime, None);
         let lowered = authority
             .lower_execution_with_input(
-                &mut runtime,
+                &runtime,
                 &request,
                 &execution,
                 transaction_validation_input,
             )
             .expect("lowered replacement strategy plan");
         let validated = authority
-            .validate_lowered_plan(&mut runtime, lowered)
+            .validate_lowered_plan(&runtime, lowered)
             .expect("validated replacement strategy plan");
         authority
-            .execute_validated_commit(&mut runtime, validated)
+            .execute_validated_commit(&runtime, validated)
             .expect("validated replacement strategy commit executed")
     };
     let current = runtime

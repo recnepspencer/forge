@@ -44,7 +44,7 @@ pub(crate) fn prepare_schema_continuity_diagnostics(
 }
 
 pub(super) fn schema_continuity_conflict_from_issue(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     branch_id: &crate::history::data::BranchId,
     transition: Option<&SchemaTransitionArtifact>,
     issue: SchemaContinuityBundleIssue,
@@ -69,7 +69,7 @@ pub(super) fn schema_continuity_conflict_from_issue(
 }
 
 pub(super) fn emit_schema_continuity_failure_diagnostic(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     branch_id: &crate::history::data::BranchId,
     proposed_transition: Option<FailureTransitionView<'_>>,
     previous_envelope: Option<&CanonicalCommitEnvelope>,
@@ -85,7 +85,7 @@ pub(super) fn emit_schema_continuity_failure_diagnostic(
         entries.extend(rejected_schema_transition_entries(proposed_transition));
     }
 
-    runtime.publication_authority().push_bounded_diagnostic(
+    runtime.push_bounded_preparation_diagnostic(
         DiagnosticsScope::Schema,
         DiagnosticsArtifactKind::Failure,
         entries,

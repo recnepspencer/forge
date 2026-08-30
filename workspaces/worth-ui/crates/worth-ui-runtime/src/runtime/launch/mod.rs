@@ -15,6 +15,9 @@ mod preservation;
 pub(crate) use preservation::WorthUiLastValidRuntimeState;
 pub(crate) mod runtime_instance;
 mod runtime_instance_accessors;
+pub use runtime_instance_accessors::{
+    WorthUiRuntimeShutdownBlocker, WorthUiRuntimeShutdownRecovery,
+};
 #[cfg(test)]
 mod runtime_instance_test_support;
 mod seal_artifact;

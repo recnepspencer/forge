@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressure() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -12,7 +12,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
             recent_version_window: 0,
         })
         .build();
-    let created = create_entity_outcome(&mut runtime, "base");
+    let created = create_entity_outcome(&runtime, "base");
     let entity = changed_entities(&created)[0];
     runtime
         .history_authority()
@@ -23,7 +23,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
         .expect("feature branch");
 
     let main_update = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -35,12 +35,13 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                     ),
                 }),
             )),
-        );
-        txn.commit(&mut runtime).expect("main update")
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).expect("main update")
     };
     let feature_update = {
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-            &mut runtime,
+            &runtime,
             BranchId("feature".to_string()),
         );
         txn.push_batch(
@@ -54,19 +55,23 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                     ),
                 }),
             )),
-        );
-        txn.commit(&mut runtime).expect("feature update")
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).expect("feature update")
     };
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&main_update.snapshot));
+        .release_snapshot(&main_update.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&feature_update.snapshot));
+        .release_snapshot(&feature_update.snapshot)
+        .is_ok());
 
     let retained_only = runtime
         .inspect_what_happened()
@@ -124,8 +129,8 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
 
 #[test]
 fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
-    let mut runtime = runtime_with_test_schema();
-    let base = create_entity_outcome(&mut runtime, "base");
+    let runtime = runtime_with_test_schema();
+    let base = create_entity_outcome(&runtime, "base");
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
@@ -136,7 +141,7 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
         .expect("feature branch");
 
     let main_update = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -148,12 +153,13 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                     ),
                 }),
             )),
-        );
-        txn.commit(&mut runtime).expect("main update")
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).expect("main update")
     };
     let feature_update = {
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-            &mut runtime,
+            &runtime,
             BranchId("feature".to_string()),
         );
         txn.push_batch(
@@ -167,8 +173,9 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                     ),
                 }),
             )),
-        );
-        txn.commit(&mut runtime).expect("feature update")
+        )
+        .expect("test staging stays within configured resource budgets");
+        txn.commit(&runtime).expect("feature update")
     };
 
     let feature_head = runtime

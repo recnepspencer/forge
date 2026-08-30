@@ -2,6 +2,7 @@ mod outcome;
 mod resolution;
 mod stop;
 
+pub(crate) use outcome::UiIntentProductInputSource;
 pub use outcome::{
     UiIntentRouteResolution, UiResolvedConfirmationIntentRoute, UiResolvedProductIntentRoute,
 };

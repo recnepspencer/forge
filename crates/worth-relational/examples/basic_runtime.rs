@@ -3,7 +3,7 @@ mod support;
 use worth_relational::facade::runtime::RelationalRuntimeApi;
 
 fn main() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .runtime_setup(|runtime| {
             runtime.runtime_name("basic-runtime");
         })
@@ -12,9 +12,9 @@ fn main() {
         })
         .build();
 
-    let (_left_commit, left) = support::create_entity(&mut runtime, "left");
-    let (_right_commit, right) = support::create_entity(&mut runtime, "right");
-    let (edge_commit, relation) = support::create_relation(&mut runtime, left, right, "connects");
+    let (_left_commit, left) = support::create_entity(&runtime, "left");
+    let (_right_commit, right) = support::create_entity(&runtime, "right");
+    let (edge_commit, relation) = support::create_relation(&runtime, left, right, "connects");
 
     let current = runtime
         .read_truth()

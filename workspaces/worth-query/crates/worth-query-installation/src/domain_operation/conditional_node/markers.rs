@@ -1,9 +1,30 @@
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct WorthQueryTypedFamilyIdentity(String);
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryPortableFamilyIdentityDenial {
+    InvalidPortableIdentity,
+}
+
 impl WorthQueryTypedFamilyIdentity {
     pub(crate) fn declared(value: &'static str) -> Self {
         Self(value.to_string())
+    }
+
+    /// Reconstructs one authority-free family identity from untrusted owned data.
+    ///
+    /// This checks only the stable portable-identity grammar. It does not prove
+    /// that a provider, comparator, condition family, trigger family, or unit is
+    /// registered in the current host.
+    pub fn from_untrusted_portable_identity(
+        value: String,
+    ) -> Result<Self, WorthQueryPortableFamilyIdentityDenial> {
+        let identity = Self(value);
+        if identity.is_portable() {
+            Ok(identity)
+        } else {
+            Err(WorthQueryPortableFamilyIdentityDenial::InvalidPortableIdentity)
+        }
     }
 
     pub fn as_str(&self) -> &str {

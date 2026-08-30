@@ -2,14 +2,14 @@ use super::fixtures::*;
 
 #[test]
 fn harness_heavy_invariants_are_opt_in() {
-    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
+    let runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::harness_audit_only(
             InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
         )],
         ..InvariantCatalog::default()
     });
-    let _ = create_entity(&mut runtime, "duplicate");
-    let _ = create_entity(&mut runtime, "duplicate");
+    let _ = create_entity(&runtime, "duplicate");
+    let _ = create_entity(&runtime, "duplicate");
 
     let default_results = runtime
         .validation()

@@ -8,7 +8,8 @@ use worth_query_host::facade::{declaration, primary_graph};
 use worth_query_host::facade::{
     worth_query_application_query, worth_query_application_schema, worth_query_aspect,
     worth_query_entity, worth_query_field, worth_query_operation, worth_query_operation_reads,
-    worth_query_operation_writes, worth_query_principal_binding, worth_query_relation,
+    worth_query_operation_writes, worth_query_portable_type, worth_query_principal_binding,
+    worth_query_relation,
 };
 
 worth_query_application_schema! {
@@ -138,9 +139,11 @@ worth_query_principal_binding!(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FinancialInput(pub String);
+worth_query_portable_type!(FinancialInput => "worth.query.test.certification.financial.input.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AmendMarketInput;
+worth_query_portable_type!(AmendMarketInput => "worth.query.test.certification.financial.amend_input.v1");
 
 worth_query_operation!(pub ExecuteFinancial(FinancialInput) in FinancialHostSchema);
 worth_query_operation_reads!(ExecuteFinancial => [MarketIdentityField, MarketRevisionField, MarketLifecycleField, RiskValueField]);
@@ -155,6 +158,11 @@ pub struct RevisionSlot;
 pub struct DueSlot;
 pub struct LifecycleSlot;
 pub struct InputSlot;
+worth_query_portable_type!(IdentitySlot => "worth.query.test.certification.financial.identity_slot.v1");
+worth_query_portable_type!(RevisionSlot => "worth.query.test.certification.financial.revision_slot.v1");
+worth_query_portable_type!(DueSlot => "worth.query.test.certification.financial.due_slot.v1");
+worth_query_portable_type!(LifecycleSlot => "worth.query.test.certification.financial.lifecycle_slot.v1");
+worth_query_portable_type!(InputSlot => "worth.query.test.certification.financial.input_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FinancialIntentResult {
@@ -164,6 +172,7 @@ pub struct FinancialIntentResult {
     pub lifecycle: String,
     pub input: String,
 }
+worth_query_portable_type!(FinancialIntentResult => "worth.query.test.certification.financial.intent_result.v1");
 
 worth_query_application_query!(
     pub FinancialIntentQuery in FinancialHostSchema,

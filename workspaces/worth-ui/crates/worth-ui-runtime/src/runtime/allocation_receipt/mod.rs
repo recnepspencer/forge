@@ -148,7 +148,9 @@ pub(crate) use mounted_projection_journal::{
     UiMountedAllocationExactDelta, UiMountedAllocationProjectionDelta,
     UiMountedAllocationProjectionSource,
 };
-pub(crate) use mounted_projection_row::UiMountedAllocationProjectionDenial;
+pub(crate) use mounted_projection_row::{
+    UiCommittedViewportGeometry, UiMountedAllocationProjectionDenial,
+};
 pub(in crate::runtime) use prepared_replan::{
     UiAllocationLedgerPreparation, UiPreparedAllocationLedgerTransition,
 };

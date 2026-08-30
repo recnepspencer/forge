@@ -1,5 +1,6 @@
 mod cost_accounting;
 mod denial;
+mod focus_scope;
 mod frame_storage;
 mod geometry;
 mod hit_test;
@@ -13,6 +14,7 @@ mod semantic_text;
 mod static_paint;
 
 pub use denial::UiMountedProjectionDenial;
+pub(crate) use focus_scope::UiMountedFocusScope;
 pub(in crate::mounting) use frame_storage::diagnostic_source::UiMountedDiagnosticSource;
 pub(crate) use frame_storage::presentation_sources::compile as compile_presentation_sources;
 pub use frame_storage::UiMountedProjectionFrame;

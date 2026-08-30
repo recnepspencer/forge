@@ -124,6 +124,7 @@ fn unsupported_native_mode_denies_before_recorder_effects() {
     let candidate = prepare(&mut session);
 
     assert_rejected(
+        "unsupported native mode",
         session.present_prepared_mounted_frame(candidate, UiPresentationDeadline::at_tick(10), 0),
         UiHostSurfacePresentationDenial::UnsupportedPresentationMode(
             UiHostSurfacePresentationMode::NativeDisplay,
@@ -150,6 +151,7 @@ fn transcript_capacity_denies_before_recorder_effects() {
     let candidate = prepare(&mut session);
 
     assert_rejected(
+        "zero mechanic capacity",
         session.present_prepared_mounted_frame(candidate, UiPresentationDeadline::at_tick(10), 0),
         UiHostSurfacePresentationDenial::CapacityExceeded,
     );
@@ -162,13 +164,14 @@ fn retained_capacity_recovers_after_drain() {
         .launch()
         .unwrap();
     let surface = session.create_semantic_surface().unwrap();
-    session
+    let binding = session
         .register_host_surface(
             surface,
             UiHostSurfacePresentationMode::RecordOnly,
             profile(1),
         )
-        .unwrap();
+        .unwrap()
+        .binding_generation();
     let node = first_node(&session);
     session.mount_instance(node, surface).unwrap();
     let first = prepare(&mut session);
@@ -176,8 +179,16 @@ fn retained_capacity_recovers_after_drain() {
         session.present_prepared_mounted_frame(first, UiPresentationDeadline::at_tick(10), 0,),
         UiMountedFrameOutcome::Published(_)
     ));
+    session
+        .rebind_host_surface(
+            binding,
+            UiHostSurfacePresentationMode::RecordOnly,
+            profile(2),
+        )
+        .expect("a successor binding forces record-bearing presentation work");
     let blocked = prepare(&mut session);
     assert_rejected(
+        "retained transcript capacity",
         session.present_prepared_mounted_frame(blocked, UiPresentationDeadline::at_tick(20), 1),
         UiHostSurfacePresentationDenial::CapacityExceeded,
     );

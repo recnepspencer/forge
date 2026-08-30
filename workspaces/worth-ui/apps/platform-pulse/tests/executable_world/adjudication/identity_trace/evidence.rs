@@ -38,12 +38,9 @@ impl ExecutableVisualSnapshotEvidence {
     ) -> Result<[u32; 4], ExecutableVisualIdentityFailure> {
         let manifest = super::super::platform_pulse_control_points::checked_in()
             .map_err(ExecutableVisualIdentityFailure::ControlPointManifest)?;
-        let extent = manifest.logical_client_extent();
-        let inset = manifest.target_region_inset();
-        let logical_right = extent[0] - inset[0];
-        let logical_bottom = extent[1] - inset[1];
-        let [left, top] = self.project_logical_point(inset)?;
-        let [right, bottom] = self.project_logical_point([logical_right, logical_bottom])?;
+        let region = manifest.target_region();
+        let [left, top] = self.project_logical_point([region[0], region[1]])?;
+        let [right, bottom] = self.project_logical_point([region[2], region[3]])?;
         Ok([left, top, right, bottom])
     }
 }

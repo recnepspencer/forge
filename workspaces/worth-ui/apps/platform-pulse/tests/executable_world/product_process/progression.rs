@@ -40,6 +40,7 @@ pub(crate) struct NativeBoundExecutableWorld {
     pub(super) installation: IsolatedPulseInstallation,
     pub(super) process: LivePlatformPulseProcess,
     pub(super) lifecycle: PlatformPulseLifecycleStream,
+    pub(super) journey_started: Instant,
     pub(super) platform: WindowsNativePlatform,
     pub(super) native_client: WindowsProcessBoundNativeClientArea,
 }
@@ -87,6 +88,7 @@ pub(crate) struct ComparisonBasisRefreshed<Stage> {
 }
 
 pub(crate) type SecondCurrent = ComparisonBasisRefreshed<SecondQueryCurrent>;
+pub(crate) type PortalReady = SecondCurrent;
 
 pub(crate) struct SnapshotCaptured<Stage> {
     pub(super) prior: Stage,
@@ -157,6 +159,7 @@ pub(crate) struct PreservedPredecessorEvidence {
 pub(crate) struct RecoveredBlue {
     pub(super) preserved: PreservedPredecessorEvidence,
     pub(super) evidence: ExecutableReplacementEvidence<CanonicalBlueRecoverySourceDelta>,
+    pub(super) rebase_snapshot: ExecutableVisualSnapshotEvidence,
 }
 
 pub(crate) struct AwaitingSchemaStop {
@@ -169,6 +172,7 @@ pub(crate) struct SchemaStopped {
     pub(super) recovered: RecoveredBlue,
     pub(super) evidence:
         crate::adjudication::ExecutableSchemaTransitionEvidence<RevisionSchemaSourceDelta>,
+    pub(super) retirement: ExecutableVisualRetirementEvidence,
 }
 
 pub(crate) struct AwaitingStatusRecovery {
@@ -181,6 +185,7 @@ pub(crate) struct FinalRecovered {
     pub(super) stopped: SchemaStopped,
     pub(super) evidence:
         crate::adjudication::ExecutableSchemaTransitionEvidence<StatusSchemaRecoverySourceDelta>,
+    pub(super) rebase_snapshot: ExecutableVisualSnapshotEvidence,
 }
 
 pub(crate) struct Closed {
@@ -298,6 +303,10 @@ impl PulseExecutableWorld<Published<RecoveredBlue>> {
         &self.state.stage.preserved.evidence
     }
 
+    pub(crate) fn rebase_snapshot_evidence(&self) -> &ExecutableVisualSnapshotEvidence {
+        &self.state.stage.rebase_snapshot
+    }
+
     pub(crate) fn query_basis(
         &self,
     ) -> &worth_ui_platform_pulse::observation_contract::PlatformPulseQueryProjectionEvidence {
@@ -318,11 +327,21 @@ impl PulseExecutableWorld<Published<SchemaStopped>> {
     ) -> &crate::adjudication::ExecutableSchemaTransitionEvidence<RevisionSchemaSourceDelta> {
         &self.state.stage.evidence
     }
+
+    pub(crate) fn retirement_evidence(&self) -> ExecutableVisualRetirementEvidence {
+        self.state.stage.retirement
+    }
 }
 
 impl PulseExecutableWorld<Closed> {
     pub(crate) fn evidence(&self) -> &ExecutableLifecycleCleanupEvidence {
         &self.state.evidence
+    }
+}
+
+impl<Stage> PulseExecutableWorld<Published<Stage>> {
+    pub(crate) fn native_journey_started(&self) -> Instant {
+        self.state.world.journey_started
     }
 }
 

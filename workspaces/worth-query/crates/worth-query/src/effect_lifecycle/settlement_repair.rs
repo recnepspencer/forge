@@ -37,3 +37,15 @@ pub(crate) fn repair_effect_settlement(
         .repair_deferred_publication_settlement(settlement)
         .map_err(EffectSettlementRepairError::Settlement)
 }
+
+pub(crate) fn repair_pending_effect_settlement(
+    mut authority: EffectExecutionAuthority<'_>,
+    commit_id: worth_relational::facade::history::CommitId,
+) -> Result<RelationalCommitReceipt, EffectSettlementRepairError> {
+    let runtime = authority
+        .relational_runtime()
+        .ok_or(EffectSettlementRepairError::MissingRelationalAuthority)?;
+    runtime
+        .repair_pending_publication_settlement(commit_id)
+        .map_err(EffectSettlementRepairError::Settlement)
+}

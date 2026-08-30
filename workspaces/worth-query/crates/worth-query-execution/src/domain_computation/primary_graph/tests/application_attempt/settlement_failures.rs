@@ -71,6 +71,61 @@ fn application_commit_returns_exact_repair_authority_after_performed_append_faul
 }
 
 #[test]
+fn idempotent_retry_repairs_settlement_after_the_external_capability_is_dropped() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let program = admitted_program(
+        &world,
+        &principal,
+        &account,
+        &request,
+        "drop-then-idempotent-retry",
+    );
+    let retry = admitted_program(
+        &world,
+        &principal,
+        &account,
+        &request,
+        "drop-then-idempotent-retry",
+    );
+    world.application.fail_next_durable_append_for_test();
+
+    let WorthQueryApplicationCommitOutcome::SettlementDeferred(deferred) = world
+        .application
+        .compare_and_commit_application(program, idempotency(96, 96))
+    else {
+        panic!("performed application publication must defer settlement");
+    };
+    let commit_id = deferred.commit_id();
+    drop(deferred);
+
+    let WorthQueryApplicationCommitOutcome::AlreadyCommitted(recovered) = world
+        .application
+        .compare_and_commit_application(retry, idempotency(96, 96))
+    else {
+        panic!("idempotent retry must repair and recover the performed commit");
+    };
+    assert_eq!(recovered.commit_id(), commit_id);
+
+    let next_account = resolved_account(&world, "drop-then-idempotent-retry", &request);
+    let later = admitted_program(
+        &world,
+        &principal,
+        &next_account,
+        &request,
+        "after-drop-then-retry",
+    );
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(later, idempotency(97, 97)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+}
+
+#[test]
 fn settlement_authority_survives_index_reconstruction_after_append_fault() {
     let world = installed_authorization_world(true);
     let request = live_scope();

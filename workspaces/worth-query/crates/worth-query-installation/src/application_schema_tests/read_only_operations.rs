@@ -6,6 +6,25 @@ struct ReadOnlyInput;
 struct EmptyOperation;
 struct EmptyInput;
 
+worth_query_declaration::worth_query_portable_type!(
+    ReadOnlyInput => "worth.query.installation-test.read-only-input"
+);
+worth_query_declaration::worth_query_portable_type!(
+    EmptyInput => "worth.query.installation-test.empty-input"
+);
+
+impl ApplicationOperationMarkerIdentity for ReadOnlyOperation {
+    type Schema = ReadTestSchema;
+    type Input = ReadOnlyInput;
+    const IDENTIFIER: &'static str = "ReadOnlyOperation";
+}
+
+impl ApplicationOperationMarkerIdentity for EmptyOperation {
+    type Schema = ReadTestSchema;
+    type Input = EmptyInput;
+    const IDENTIFIER: &'static str = "EmptyOperation";
+}
+
 impl<Schema> OperationReads<ReadOnlyOperation> for FixturePrincipalIdentityField<Schema> {}
 impl OperationRequiresAbility<ReadOnlyOperation> for TestAbility {}
 impl OperationRequiresAbility<EmptyOperation> for TestAbility {}
@@ -21,13 +40,8 @@ impl ApplicationSchema for ReadTestSchema {
         worth_query_declaration::facade::application_schema::ApplicationSchemaDeclarationDenial,
     > {
         let read =
-            ApplicationOperationRef::<Self, ReadOnlyOperation, ReadOnlyInput>::from_schema_identifier(
-                "ReadOnlyOperation",
-            );
-        let empty =
-            ApplicationOperationRef::<Self, EmptyOperation, EmptyInput>::from_schema_identifier(
-                "EmptyOperation",
-            );
+            ApplicationOperationRef::<Self, ReadOnlyOperation, ReadOnlyInput>::from_declaration();
+        let empty = ApplicationOperationRef::<Self, EmptyOperation, EmptyInput>::from_declaration();
         let ability =
             ApplicationAbilityRef::<Self, TestAbility, FixtureEntity<Self>>::from_schema_identifiers(
                 "TestAbility",
@@ -80,7 +94,7 @@ fn read_only_operation_installs_without_an_effect_program() {
             ReadTestSchema,
             ReadOnlyOperation,
             ReadOnlyInput,
-        >::from_schema_identifier("ReadOnlyOperation"))
+        >::from_declaration())
         .unwrap();
 
     assert!(installed.contracts().touches().scopes().is_empty());
@@ -122,7 +136,7 @@ fn operation_without_reads_or_effects_remains_uninstallable() {
         ReadTestSchema,
         EmptyOperation,
         EmptyInput,
-    >::from_schema_identifier("EmptyOperation"))
+    >::from_declaration())
     {
         Ok(_) => panic!("an operation without reads or effects must not install"),
         Err(denial) => denial,

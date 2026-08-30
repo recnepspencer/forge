@@ -5,7 +5,9 @@ use worth_ui_host_contract::{
     UiMountedPaintCommandChange, UiMountedPaintOrderEdit, UiMountedPaintOrderIdentity,
     UiMountedPaintOrderIntegrity, UiMountedPresentationAttemptIdentity, UiMountedPresentationDelta,
     UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
-    UiMountedPresentationInitialInput, UiMountedPresentationWorkView,
+    UiMountedPresentationInitialInput, UiMountedPresentationOpacity, UiMountedPresentationSample,
+    UiMountedPresentationSampleChange, UiMountedPresentationSampleInput,
+    UiMountedPresentationTransform, UiMountedPresentationWorkView,
     UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
 };
 
@@ -133,6 +135,82 @@ fn ordinary_delta_returns_one_delta_record_without_parallel_retained_history() {
     assert_eq!(retained.commands.len(), initial.commands().len() - 1);
 }
 
+#[test]
+fn sample_rejects_stale_frame_and_unknown_command_without_mutating_overrides() {
+    let (initial, requirement) = valid_initial_with_requirement();
+    let capacity = crate::UiHeadlessRecorderCapacity::production_default();
+    let text = worth_ui_test_support::semantic_text_layout_resolver_for_certification();
+    let mut retained = None;
+    apply_work(
+        &view(
+            &text,
+            requirement,
+            UiMountedPresentationWorkView::Initial(&initial),
+        ),
+        capacity,
+        &mut retained,
+    )
+    .unwrap();
+
+    let stale = sample_for(
+        &initial,
+        UiMountedFrameIdentity::mint_unbound().unwrap(),
+        initial.commands()[0].identity(),
+    );
+    assert!(apply_work(
+        &view(
+            &text,
+            requirement,
+            UiMountedPresentationWorkView::Sample(&stale),
+        ),
+        capacity,
+        &mut retained,
+    )
+    .is_err());
+    assert_eq!(retained.as_ref().unwrap().sample_overrides().count(), 0);
+
+    let foreign = valid_initial();
+    let unknown = sample_for(
+        &initial,
+        initial.affinity().successor(),
+        foreign.commands()[0].identity(),
+    );
+    assert!(apply_work(
+        &view(
+            &text,
+            requirement,
+            UiMountedPresentationWorkView::Sample(&unknown),
+        ),
+        capacity,
+        &mut retained,
+    )
+    .is_err());
+    assert_eq!(retained.as_ref().unwrap().sample_overrides().count(), 0);
+}
+
+fn sample_for(
+    initial: &UiMountedPresentationInitial,
+    frame: UiMountedFrameIdentity,
+    command: worth_ui_host_contract::UiMountedPaintCommandIdentity,
+) -> UiMountedPresentationSample {
+    let bounds = initial.commands()[0].bounds();
+    UiMountedPresentationSample::from_inert_mechanics(UiMountedPresentationSampleInput {
+        frame,
+        surface: initial.affinity().surface(),
+        binding: initial.affinity().binding(),
+        content: initial.affinity().content(),
+        baseline: initial.affinity().baseline(),
+        changes: vec![UiMountedPresentationSampleChange::from_runtime_sampling(
+            command,
+            Some(UiMountedPresentationTransform::from_runtime_sampling(bounds, bounds).unwrap()),
+            UiMountedPresentationOpacity::from_runtime_sampling(0.5).unwrap(),
+        )],
+        damage: vec![UiMountedLogicalDamage::from_runtime_mounting(bounds)],
+        production_cost: Default::default(),
+    })
+    .unwrap()
+}
+
 fn view<'work>(
     text: &'work dyn worth_ui_host_contract::UiMountedQualifiedTextResolver,
     requirement: UiMountedSurfaceBindingRequirement,
@@ -186,6 +264,9 @@ fn command_with_identity(
         UiMountedPaintCommand::SemanticText { mechanic, .. } => {
             UiMountedPaintCommand::SemanticText { identity, mechanic }
         }
+        UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+            UiMountedPaintCommand::PortalOverlay { identity, mechanic }
+        }
     }
 }
 
@@ -202,6 +283,10 @@ fn command_with_payload(
             UiMountedPaintCommand::SemanticText { identity, .. },
             UiMountedPaintCommand::SemanticText { mechanic, .. },
         ) => UiMountedPaintCommand::SemanticText { identity, mechanic },
+        (
+            UiMountedPaintCommand::PortalOverlay { identity, .. },
+            UiMountedPaintCommand::PortalOverlay { mechanic, .. },
+        ) => UiMountedPaintCommand::PortalOverlay { identity, mechanic },
         _ => panic!("fixture donor must use the same drawable family"),
     }
 }

@@ -36,7 +36,7 @@ pub(super) fn validate_conditional_application_operations(
                 ),
             );
         };
-        if input_type != binding.input_type() {
+        if input_type.as_str() != binding.input_type() {
             return Err(
                 WorthQueryPortablePackageValidationDenial::conditional_application_operation_changed(
                     binding.application_operation(),

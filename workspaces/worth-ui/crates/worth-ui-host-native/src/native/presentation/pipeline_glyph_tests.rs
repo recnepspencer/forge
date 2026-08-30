@@ -203,6 +203,7 @@ fn command(
         atlas_page: 0,
         target,
         texture_uv: [0.0, 0.0, 4.0 / page_extent, 4.0 / page_extent],
+        opacity: 1.0,
     }
 }
 

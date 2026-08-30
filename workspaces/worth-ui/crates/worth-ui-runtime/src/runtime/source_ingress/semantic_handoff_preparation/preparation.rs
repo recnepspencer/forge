@@ -7,9 +7,9 @@ use crate::source::{
 use worth_ui_dsl::WorthUiSealedSemanticPackage;
 
 use super::{
-    prepare_declaration_material, WorthUiPreparedSemanticHandoffMaterial,
-    WorthUiSemanticHandoffEvidence, WorthUiSemanticHandoffPreparationDenial,
-    WorthUiSemanticHandoffPreparationStop,
+    prepare_declaration_material, service_declaration_admission::admit_service_declarations,
+    WorthUiPreparedSemanticHandoffMaterial, WorthUiSemanticHandoffEvidence,
+    WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop,
 };
 
 pub(in crate::runtime::source_ingress) fn prepare_semantic_handoff(
@@ -31,6 +31,8 @@ pub(in crate::runtime::source_ingress) fn prepare_semantic_handoff(
             )
         })?;
     evidence.admit_intent_material(intent_material);
+    admit_service_declarations(&evidence, snapshot)
+        .map_err(|stop| denial(evidence.clone(), stop))?;
     let resolved = WorthUiArtifactInputResolver::resolve(&package, snapshot).map_err(|_| {
         denial(
             evidence.clone(),

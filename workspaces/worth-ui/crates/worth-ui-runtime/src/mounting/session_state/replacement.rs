@@ -59,6 +59,26 @@ pub(crate) struct UiMountedGraphReplacementCompletionRejection {
 }
 
 impl UiMountedGraphReplacementSuccessor {
+    pub(crate) fn identity_view(&self) -> crate::mounting::UiMountedIdentityView {
+        self.identity.view()
+    }
+
+    pub(crate) fn focus_participation_snapshot(
+        &self,
+    ) -> Option<crate::mounting::UiMountedFocusParticipationSnapshot> {
+        self.identity.focus_participation_snapshot()
+    }
+
+    pub(crate) fn contains_mounted_instance(
+        &self,
+        mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> bool {
+        self.identity_view()
+            .mounted_instances()
+            .iter()
+            .any(|candidate| candidate.identity() == mounted_instance)
+    }
+
     pub(crate) fn seal_frame_reuse_contract(
         &self,
         basis: crate::mounting::UiMountedFrameReuseExternalBasis,

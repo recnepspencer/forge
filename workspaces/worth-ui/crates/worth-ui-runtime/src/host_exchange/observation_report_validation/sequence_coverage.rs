@@ -253,14 +253,25 @@ mod tests {
 
     #[test]
     fn a_lossless_family_cannot_claim_overflow() {
+        assert!(UiHostObservationFamily::ScrollDelta.requires_lossless_delivery());
         assert_eq!(
             require_loss_range(
-                UiHostObservationFamily::Focus,
+                UiHostObservationFamily::WindowFocus,
                 sequence_range(1, 1),
                 sequence_range(1, 2),
             ),
             Err(UiHostObservationReportDenial::LosslessOverflow(
-                UiHostObservationFamily::Focus
+                UiHostObservationFamily::WindowFocus
+            ))
+        );
+        assert_eq!(
+            require_loss_range(
+                UiHostObservationFamily::ScrollDelta,
+                sequence_range(1, 1),
+                sequence_range(1, 2),
+            ),
+            Err(UiHostObservationReportDenial::LosslessOverflow(
+                UiHostObservationFamily::ScrollDelta
             ))
         );
     }
@@ -269,7 +280,10 @@ mod tests {
         UiHostObservationReport::new(
             UiHostObservationSequence::new(sequence),
             worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicMillis(sequence),
-            worth_ui_host_contract::UiHostObservationPayload::Focus { focused: true },
+            worth_ui_host_contract::UiHostObservationPayload::WindowFocus {
+                surface: worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
+                focused: true,
+            },
         )
     }
 

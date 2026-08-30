@@ -351,8 +351,6 @@ pub(super) fn map_atlas_denial(
         | Native::StagingCapacityExceeded
         | Native::GlyphExtentExceeded => Contract::CapacityExceeded,
         Native::MalformedDemand | Native::StaleDemand => Contract::MalformedDemand,
-        Native::LivePinConflict | Native::StaleAffinity | Native::PinConflict => {
-            Contract::StalePlan
-        }
+        Native::PinConflict => Contract::StalePlan,
     }
 }

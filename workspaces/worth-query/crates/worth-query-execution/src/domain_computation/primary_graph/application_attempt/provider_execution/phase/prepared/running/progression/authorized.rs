@@ -171,9 +171,44 @@ where
                 WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
             )
         }
-        Err(_) => {
+        Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        }) => {
+            candidate.discard();
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::active_snapshot_capacity_exhausted(
+                    DenialStage::Idempotency,
+                    maximum_active_snapshots,
+                ),
+            )
+        }
+        Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::Unavailable) => {
             candidate.discard();
             progression_denied(DenialStage::Idempotency)
+        }
+        Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionCapacityExhausted) => {
+            candidate.discard();
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
+        Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionIdentityExhausted) => {
+            candidate.discard();
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
+        Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::SnapshotIdentityExhausted) => {
+            candidate.discard();
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::snapshot_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
         }
     }
 }
@@ -218,8 +253,39 @@ where
             }
             Err(_) => progression_denied(DenialStage::Idempotency),
         },
-        Err(()) => WorthQueryProviderProgressionOutcome::Denied(
-            WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
+        Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        }) => WorthQueryProviderProgressionOutcome::Denied(
+            WorthQueryApplicationCommitDenial::active_snapshot_capacity_exhausted(
+                DenialStage::Idempotency,
+                maximum_active_snapshots,
+            ),
         ),
+        Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::Unavailable) => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
+            )
+        }
+        Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted) => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
+        Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted) => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
+        Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted) => {
+            WorthQueryProviderProgressionOutcome::Denied(
+                WorthQueryApplicationCommitDenial::snapshot_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            )
+        }
     }
 }

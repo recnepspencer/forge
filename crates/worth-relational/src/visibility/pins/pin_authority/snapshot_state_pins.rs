@@ -1,7 +1,7 @@
 use super::*;
 
 impl<'runtime> VisibilityPinAuthority<'runtime> {
-    pub(crate) fn pin_snapshot_state(&mut self, state: &SnapshotState) {
+    pub(crate) fn pin_snapshot_state(&self, state: &SnapshotState) {
         for (partition_id, pins) in &state.pinned_partitions {
             for slot in pins.entity_slots.iter_set_slots() {
                 self.pin_entity(crate::identity::data::EntityId::new(
@@ -20,7 +20,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         }
     }
 
-    pub(crate) fn unpin_snapshot_state(&mut self, state: &SnapshotState) {
+    pub(crate) fn unpin_snapshot_state(&self, state: &SnapshotState) {
         for (partition_id, pins) in &state.pinned_partitions {
             for slot in pins.entity_slots.iter_set_slots() {
                 self.unpin_entity(crate::identity::data::EntityId::new(
@@ -39,13 +39,13 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         }
     }
 
-    fn pin_entity(&mut self, entity_id: crate::identity::data::EntityId) {
+    fn pin_entity(&self, entity_id: crate::identity::data::EntityId) {
         self.runtime
             .storage_authority()
             .pin_snapshot_record::<EntityRecordKind>(entity_id);
     }
 
-    fn unpin_entity(&mut self, entity_id: crate::identity::data::EntityId) {
+    fn unpin_entity(&self, entity_id: crate::identity::data::EntityId) {
         let retention_fence = self
             .runtime
             .visibility
@@ -55,13 +55,13 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             .unpin_snapshot_record::<EntityRecordKind>(entity_id, retention_fence);
     }
 
-    fn pin_relation(&mut self, relation_id: crate::identity::data::RelationId) {
+    fn pin_relation(&self, relation_id: crate::identity::data::RelationId) {
         self.runtime
             .storage_authority()
             .pin_snapshot_record::<RelationRecordKind>(relation_id);
     }
 
-    fn unpin_relation(&mut self, relation_id: crate::identity::data::RelationId) {
+    fn unpin_relation(&self, relation_id: crate::identity::data::RelationId) {
         let retention_fence = self
             .runtime
             .visibility

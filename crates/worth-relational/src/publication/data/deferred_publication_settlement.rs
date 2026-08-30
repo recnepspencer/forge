@@ -10,6 +10,11 @@ use crate::publication::patch::data::PatchStreamPosition;
 /// The capability is deliberately non-serializable. Clones retain the same
 /// sealed route evidence; only the runtime that performed that route can mint
 /// one or accept it for repair.
+///
+/// It names a record the runtime owns. It carries route evidence and a lookup
+/// key, never a runtime resource obligation, so holding, cloning, or dropping
+/// it can neither release, extend, nor withhold the published snapshot of the
+/// commit it names.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeferredPublicationSettlement {
     runtime_instance_id: u64,
@@ -56,11 +61,23 @@ impl DeferredPublicationSettlement {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeferredPublicationSettlementError {
+    RecoveryUnavailable {
+        commit_id: crate::history::data::CommitId,
+    },
     ForeignRuntime {
         expected_runtime_instance_id: u64,
         actual_runtime_instance_id: u64,
     },
     PerformedRouteMissing,
     PerformedRouteMismatch,
+    /// The owner-issued identity is retained, but movement has not authorized
+    /// its reservation yet, so there is no performed work to repair.
+    SettlementInProgress {
+        commit_id: crate::history::data::CommitId,
+    },
+    /// The owning runtime closed settlement admission.
+    OwnerUnavailable {
+        runtime_instance_id: u64,
+    },
     DurableAppend(DurabilityError),
 }

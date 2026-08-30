@@ -1,9 +1,10 @@
 use crate::native::lifecycle::recovery::UiNativePhysicalRecoveryPreparation;
 #[cfg(feature = "certification-support")]
 use crate::native::presentation::UiNativePresentationFault;
+use crate::native::presentation::UiNativePresentationRecoveryClass;
+#[cfg(feature = "certification-support")]
 use crate::native::presentation::{
-    UiNativePresentationRecoveryClass, UiNativeSurfaceAcquireFailure,
-    UiNativeSurfaceFailureDisposition,
+    UiNativeSurfaceAcquireFailure, UiNativeSurfaceFailureDisposition,
 };
 use crate::native::{UiNativeRecoveryCause, UiNativeRecoveryLineage, UiNativeRecoveryRequirement};
 

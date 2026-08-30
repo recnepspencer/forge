@@ -1,14 +1,32 @@
 use std::collections::BTreeSet;
 
-use super::{ApplicationQueryDefinition, ApplicationQueryResultShape};
+use super::{ApplicationQueryResultShape, WorthQueryPortableApplicationQueryParts};
+
+mod canonical_ordering;
+mod disclosure;
+mod result_shape;
+use result_shape::{
+    contains_entity as shape_contains_entity, continuation_parent_path_is_exact,
+    counts as count_shape, field_by_slot as shape_field_by_slot,
+    many_relation_count as count_many_relations, query_is_consistent as shape_query_is_valid,
+    relation_by_slot as shape_relation_by_slot, relation_parent_entity,
+    slots_are_unique as shape_slots_are_unique,
+};
+
+mod portable_identity;
+use portable_identity::{portable_identity_is_valid, shape_portable_identities_are_valid};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApplicationQueryDefinitionDenial {
     EmptyIdentifier,
+    InvalidPortableIdentity,
     ResultRootMismatch,
     ResultQueryMismatch,
     DuplicateResultSlot,
     DuplicateParameter,
+    InvalidCanonicalOrdering,
+    InvalidDisclosureContract,
+    DisclosureSelectorMismatch,
     UnknownPredicateParameter,
     UnknownOrderingResultSlot,
     OrderingResultFieldMismatch,
@@ -31,12 +49,77 @@ pub enum ApplicationQueryDefinitionDenial {
     InvalidLiveResourceContract,
 }
 
-pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>(
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+pub(crate) fn validate_portable_application_query_freshly(
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) -> Result<(), ApplicationQueryDefinitionDenial> {
     if definition.name().trim().is_empty() {
         return Err(ApplicationQueryDefinitionDenial::EmptyIdentifier);
     }
+    validate_portable_identities(definition)?;
+    validate_result_and_root_selection(definition)?;
+    validate_parameter_names(definition)?;
+    if !canonical_ordering::is_canonical(definition) {
+        return Err(ApplicationQueryDefinitionDenial::InvalidCanonicalOrdering);
+    }
+    disclosure::validate(definition)?;
+    validate_predicates(definition)?;
+    validate_ordering(definition)?;
+    validate_continuation(definition)?;
+    validate_live_cause(definition)?;
+    validate_dependency_ceiling(definition)?;
+    if definition.lanes().preview_enabled() && !definition.basis_support().preview() {
+        return Err(ApplicationQueryDefinitionDenial::PreviewLaneWithoutBasisSupport);
+    }
+    Ok(())
+}
+
+fn validate_portable_identities(
+    definition: &WorthQueryPortableApplicationQueryParts,
+) -> Result<(), ApplicationQueryDefinitionDenial> {
+    if !portable_identity_is_valid(definition.query_type())
+        || !portable_identity_is_valid(definition.parameter_type())
+        || !portable_identity_is_valid(definition.result_type())
+        || !portable_identity_is_valid(definition.scope_type())
+        || definition
+            .parameters()
+            .iter()
+            .any(|parameter| !portable_identity_is_valid(parameter.value_type()))
+        || definition
+            .root_paths()
+            .iter()
+            .flat_map(|path| path.guards())
+            .any(|guard| !portable_identity_is_valid(guard.value_type()))
+        || !shape_portable_identities_are_valid(definition.result_shape())
+        || definition.live_cause().is_some_and(|live| {
+            [
+                live.binding_type(),
+                live.payload_type(),
+                live.scope_slot_type(),
+                live.scope_value_type(),
+                live.target_slot_type(),
+                live.target_value_type(),
+            ]
+            .into_iter()
+            .any(|identity| !portable_identity_is_valid(identity))
+        })
+        || definition
+            .disclosure()
+            .capability_type()
+            .is_some_and(|identity| !portable_identity_is_valid(identity))
+        || definition
+            .disclosure()
+            .rules()
+            .iter()
+            .any(|rule| !rule.selector().portable_identities_are_valid())
+    {
+        return Err(ApplicationQueryDefinitionDenial::InvalidPortableIdentity);
+    }
+    Ok(())
+}
+
+fn validate_result_and_root_selection(
+    definition: &WorthQueryPortableApplicationQueryParts,
+) -> Result<(), ApplicationQueryDefinitionDenial> {
     if definition.root_entity() != definition.result_shape().root_entity() {
         return Err(ApplicationQueryDefinitionDenial::ResultRootMismatch);
     }
@@ -55,8 +138,8 @@ pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>
     }) {
         return Err(ApplicationQueryDefinitionDenial::InvalidRootPath);
     }
-    if definition.result_shape().query_type() != std::any::type_name::<Query>()
-        || !shape_query_is_valid(definition.result_shape(), std::any::type_name::<Query>())
+    if definition.result_shape().query_type() != definition.query_type()
+        || !shape_query_is_valid(definition.result_shape(), definition.query_type())
     {
         return Err(ApplicationQueryDefinitionDenial::ResultQueryMismatch);
     }
@@ -64,13 +147,26 @@ pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>
     if !shape_slots_are_unique(definition.result_shape(), &mut slots) {
         return Err(ApplicationQueryDefinitionDenial::DuplicateResultSlot);
     }
+    Ok(())
+}
+
+fn validate_parameter_names(
+    definition: &WorthQueryPortableApplicationQueryParts,
+) -> Result<(), ApplicationQueryDefinitionDenial> {
+    let mut parameter_names = BTreeSet::new();
     if definition
         .parameters()
-        .windows(2)
-        .any(|pair| pair[0].name() == pair[1].name())
+        .iter()
+        .any(|parameter| !parameter_names.insert(parameter.name()))
     {
         return Err(ApplicationQueryDefinitionDenial::DuplicateParameter);
     }
+    Ok(())
+}
+
+fn validate_predicates(
+    definition: &WorthQueryPortableApplicationQueryParts,
+) -> Result<(), ApplicationQueryDefinitionDenial> {
     if definition.predicates().iter().any(|predicate| {
         !definition
             .parameters()
@@ -86,6 +182,12 @@ pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>
     {
         return Err(ApplicationQueryDefinitionDenial::ResultRootMismatch);
     }
+    Ok(())
+}
+
+fn validate_ordering(
+    definition: &WorthQueryPortableApplicationQueryParts,
+) -> Result<(), ApplicationQueryDefinitionDenial> {
     for ordering in definition.ordering() {
         let Some(field) = shape_field_by_slot(definition.result_shape(), ordering.slot_type())
         else {
@@ -100,8 +202,12 @@ pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>
             return Err(ApplicationQueryDefinitionDenial::OrderingResultFieldMismatch);
         }
     }
-    validate_continuation(definition)?;
-    validate_live_cause(definition)?;
+    Ok(())
+}
+
+fn validate_dependency_ceiling(
+    definition: &WorthQueryPortableApplicationQueryParts,
+) -> Result<(), ApplicationQueryDefinitionDenial> {
     let shape_counts = count_shape(definition.result_shape());
     let root_path_depth = definition
         .root_paths()
@@ -121,9 +227,6 @@ pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>
     {
         return Err(ApplicationQueryDefinitionDenial::DependencyCeilingExceeded);
     }
-    if definition.lanes().preview_enabled() && !definition.basis_support().preview() {
-        return Err(ApplicationQueryDefinitionDenial::PreviewLaneWithoutBasisSupport);
-    }
     Ok(())
 }
 
@@ -140,8 +243,8 @@ fn root_path_entity_after_step(
     }
 }
 
-fn validate_live_cause<Schema, Query, Parameters, QueryResult, Scope>(
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+fn validate_live_cause(
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) -> Result<(), ApplicationQueryDefinitionDenial> {
     let Some(live) = definition.live_cause() else {
         return if definition.lanes().live_enabled() {
@@ -189,8 +292,8 @@ fn validate_live_cause<Schema, Query, Parameters, QueryResult, Scope>(
     Ok(())
 }
 
-fn validate_continuation<Schema, Query, Parameters, QueryResult, Scope>(
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+fn validate_continuation(
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) -> Result<(), ApplicationQueryDefinitionDenial> {
     let Some(continuation) = definition.continuation() else {
         return Ok(());
@@ -206,7 +309,7 @@ fn validate_continuation<Schema, Query, Parameters, QueryResult, Scope>(
     else {
         return Err(ApplicationQueryDefinitionDenial::UnknownContinuationResultSlot);
     };
-    if continuation.query_type() != std::any::type_name::<Query>()
+    if continuation.query_type() != definition.query_type()
         || relation.query_type() != continuation.query_type()
         || relation.relation() != continuation.relation()
         || relation.cardinality() != continuation.cardinality()
@@ -238,122 +341,4 @@ fn validate_continuation<Schema, Query, Parameters, QueryResult, Scope>(
         return Err(ApplicationQueryDefinitionDenial::ContinuationOrderingOutsideTarget);
     }
     Ok(())
-}
-
-fn continuation_parent_path_is_exact(
-    shape: &ApplicationQueryResultShape,
-    target_slot_type: &str,
-) -> Option<bool> {
-    for relation in shape.relations() {
-        if relation.slot_type() == target_slot_type {
-            return Some(true);
-        }
-        if let Some(descendant_is_exact) =
-            continuation_parent_path_is_exact(relation.nested_shape(), target_slot_type)
-        {
-            return Some(
-                descendant_is_exact
-                    && relation.cardinality() == super::ApplicationQueryCardinality::ExactlyOne,
-            );
-        }
-    }
-    None
-}
-
-fn shape_query_is_valid(shape: &ApplicationQueryResultShape, query_type: &str) -> bool {
-    shape.query_type() == query_type
-        && shape
-            .fields()
-            .iter()
-            .all(|field| field.query_type() == query_type)
-        && shape.relations().iter().all(|relation| {
-            relation.query_type() == query_type
-                && shape_query_is_valid(relation.nested_shape(), query_type)
-        })
-}
-
-fn shape_slots_are_unique<'a>(
-    shape: &'a ApplicationQueryResultShape,
-    slots: &mut BTreeSet<&'a str>,
-) -> bool {
-    shape
-        .fields()
-        .iter()
-        .all(|field| !field.slot_type().is_empty() && slots.insert(field.slot_type()))
-        && shape.relations().iter().all(|relation| {
-            !relation.slot_type().is_empty()
-                && slots.insert(relation.slot_type())
-                && shape_slots_are_unique(relation.nested_shape(), slots)
-        })
-}
-
-fn count_shape(shape: &ApplicationQueryResultShape) -> (usize, usize, usize) {
-    let mut maximum_depth = 0;
-    let mut relation_count = 0;
-    let mut field_count = shape.fields().len();
-    for relation in shape.relations() {
-        let nested = count_shape(relation.nested_shape());
-        maximum_depth = maximum_depth.max(nested.0 + 1);
-        relation_count += nested.1 + 1;
-        field_count += nested.2;
-    }
-    (maximum_depth, relation_count, field_count)
-}
-
-fn shape_contains_entity(shape: &ApplicationQueryResultShape, entity: &str) -> bool {
-    shape.root_entity() == entity
-        || shape
-            .relations()
-            .iter()
-            .any(|relation| shape_contains_entity(relation.nested_shape(), entity))
-}
-
-fn shape_field_by_slot<'a>(
-    shape: &'a ApplicationQueryResultShape,
-    slot_type: &str,
-) -> Option<&'a super::ApplicationQueryResultField> {
-    shape
-        .fields()
-        .iter()
-        .find(|field| field.slot_type() == slot_type)
-        .or_else(|| {
-            shape
-                .relations()
-                .iter()
-                .find_map(|relation| shape_field_by_slot(relation.nested_shape(), slot_type))
-        })
-}
-
-fn shape_relation_by_slot<'a>(
-    shape: &'a ApplicationQueryResultShape,
-    slot_type: &str,
-) -> Option<&'a super::ApplicationQueryResultRelation> {
-    shape
-        .relations()
-        .iter()
-        .find(|relation| relation.slot_type() == slot_type)
-        .or_else(|| {
-            shape
-                .relations()
-                .iter()
-                .find_map(|relation| shape_relation_by_slot(relation.nested_shape(), slot_type))
-        })
-}
-
-fn count_many_relations(shape: &ApplicationQueryResultShape) -> usize {
-    shape
-        .relations()
-        .iter()
-        .map(|relation| {
-            usize::from(relation.cardinality() == super::ApplicationQueryCardinality::Many)
-                + count_many_relations(relation.nested_shape())
-        })
-        .sum()
-}
-
-fn relation_parent_entity(relation: &super::ApplicationQueryResultRelation) -> &str {
-    match relation.direction() {
-        super::ApplicationQueryResultTraversalDirection::Forward => relation.from(),
-        super::ApplicationQueryResultTraversalDirection::Reverse => relation.to(),
-    }
 }

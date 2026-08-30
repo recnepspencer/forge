@@ -22,7 +22,7 @@ pub(in crate::replay) fn replay_recovery_plan_for_chain(
     );
     RecoveryPlan::new(
         source.runtime_config().clone(),
-        source.durable_store().cloned(),
+        source.durable_store().map(|store| store.as_ref().clone()),
         None,
         checkpoint,
         tail_log,
@@ -50,7 +50,7 @@ fn select_replay_checkpoint(
 ) -> Option<crate::durability::data::DurableCheckpoint> {
     source
         .durable_checkpoints()
-        .iter()
+        .into_iter()
         .rev()
         .find(|checkpoint| {
             checkpoint
@@ -60,7 +60,7 @@ fn select_replay_checkpoint(
                 .map(|commit| chain.contains(&commit.commit_id))
                 .unwrap_or(false)
         })
-        .cloned()
+        .map(|checkpoint| checkpoint.as_ref().clone())
 }
 
 fn replay_tail_log(

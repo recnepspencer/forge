@@ -279,31 +279,45 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         &self,
         branch_id: &crate::history::data::BranchId,
         version_id: VersionId,
-    ) -> Option<VisibilityProjectionView<'runtime>> {
+    ) -> Result<
+        Option<VisibilityProjectionView<'runtime>>,
+        crate::branch::RelationalBranchBasisDenial,
+    > {
         let basis = crate::visibility::snapshot_states::VisibilitySnapshotBasis::capture_current(
             self.runtime(),
             branch_id,
             version_id,
         )?;
-        Some(VisibilityProjectionView::new(
-            self.runtime(),
-            crate::visibility::snapshot_states::SnapshotStateBasis::Exact(basis),
-        ))
+        Ok(basis.map(|basis| {
+            VisibilityProjectionView::new(
+                self.runtime(),
+                crate::visibility::snapshot_states::SnapshotStateBasis::Exact(basis),
+            )
+        }))
     }
 
     pub(crate) fn project_historical_version(
         &self,
         version_id: VersionId,
     ) -> VisibilityProjectionView<'runtime> {
+        self.try_project_historical_version(version_id)
+            .expect("internal historical projection requires retained MVCC coverage")
+    }
+
+    pub(crate) fn try_project_historical_version(
+        &self,
+        version_id: VersionId,
+    ) -> Result<VisibilityProjectionView<'runtime>, crate::branch::RelationalBranchBasisDenial>
+    {
         let basis = crate::visibility::cache_state::historical_basis_for_retained_version(
             self.runtime(),
             version_id,
         )
-        .expect("internal historical projection requires retained MVCC coverage");
-        VisibilityProjectionView::new(
+        .map_err(historical_projection_denial)?;
+        Ok(VisibilityProjectionView::new(
             self.runtime(),
             crate::visibility::snapshot_states::SnapshotStateBasis::Historical(basis),
-        )
+        ))
     }
 
     pub fn project_snapshot(
@@ -316,5 +330,26 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             self.runtime(),
             crate::visibility::snapshot_states::SnapshotStateBasis::Exact(basis),
         ))
+    }
+}
+
+fn historical_projection_denial(
+    denial: crate::visibility::snapshot_states::HistoricalVisibilityDenial,
+) -> crate::branch::RelationalBranchBasisDenial {
+    use crate::visibility::snapshot_states::HistoricalVisibilityDenial as Denial;
+    match denial {
+        Denial::RetentionCapacityExhausted => {
+            crate::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted
+        }
+        Denial::RetentionIdentityExhausted => {
+            crate::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted
+        }
+        Denial::RetentionUnavailable => crate::branch::RelationalBranchBasisDenial::OwnerFailure,
+        Denial::UnknownVersion
+        | Denial::AuthoringBranchUnavailable
+        | Denial::MvccIntervalUnavailable
+        | Denial::CertificationReconstructionRequired => {
+            crate::branch::RelationalBranchBasisDenial::UnavailableRetainedTarget
+        }
     }
 }

@@ -3,13 +3,13 @@ use super::*;
 pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
     let root_path = unique_test_store_path("worth-relational-m8-5-kubernetes-style");
     let recovered_root = root_path.clone();
-    let mut runtime = persisted_strategy_runtime(root_path);
-    let entity = create_entity(&mut runtime, "kube-service");
-    let controller_branch = create_branch_from_main(&mut runtime, "kube-controller");
+    let runtime = persisted_strategy_runtime(root_path);
+    let entity = create_entity(&runtime, "kube-service");
+    let controller_branch = create_branch_from_main(&runtime, "kube-controller");
     let main_branch = BranchId("main".to_string());
 
     let broad_intent_commit = execute_strategy_commit(
-        &mut runtime,
+        &runtime,
         IntentReconciliationInput {
             entity_id: entity,
             desired_aspect_fields: strategy_name_and_replicas_patch("svc-v1", 3),
@@ -23,7 +23,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         None,
     );
     let first_converge_commit = execute_strategy_commit(
-        &mut runtime,
+        &runtime,
         ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 7,
@@ -47,7 +47,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         .history()
         .branch_head(&controller_branch)
         .expect("overlap controller head");
-    let mut runtime = recover_stage(&mut runtime, recovered_root.clone());
+    let runtime = recover_stage(&runtime, recovered_root.clone());
     let recovered_overlap_planning =
         planning_for(&runtime, controller_branch.clone(), main_branch.clone());
     assert_strategy_conflict(&recovered_overlap_planning, entity, "recovered overlap");
@@ -57,7 +57,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     );
 
     let _narrowed_intent_commit = execute_strategy_commit(
-        &mut runtime,
+        &runtime,
         IntentReconciliationInput {
             entity_id: entity,
             desired_aspect_fields: crate::transactions::data::AspectFieldPatch::from_locator(
@@ -81,7 +81,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         None,
     );
     let idempotent_converge_commit = execute_strategy_commit(
-        &mut runtime,
+        &runtime,
         ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 7,
@@ -112,7 +112,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         .history()
         .branch_head(&controller_branch)
         .expect("narrowed controller head");
-    let mut runtime = recover_stage(&mut runtime, recovered_root.clone());
+    let runtime = recover_stage(&runtime, recovered_root.clone());
     let recovered_narrowed_planning =
         planning_for(&runtime, controller_branch.clone(), main_branch.clone());
     assert_non_strategy_conflict(&recovered_narrowed_planning, entity, "recovered narrowed");
@@ -122,7 +122,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     );
 
     let rebroadened_intent_commit = execute_strategy_commit(
-        &mut runtime,
+        &runtime,
         IntentReconciliationInput {
             entity_id: entity,
             desired_aspect_fields: strategy_name_and_replicas_patch("svc-v2", 9),
@@ -148,7 +148,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         .branch_head(&controller_branch)
         .expect("rebroadened controller head");
     let rebroadened_intent_replay = replay_commit(
-        &mut runtime,
+        &runtime,
         rebroadened_intent_commit.commit.commit_id,
         main_branch.clone(),
     );
@@ -156,7 +156,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     assert!(rebroadened_intent_replay
         .compared_surfaces
         .contains(&ReplayObservableSurface::Strategy));
-    let mut runtime = recover_stage(&mut runtime, recovered_root.clone());
+    let runtime = recover_stage(&runtime, recovered_root.clone());
     let recovered_rebroadened_planning =
         planning_for(&runtime, controller_branch.clone(), main_branch.clone());
     assert_strategy_conflict(
@@ -169,7 +169,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         rebroadened_conflict
     );
     let recovered_rebroadened_intent_replay = replay_commit(
-        &mut runtime,
+        &runtime,
         rebroadened_intent_commit.commit.commit_id,
         main_branch.clone(),
     );
@@ -179,7 +179,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     );
 
     let revalidation_commit = execute_strategy_commit(
-        &mut runtime,
+        &runtime,
         ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 9,
@@ -208,24 +208,24 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     );
     let revalidated_converged_overlap = planning_evidence(&revalidated_planning);
     let revalidation_replay = replay_commit(
-        &mut runtime,
+        &runtime,
         revalidation_commit.commit.commit_id,
         controller_branch.clone(),
     );
     assert_strategy_replay_clean(&revalidation_replay, "revalidation converge");
 
     let broad_intent_replay = replay_commit(
-        &mut runtime,
+        &runtime,
         broad_intent_commit.commit.commit_id,
         main_branch.clone(),
     );
     let first_converge_replay = replay_commit(
-        &mut runtime,
+        &runtime,
         first_converge_commit.commit.commit_id,
         controller_branch.clone(),
     );
     let rebroadened_intent_replay = replay_commit(
-        &mut runtime,
+        &runtime,
         rebroadened_intent_commit.commit.commit_id,
         main_branch.clone(),
     );
@@ -234,8 +234,8 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     assert_strategy_replay_clean(&rebroadened_intent_replay, "rebroadened intent");
 
     let visible_truth = KubernetesBranchVisibleTruthEvidence {
-        main: visible_truth_for_branch(&mut runtime, &main_branch, entity),
-        controller: visible_truth_for_branch(&mut runtime, &controller_branch, entity),
+        main: visible_truth_for_branch(&runtime, &main_branch, entity),
+        controller: visible_truth_for_branch(&runtime, &controller_branch, entity),
     };
     let live_bundle = KubernetesIntentCertificationBundle {
         overlap_conflict,

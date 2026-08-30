@@ -5,7 +5,7 @@ use super::fixtures::execute_feature_into_main_merge;
 
 #[test]
 fn execute_prepared_merge_produces_merge_ready_history_shape() {
-    let (mut runtime, merge, main_head_commit_id, feature_head_commit_id) =
+    let (runtime, merge, main_head_commit_id, feature_head_commit_id) =
         execute_feature_into_main_merge();
     let envelope = runtime
         .replay()

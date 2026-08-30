@@ -12,7 +12,9 @@ pub use catalog::{
 };
 pub use locus::WorthQueryInstalledApplicationAspectLocus;
 
-pub(crate) use compilation::compile_native_contract_catalog;
+pub(crate) use compilation::{
+    compile_native_contract_catalog, compile_portable_native_contract_records,
+};
 pub(crate) use denial::{
     WorthQueryApplicationSchemaContractCatalogDenial,
     WorthQueryApplicationSchemaContractCatalogDenialKind,

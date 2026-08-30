@@ -23,6 +23,21 @@ impl UiMountedAllocationProjectionCatalog {
             .transpose()
     }
 
+    pub(crate) fn viewport_bounds(
+        &self,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<
+        Option<super::UiCommittedViewportGeometry>,
+        super::UiMountedAllocationProjectionDenial,
+    > {
+        self.by_graph
+            .get(&graph_node)
+            .copied()
+            .map(super::mounted_projection_row::UiMountedAllocationProjectionRow::viewport_bounds)
+            .transpose()
+            .map(Option::flatten)
+    }
+
     pub(super) fn insert(&mut self, receipt: super::UiAllocationReceipt) {
         let graph_node = receipt.identity().graph_node_identity();
         self.by_graph.insert(

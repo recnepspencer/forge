@@ -227,7 +227,6 @@ pub(in crate::tests::domains::fintech) struct FinancialLocalityWorkload {
     execution_posture: LocalityLane,
     baseline_aspect_version: u64,
     mutation_aspect_version: u64,
-    readiness_epoch: u64,
 }
 
 impl FinancialLocalityWorkload {
@@ -243,10 +242,6 @@ impl FinancialLocalityWorkload {
 
     pub(in crate::tests::domains::fintech) const fn mutation_aspect_version(&self) -> u64 {
         self.mutation_aspect_version
-    }
-
-    pub(in crate::tests::domains::fintech) const fn readiness_epoch(&self) -> u64 {
-        self.readiness_epoch
     }
 
     pub(in crate::tests::domains::fintech) fn release_waves(
@@ -329,7 +324,6 @@ impl FinancialLocalityDefinition {
         let release_waves = topological_release_waves(&outputs);
         let mutations = contract.action_traces[0].committed_mutations();
         let structural_mutations = contract.action_traces[0].structural_mutations();
-        let readiness_epoch = contract.action_traces[0].readiness_epoch();
         Self {
             seed,
             scale,
@@ -343,7 +337,6 @@ impl FinancialLocalityDefinition {
                 execution_posture: contract.execution_posture,
                 baseline_aspect_version: 1,
                 mutation_aspect_version: 2,
-                readiness_epoch,
             },
         }
     }

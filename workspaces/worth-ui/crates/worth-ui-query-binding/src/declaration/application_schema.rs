@@ -4,6 +4,7 @@ use worth_query_decl::facade::application_schema::{
 };
 use worth_query_decl::facade::{
     worth_query_application_schema, worth_query_aspect, worth_query_entity, worth_query_field,
+    worth_query_portable_type,
 };
 
 worth_query_application_schema! {
@@ -16,11 +17,14 @@ worth_query_application_schema! {
                 .aspect(WorthUiRecord::reference(), IdentityAspect::reference())
                 .aspect(WorthUiRecord::reference(), QueryTextAspect::reference())
                 .aspect(WorthUiRecord::reference(), QueryRevisionAspect::reference())
+                .aspect(WorthUiRecord::reference(), CollectionItemAspect::reference())
                 .aspect(WorthUiRecord::reference(), MeasurementAspect::reference())
                 .aspect(WorthUiRecord::reference(), SizeAspect::reference())
                 .field(WorthUiRecord::reference(), IdentityIdField::reference())
                 .field(WorthUiRecord::reference(), QueryTextStatusField::reference())
                 .field(WorthUiRecord::reference(), QueryRevisionValueField::reference())
+                .field(WorthUiRecord::reference(), CollectionItemStatusField::reference())
+                .field(WorthUiRecord::reference(), CollectionItemKeyField::reference())
                 .field(WorthUiRecord::reference(), MeasurementValueField::reference())
                 .field(WorthUiRecord::reference(), SizeValueField::reference())
         }
@@ -31,6 +35,7 @@ worth_query_entity!(pub WorthUiRecord in WorthUiApplicationSchema);
 worth_query_aspect!(pub IdentityAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611056), revision = AspectContractRevision(1),);
 worth_query_aspect!(pub QueryTextAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611057), revision = AspectContractRevision(1),);
 worth_query_aspect!(pub QueryRevisionAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611058), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub CollectionItemAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x9161105b), revision = AspectContractRevision(1),);
 worth_query_aspect!(pub MeasurementAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611059), revision = AspectContractRevision(1),);
 worth_query_aspect!(pub SizeAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x9161105a), revision = AspectContractRevision(1),);
 worth_query_field!(
@@ -43,6 +48,14 @@ worth_query_field!(
 );
 worth_query_field!(
     pub QueryRevisionValueField in WorthUiApplicationSchema, WorthUiRecord, QueryRevisionAspect:
+    u64, read_only, equality
+);
+worth_query_field!(
+    pub CollectionItemStatusField in WorthUiApplicationSchema, WorthUiRecord, CollectionItemAspect:
+    String, read_only, equality
+);
+worth_query_field!(
+    pub CollectionItemKeyField in WorthUiApplicationSchema, WorthUiRecord, CollectionItemAspect:
     u64, read_only, equality
 );
 worth_query_field!(
@@ -59,6 +72,11 @@ pub struct UiMeasurementValue(CanonicalF32);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct UiSizeValue(CanonicalF32);
+
+worth_query_portable_type!(
+    UiMeasurementValue => "worth.ui.query-binding.measurement-value.v1"
+);
+worth_query_portable_type!(UiSizeValue => "worth.ui.query-binding.size-value.v1");
 
 macro_rules! float_application_value_api {
     ($type:ty) => {
@@ -106,6 +124,8 @@ pub enum WorthUiProjectionField {
     IdentityId,
     QueryTextStatus,
     QueryRevisionValue,
+    CollectionItemStatus,
+    CollectionItemKey,
     MeasurementValue,
     SizeValue,
 }
@@ -115,6 +135,8 @@ impl WorthUiProjectionField {
         match self {
             Self::IdentityId => "id",
             Self::QueryTextStatus => "status",
+            Self::CollectionItemStatus => "status",
+            Self::CollectionItemKey => "key",
             Self::QueryRevisionValue | Self::MeasurementValue | Self::SizeValue => "value",
         }
     }
@@ -124,6 +146,8 @@ impl WorthUiProjectionField {
             Self::IdentityId => "identity.id",
             Self::QueryTextStatus => "query_text.status",
             Self::QueryRevisionValue => "query_revision.value",
+            Self::CollectionItemStatus => "collection_item.status",
+            Self::CollectionItemKey => "collection_item.key",
             Self::MeasurementValue => "measurement.value",
             Self::SizeValue => "size.value",
         }
@@ -146,6 +170,14 @@ impl WorthUiNativeField for QueryRevisionValueField {
     const FIELD: WorthUiProjectionField = WorthUiProjectionField::QueryRevisionValue;
 }
 
+impl WorthUiNativeField for CollectionItemStatusField {
+    const FIELD: WorthUiProjectionField = WorthUiProjectionField::CollectionItemStatus;
+}
+
+impl WorthUiNativeField for CollectionItemKeyField {
+    const FIELD: WorthUiProjectionField = WorthUiProjectionField::CollectionItemKey;
+}
+
 impl WorthUiNativeField for MeasurementValueField {
     const FIELD: WorthUiProjectionField = WorthUiProjectionField::MeasurementValue;
 }
@@ -160,6 +192,8 @@ mod sealed {
     impl Sealed for super::IdentityIdField {}
     impl Sealed for super::QueryTextStatusField {}
     impl Sealed for super::QueryRevisionValueField {}
+    impl Sealed for super::CollectionItemStatusField {}
+    impl Sealed for super::CollectionItemKeyField {}
     impl Sealed for super::MeasurementValueField {}
     impl Sealed for super::SizeValueField {}
 }

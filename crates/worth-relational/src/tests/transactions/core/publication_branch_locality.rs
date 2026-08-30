@@ -4,14 +4,14 @@ use std::sync::Arc;
 #[test]
 fn paused_storm_publication_does_not_contact_or_wait_on_maintenance() {
     let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "branch-local-publication-anchor");
+    create_entity(&runtime, "branch-local-publication-anchor");
     fork_publication_branch(&mut runtime, "storm");
     fork_publication_branch(&mut runtime, "maintenance");
 
     let storm = prepare_publication(&mut runtime, "storm", "storm-publication");
-    let storm_cell = storm.publication_cell.clone();
+    let storm_cell = storm.publication_cell_for_test();
     let maintenance = prepare_publication(&mut runtime, "maintenance", "maintenance-publication");
-    let maintenance_cell = maintenance.publication_cell.clone();
+    let maintenance_cell = maintenance.publication_cell_for_test();
     let position_reservations_before = runtime.patch_position_reservation_counters();
 
     let main_coordination = Arc::clone(
@@ -69,7 +69,7 @@ fn paused_storm_publication_does_not_contact_or_wait_on_maintenance() {
         .join()
         .expect("maintenance publisher joins")
     {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("maintenance publishes while storm is paused: {outcome:?}"),
     };
     assert!(maintenance_started.elapsed() < std::time::Duration::from_secs(1));
@@ -98,7 +98,7 @@ fn paused_storm_publication_does_not_contact_or_wait_on_maintenance() {
         .recv_timeout(std::time::Duration::from_secs(1))
         .expect("storm publication completes within one second after release");
     let storm_performed = match storm_thread.join().expect("storm publisher joins") {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("storm performs after its branch gate opens: {outcome:?}"),
     };
     assert_ne!(
@@ -132,7 +132,9 @@ fn prepare_publication(
     entity: &str,
 ) -> crate::facade::mvcc::PreparedRelationalCommitCandidate {
     let mut transaction = begin_publication_transaction(runtime, branch);
-    transaction.push_batch(batch_create(entity));
+    transaction
+        .push_batch(batch_create(entity))
+        .expect("test staging stays within configured resource budgets");
     runtime
         .prepare_branch_transaction(transaction)
         .expect("publication candidate prepares")

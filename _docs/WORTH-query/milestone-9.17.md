@@ -3,33 +3,40 @@
 ## Governing Role
 
 Milestone 9.17 is the governing umbrella for the ordinary composite product-
-branch foundation. It is implemented through three authority-aligned
+branch foundation. It is implemented through four authority-aligned
 submilestones:
 
 1. [Milestone 9.17.1](./milestone-9.17.1.md) first establishes the causal
    Supply Chain certification world and independent semantic oracle, then exact
    owner-issued component bases and real Relational branch-local MVCC with
-   branch isolation and structural sharing, and durable recovery of both
-   component owners.
-2. [Milestone 9.17.2](./milestone-9.17.2.md) establishes Runtime Bridge-owned
-   durable composite runtime-world history and coordinated publication.
-3. [Milestone 9.17.3](./milestone-9.17.3.md) carries that authority through
-   Query, completes owner-first PostgreSQL recovery and existing-outbox
-   eligibility, cuts the public facade over, and certifies the product boundary.
+   branch isolation and structural sharing.
+2. [Milestone 9.17.1.1](./milestone-9.17.1.1.md) corrects the owner-port
+   concurrency, performed-settlement recovery, exact Signal retention,
+   facade, evidence-lane, and documentation defects discovered after 9.17.1
+   closure without reopening its historical phase record. Closed on
+   2026-08-29, which is what allows 9.17.2 to begin.
+3. [Milestone 9.17.2](./milestone-9.17.2.md) establishes Runtime Bridge-owned
+   in-memory composite runtime-world history and coordinated publication.
+4. [Milestone 9.17.3](./milestone-9.17.3.md) carries that authority through
+   Query, gates existing-outbox eligibility on performed composite publication,
+   cuts the public facade over, and certifies the product boundary.
 
 The dependency order is strict:
 
 ```text
 9.17.1 owner component bases and Relational MVCC
-    -> 9.17.2 composite history and coordinated publication
-        -> 9.17.3 Query carriage, facade, and certification
-            -> 9.18 tree-based semantic undo and redo
+    -> 9.17.1.1 owner-port concurrency and lifecycle closure
+        -> 9.17.2 composite history and coordinated publication
+            -> 9.17.3 Query carriage, facade, and certification
+                -> 9.18 tree-based semantic undo and redo
 ```
 
-This split is not three interpretations of one feature. Each submilestone owns
-one distinct authority boundary and reaches a useful, independently reviewable
-completion state. Milestone 9.17 closes only when all three close and the
-cumulative courtroom passes through the real public Query composition root.
+This partition is not four interpretations of one feature. The three product
+steps own distinct authority boundaries; corrective 9.17.1.1 closes the
+owner-facing concurrency and lifecycle contract without adding a new owner.
+Each reaches a useful, independently reviewable completion state. Milestone
+9.17 closes only when all four close and the cumulative courtroom passes
+through the real public Query composition root.
 
 ## Goal
 
@@ -58,9 +65,8 @@ front door. Milestone 9.16.1 makes branch affinity mandatory through planning,
 provider sessions, read sets, proposals, invariants, commits, receipts, and
 publication, while intentionally retaining conservative single-product-world
 and globally coordinated Relational mechanics. Milestone 9.16.2 establishes
-stable package reconstruction plus the PostgreSQL-backed ordinary durable
-runtime and restart-safe existing-outbox claimant. It does not serialize branch
-authority or make PostgreSQL rows a physical Store model for Query.
+stable package identity, reconstruction, and release carriage. It does not
+persist application state or create a physical runtime boundary.
 
 Milestone 9.17 replaces those implementation limits without weakening the
 front door:
@@ -93,9 +99,9 @@ owner-issued Signal branch basis --------/             |
 ```
 
 Multi-parent history, merge, rebase, Store-native replication, and offline
-generalizations remain in the cross-runtime roadmap. PostgreSQL durability is
-not deferred: every 9.17 authority owner extends the runtime-level adapter as it
-lands, so ordinary restart guarantees never regress.
+generalizations remain in the cross-runtime roadmap. Application state remains
+memory-resident throughout 9.17; Worth Store integration later adds durability,
+recovery, and physical residency under the completed semantic owners.
 
 ## Current Boundary
 
@@ -151,10 +157,9 @@ At the same time:
   readmission;
 - cancellation occurs before preparation, between component preparations,
   before composite publication, and after owner-local immutable work exists;
-- process loss occurs after owner-local outbox commit, before and after durable
-  product-head CAS, during owner-first recovery, and after external send before
-  acknowledgement; and
-- Query history, inspection, recovery, and live paths attempt to fall back to
+- failure occurs after owner-local outbox creation and before and after
+  product-head comparison/publication; and
+- Query history, inspection, and live paths attempt to fall back to
   Relational-only or ambient Signal selection.
 
 The independent oracle must observe:
@@ -173,9 +178,7 @@ The independent oracle must observe:
 - failed preparation leaves complete cleanup or a typed bounded retained-
   candidate posture; and
 - the same exact product-world basis reaches Query planning, execution,
-  publication, receipts, history, live observation, and recovery;
-- a fresh process reconstructs both component owners, Bridge product heads,
-  Query carriage, and pending dispatch before readiness; and
+  publication, receipts, history, and live observation; and
 - an existing Relational outbox fact is dispatchable only when its exact
   composite publication is performed.
 
@@ -238,14 +241,13 @@ publication, or Query-restamped authority must fail this courtroom.
     permits and otherwise fail typed before effects.
 19. Derived Signal caches, Query projections, diagnostics, and certification
     artifacts have zero component or composite currentness authority.
-19. Merge, rebase, multi-parent publication, tags, offline synchronization,
-    Store-native replication, and distributed recovery remain governed
-    elsewhere. PostgreSQL durable restart is required across this umbrella.
-20. Owner-defined durable artifacts remain distinct: Relational and Signal own
-    component recovery; Runtime Bridge owns composite history/currentness
-    recovery; Query owns fresh dispatch admission; PostgreSQL owns only physical
-    representation and cross-owner lifecycle ordering.
-21. Query's existing outbox payload remains in the Relational component commit,
+20. Merge, rebase, multi-parent publication, tags, offline synchronization,
+    Store-native replication, durability, and distributed recovery remain
+    governed elsewhere.
+21. Relational and Signal own component state; Runtime Bridge owns composite
+    history/currentness; Query owns fresh dispatch admission. No physical
+    adapter participates in this milestone.
+22. Query's existing outbox payload remains in the Relational component commit,
     but only performed Bridge composite publication can make it product-
     dispatchable after 9.17.3.
 
@@ -253,13 +255,14 @@ publication, or Query-restamped authority must fail this courtroom.
 
 | Submilestone | Sole governing outcome | Primary owner | Explicit exclusion |
 | --- | --- | --- | --- |
-| [9.17.1](./milestone-9.17.1.md) | Causal merge-ready Relational certification world, exact component basis contracts, structurally shared concurrent Relational branch-local MVCC, and durable component recovery | Relational and Signal, each for its own basis/artifact; Relational certification for the world/oracle | No merge behavior, composite product branch, or public Query workflow |
-| [9.17.2](./milestone-9.17.2.md) | Durable immutable composite history, product branch references, and coordinated compare-and-publish | Runtime Bridge | No Query-owned history or public facade cutover |
-| [9.17.3](./milestone-9.17.3.md) | End-to-end Query carriage, owner-first recovery, existing-outbox composite gating, public branch facade, lifecycle docs, and hostile certification | Query as audience/admission facade and certification owner | No new component/composition or physical-storage authority |
+| [9.17.1](./milestone-9.17.1.md) | Causal merge-ready Relational certification world, exact component basis contracts, and structurally shared concurrent Relational branch-local MVCC | Relational and Signal, each for its own basis; Relational certification for the world/oracle | No merge behavior, composite product branch, persistence, or public Query workflow |
+| [9.17.1.1](./milestone-9.17.1.1.md) | Independently borrowable Relational owner services, pre-effect recoverable Relational settlement, exact non-current Signal retention, terminal lease lifecycle, and executable owner evidence | Relational and Signal, each for its own component contract and lifecycle | No composite history, Query carriage, persistence, or reinterpretation of historical 9.17.1 phases |
+| [9.17.2](./milestone-9.17.2.md) | Memory-resident immutable composite history, product branch references, and coordinated compare-and-publish | Runtime Bridge | No Query-owned history, persistence, or public facade cutover |
+| [9.17.3](./milestone-9.17.3.md) | End-to-end Query carriage, live-runtime existing-outbox composite gating, public branch facade, lifecycle docs, and hostile certification | Query as audience/admission facade and certification owner | No new component, composition, or physical-storage authority |
 
 No submilestone may claim the next submilestone's product. In particular,
-9.17.1 does not ship a product branch, 9.17.2 does not claim public Query
-completion, and 9.17.3 does not repair missing owner-local MVCC or Bridge
+9.17.1 and 9.17.1.1 do not ship a product branch, 9.17.2 does not claim public
+Query completion, and 9.17.3 does not repair missing owner-local MVCC or Bridge
 history with facade glue.
 
 ## Governing Destination Topology
@@ -269,11 +272,9 @@ worth-relational/
     branch/
     history/
     mvcc/
-    durability/
 
 worth-signal/
     branch/
-    durability/
 
 worth-runtime-bridge/
     runtime_world/
@@ -281,7 +282,6 @@ worth-runtime-bridge/
         history/
         branch/
         publication/
-        durability/
 
 worth-query-execution/
     basis/
@@ -293,15 +293,6 @@ worth-query-decl/ and worth-query-host/
 
 worth-query-certification/
     runtime_world_branching/
-
-worth-runtime-postgres/
-    owner/
-        relational/
-        signal/
-        runtime_world/
-        query_package/
-    dispatch/
-    runtime/
 ```
 
 The submilestone specs define the populated files and ownership within these
@@ -309,8 +300,8 @@ stable axes. Forbidden destinations include a Query-local branch registry, a
 Relational field containing an ambient Signal head, a generic
 `branch_manager`, a Proof-owned runtime workflow engine, a Foundational-owned
 operational branch handle, or a second composite-history implementation in the
-later merge roadmap. SQL inside an authority owner, Query-owned physical runtime
-composition, and adapter-minted performed publication are also forbidden.
+later merge roadmap. A temporary physical-runtime composition, owner-local
+persistence hook, and adapter-minted performed publication are also forbidden.
 
 ## Cumulative Performance Contract
 
@@ -327,9 +318,9 @@ composition, and adapter-minted performed publication are also forbidden.
   components beyond carried-basis validation required for publication.
 - Ancestry traversal, historical comparison, retention reclamation, and orphan
   cleanup remain explicit history or maintenance lanes.
-- Component publication and composite publication expose exact durable bytes,
-  barriers, CAS attempts, and recovery work; unrelated branches contribute zero
-  synchronous semantic coordination.
+- Component publication and composite publication expose exact owner contacts,
+  comparison attempts, retained candidates, and cleanup work; unrelated
+  branches contribute zero synchronous semantic coordination.
 - Pending dispatch lookup is indexed and joins one outbox locator to one exact
   performed composite publication; it does not scan histories.
 - Receipts expose exact owner preparation, component basis validation,
@@ -341,9 +332,9 @@ composition, and adapter-minted performed publication are also forbidden.
 - Milestone 9.16.1's single graph-obligation and provider-session progression;
 - Milestone 9.16's authentication, authorization, disclosure, invariant,
   compare-and-commit, recovery, aftermath, and publication contracts;
-- Milestone 9.16.2's package reconstruction, canonical PostgreSQL durability,
-  runtime-level facade, and existing-outbox claim guarantees, while keeping
-  branch authority outside archives, SQL rows, and dispatch leases;
+- Milestone 9.16.2's package identity, reconstruction, archive, and host release
+  boundary, while keeping branch authority outside archive bytes and release
+  metadata;
 - Relational and Signal component authority;
 - Bridge composition authority without component-truth absorption;
 - Query's inability to mint lower authority;
@@ -358,14 +349,14 @@ composition, and adapter-minted performed publication are also forbidden.
 - semantic diff, merge, or rebase policy;
 - multi-parent commits, tags, or best-common-ancestor logic;
 - offline replicas and synchronization;
-- distributed cross-region atomic publication/recovery; and
+- persistence, restart recovery, and distributed cross-region publication; and
 - treating derived Signal output or Query materialization as component truth.
 
 ## Allowed Debt
 
-- Store-native graph persistence, replication, distributed atomic publication,
-  and cross-region recovery remain explicit Store/cross-runtime handoffs.
-  PostgreSQL composite restart is not debt.
+- Store-native graph persistence, recovery, replication, distributed atomic
+  publication, and cross-region recovery remain explicit Store/cross-runtime
+  handoffs.
 - Semantic merge, rebase, multi-parent history, and offline synchronization
   remain explicit cross-runtime roadmap work.
 - No runtime-backed global coordinator, floating component head, Relational-
@@ -380,10 +371,10 @@ documentation scaffolds, independent oracle construction, and non-overlapping
 owner-local work may proceed in parallel only after their shared binding and
 phase contracts freeze. Facade cutover and cumulative certification close last.
 
-The 9.17 sequence is not blocked on `worth-store`. PostgreSQL durable component
-and composite restart are required local closure. Store-native graph execution,
-replication, distributed atomic recovery, and joined Store-provider
-certification remain explicit Store or cross-runtime work.
+The 9.17 sequence is not blocked on `worth-store` because it makes no persistence
+claim. Store-native graph execution, durability, recovery, replication,
+distributed atomic publication, and joined Store-provider certification remain
+explicit Store or cross-runtime work.
 
 ## Documentation Deliverables
 
@@ -391,6 +382,8 @@ certification remain explicit Store or cross-runtime work.
   submilestone;
 - each submilestone owns its current boundary, courtroom, decision lock,
   destination topology, phase plan, proof obligations, and handoff;
+- 9.17.1.1 corrects the owner-facing Relational and Signal guides and evidence
+  commands before Runtime Bridge may consume them;
 - public Query branch documentation lands only in 9.17.3 after the real facade
   exists;
 - `worth-foundational` and `worth-proof` docs are linked where their shared
@@ -406,11 +399,15 @@ Milestone 9.17 closes only when:
 - 9.17.1 proves a causal production-backed Supply Chain world against an
   independent oracle, exact component bases, no branch crossover, shared immutable ancestry
   without copied truth, and independent Relational branch progress without a
-  global ordinary commit coordinator, plus exact PostgreSQL recovery of both
-  component owners;
+  global ordinary commit coordinator;
+- 9.17.1.1 proves that Relational preparation, fork, publication, and settlement
+  are independently borrowable; performed settlement survives capability loss;
+  non-current exact Signal bases remain retainable; lease drop is terminal;
+  and the facade, docs, feature lane, scheduled proofs, and contention court
+  execute the same contract;
 - 9.17.2 proves exact composite correspondence, immutable single-parent
-  history, product branch references, retention, durable product-head CAS,
-  owner-first recovery, and no-half-publication compare-and-publish;
+  history, product branch references, retention, product-head comparison, and
+  no-half-publication compare-and-publish;
 - 9.17.3 proves the complete authority reaches every Query boundary through
   the public facade, gates existing-outbox dispatch on performed composite
   publication, and deletes the Relational-only/ambient-Signal lane;
@@ -419,8 +416,6 @@ Milestone 9.17 closes only when:
 - public invalid phase order and raw/weak authority substitution are
   mechanically denied using compiler-visible owner-specific types;
 - default and admitted parallel lanes converge on identical composite truth;
-- real-PostgreSQL fresh-process courts recover the exact package, component
-  bases, composite heads, Query state, and pending dispatch before readiness;
 - documentation, dependency enforcement, facade inventory, residue scans,
   structural counters, and runtime evidence agree; and
 - no submilestone closeout claims the umbrella before all downstream
@@ -435,8 +430,8 @@ Query facade compile alone is not umbrella closure.
 [Milestone 9.18](./milestone-9.18.md) begins only after 9.17.3 and therefore the
 entire 9.17 umbrella close. It consumes exact product branches, immutable
 single-parent composite commits, component bases, ancestry, retention, and
-coordinated compare-and-publish authority, owner-first PostgreSQL recovery, and
-performed-publication-gated aftermath to define tree-based semantic undo and
+coordinated compare-and-publish authority and performed-publication-gated
+aftermath to define tree-based semantic undo and
 redo as freshly admitted composite history. It may not create another
 composition owner, treat Relational history as the whole product world, or
 weaken independent component and branch progress.

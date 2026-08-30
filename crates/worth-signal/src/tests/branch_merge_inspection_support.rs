@@ -102,7 +102,7 @@ fn latest_branch_merge_event(
 fn support_inspection_is_equivalent_across_result_replay_and_compatibility_lanes() {
     let (mut summary_runtime, summary_feature, summary_main, _node) = build_phase11_runtime();
     let planned = summary_runtime
-        .merge()
+        .merge_raw()
         .from(summary_feature)
         .into(summary_main.clone())
         .plan()
@@ -123,7 +123,7 @@ fn support_inspection_is_equivalent_across_result_replay_and_compatibility_lanes
 
     let (mut ordinary_runtime, feature, main, _node) = build_phase11_runtime();
     let result = ordinary_runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main.clone())
         .run()
@@ -156,7 +156,7 @@ fn support_inspection_is_equivalent_across_result_replay_and_compatibility_lanes
     let (mut compatibility_runtime, compatibility_feature, compatibility_main, _node) =
         build_phase11_runtime();
     let compatibility_result = compatibility_runtime
-        .merge_branch(compatibility_feature, compatibility_main.clone())
+        .merge_branch_raw(compatibility_feature, compatibility_main.clone())
         .expect("compatibility merge lane should succeed");
     let compatibility_basis =
         expect_branch_basis(&mut compatibility_runtime, compatibility_main.clone());
@@ -211,7 +211,7 @@ fn support_inspection_is_equivalent_across_result_replay_and_compatibility_lanes
 fn support_inspection_refuses_to_synthesize_missing_retained_posture() {
     let (mut runtime, feature, main, _node) = build_phase11_runtime();
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -239,7 +239,7 @@ fn support_inspection_refuses_to_synthesize_missing_retained_posture() {
     }
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main.clone())
         .run()

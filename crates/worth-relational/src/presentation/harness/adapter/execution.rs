@@ -25,7 +25,7 @@ pub(super) fn prepare_runtime(
 
 pub(super) fn execute_request(
     _adapter: &RelationalHarnessAdapter,
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     fixture: &worth_harness::facade::ScenarioFixture<RelationalFixture>,
     request: &ExecutionRequest<String>,
     profile: &ExecutionProfile,

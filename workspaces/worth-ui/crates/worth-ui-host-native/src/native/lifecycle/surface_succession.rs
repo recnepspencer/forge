@@ -29,6 +29,7 @@ pub(crate) fn rebind_surface_scale(
     replace_basis(device, surface, scale_factor, extent, registry)
 }
 
+#[cfg(feature = "certification-support")]
 pub(crate) fn replace_retained_target_for_reconstruction(
     device: &UiNativeOwnedDevice,
     surface: &mut UiNativeOwnedPresentationSurface,

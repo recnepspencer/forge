@@ -11,6 +11,7 @@
 #   make kernel-test â€” run all kernel tests
 #   make test        â€” run everything
 #   make trace-view  â€” open trace viewer GUI
+#   make relational-allocation-probes - run the worth-relational allocation-slope lane
 
 UI_MANIFEST := workspaces/worth-ui/Cargo.toml
 UI_APP      := worth-ui-platform-pulse
@@ -88,6 +89,10 @@ query-fast: query-test
 query-cold-certification:
 	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-execution --features allocation-probes --lib $(ARGS) -- --test-threads=4
 	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-certification -p worth-query-replay $(ARGS)
+
+.PHONY: relational-allocation-probes
+relational-allocation-probes:
+	bash scripts/ci/check_relational_allocation_probes.sh
 
 .PHONY: spatial-fast
 spatial-fast:

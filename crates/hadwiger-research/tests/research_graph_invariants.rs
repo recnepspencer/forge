@@ -9,6 +9,7 @@ use worth_query::facade::runtime::WriteAuthorityExecutionReceipt;
 use worth_query::facade::runtime::{WorthQueryAspectMutationBuilder, WorthQueryAspectTouch};
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 #[path = "research_graph_invariants/installed_domain.rs"]
 mod installed_domain;
@@ -176,13 +177,18 @@ fn phase8_boundary_source(commit_identity: &str) -> WriteAuthorityExecutionRecei
 fn phase8_mutation_receipt(commit_identity: &str) -> WorthQueryMutationReceipt {
     let commit_position = phase8_commit_position(commit_identity);
     WorthQueryMutationReceipt::from_authoritative_parts(
-        WorthQueryCommitIdentity::from_relational_commit_id(commit_position),
-        WorthQuerySnapshotIdentity::from_relational_snapshot(
-            RelationalBridgeSnapshotIdentityParts::new(commit_position, commit_position),
+        WorthQueryCommitIdentity::from_bridge_commit_projection(
+            TruthCommitIdentity::from_relational_commit_id(commit_position),
         ),
+        WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(commit_position, commit_position),
+            ),
+        )
+        .expect("relational snapshot projection should retain its typed payload"),
         vec![WorthQueryMutationDelta::from_touched_aspects(
             "hadwiger_research_graph",
-            WorthQueryEntityIdentity::from_relational_record(
+            WorthQueryEntityIdentity::from_bridge_record_projection(
                 RelationalBridgeRecordIdentityParts::entity(8, commit_position, 0),
             ),
             WorthQueryMutationKind::Updated,

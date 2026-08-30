@@ -6,6 +6,18 @@ use worth_ui_host_contract::{
     UiMountedPaintOrderIdentity, UiMountedPresentationWorkView,
 };
 
+pub(super) fn production_cost(
+    work: UiMountedPresentationWorkView<'_>,
+) -> worth_ui_host_contract::UiMountedPresentationProductionCost {
+    match work {
+        UiMountedPresentationWorkView::Initial(work) => work.production_cost(),
+        UiMountedPresentationWorkView::Delta(work) => work.production_cost(),
+        UiMountedPresentationWorkView::Reconstruction(work) => work.production_cost(),
+        UiMountedPresentationWorkView::Sample(work) => work.production_cost(),
+        UiMountedPresentationWorkView::Unchanged(work) => work.production_cost(),
+    }
+}
+
 use super::recorded_frame::UiHeadlessRecordedFrame;
 use super::retained_order::UiHeadlessRetainedOrder;
 use super::{UiHeadlessRecorderCapacity, UiHeadlessRetainedPresentation};
@@ -46,17 +58,18 @@ pub(super) fn apply_work(
             )
             .map_err(|_| malformed())?;
             let order_cost = order.take_cost();
-            *current = Some(UiHeadlessRetainedPresentation {
-                frame: view.frame(),
-                surface: view.surface(),
-                binding: view.binding(),
-                baseline: initial.affinity().baseline(),
+            *current = Some(UiHeadlessRetainedPresentation::initial(
+                view.frame(),
+                view.surface(),
+                view.binding(),
+                initial.affinity().content(),
+                initial.affinity().baseline(),
                 commands,
                 order,
-                node_positions: initial_node_positions(initial.projection())?,
-                node_by_position: initial_nodes_by_position(initial.projection())?,
-                auxiliary: initial.auxiliary().clone(),
-            });
+                initial_node_positions(initial.projection())?,
+                initial_nodes_by_position(initial.projection())?,
+                initial.auxiliary().clone(),
+            ));
             Ok((Some(recorded), order_cost))
         }
         UiMountedPresentationWorkView::Delta(work) => {
@@ -92,18 +105,27 @@ pub(super) fn apply_work(
             )
             .map_err(|_| malformed())?;
             let order_cost = order.take_cost();
-            *current = Some(UiHeadlessRetainedPresentation {
-                frame: view.frame(),
-                surface: view.surface(),
-                binding: view.binding(),
-                baseline: work.affinity().baseline(),
+            *current = Some(UiHeadlessRetainedPresentation::initial(
+                view.frame(),
+                view.surface(),
+                view.binding(),
+                work.affinity().content(),
+                work.affinity().baseline(),
                 commands,
                 order,
-                node_positions: initial_node_positions(work.projection())?,
-                node_by_position: initial_nodes_by_position(work.projection())?,
-                auxiliary: work.auxiliary().clone(),
-            });
+                initial_node_positions(work.projection())?,
+                initial_nodes_by_position(work.projection())?,
+                work.auxiliary().clone(),
+            ));
             Ok((Some(recorded), order_cost))
+        }
+        UiMountedPresentationWorkView::Sample(sample) => {
+            let current = current.as_mut().ok_or_else(malformed)?;
+            current.apply_sample(sample)?;
+            Ok((
+                None,
+                worth_ui_retained_order::UiRetainedOrderCost::default(),
+            ))
         }
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
             let current = current.as_mut().ok_or_else(malformed)?;
@@ -111,6 +133,8 @@ pub(super) fn apply_work(
                 return Err(malformed());
             }
             current.frame = view.frame();
+            current.content = unchanged.affinity().content();
+            current.receipt_affinity = unchanged.affinity().receipt_affinity();
             Ok((
                 None,
                 worth_ui_retained_order::UiRetainedOrderCost::default(),
@@ -128,14 +152,7 @@ fn initial_node_positions(
     projection
         .nodes()
         .iter()
-        .enumerate()
-        .map(|(position, node)| {
-            Ok((
-                node.mounted_instance(),
-                u64::try_from(position)
-                    .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
-            ))
-        })
+        .map(|node| Ok((node.mounted_instance(), node.authored_position())))
         .collect()
 }
 
@@ -148,14 +165,7 @@ fn initial_nodes_by_position(
     projection
         .nodes()
         .iter()
-        .enumerate()
-        .map(|(position, node)| {
-            Ok((
-                u64::try_from(position)
-                    .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
-                node.mounted_instance(),
-            ))
-        })
+        .map(|node| Ok((node.authored_position(), node.mounted_instance())))
         .collect()
 }
 
@@ -215,8 +225,9 @@ fn validate_initial_projection(
     commands: &super::retained_command_store::UiHeadlessRetainedCommandStore,
     projection: &worth_ui_host_contract::UiMountedProjectionView,
 ) -> Result<(), UiHostSurfacePresentationDenial> {
-    let expected_count =
-        projection.filled_rects().rows().len() + projection.semantic_text().rows().len();
+    let expected_count = projection.filled_rects().rows().len()
+        + projection.portal_overlays().rows().len()
+        + projection.semantic_text().rows().len();
     if commands.len() != expected_count {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
@@ -228,6 +239,10 @@ fn validate_initial_projection(
         UiMountedPaintCommand::SemanticText { identity, mechanic } => {
             *identity == UiMountedPaintCommandIdentity::semantic_text(mechanic)
                 && projection.semantic_text().rows().contains(mechanic)
+        }
+        UiMountedPaintCommand::PortalOverlay { identity, mechanic } => {
+            *identity == UiMountedPaintCommandIdentity::portal_overlay(mechanic)
+                && projection.portal_overlays().rows().contains(mechanic)
         }
     });
     if !aligned {
@@ -286,6 +301,15 @@ pub(super) fn work_cost(
                 work.commands().len(),
                 work.order().len(),
                 work.damage().len(),
+            ),
+            UiMountedPresentationWorkView::Sample(sample) => (
+                1,
+                sample.changes().len(),
+                std::mem::size_of_val(sample.changes()),
+                sample.changes().len() + sample.damage().len(),
+                sample.changes().len(),
+                0,
+                sample.damage().len(),
             ),
             UiMountedPresentationWorkView::Unchanged(_) => (0, 0, 0, 0, 0, 0, 0),
         };

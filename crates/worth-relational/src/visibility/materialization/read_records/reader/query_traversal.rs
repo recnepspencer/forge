@@ -24,6 +24,7 @@ pub(super) fn aspect_filter_matches_relation(
 pub(super) fn traversal_fragment(
     runtime: &RelationalRuntime,
     state: &(dyn PartitionAccess + Sync),
+    registry: &crate::schema::data::RelationalSchemaRegistry,
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
     seeds: &[crate::identity::data::EntityId],
@@ -54,7 +55,9 @@ pub(super) fn traversal_fragment(
     {
         let Some(entity_record) = runtime
             .read_truth()
-            .authoritative_entity_record_for_id_at_version(state, entity_id, version_id)
+            .authoritative_entity_record_for_id_at_version_with_registry(
+                state, registry, entity_id, version_id,
+            )
         else {
             continue;
         };
@@ -69,6 +72,7 @@ pub(super) fn traversal_fragment(
         let relation_ids = relation_ids_for_traversal(
             runtime,
             state,
+            registry,
             version_id,
             entity_id,
             &mode,
@@ -87,7 +91,12 @@ pub(super) fn traversal_fragment(
         for relation_id in relation_ids {
             let Some(relation_record) = runtime
                 .read_truth()
-                .authoritative_relation_record_for_id_at_version(state, relation_id, version_id)
+                .authoritative_relation_record_for_id_at_version_with_registry(
+                    state,
+                    registry,
+                    relation_id,
+                    version_id,
+                )
             else {
                 continue;
             };
@@ -153,6 +162,7 @@ pub(super) fn traversal_fragment(
 fn relation_ids_for_traversal(
     runtime: &RelationalRuntime,
     state: &(dyn PartitionAccess + Sync),
+    registry: &crate::schema::data::RelationalSchemaRegistry,
     version_id: crate::identity::data::VersionId,
     entity_id: crate::identity::data::EntityId,
     mode: &TraversalMode,
@@ -174,7 +184,12 @@ fn relation_ids_for_traversal(
     relation_ids.retain(|relation_id| {
         let Some(relation_record) = runtime
             .read_truth()
-            .authoritative_relation_record_for_id_at_version(state, *relation_id, version_id)
+            .authoritative_relation_record_for_id_at_version_with_registry(
+                state,
+                registry,
+                *relation_id,
+                version_id,
+            )
         else {
             return false;
         };

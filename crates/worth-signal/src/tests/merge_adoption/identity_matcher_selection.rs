@@ -41,7 +41,7 @@ fn runtime_merge_request_named_identity_matcher_selects_registered_descriptor() 
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .identity_matcher_named("signal.identity.output-identity-in-target-journal")
@@ -112,7 +112,7 @@ fn runtime_merge_uses_schema_default_identity_matcher_when_request_is_silent() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -175,7 +175,7 @@ fn runtime_merge_node_identity_matcher_override_precedes_schema_default() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()

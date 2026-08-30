@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn complexity_budget_replay_verification_tracks_digest_and_deep_layers_separately() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "replayable");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "replayable");
 
     runtime.performance_access().reset_counters();
     let normal =

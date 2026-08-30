@@ -163,7 +163,7 @@ fn merge_branch_uses_branch_local_mutation_scope_instead_of_whole_live_scan() {
         .unwrap();
 
     runtime.switch_branch(main.clone()).unwrap();
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
 
     assert!(
         result.counters.final_candidate_breadth == result.planned_candidates.nodes.len() as u64,

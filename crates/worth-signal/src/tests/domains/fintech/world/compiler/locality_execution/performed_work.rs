@@ -79,6 +79,7 @@ impl FinancialPerformedWorkIdentity {
 pub(in crate::tests::domains::fintech) type FinancialPerformedCanonicalWork =
     BTreeMap<FinancialPerformedWorkIdentity, u64>;
 
+#[cfg(feature = "parallel")]
 pub(in crate::tests::domains::fintech) type FinancialStrategyWorkProjection = BTreeMap<
     (
         LocalitySemanticOutputId,
@@ -90,6 +91,7 @@ pub(in crate::tests::domains::fintech) type FinancialStrategyWorkProjection = BT
     u64,
 >;
 
+#[cfg(feature = "parallel")]
 pub(in crate::tests::domains::fintech) fn strategy_work_projection(
     work: &FinancialPerformedCanonicalWork,
 ) -> FinancialStrategyWorkProjection {

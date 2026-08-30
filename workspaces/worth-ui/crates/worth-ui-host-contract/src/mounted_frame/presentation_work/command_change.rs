@@ -9,6 +9,7 @@ pub struct UiMountedPaintCommandIdentity {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum UiMountedPaintCommandFamily {
     FilledRect,
+    PortalOverlay,
     SemanticText,
 }
 
@@ -17,6 +18,10 @@ pub enum UiMountedPaintCommand {
     FilledRect {
         identity: UiMountedPaintCommandIdentity,
         mechanic: crate::UiMountedFilledRectMechanic,
+    },
+    PortalOverlay {
+        identity: UiMountedPaintCommandIdentity,
+        mechanic: crate::UiMountedPortalOverlayMechanic,
     },
     SemanticText {
         identity: UiMountedPaintCommandIdentity,
@@ -90,6 +95,16 @@ impl UiMountedPaintCommandIdentity {
         }
     }
 
+    #[doc(hidden)]
+    pub fn portal_overlay(mechanic: &crate::UiMountedPortalOverlayMechanic) -> Self {
+        Self {
+            mounted_instance: mechanic.owner(),
+            family: UiMountedPaintCommandFamily::PortalOverlay,
+            semantic_slot: 0,
+            collection_row: Some(portal_identity_digest(mechanic.portal_identity())),
+        }
+    }
+
     pub const fn mounted_instance(self) -> crate::UiMountedInstanceIdentity {
         self.mounted_instance
     }
@@ -100,14 +115,16 @@ impl UiMountedPaintCommandIdentity {
             UiMountedPaintCommandFamily::SemanticText => {
                 Some((self.semantic_slot, self.collection_row))
             }
-            UiMountedPaintCommandFamily::FilledRect => None,
+            UiMountedPaintCommandFamily::FilledRect
+            | UiMountedPaintCommandFamily::PortalOverlay => None,
         }
     }
 
     pub(super) fn order_fingerprint(self) -> u64 {
         let family = match self.family {
             UiMountedPaintCommandFamily::FilledRect => 1_u64,
-            UiMountedPaintCommandFamily::SemanticText => 2_u64,
+            UiMountedPaintCommandFamily::PortalOverlay => 2_u64,
+            UiMountedPaintCommandFamily::SemanticText => 3_u64,
         };
         let mut digest = self
             .mounted_instance
@@ -128,13 +145,16 @@ impl UiMountedPaintCommandIdentity {
 impl UiMountedPaintCommand {
     pub fn identity(&self) -> UiMountedPaintCommandIdentity {
         match self {
-            Self::FilledRect { identity, .. } | Self::SemanticText { identity, .. } => *identity,
+            Self::FilledRect { identity, .. }
+            | Self::PortalOverlay { identity, .. }
+            | Self::SemanticText { identity, .. } => *identity,
         }
     }
 
     pub fn layer_semantic_order(&self) -> u32 {
         match self {
             Self::FilledRect { mechanic, .. } => mechanic.layer_semantic_order(),
+            Self::PortalOverlay { mechanic, .. } => mechanic.layer_semantic_order(),
             Self::SemanticText { mechanic, .. } => mechanic.layer_semantic_order(),
         }
     }
@@ -142,6 +162,7 @@ impl UiMountedPaintCommand {
     pub fn bounds(&self) -> crate::UiMountedCanonicalBox {
         match self {
             Self::FilledRect { mechanic, .. } => mechanic.bounds(),
+            Self::PortalOverlay { mechanic, .. } => mechanic.bounds(),
             Self::SemanticText { mechanic, .. } => mechanic.bounds(),
         }
     }
@@ -149,6 +170,7 @@ impl UiMountedPaintCommand {
     pub fn clip_bounds(&self) -> crate::UiMountedCanonicalBox {
         match self {
             Self::FilledRect { mechanic, .. } => mechanic.clip_bounds(),
+            Self::PortalOverlay { mechanic, .. } => mechanic.clip_bounds(),
             Self::SemanticText { mechanic, .. } => mechanic.clip_bounds(),
         }
     }
@@ -156,7 +178,16 @@ impl UiMountedPaintCommand {
     pub fn semantic_digest(&self) -> u64 {
         match self {
             Self::FilledRect { mechanic, .. } => mechanic.semantic_digest(),
+            Self::PortalOverlay { mechanic, .. } => mechanic.semantic_digest(),
             Self::SemanticText { mechanic, .. } => mechanic.semantic_digest(),
         }
     }
+}
+
+fn portal_identity_digest(identity: u64) -> [u8; 32] {
+    let mut digest = [0_u8; 32];
+    for (index, chunk) in digest.chunks_exact_mut(8).enumerate() {
+        chunk.copy_from_slice(&identity.rotate_left((index * 13) as u32).to_le_bytes());
+    }
+    digest
 }

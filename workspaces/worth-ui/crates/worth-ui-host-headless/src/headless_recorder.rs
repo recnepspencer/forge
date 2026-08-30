@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 use worth_ui_host_contract::{
@@ -8,30 +8,35 @@ use worth_ui_host_contract::{
     UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
     UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationRequest, UiMountedCompletedEffects,
     UiMountedEffectFamily, UiMountedFrameConsumptionView, UiMountedPresentationProductionCost,
-    UiMountedPresentationWorkView, UiMountedSurfacePresentationCompletion,
-    UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
+    UiMountedSurfacePresentationCompletion, UiViewportExtentObservation,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiHostMechanicsAdapter,
+    WorthUiMeasurementHostAdapter,
 };
 
 use super::headless_measurement::UiHeadlessMeasurementEnvironment;
 use super::{UiHeadlessMountedFrameTranscript, UiHeadlessRecorderCapacity};
-
+mod capability;
+mod input_focus;
 mod presentation;
 mod recorded_frame;
 mod retained_command_store;
 mod retained_order;
+mod retained_presentation;
+mod sample_observation;
 
 use presentation::{add_order_cost, apply_work, work_cost};
 use recorded_frame::{materialize_frames, UiHeadlessRecordedFrame};
 use retained_command_store::UiHeadlessRetainedCommandStore;
 use retained_order::UiHeadlessRetainedOrder;
+pub(crate) use retained_presentation::UiHeadlessRetainedPresentation;
+pub use sample_observation::UiHeadlessPresentationSampleObservation;
 
 #[derive(Clone)]
 pub struct WorthUiHeadlessRecorder {
-    state: Rc<RefCell<WorthUiHeadlessRecorderState>>,
+    pub(super) state: Rc<RefCell<WorthUiHeadlessRecorderState>>,
 }
 
-struct WorthUiHeadlessRecorderState {
+pub(super) struct WorthUiHeadlessRecorderState {
     capacity: UiHeadlessRecorderCapacity,
     measurement: UiHeadlessMeasurementEnvironment,
     registrations:
@@ -41,24 +46,14 @@ struct WorthUiHeadlessRecorderState {
         worth_ui_host_contract::UiSurfaceBindingGeneration,
         UiHeadlessMountedFrameTranscript,
     >,
-    retained_presentations: BTreeMap<
+    pub(super) retained_presentations: BTreeMap<
         worth_ui_host_contract::UiSurfaceBindingGeneration,
         UiHeadlessRetainedPresentation,
     >,
     input_recipients: BTreeMap<u64, worth_ui_host_contract::UiHostInputRecipientBindingReceipt>,
+    pub(super) semantic_focus:
+        BTreeMap<u64, worth_ui_host_contract::UiHostFocusPlacementAcknowledgement>,
     latest_production_cost: Option<UiMountedPresentationProductionCost>,
-}
-
-struct UiHeadlessRetainedPresentation {
-    frame: worth_ui_host_contract::UiMountedFrameIdentity,
-    surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
-    commands: UiHeadlessRetainedCommandStore,
-    order: UiHeadlessRetainedOrder,
-    node_positions: HashMap<worth_ui_host_contract::UiMountedInstanceIdentity, u64>,
-    node_by_position: HashMap<u64, worth_ui_host_contract::UiMountedInstanceIdentity>,
-    auxiliary: worth_ui_host_contract::UiMountedPresentationAuxiliaryState,
 }
 
 impl WorthUiHeadlessRecorder {
@@ -103,6 +98,7 @@ impl WorthUiHeadlessRecorder {
                 transcript_checkpoints: BTreeMap::new(),
                 retained_presentations: BTreeMap::new(),
                 input_recipients: BTreeMap::new(),
+                semantic_focus: BTreeMap::new(),
                 latest_production_cost: None,
             })),
         }
@@ -110,6 +106,17 @@ impl WorthUiHeadlessRecorder {
 
     pub fn latest_production_cost(&self) -> Option<UiMountedPresentationProductionCost> {
         self.state.borrow().latest_production_cost
+    }
+
+    pub fn semantic_focus_placement(
+        &self,
+        host_session: u64,
+    ) -> Option<worth_ui_host_contract::UiHostFocusPlacementAcknowledgement> {
+        self.state
+            .borrow()
+            .semantic_focus
+            .get(&host_session)
+            .copied()
     }
 
     pub fn observed_transcripts(&self) -> Box<[UiHeadlessMountedFrameTranscript]> {
@@ -177,7 +184,13 @@ impl WorthUiHeadlessRecorder {
             .mechanical_capability_report()
             .profile_identity_digest();
         let state = self.state.borrow();
-        if state.transcripts.len() >= state.capacity.retained_frames() {
+        let records_transcript = matches!(
+            view.presentation_work(),
+            worth_ui_host_contract::UiMountedPresentationWorkView::Initial(_)
+                | worth_ui_host_contract::UiMountedPresentationWorkView::Delta(_)
+                | worth_ui_host_contract::UiMountedPresentationWorkView::Reconstruction(_)
+        );
+        if records_transcript && state.transcripts.len() >= state.capacity.retained_frames() {
             return Err(UiHostSurfacePresentationDenial::CapacityExceeded);
         }
         let requirement = view.requirement();
@@ -235,12 +248,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
     }
 
     fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
-        let mut capabilities = vec![WorthUiHostCapability::MountedFrameRecording];
-        self.state
-            .borrow()
-            .measurement
-            .append_capabilities(&mut capabilities);
-        WorthUiHostCapabilityReport::available(capabilities)
+        capability::report(self)
     }
 
     fn mechanical_measurement_environment_report(
@@ -253,23 +261,21 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
         &self,
         binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
     ) -> bool {
-        self.state
-            .borrow_mut()
-            .input_recipients
-            .insert(binding.host_session(), binding);
-        true
+        input_focus::install_recipient(self, binding)
     }
 
     fn clear_mechanical_input_recipient(
         &self,
         binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
     ) -> bool {
-        let mut state = self.state.borrow_mut();
-        if state.input_recipients.get(&binding.host_session()) != Some(&binding) {
-            return false;
-        }
-        state.input_recipients.remove(&binding.host_session());
-        true
+        input_focus::clear_recipient(self, binding)
+    }
+
+    fn perform_focus_placement(
+        &self,
+        request: worth_ui_host_contract::UiHostFocusPlacementRequest,
+    ) -> worth_ui_host_contract::UiHostFocusPlacementAcknowledgement {
+        super::solicited_effect::focus_placement::place(self, request)
     }
 
     fn perform_surface_registration(
@@ -342,19 +348,20 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
             }
         };
         let adapter_cost = add_order_cost(adapter_cost, order_cost);
-        state.latest_production_cost = Some(production_cost(view.presentation_work()));
+        state.latest_production_cost =
+            Some(presentation::production_cost(view.presentation_work()));
         if let Some(recorded) = recorded {
             state.transcripts.push_back(recorded);
         }
-        state.retained_presentations.insert(
-            binding,
-            retained.expect("admitted work must retain current presentation state"),
+        let epoch = worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
+            view.attempt().diagnostic_value(),
         );
+        let mut retained = retained.expect("admitted work must retain current presentation state");
+        retained.epoch = Some(epoch);
+        state.retained_presentations.insert(binding, retained);
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
-            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
-                view.attempt().diagnostic_value(),
-            ),
+            epoch,
             UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::RecordedProjection]),
             adapter_cost,
         ))
@@ -365,6 +372,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
         host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         let mut state = self.state.borrow_mut();
+        state.semantic_focus.remove(&host_session_identity);
         let released_bindings = state
             .registrations
             .values()
@@ -384,14 +392,5 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
             host_session_identity,
             retained_before - state.registrations.len(),
         ))
-    }
-}
-
-fn production_cost(work: UiMountedPresentationWorkView<'_>) -> UiMountedPresentationProductionCost {
-    match work {
-        UiMountedPresentationWorkView::Initial(work) => work.production_cost(),
-        UiMountedPresentationWorkView::Delta(work) => work.production_cost(),
-        UiMountedPresentationWorkView::Reconstruction(work) => work.production_cost(),
-        UiMountedPresentationWorkView::Unchanged(work) => work.production_cost(),
     }
 }

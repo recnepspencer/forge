@@ -9,12 +9,13 @@ Canonical reading order:
 1. [Architecture](./docs/architecture.md)
 2. [Authored composition](./docs/authored-composition.md)
 3. [Interaction and intents](./docs/interaction-and-intents.md)
-4. [Application lifecycle](./docs/application-lifecycle.md)
-5. [Native host platform](./docs/native-host-platform.md)
-6. [Application inspection](./docs/inspection.md)
-7. [Runtime subsystem map](./docs/runtime-subsystems.md)
-8. [Query-backed UI views](./docs/query-binding.md)
-9. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
+4. [Runtime services](./docs/runtime-services.md)
+5. [Application lifecycle](./docs/application-lifecycle.md)
+6. [Native host platform](./docs/native-host-platform.md)
+7. [Application inspection](./docs/inspection.md)
+8. [Runtime subsystem map](./docs/runtime-subsystems.md)
+9. [Query-backed UI views](./docs/query-binding.md)
+10. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
 
 The longer contributor orientation remains in
 [worth-ui-readme.md](./docs/worth-ui-readme.md).
@@ -77,6 +78,14 @@ Start with [Interaction and intents](./docs/interaction-and-intents.md). Native
 input is not intent authority, UI admission is not domain admission, and a
 diagnostic or visible posture cannot be promoted into either.
 
+For runtime services, follow the family-specific owner after the exact request
+origin. Explicit `OpenPortal`, `ClosePortal`, and `InvokeCommand` operations
+cross intent admission. Window focus, scroll delta, Tick, rebind, dismissal,
+restoration, and continuation do not pretend to be intents. Cross-family work
+passes through the non-publishing proposal compiler, then the existing
+publication and host-settlement owners. See
+[Runtime services](./docs/runtime-services.md).
+
 ## Authority Boundaries
 
 - `worth-ui-dsl` owns authored syntax, source structure, language diagnostics,
@@ -116,9 +125,13 @@ declarations, or parse source on a frame.
 ## Runtime Placement
 
 Place runtime work using [Runtime subsystems](./docs/runtime-subsystems.md).
-There are seven owners: application, graph, planning, mounting, observation,
-inspection, and the thin session composition root. The map includes exact
-future homes for Milestones 3.11, 3.12, 3.17, and 3.18.
+The platform owners are application, graph, planning, mounting, observation,
+inspection, the thin session composition root, and the six sibling runtime-
+service owners: portal, focus, motion, command routing, scroll, and selection.
+Service proposal compilation coordinates those owners but cannot publish,
+issue host effects, or become another service owner. See the subsystem map
+before placing state or authority; a generic `Service` bag is not a lawful
+destination.
 
 ## Verification
 

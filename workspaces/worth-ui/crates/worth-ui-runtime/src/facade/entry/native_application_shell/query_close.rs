@@ -16,6 +16,7 @@ pub(crate) struct UiNativeApplicationQueryCloseObservation {
     transition_trace_complete: bool,
 }
 
+#[derive(Debug)]
 pub(super) struct UiNativeApplicationQueryCloseInput {
     pub(super) closed_resources: u64,
     pub(super) transitions: Box<[worth_ui_query_binding::WorthUiPresentationTransitionObservation]>,

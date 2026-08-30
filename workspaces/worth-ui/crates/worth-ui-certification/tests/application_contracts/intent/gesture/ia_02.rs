@@ -1,10 +1,26 @@
 use worth_ui::facade::interaction::{
-    UiInteractionTargetingDenial, UiInteractionTransition, UiPointerGestureContinuityKind,
-    UiPointerGestureStopReason, UiSemanticInteraction,
+    UiDismissInteractionCause, UiInteractionTargetingDenial, UiInteractionTransition,
+    UiPointerGestureContinuityKind, UiPointerGestureStopReason, UiSemanticInteraction,
 };
+
+#[test]
+fn admitted_primary_press_emits_exact_outside_press_dismissal_evidence() {
+    let mut world = InteractionWorld::canonical();
+    let receipt = applied(world.button(41, 3, UiHostPointerButtonTransition::Pressed, [20, 20]));
+    assert!(matches!(
+        receipt.transitions(),
+        [UiInteractionTransition::PointerPressed(_), UiInteractionTransition::DismissRequested(dismissal)]
+            if dismissal.presentation() == world.presentation
+                && matches!(dismissal.cause(), UiDismissInteractionCause::OutsidePress(position)
+                    if [position.x_subpixels(), position.y_subpixels()]
+                        == [20 * UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT; 2])
+    ));
+    let _ = world.session.shutdown();
+}
 use worth_ui::facade::observation_report::{
     UiHostObservationMountedBasis, UiHostObservationPresentationBasis,
     UiHostObservationReportDenial, UiHostPointerButtonTransition,
+    UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT,
 };
 use worth_ui_test_support::{
     WorthUiMountedIdentityCertificationExt, WorthUiMountedInteractionLifecycleCertificationExt,
@@ -123,6 +139,7 @@ fn stale_presentation_epoch_stops_without_current_coordinate_retargeting() {
         ExpectedTarget::Rank(0),
     );
     let invalid_presentation = UiHostObservationPresentationBasis::new(
+        stale_epoch.presentation.host_surface(),
         stale_epoch.presentation.frame(),
         stale_epoch.binding,
         worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
@@ -185,6 +202,7 @@ fn foreign_binding_cannot_borrow_local_presentation_identity() {
     let mut local = InteractionWorld::canonical();
     let foreign = InteractionWorld::canonical();
     let foreign_presentation = UiHostObservationPresentationBasis::new(
+        local.presentation.host_surface(),
         local.presentation.frame(),
         foreign.binding,
         local.presentation.epoch(),

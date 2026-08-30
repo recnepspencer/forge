@@ -23,6 +23,8 @@ compiler-visible contracts and bounded runtime lifecycles.
   and presented-target contracts.
 - `worth_ui::facade::intent` exposes definitions, declarations, typed payloads,
   operability, confirmation, admission, providers, recovery, and consequences.
+- `worth_ui::facade::service` exposes runtime-service policies, typed command
+  routing, and normalized installation plans.
 - `WorthUi::app()` registers application facts, definitions, and providers.
 - `WorthUiActiveApplicationSession` admits native observations, dispatches or
   advances attempts, retries recovery and consequences, and exposes bounded
@@ -100,7 +102,13 @@ execution destination:
 - application effect, paired with `register_intent_provider`;
 - UI transition (`NavigatePage` or `ChangeMosaic`), registered directly; or
 - runtime service (`OpenPortal`, `ClosePortal`, or `InvokeCommand`), registered
-  as explicitly unsupported until the service milestone installs providers.
+  with `register_runtime_service_intent_definition` and executed by its shipped
+  family owner.
+
+Those are the intent-origin subset of service work. Window-focus observation,
+scroll delta, Tick, reduced-motion policy, hot rebind, portal dismissal, focus
+restoration, and motion continuation enter through their own typed origins.
+They do not allocate or counterfeit an intent attempt.
 
 `UiIntentDeclaration<I>` binds an authored route to typed payload sources. Its
 typestate cannot become a DSL specification until operability, confirmation,
@@ -148,6 +156,13 @@ predecessor provider until the affine recovery authority settles.
 6. A typed product outcome yields only its declared consequences. Query or
    domain mutation still requires that owner’s admission and receipt before
    ordinary rebind can publish a visible consequence.
+
+For an intent-origin runtime service, step 4 dispatches to the exact Portal or
+Command Routing destination. A multi-family portal operation stages
+Portal-owned work plus typed Focus and Motion requirements; the non-publishing
+proposal compiler orders those owner stages and hands the coherent batch to
+the existing publication boundary. No family calls another, and proposal
+compilation does not become product execution or host settlement.
 
 ## Small Example
 
@@ -208,8 +223,11 @@ and external input workflow.
   consequences atomically with mounted truth.
 - Visual inspection can correlate an intent with the resulting frame and
   pixels, but cannot execute or re-admit it.
-- Portal, focus, command, motion, and appearance services extend the typed
-  destination boundary; they do not replace generic admission or execution.
+- Portal and command intent destinations use this same admission path. Focus,
+  motion, scroll, and selection also respond to non-intent origins through
+  their own typed contracts; none replace generic intent admission.
+- A command-route receipt proves only which UI route won. Any Query or product
+  operation it requests performs separate admission.
 
 ## Inspection And Debugging
 
@@ -244,19 +262,24 @@ scan or allocation fallback.
 - Retrying partial or indeterminate work without its affine recovery handle.
 - Retargeting a gesture after capture loss, frame replacement, or stale
   confirmation.
+- Treating a window-focus event, scroll delta, Tick, dismissal, restoration,
+  or rebind as an intent merely because it can trigger service work.
 
 ## Current Limits
 
-Direct portal and command service destinations are typed but deliberately
-unsupported until Milestone 3.15. Broad focus, motion, and appearance behavior
-arrives in 3.15–3.16. Rich expressions and composition arrive later. Intent
-detail inspection remains bounded and non-reconstructive; replay is not an
-ordinary runtime feature.
+`OpenPortal`, `ClosePortal`, and `InvokeCommand` are the shipped intent-origin
+runtime-service destinations. Direct focus, scroll-to, reveal, and selection
+destinations are not public intent shortcuts; their current operations use the
+family-specific origins and proposal requirements described in
+[Runtime services](./runtime-services.md). Appearance behavior arrives in
+Milestone 3.16. Intent detail inspection remains bounded and
+non-reconstructive; replay is not an ordinary runtime feature.
 
 ## Related Docs
 
 - [Worth UI architecture](./architecture.md)
 - [Application lifecycle and Platform Pulse](./application-lifecycle.md)
 - [Runtime subsystems](./runtime-subsystems.md)
+- [Runtime services](./runtime-services.md)
 - [Query-backed UI views](./query-binding.md)
 - [Application inspection](./inspection.md)

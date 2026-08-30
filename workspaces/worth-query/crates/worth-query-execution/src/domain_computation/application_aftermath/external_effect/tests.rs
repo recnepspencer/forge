@@ -253,7 +253,9 @@ pub(crate) fn outbox_record(outcome_identity: u64) -> WorthQueryDispatchOutboxRe
                 )
                 .unwrap(),
             effect: "notify-death-effect".to_owned(),
-            rust_payload_type: "fixture::DeathNotice".to_owned(),
+            rust_payload_type: worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "worth.query.test.death-notice.v1",
+            ),
             protocol: ApplicationExternalEffectProtocol::new(
                 BoundaryProtocolIdentity::new("test.notify-death"),
                 BoundaryProtocolVersion::new(1),

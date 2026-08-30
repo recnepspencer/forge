@@ -115,8 +115,14 @@ fn fold_component_descriptor(accumulator: u64, descriptor: &ComponentDescriptor)
             .hit_test_contract()
             .map(super::ComponentHitTestContract::digest_basis),
     );
-    fold_optional_str(
+    let with_portal_child = fold_optional_str(
         with_hit_test,
+        descriptor
+            .portal_child_contract()
+            .map(super::ComponentPortalChildContract::digest_basis),
+    );
+    fold_optional_str(
+        with_portal_child,
         descriptor
             .allocation_measurement_contract()
             .map(|contract| contract.digest_basis()),

@@ -41,7 +41,7 @@ impl WorthUiInstalledQueryTestFixture {
         WorthUiInstalledOperationCertificationFacts {
             workflow_stage_receipts: workflow.0,
             workflow_effect_receipts: workflow.1,
-            replay: snapshot_semantics.replay,
+            replay: snapshot_semantics.replay.clone(),
             conditional_node_count: snapshot_semantics.conditional_nodes.len(),
             semantic_read_count: snapshot_semantics
                 .graph_reads
@@ -113,7 +113,7 @@ impl WorthUiInstalledOperationCertificationFacts {
     }
 
     pub fn replay(&self) -> domain::WorthQueryOperationReplayContract {
-        self.replay
+        self.replay.clone()
     }
 
     pub fn conditional_node_count(&self) -> usize {

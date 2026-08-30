@@ -57,7 +57,8 @@ fn transition_effect_is_declared(
         matches!(
             member,
             ApplicationSchemaMember::Effect { effect, payload_type }
-                if effect == binding.effect() && payload_type == binding.payload_type()
+                if effect == binding.effect()
+                    && payload_type.as_str() == binding.payload_type()
         )
     })
 }

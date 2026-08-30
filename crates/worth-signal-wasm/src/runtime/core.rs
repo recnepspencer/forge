@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use worth_signal::facade::branch::AdmittedSignalBranchSnapshot;
 use worth_signal::facade::history::RuntimeSnapshot;
 use worth_signal::facade::runtime::{
     ObservationListener, ObservationNotice, ObservationReadContext,
@@ -27,6 +28,7 @@ mod evaluation;
 mod keyed_families;
 mod keyed_runtime;
 mod merge;
+mod merge_caller_restoration;
 mod merge_state;
 mod runtime_async_lifecycle_certification;
 mod signals;
@@ -35,6 +37,9 @@ mod state;
 mod transactions;
 mod worker_branch_command_model;
 mod worker_branch_commands;
+mod worker_branch_reclamation;
+mod worker_branch_retirement;
+mod worker_branch_snapshot_retirement;
 mod worker_callback_definition_publication;
 mod worker_callback_reattachment_import;
 mod worker_definition_publication_plan;
@@ -79,6 +84,7 @@ pub struct RuntimeCore {
     branch_states: BTreeMap<u64, BranchRuntimeState>,
     snapshot_states: BTreeMap<(u64, u64), BranchRuntimeState>,
     runtime_snapshots: BTreeMap<(u64, u64), RuntimeSnapshot>,
+    admitted_runtime_snapshots: BTreeMap<(u64, u64), AdmittedSignalBranchSnapshot>,
     policy: RuntimePolicySpec,
     web_metrics: WebRuntimeMetrics,
     observation_callback_scope_id: u64,
@@ -118,6 +124,7 @@ impl RuntimeCore {
             branch_states: branch_metadata,
             snapshot_states: BTreeMap::new(),
             runtime_snapshots: BTreeMap::new(),
+            admitted_runtime_snapshots: BTreeMap::new(),
             policy,
             web_metrics: WebRuntimeMetrics::default(),
             observation_callback_scope_id: web_callbacks::allocate_runtime_callback_scope(),

@@ -186,7 +186,7 @@ fn require_control_pixels(
         return Err(ExecutableVisualIdentityFailure::TargetPixelChanged);
     }
     if !pixel_at(pixels, background_point)
-        .is_some_and(|pixel| matches_rgb(pixel, manifest.blue_rgba(), manifest))
+        .is_some_and(|pixel| matches_rgb(pixel, manifest.canvas_rgba(), manifest))
     {
         return Err(ExecutableVisualIdentityFailure::BackgroundPixelChanged);
     }

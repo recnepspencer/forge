@@ -1,4 +1,5 @@
 use std::fmt;
+use std::time::Instant;
 
 use crate::adjudication::{adjudicate_action_control_point, IntentControlPointFailure};
 use crate::failure_teardown::{
@@ -141,6 +142,10 @@ impl CompletedPlatformPulseIntentCausalPulse {
     pub(crate) fn into_recovered(self) -> PulseExecutableWorld<Published<FinalRecovered>> {
         self.recovered
     }
+
+    pub(crate) fn native_journey_started(&self) -> Instant {
+        self.recovered.native_journey_started()
+    }
 }
 
 impl CompletedPlatformPulseIntentJourney {
@@ -150,6 +155,10 @@ impl CompletedPlatformPulseIntentJourney {
 
     pub(crate) fn into_recovered(self) -> PulseExecutableWorld<Published<FinalRecovered>> {
         self.recovered
+    }
+
+    pub(crate) fn native_journey_started(&self) -> Instant {
+        self.recovered.native_journey_started()
     }
 }
 

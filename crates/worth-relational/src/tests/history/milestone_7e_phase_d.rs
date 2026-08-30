@@ -97,8 +97,8 @@ fn foundational_lowering_does_not_collapse_distinct_relational_meanings() {
 
 #[test]
 fn execution_authoring_and_explicit_normalization_lower_identically() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "merge-seed");
+    let runtime = persisted_runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&runtime, "merge-seed");
     runtime
         .history_authority()
         .fork_branch_from(

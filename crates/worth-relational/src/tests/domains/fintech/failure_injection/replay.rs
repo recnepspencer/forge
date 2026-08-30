@@ -4,9 +4,7 @@ use crate::facade::replay::{
 };
 use crate::facade::runtime::RelationalRuntime;
 
-pub(crate) fn drop_latest_parent_envelope_for_replay(
-    runtime: &mut RelationalRuntime,
-) -> Option<u64> {
+pub(crate) fn drop_latest_parent_envelope_for_replay(runtime: &RelationalRuntime) -> Option<u64> {
     let latest = runtime.history().latest_commit()?.commit_id;
     let chain = runtime
         .history()
@@ -19,7 +17,7 @@ pub(crate) fn drop_latest_parent_envelope_for_replay(
 }
 
 pub(crate) fn replay_latest_commit_on_wrong_branch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
 ) -> Option<RelationalReplayOutcome> {
     let latest = runtime.history().latest_commit()?.commit_id;
     Some(

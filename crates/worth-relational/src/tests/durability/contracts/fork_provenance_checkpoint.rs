@@ -6,8 +6,8 @@ use worth_foundational::{
 fn fork_checkpoint_plan(
     mutate: fn(&mut crate::branch::RelationalBranchCellCheckpoint),
 ) -> RecoveryPlan {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "fork-source");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "fork-source");
     let source = BranchId("main".to_owned());
     let (_, basis) = runtime
         .observe_fork_source(&source)
@@ -30,8 +30,8 @@ fn fork_checkpoint_plan(
 }
 
 fn fork_tail_plan(mutate: fn(&mut crate::branch::RelationalBranchCellCheckpoint)) -> RecoveryPlan {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "fork-source");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "fork-source");
     let source = BranchId("main".to_owned());
     let (_, basis) = runtime
         .observe_fork_source(&source)
@@ -40,7 +40,7 @@ fn fork_tail_plan(mutate: fn(&mut crate::branch::RelationalBranchCellCheckpoint)
         .fork_branch(BranchId("storm".to_owned()), basis)
         .expect("fork tail fixture");
     runtime.durability_authority().checkpoint().unwrap();
-    create_entity_outcome_on_branch(&mut runtime, "fork-tail", BranchId("storm".to_owned()));
+    create_entity_outcome_on_branch(&runtime, "fork-tail", BranchId("storm".to_owned()));
     let mut plan = runtime
         .durability()
         .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
@@ -62,7 +62,7 @@ fn fork_tail_plan(mutate: fn(&mut crate::branch::RelationalBranchCellCheckpoint)
 fn assert_recovery_rejects_fork_checkpoint(plan: RecoveryPlan) {
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect_err("malformed fork provenance must fail closed");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);

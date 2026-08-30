@@ -5,9 +5,9 @@ pub(super) fn certify_geometry_commit_bridge_mixed_locality_wave(suite: &'static
         suite,
         "geometry_commit_bridge_wave_mixed_locality_operational",
         || {
-            let mut relational =
+            let relational =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            let entities = seed_bridge_region_world(&mut relational, "bridge-mixed", 20, 5);
+            let entities = seed_bridge_region_world(&relational, "bridge-mixed", 20, 5);
             let updated = entities[9];
             let query_targets = [
                 "bridge-mixed-node-2",
@@ -19,7 +19,7 @@ pub(super) fn certify_geometry_commit_bridge_mixed_locality_wave(suite: &'static
             let mut bridge_runtime = build_mock_bridge_runtime(false, entities.len());
 
             let relational_commit_started_at = Instant::now();
-            let update = update_entity(&mut relational, updated, "bridge-mixed-updated");
+            let update = update_entity(&relational, updated, "bridge-mixed-updated");
             let relational_commit_micros = relational_commit_started_at.elapsed().as_micros();
 
             let snapshot = relational.visibility_authority().snapshot();

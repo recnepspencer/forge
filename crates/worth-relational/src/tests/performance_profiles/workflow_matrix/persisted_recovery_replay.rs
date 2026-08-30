@@ -5,8 +5,8 @@ pub(super) fn certify_persisted_recovery_replay_round_trip(suite: &'static str) 
         suite,
         "persisted_recovery_replay_round_trip",
         || {
-            let mut runtime = persisted_runtime_with_test_schema();
-            let source_created = create_entity_outcome(&mut runtime, "recovery-source");
+            let runtime = persisted_runtime_with_test_schema();
+            let source_created = create_entity_outcome(&runtime, "recovery-source");
             let source = changed_entities(&source_created)[0];
 
             let checkpoint_started_at = Instant::now();
@@ -17,7 +17,7 @@ pub(super) fn certify_persisted_recovery_replay_round_trip(suite: &'static str) 
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
             let post_checkpoint_commit_started_at = Instant::now();
-            let target_created = create_entity_outcome(&mut runtime, "recovery-target");
+            let target_created = create_entity_outcome(&runtime, "recovery-target");
             let target = changed_entities(&target_created)[0];
             let post_checkpoint_commit_micros =
                 post_checkpoint_commit_started_at.elapsed().as_micros();
@@ -30,7 +30,7 @@ pub(super) fn certify_persisted_recovery_replay_round_trip(suite: &'static str) 
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             let recovery_outcome = recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(recovery_plan)
                 .expect("workflow recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

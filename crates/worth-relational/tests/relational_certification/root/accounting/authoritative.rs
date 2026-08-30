@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::world::supply_chain::SupplyChainScale;
 use super::world::supply_chain::{assert_oracle_matches, certified_supply_chain_world};
+use worth_relational::facade::branch::RelationalBranchReferenceState;
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::inspection::{
     RelationalAuthoritativeAllocationKind, RelationalExcludedAllocationLane,
@@ -9,7 +10,7 @@ use worth_relational::facade::inspection::{
 
 #[test]
 fn phase5_full_authoritative_accounting_deduplicates_one_shared_envelope_and_root() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let mut identities = vec![world.runtime.main_branch_identity()];
     for branch_name in ["storm-accounting", "maintenance-accounting"] {
@@ -32,7 +33,7 @@ fn phase5_full_authoritative_accounting_deduplicates_one_shared_envelope_and_roo
 
     let observation = world
         .runtime
-        .inspect_branch_sharing(&identities)
+        .observe_branch_sharing(&identities)
         .expect("sharing inspection accepts exact owner identities");
     let ledger = world
         .runtime
@@ -162,12 +163,17 @@ fn phase5_full_authoritative_accounting_deduplicates_one_shared_envelope_and_roo
         independently_summed_total,
         "the full metric must include every independently inventoried owner allocation"
     );
+    assert_eq!(observation.branch_count(), identities.len() as u64);
     assert_eq!(
         observation.logical_branch_authoritative_bytes(),
         independently_summed_total * observation.branch_count(),
         "three branches charge one shared envelope/root inventory three times logically and once physically"
     );
-    assert!(observation.branch_metadata_bytes() > 0);
+    assert_eq!(
+        observation.branch_metadata_bytes(),
+        observation.branch_count() * std::mem::size_of::<RelationalBranchReferenceState>() as u64,
+        "branch metadata is only the shallow inline live reference-state lane"
+    );
     let excluded = independent_excluded_totals(ledger.excluded_allocations());
     assert_eq!(
         observation.unique_diagnostic_bytes(),

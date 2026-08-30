@@ -15,6 +15,9 @@ pub struct WorthQueryExternalPrincipalIdentity {
     issuer: String,
     subject: String,
 }
+crate::worth_query_portable_type!(
+    WorthQueryExternalPrincipalIdentity => "worth.query.external_principal_identity.v1"
+);
 
 impl std::fmt::Debug for WorthQueryExternalPrincipalIdentity {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

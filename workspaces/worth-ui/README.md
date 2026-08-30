@@ -10,12 +10,13 @@ native and headless mechanics, and certification surfaces.
 2. [Architecture](./docs/architecture.md)
 3. [Authored composition](./docs/authored-composition.md)
 4. [Interaction and intents](./docs/interaction-and-intents.md)
-5. [Application lifecycle](./docs/application-lifecycle.md)
-6. [Native host platform](./docs/native-host-platform.md)
-7. [Application inspection](./docs/inspection.md)
-8. [Runtime subsystems](./docs/runtime-subsystems.md)
-9. [Query-backed UI views](./docs/query-binding.md)
-10. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
+5. [Runtime services](./docs/runtime-services.md)
+6. [Application lifecycle](./docs/application-lifecycle.md)
+7. [Native host platform](./docs/native-host-platform.md)
+8. [Application inspection](./docs/inspection.md)
+9. [Runtime subsystems](./docs/runtime-subsystems.md)
+10. [Query-backed UI views](./docs/query-binding.md)
+11. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
 
 The longer contributor orientation is
 [docs/worth-ui-readme.md](./docs/worth-ui-readme.md). Roadmap and milestone
@@ -30,10 +31,13 @@ specifications remain under `_docs/worth-ui` at the repository root.
 - `worth-ui-query-binding` is the only production crate in this workspace that
   translates Worth Query authority into Worth UI artifacts.
 - `worth-ui-runtime` owns UI admission, graph/allocation behavior, framework
-  turns, typed intent admission and execution, and mounted runtime truth; it
-  consumes binding-owned UI artifacts and does not import Query directly.
-- `worth-ui-host-contract` owns the sealed revision-4 initial/delta/unchanged
-  presentation protocol. `worth-ui-host-headless` and
+  turns, typed intent admission and execution, the six sibling runtime-service
+  owners, non-publishing service proposal compilation, and mounted runtime
+  truth; it consumes binding-owned UI artifacts and does not import Query
+  directly.
+- `worth-ui-host-contract` owns host protocol revision 6 and the sealed
+  revision-5 mounted-frame and presentation schemas for
+  initial/delta/unchanged work. `worth-ui-host-headless` and
   `worth-ui-host-native` consume only that contract; neither imports runtime.
 - `worth-ui-native-platform` owns effect-free native application preparation
   and the one-shot platform binding. It is the sole native-display entrypoint.
@@ -55,3 +59,9 @@ provider. Product or Query mutation then performs its own admission before the
 declared consequence enters ordinary rebind. See
 [Interaction and intents](./docs/interaction-and-intents.md); a control,
 renderer, adapter, or admitted UI request owns no callback or domain authority.
+
+For portal, focus, motion, command routing, scroll, and selection, begin with
+[Runtime services](./docs/runtime-services.md). Application code declares
+policies and typed destinations through the public facade. It never imports a
+mutable owner, calls one family from another, or treats a service receipt as
+Query authority.

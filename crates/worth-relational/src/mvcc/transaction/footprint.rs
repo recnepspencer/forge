@@ -27,8 +27,8 @@ pub enum RelationalTransactionWriteLocus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationalTransactionFootprint {
     basis: crate::branch::RelationalBranchBasisDescriptor,
-    reads: BTreeSet<RelationalTransactionReadLocus>,
-    writes: BTreeSet<RelationalTransactionWriteLocus>,
+    pub(super) reads: BTreeSet<RelationalTransactionReadLocus>,
+    pub(super) writes: BTreeSet<RelationalTransactionWriteLocus>,
     write_partitions: BTreeSet<PartitionId>,
 }
 
@@ -70,18 +70,35 @@ impl RelationalTransactionFootprint {
         self.reads.insert(locus);
     }
 
+    pub(super) fn total_locus_count(&self) -> usize {
+        self.reads.len().saturating_add(self.writes.len())
+    }
+
     pub(crate) fn derive_validation_dependencies(
         &mut self,
         plan: &crate::transactions::data::MergedCommitPlan,
-    ) {
+        maximum_loci: usize,
+    ) -> Result<(), super::RelationalTransactionStagingDenial> {
+        let mut candidate = self.clone();
         for intent in &plan.merged_intents {
-            self.record_validation_intent(intent);
+            candidate.record_validation_intent(intent);
         }
-        for partition in self.write_partitions.clone() {
-            self.record_read(RelationalTransactionReadLocus::ValidationPartition(
+        for partition in candidate.write_partitions.clone() {
+            candidate.record_read(RelationalTransactionReadLocus::ValidationPartition(
                 partition,
             ));
         }
+        let required_loci = candidate.total_locus_count();
+        if required_loci > maximum_loci {
+            return Err(
+                super::RelationalTransactionStagingDenial::FootprintCapacityExhausted {
+                    maximum_loci,
+                    required_loci,
+                },
+            );
+        }
+        *self = candidate;
+        Ok(())
     }
 
     pub(crate) fn validation_partitions(&self) -> BTreeSet<PartitionId> {

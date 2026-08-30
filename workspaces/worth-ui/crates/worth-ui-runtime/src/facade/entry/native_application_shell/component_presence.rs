@@ -11,12 +11,123 @@ pub(crate) enum UiNativeComponentPresenceDenial {
     RollbackIndeterminate,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum UiNativeComponentPresenceProgress {
+    Applied,
+    AwaitingPortalDismissal,
+}
+
+pub(super) enum UiNativePendingComponentPresence {
+    AwaitingPortalDismissal(Box<[crate::facade::entry::UiNativeComponentPresenceChange]>),
+    Applied(Box<[crate::facade::entry::UiNativeComponentPresenceChange]>),
+}
+
 impl WorthUiNativeApplicationShell {
     pub(crate) fn apply_component_presence(
         &mut self,
         changes: &[crate::facade::entry::UiNativeComponentPresenceChange],
-    ) -> Result<(), UiNativeComponentPresenceDenial> {
+    ) -> Result<UiNativeComponentPresenceProgress, UiNativeComponentPresenceDenial> {
+        if let Some(pending) = self.pending_component_presence.as_ref() {
+            let retained = match pending {
+                UiNativePendingComponentPresence::AwaitingPortalDismissal(retained)
+                | UiNativePendingComponentPresence::Applied(retained) => retained,
+            };
+            if retained.as_ref() != changes {
+                return Err(UiNativeComponentPresenceDenial::RuntimeTransition);
+            }
+            let applied = matches!(pending, UiNativePendingComponentPresence::Applied(_));
+            if applied {
+                self.pending_component_presence = None;
+                return Ok(UiNativeComponentPresenceProgress::Applied);
+            }
+            return Ok(UiNativeComponentPresenceProgress::AwaitingPortalDismissal);
+        }
         let indices = self.validate_component_presence(changes)?;
+        if self.next_anchor_loss_portal(&indices, changes).is_some() {
+            self.pending_component_presence =
+                Some(UiNativePendingComponentPresence::AwaitingPortalDismissal(
+                    changes.to_vec().into_boxed_slice(),
+                ));
+            return self.resume_pending_component_presence(self.managed_rebind_completion_tick);
+        }
+        self.apply_validated_component_presence(&indices, changes)?;
+        Ok(UiNativeComponentPresenceProgress::Applied)
+    }
+
+    pub(crate) const fn component_presence_awaits_portal_dismissal(&self) -> bool {
+        matches!(
+            self.pending_component_presence.as_ref(),
+            Some(UiNativePendingComponentPresence::AwaitingPortalDismissal(_))
+        )
+    }
+
+    pub(crate) fn resume_pending_component_presence(
+        &mut self,
+        now_tick: u64,
+    ) -> Result<UiNativeComponentPresenceProgress, UiNativeComponentPresenceDenial> {
+        let changes = match self.pending_component_presence.take() {
+            Some(UiNativePendingComponentPresence::AwaitingPortalDismissal(changes)) => changes,
+            Some(applied @ UiNativePendingComponentPresence::Applied(_)) => {
+                self.pending_component_presence = Some(applied);
+                return Ok(UiNativeComponentPresenceProgress::Applied);
+            }
+            None => return Ok(UiNativeComponentPresenceProgress::Applied),
+        };
+        loop {
+            let indices = self.validate_component_presence(&changes)?;
+            let Some(portal) = self.next_anchor_loss_portal(&indices, &changes) else {
+                self.apply_validated_component_presence(&indices, &changes)?;
+                self.pending_component_presence =
+                    Some(UiNativePendingComponentPresence::Applied(changes));
+                return Ok(UiNativeComponentPresenceProgress::Applied);
+            };
+            match self.begin_managed_anchor_loss_dismissal(portal, now_tick) {
+                super::super::native_managed_rebind::WorthUiNativeManagedPortalDismissalOutcome::Published(_) => {}
+                super::super::native_managed_rebind::WorthUiNativeManagedPortalDismissalOutcome::Pending => {
+                    self.pending_component_presence = Some(
+                        UiNativePendingComponentPresence::AwaitingPortalDismissal(changes),
+                    );
+                    return Ok(UiNativeComponentPresenceProgress::AwaitingPortalDismissal);
+                }
+                super::super::native_managed_rebind::WorthUiNativeManagedPortalDismissalOutcome::Ignored
+                | super::super::native_managed_rebind::WorthUiNativeManagedPortalDismissalOutcome::Retained
+                | super::super::native_managed_rebind::WorthUiNativeManagedPortalDismissalOutcome::Stopped(_) => {
+                    self.pending_component_presence = None;
+                    return Err(UiNativeComponentPresenceDenial::RuntimeTransition);
+                }
+            }
+        }
+    }
+
+    fn next_anchor_loss_portal(
+        &self,
+        indices: &[usize],
+        changes: &[crate::facade::entry::UiNativeComponentPresenceChange],
+    ) -> Option<crate::runtime::portal::UiPortalIdentity> {
+        let portal = self.session.portal.as_ref()?;
+        indices
+            .iter()
+            .copied()
+            .zip(changes)
+            .filter(|(_, change)| !change.present())
+            .map(|(index, _)| {
+                let row = &self.mounted_rows[index];
+                crate::runtime::portal::UiPortalIdentity::for_owner(
+                    crate::runtime::portal::UiPortalOwnerIdentity::from_mounted_owner(
+                        row.graph_node,
+                        row.mounted
+                            .expect("validated removal retains mounted identity"),
+                    ),
+                )
+            })
+            .find(|identity| portal.anchor_requires_dismissal(*identity))
+    }
+
+    fn apply_validated_component_presence(
+        &mut self,
+        indices: &[usize],
+        changes: &[crate::facade::entry::UiNativeComponentPresenceChange],
+    ) -> Result<(), UiNativeComponentPresenceDenial> {
         let mut applied: Vec<(usize, bool)> = Vec::with_capacity(indices.len());
         for (index, change) in indices.iter().copied().zip(changes) {
             if self

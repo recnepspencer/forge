@@ -3,7 +3,7 @@
 #[cfg(test)]
 use std::cell::Cell;
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -13,6 +13,7 @@ use worth_ui_host_contract::{UiGlyphRasterKey, UiQualifiedTextLayoutIdentity};
 
 use super::entry::UiAtlasEntry;
 use super::key::canonical_raster_key_bytes;
+use super::pinning::UiNativeTextAtlasPin;
 use super::placement::UiAtlasPage;
 #[cfg(test)]
 use super::placement::UiAtlasRect;
@@ -93,6 +94,8 @@ pub(crate) struct PinIdentity {
 pub struct UiNativeTextPinObservation {
     layout: [u8; 32],
     raster_key: [u8; 32],
+    entry: super::key::UiAtlasEntryIdentity,
+    generation: UiNativeTextAtlasGeneration,
 }
 
 impl PinIdentity {
@@ -108,17 +111,9 @@ impl PinIdentity {
         }
     }
 
-    pub(crate) fn key_matches(self, key: UiGlyphRasterKey) -> bool {
-        let bytes = canonical_raster_key_bytes(key);
-        usize::from(self.key_len) == bytes.len() && self.key[..bytes.len()] == bytes
-    }
-
-    fn observation(self) -> UiNativeTextPinObservation {
+    fn raster_key_digest(self) -> [u8; 32] {
         let length = usize::from(self.key_len);
-        UiNativeTextPinObservation {
-            layout: self.layout,
-            raster_key: Sha256::digest(&self.key[..length]).into(),
-        }
+        Sha256::digest(&self.key[..length]).into()
     }
 }
 
@@ -134,8 +129,19 @@ impl UiNativeTextPinObservation {
     }
 
     #[doc(hidden)]
+    pub const fn entry_identity(self) -> super::key::UiAtlasEntryIdentity {
+        self.entry
+    }
+
+    #[doc(hidden)]
+    pub const fn generation(self) -> UiNativeTextAtlasGeneration {
+        self.generation
+    }
+
+    #[doc(hidden)]
     pub fn matches(self, request: worth_ui_host_contract::UiGlyphRasterPinRequest) -> bool {
-        self == PinIdentity::new(request.layout_identity(), request.key()).observation()
+        let identity = PinIdentity::new(request.layout_identity(), request.key());
+        self.layout == identity.layout && self.raster_key == identity.raster_key_digest()
     }
 }
 
@@ -148,7 +154,7 @@ pub(crate) struct AtlasCore {
     pub(crate) next_entry: u64,
     pub(crate) completed_use_epoch: u64,
     pub(crate) committed_transactions: u64,
-    pub(crate) pins: BTreeSet<PinIdentity>,
+    pub(crate) pins: BTreeMap<PinIdentity, UiNativeTextAtlasPin>,
     pub(crate) quarantined: bool,
     pub(crate) lineage: UiNativeTextAtlasLineageIdentity,
 }
@@ -164,7 +170,7 @@ impl AtlasCore {
             next_entry: 1,
             completed_use_epoch: 0,
             committed_transactions: 0,
-            pins: BTreeSet::new(),
+            pins: BTreeMap::new(),
             quarantined: false,
             lineage,
         }
@@ -216,9 +222,16 @@ impl UiNativeTextAtlas {
         self.core
             .borrow()
             .pins
-            .iter()
-            .copied()
-            .map(PinIdentity::observation)
+            .values()
+            .map(|pin| {
+                let identity = pin.identity();
+                UiNativeTextPinObservation {
+                    layout: pin.layout().digest(),
+                    raster_key: identity.raster_key_digest(),
+                    entry: pin.entry(),
+                    generation: pin.generation(),
+                }
+            })
             .collect::<Vec<_>>()
             .into_boxed_slice()
     }

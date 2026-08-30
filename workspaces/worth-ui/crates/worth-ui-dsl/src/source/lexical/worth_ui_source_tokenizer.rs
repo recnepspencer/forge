@@ -152,6 +152,7 @@ fn consume_punctuation(
         '}' => WorthUiSourceTokenKind::RightBrace,
         ';' => WorthUiSourceTokenKind::Semicolon,
         '=' => WorthUiSourceTokenKind::Equals,
+        '+' => WorthUiSourceTokenKind::Plus,
         _ => return None,
     };
     let end = position + character.len_utf8();

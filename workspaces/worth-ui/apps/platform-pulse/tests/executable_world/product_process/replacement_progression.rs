@@ -4,8 +4,8 @@ use worth_ui_platform_pulse::observation_contract::PlatformPulseLifecycleObserva
 
 use crate::adjudication::{
     adjudicate_replacement, adjudicate_successor_visual_snapshot, adjudicate_visual_comparison,
-    adjudicate_visual_retirement, CausalReplacementObservationSet, ExecutableReplacementEvidence,
-    ExecutableReplacementFailure, ExecutableVisualComparisonEvidence,
+    adjudicate_visual_retirement, adjudicate_visual_snapshot, CausalReplacementObservationSet,
+    ExecutableReplacementEvidence, ExecutableVisualComparisonEvidence,
     ExecutableVisualIdentityFailure, ExecutableVisualRetirementEvidence, ExpectedNativeColor,
     ReplacementExpectation,
 };
@@ -93,14 +93,9 @@ impl PulseExecutableWorld<AwaitingRecovery> {
             Ok(observed) => observed,
             Err(primary) => return Err(teardown(world, primary)),
         };
-        let evidence = match recovery_evidence(action, &preserved, observed) {
+        let (evidence, rebase_snapshot) = match recovery_evidence(action, &preserved, observed) {
             Ok(evidence) => evidence,
-            Err(failure) => {
-                return Err(teardown(
-                    world,
-                    PulseExecutableWorldFailure::Replacement(failure),
-                ))
-            }
+            Err(failure) => return Err(teardown(world, failure)),
         };
         Ok(PulseExecutableWorld {
             state: Published {
@@ -108,6 +103,7 @@ impl PulseExecutableWorld<AwaitingRecovery> {
                 stage: RecoveredBlue {
                     preserved,
                     evidence,
+                    rebase_snapshot,
                 },
             },
         })
@@ -155,6 +151,19 @@ fn observe_replacement(
                 )
                 .map_err(PulseExecutableWorldFailure::WatchedObservation)?,
             ),
+        ),
+        WatchedPulseTransition::CanonicalBlueRecovery => (
+            Some(
+                await_watched_observation(
+                    &mut world.process,
+                    &mut world.lifecycle,
+                    WatchedPulseTransition::VisualSnapshot,
+                    deadline,
+                )
+                .map_err(PulseExecutableWorldFailure::WatchedObservation)?,
+            ),
+            None,
+            None,
         ),
         _ => (None, None, None),
     };
@@ -269,8 +278,11 @@ fn recovery_evidence(
     preserved: &PreservedPredecessorEvidence,
     observed: WatchedReplacementObservation,
 ) -> Result<
-    ExecutableReplacementEvidence<CanonicalBlueRecoverySourceDelta>,
-    ExecutableReplacementFailure,
+    (
+        ExecutableReplacementEvidence<CanonicalBlueRecoverySourceDelta>,
+        crate::adjudication::ExecutableVisualSnapshotEvidence,
+    ),
+    PulseExecutableWorldFailure,
 > {
     let canonical_digest = preserved.green.initial.canonical_source_digest();
     let causal = CausalReplacementObservationSet::new(
@@ -279,12 +291,27 @@ fn recovery_evidence(
         observed.envelope,
         ReplacementExpectation::canonical_recovery(canonical_digest),
     );
-    adjudicate_replacement(causal.join_native(
+    let evidence = adjudicate_replacement(causal.join_native(
         observed.native.client,
         observed.native.liveness,
         observed.native.pixels,
         ExpectedNativeColor::Blue,
     ))
+    .map_err(PulseExecutableWorldFailure::Replacement)?;
+    let rebase_snapshot =
+        observed
+            .visual
+            .successor_snapshot
+            .ok_or(PulseExecutableWorldFailure::VisualIdentity(
+                ExecutableVisualIdentityFailure::WrongEvent("rebase visual snapshot"),
+            ))?;
+    let rebase_snapshot = adjudicate_visual_snapshot(
+        rebase_snapshot,
+        evidence.replacement().successor_frame().diagnostic_value(),
+        evidence.sequence().saturating_add(1),
+    )
+    .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+    Ok((evidence, rebase_snapshot))
 }
 
 fn teardown(

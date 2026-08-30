@@ -249,14 +249,6 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "633ac8956520a7fa24ad728201081d9efa7205751ac5db1c265927d4411a226b"
     ),
     owner!(
-        "canonical cause replacement",
-        "data/graph/storage/invalidation_causes/cause_sets.rs",
-        "../../../../../../data/graph/storage/invalidation_causes/cause_sets.rs",
-        Method,
-        "replace",
-        "9271f2bd8302ca64626dbd08ac17978f454fbff69a942c788580f8c166c73ee6"
-    ),
-    owner!(
         "canonical cause slot write",
         "data/graph/storage/invalidation_causes/cause_sets.rs",
         "../../../../../../data/graph/storage/invalidation_causes/cause_sets.rs",

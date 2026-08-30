@@ -1,5 +1,5 @@
 use super::query_execution::{
-    execute_explicit_query_fragments_from_snapshot_state, query_execution_outcome,
+    execute_explicit_query_fragments_from_exact_basis, query_execution_outcome,
     query_execution_strategy, record_query_packet_metrics, PacketizedQueryMetrics,
 };
 use super::query_fragment_work::{
@@ -110,13 +110,9 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let strategy = query_execution_strategy(self, &plan, metrics.packet_count);
         record_query_packet_metrics(self.runtime, &plan, &metrics);
 
-        let resolved = resolve_snapshot_state(self.runtime, &plan.snapshot)?;
-        let fragments = execute_explicit_query_fragments_from_snapshot_state(
-            self,
-            &plan,
-            &packets,
-            &resolved.state,
-            strategy,
+        let basis = resolve_snapshot_basis(self.runtime, &plan.snapshot)?;
+        let fragments = execute_explicit_query_fragments_from_exact_basis(
+            self, &plan, &packets, &basis, strategy,
         )?;
 
         Some(query_execution_outcome(
@@ -138,15 +134,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let strategy = query_execution_strategy(self, &plan, metrics.packet_count);
         record_query_packet_metrics(self.runtime, &plan, &metrics);
 
-        let resolved = resolve_snapshot_state(self.runtime, &plan.snapshot)?;
-        let empty_state = std::collections::BTreeMap::new();
-        let state_access: &(dyn PartitionAccess + Sync) = resolved
-            .state
-            .basis
-            .root()
-            .map(|root| root.as_ref() as &(dyn PartitionAccess + Sync))
-            .unwrap_or(&empty_state);
-        let version_id = resolved.handle.version_id;
+        let basis = resolve_snapshot_basis(self.runtime, &plan.snapshot)?;
+        let state_access: &(dyn PartitionAccess + Sync) = basis.root().as_ref();
+        let registry = basis.root().schema_authority().registry();
+        let version_id = basis.version_id();
         let fragments = match strategy {
             PreparationStrategySelection::Serial => {
                 self.runtime
@@ -160,6 +151,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                         execute_traversal_query_fragment_from_state(
                             self.runtime,
                             state_access,
+                            registry,
                             version_id,
                             &plan.packet,
                             packet,
@@ -188,6 +180,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                                 execute_traversal_query_fragment_from_state(
                                     self.runtime,
                                     state_access,
+                                    registry,
                                     version_id,
                                     &plan.packet,
                                     packet,

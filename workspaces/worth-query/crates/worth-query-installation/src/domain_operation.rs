@@ -1,4 +1,8 @@
 mod canonical_identity;
+pub(crate) use canonical_identity::{
+    canonical_operation_encoded_bytes, canonical_operation_reconstruction_work,
+    WorthQueryDomainOperationCanonicalSemantics,
+};
 mod conditional_node;
 mod decision_fact_contract;
 mod definition;

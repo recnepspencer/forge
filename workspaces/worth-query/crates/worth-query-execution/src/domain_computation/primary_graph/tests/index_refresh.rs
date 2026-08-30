@@ -63,11 +63,12 @@ fn commit_empty(runtime: &mut RelationalRuntime, branch: &str) -> RelationalComm
     let basis = runtime
         .admit_branch_basis(&identity)
         .expect("commit branch basis is current");
-    runtime
+    let committed = runtime
         .begin_branch_transaction(&basis, RelationalTransactionIntent::ordinary())
         .expect("transaction binds to exact branch")
         .commit(runtime)
-        .expect("empty fixture transaction commits")
-        .commit
-        .clone()
+        .expect("empty fixture transaction commits");
+    let receipt = committed.commit.clone();
+    super::fixture::release_test_commit_snapshot(runtime, &committed);
+    receipt
 }

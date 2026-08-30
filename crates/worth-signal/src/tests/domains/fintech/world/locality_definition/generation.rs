@@ -42,6 +42,7 @@ impl FinancialLocalityDefinition {
                     instruments_per_matching_region,
                 ),
                 lane,
+                partitioned::PartitionMutationWidth::FixedDetail,
             ),
             LocalityScaleTuple::ConvergentFactorBatch {
                 producer_permutations,
@@ -77,6 +78,31 @@ impl FinancialLocalityDefinition {
                 lane,
             ),
         }
+    }
+
+    pub(in crate::tests::domains::fintech::world) fn generate_partitioned_performance(
+        seed: u64,
+        scale: LocalityScaleTuple,
+    ) -> Self {
+        let LocalityScaleTuple::PartitionedCurveUniverse {
+            regions,
+            matching_memberships,
+            instruments_per_matching_region,
+        } = scale
+        else {
+            panic!("partitioned performance workload requires a partitioned scale");
+        };
+        partitioned::generate(
+            seed,
+            scale,
+            partition_scale(
+                regions,
+                matching_memberships,
+                instruments_per_matching_region,
+            ),
+            LocalityLane::OrdinaryChangeGate,
+            partitioned::PartitionMutationWidth::ApproximatelyOnePercent,
+        )
     }
 }
 

@@ -1,31 +1,35 @@
 mod compiled_artifacts;
 mod instrumentation;
 mod sequence;
+mod symbol_table;
 #[cfg(test)]
 mod tests;
 
 use crate::runtime::state::subsystems::RuntimeSubsystem;
-use crate::symbols::data::StringInterner;
 
 pub(crate) use compiled_artifacts::CompiledArtifactStore;
 pub(crate) use instrumentation::RuntimeInstrumentation;
 use sequence::RuntimeSequenceState;
+pub(crate) use symbol_table::RuntimeSymbolTable;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct RuntimeServices {
     sequence: RuntimeSequenceState,
     pub(crate) instrumentation: RuntimeInstrumentation,
     simulation: CompiledArtifactStore,
-    pub(crate) symbols: StringInterner,
+    pub(crate) symbols: RuntimeSymbolTable,
 }
 
 impl RuntimeServices {
+    pub(crate) fn preparation_binding(&self) -> Self {
+        self.clone()
+    }
     fn empty() -> Self {
         Self {
             sequence: RuntimeSequenceState::new(),
             instrumentation: RuntimeInstrumentation::new(),
             simulation: CompiledArtifactStore::new(),
-            symbols: StringInterner::default(),
+            symbols: RuntimeSymbolTable::default(),
         }
     }
 
@@ -33,7 +37,7 @@ impl RuntimeServices {
         self.sequence.next_transaction_id()
     }
 
-    pub(crate) fn next_proposal_ordinal(&mut self) -> Option<u64> {
+    pub(crate) fn next_proposal_ordinal(&self) -> Option<u64> {
         self.sequence.next_proposal_ordinal()
     }
 
@@ -44,7 +48,7 @@ impl RuntimeServices {
     pub(crate) fn compiled_artifact(
         &self,
         compiled_artifact_id: u64,
-    ) -> Option<&crate::simulation::data::CompiledExecutionArtifact> {
+    ) -> Option<std::sync::Arc<crate::simulation::data::CompiledExecutionArtifact>> {
         self.simulation.compiled_artifact(compiled_artifact_id)
     }
 
@@ -53,7 +57,7 @@ impl RuntimeServices {
     }
 
     pub(crate) fn store_compiled_artifact(
-        &mut self,
+        &self,
         artifact: crate::simulation::data::CompiledExecutionArtifact,
     ) -> u64 {
         self.simulation.store_compiled_artifact(artifact)
@@ -71,8 +75,8 @@ impl RuntimeSubsystem for RuntimeServices {
         Self {
             sequence: RuntimeSequenceState::new(),
             instrumentation: self.instrumentation.fork(),
-            simulation: self.simulation.clone(),
-            symbols: self.symbols.clone(),
+            simulation: self.simulation.detached(),
+            symbols: self.symbols.detached_owner_snapshot(),
         }
     }
 }

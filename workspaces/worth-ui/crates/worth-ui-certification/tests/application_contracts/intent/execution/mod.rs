@@ -2,6 +2,8 @@ pub(in crate::intent) mod consequence;
 mod ia_08;
 pub(in crate::intent) mod lifecycle;
 mod phase4;
+mod portal_service;
+pub(crate) use portal_service::run_native_runtime_service_scenario;
 pub(in crate::intent) mod registration;
 pub(in crate::intent) mod reservation;
 

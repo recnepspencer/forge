@@ -1,9 +1,68 @@
 use crate::tests::support::*;
 
 #[test]
+fn branch_head_index_moves_at_cutover_before_reverse_settlement() {
+    let mut runtime = runtime_with_test_schema();
+    create_entity(&runtime, "head-index-anchor");
+    fork_publication_branch(&mut runtime, "head-index-a");
+    fork_publication_branch(&mut runtime, "head-index-b");
+
+    let mut first_transaction = test_owner_begin_transaction_for_main(&runtime);
+    first_transaction
+        .push_batch(batch_create("head-index-first"))
+        .expect("first publication stages");
+    let first_candidate = runtime
+        .prepare_branch_transaction(first_transaction)
+        .expect("first publication prepares");
+    let crate::mvcc::RelationalPublicationOutcome::Performed(first) = runtime
+        .publication_port()
+        .compare_and_publish(first_candidate)
+    else {
+        panic!("first publication performs");
+    };
+    let first_version = first.canonical_commit().commit.version_id;
+
+    let branch_a = prepare_publication(&mut runtime, "head-index-a", "head-index-a-write");
+    let crate::mvcc::RelationalPublicationOutcome::Performed(branch_a) =
+        runtime.publication_port().compare_and_publish(branch_a)
+    else {
+        panic!("branch A publication performs");
+    };
+    let branch_b = prepare_publication(&mut runtime, "head-index-b", "head-index-b-write");
+    let crate::mvcc::RelationalPublicationOutcome::Performed(branch_b) =
+        runtime.publication_port().compare_and_publish(branch_b)
+    else {
+        panic!("branch B publication performs");
+    };
+    assert_eq!(
+        runtime.history.oldest_branch_head_version(),
+        Some(first_version),
+        "all performed cutovers reach the head index before any settlement"
+    );
+
+    let committed_b = runtime
+        .settle_performed_publication(branch_b)
+        .expect("branch B settles first");
+    release_test_commit_snapshot(&runtime, &committed_b);
+    let committed_a = runtime
+        .settle_performed_publication(branch_a)
+        .expect("branch A settles second");
+    release_test_commit_snapshot(&runtime, &committed_a);
+    let committed_main = runtime
+        .settle_performed_publication(first)
+        .expect("main settles last");
+    release_test_commit_snapshot(&runtime, &committed_main);
+    assert_eq!(
+        runtime.history.oldest_branch_head_version(),
+        Some(first_version),
+        "reverse settlement cannot move branch-head truth backward"
+    );
+}
+
+#[test]
 fn preparation_order_does_not_reserve_a_subscriber_stream_gap() {
     let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "stream-order-anchor");
+    create_entity(&runtime, "stream-order-anchor");
     fork_publication_branch(&mut runtime, "prepared-first");
     fork_publication_branch(&mut runtime, "published-first");
 
@@ -13,7 +72,7 @@ fn preparation_order_does_not_reserve_a_subscriber_stream_gap() {
         .publication_port()
         .compare_and_publish(published_first)
     {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("candidate B publishes first: {outcome:?}"),
     };
     let position_b = published_first.patch_position();
@@ -30,7 +89,7 @@ fn preparation_order_does_not_reserve_a_subscriber_stream_gap() {
         .publication_port()
         .compare_and_publish(prepared_first)
     {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("candidate A publishes after B: {outcome:?}"),
     };
     assert!(
@@ -52,12 +111,20 @@ fn preparation_order_does_not_reserve_a_subscriber_stream_gap() {
         after_a.latest_commit_id,
         Some(prepared_first.canonical_commit().commit.commit_id)
     );
+    let committed_b = runtime
+        .settle_performed_publication(published_first)
+        .expect("published-first branch settles explicitly");
+    release_test_commit_snapshot(&runtime, &committed_b);
+    let committed_a = runtime
+        .settle_performed_publication(prepared_first)
+        .expect("prepared-first branch settles explicitly");
+    release_test_commit_snapshot(&runtime, &committed_a);
 }
 
 #[test]
 fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identities() {
     let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "recovery-order-anchor");
+    create_entity(&runtime, "recovery-order-anchor");
     fork_publication_branch(&mut runtime, "prepared-first");
     fork_publication_branch(&mut runtime, "published-first");
 
@@ -67,15 +134,16 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
         .publication_port()
         .compare_and_publish(published_first)
     {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("candidate B publishes first: {outcome:?}"),
     };
     let published_first_id = published_first.canonical_commit().commit.commit_id;
     let published_first_position = published_first.patch_position();
     let published_first_entity = created_entity_from_performed(&published_first);
-    runtime
+    let committed_b = runtime
         .settle_performed_publication(published_first)
         .expect("B settles before the checkpoint");
+    release_test_commit_snapshot(&runtime, &committed_b);
     runtime
         .durability_authority()
         .checkpoint()
@@ -85,7 +153,7 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
         .publication_port()
         .compare_and_publish(prepared_first)
     {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("candidate A publishes after the checkpoint: {outcome:?}"),
     };
     let prepared_first_id = prepared_first.canonical_commit().commit.commit_id;
@@ -93,9 +161,10 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
     let prepared_first_entity = created_entity_from_performed(&prepared_first);
     assert!(prepared_first_id < published_first_id);
     assert!(prepared_first_position > published_first_position);
-    runtime
+    let committed_a = runtime
         .settle_performed_publication(prepared_first)
         .expect("A settles after the checkpoint");
+    release_test_commit_snapshot(&runtime, &committed_a);
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -108,7 +177,7 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(plan)
         .expect("fresh recovery replays A after checkpointed B");
     assert_eq!(
@@ -151,9 +220,10 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
         observed_entity_name(&recovered, "main", published_first_entity),
         None
     );
-    let continued = create_entity_outcome(&mut recovered, "recovery-order-continued");
+    let continued = create_entity_outcome(&recovered, "recovery-order-continued");
     assert!(continued.commit.commit_id > published_first_id);
     assert!(continued.patch_position() > prepared_first_position);
+    release_test_commit_snapshot(&recovered, &continued);
 }
 
 fn created_entity_from_performed(
@@ -199,7 +269,9 @@ fn prepare_publication(
     entity: &str,
 ) -> crate::facade::mvcc::PreparedRelationalCommitCandidate {
     let mut transaction = begin_publication_transaction(runtime, branch);
-    transaction.push_batch(batch_create(entity));
+    transaction
+        .push_batch(batch_create(entity))
+        .expect("test staging stays within configured resource budgets");
     runtime
         .prepare_branch_transaction(transaction)
         .expect("publication candidate prepares")

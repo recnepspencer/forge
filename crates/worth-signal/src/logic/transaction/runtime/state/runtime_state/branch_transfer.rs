@@ -1,5 +1,3 @@
-use crate::state::{SignalBranchHandle, SignalBranchId};
-
 use super::{
     AuthorityTransferPacket, BranchLifecycleTransfer, RestoreTransferPacket, SignalRuntime,
 };
@@ -69,12 +67,9 @@ where
         }
     }
 
-    pub(in crate::logic::transaction::runtime::state) fn synchronize_branch_catalogs(
-        &mut self,
-        branch_catalog: std::collections::BTreeMap<SignalBranchId, SignalBranchHandle>,
-    ) {
+    pub(in crate::logic::transaction::runtime::state) fn project_branch_catalog(&mut self) {
         let active_branch = self.graph.current_branch().id;
         self.branches
-            .synchronize_catalogs(&branch_catalog, active_branch, &mut self.graph);
+            .project_catalog(active_branch, &mut self.graph);
     }
 }

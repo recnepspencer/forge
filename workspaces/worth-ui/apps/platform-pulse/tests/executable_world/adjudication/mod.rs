@@ -13,18 +13,26 @@ mod native_input_reachability;
 #[cfg(target_os = "windows")]
 mod platform_pulse_control_points;
 #[cfg(target_os = "windows")]
+mod portal_pixels;
+#[cfg(target_os = "windows")]
 mod predecessor_preservation;
 #[cfg(target_os = "windows")]
 mod publication_identity;
+#[cfg(target_os = "windows")]
 mod query_to_pixel;
 #[cfg(target_os = "windows")]
 mod replacement_to_pixel;
 #[cfg(target_os = "windows")]
+mod runtime_service_story_pixels;
+#[cfg(target_os = "windows")]
 mod schema_transition;
 #[cfg(target_os = "windows")]
 mod source_to_pixel;
+mod visual_contract_manifest;
 #[cfg(target_os = "windows")]
 mod visual_overlay_pixels;
+#[cfg(target_os = "windows")]
+mod wrapping_text_pixels;
 
 #[cfg(target_os = "windows")]
 pub(crate) use content_fingerprint::content_fingerprint;
@@ -39,9 +47,10 @@ pub(crate) use identity_trace::{
 #[cfg(target_os = "windows")]
 pub(crate) use intent_control_points::{
     adjudicate_action_control_point, adjudicate_confirmation_control_point,
-    adjudicate_visible_control_change, require_distinct_control_points, IntentControlPointFailure,
-    NativeControlPixelRegion, PlatformPulseActionControlPoint,
-    PlatformPulseConfirmationControlPoint, VisibleControlPixelChange,
+    adjudicate_portal_control_point, adjudicate_visible_control_change,
+    require_distinct_control_points, IntentControlPointFailure, NativeControlPixelRegion,
+    PlatformPulseActionControlPoint, PlatformPulseConfirmationControlPoint,
+    VisibleControlPixelChange,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use lifecycle_cleanup::{
@@ -60,6 +69,14 @@ pub(crate) use native_input_reachability::{
     NativeInputFamilyObservation, NativeInputReachabilityObservationSet,
 };
 #[cfg(target_os = "windows")]
+pub(crate) use portal_pixels::{
+    adjudicate_authored_portal_pixels, adjudicate_closed_portal_pixels,
+    adjudicate_focus_fallback_portal_pixels, adjudicate_open_portal_pixels, portal_action_points,
+    portal_occupancy_point, PlatformPulseAuthoredPortalPixelEvidence,
+    PlatformPulsePortalFocusFallbackPixelEvidence, PlatformPulsePortalPixelEvidence,
+    PlatformPulsePortalPixelFailure,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use predecessor_preservation::{
     adjudicate_predecessor_preservation, CausalPredecessorPreservationObservationSet,
     ExecutablePredecessorPreservationEvidence, ExecutablePredecessorPreservationFailure,
@@ -76,9 +93,15 @@ pub(crate) use replacement_to_pixel::{
     ExecutableReplacementEvidence, ExecutableReplacementFailure, ReplacementExpectation,
 };
 #[cfg(target_os = "windows")]
+pub(crate) use runtime_service_story_pixels::{
+    adjudicate_runtime_service_story_pixels, PlatformPulseRuntimeServicePixelEvidence,
+    PlatformPulseRuntimeServicePixelFailure,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use schema_transition::{
-    adjudicate_schema_transition, ExecutableSchemaTransitionEvidence,
-    ExecutableSchemaTransitionFailure, ExpectedSchemaTransition,
+    adjudicate_schema_transition, schema_posture_changed_pixel_bytes, schema_posture_matches,
+    ExecutableSchemaTransitionEvidence, ExecutableSchemaTransitionFailure,
+    ExpectedSchemaTransition,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use source_to_pixel::{
@@ -89,4 +112,9 @@ pub(crate) use source_to_pixel::{
 pub(crate) use visual_overlay_pixels::{
     adjudicate_overlay_pixels, adjudicate_restored_pixels, ExecutableVisualClearEvidence,
     ExecutableVisualOverlayEvidence,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use wrapping_text_pixels::{
+    adjudicate_default_wrapping_text, adjudicate_resized_wrapping_text,
+    PlatformPulseWrappingTextFailure,
 };

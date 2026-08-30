@@ -39,7 +39,10 @@ fn real_wui_record_only_presentation_emits_post_translation_mechanics() {
     let capabilities = recorder.operational_capability_report();
     assert_eq!(
         capabilities.observed_capabilities(),
-        &[WorthUiHostCapability::MountedFrameRecording]
+        &[
+            WorthUiHostCapability::MountedFrameRecording,
+            WorthUiHostCapability::SemanticFocusPlacement,
+        ]
     );
     let surface = session.create_semantic_surface().unwrap();
     let binding = session
@@ -97,6 +100,7 @@ fn assert_ordinary_transcript(
         transcript.unperformed_effects()[0],
         worth_ui_host_headless::UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: transcript.filled_rects().len() as u32,
+            portal_overlay_count: transcript.portal_overlays().len() as u32,
             semantic_text_count: transcript.semantic_text().len() as u32,
             preview_node_count: 0,
         }
@@ -124,6 +128,7 @@ fn real_cross_lane_recording_preserves_exact_unperformed_external_mechanics() {
         .unwrap();
     let native_frame = execute_cross_lane_frame(&mut session);
     assert_rejected(
+        "cross-lane native presentation",
         session.present_prepared_mounted_frame(
             native_frame,
             UiPresentationDeadline::at_tick(20),
@@ -256,10 +261,30 @@ fn prepare(
         .unwrap()
 }
 
-fn assert_rejected(outcome: UiMountedFrameOutcome, expected: UiHostSurfacePresentationDenial) {
+fn assert_rejected(
+    context: &str,
+    outcome: UiMountedFrameOutcome,
+    expected: UiHostSurfacePresentationDenial,
+) {
     let rejected = match outcome {
         UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => rejected,
-        _ => panic!("attempt must reject before effects"),
+        UiMountedFrameOutcome::Published(_) => panic!("{context} unexpectedly published"),
+        UiMountedFrameOutcome::Unchanged(_) => panic!("{context} unexpectedly reported unchanged"),
+        UiMountedFrameOutcome::Reconciled(_) => panic!("{context} unexpectedly reconciled"),
+        UiMountedFrameOutcome::InFlight(_) => panic!("{context} unexpectedly remained in flight"),
+        UiMountedFrameOutcome::PresentationIndeterminate(_) => {
+            panic!("{context} unexpectedly became indeterminate")
+        }
+        UiMountedFrameOutcome::RetentionDenied(_) => {
+            panic!("{context} unexpectedly denied retention")
+        }
+        UiMountedFrameOutcome::AdmissionDenied(_) => {
+            panic!("{context} unexpectedly denied runtime admission")
+        }
+        UiMountedFrameOutcome::CompletionDenied(_) => {
+            panic!("{context} unexpectedly denied completion")
+        }
+        UiMountedFrameOutcome::Superseded(_) => panic!("{context} unexpectedly superseded"),
     };
     assert_eq!(rejected.rejections().len(), 1);
     assert_eq!(rejected.rejections()[0].denial(), expected);

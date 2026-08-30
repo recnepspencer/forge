@@ -43,6 +43,10 @@ where
         }
         let mut config = SignalRuntimeConfig::default();
         config.sync_graph_capacity(&graph);
+        let branches = BranchManager::<D, I, T>::with_live_catalog(
+            graph.diagnostics_state().branch_catalog().clone(),
+            graph.runtime_instance_id(),
+        );
         Self {
             config,
             graph,
@@ -61,7 +65,7 @@ where
             resource: ResourceRuntimeState::default(),
             temporal: TemporalRuntimeState::default(),
             telemetry: RuntimeTelemetry::default(),
-            branches: BranchManager::<D, I, T>::new(),
+            branches,
         }
     }
 }

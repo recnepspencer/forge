@@ -1,29 +1,26 @@
 //! Aftermath fixture schema declaration members.
 
+use super::operations::{bind_operations, FixtureReads};
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationAspectMarkerIdentity, ApplicationAspectRef,
     ApplicationAuthorizationPathBuilder, ApplicationEffectPayload, ApplicationEntityMarkerIdentity,
     ApplicationEntityRef, ApplicationExternalEffectPayload, ApplicationExternalEffectProtocol,
     ApplicationFieldMarkerIdentity, ApplicationFieldPresence, ApplicationFieldRef,
-    ApplicationPolicyRef, ApplicationPrincipalBindingRef, ApplicationPrincipalBindingRequirements,
-    ApplicationPrincipalIdentityRequirement, ApplicationPrincipalMappingIdentityRequirement,
-    ApplicationPrincipalMappingStatusRequirement, ApplicationPrincipalTargetRequirement,
-    ApplicationRelationRef, ApplicationSchema, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder, DeclaredApplicationFieldValue, EqualityPredicate,
-    NoEqualityPredicate, OperationEmits, OperationReads, OperationRequiresAbility, ReadOnly,
-    ReadWrite,
+    ApplicationOperationMarkerIdentity, ApplicationPolicyRef, ApplicationPrincipalBindingRef,
+    ApplicationPrincipalBindingRequirements, ApplicationPrincipalIdentityRequirement,
+    ApplicationPrincipalMappingIdentityRequirement, ApplicationPrincipalMappingStatusRequirement,
+    ApplicationPrincipalTargetRequirement, ApplicationRelationRef, ApplicationSchema,
+    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+    DeclaredApplicationFieldValue, EqualityPredicate, NoEqualityPredicate, OperationEmits,
+    OperationReads, OperationRequiresAbility, ReadOnly, ReadWrite,
 };
 use worth_query_declaration::facade::authentication::{
     WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
 };
 use worth_query_declaration::worth_query_effect;
-
-use super::operations::{bind_operations, FixtureReads};
-
 pub(super) struct AftermathFixtureSchema;
 pub(super) struct FixtureInput;
-
 pub(super) struct ReleaseEstate;
 pub(super) struct Transfer;
 pub(super) struct TransferSmall;
@@ -38,6 +35,34 @@ pub(super) struct WireTransferFinal;
 pub(super) struct FreezeNote;
 pub(super) struct FreezeBalance;
 pub(super) struct Charge;
+worth_query_declaration::worth_query_portable_type!(
+    FixtureInput => "worth.query.test.aftermath-fixture-input.v1"
+);
+
+macro_rules! operation_identity {
+    ($operation:ty => $identifier:literal) => {
+        impl ApplicationOperationMarkerIdentity for $operation {
+            type Schema = AftermathFixtureSchema;
+            type Input = FixtureInput;
+            const IDENTIFIER: &'static str = $identifier;
+        }
+    };
+}
+
+operation_identity!(ReleaseEstate => "ReleaseEstate");
+operation_identity!(Transfer => "transfer");
+operation_identity!(TransferSmall => "transfer-small");
+operation_identity!(TransferLarge => "transfer-large");
+operation_identity!(FreezeAccount => "freeze-account");
+operation_identity!(FreezeAccountFields => "freeze-account-fields");
+operation_identity!(NotifyDeath => "notify-death");
+operation_identity!(LegalHold => "legal-hold");
+operation_identity!(AuditRetention => "audit-retention");
+operation_identity!(ApproveEmergencyAccess => "ApproveEmergencyAccess");
+operation_identity!(WireTransferFinal => "wire-transfer-final");
+operation_identity!(FreezeNote => "freeze-note");
+operation_identity!(FreezeBalance => "freeze-balance");
+operation_identity!(Charge => "charge");
 
 pub(super) struct FixtureEntity;
 pub(super) struct FixtureAbility;
@@ -123,15 +148,12 @@ impl OperationReads<FreezeAccountFields> for NoteField {}
 impl OperationReads<FreezeNote> for NoteField {}
 impl OperationReads<FreezeBalance> for BalanceField {}
 
-/// Payload the fixture's two escaping operations project onto the wire.
-///
-/// The fixture declares real external-effect slots in those operation definitions
-/// operations. Before slice 9A it declared only an aftermath escaping posture,
-/// with no lane behind it — the fixture was itself an instance of the defect,
-/// asserting a reconcilable external owner for an operation that would have
-/// co-committed no outbox record and dispatched nothing (Q8.25-C1).
+/// Payload projected by the fixture's two real external-effect operation slots.
 #[derive(Clone, Copy)]
 pub(super) struct FixtureExternalNotice(u64);
+worth_query_declaration::worth_query_portable_type!(
+    FixtureExternalNotice => "worth.query.test.fixture-external-notice.v1"
+);
 
 impl ApplicationEffectPayload for FixtureExternalNotice {
     fn retained_bytes(&self) -> u64 {

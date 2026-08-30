@@ -28,11 +28,17 @@ pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
 pub struct ActivitySequenceSlot;
 
+worth_query_declaration::worth_query_portable_type!(AccountIdentitySlot => "worth.query.test.execution.elevated.account_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitiesSlot => "worth.query.test.execution.elevated.activities_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivityIdentitySlot => "worth.query.test.execution.elevated.activity_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitySequenceSlot => "worth.query.test.execution.elevated.activity_sequence_slot.v1");
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ElevatedAccountActivityResult {
     account: String,
     activities: Vec<(String, u64)>,
 }
+worth_query_declaration::worth_query_portable_type!(ElevatedAccountActivityResult => "worth.query.test.execution.elevated.result.v1");
 
 impl ElevatedAccountActivityResult {
     pub(in crate::domain_computation::primary_graph) fn account(&self) -> &str {
@@ -195,6 +201,7 @@ impl WorthQueryApplicationProjection<IdentityExecutionSchema, ElevatedAccountAct
 }
 
 pub struct ElevatedAccountActivityCause;
+worth_query_declaration::worth_query_portable_type!(ElevatedAccountActivityCause => "worth.query.test.execution.elevated.live_cause.v1");
 
 impl
     ApplicationQueryLiveCauseBinding<

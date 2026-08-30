@@ -9,9 +9,9 @@ fn perf_replay_recovery_matrix() {
         suite,
         "durable_replay_lineage_basis",
         || {
-            let mut runtime = persisted_runtime_with_test_schema();
-            create_entity_outcome(&mut runtime, "source");
-            let second = create_entity_outcome(&mut runtime, "target");
+            let runtime = persisted_runtime_with_test_schema();
+            create_entity_outcome(&runtime, "source");
+            let second = create_entity_outcome(&runtime, "target");
             let replay_commit_id = second.commit.commit_id;
 
             runtime.performance_access().reset_counters();
@@ -72,13 +72,13 @@ fn perf_replay_recovery_matrix() {
 
     let checkpoint_recovery_samples =
         capture_perf_samples(suite, "checkpoint_recover_suffix_replay", || {
-            let mut runtime = persisted_runtime_with_test_schema();
-            create_entity_outcome(&mut runtime, "source");
+            let runtime = persisted_runtime_with_test_schema();
+            create_entity_outcome(&runtime, "source");
             runtime
                 .durability_authority()
                 .checkpoint()
                 .expect("checkpoint");
-            let second = create_entity_outcome(&mut runtime, "target");
+            let second = create_entity_outcome(&runtime, "target");
             let tail_commit_id = second.commit.commit_id;
 
             let recovery_plan = runtime.durability().recovery_plan(
@@ -89,7 +89,7 @@ fn perf_replay_recovery_matrix() {
             recovered.performance_access().reset_counters();
             let recovery_started_at = Instant::now();
             let outcome = recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(recovery_plan)
                 .expect("recover plan");
             let recovery_micros = recovery_started_at.elapsed().as_micros();

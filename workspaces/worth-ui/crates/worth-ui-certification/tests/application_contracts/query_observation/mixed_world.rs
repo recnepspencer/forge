@@ -15,6 +15,7 @@ use worth_ui_query_binding::{
     UiCollectionProjectionBindingAdmission, UiCollectionProjectionBudget,
     UiCollectionProjectionOpenOutcome, UiProjectionObservation, WorthUiQueryWorkspaceExt,
 };
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use crate::host_observation_fixture::{batch, report, source};
 use crate::mounted_application_lifecycle::published_mounted_world::{
@@ -254,6 +255,8 @@ fn validated_viewport(
         .first()
         .expect("snapshot contains semantic text");
     let basis = PresentedObservationBasis {
+        host_surface: session.inspect_mounted_identity().surface_bindings()[0]
+            .host_surface_identity(),
         frame,
         epoch: presented_epoch(session, frame, binding),
         instance: row.mounted_instance(),

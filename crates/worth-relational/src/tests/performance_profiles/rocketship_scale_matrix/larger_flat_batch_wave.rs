@@ -18,14 +18,12 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_larger_flat_batch_wave(
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime
-                .config
-                .publication
-                .policy
-                .max_patch_records_per_commit = node_count * 2;
+            runtime.configure_for_test(|config| {
+                config.publication.policy.max_patch_records_per_commit = node_count * 2
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
-                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+                seed_pseudorealistic_rocketship_world(&runtime, node_count, query_target_count);
 
             let mut partition_targets = BTreeMap::new();
             for entity in &seeded.entities {
@@ -56,7 +54,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_larger_flat_batch_wave(
             let update_started_at = Instant::now();
             let update = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 let mut batch = WorkerIntentBatch::new("rocketship-large-flat-entity-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -86,8 +84,9 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_larger_flat_batch_wave(
                         },
                     )));
                 }
-                txn.push_batch(batch);
-                txn.commit(&mut runtime)
+                txn.push_batch(batch)
+                    .expect("test staging stays within configured resource budgets");
+                txn.commit(&runtime)
                     .expect("rocketship large flat entity batch wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
@@ -118,7 +117,10 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_larger_flat_batch_wave(
                 )
                 .expect("rocketship large flat batch explicit outcome");
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =

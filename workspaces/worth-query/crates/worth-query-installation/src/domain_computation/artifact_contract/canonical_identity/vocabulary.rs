@@ -1,9 +1,13 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_computation::*;
 
-pub(super) fn hash_optional(hash: &mut Sha256, label: &'static str, value: Option<&str>) {
+pub(super) fn hash_optional(
+    hash: &mut impl CanonicalHashSink,
+    label: &'static str,
+    value: Option<&str>,
+) {
     hash_text_field(hash, label, value.unwrap_or("not-declared"));
 }
 

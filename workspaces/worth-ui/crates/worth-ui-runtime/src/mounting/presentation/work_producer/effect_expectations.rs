@@ -40,6 +40,11 @@ impl UiMountedPresentationState {
                 }
                 effects
             }
+            UiMountedPresentationWorkView::Sample(sample) => (!sample.changes().is_empty()
+                || !sample.damage().is_empty())
+            .then_some(UiMountedEffectFamily::NativePaint)
+            .into_iter()
+            .collect(),
             UiMountedPresentationWorkView::Unchanged(_) => Vec::new(),
         }
     }

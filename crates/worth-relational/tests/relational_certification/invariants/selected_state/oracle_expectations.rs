@@ -3,7 +3,7 @@ use super::world::supply_chain::{
     OracleState,
 };
 
-pub(crate) fn expected_phase5_branch(
+pub(crate) fn expected_supply_chain_branch(
     program: &CompiledSupplyChainProgram,
     branch: BranchLabel,
     delta: Option<DeltaId>,

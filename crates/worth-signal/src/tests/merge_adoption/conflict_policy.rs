@@ -61,7 +61,7 @@ fn runtime_merge_request_named_conflict_policy_changes_merge_outcome() {
         .unwrap();
 
     let reject_err = runtime
-        .merge()
+        .merge_raw()
         .from(reject_feature.clone())
         .into(main.clone())
         .conflict_policy_named("signal.conflict.reject-shared-state")
@@ -75,7 +75,7 @@ fn runtime_merge_request_named_conflict_policy_changes_merge_outcome() {
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
             let evidence =
-                match evidence.expect("reject policy failure should expose conflict evidence") {
+                match *evidence.expect("reject policy failure should expose conflict evidence") {
                     BranchMergeFailureEvidence::Conflict(evidence) => evidence,
                     other => panic!("expected conflict evidence, got {other:?}"),
                 };
@@ -123,7 +123,7 @@ fn runtime_merge_request_named_conflict_policy_changes_merge_outcome() {
         .unwrap();
 
     let resolve_result = runtime
-        .merge()
+        .merge_raw()
         .from(resolve_feature)
         .into(main)
         .conflict_policy_named("signal.conflict.resolve-source-when-structure-matches")
@@ -184,7 +184,7 @@ fn runtime_merge_request_named_conflict_policy_selects_registered_descriptor() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .conflict_policy_named("signal.conflict.reject-shared-state")
@@ -252,7 +252,7 @@ fn runtime_merge_uses_schema_default_conflict_policy_when_request_is_silent() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -320,7 +320,7 @@ fn runtime_merge_node_conflict_policy_override_precedes_schema_default() {
     runtime.switch_branch(main.clone()).unwrap();
 
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()

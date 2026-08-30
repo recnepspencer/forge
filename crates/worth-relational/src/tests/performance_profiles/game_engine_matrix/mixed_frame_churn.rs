@@ -11,7 +11,7 @@ pub(super) fn certify_mixed_read_write_frame_churn_window(suite: &'static str) {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            let seeded = seed_game_engine_frame_world(&mut runtime, "scene-frame", 8, 24);
+            let seeded = seed_game_engine_frame_world(&runtime, "scene-frame", 8, 24);
             let mut bridge_runtime = build_mock_bridge_runtime(false, 48);
 
             const ITERATIONS: usize = 48;
@@ -31,7 +31,7 @@ pub(super) fn certify_mixed_read_write_frame_churn_window(suite: &'static str) {
             for frame in 0..ITERATIONS {
                 let actor = seeded.frame_targets[frame % seeded.frame_targets.len()];
                 let update_started_at = Instant::now();
-                let _ = update_entity(&mut runtime, actor, &format!("scene-frame-step-{frame}"));
+                let _ = update_entity(&runtime, actor, &format!("scene-frame-step-{frame}"));
                 let update_micros = update_started_at.elapsed().as_micros();
                 total_update_micros += update_micros;
 
@@ -97,7 +97,10 @@ pub(super) fn certify_mixed_read_write_frame_churn_window(suite: &'static str) {
                     .expect("scene frame explicit outcome");
                 let explicit_micros = explicit_started_at.elapsed().as_micros();
                 total_explicit_query_micros += explicit_micros;
-                assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+                assert!(runtime
+                    .visibility_authority()
+                    .release_snapshot(&snapshot)
+                    .is_ok());
 
                 let affected_sources = (propagation.result.entities.len()
                     + explicit.result.entities.len())

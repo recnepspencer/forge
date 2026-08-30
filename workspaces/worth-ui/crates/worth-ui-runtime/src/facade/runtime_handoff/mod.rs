@@ -13,5 +13,6 @@ pub use crate::runtime::{
     WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
     WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
     WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics, WorthUiRuntimeLaunch,
-    WorthUiRuntimeLaunchDenial, WorthUiTransientInteractionState,
+    WorthUiRuntimeLaunchDenial, WorthUiRuntimeShutdownBlocker, WorthUiRuntimeShutdownRecovery,
+    WorthUiTransientInteractionState,
 };

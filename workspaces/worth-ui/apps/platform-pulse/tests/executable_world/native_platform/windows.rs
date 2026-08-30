@@ -26,6 +26,7 @@ mod input_delivery;
 #[cfg(test)]
 mod input_delivery_tests;
 mod input_environment;
+mod pointer_target;
 mod process_windows;
 mod window_state;
 
@@ -287,6 +288,15 @@ impl NativePlatformContract for WindowsNativePlatform {
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
         let observed = self.observe_bound_client_area(bound)?;
         input_delivery::deliver_pointer(&bound.window, observed, point)
+    }
+
+    fn deliver_keyboard_command(
+        &self,
+        bound: &Self::BoundClientArea,
+        command: crate::external_observation::NativeKeyboardCommand,
+    ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
+        let observed = self.observe_bound_client_area(bound)?;
+        input_delivery::deliver_keyboard_command(&bound.window, observed, command)
     }
 
     fn deliver_wheel_deltas(

@@ -2,31 +2,40 @@ use super::HistoryAuthority;
 
 impl<'runtime> HistoryAuthority<'runtime> {
     pub(crate) fn remove_commit_envelope_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         let position = self.runtime.history.canonical_stream_position(commit_id);
-        let Some(_envelope) = self.runtime.history.commit_envelopes.remove(&commit_id) else {
+        let removed = self.runtime.history.with_ledger_mut(|ledger| {
+            let removed = ledger.commit_envelopes.remove(&commit_id).is_some();
+            if removed {
+                if let Some(position) = position {
+                    ledger.patch_stream_index.remove(&position);
+                }
+            }
+            removed
+        });
+        if !removed {
             return false;
-        };
-        if let Some(position) = position {
-            self.runtime.history.patch_stream_index.remove(&position);
         }
         self.runtime.history.replace_catalog_from_legacy_for_test();
         true
     }
 
     pub(crate) fn remove_commit_envelope_preserving_patch_stream_position_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
-        let removed = self.runtime.history.commit_envelopes.remove(&commit_id);
+        let removed = self
+            .runtime
+            .history
+            .with_ledger_mut(|ledger| ledger.commit_envelopes.remove(&commit_id));
         self.runtime.history.replace_catalog_from_legacy_for_test();
         removed.is_some()
     }
 
     pub(crate) fn evict_commit_envelope_for_durable_recovery_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         let removed = self.remove_commit_envelope_for_test(commit_id);
@@ -37,7 +46,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
     }
 
     pub(crate) fn evict_commit_envelope_preserving_patch_position_for_durable_recovery_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         let removed =
@@ -49,29 +58,30 @@ impl<'runtime> HistoryAuthority<'runtime> {
     }
 
     pub(crate) fn tamper_commit_patch_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
         mutate: impl FnOnce(&mut crate::publication::patch::data::CanonicalAuthoritativePatch),
     ) -> bool {
-        let Some(envelope) = self.runtime.history.commit_envelopes.get(&commit_id) else {
+        let Some(envelope) = self.runtime.history.recorded_commit_envelope(commit_id) else {
             return false;
         };
         let mut replacement = envelope.as_ref().clone();
         mutate(&mut replacement.patch);
-        self.runtime
-            .history
-            .commit_envelopes
-            .insert(commit_id, std::sync::Arc::new(replacement));
+        self.runtime.history.with_ledger_mut(|ledger| {
+            ledger
+                .commit_envelopes
+                .insert(commit_id, std::sync::Arc::new(replacement))
+        });
         self.runtime.history.replace_catalog_from_legacy_for_test();
         true
     }
 
     pub(crate) fn tamper_commit_envelope_for_test(
-        &mut self,
+        &self,
         commit_id: crate::history::data::CommitId,
         mutate: impl FnOnce(&mut crate::history::data::CanonicalCommitEnvelope),
     ) -> bool {
-        let Some(envelope) = self.runtime.history.commit_envelopes.get(&commit_id) else {
+        let Some(envelope) = self.runtime.history.recorded_commit_envelope(commit_id) else {
             return false;
         };
         let mut replacement = envelope.as_ref().clone();
@@ -87,10 +97,11 @@ impl<'runtime> HistoryAuthority<'runtime> {
                 crate::indexes::data::DerivedIndexArtifacts::new(generations);
         }
         mutate(&mut replacement);
-        self.runtime
-            .history
-            .commit_envelopes
-            .insert(commit_id, std::sync::Arc::new(replacement));
+        self.runtime.history.with_ledger_mut(|ledger| {
+            ledger
+                .commit_envelopes
+                .insert(commit_id, std::sync::Arc::new(replacement))
+        });
         self.runtime.history.replace_catalog_from_legacy_for_test();
         true
     }

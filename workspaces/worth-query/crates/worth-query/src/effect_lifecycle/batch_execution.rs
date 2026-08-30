@@ -48,23 +48,73 @@ impl EffectBatchExecutionDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectBatchExecutionDeferred {
+    kind: super::EffectExecutionDeferredKind,
     message: String,
     batch_identity: WorthQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
-impl EffectBatchExecutionDeferred {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EffectBatchExecutionControlStopped {
+    kind: super::EffectExecutionControlStopKind,
+    message: String,
+    batch_identity: WorthQueryEvidenceIdentity,
+    counters: EffectLifecycleCounters,
+}
+
+impl EffectBatchExecutionControlStopped {
     pub(crate) fn new(
         lowered: &LoweredEffectBatchExecutionPlan,
+        kind: super::EffectExecutionControlStopKind,
         message: impl Into<String>,
     ) -> Self {
         Self {
+            kind,
+            message: message.into(),
+            batch_identity: lowered.batch_identity().clone(),
+            counters: EffectLifecycleCounters::execution_denied(
+                lowered.counters().effect_support_row_count(),
+                lowered.counters().effect_lowering_width(),
+                lowered.counters().effect_executor_rediscovery_count(),
+            ),
+        }
+    }
+
+    pub const fn kind(&self) -> super::EffectExecutionControlStopKind {
+        self.kind
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn batch_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.batch_identity
+    }
+
+    pub const fn counters(&self) -> &EffectLifecycleCounters {
+        &self.counters
+    }
+}
+
+impl EffectBatchExecutionDeferred {
+    pub(crate) fn new(
+        lowered: &LoweredEffectBatchExecutionPlan,
+        kind: super::EffectExecutionDeferredKind,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind,
             message: message.into(),
             batch_identity: lowered.batch_identity().clone(),
             counters: EffectLifecycleCounters::deferred(
                 lowered.counters().effect_support_row_count(),
             ),
         }
+    }
+
+    pub fn kind(&self) -> super::EffectExecutionDeferredKind {
+        self.kind
     }
 
     pub fn message(&self) -> &str {
@@ -144,6 +194,10 @@ impl EffectBatchSettlementDeferred {
         &self.counters
     }
 
+    pub fn commit_id(&self) -> worth_relational::facade::history::CommitId {
+        self.settlement.commit().commit_id
+    }
+
     pub fn repair_with(
         &self,
         authority: super::EffectExecutionAuthority<'_>,
@@ -165,6 +219,7 @@ impl EffectBatchSettlementDeferred {
 pub enum EffectBatchExecutionStop {
     Denied(EffectBatchExecutionDenial),
     Deferred(EffectBatchExecutionDeferred),
+    ControlStopped(EffectBatchExecutionControlStopped),
     SettlementDeferred(EffectBatchSettlementDeferred),
 }
 
@@ -172,21 +227,28 @@ impl EffectBatchExecutionStop {
     pub fn denial(&self) -> Option<&EffectBatchExecutionDenial> {
         match self {
             Self::Denied(denial) => Some(denial),
-            Self::Deferred(_) | Self::SettlementDeferred(_) => None,
+            Self::Deferred(_) | Self::ControlStopped(_) | Self::SettlementDeferred(_) => None,
         }
     }
 
     pub fn deferred(&self) -> Option<&EffectBatchExecutionDeferred> {
         match self {
             Self::Deferred(deferred) => Some(deferred),
-            Self::Denied(_) | Self::SettlementDeferred(_) => None,
+            Self::Denied(_) | Self::ControlStopped(_) | Self::SettlementDeferred(_) => None,
         }
     }
 
     pub fn settlement_deferred(&self) -> Option<&EffectBatchSettlementDeferred> {
         match self {
-            Self::Denied(_) | Self::Deferred(_) => None,
+            Self::Denied(_) | Self::Deferred(_) | Self::ControlStopped(_) => None,
             Self::SettlementDeferred(deferred) => Some(deferred),
+        }
+    }
+
+    pub fn control_stopped(&self) -> Option<&EffectBatchExecutionControlStopped> {
+        match self {
+            Self::ControlStopped(stopped) => Some(stopped),
+            Self::Denied(_) | Self::Deferred(_) | Self::SettlementDeferred(_) => None,
         }
     }
 }
@@ -312,6 +374,16 @@ impl ExecutedEffectBatchPlan {
     }
 
     pub fn receipt(&self) -> EffectExecutionReceipt {
-        EffectExecutionReceipt::from_batch(self.clone())
+        EffectExecutionReceipt::from_batch(self)
+    }
+
+    pub(crate) fn published_snapshot(
+        &self,
+    ) -> Option<&worth_relational::facade::snapshots::SnapshotHandle> {
+        match &self.aggregate_artifact {
+            ExecutedEffectAuthorityArtifact::Mutation(result) => Some(&result.snapshot),
+            ExecutedEffectAuthorityArtifact::Merge(result) => Some(&result.commit.snapshot),
+            ExecutedEffectAuthorityArtifact::Writeback { .. } => None,
+        }
     }
 }

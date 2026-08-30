@@ -48,13 +48,20 @@ impl CourtroomWorld {
             contacts,
             predicate,
             predicate_panic,
+            None,
         )
+    }
+
+    pub fn publish_with_active_snapshot_limit(gate: &str, maximum: usize) -> Self {
+        let contacts = ContactCounters::default();
+        let (predicate, predicate_panic) = Predicate::controlled(contacts.clone());
+        Self::publish_with_predicate(gate, 0, contacts, predicate, predicate_panic, Some(maximum))
     }
 
     pub fn publish_replacement(gate: &str) -> Self {
         let contacts = ContactCounters::default();
         let (predicate, predicate_panic) = ReplacementPredicate::controlled(contacts.clone());
-        Self::publish_with_predicate(gate, 0, contacts, predicate, predicate_panic)
+        Self::publish_with_predicate(gate, 0, contacts, predicate, predicate_panic, None)
     }
 
     fn publish_with_predicate<Provider>(
@@ -63,6 +70,7 @@ impl CourtroomWorld {
         contacts: ContactCounters,
         predicate: Provider,
         predicate_panic: PanicController,
+        maximum_active_snapshots: Option<usize>,
     ) -> Self
     where
         Provider: domain::WorthQueryHostConditionalPredicateProvider<TemporalReadyNode> + 'static,
@@ -121,7 +129,18 @@ impl CourtroomWorld {
             )
             .unwrap();
 
-        let mut graph = authority.prepare_primary_graph(&runtime, &schema).unwrap();
+        let mut graph = match maximum_active_snapshots {
+            Some(maximum_active_snapshots) => {
+                worth_query_execution::facade::integration::prepare_primary_graph_with_active_snapshot_limit_for_test(
+                    &authority,
+                    &runtime,
+                    &schema,
+                    maximum_active_snapshots,
+                )
+                .unwrap()
+            }
+            None => authority.prepare_primary_graph(&runtime, &schema).unwrap(),
+        };
         seed_graph(&mut graph, &principal_binding, gate, unrelated_row_count);
         let invariant = Arc::new(graph.retain_invariant_projection_authority());
         let (invoker, preconditions_panic) = Invoker::controlled(contacts.clone());

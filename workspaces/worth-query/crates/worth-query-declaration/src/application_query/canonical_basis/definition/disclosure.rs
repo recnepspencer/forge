@@ -7,13 +7,13 @@ use super::super::{
     result_shape::{cardinality_name, traversal_direction_name},
 };
 use crate::application_query::{
-    ApplicationQueryDefinition, ApplicationQueryDisclosurePosture,
-    ApplicationQueryObservableInfluence,
+    ApplicationQueryDisclosurePosture, ApplicationQueryObservableInfluence,
+    WorthQueryPortableApplicationQueryParts,
 };
 
-pub(super) fn append_disclosure<Schema, Query, Parameters, QueryResult, Scope>(
+pub(super) fn append_disclosure(
     entries: &mut Vec<CanonicalBasisEntry>,
-    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+    definition: &WorthQueryPortableApplicationQueryParts,
 ) {
     let disclosure = definition.disclosure();
     entries.extend([
@@ -26,7 +26,14 @@ pub(super) fn append_disclosure<Schema, Query, Parameters, QueryResult, Scope>(
             text("disclosure.capability-type", marker_type),
         ]),
         (None, None) => entries.push(null("disclosure.capability")),
-        _ => unreachable!("typed disclosure capability identity is structurally complete"),
+        (Some(name), None) => entries.extend([
+            text("disclosure.capability-name", name),
+            null("disclosure.capability-type"),
+        ]),
+        (None, Some(marker_type)) => entries.extend([
+            null("disclosure.capability-name"),
+            text("disclosure.capability-type", marker_type),
+        ]),
     }
     for (index, rule) in disclosure.rules().iter().enumerate() {
         append_rule(entries, index, rule);

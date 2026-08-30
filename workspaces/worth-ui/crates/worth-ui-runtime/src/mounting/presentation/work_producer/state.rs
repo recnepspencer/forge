@@ -10,15 +10,14 @@ use crate::runtime::persistent_index::{UiPersistentOrdMap, UiPersistentOrder};
 pub(crate) struct UiMountedPresentationState {
     pub(super) predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
     pub(super) frame: worth_ui_host_contract::UiMountedFrameIdentity,
-    pub(super) surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-    pub(super) binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    pub(super) requirement: worth_ui_host_contract::UiMountedSurfaceBindingRequirement,
     pub(super) content: worth_ui_host_contract::UiMountedContentGeneration,
-    pub(super) baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
     pub(super) receipt_affinity: Option<worth_ui_host_contract::UiMountedNodeReceiptAffinity>,
     commands_by_instance: UiPersistentOrdMap<
         worth_ui_host_contract::UiMountedInstanceIdentity,
         super::command_bundle::UiMountedPresentationCommandBundle,
     >,
+    portal_motion_groups: super::portal_motion_groups::UiMountedPortalMotionGroups,
     instance_order: UiPersistentOrder<worth_ui_host_contract::UiMountedInstanceIdentity>,
     command_order: UiPersistentOrdMap<PresentationOrderKey, UiMountedPaintCommandIdentity>,
     pub(super) order_integrity: UiMountedPaintOrderIntegrity,
@@ -32,15 +31,6 @@ pub(crate) struct UiMountedPresentationState {
 type PresentationOrderKey = (u32, u64, usize);
 
 impl UiMountedPresentationState {
-    pub(crate) fn rebind_surface(
-        &mut self,
-        successor: crate::mounting::UiSurfaceBindingIdentityView,
-    ) {
-        self.surface = successor.semantic_surface_identity();
-        self.binding = successor.binding_generation();
-        self.baseline = successor.baseline();
-    }
-
     pub(crate) fn from_projection(
         projection: &UiMountedProjectionView,
         requirement: worth_ui_host_contract::UiMountedSurfaceBindingRequirement,
@@ -86,15 +76,19 @@ impl UiMountedPresentationState {
                 );
             }
         }
+        let portal_motion_groups =
+            super::portal_motion_groups::UiMountedPortalMotionGroups::from_projection(
+                projection,
+                &persistent_commands,
+            );
         Self {
             predecessor,
             frame: projection.frame(),
-            surface: projection.surface(),
-            binding: projection.binding(),
+            requirement,
             content: projection.content_generation(),
-            baseline: requirement.baseline(),
             receipt_affinity: projection.node_receipt_affinity(),
             commands_by_instance: persistent_commands,
+            portal_motion_groups,
             instance_order,
             command_order,
             order_integrity: projection.retained_order_integrity(),
@@ -105,7 +99,9 @@ impl UiMountedPresentationState {
             )
             .into_boxed_slice(),
             node_changes: std::sync::Arc::from([]),
-            projection_rows_materialized: projection_row_count(projection),
+            projection_rows_materialized: super::projection_row_count::projection_row_count(
+                projection,
+            ),
         }
     }
 
@@ -118,10 +114,8 @@ impl UiMountedPresentationState {
         let mut successor = predecessor.clone();
         successor.predecessor = source.predecessor();
         successor.frame = source.frame().frame_identity();
-        successor.surface = requirement.semantic_surface();
-        successor.binding = requirement.binding();
+        successor.requirement = requirement;
         successor.content = source.frame().content_generation();
-        successor.baseline = requirement.baseline();
         successor.receipt_affinity = source.frame().node_receipt_affinity();
         successor.projection_rows_materialized = source.frame().materialized_projection_rows();
         for instance in source
@@ -131,15 +125,17 @@ impl UiMountedPresentationState {
         {
             successor.remove_bundle(*instance);
         }
-        successor.instance_order = source.frame().presentation_instance_order();
+        successor.instance_order = source
+            .frame()
+            .presentation_instance_order(requirement.semantic_surface(), requirement.binding());
         let mut insertions = source
             .changed_instances()
             .iter()
             .filter(|instance| !source.frame().has_precise_command_delta(**instance))
             .filter_map(|instance| {
-                source
-                    .frame()
-                    .presentation_order_position(*instance)
+                successor
+                    .instance_order
+                    .position(*instance)
                     .map(|position| (position, *instance))
             })
             .collect::<Vec<_>>();
@@ -147,21 +143,35 @@ impl UiMountedPresentationState {
         for (position, instance) in insertions {
             let commands = source.frame().presentation_commands_for_instance(
                 instance,
-                successor.surface,
-                successor.binding,
+                requirement.semantic_surface(),
+                requirement.binding(),
             );
             successor.insert_bundle(position, instance, commands);
         }
         successor.apply_precise_replacements(source.frame().presentation_command_changes());
+        for instance in source.changed_instances().iter().copied() {
+            let commands = successor.commands_by_instance.get(&instance).cloned();
+            let affinity = source.frame().portal_presentation_affinity_for_instance(
+                instance,
+                requirement.semantic_surface(),
+                requirement.binding(),
+            );
+            successor.portal_motion_groups.replace_instance(
+                instance,
+                commands.as_ref(),
+                affinity,
+                requirement.semantic_surface(),
+            );
+        }
         successor.effects = source
             .frame()
-            .presentation_effects(requirement.presentation_mode(), successor.binding);
+            .presentation_effects(requirement.presentation_mode(), requirement.binding());
         successor.node_changes = source
             .frame()
             .presentation_node_changes(
                 source.node_changed_instances(),
-                successor.surface,
-                successor.binding,
+                requirement.semantic_surface(),
+                requirement.binding(),
             )
             .into_iter()
             .filter(|change| match change {
@@ -329,6 +339,13 @@ impl UiMountedPresentationState {
             .map(UiMountedPaintCommand::identity)
     }
 
+    pub(super) fn portal_motion_group(
+        &self,
+        target: crate::runtime::motion::UiMotionTargetIdentity,
+    ) -> Option<super::portal_motion_groups::UiMountedPortalMotionGroupView<'_>> {
+        self.portal_motion_groups.group(target)
+    }
+
     pub(super) fn order_key(
         &self,
         identity: UiMountedPaintCommandIdentity,
@@ -370,23 +387,4 @@ impl UiMountedPresentationState {
     pub(super) fn source_instance_count(&self) -> usize {
         self.commands_by_instance.len()
     }
-}
-
-fn projection_row_count(projection: &UiMountedProjectionView) -> u64 {
-    let rows = [
-        projection.nodes().len(),
-        projection.clips().rows().len(),
-        projection.layers().rows().len(),
-        projection.filled_rects().rows().len(),
-        projection.semantic_text().rows().len(),
-        projection.hit_tests().rows().len(),
-        projection.paint_batches().rows().len(),
-        projection.spatial_batches().rows().len(),
-        projection.realtime_batches().rows().len(),
-        projection.resources().entries().len(),
-    ]
-    .into_iter()
-    .try_fold(0usize, usize::checked_add)
-    .and_then(|rows| u64::try_from(rows).ok());
-    rows.expect("an admitted projection row count fits u64")
 }

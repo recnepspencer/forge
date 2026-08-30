@@ -1,8 +1,7 @@
-use crate::capabilities::AspectPlanSource;
 use crate::identity::data::KindId;
-use crate::runtime::RelationalRuntime;
 use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::MergedCommitPlan;
+use crate::validation::engine::InvariantRuntimeView;
 
 use super::metrics::InvariantMetrics;
 use super::observation::InvariantObservation;
@@ -14,13 +13,13 @@ pub struct InvariantExecutionContext<'runtime> {
     version_id: crate::identity::data::VersionId,
     current_version_id: crate::identity::data::VersionId,
     merged_plan: Option<&'runtime MergedCommitPlan>,
-    runtime: &'runtime RelationalRuntime,
+    runtime: &'runtime InvariantRuntimeView<'runtime>,
     relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
 }
 
 impl<'runtime> InvariantExecutionContext<'runtime> {
     pub fn new(
-        runtime: &'runtime RelationalRuntime,
+        runtime: &'runtime InvariantRuntimeView<'runtime>,
         observation: InvariantObservation<'runtime>,
         version_id: crate::identity::data::VersionId,
         current_version_id: crate::identity::data::VersionId,

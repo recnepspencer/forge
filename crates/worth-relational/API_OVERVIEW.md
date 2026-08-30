@@ -35,14 +35,38 @@ The product center is:
 
 ### Write truth
 
-- `runtime.begin_transaction(...)`
+- choose an explicit `RelationalBranchIdentity`
+- `runtime.observe_branch(...)`
+- `runtime.begin_branch_transaction(...)`
 - `tx.push_batch(...)`
-- `tx.commit()`
+- `tx.commit(&mut runtime)` for the ordinary convenience path
+- or `runtime.prepare_branch_transaction(...)` followed by
+  `runtime.publication_port().compare_and_publish(...)` and owner settlement
+
+The admitted basis, not a branch name or optional selector, opens the governed
+write path. See [`BRANCH_LOCAL_MVCC.md`](./BRANCH_LOCAL_MVCC.md).
 
 ### Read truth
 
 - `runtime.read_truth()`
 - `runtime.snapshots()`
+- `runtime.snapshots().snapshot_for_observation(...)` for an exact pinned basis
+
+`read_truth()` is an explicitly current standalone-runtime view. Work that must
+remain attached to a selected branch version uses the observation carried by
+an owner-admitted basis.
+
+### Branches and component retention
+
+- `runtime.main_branch_identity()` or `runtime.branch_identity(...)`
+- `runtime.observe_branch(...)` and `runtime.readmit_branch_basis(...)`
+- `runtime.observe_fork_source(...)` then `runtime.fork_branch(...)`
+- `runtime.retain_component_basis(...)` and
+  `runtime.release_component_basis(...)`
+- `runtime.archive_branch(...)` and `runtime.delete_branch(...)`
+
+Choosing the configured main branch is explicit. No governed entry point treats
+an absent branch, `None`, or the string `"main"` as authority.
 
 ### Inspect what happened
 
@@ -65,6 +89,9 @@ taxonomy from raw patch fields.
 - `runtime.history()`
 - `runtime.history_authority()`
 - `runtime.replay()`
+
+These are canonical history, maintenance, and reconstruction lanes. They are
+not alternate branch-head selection or publication doors.
 
 ## Contained real lanes
 
@@ -99,4 +126,7 @@ The standalone library surface now uses the job-shaped runtime names directly:
 - `retention()`
 - `durability()`
 - `merge()`
+
+The exact component artifacts and outcomes available to a later composite
+owner are frozen in [`OWNER_COMPONENT_PORT.md`](./OWNER_COMPONENT_PORT.md).
 

@@ -1,11 +1,11 @@
 use crate::query::data::{PlannedQueryPacket, ReadPacketPlan};
+use crate::runtime::PartitionEdition;
 use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{
     ChunkDiagnostics, ChunkedStorageSummary, PartitionStorageStats, RecordLifecycleState,
     StorageStats,
 };
-use crate::storage::overlay::{BorrowedWorkingState, PartitionState};
 use crate::storage::substrate::RecordKind;
 
 pub struct StorageAccess<'runtime> {
@@ -23,29 +23,25 @@ impl<'runtime> StorageAccess<'runtime> {
         Self { runtime }
     }
 
-    pub(crate) fn current_state(&self) -> BorrowedWorkingState<'runtime> {
-        BorrowedWorkingState::new(&self.runtime.partitions)
-    }
-
-    pub(crate) fn partition_state(
-        &self,
-        partition_id: crate::identity::data::PartitionId,
-    ) -> Option<&'runtime PartitionState> {
-        self.runtime.partitions.get(&partition_id)
+    /// Pin one edition of the authoritative substrate for a whole traversal.
+    ///
+    /// Callers must hold the returned edition for the entire read rather than
+    /// re-acquiring per record or per slot: re-acquisition is what turns a
+    /// bounded read into source-breadth work.
+    pub(crate) fn current_edition(&self) -> PartitionEdition {
+        self.runtime.acquire_partition_edition()
     }
 
     pub(crate) fn entity_slot_count(&self) -> usize {
-        self.runtime
-            .partitions
-            .values()
+        self.current_edition()
+            .partitions()
             .map(|partition| partition.entity_arena.slot_count())
             .sum()
     }
 
     pub(crate) fn relation_slot_count(&self) -> usize {
-        self.runtime
-            .partitions
-            .values()
+        self.current_edition()
+            .partitions()
             .map(|partition| partition.relation_arena.slot_count())
             .sum()
     }
@@ -67,11 +63,7 @@ impl<'runtime> StorageAccess<'runtime> {
         &self,
         partition_id: crate::identity::data::PartitionId,
     ) -> Vec<usize> {
-        self.runtime
-            .partitions
-            .get(&partition_id)
-            .map(|partition| K::arena(partition).occupied_slots())
-            .unwrap_or_default()
+        record_slots_in::<K>(&self.current_edition(), partition_id)
     }
 
     pub(crate) fn record_slot_surface<K: RecordKind>(
@@ -79,16 +71,7 @@ impl<'runtime> StorageAccess<'runtime> {
         partition_id: crate::identity::data::PartitionId,
         slot: usize,
     ) -> Option<RecordSlotSurface> {
-        let partition = self.runtime.partitions.get(&partition_id)?;
-        let arena = K::arena(partition);
-        let slot_view = arena.get_slot(slot)?;
-        Some(RecordSlotSurface {
-            retired_at: arena.retired_at_for_slot(slot),
-            snapshot_pins: arena.snapshot_pin_count(slot).unwrap_or(0),
-            branch_pins: arena.branch_pin_count(slot).unwrap_or(0),
-            replay_pins: arena.replay_pin_count(slot).unwrap_or(0),
-            lifecycle: slot_view.lifecycle(),
-        })
+        record_slot_surface_in::<K>(&self.current_edition(), partition_id, slot)
     }
 
     pub fn partition_ids(&self) -> Vec<crate::identity::data::PartitionId> {
@@ -164,6 +147,42 @@ impl<'runtime> StorageAccess<'runtime> {
             version_id,
         )
     }
+}
+
+/// A partition's occupied slots, read out of an edition the caller pinned.
+///
+/// Slot-by-slot loops must go through this rather than the acquiring twin: a
+/// read-only sweep over S slots should acquire the substrate once, not S times.
+pub(crate) fn record_slots_in<K: RecordKind>(
+    edition: &PartitionEdition,
+    partition_id: crate::identity::data::PartitionId,
+) -> Vec<usize> {
+    edition
+        .partition(partition_id)
+        .map(|partition| K::arena(partition).occupied_slots())
+        .unwrap_or_default()
+}
+
+/// One slot's retention surface, read out of an edition the caller pinned.
+///
+/// A read-modify-read pass must NOT pin one edition across its writes: holding
+/// an edition while writing forces the writer to copy the partition the pass is
+/// still observing. Such passes keep using the acquiring twin, once per step.
+pub(crate) fn record_slot_surface_in<K: RecordKind>(
+    edition: &PartitionEdition,
+    partition_id: crate::identity::data::PartitionId,
+    slot: usize,
+) -> Option<RecordSlotSurface> {
+    let partition = edition.partition(partition_id)?;
+    let arena = K::arena(partition);
+    let slot_view = arena.get_slot(slot)?;
+    Some(RecordSlotSurface {
+        retired_at: arena.retired_at_for_slot(slot),
+        snapshot_pins: arena.snapshot_pin_count(slot).unwrap_or(0),
+        branch_pins: arena.branch_pin_count(slot).unwrap_or(0),
+        replay_pins: arena.replay_pin_count(slot).unwrap_or(0),
+        lifecycle: slot_view.lifecycle(),
+    })
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -14,6 +14,8 @@ use super::{
 
 struct PreparedRootRegions {
     regions: Arc<RelationalPersistentRegionSet>,
+    entity_slot_count: usize,
+    relation_slot_count: usize,
     storage_root: [u8; 32],
     content_accumulator: [u8; 32],
     publication_cost: RelationalBranchRootPublicationCost,
@@ -66,6 +68,8 @@ pub(super) fn prepare(
     let root = Arc::new(RelationalBranchRoot {
         id: root_id,
         regions: prepared_regions.regions,
+        entity_slot_count: prepared_regions.entity_slot_count,
+        relation_slot_count: prepared_regions.relation_slot_count,
         content_accumulator: prepared_regions.content_accumulator,
         schema_authority: prepared_schema.authority,
         committed: Some(RelationalCommittedBranchRoot {
@@ -98,13 +102,55 @@ fn prepare_regions(
             capture::build_initial_regions(issuer, root_id, &projected, symbols)?
         }
     };
+    let (entity_slot_count, relation_slot_count) =
+        root_slot_counts(&regions, previous, published_delta);
     let (storage_root, content_accumulator) = axes::storage_root_for(&regions);
     Ok(PreparedRootRegions {
         regions,
+        entity_slot_count,
+        relation_slot_count,
         storage_root,
         content_accumulator,
         publication_cost,
     })
+}
+
+fn root_slot_counts(
+    regions: &RelationalPersistentRegionSet,
+    previous: Option<&Arc<RelationalBranchRoot>>,
+    published_delta: &RelationalPublishedPartitionDelta,
+) -> (usize, usize) {
+    let Some(previous) = previous.filter(|root| root.committed.is_some()) else {
+        return regions
+            .values()
+            .fold((0, 0), |(entities, relations), region| {
+                (
+                    entities.saturating_add(region.partition.entity_arena.slot_count()),
+                    relations.saturating_add(region.partition.relation_arena.slot_count()),
+                )
+            });
+    };
+    published_delta.partition_ids().fold(
+        (previous.entity_slot_count, previous.relation_slot_count),
+        |(entities, relations), partition_id| {
+            let old = previous.partition_state(partition_id);
+            let new = regions
+                .get(partition_id)
+                .map(|region| region.partition.as_ref());
+            (
+                entities
+                    .saturating_sub(old.map_or(0, |partition| partition.entity_arena.slot_count()))
+                    .saturating_add(new.map_or(0, |partition| partition.entity_arena.slot_count())),
+                relations
+                    .saturating_sub(
+                        old.map_or(0, |partition| partition.relation_arena.slot_count()),
+                    )
+                    .saturating_add(
+                        new.map_or(0, |partition| partition.relation_arena.slot_count()),
+                    ),
+            )
+        },
+    )
 }
 
 fn prepare_schema(

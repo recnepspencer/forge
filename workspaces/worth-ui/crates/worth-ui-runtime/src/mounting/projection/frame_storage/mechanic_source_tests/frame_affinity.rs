@@ -131,6 +131,9 @@ fn unchanged_successor_views_refresh_affinity_without_mutating_retained_mechanic
             UiMountedPaintCommand::FilledRect { mechanic, .. } => {
                 mechanic.frame() == predecessor_frame
             }
+            UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                mechanic.frame() == predecessor_frame
+            }
             UiMountedPaintCommand::SemanticText { mechanic, .. } => {
                 mechanic.frame() == predecessor_frame
             }

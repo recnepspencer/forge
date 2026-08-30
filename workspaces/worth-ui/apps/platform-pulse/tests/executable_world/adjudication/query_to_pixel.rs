@@ -37,6 +37,7 @@ pub(crate) enum ExecutableQueryCurrentFailure {
     ProcessIdentity,
     UnchangedPixels,
     Background(NativeColorFailure),
+    WrappingText(super::PlatformPulseWrappingTextFailure),
 }
 
 impl fmt::Display for ExecutableQueryCurrentFailure {
@@ -57,6 +58,7 @@ impl fmt::Display for ExecutableQueryCurrentFailure {
             Self::ProcessIdentity => formatter.write_str("Query pixels belong to another process"),
             Self::UnchangedPixels => formatter.write_str("Query value produced no native pixel change"),
             Self::Background(failure) => write!(formatter, "background control: {failure}"),
+            Self::WrappingText(failure) => write!(formatter, "wrapping text: {failure:?}"),
         }
     }
 }

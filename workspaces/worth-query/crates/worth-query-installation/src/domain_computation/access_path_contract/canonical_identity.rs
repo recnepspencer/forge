@@ -1,4 +1,4 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 use worth_foundational::facade::{
     canonical_basis_sequence_material, prepare_aspect_contract_for_canonical_basis,
     CanonicalizationRuleVersion,
@@ -12,7 +12,7 @@ use super::{
 };
 
 pub(crate) fn hash_artifact_access_path(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     access_path: &WorthQueryArtifactAccessPathContract,
 ) {
     let WorthQueryArtifactAccessPathContract::Native(contract) = access_path else {

@@ -7,19 +7,20 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
         || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
-            let _source =
-                create_entity_in_partition(&mut runtime, "chip-batch-driver", PartitionId(7));
+            let _source = create_entity_in_partition(&runtime, "chip-batch-driver", PartitionId(7));
             let mut partition_targets = BTreeMap::new();
             for partition_offset in 0..8u32 {
                 let partition_id = PartitionId(11 + partition_offset * 2);
                 let targets = (0..8)
                     .map(|index| {
                         create_entity_in_partition(
-                            &mut runtime,
+                            &runtime,
                             &format!("chip-batch-sink-{}-{index}", partition_id.0),
                             partition_id,
                         )
@@ -35,7 +36,7 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
             let update_started_at = Instant::now();
             let update = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 let mut batch = WorkerIntentBatch::new("chip-flat-entity-step-batch");
                 for (partition_id, targets) in &partition_targets {
                     for (index, entity) in targets.iter().enumerate().take(4) {
@@ -65,8 +66,9 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
                         ));
                     }
                 }
-                txn.push_batch(batch);
-                txn.commit(&mut runtime)
+                txn.push_batch(batch)
+                    .expect("test staging stays within configured resource budgets");
+                txn.commit(&runtime)
                     .expect("chip flat entity step batch commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
@@ -107,7 +109,10 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
                 )
                 .expect("chip flat batch explicit outcome");
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =

@@ -25,6 +25,12 @@ impl AdmittedRelationalBranchBasis {
 }
 
 impl RelationalBranchObservation {
+    pub(crate) fn admitted_basis(&self) -> AdmittedRelationalBranchBasis {
+        AdmittedRelationalBranchBasis {
+            inner: Arc::clone(&self.inner),
+        }
+    }
+
     pub fn descriptor(&self) -> &RelationalBranchBasisDescriptor {
         &self.inner.descriptor
     }

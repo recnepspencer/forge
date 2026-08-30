@@ -99,7 +99,7 @@ where
         .set_active_branch(parent_branch.id);
     graph
         .diagnostics_state_mut()
-        .set_branch_head_snapshot(parent_branch.id, snapshot.meta.snapshot_id);
+        .stage_branch_head_snapshot_projection(parent_branch.id, snapshot.meta.snapshot_id);
     let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry);
     let retention_budget = state.graph().installed_runtime_policy().retention_budget();
     let profile = state.graph().diagnostics_profile();

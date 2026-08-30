@@ -30,7 +30,7 @@ impl RelationalRuntime {
     }
 
     pub fn execute_prepared_merge(
-        &mut self,
+        &self,
         prepared: crate::merge::data::PreparedMergeExecution,
     ) -> Result<MergeExecutionOutcome, crate::merge::data::MergeExecutionError> {
         crate::merge::execution::execute_prepared_merge(self, prepared)

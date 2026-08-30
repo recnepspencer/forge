@@ -30,6 +30,10 @@ impl WorthQueryRuntimeBuilder {
 
 struct WorthQueryDeclarationAuthorityBackend;
 
+impl crate::runtime::WorthQueryMergeSnapshotOwner for WorthQueryDeclarationAuthorityBackend {}
+
+impl crate::runtime::WorthQuerySettlementRecoveryBackend for WorthQueryDeclarationAuthorityBackend {}
+
 impl WorthQueryRuntimeBackend for WorthQueryDeclarationAuthorityBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         WorthQueryRuntimeSupportProfile::new(WorthQueryRuntimeFacadeFamily::ALL.into_iter().map(

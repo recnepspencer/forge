@@ -1,3 +1,4 @@
+mod admission_denial;
 mod aggregate;
 mod locked_reader;
 mod operation_projection_denial;
@@ -25,6 +26,9 @@ use super::{
 };
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 
+pub use admission_denial::{
+    WorthQueryInvariantProjectionDenial, WorthQueryInvariantProjectionDenialKind,
+};
 pub use aggregate::{
     WorthQueryInvariantAggregate, WorthQueryInvariantAggregateDenial,
     WorthQueryInvariantAggregateDenialKind,
@@ -140,19 +144,24 @@ where
             .with_runtime_mut(|runtime| runtime.retention().inspect_plan().active_snapshot_count)
     }
 
-    pub fn snapshot(&self) -> WorthQueryApplicationInvariantProjectionSnapshot<Schema> {
+    pub fn snapshot(
+        &self,
+    ) -> Result<
+        WorthQueryApplicationInvariantProjectionSnapshot<Schema>,
+        WorthQueryInvariantProjectionDenial,
+    > {
         let (basis, snapshot) = self.graph.with_runtime_mut(|runtime| {
             let identity = runtime.main_branch_identity();
             let (_, basis) = runtime
                 .observe_branch(&identity)
-                .expect("installed primary graph retains an exact main-branch basis");
+                .map_err(admission_denial::from_branch_basis_denial)?;
             let snapshot = runtime
                 .snapshots()
                 .snapshot_for_observation(&basis.observation())
-                .expect("the admitted invariant basis opens its exact snapshot");
-            (basis, snapshot)
-        });
-        WorthQueryApplicationInvariantProjectionSnapshot {
+                .map_err(admission_denial::from_snapshot_admission_denial)?;
+            Ok((basis, snapshot))
+        })?;
+        Ok(WorthQueryApplicationInvariantProjectionSnapshot {
             graph: self.graph.clone(),
             layout: Arc::clone(&self.layout),
             basis: Some(basis),
@@ -162,7 +171,7 @@ where
             authority_identity: self.authority_identity,
             realized_scope: WorthQueryRealizedProjectionScope::default(),
             _schema: PhantomData,
-        }
+        })
     }
 }
 
@@ -367,7 +376,7 @@ impl<Schema> Drop for WorthQueryApplicationInvariantProjectionSnapshot<Schema> {
     fn drop(&mut self) {
         if let Some(snapshot) = self.snapshot.take() {
             self.graph.with_runtime_mut(|runtime| {
-                runtime.snapshots().release_snapshot(&snapshot);
+                crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             });
         }
     }

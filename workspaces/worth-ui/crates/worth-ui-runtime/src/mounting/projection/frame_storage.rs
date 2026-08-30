@@ -13,11 +13,16 @@ mod mechanic_source;
 #[cfg(test)]
 pub(crate) mod mechanic_source_tests;
 mod node_changes;
+mod portal_child_view;
+mod portal_mechanic_view;
+mod portal_overlay_view;
 mod presentation_effects;
 pub(crate) mod presentation_sources;
+mod presentation_view;
 mod rebind;
 mod semantic_mechanics;
 mod semantic_projection;
+mod semantic_text_view;
 mod table_recording;
 mod view;
 
@@ -62,6 +67,8 @@ pub struct UiMountedProjectionFrame {
     plan_index_paint_selectors: Vec<UiMountedPlanIndexPaintSelector>,
     preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
     visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
+    portal_overlays: std::rc::Rc<[super::super::UiMountedPortalOverlayProjectionInput]>,
+    portal_overlays_changed: bool,
     counters: super::super::UiMountStageCounters,
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
@@ -83,6 +90,8 @@ pub(super) struct UiMountedProjectionFrameInput {
     pub mechanics: UiMountedMechanicSource,
     pub presentation_effects: UiMountedPresentationEffectSource,
     pub diagnostics: UiMountedDiagnosticSource,
+    pub portal_overlays: std::rc::Rc<[super::super::UiMountedPortalOverlayProjectionInput]>,
+    pub portal_overlays_changed: bool,
     pub changed_instances: std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
 }
 
@@ -113,6 +122,8 @@ impl UiMountedProjectionFrame {
             plan_index_paint_selectors: Vec::new(),
             preview: None,
             visual_overlay: None,
+            portal_overlays: input.portal_overlays,
+            portal_overlays_changed: input.portal_overlays_changed,
             counters: input.counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
@@ -138,6 +149,11 @@ impl UiMountedProjectionFrame {
     ) -> Option<worth_ui_host_contract::UiMountedInstanceIdentity> {
         self.visual_overlay.map(|overlay| overlay.target_instance())
     }
+    pub(super) fn portal_overlay_inputs(
+        &self,
+    ) -> &[super::super::UiMountedPortalOverlayProjectionInput] {
+        &self.portal_overlays
+    }
     pub(crate) fn mounted_instances(
         &self,
     ) -> impl ExactSizeIterator<Item = worth_ui_host_contract::UiMountedInstanceIdentity> + '_ {
@@ -162,12 +178,6 @@ impl UiMountedProjectionFrame {
         .fold(0x7461_626c_6572_616e_u64, |digest, value| {
             digest.rotate_left(11) ^ value
         })
-    }
-
-    pub(in crate::mounting) fn visual_region_basis(
-        &self,
-    ) -> super::super::UiMountedVisualRegionBasis {
-        self.mechanics.visual_region_basis()
     }
 
     pub(in crate::mounting) fn identity_trace_basis(
@@ -260,48 +270,6 @@ impl UiMountedProjectionFrame {
             self.visual_overlay,
             self.frame,
         );
-    }
-
-    pub(in crate::mounting) fn presentation_commands_for_instance(
-        &self,
-        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
-        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    ) -> std::sync::Arc<[worth_ui_host_contract::UiMountedPaintCommand]> {
-        self.mechanics
-            .commands_for_instance(instance, surface, binding)
-    }
-
-    pub(in crate::mounting) fn has_precise_command_delta(
-        &self,
-        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
-    ) -> bool {
-        self.precise_command_instances.contains(&instance)
-    }
-
-    pub(in crate::mounting) fn presentation_command_changes(
-        &self,
-    ) -> &[worth_ui_host_contract::UiMountedPaintCommandChange] {
-        if self.precise_command_instances.len() == self.changed_instances.len() {
-            &self.presentation_command_changes
-        } else {
-            &[]
-        }
-    }
-
-    pub(in crate::mounting) fn presentation_order_position(
-        &self,
-        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
-    ) -> Option<u64> {
-        self.semantic.order.position(instance)
-    }
-
-    pub(in crate::mounting) fn presentation_instance_order(
-        &self,
-    ) -> crate::runtime::persistent_index::UiPersistentOrder<
-        worth_ui_host_contract::UiMountedInstanceIdentity,
-    > {
-        self.semantic.order.clone()
     }
 
     pub(in crate::mounting) fn materialized_projection_rows(&self) -> u64 {

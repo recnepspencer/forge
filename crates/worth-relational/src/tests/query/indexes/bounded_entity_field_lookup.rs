@@ -6,8 +6,8 @@ use crate::facade::indexes::{
 
 #[test]
 fn entity_field_certification_rejects_a_missing_candidate() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let created = create_entity_outcome(&mut runtime, "parity-candidate");
+    let runtime = runtime_with_index_field_aspects();
+    let created = create_entity_outcome(&runtime, "parity-candidate");
     let entity_id = changed_entities(&created)[0];
     let field_locator = aspect_field_locator(aspect_key("name"), field_key("name"));
     let index = runtime.index_authority().register(DerivedIndexDefinition {
@@ -18,17 +18,15 @@ fn entity_field_certification_rejects_a_missing_candidate() {
         },
         branch_scoped: false,
     });
-    build_entity_field_generation(&mut runtime, index.index_id);
-    let generation = runtime
+    build_entity_field_generation(&runtime, index.index_id);
+    runtime
         .indexes
-        .generations
-        .get_mut(&index.index_id)
-        .and_then(|generations| generations.last_mut())
-        .unwrap();
-    let DerivedIndexEntries::EntityField(entries) = &mut generation.entries else {
-        panic!("entity-field generation expected");
-    };
-    entries.clear();
+        .corrupt_latest_generation(index.index_id, |generation| {
+            let DerivedIndexEntries::EntityField(entries) = &mut generation.entries else {
+                panic!("entity-field generation expected");
+            };
+            entries.clear();
+        });
     let snapshot = runtime.visibility_authority().snapshot();
     let request = || {
         entity_field_request(
@@ -57,16 +55,16 @@ fn entity_field_certification_rejects_a_missing_candidate() {
 
 #[test]
 fn bounded_lookup_caps_ordinary_work_and_certifies_storage_parity() {
-    let mut runtime = runtime_with_index_field_aspects();
+    let runtime = runtime_with_index_field_aspects();
     let entities = ["alpha", "beta", "gamma"]
         .into_iter()
         .map(|name| {
-            let outcome = create_entity_outcome(&mut runtime, name);
+            let outcome = create_entity_outcome(&runtime, name);
             changed_entities(&outcome)[0]
         })
         .collect::<Vec<_>>();
     for entity in &entities {
-        update_entity(&mut runtime, *entity, "shared");
+        update_entity(&runtime, *entity, "shared");
     }
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(71),
@@ -119,8 +117,8 @@ fn bounded_lookup_caps_ordinary_work_and_certifies_storage_parity() {
 
 #[test]
 fn bounded_lookup_rejects_unbounded_requests_and_nonexact_generations() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let created = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_index_field_aspects();
+    let created = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(72),
         name: "entity.name.exact-generation".to_string(),
@@ -150,7 +148,7 @@ fn bounded_lookup_rejects_unbounded_requests_and_nonexact_generations() {
         BoundedEntityFieldLookupDenialKind::InvalidCandidateLimit
     );
 
-    create_entity_outcome(&mut runtime, "later");
+    create_entity_outcome(&runtime, "later");
     let later_snapshot = runtime.visibility_authority().snapshot();
     let request = BoundedEntityFieldLookupRequest::new(
         later_snapshot,
@@ -173,8 +171,8 @@ fn bounded_lookup_rejects_unbounded_requests_and_nonexact_generations() {
 
 #[test]
 fn bounded_lookup_rebuilds_exact_historical_generation_after_truth_advances() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let created = create_entity_outcome(&mut runtime, "historical");
+    let runtime = runtime_with_index_field_aspects();
+    let created = create_entity_outcome(&runtime, "historical");
     let entity_id = changed_entities(&created)[0];
     let historical_snapshot = created.snapshot.clone();
     let historical_commit_id = created.commit.commit_id;
@@ -190,13 +188,13 @@ fn bounded_lookup_rebuilds_exact_historical_generation_after_truth_advances() {
         branch_scoped: false,
     });
 
-    update_entity(&mut runtime, entity_id, "current");
+    update_entity(&runtime, entity_id, "current");
     assert_ne!(historical_version_id, runtime.current_version_id());
     let historical_read = runtime.read_truth().read_version(historical_version_id);
     let historical_record = historical_read.get_entity(entity_id).unwrap();
     assert_eq!(
         crate::visibility::materialization::read_records::entity_query_locus_comparison_key(
-            &historical_record,
+            historical_record,
             &field_locator,
         ),
         Some(
@@ -234,8 +232,8 @@ fn bounded_lookup_rebuilds_exact_historical_generation_after_truth_advances() {
 
 #[test]
 fn exact_entity_field_lookup_uses_one_branch_root_after_both_heads_diverge() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let created = create_entity_outcome(&mut runtime, "exact-field");
+    let runtime = runtime_with_index_field_aspects();
+    let created = create_entity_outcome(&runtime, "exact-field");
     let entity_id = changed_entities(&created)[0];
     let field_locator = aspect_field_locator(aspect_key("name"), field_key("name"));
     let exact_value = string_aspect_value("exact-field");
@@ -247,8 +245,8 @@ fn exact_entity_field_lookup_uses_one_branch_root_after_both_heads_diverge() {
         },
         branch_scoped: true,
     });
-    build_entity_field_generation(&mut runtime, index.index_id);
-    let main_snapshot = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+    build_entity_field_generation(&runtime, index.index_id);
+    let main_snapshot = snapshot_for_owner_branch(&runtime, &BranchId("main".to_owned()));
 
     runtime
         .history_authority()
@@ -258,17 +256,17 @@ fn exact_entity_field_lookup_uses_one_branch_root_after_both_heads_diverge() {
         )
         .unwrap();
     let sibling_snapshot =
-        snapshot_for_owner_branch(&mut runtime, &BranchId("field-sibling".to_owned()));
+        snapshot_for_owner_branch(&runtime, &BranchId("field-sibling".to_owned()));
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         entity_id,
         "sibling-field",
         BranchId("field-sibling".to_owned()),
     );
-    update_entity(&mut runtime, entity_id, "main-field");
-    build_entity_field_generation(&mut runtime, index.index_id);
+    update_entity(&runtime, entity_id, "main-field");
+    build_entity_field_generation(&runtime, index.index_id);
 
-    let current_main = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+    let current_main = snapshot_for_owner_branch(&runtime, &BranchId("main".to_owned()));
     let current = runtime
         .index_access()
         .execute_bounded_entity_field_lookup(
@@ -315,7 +313,7 @@ fn exact_entity_field_lookup_uses_one_branch_root_after_both_heads_diverge() {
     );
 }
 
-fn build_entity_field_generation(runtime: &mut RelationalRuntime, index_id: DerivedIndexId) {
+fn build_entity_field_generation(runtime: &RelationalRuntime, index_id: DerivedIndexId) {
     let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     let build = runtime
         .index_authority()

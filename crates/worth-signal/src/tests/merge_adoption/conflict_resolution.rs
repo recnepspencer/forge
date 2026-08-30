@@ -60,7 +60,7 @@ fn merge_branch_runtime_artifact_conflict_can_resolve_by_adopting_source() {
         })
         .unwrap();
 
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
 
     assert!(
         matches!(result.merge_kind, BranchMergeKind::Applied | BranchMergeKind::ConflictResolved),
@@ -167,7 +167,7 @@ fn merge_branch_dependency_snapshot_conflict_can_resolve_by_adopting_source_snap
         .set_dep_snapshot(shared, main_snapshot)
         .unwrap();
 
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
     let merged_record = result
         .records
         .iter()
@@ -252,7 +252,7 @@ fn merge_branch_conflict_resolved_emits_resolution_traceability() {
         })
         .unwrap();
 
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
     assert_eq!(result.merge_kind, BranchMergeKind::ConflictResolved);
     let resolution_plan = result
         .resolution_plan

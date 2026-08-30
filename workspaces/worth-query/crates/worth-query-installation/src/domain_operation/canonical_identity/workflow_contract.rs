@@ -1,4 +1,4 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_operation::*;
@@ -6,7 +6,7 @@ use crate::domain_operation::*;
 use super::{bool_name, conditional_nodes::hash_conditional_nodes, hash_sequence};
 
 pub(super) fn hash_workflow_contract(
-    hasher: &mut Sha256,
+    hasher: &mut impl CanonicalHashSink,
     contract: &WorthQueryOperationWorkflowContract,
 ) {
     match contract {
@@ -23,7 +23,7 @@ pub(super) fn hash_workflow_contract(
     }
 }
 
-fn hash_stage(hasher: &mut Sha256, stage: &WorthQueryPortableWorkflowStage) {
+fn hash_stage(hasher: &mut impl CanonicalHashSink, stage: &WorthQueryPortableWorkflowStage) {
     hash_text_field(hasher, "workflow-stage", stage.identity());
     hash_sequence(
         hasher,
@@ -47,7 +47,10 @@ fn hash_stage(hasher: &mut Sha256, stage: &WorthQueryPortableWorkflowStage) {
     hash_stage_semantics(hasher, stage.semantics());
 }
 
-fn hash_stage_semantics(hasher: &mut Sha256, semantics: &WorthQueryWorkflowStageSemantics) {
+fn hash_stage_semantics(
+    hasher: &mut impl CanonicalHashSink,
+    semantics: &WorthQueryWorkflowStageSemantics,
+) {
     hash_workflow_value(hasher, "workflow-input", &semantics.input);
     hash_workflow_value(hasher, "workflow-output", &semantics.output);
     hash_text_field(
@@ -111,7 +114,7 @@ fn hash_stage_semantics(hasher: &mut Sha256, semantics: &WorthQueryWorkflowStage
 }
 
 fn hash_workflow_value(
-    hasher: &mut Sha256,
+    hasher: &mut impl CanonicalHashSink,
     label: &'static str,
     value: &WorthQueryWorkflowValueContract,
 ) {

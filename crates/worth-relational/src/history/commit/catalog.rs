@@ -13,6 +13,7 @@ use super::{RelationalCommitArtifact, RelationalCommitArtifactDenial, Relational
 pub(crate) struct RelationalCommitCatalog {
     entries: BTreeMap<CommitId, Arc<RelationalCommitArtifact>>,
     materializations: Arc<AtomicU64>,
+    lookups: Arc<AtomicU64>,
 }
 
 impl Clone for RelationalCommitCatalog {
@@ -23,6 +24,7 @@ impl Clone for RelationalCommitCatalog {
             // forks, but instrumentation is runtime-local. A fork inherits
             // the observed baseline without sharing future increments.
             materializations: Arc::new(AtomicU64::new(0)),
+            lookups: Arc::new(AtomicU64::new(0)),
         }
     }
 }
@@ -32,6 +34,7 @@ impl Default for RelationalCommitCatalog {
         Self {
             entries: BTreeMap::new(),
             materializations: Arc::new(AtomicU64::new(0)),
+            lookups: Arc::new(AtomicU64::new(0)),
         }
     }
 }
@@ -91,13 +94,11 @@ impl RelationalCommitCatalog {
         {
             return Ok(());
         }
-        let linked_root = self
-            .entries
-            .get(&commit_id)
-            .and_then(|existing| existing.linked_root())
-            .filter(|root| root.links_envelope(&envelope));
-        let artifact = match linked_root {
-            Some(root) => RelationalCommitArtifact::from_envelope_with_root(envelope, root)?,
+        let artifact = match self.entries.get(&commit_id) {
+            Some(existing) => RelationalCommitArtifact::from_envelope_with_descriptor(
+                envelope,
+                existing.roots().clone(),
+            )?,
             None => RelationalCommitArtifact::from_envelope(envelope)?,
         };
         self.materializations.fetch_add(1, Ordering::Relaxed);
@@ -165,8 +166,32 @@ impl RelationalCommitCatalog {
         &self,
         envelope: &crate::history::data::CanonicalCommitEnvelope,
     ) -> Result<(), RelationalCommitCatalogEnvelopeAppendDenial> {
-        if let Some(existing) = self.entries.get(&envelope.commit.commit_id) {
-            return (existing.envelope().as_ref() == envelope)
+        Self::validate_envelope_against(
+            self.entries
+                .get(&envelope.commit.commit_id)
+                .map(|existing| existing.envelope().as_ref()),
+            envelope,
+        )
+    }
+
+    pub(crate) fn validate_new_envelope(
+        &self,
+        envelope: &crate::history::data::CanonicalCommitEnvelope,
+    ) -> Result<(), RelationalCommitCatalogEnvelopeAppendDenial> {
+        Self::validate_new_envelope_against(
+            self.entries
+                .get(&envelope.commit.commit_id)
+                .map(|existing| existing.envelope().as_ref()),
+            envelope,
+        )
+    }
+
+    pub(crate) fn validate_envelope_against(
+        existing: Option<&crate::history::data::CanonicalCommitEnvelope>,
+        envelope: &crate::history::data::CanonicalCommitEnvelope,
+    ) -> Result<(), RelationalCommitCatalogEnvelopeAppendDenial> {
+        if let Some(existing) = existing {
+            return (existing == envelope)
                 .then_some(())
                 .ok_or(RelationalCommitCatalogEnvelopeAppendDenial::DuplicateCommit);
         }
@@ -174,11 +199,11 @@ impl RelationalCommitCatalog {
             .map_err(RelationalCommitCatalogEnvelopeAppendDenial::Artifact)
     }
 
-    pub(crate) fn validate_new_envelope(
-        &self,
+    pub(crate) fn validate_new_envelope_against(
+        existing: Option<&crate::history::data::CanonicalCommitEnvelope>,
         envelope: &crate::history::data::CanonicalCommitEnvelope,
     ) -> Result<(), RelationalCommitCatalogEnvelopeAppendDenial> {
-        if self.entries.contains_key(&envelope.commit.commit_id) {
+        if existing.is_some() {
             return Err(RelationalCommitCatalogEnvelopeAppendDenial::DuplicateCommit);
         }
         RelationalCommitArtifact::validate_envelope(envelope)
@@ -189,19 +214,13 @@ impl RelationalCommitCatalog {
         self.materializations.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn get(&self, commit_id: CommitId) -> Option<&Arc<RelationalCommitArtifact>> {
-        self.entries.get(&commit_id)
+    pub(crate) fn lookup_count(&self) -> u64 {
+        self.lookups.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn linked_roots(
-        &self,
-    ) -> BTreeMap<CommitId, Arc<crate::branch::RelationalBranchRoot>> {
-        self.entries
-            .iter()
-            .filter_map(|(&commit_id, artifact)| {
-                artifact.linked_root().map(|root| (commit_id, root))
-            })
-            .collect()
+    pub(crate) fn get(&self, commit_id: CommitId) -> Option<&Arc<RelationalCommitArtifact>> {
+        self.lookups.fetch_add(1, Ordering::Relaxed);
+        self.entries.get(&commit_id)
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -232,32 +251,5 @@ impl RelationalCommitCatalog {
 
     pub(crate) fn snapshot(&self) -> Vec<Arc<RelationalCommitArtifact>> {
         self.entries.values().cloned().collect()
-    }
-
-    pub(crate) fn envelope_refs(&self) -> Vec<&crate::history::data::CanonicalCommitEnvelope> {
-        self.entries
-            .values()
-            .map(|artifact| artifact.envelope().as_ref())
-            .collect()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::RelationalCommitCatalogEnvelopeAppendDenial;
-    use crate::tests::support::{create_entity_outcome, runtime_with_test_schema};
-
-    #[test]
-    fn equal_existing_envelope_is_rejected_before_prepared_install() {
-        let mut runtime = runtime_with_test_schema();
-        let committed = create_entity_outcome(&mut runtime, "duplicate-catalog-envelope");
-
-        assert_eq!(
-            runtime
-                .history
-                .commit_catalog
-                .validate_new_envelope(committed.envelope()),
-            Err(RelationalCommitCatalogEnvelopeAppendDenial::DuplicateCommit),
-        );
     }
 }

@@ -26,9 +26,6 @@ impl DiagnosticsState {
             policy,
             artifact_retention,
         );
-        if let Some(branch_entry) = self.branch_catalog.get_mut(&branch.id) {
-            branch_entry.head_snapshot_id = Some(snapshot_id);
-        }
         meta
     }
 

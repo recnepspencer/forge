@@ -4,17 +4,17 @@ use worth_relational::facade::history::BranchId;
 
 #[test]
 fn phase5_fork_observation_reports_shared_root_and_distinct_cells() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
-    fork_from_main(&mut world.runtime, "storm");
-    fork_from_main(&mut world.runtime, "maintenance");
+    fork_from_main(&world.runtime, "storm");
+    fork_from_main(&world.runtime, "maintenance");
 
     let identities = [
         world.runtime.main_branch_identity(),
         branch_identity(&world.runtime, "storm"),
         branch_identity(&world.runtime, "maintenance"),
     ];
-    let observation = world.runtime.inspect_branch_sharing(&identities).unwrap();
+    let observation = world.runtime.observe_branch_sharing(&identities).unwrap();
     assert_eq!(
         observation.inspection_version(),
         worth_relational::facade::inspection::RELATIONAL_SHARING_INSPECTION_VERSION
@@ -73,17 +73,17 @@ struct ForkFanoutSample {
 }
 
 fn standard_fanout_samples(fanouts: &[u32]) -> Vec<ForkFanoutSample> {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::standard());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::standard());
     assert_oracle_matches(&world, &expected);
     let mut branches = vec![world.runtime.main_branch_identity()];
     let mut samples = Vec::with_capacity(fanouts.len());
     for ordinal in 0..*fanouts.last().expect("at least one fan-out sample") {
         let name = format!("standard-fanout-{ordinal}");
-        fork_from_main(&mut world.runtime, &name);
+        fork_from_main(&world.runtime, &name);
         branches.push(branch_identity(&world.runtime, &name));
         let fanout = ordinal + 1;
         if fanouts.contains(&fanout) {
-            let observation = world.runtime.inspect_branch_sharing(&branches).unwrap();
+            let observation = world.runtime.observe_branch_sharing(&branches).unwrap();
             assert_standard_fanout_observation(&observation, fanout, branches.len());
             samples.push(ForkFanoutSample {
                 log2_fanout: f64::from(fanout).log2(),
@@ -149,7 +149,7 @@ fn fitted_slope(samples: &[ForkFanoutSample]) -> f64 {
     covariance / variance
 }
 
-fn fork_from_main(runtime: &mut worth_relational::facade::runtime::RelationalRuntime, name: &str) {
+fn fork_from_main(runtime: &worth_relational::facade::runtime::RelationalRuntime, name: &str) {
     let (_, source_basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains forkable");

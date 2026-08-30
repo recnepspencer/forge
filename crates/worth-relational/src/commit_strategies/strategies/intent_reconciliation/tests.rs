@@ -48,7 +48,7 @@ fn intent_reconciliation_strategy_emits_update_when_aspect_fields_differ() {
     let descriptor = IntentReconciliationStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(501),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -58,7 +58,7 @@ fn intent_reconciliation_strategy_emits_update_when_aspect_fields_differ() {
             &descriptor,
         ))
         .build();
-    let entity = create_entity(&mut runtime, "before");
+    let entity = create_entity(&runtime, "before");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -94,7 +94,7 @@ fn intent_reconciliation_strategy_emits_noop_when_aspect_fields_match() {
     let descriptor = IntentReconciliationStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(502),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -104,8 +104,8 @@ fn intent_reconciliation_strategy_emits_noop_when_aspect_fields_match() {
             &descriptor,
         ))
         .build();
-    let entity = create_entity(&mut runtime, "before");
-    update_entity(&mut runtime, entity, "stable");
+    let entity = create_entity(&runtime, "before");
+    update_entity(&runtime, entity, "stable");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(
@@ -141,7 +141,7 @@ fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
     let descriptor = IntentReconciliationStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(503),
     );
-    let mut runtime = RelationalRuntimeBuilder::new()
+    let runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_registry())
         .commit_strategy(
             crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
@@ -151,7 +151,7 @@ fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
             &descriptor,
         ))
         .build();
-    let entity = create_entity(&mut runtime, "before");
+    let entity = create_entity(&runtime, "before");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(

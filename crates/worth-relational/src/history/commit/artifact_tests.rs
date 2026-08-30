@@ -14,8 +14,8 @@ use super::{RelationalCommitArtifact, RelationalCommitAuthoritativeAllocationKin
 
 #[test]
 fn canonical_artifact_accounting_excludes_nested_diagnostic_perturbation() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let committed = create_entity_outcome(&mut runtime, "artifact-allocation-basis");
+    let runtime = persisted_runtime_with_test_schema();
+    let committed = create_entity_outcome(&runtime, "artifact-allocation-basis");
     let mut envelope = runtime
         .replay()
         .canonical_commit_envelope(committed.commit.commit_id)
@@ -107,8 +107,8 @@ fn canonical_artifact_accounting_excludes_nested_diagnostic_perturbation() {
 
 #[test]
 fn populated_derived_index_artifacts_only_change_the_optional_cache_lane() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let committed = create_entity_outcome(&mut runtime, "derived-index-allocation-basis");
+    let runtime = persisted_runtime_with_test_schema();
+    let committed = create_entity_outcome(&runtime, "derived-index-allocation-basis");
     let mut envelope = runtime
         .replay()
         .canonical_commit_envelope(committed.commit.commit_id)

@@ -1,3 +1,4 @@
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 use std::marker::PhantomData;
 
 use crate::application_aftermath::PortableApplicationAftermathContract;
@@ -13,7 +14,7 @@ use super::contract_slots::DeclaredExternalEffectSlot;
 /// selection unrepresentable on the ordinary authoring path.
 pub struct ApplicationOperationDefinition<Schema, Operation, Input> {
     pub(super) operation: &'static str,
-    pub(super) input_type: &'static str,
+    pub(super) input_type: WorthQueryPortableTypeIdentity,
     pub(super) external_effect: Option<DeclaredExternalEffectSlot>,
     pub(super) aftermath: Option<PortableApplicationAftermathContract>,
     pub(super) marker: PhantomData<fn(Input) -> (Schema, Operation)>,

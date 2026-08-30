@@ -66,13 +66,13 @@ impl ApplicationFieldMarkerIdentity for OtherField {
     const IDENTIFIER: &'static str = "OtherField";
 }
 
-impl OperationReads<TestOperation> for FixtureExternalIdentityField<TestSchema> {}
-impl OperationReads<TestOperation> for FixtureEntity<TestSchema> {}
-impl OperationReads<TestOperation> for MappingTarget {}
-impl OperationDeletes<TestOperation> for FixtureEntity<TestSchema> {}
-impl OperationWrites<TestOperation> for FixtureMappingStatusField<TestSchema> {}
-impl OperationLinks<TestOperation> for MappingTarget {}
-impl OperationUnlinks<TestOperation> for MappingTarget {}
+impl OperationReads<TestOperation<TestSchema>> for FixtureExternalIdentityField<TestSchema> {}
+impl OperationReads<TestOperation<TestSchema>> for FixtureEntity<TestSchema> {}
+impl OperationReads<TestOperation<TestSchema>> for MappingTarget {}
+impl OperationDeletes<TestOperation<TestSchema>> for FixtureEntity<TestSchema> {}
+impl OperationWrites<TestOperation<TestSchema>> for FixtureMappingStatusField<TestSchema> {}
+impl OperationLinks<TestOperation<TestSchema>> for MappingTarget {}
+impl OperationUnlinks<TestOperation<TestSchema>> for MappingTarget {}
 
 #[test]
 fn installed_application_operation_compiles_existing_authority_contract_families() {
@@ -83,9 +83,9 @@ fn installed_application_operation_compiles_existing_authority_contract_families
     let operation = schema
         .installed_operation(ApplicationOperationRef::<
             TestSchema,
-            TestOperation,
+            TestOperation<TestSchema>,
             TestInput,
-        >::from_schema_identifier("TestOperation"))
+        >::from_declaration())
         .unwrap();
     index.validate_application_operation(&operation).unwrap();
 
@@ -167,10 +167,11 @@ fn installed_application_operation_compiles_existing_authority_contract_families
 fn installed_contracts_group_exact_reads_and_retain_every_typed_graph_touch() {
     let entity =
         ApplicationEntityRef::<TestSchema, TestEntity>::from_schema_identifier("TestEntity");
-    let operation =
-        ApplicationOperationRef::<TestSchema, TestOperation, TestInput>::from_schema_identifier(
-            "TestOperation",
-        );
+    let operation = ApplicationOperationRef::<
+        TestSchema,
+        TestOperation<TestSchema>,
+        TestInput,
+    >::from_declaration();
     let relation = ApplicationRelationRef::<
         TestSchema,
         MappingTarget,
@@ -270,9 +271,9 @@ fn reinstallation_rejects_each_coherent_preimage_axis_and_bound_drift() {
     let operation = schema
         .installed_operation(ApplicationOperationRef::<
             TestSchema,
-            TestOperation,
+            TestOperation<TestSchema>,
             TestInput,
-        >::from_schema_identifier("TestOperation"))
+        >::from_declaration())
         .unwrap();
 
     assert!(operation.meaning_matches(declaration.erased().members()));

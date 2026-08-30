@@ -9,11 +9,12 @@ use crate::application_query::{
 };
 
 use super::{
-    ApplicationEffectPayload, ApplicationEffectRef, ApplicationEntityRef, ApplicationFieldRef,
-    ApplicationRelationRef, EqualityPredicate, NoApplicationUnit, ReadOnly,
+    ApplicationEffectMarkerIdentity, ApplicationEffectPayload, ApplicationEffectRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationRelationRef, EqualityPredicate,
+    NoApplicationUnit, ReadOnly,
 };
 
-struct Schema;
+pub(super) struct Schema;
 struct Root;
 struct Child;
 struct RootAspect;
@@ -21,8 +22,6 @@ struct ChildAspect;
 struct RootIdentity;
 struct ChildIdentity;
 struct Relation;
-struct Query;
-struct OtherQuery;
 struct Parameters;
 struct OtherParameters;
 struct QueryResult;
@@ -32,6 +31,64 @@ struct RootIdentitySlot;
 struct ChildIdentitySlot;
 struct ChildRelationSlot;
 struct Effect;
+
+mod identity_axes;
+
+worth_query_portable_type!(Cause => "worth.query.test.query-live-cause.v1");
+worth_query_portable_type!(QueryResult => "worth.query.test.lifecycle.query-result.v1");
+worth_query_portable_type!(OtherQueryResult => "worth.query.test.lifecycle.other-result.v1");
+worth_query_portable_type!(RootIdentitySlot => "worth.query.test.lifecycle.root-slot.v1");
+worth_query_portable_type!(ChildIdentitySlot => "worth.query.test.lifecycle.child-slot.v1");
+worth_query_portable_type!(ChildRelationSlot => "worth.query.test.lifecycle.relation-slot.v1");
+worth_query_portable_type!(LiveBinding => "worth.query.test.lifecycle.live-binding.v1");
+worth_query_portable_type!(OtherLiveBinding => "worth.query.test.lifecycle.other-binding.v1");
+
+crate::worth_query_application_query!(
+    Query in Schema,
+    identity "Query",
+    parameters Parameters => "Parameters",
+    result QueryResult => "worth.query.test.lifecycle.query-result.v1",
+    scope Root => "Root",
+    name "query"
+);
+crate::worth_query_application_query!(
+    OtherQuery in Schema,
+    identity "worth.query.test.lifecycle.other-query.v1",
+    parameters Parameters => "Parameters",
+    result QueryResult => "worth.query.test.lifecycle.query-result.v1",
+    scope Root => "Root",
+    name "query"
+);
+crate::worth_query_application_query!(
+    OtherParametersQuery in Schema,
+    identity "Query",
+    parameters OtherParameters => "OtherParameters",
+    result QueryResult => "worth.query.test.lifecycle.query-result.v1",
+    scope Root => "Root",
+    name "query"
+);
+crate::worth_query_application_query!(
+    OtherResultQuery in Schema,
+    identity "Query",
+    parameters Parameters => "Parameters",
+    result OtherQueryResult => "worth.query.test.lifecycle.other-result.v1",
+    scope Root => "Root",
+    name "query"
+);
+crate::worth_query_application_query!(
+    OtherScopeQuery in Schema,
+    identity "Query",
+    parameters Parameters => "Parameters",
+    result QueryResult => "worth.query.test.lifecycle.query-result.v1",
+    scope OtherScope => "OtherScope",
+    name "query"
+);
+
+impl ApplicationEffectMarkerIdentity for Effect {
+    type Schema = Schema;
+    type Payload = Cause;
+    const IDENTIFIER: &'static str = "Cause";
+}
 
 impl crate::application_schema::DeclaredApplicationFieldValue for RootIdentity {
     type Value = u64;
@@ -71,7 +128,7 @@ impl ApplicationQueryLiveCauseBinding<Schema, Query, Root, Child> for LiveBindin
     type TargetIdentity = u64;
 
     fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload> {
-        ApplicationEffectRef::from_schema_identifier("Cause")
+        ApplicationEffectRef::from_declaration()
     }
 
     fn scope_identity(payload: &Self::Payload) -> Self::ScopeIdentity {
@@ -90,7 +147,7 @@ impl ApplicationQueryLiveCauseBinding<Schema, Query, Root, Child> for OtherLiveB
     type TargetIdentity = u64;
 
     fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload> {
-        ApplicationEffectRef::from_schema_identifier("Cause")
+        ApplicationEffectRef::from_declaration()
     }
 
     fn scope_identity(payload: &Self::Payload) -> Self::ScopeIdentity {
@@ -102,91 +159,13 @@ impl ApplicationQueryLiveCauseBinding<Schema, Query, Root, Child> for OtherLiveB
     }
 }
 
-#[test]
-fn every_query_marker_type_is_identity_bearing() {
-    let baseline = typed_definition::<Query, Parameters, QueryResult, Root>();
-
-    for (dimension, changed) in [
-        (
-            "query marker",
-            typed_definition::<OtherQuery, Parameters, QueryResult, Root>(),
-        ),
-        (
-            "parameter-set marker",
-            typed_definition::<Query, OtherParameters, QueryResult, Root>(),
-        ),
-        (
-            "result marker",
-            typed_definition::<Query, Parameters, OtherQueryResult, Root>(),
-        ),
-        (
-            "scope marker",
-            typed_definition::<Query, Parameters, QueryResult, OtherScope>(),
-        ),
-    ] {
-        assert_ne!(
-            baseline.canonical_basis(),
-            changed.canonical_basis(),
-            "{dimension} must change the canonical query basis"
-        );
-    }
-}
-
-#[test]
-fn continuation_presence_is_identity_bearing() {
-    let without_continuation = collection_definition(false);
-    let with_continuation = collection_definition(true);
-
-    assert_ne!(
-        without_continuation.canonical_basis(),
-        with_continuation.canonical_basis()
-    );
-}
-
-#[test]
-fn live_binding_and_each_resource_bound_are_identity_bearing() {
-    let baseline =
-        live_definition::<LiveBinding>(ApplicationQueryLiveResourceContract::bounded(8, 64, 512));
-    let variants = [
-        (
-            "binding type",
-            live_definition::<OtherLiveBinding>(ApplicationQueryLiveResourceContract::bounded(
-                8, 64, 512,
-            )),
-        ),
-        (
-            "buffered cause bound",
-            live_definition::<LiveBinding>(ApplicationQueryLiveResourceContract::bounded(
-                9, 64, 512,
-            )),
-        ),
-        (
-            "delivery work bound",
-            live_definition::<LiveBinding>(ApplicationQueryLiveResourceContract::bounded(
-                8, 65, 512,
-            )),
-        ),
-        (
-            "retained payload bound",
-            live_definition::<LiveBinding>(ApplicationQueryLiveResourceContract::bounded(
-                8, 64, 513,
-            )),
-        ),
-    ];
-
-    for (dimension, changed) in variants {
-        assert_ne!(
-            baseline.canonical_basis(),
-            changed.canonical_basis(),
-            "{dimension} must change the canonical query basis"
-        );
-    }
-}
-
-fn typed_definition<QueryMarker: 'static, ParameterMarker, ResultMarker, ScopeMarker>(
-) -> ErasedApplicationQueryDefinition {
+fn typed_definition<QueryMarker>() -> ErasedApplicationQueryDefinition
+where
+    QueryMarker: crate::application_query::ApplicationQueryMarkerIdentity<Schema = Schema>,
+    QueryMarker::QueryResult: crate::portable_identity::WorthQueryPortableType,
+{
     let root = ApplicationEntityRef::<Schema, Root>::from_schema_identifier("Root");
-    let scope = ApplicationEntityRef::<Schema, ScopeMarker>::from_schema_identifier("Root");
+    let scope = ApplicationEntityRef::<Schema, QueryMarker::Scope>::from_schema_identifier("Root");
     let identity = ApplicationQueryResultFieldRef::<
         QueryMarker,
         RootIdentitySlot,
@@ -199,17 +178,21 @@ fn typed_definition<QueryMarker: 'static, ParameterMarker, ResultMarker, ScopeMa
         EqualityPredicate,
         NoApplicationUnit,
     >::new("root", root_identity_field());
-    let shape =
-        ApplicationQueryResultShapeBuilder::<Schema, QueryMarker, Root, ResultMarker>::new(root)
-            .field(identity)
-            .build();
+    let shape = ApplicationQueryResultShapeBuilder::<
+        Schema,
+        QueryMarker,
+        Root,
+        QueryMarker::QueryResult,
+    >::new(root)
+    .field(identity)
+    .build();
     ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
         Schema,
         QueryMarker,
-        ParameterMarker,
-        ResultMarker,
-        ScopeMarker,
-    >::from_schema_identifier("query"))
+        QueryMarker::Parameters,
+        QueryMarker::QueryResult,
+        QueryMarker::Scope,
+    >::from_declaration())
     .root(root)
     .scope(scope)
     .result_shape(shape)
@@ -305,7 +288,7 @@ where
 }
 
 fn query_reference() -> ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Root> {
-    ApplicationQueryReference::from_schema_identifier("query")
+    Query::reference()
 }
 
 fn root_entity() -> ApplicationEntityRef<Schema, Root> {

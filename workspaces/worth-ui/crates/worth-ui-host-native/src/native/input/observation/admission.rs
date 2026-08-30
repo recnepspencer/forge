@@ -42,8 +42,6 @@ impl UiNativeInputObservationState {
 fn requires_recipient(family: UiNativeInputObservationEventFamily) -> bool {
     matches!(
         family,
-        UiNativeInputObservationEventFamily::Keyboard
-            | UiNativeInputObservationEventFamily::Text
-            | UiNativeInputObservationEventFamily::Ime
+        UiNativeInputObservationEventFamily::Text | UiNativeInputObservationEventFamily::Ime
     )
 }

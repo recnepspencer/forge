@@ -5,13 +5,14 @@ mod external;
 pub(crate) use external::prepare_external_recovery;
 #[path = "recovery/physical_epoch.rs"]
 mod physical_epoch;
+#[cfg(test)]
+pub(crate) use physical_epoch::UiNativePhysicalRecoveryFact;
 use physical_epoch::UiNativePhysicalRecoveryOwner;
-pub(crate) use physical_epoch::{
-    UiNativePhysicalRecoveryFact, UiNativePhysicalRecoveryPreparation,
-};
+pub(crate) use physical_epoch::UiNativePhysicalRecoveryPreparation;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiNativeRecoveryCause {
+    #[cfg(any(test, feature = "certification-support"))]
     DerivedStateLost,
     PresentationIndeterminate,
     SurfaceLost,
@@ -40,22 +41,12 @@ pub(crate) struct UiNativeRecoveryLineage {
     host_surface: u64,
 }
 
+#[derive(Default)]
 pub(crate) struct UiNativeRecoveryRegistry {
     required: BTreeMap<u64, UiNativeBindingRecovery>,
     in_flight: BTreeMap<u64, UiNativeBindingRecovery>,
     parked: BTreeMap<UiNativeRecoveryLineage, UiNativeBindingRecovery>,
     physical: UiNativePhysicalRecoveryOwner,
-}
-
-impl Default for UiNativeRecoveryRegistry {
-    fn default() -> Self {
-        Self {
-            required: BTreeMap::new(),
-            in_flight: BTreeMap::new(),
-            parked: BTreeMap::new(),
-            physical: UiNativePhysicalRecoveryOwner::default(),
-        }
-    }
 }
 
 impl UiNativeRecoveryRegistry {
@@ -81,6 +72,7 @@ impl UiNativeRecoveryRegistry {
         self.required.contains_key(&binding)
     }
 
+    #[cfg(test)]
     pub(crate) fn cause(&self, binding: u64) -> Option<UiNativeRecoveryCause> {
         self.required.get(&binding).map(|required| required.cause)
     }
@@ -109,6 +101,7 @@ impl UiNativeRecoveryRegistry {
             .commit(preparation, device_generation, surface_generation)
     }
 
+    #[cfg(test)]
     pub(crate) fn physical_fact(&self, binding: u64) -> Option<UiNativePhysicalRecoveryFact> {
         self.physical
             .fact(self.required.get(&binding)?.physical_epoch?)
@@ -290,6 +283,7 @@ impl UiNativeRecoveryRequirement {
         self.binding
     }
 
+    #[cfg(test)]
     pub(crate) const fn cause(&self) -> UiNativeRecoveryCause {
         self.state.cause
     }
@@ -310,8 +304,9 @@ const fn graphics_recovery_cause(cause: UiNativeRecoveryCause) -> Option<UiNativ
         UiNativeRecoveryCause::SurfaceOutdated
         | UiNativeRecoveryCause::SurfaceLost
         | UiNativeRecoveryCause::DeviceLost => Some(cause),
-        UiNativeRecoveryCause::DerivedStateLost
-        | UiNativeRecoveryCause::PresentationIndeterminate
+        #[cfg(any(test, feature = "certification-support"))]
+        UiNativeRecoveryCause::DerivedStateLost => None,
+        UiNativeRecoveryCause::PresentationIndeterminate
         | UiNativeRecoveryCause::Resize
         | UiNativeRecoveryCause::Dpi => None,
     }
@@ -333,6 +328,7 @@ const fn recovery_rank(cause: UiNativeRecoveryCause) -> u8 {
         UiNativeRecoveryCause::Resize => 0,
         UiNativeRecoveryCause::Dpi => 1,
         UiNativeRecoveryCause::SurfaceOutdated => 2,
+        #[cfg(any(test, feature = "certification-support"))]
         UiNativeRecoveryCause::DerivedStateLost => 3,
         UiNativeRecoveryCause::SurfaceLost => 4,
         UiNativeRecoveryCause::PresentationIndeterminate => 5,

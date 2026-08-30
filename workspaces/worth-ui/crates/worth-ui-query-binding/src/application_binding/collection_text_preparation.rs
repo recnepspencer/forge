@@ -40,11 +40,9 @@ impl WorthUiCollectionTextOperatingWorldGateway<'_> {
             .consumer_projection_contract()
             .map_err(WorthUiCollectionTextConsumerPreparationDenial::ConsumerContract)?;
         validate_collection_contract(&consumer, requirement)?;
-        let native_request = WorthUiCollectionTextNativeRequest::from_consumer(
-            consumer,
-            requirement.selected_fields(),
-        )
-        .map_err(WorthUiCollectionTextConsumerPreparationDenial::NativeRequest)?;
+        let native_request =
+            WorthUiCollectionTextNativeRequest::from_consumer(consumer, requirement)
+                .map_err(WorthUiCollectionTextConsumerPreparationDenial::NativeRequest)?;
         Ok(WorthUiPreparedCollectionTextConsumer {
             reference,
             bound,

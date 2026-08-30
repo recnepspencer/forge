@@ -62,25 +62,20 @@ fn custom_commit_boundary_reads_the_same_transaction_proposed_aspect_state() {
         evidence: evidence.clone(),
     })
     .expect("proposed-state probe registers");
-    let mut world = compile_supply_chain_baseline_with_custom_invariant(program, registration)
+    let world = compile_supply_chain_baseline_with_custom_invariant(program, registration)
         .expect("baseline commits with the inactive proposed-state probe");
 
     let target = world.handles.aurora_voyage().id;
     assert_snapshot_status(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         target,
         "Planned",
     );
     evidence.set_target(target);
-    let commit = commit_status_update(&mut world.runtime, BranchId("main".to_owned()), target);
+    let commit = commit_status_update(&world.runtime, BranchId("main".to_owned()), target);
     let commit = commit.expect("custom rule sees the proposed status in both phases");
-    assert_snapshot_status(
-        &mut world.runtime,
-        &BranchId("main".to_owned()),
-        target,
-        "Held",
-    );
+    assert_snapshot_status(&world.runtime, &BranchId("main".to_owned()), target, "Held");
 
     assert_eq!(evidence.prepared(), 1);
     assert_eq!(evidence.evaluated(), 1);
@@ -180,7 +175,7 @@ fn assert_status(state: Option<&AuthoritativeRecordAspectState>, expected: &str)
 }
 
 fn assert_snapshot_status(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     branch: &BranchId,
     entity_id: EntityId,
     expected: &str,
@@ -202,7 +197,7 @@ fn assert_snapshot_status(
 }
 
 fn commit_status_update(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     branch: BranchId,
     entity_id: EntityId,
 ) -> Result<worth_relational::facade::transactions::CommitResult, TransactionCommitError> {
@@ -226,10 +221,12 @@ fn commit_status_update(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(WorkerIntentBatch::new("phase5-proposed-status").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent { entity_id, fields },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("phase5-proposed-status").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
+            )),
+        )
+        .unwrap();
     transaction.commit(runtime)
 }

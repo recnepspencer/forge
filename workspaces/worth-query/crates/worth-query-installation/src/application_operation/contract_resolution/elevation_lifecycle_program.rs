@@ -112,27 +112,60 @@ fn exact_lifecycle_resource_decision_read<'a>(
 mod tests {
     use worth_query_declaration::facade::{
         application_capability::{
-            ApplicationCapabilityLifecycleEffect, ApplicationCapabilityRef,
-            ApplicationCapabilityRelationBinding, ApplicationCapabilityTransitionBinding,
+            ApplicationCapabilityLifecycleEffect, ApplicationCapabilityMarkerIdentity,
+            ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
+            ApplicationCapabilityTransitionBinding,
         },
         application_schema::{
-            ApplicationEffectRef, ApplicationOperationRef, ApplicationRelationRef, OperationEmits,
+            ApplicationEffectMarkerIdentity, ApplicationEffectRef,
+            ApplicationOperationMarkerIdentity, ApplicationOperationRef, ApplicationRelationRef,
+            OperationEmits,
         },
+        portable_identity::WorthQueryPortableType,
     };
 
     struct Schema;
-    struct Capability;
     struct Operation;
-    pub struct Effect;
+    struct Effect;
     struct FirstInput;
     struct SecondInput;
-    struct FirstCapability;
-    struct SecondCapability;
     struct FirstRelation;
     struct SecondRelation;
     struct Elevation;
     struct FirstResource;
     struct SecondResource;
+
+    worth_query_declaration::worth_query_capability!(
+        Capability in Schema,
+        identity "worth.query.installation-test.lifecycle-capability.v1"
+    );
+    worth_query_declaration::worth_query_capability!(
+        FirstCapability in Schema,
+        identity "worth.query.installation-test.first-lifecycle-capability.v1"
+    );
+    worth_query_declaration::worth_query_capability!(
+        SecondCapability in Schema,
+        identity "worth.query.installation-test.second-lifecycle-capability.v1"
+    );
+
+    worth_query_declaration::worth_query_portable_type!(
+        FirstInput => "worth.query.installation-test.first-lifecycle-input"
+    );
+    worth_query_declaration::worth_query_portable_type!(
+        SecondInput => "worth.query.installation-test.second-lifecycle-input"
+    );
+
+    impl ApplicationOperationMarkerIdentity for Operation {
+        type Schema = Schema;
+        type Input = String;
+        const IDENTIFIER: &'static str = "Run";
+    }
+
+    impl ApplicationEffectMarkerIdentity for Effect {
+        type Schema = Schema;
+        type Payload = String;
+        const IDENTIFIER: &'static str = "ActivityEffect";
+    }
 
     impl OperationEmits<Operation> for Effect {}
 
@@ -141,7 +174,7 @@ mod tests {
         type Payload = String;
 
         fn effect() -> ApplicationEffectRef<Schema, Self::Effect, Self::Payload> {
-            ApplicationEffectRef::from_schema_identifier("ActivityEffect")
+            ApplicationEffectRef::from_declaration()
         }
 
         fn lifecycle_effect(&self) -> Option<Self::Payload> {
@@ -153,10 +186,8 @@ mod tests {
     fn installed_target_comes_from_the_typed_transition_binding() {
         let transition =
             ApplicationCapabilityTransitionBinding::from_references_with_lifecycle_effect(
-                ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier(
-                    "Capability",
-                ),
-                ApplicationOperationRef::<Schema, Operation, String>::from_schema_identifier("Run"),
+                ApplicationCapabilityRef::<Schema, Capability>::from_declaration(),
+                ApplicationOperationRef::<Schema, Operation, String>::from_declaration(),
             );
         let target = transition.lifecycle_effect().map(|effect| {
             super::ApplicationOperationProgramTarget::Emit {
@@ -184,7 +215,7 @@ mod tests {
                 (&second_transition, &second_relation),
             ],
             "Advance",
-            std::any::type_name::<SecondInput>(),
+            SecondInput::PORTABLE_TYPE_IDENTITY.as_str(),
         );
 
         assert_eq!(
@@ -197,10 +228,24 @@ mod tests {
         );
     }
 
-    fn transition<Capability, Input>() -> ApplicationCapabilityTransitionBinding {
+    fn transition<Capability, Input>() -> ApplicationCapabilityTransitionBinding
+    where
+        Capability: ApplicationCapabilityMarkerIdentity<Schema = Schema>,
+        Input: WorthQueryPortableType,
+    {
+        struct TransitionOperation<Input>(std::marker::PhantomData<Input>);
+        impl<Input> ApplicationOperationMarkerIdentity for TransitionOperation<Input>
+        where
+            Input: WorthQueryPortableType,
+        {
+            type Schema = Schema;
+            type Input = Input;
+            const IDENTIFIER: &'static str = "Advance";
+        }
         ApplicationCapabilityTransitionBinding::from_references(
-            ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
-            ApplicationOperationRef::<Schema, Operation, Input>::from_schema_identifier("Advance"),
+            ApplicationCapabilityRef::<Schema, Capability>::from_declaration(),
+            ApplicationOperationRef::<Schema, TransitionOperation<Input>, Input>::from_declaration(
+            ),
         )
     }
 

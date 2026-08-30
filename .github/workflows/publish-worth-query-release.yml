@@ -1,0 +1,246 @@
+name: Publish WORTH Query release
+
+on:
+  workflow_call:
+    inputs:
+      expected_package_identity:
+        description: Exact Query semantic identity independently produced by the package build
+        required: true
+        type: string
+      release_name:
+        description: Human release family carried in the signed envelope
+        required: true
+        type: string
+      release_version:
+        description: Human release version carried in the signed envelope
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    name: Preflight, sign, and publish the untrusted release envelope
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: worth-query-release
+    concurrency:
+      group: worth-query-release-${{ github.repository_id }}-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      SIGNING_PAYLOAD_ARTIFACT: worth-query-release-signing-payload
+      EXPECTED_PACKAGE_IDENTITY: ${{ inputs.expected_package_identity }}
+      EXPECTED_RELEASE_NAME: ${{ inputs.release_name }}
+      EXPECTED_RELEASE_VERSION: ${{ inputs.release_version }}
+      EXPECTED_SOURCE_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
+      EXPECTED_SOURCE_REVISION: ${{ github.sha }}
+      EXPECTED_SOURCE_REFERENCE: ${{ github.ref }}
+      EXPECTED_SIGNER_IDENTITY: ${{ vars.WORTH_QUERY_RELEASE_SIGNER_IDENTITY }}
+      EXPECTED_SIGNATURE_PROTOCOL_IDENTITY: worth.release.ed25519
+      EXPECTED_SIGNATURE_PROTOCOL_VERSION: "1"
+      EXPECTED_SIGNATURE_BYTES: "64"
+
+    steps:
+      - name: Admit the protected same-repository tag context
+        shell: bash
+        env:
+          # GitHub.com exposes called-workflow identity through job.workflow_*;
+          # toJSON keeps this fail-closed on runners whose schema lacks it.
+          JOB_CONTEXT_JSON: ${{ toJSON(job) }}
+        run: |
+          set -euo pipefail
+          workflow_repository="$(jq -er '.workflow_repository | select(type == "string" and length > 0)' <<< "$JOB_CONTEXT_JSON")"
+          workflow_revision="$(jq -er '.workflow_sha | select(type == "string" and length > 0)' <<< "$JOB_CONTEXT_JSON")"
+          workflow_file="$(jq -er '.workflow_file_path | select(type == "string" and length > 0)' <<< "$JOB_CONTEXT_JSON")"
+          test "$GITHUB_REPOSITORY" = "$workflow_repository"
+          test "$GITHUB_SHA" = "$workflow_revision"
+          test "$workflow_file" = ".github/workflows/publish-worth-query-release.yml"
+          test "$GITHUB_REF_TYPE" = "tag"
+          test "$GITHUB_REF_PROTECTED" = "true"
+          test "$GITHUB_REF" = "refs/tags/$GITHUB_REF_NAME"
+          test -n "$EXPECTED_RELEASE_NAME"
+          test -n "$EXPECTED_RELEASE_VERSION"
+          test -n "$EXPECTED_SIGNER_IDENTITY"
+          [[ "$EXPECTED_PACKAGE_IDENTITY" =~ ^[0-9a-fA-F]{64}$ ]]
+          printf 'RELEASE_ROOT=%s\n' "$RUNNER_TEMP/worth-query-release" >> "$GITHUB_ENV"
+
+      # actions/checkout v4, pinned to the reviewed full commit SHA.
+      - name: Check out the exact tagged source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+
+      - name: Require the checked-out commit to match release provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_REVISION"
+
+      - name: Admit the bounded same-run artifact metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAXIMUM_ARTIFACT_BYTES: "146800640"
+        run: |
+          set -euo pipefail
+          mkdir -p "$RELEASE_ROOT/input"
+          metadata="$RELEASE_ROOT/artifacts.json"
+          gh api --paginate --slurp \
+            "/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+            > "$metadata"
+          matches="$(jq --arg name "$SIGNING_PAYLOAD_ARTIFACT" \
+            '[.[].artifacts[] | select(.name == $name and .expired == false)] | length' \
+            "$metadata")"
+          test "$matches" = "1"
+          artifact_bytes="$(jq --arg name "$SIGNING_PAYLOAD_ARTIFACT" \
+            '[.[].artifacts[] | select(.name == $name and .expired == false)][0].size_in_bytes' \
+            "$metadata")"
+          test "$artifact_bytes" -gt 0
+          test "$artifact_bytes" -le "$MAXIMUM_ARTIFACT_BYTES"
+
+      # actions/download-artifact v5, pinned to the reviewed full commit SHA.
+      - name: Download the fixed signing-payload artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: worth-query-release-signing-payload
+          path: ${{ runner.temp }}/worth-query-release/input
+
+      - name: Require the exact artifact file inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' entries < <(find "$RELEASE_ROOT/input" -mindepth 1 -maxdepth 1 -print0)
+          test "${#entries[@]}" -eq 1
+          payload="$RELEASE_ROOT/input/release.signing-payload"
+          test -f "$payload"
+          test ! -L "$payload"
+
+      - name: Build the release ceremony before exposing signing secrets
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/worth-query-release/target
+        run: |
+          set -euo pipefail
+          cargo build --locked --manifest-path tools/worth-query-release/Cargo.toml
+
+      - name: Preflight and stage the exact bytes permitted to reach the signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RELEASE_ROOT/staged" "$RELEASE_ROOT/output"
+          "$RELEASE_ROOT/target/debug/worth-query-release" preflight \
+            --signing-payload "$RELEASE_ROOT/input/release.signing-payload" \
+            --expected-signature-bytes "$EXPECTED_SIGNATURE_BYTES" \
+            --expected-package-identity "$EXPECTED_PACKAGE_IDENTITY" \
+            --expected-release-name "$EXPECTED_RELEASE_NAME" \
+            --expected-release-version "$EXPECTED_RELEASE_VERSION" \
+            --expected-source-repository "$EXPECTED_SOURCE_REPOSITORY" \
+            --expected-source-revision "$EXPECTED_SOURCE_REVISION" \
+            --expected-source-reference "$EXPECTED_SOURCE_REFERENCE" \
+            --expected-signer-identity "$EXPECTED_SIGNER_IDENTITY" \
+            --expected-signature-protocol-identity "$EXPECTED_SIGNATURE_PROTOCOL_IDENTITY" \
+            --expected-signature-protocol-version "$EXPECTED_SIGNATURE_PROTOCOL_VERSION" \
+            --staged-signing-payload "$RELEASE_ROOT/staged/release.signing-payload"
+
+      - name: Sign and independently verify the admitted payload
+        shell: bash
+        env:
+          PRIVATE_KEY_PEM: ${{ secrets.WORTH_QUERY_RELEASE_ED25519_PRIVATE_KEY_PEM }}
+          PUBLIC_KEY_PEM: ${{ secrets.WORTH_QUERY_RELEASE_ED25519_PUBLIC_KEY_PEM }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key_root="$(mktemp -d "$RUNNER_TEMP/worth-query-release-keys.XXXXXX")"
+          private_key="$key_root/private.pem"
+          public_key="$key_root/public.pem"
+          cleanup() {
+            rm -f "$private_key" "$public_key"
+            rmdir "$key_root" 2>/dev/null || true
+            unset PRIVATE_KEY_PEM PUBLIC_KEY_PEM
+          }
+          trap cleanup EXIT HUP INT TERM
+          test -n "$PRIVATE_KEY_PEM"
+          test -n "$PUBLIC_KEY_PEM"
+          printf '%s\n' "$PRIVATE_KEY_PEM" > "$private_key"
+          printf '%s\n' "$PUBLIC_KEY_PEM" > "$public_key"
+          openssl pkey -in "$private_key" -check -noout
+          openssl pkey -pubin -in "$public_key" -noout
+          openssl pkeyutl -sign -rawin \
+            -inkey "$private_key" \
+            -in "$RELEASE_ROOT/staged/release.signing-payload" \
+            -out "$RELEASE_ROOT/staged/release.signature"
+          test "$(wc -c < "$RELEASE_ROOT/staged/release.signature")" -eq 64
+          openssl pkeyutl -verify -rawin -pubin \
+            -inkey "$public_key" \
+            -in "$RELEASE_ROOT/staged/release.signing-payload" \
+            -sigfile "$RELEASE_ROOT/staged/release.signature"
+
+      - name: Finalize and freshly readmit the signed envelope
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RELEASE_ROOT/target/debug/worth-query-release" finalize \
+            --signing-payload "$RELEASE_ROOT/staged/release.signing-payload" \
+            --signature "$RELEASE_ROOT/staged/release.signature" \
+            --expected-package-identity "$EXPECTED_PACKAGE_IDENTITY" \
+            --expected-release-name "$EXPECTED_RELEASE_NAME" \
+            --expected-release-version "$EXPECTED_RELEASE_VERSION" \
+            --expected-source-repository "$EXPECTED_SOURCE_REPOSITORY" \
+            --expected-source-revision "$EXPECTED_SOURCE_REVISION" \
+            --expected-source-reference "$EXPECTED_SOURCE_REFERENCE" \
+            --expected-signer-identity "$EXPECTED_SIGNER_IDENTITY" \
+            --expected-signature-protocol-identity "$EXPECTED_SIGNATURE_PROTOCOL_IDENTITY" \
+            --expected-signature-protocol-version "$EXPECTED_SIGNATURE_PROTOCOL_VERSION" \
+            --expected-signature-bytes "$EXPECTED_SIGNATURE_BYTES" \
+            --output "$RELEASE_ROOT/output/worth-query-release.envelope" \
+            --report "$RELEASE_ROOT/output/worth-query-release.report.json"
+
+      - name: Stage the complete human GitHub release as a draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          notes="$RELEASE_ROOT/output/release-notes.md"
+          printf '%s\n' \
+            "WORTH Query release: $EXPECTED_RELEASE_NAME $EXPECTED_RELEASE_VERSION" \
+            "Semantic package identity: $EXPECTED_PACKAGE_IDENTITY" \
+            "Artifact posture: untrusted until current host trust and fresh Query readmission" \
+            > "$notes"
+          gh release create "$GITHUB_REF_NAME" \
+            "$RELEASE_ROOT/output/worth-query-release.envelope#WORTH Query signed envelope" \
+            "$RELEASE_ROOT/output/worth-query-release.report.json#WORTH Query release report" \
+            --draft \
+            --verify-tag \
+            --latest=false \
+            --title "$EXPECTED_RELEASE_NAME $EXPECTED_RELEASE_VERSION" \
+            --notes-file "$notes"
+
+      - name: Publish the complete human GitHub release without latest-name authority
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release edit "$GITHUB_REF_NAME" \
+            --draft=false \
+            --latest=false
+
+      - name: Report recoverable draft posture after a failed publication
+        if: failure()
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "$GITHUB_REF_NAME" \
+            --json isDraft,tagName,url \
+            --template 'release={{.tagName}} draft={{.isDraft}} url={{.url}}{{"\n"}}' \
+            >> "$GITHUB_STEP_SUMMARY"

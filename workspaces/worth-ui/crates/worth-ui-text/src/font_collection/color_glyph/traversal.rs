@@ -24,7 +24,7 @@ pub(super) fn validate_table(
     let mut index = 0;
     while let Some(field) = table.get_field(index) {
         index += 1;
-        match (&*field.name, &field.value) {
+        match (field.name, &field.value) {
             ("glyph_id", FieldType::GlyphId16(glyph)) if glyph.to_u16() >= glyph_count => {
                 return Err(malformed());
             }

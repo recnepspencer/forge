@@ -23,10 +23,12 @@ pub(crate) struct UiNativeTextAtlasTransactionPlanSnapshot {
 }
 
 impl UiNativeTextAtlasTransactionPlanSnapshot {
+    #[cfg(test)]
     pub(crate) const fn demand_identity(self) -> UiGlyphRasterDemandIdentity {
         self.demand_identity
     }
 
+    #[cfg(test)]
     pub(crate) const fn predecessor_generation(self) -> UiNativeTextAtlasGeneration {
         self.predecessor_generation
     }
@@ -35,10 +37,12 @@ impl UiNativeTextAtlasTransactionPlanSnapshot {
         self.peak_entries
     }
 
+    #[cfg(test)]
     pub(crate) const fn peak_texel_bytes(self) -> u64 {
         self.peak_texel_bytes
     }
 
+    #[cfg(test)]
     pub(crate) const fn candidate_generation(self) -> UiNativeTextAtlasGeneration {
         self.candidate_generation
     }

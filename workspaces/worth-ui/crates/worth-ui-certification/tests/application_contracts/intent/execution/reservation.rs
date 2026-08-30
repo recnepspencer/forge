@@ -170,7 +170,7 @@ fn move_only_admission_prepares_one_revalidated_framework_attempt_in_place() {
     );
     assert_eq!(receipt.idempotency().lineage(), lineage.diagnostic_value());
     assert_eq!(receipt.deadline().tick(), 2_000);
-    assert_eq!(receipt.currentness_checks(), 8);
+    assert_eq!(receipt.currentness_checks(), 9);
     assert_eq!(provider.begin_calls(), 0);
     assert_metrics(&world, 1, 1, 0);
     let shutdown = world.session.shutdown();

@@ -154,6 +154,7 @@ impl UiIntentExecutionState {
 }
 
 fn prepare(settled: UiSettledFrameworkIntentAttempt) -> UiPreparedFrameworkIntentConsequence {
+    let runtime_service = settled.outcome.runtime_service_destination();
     let consequences = settled.outcome.into_consequences();
     let (query_collection_change, query_projection) = consequences.into_parts();
     UiPreparedFrameworkIntentConsequence {
@@ -161,6 +162,7 @@ fn prepare(settled: UiSettledFrameworkIntentAttempt) -> UiPreparedFrameworkInten
         idempotency: settled.idempotency,
         consequence_lease: settled.consequence_lease,
         batch: UiPreparedIntentConsequenceBatch {
+            runtime_service,
             mounted_posture: settled
                 .basis
                 .declaration
@@ -226,6 +228,18 @@ fn require_current(
         .target_affinity
         .require_current(current.mounted)
         .map_err(UiIntentConsequenceStopReason::TargetChanged)?;
+    if let Some(command_route) = basis.command_route.as_ref() {
+        return match current
+            .catalog
+            .lookup_command(command_route.destination().intent())
+        {
+            Some((
+                crate::declaration::UiIntentCatalogCommandRoute::Resolved { declaration },
+                _,
+            )) if declaration.as_ref() == basis.declaration.as_ref() => Ok(()),
+            _ => Err(UiIntentConsequenceStopReason::ProductRouteChanged),
+        };
+    }
     match current
         .catalog
         .lookup(basis.graph_node, basis.declaration.interaction())
@@ -285,6 +299,16 @@ impl UiIntentConsequenceHandoff {
         self.basis.target
     }
 
+    pub(crate) fn interaction_family(&self) -> crate::capability::UiSemanticInteractionFamily {
+        self.basis.declaration.interaction()
+    }
+
+    pub(crate) fn selection_option(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiProjectionOptionReference> {
+        self.basis.selection_option.as_ref()
+    }
+
     pub(crate) fn take_query_consequence(
         &mut self,
     ) -> Option<worth_ui_query_binding::WorthUiCollectionChangeConsequence> {
@@ -310,6 +334,18 @@ impl UiIntentConsequenceHandoff {
         usize::from(self.batch.mounted_posture)
             + usize::from(self.batch.query_collection_change.is_some())
             + usize::from(self.batch.query_projection.is_some())
+    }
+
+    pub(crate) const fn runtime_service_destination(
+        &self,
+    ) -> Option<crate::capability::UiIntentRuntimeServiceDestination> {
+        self.batch.runtime_service
+    }
+
+    pub(crate) const fn command_route(
+        &self,
+    ) -> Option<&crate::runtime::command_routing::UiCommandRouteEvidence> {
+        self.basis.command_route.as_ref()
     }
 
     pub(crate) fn restore_query_from_facts(

@@ -2,7 +2,7 @@ use crate::application_query::{
     ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinitionBuilder,
     ApplicationQueryDependencyCeiling, ApplicationQueryDisclosureContract,
     ApplicationQueryLaneEligibility, ApplicationQueryOrderingDirection,
-    ApplicationQueryParameterRef, ApplicationQueryReference, ApplicationQueryResultFieldRef,
+    ApplicationQueryParameterRef, ApplicationQueryResultFieldRef,
     ApplicationQueryResultShapeBuilder, ErasedApplicationQueryDefinition,
 };
 
@@ -14,11 +14,21 @@ struct Schema;
 struct Entity;
 struct Aspect;
 struct Field;
-struct Query;
 struct Parameters;
 struct QueryResult;
 struct Parameter;
 struct ResultSlot;
+
+crate::worth_query_application_query!(
+    Query in Schema,
+    identity "Query",
+    parameters Parameters => "Parameters",
+    result QueryResult => "worth.query.test.control-query-result.v1",
+    scope Entity => "Entity",
+    name "query"
+);
+worth_query_portable_type!(QueryResult => "worth.query.test.control-query-result.v1");
+worth_query_portable_type!(ResultSlot => "worth.query.test.control-result-slot.v1");
 
 impl crate::application_schema::DeclaredApplicationFieldValue for Field {
     type Value = u64;
@@ -30,7 +40,6 @@ impl crate::application_schema::RequiredApplicationFieldValue for Field {}
 
 #[derive(Clone)]
 struct QueryControlFixture {
-    name: &'static str,
     root: &'static str,
     scope: &'static str,
     output: &'static str,
@@ -47,7 +56,6 @@ struct QueryControlFixture {
 impl QueryControlFixture {
     fn baseline() -> Self {
         Self {
-            name: "query",
             root: "Entity",
             scope: "Entity",
             output: "value",
@@ -69,9 +77,6 @@ fn every_scalar_query_control_is_identity_bearing() {
     let baseline_basis = definition(&baseline).canonical_basis().clone();
     let mut variants = Vec::new();
 
-    let mut changed = baseline.clone();
-    changed.name = "other_query";
-    variants.push(("name", changed));
     let mut changed = baseline.clone();
     changed.root = "OtherRoot";
     variants.push(("root", changed));
@@ -155,14 +160,7 @@ fn definition(fixture: &QueryControlFixture) -> ErasedApplicationQueryDefinition
     let shape = ApplicationQueryResultShapeBuilder::<Schema, Query, Entity, QueryResult>::new(root)
         .field(result)
         .build();
-    let builder =
-        ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
-            Schema,
-            Query,
-            Parameters,
-            QueryResult,
-            Entity,
-        >::from_schema_identifier(fixture.name))
+    let builder = ApplicationQueryDefinitionBuilder::declare(Query::reference())
         .root(root)
         .scope(scope)
         .result_shape(shape)

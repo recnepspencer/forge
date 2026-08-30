@@ -1,7 +1,7 @@
 use super::super::rejection::{attach_rejection, elapsed_micros};
 use crate::authority::commit::phases::mutation::branch_local_delete_allowance_for_plan;
 use crate::authority::mutation::{apply_plan_to_working_state, MutationApplyOutcome};
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{
     AuthoritativeApplyPlan, CommitLog, CommitPhase, CommitPhaseTiming, MergedCommitPlan,
     TransactionCommitError, TransactionId,
@@ -57,7 +57,7 @@ pub(super) struct MutationPhaseInput<'a> {
 }
 
 pub(super) fn run_authoritative_mutation_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     input: MutationPhaseInput<'_>,
 ) -> Result<MutationPhaseOutput, TransactionCommitError> {
     let MutationPhaseInput {
@@ -93,7 +93,7 @@ pub(super) fn run_authoritative_mutation_phase(
 }
 
 fn run_authoritative_mutation_for_runtime(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     transaction_id: TransactionId,
     working_state: &mut crate::runtime::WorkingState,
     merged_plan: &MergedCommitPlan,
@@ -120,23 +120,27 @@ fn run_authoritative_mutation_for_runtime(
     let mut record_allocations = runtime.record_identity.begin_allocations();
     let schema_registry = schema_authority.registry();
     let aspect_plans = schema_authority.aspect_plans();
-    let services = &mut runtime.services;
     let MutationApplyOutcome {
         effect,
         preparation_telemetry,
         created_entities,
         created_relations,
-    } = apply_plan_to_working_state(
-        working_state,
-        &apply_plan,
-        &mutation_config,
-        schema_registry,
-        aspect_plans,
-        &mut services.symbols,
-        branch_local_delete_allowance,
-        &mut record_allocations,
-    )
-    .map_err(TransactionCommitError::conflict)?;
+    } = runtime
+        .services
+        .symbols
+        .with_write(|symbols| {
+            apply_plan_to_working_state(
+                working_state,
+                &apply_plan,
+                &mutation_config,
+                schema_registry,
+                aspect_plans,
+                symbols,
+                branch_local_delete_allowance,
+                &mut record_allocations,
+            )
+        })
+        .map_err(TransactionCommitError::conflict)?;
     record_preparation_telemetry(runtime, preparation_telemetry);
     crate::authority::commit::phases::prepare::record_mutation_counters(runtime, working_state);
 
@@ -165,7 +169,7 @@ fn run_authoritative_mutation_for_runtime(
 }
 
 fn record_preparation_telemetry(
-    runtime: &RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     telemetry: crate::authority::mutation::MutationPreparationTelemetry,
 ) {
     runtime.performance_access().count_preparation_packet_shape(

@@ -32,6 +32,31 @@ mod invariant_oracle_expectations;
 mod invariant_proposed_state;
 #[path = "relational_certification/invariants/selected_state/structural_selection.rs"]
 mod invariant_structural_selection;
+#[path = "relational_certification/invariants/uniqueness/assertion.rs"]
+mod invariant_uniqueness_assertion;
+#[path = "relational_certification/mvcc/archive_retention.rs"]
+mod mvcc_archive_retention;
+#[path = "relational_certification/mvcc/branch_fork_fixture.rs"]
+mod mvcc_branch_fork_fixture;
+#[path = "relational_certification/mvcc/cancellation.rs"]
+mod mvcc_cancellation;
+#[cfg(feature = "test-operation-control")]
+#[path = "relational_certification/mvcc/cancellation_publication_boundaries.rs"]
+mod mvcc_cancellation_publication_boundaries;
+#[path = "relational_certification/mvcc/model_sequences.rs"]
+mod mvcc_model_sequences;
+#[cfg(feature = "test-operation-control")]
+#[path = "relational_certification/mvcc/owner_phase_locality.rs"]
+mod mvcc_owner_phase_locality;
+#[cfg(feature = "test-operation-control")]
+#[path = "relational_certification/mvcc/owner_phase_locality_court.rs"]
+mod mvcc_owner_phase_locality_court;
+#[path = "relational_certification/mvcc/preparation_owner.rs"]
+mod mvcc_preparation_owner;
+#[path = "relational_certification/mvcc/retention.rs"]
+mod mvcc_retention;
+#[path = "relational_certification/mvcc/seeded_model.rs"]
+mod mvcc_seeded_model;
 #[path = "relational_certification/observation_contracts.rs"]
 mod observation_contracts;
 #[path = "relational_certification/oracle_ancestry.rs"]
@@ -70,6 +95,8 @@ mod root_branch_copy_on_write;
 mod root_branch_isolation;
 #[path = "relational_certification/root/selection/traversal.rs"]
 mod root_branch_traversal_isolation;
+#[path = "relational_certification/root/cost/scale_axes.rs"]
+mod root_cost_scale_axes;
 #[path = "relational_certification/root/cost/scopes.rs"]
 mod root_cost_scopes;
 #[path = "relational_certification/root/delta/lowering_contracts.rs"]
@@ -86,12 +113,21 @@ mod root_named_delta_cow;
 mod root_persistent_path_accounting;
 #[path = "relational_certification/root/copy_on_write/region_reuse.rs"]
 mod root_region_reuse;
+#[path = "relational_certification/root/sharing/metric_truth_lanes.rs"]
+mod root_sharing_metric_truth_lanes;
 #[path = "relational_certification/root/sharing/observation.rs"]
 mod root_sharing_observation;
 #[path = "relational_certification/invariants/admission/scale_profile.rs"]
 mod scale_invariant_admission;
 #[path = "relational_certification/schema_contracts.rs"]
 mod schema_contracts;
+#[cfg(feature = "test-operation-control")]
+#[path = "relational_certification/schema_transition_cancellation.rs"]
+mod schema_transition_cancellation;
+#[path = "relational_certification/schema_transition_replay.rs"]
+mod schema_transition_replay;
+#[path = "relational_certification/schema_transition_target.rs"]
+mod schema_transition_target;
 #[path = "relational_certification/invariants/admission/standard_graph_composition.rs"]
 mod standard_graph_composition;
 #[path = "relational_certification/trace_replay.rs"]

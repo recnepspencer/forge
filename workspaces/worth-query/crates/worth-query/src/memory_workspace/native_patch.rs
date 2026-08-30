@@ -159,23 +159,31 @@ impl WorthQueryMemoryWorkspace {
         mutation_kind: WorthQueryMutationKind,
         touches: Vec<WorthQueryAspectTouch>,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
+        let main_identity = self.runtime.main_branch_identity();
         let options = self
             .runtime
-            .admit_main_branch_basis()
-            .expect("memory workspace main branch remains owner-admissible");
+            .admit_branch_basis(&main_identity)
+            .map_err(super::transaction_denial::basis)?;
         let mut transaction = self
             .runtime
             .begin_branch_transaction(
                 &options,
                 worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
             )
-            .expect("owner-admitted transaction context");
+            .map_err(super::transaction_denial::admission)?;
         transaction
-            .push_batch(WorkerIntentBatch::new("query-memory-native-aspect-patch").push(intent));
+            .push_batch(WorkerIntentBatch::new("query-memory-native-aspect-patch").push(intent))
+            .map_err(super::transaction_denial::staging)?;
         let result = transaction
-            .commit(&mut self.runtime)
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
-        Ok(self.receipt_from_commit(result, mutation_kind, touches))
+            .commit(&self.runtime)
+            .map_err(super::transaction_denial::commit)?;
+        let published_snapshot = result.snapshot.clone();
+        let receipt = self.receipt_from_commit(result, mutation_kind, touches);
+        super::commit_snapshot_closeout::release_commit_snapshot(
+            &mut self.runtime,
+            &published_snapshot,
+        );
+        Ok(receipt)
     }
 }
 

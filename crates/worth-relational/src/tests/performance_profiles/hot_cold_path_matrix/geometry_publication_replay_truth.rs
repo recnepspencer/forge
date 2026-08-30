@@ -5,25 +5,25 @@ pub(super) fn certify_geometry_rich_publication_hot_vs_replay_truth(suite: &'sta
         suite,
         "geometry_rich_publication_hot_vs_replay_truth",
         || {
-            let mut runtime = persisted_runtime_with_test_schema_profile(
+            let runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::GeometryKernel,
             );
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
-            let source = create_entity_outcome(&mut runtime, "hot-cold-geometry-rich-source");
-            let middle = create_entity_outcome(&mut runtime, "hot-cold-geometry-rich-middle");
-            let target = create_entity_outcome(&mut runtime, "hot-cold-geometry-rich-target");
+            let source = create_entity_outcome(&runtime, "hot-cold-geometry-rich-source");
+            let middle = create_entity_outcome(&runtime, "hot-cold-geometry-rich-middle");
+            let target = create_entity_outcome(&runtime, "hot-cold-geometry-rich-target");
             let source_entity = changed_entities(&source)[0];
             let middle_entity = changed_entities(&middle)[0];
             let target_entity = changed_entities(&target)[0];
             create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 source_entity,
                 middle_entity,
                 "hot-cold-geometry-rich-link-a",
             );
             create_relation_outcome(
-                &mut runtime,
+                &runtime,
                 middle_entity,
                 target_entity,
                 "hot-cold-geometry-rich-link-b",
@@ -32,7 +32,7 @@ pub(super) fn certify_geometry_rich_publication_hot_vs_replay_truth(suite: &'sta
             runtime.performance_access().reset_counters();
             let hot_commit_started_at = Instant::now();
             let hot_commit = update_entity(
-                &mut runtime,
+                &runtime,
                 middle_entity,
                 "hot-cold-geometry-rich-middle-updated",
             );
@@ -79,7 +79,7 @@ pub(super) fn certify_geometry_rich_publication_hot_vs_replay_truth(suite: &'sta
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
-                .durability_authority()
+                .durability_recovery()
                 .recover(plan)
                 .expect("geometry rich hot/cold recovery");
             let recover_micros = recover_started_at.elapsed().as_micros();

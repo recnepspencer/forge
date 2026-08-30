@@ -238,9 +238,6 @@ fn replace_native_value(
                 field_values.insert(path, value.clone());
             }
         }
-        WorthQueryEntityNativeReplacementValue::Struct(value) => {
-            struct_aspect_values.insert(aspect, value);
-        }
         WorthQueryEntityNativeReplacementValue::Absent => {}
     }
 }

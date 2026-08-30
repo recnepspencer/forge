@@ -8,7 +8,7 @@ pub enum WorthUiNativeManagedIntentConsequencePublicationDenial {
 
 pub enum WorthUiNativeManagedIntentConsequencePublicationOutcome {
     NoConsequences(crate::runtime::intent_execution::UiIntentConsequenceCompletionReceipt),
-    Published(crate::runtime::rebind::UiRebindReceipt),
+    Published(super::intent_consequence_publication::UiIntentConsequencePublicationReceipt),
     Pending,
     Stopped(super::native_managed_rebind::WorthUiNativeManagedRebindStop),
 }
@@ -73,6 +73,21 @@ impl WorthUiNativeApplicationShell {
                 self.pending_managed_rebind = Some(
                     super::native_managed_rebind::WorthUiNativePendingManagedRebind::
                         IntentConsequence(pending),
+                );
+                Ok(WorthUiNativeManagedIntentConsequencePublicationOutcome::Pending)
+            }
+            super::native_managed_rebind::ManagedIntentConsequenceNormalization::Indeterminate(
+                pending,
+            ) => {
+                if pending.session_identity() != self.session.session_identity() {
+                    return Err(
+                        WorthUiNativeManagedIntentConsequencePublicationDenial::
+                            ManagedRebindSessionMismatch,
+                    );
+                }
+                self.pending_managed_rebind = Some(
+                    super::native_managed_rebind::WorthUiNativePendingManagedRebind::
+                        IntentConsequenceIndeterminate(pending),
                 );
                 Ok(WorthUiNativeManagedIntentConsequencePublicationOutcome::Pending)
             }

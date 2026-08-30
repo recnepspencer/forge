@@ -4,14 +4,14 @@ use crate::tests::support::*;
 
 #[test]
 fn merge_ready_history_shape_reports_counter_breadth_explicitly() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let _root = create_entity_outcome(&mut runtime, "root");
-    let _linear = create_entity_outcome(&mut runtime, "linear");
-    create_branch_from_main(&mut runtime, "feature");
+    let runtime = persisted_runtime_with_test_schema();
+    let _root = create_entity_outcome(&runtime, "root");
+    let _linear = create_entity_outcome(&runtime, "linear");
+    create_branch_from_main(&runtime, "feature");
     let _feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let merge = merge_commit_from_branches(
-        &mut runtime,
+        &runtime,
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
@@ -43,7 +43,7 @@ fn merge_ready_history_shape_reports_counter_breadth_explicitly() {
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
-        .durability_authority()
+        .durability_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_counters = recovered.performance_access().counters();

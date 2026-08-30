@@ -9,7 +9,7 @@ use crate::tests::support::ASPECT_A;
 fn merge_execution_counters_obey_bounded_shared_conflict_contract() {
     let (mut runtime, feature, main) = build_shared_state_conflict_runtime();
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")
@@ -56,7 +56,7 @@ fn merge_execution_counters_obey_bounded_shared_conflict_contract() {
 #[test]
 fn aspect_policy_and_decision_lowering_remain_consistent() {
     let (mut runtime, feature, main) = build_aspect_policy_runtime();
-    let planned = runtime.merge().from(feature).into(main).plan().unwrap();
+    let planned = runtime.merge_raw().from(feature).into(main).plan().unwrap();
 
     let aspect_policy_plan = planned.plan().aspect_policy_plan();
     let aspect_decision_plan = planned.plan().aspect_decision_plan();
@@ -99,7 +99,7 @@ fn merge_base_selection_remains_consistent_from_plan_to_result_proof() {
         plan_proof_selected_merge_base_digest,
     ) = {
         let planned = runtime
-            .merge()
+            .merge_raw()
             .from(feature.clone())
             .into(main.clone())
             .merge_base_named("signal.merge-base.fork-point")
@@ -124,7 +124,7 @@ fn merge_base_selection_remains_consistent_from_plan_to_result_proof() {
     };
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .merge_base_named("signal.merge-base.fork-point")

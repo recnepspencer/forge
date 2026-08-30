@@ -16,17 +16,27 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             let Ok(owner_ordinal) = u8::try_from(ordinal) else {
                 return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
             };
+            let physical_tick = self.physical_clock.current_tick();
+            let reduced_motion = crate::native::platform::observe_reduced_motion_posture();
             let directive = self.client.as_mut().and_then(|client| {
                 client
                     .application_readiness_ready(UiNativeApplicationReadinessGrant::issued(
                         owner_ordinal,
                         ready.generation(),
+                        physical_tick,
+                        reduced_motion,
                     ))
                     .ok()
             });
             let Some(directive) = directive else {
                 return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
             };
+            // An application readiness callback can submit text-atlas or
+            // presentation work through the runtime shell. Probe the physical
+            // owner before returning to the event loop so that work receives
+            // its independent redraw wake instead of waiting for unrelated
+            // ordinary readiness.
+            self.request_physical_signal_redraw();
             if self.apply_client_directive(event_loop, directive) {
                 return;
             }

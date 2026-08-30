@@ -58,6 +58,7 @@ fn prepared_mechanics_delegates_retained_observation_drain() {
     };
     let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
     let basis = UiHostObservationPresentationBasis::new(
+        worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
         UiMountedFrameIdentity::mint_unbound().unwrap(),
         binding,
         UiHostPresentationEpoch::issued_by_host(1),

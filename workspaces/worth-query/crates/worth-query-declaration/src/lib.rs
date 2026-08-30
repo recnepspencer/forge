@@ -32,9 +32,14 @@
 
 #![forbid(unsafe_code)]
 
+mod portable_identity;
+#[macro_use]
+mod portable_identity_macro;
 mod application_aftermath;
 mod application_capability;
 mod application_query;
+#[macro_use]
+mod application_query_macro;
 mod application_schema;
 mod authentication;
 mod authoring;

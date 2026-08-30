@@ -64,6 +64,14 @@ pub(super) fn compile_committed_observations(
     };
     let locators = ObservedLocators { alpha, beta };
     let facts = observed_facts(&runtime, &relation_commit.snapshot, axes, locators);
+    crate::relational_snapshot_release::release_query_snapshot(
+        &mut runtime,
+        &relation_commit.snapshot,
+    );
+    crate::relational_snapshot_release::release_query_snapshot(
+        &mut runtime,
+        &decoy_relation.snapshot,
+    );
     CommittedObservationWorld {
         update_entity: entities.update,
         deleted_entity: entities.deleted,
@@ -120,7 +128,7 @@ fn commit_entities(
             create_entity(&decoy_to, BTreeMap::new()),
         ],
     );
-    CommittedEntities {
+    let entities = CommittedEntities {
         update: issued_entity(&committed, &update),
         decoy_update: issued_entity(&committed, &decoy_update),
         deleted: issued_entity(&committed, &deleted),
@@ -129,7 +137,9 @@ fn commit_entities(
         to: issued_entity(&committed, &to),
         decoy_from: issued_entity(&committed, &decoy_from),
         decoy_to: issued_entity(&committed, &decoy_to),
-    }
+    };
+    crate::relational_snapshot_release::release_query_snapshot(runtime, &committed.snapshot);
+    entities
 }
 
 struct CommittedEntities {
@@ -186,7 +196,7 @@ fn commit<const N: usize>(
 ) -> worth_relational::facade::transactions::CommitResult {
     let mut transaction = {
         let transaction_validation_input = runtime
-            .admit_main_branch_basis()
+            .admit_branch_basis(&runtime.main_branch_identity())
             .expect("main branch binding");
         runtime
             .begin_branch_transaction(
@@ -195,11 +205,13 @@ fn commit<const N: usize>(
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(
-        intents
-            .into_iter()
-            .fold(WorkerIntentBatch::new(name), WorkerIntentBatch::push),
-    );
+    transaction
+        .push_batch(
+            intents
+                .into_iter()
+                .fold(WorkerIntentBatch::new(name), WorkerIntentBatch::push),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction.commit(runtime).expect("fixture truth commits")
 }
 

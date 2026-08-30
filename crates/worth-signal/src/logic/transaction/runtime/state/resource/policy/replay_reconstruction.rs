@@ -63,16 +63,9 @@ impl ReplayReconstructionBasis {
 }
 
 impl ResourceRuntimeState {
-    pub fn reconstruct_replay_summary(
-        &self,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceReplayReconstructionReport {
-        self.reconstruct_replay_summary_optional(Some(telemetry))
-    }
-
     pub fn reconstruct_replay_summary_optional(
         &self,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceReplayReconstructionReport {
         let basis = self.collect_replay_reconstruction_basis();
         let widths = basis.widths();
@@ -80,7 +73,7 @@ impl ResourceRuntimeState {
         let performance = self.record_replay_reconstruction_telemetry_optional(
             &widths,
             basis.retained_history_unavailable_count,
-            telemetry.as_deref_mut(),
+            telemetry,
         );
         ResourceReplayReconstructionReport::new(
             widths.descriptor,
@@ -292,9 +285,9 @@ impl ResourceRuntimeState {
         &self,
         widths: &ReplayReconstructionWidths,
         retained_history_unavailable_count: u32,
-        mut telemetry: Option<&mut ResourceTelemetry>,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceBoundaryPerformanceEnvelope {
-        if let Some(telemetry) = telemetry.as_deref_mut() {
+        if let Some(telemetry) = telemetry {
             telemetry.resource_replay_reconstruction_count += 1;
             telemetry.resource_replay_reconstruction_lifecycle_width = telemetry
                 .resource_replay_reconstruction_lifecycle_width

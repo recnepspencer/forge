@@ -29,7 +29,7 @@ impl BoundaryValidatedCommitExecution {
 }
 
 pub(super) fn validate_commit_boundary(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     mut prepared: PreparedCommitExecution,
 ) -> Result<BoundaryValidatedCommitExecution, crate::transactions::data::TransactionCommitError> {
     let (admitted, proposed_working_state, proposed_version_id, proposal_identity) =

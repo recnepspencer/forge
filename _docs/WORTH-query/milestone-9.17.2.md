@@ -1,534 +1,315 @@
 # Milestone 9.17.2: Composite Runtime-World History And Coordinated Publication
 
-## Goal
+> **Product posture:** This milestone establishes memory-resident Runtime
+> Bridge composition authority. It makes no persistence, restart, or physical
+> database claim.
 
-Establish Runtime Bridge composition authority over exact owner-issued
-Relational and Signal component bases:
+## Goal And Roadmap Placement
 
-- admitted component correspondence;
-- immutable single-parent composite runtime-world commits;
-- mutable product branch references to exact composite commits;
-- explicit component reuse or fork/advance posture;
-- exact composite/component retention; and
-- one typed coordinated preparation and compare-and-publish progression that
-  can never expose a half-current product world; and
-- PostgreSQL-backed canonical composite history, atomic product-head CAS, and
-  fresh-process recovery through a Runtime Bridge-owned durability port.
+Consume the exact owner-basis and branch-local MVCC contracts from Milestone
+9.17.1 as corrected by Milestone 9.17.1.1, and establish one Runtime
+Bridge-owned product branch as a mutable
+reference to an immutable single-parent composite runtime-world commit. Each
+commit names the exact Relational and Signal bases that constitute one product
+world. Bridge alone coordinates owner results and moves product currentness.
 
-This milestone consumes the owner-local substrate closed by
-[Milestone 9.17.1](./milestone-9.17.1.md). It does not expose the final Query
-product facade or claim that all Query planning, execution, history, live, and
-recovery paths carry the new authority; that is
-[Milestone 9.17.3](./milestone-9.17.3.md).
+Milestone 9.17.1 owns component truth and produces exact owner bases. Milestone
+9.17.1.1 closed owner-port concurrency, settlement recovery, exact Signal
+retention, and terminal lease lifecycle before composition begins, and its
+normative owner contract is frozen in
+`crates/worth-relational/OWNER_COMPONENT_PORT.md` and
+`crates/worth-signal/BRANCH_BASES.md`. This milestone owns composition truth but
+does not publish the public Query branch workflow. Milestone 9.17.3 carries
+performed composite authority through Query.
 
-## Roadmap Placement
+## Central Claim
 
-[Milestone 9.17](./milestone-9.17.md) is the governing umbrella. Runtime Bridge
-already owns cross-runtime correspondence for existing protocols, but it does
-not yet own the ordinary composite commit graph and product-branch reference
-that answer which exact Relational and Signal worlds are current together.
+No product branch moves unless every operation-named component result is valid
+for one exact expected composite head and Runtime Bridge wins one atomic
+compare-and-publish transition. Unchanged components remain at their exact
+carried bases. Partial preparation, stale heads, cancellation, foreign bases,
+and losing races never become product-current or publicly observable as a
+performed composite world.
 
-Milestone 9.16.2 supplies the stable PostgreSQL adapter and persistent Query-host
-facades, and
-Milestone 9.17.1 supplies durable owner component recovery. This milestone must
-populate the Runtime Bridge owner sibling; a parallel Bridge database or later
-facade migration is forbidden.
+The claim is false if:
 
-9.17.2 installs that composition layer only after component owners can issue
-and independently advance and recover exact bases. It populates the committed
-`worth-runtime-postgres::owner::runtime_world` sibling established by 9.16.2;
-neither stable facade moves:
+- Relational or Signal currentness alone defines the product world;
+- Bridge selects an ambient or latest component head;
+- equal ids, ordinals, versions, digests, or descriptors substitute for
+  owner-admitted bases;
+- one component result becomes visible before composite publication;
+- a losing product-head race silently rebases or retries under new authority;
+- unchanged components are opportunistically refreshed;
+- cancellation after an owner-local performed result is called rollback;
+- Query or a physical adapter can mint a composite commit or move a product
+  head; or
+- composite state is serialized or persisted as part of this milestone.
 
-```text
-Relational exact basis --------\
-                                +--> admitted composite basis
-Signal exact basis ------------/             |
-                                              v
-                                immutable composite commit
-                                              |
-                                              v
-                                 product branch reference
-                                              |
-                          expected composite head + operation
-                                              |
-                                              v
-                         typed component preparation program
-                           /                              \
-                          v                                v
-             Relational owner candidate          Signal owner candidate
-                          \                                /
-                           +-- compatibility/readmission -+
-                                              |
-                                              v
-                              atomic composite CAS publish
-                                              |
-                                              v
-                              new exact composite head
-```
+## Ownership Lock
 
-The Bridge coordinates. It never performs Relational publication, Signal
-advancement, or Query admission on behalf of those owners.
+| Responsibility | Owner |
+| --- | --- |
+| Relational branches, commits, candidates, performed publications, conflicts, and retention | Relational |
+| Signal branches, bases, owner-local advancement, definition compatibility, and retention | Signal |
+| Exact component correspondence and compatibility admission | Runtime Bridge |
+| Immutable composite commits, product branch references, head generations, parentage, retention, and coordinated publication | Runtime Bridge |
+| Product workflow admission and public projection | Query in Milestone 9.17.3 |
+| Portable branch/reference vocabulary | Foundational; descriptive only |
+| Phase progression and concrete owner-specialized witnesses | Proof beneath private owner types |
+| Persistence, restart recovery, physical residency, replication, and distributed publication | Worth Store integration |
+
+Component authority is neither absorbed nor restamped. Bridge may consume
+owner-issued artifacts through owner facades, but it cannot inspect candidate
+internals, reconstruct a basis from representation, or mutate owner state.
 
 ## Current Boundary
 
-- 9.17.1 supplies exact owner-issued component bases, owner validation and
-  readmission ports, opaque pre-effect Relational preparation candidates, the
-  Relational compare-and-publish port and its typed performed/stale/denied/
-  cancelled/failure outcomes, committed component bases, retention, and
-  cancellation/cleanup contracts. Neither a candidate nor a performed owner
-  commit is product-current.
-- Runtime Bridge already has typed truth/Signal correspondence and speculative
-  branch binding artifacts, but some are description-oriented and do not form
-  an authoritative ordinary composite history.
-- Current Bridge identity helpers that derive one branch meaning from another,
-  or join Bridge-authored string identities, are not sufficient to establish
-  exact owner currentness.
-- No Bridge-owned `ProductBranch`, `CompositeRuntimeWorldCommit`, or atomic
-  composite-head store currently closes the product-currentness question.
-- No Bridge-owned versioned durable artifact/recovery port or PostgreSQL
-  product-head implementation currently makes that currentness survive process
-  loss.
-- `worth-foundational` supplies portable branch/commit/parentage,
-  correspondence, canonical-basis, locator, mismatch, provenance, and boundary
-  vocabulary shared across the component and Query crossings.
-- `worth-proof` supplies compile-visible staged progression, binding-axis law,
-  basis freshness/readmission, checked outcomes, fixed two-owner composition,
-  and `Performed` effect evidence beneath stronger Bridge-owned artifacts.
+Relational and Signal each issue exact admitted bases, retain current or
+historical exact targets for named obligations, perform owner-local advancement
+through independently borrowable services, and recover Relational settlement
+after performed-capability loss. Runtime Bridge already owns cross-runtime
+correspondence and lowering, but it lacks:
 
-The missing Bridge-owned fact is:
-
-> This exact Relational basis and this exact Signal basis were admitted as one
-> composite world, descended from this exact parent, and became current for
-> this product branch through one successful composite-head transition.
+- an immutable composite commit identity and parentage contract;
+- a product branch reference distinct from component branches;
+- exact component-change posture;
+- a compare-and-publish progression over one expected product head;
+- retention closure from product commits into exact component bases; and
+- typed partial-preparation and cancellation settlement.
 
 ## Adversarial Courtroom
 
-Start with one composite commit C0. Create product branches P1 and P2 that both
-reuse C0's exact immutable Signal basis while their Relational branches fork.
-Advance only Relational on P1. Advance only Signal on P2. Then publish a change
-to both components on P1.
+Two product branches begin at one composite commit and share the same immutable
+Signal basis. Their Relational branches diverge. The court then runs:
 
-While doing so:
+1. one Relational-only publication;
+2. one Signal-only publication;
+3. one combined publication;
+4. two writers racing the same product head;
+5. one writer blocked on an unrelated product branch while the other commits;
+6. successful Relational preparation followed by Signal denial;
+7. successful owner-local work followed by a stale product head;
+8. cancellation before preparation, between owner calls, before product-head
+   movement, and after the movement linearization point;
+9. substitution of an equal-ordinal basis from another branch, runtime,
+   definition, or owner; and
+10. retention pressure while live product branches and prepared publications
+    still reference shared component bases.
 
-- substitute equal-ordinal Relational or Signal bases from neighboring
-  branches and runtimes;
-- pair a valid Relational basis with a valid Signal basis for which no admitted
-  correspondence exists;
-- reuse an old correspondence after schema, definition, runtime generation, or
-  component currentness drifts;
-- race two writers against one product head;
-- prepare Relational successfully and reject Signal;
-- prepare both successfully and advance the product head before publication;
-- cancel after each owner boundary and immediately before composite CAS;
-- lose a response after successful composite publication and retry;
-- kill the process before durable composite CAS, after durable CAS but before
-  response, and during recovery after component owners reopen but before Bridge
-  currentness is readmitted;
-- archive a product branch while another branch, snapshot, correction, or
-  in-flight publication retains one of its component bases;
-- destroy Bridge-derived indexes and rebuild from composite authority; and
-- offer a Query projection, diagnostic digest, owner receipt, or prepared
-  candidate as product-currentness evidence.
-- recover a composite commit whose exact component basis is missing, foreign,
-  stale, or not owner-readmitted; and
-- offer a PostgreSQL row, CAS result count, or restored head value as performed
-  Bridge authority.
-
-The independent composite-history oracle must observe:
-
-- P1 and P2 may point to distinct composite histories that share exactly one
-  immutable Signal basis;
-- Relational-only, Signal-only, and combined commits carry exact unchanged and
-  changed component posture;
-- every ordinary composite commit has exactly one canonical parent;
-- only one same-head publisher wins;
-- component rejection, stale head, and cancellation move no product head;
-- no observer can select a candidate or half-prepared component pair as
-  current;
-- a response-loss retry identifies the already-performed publication rather
-  than creating a duplicate commit;
-- a fresh process recovers the same canonical composite history and product
-  heads only after both owners readmit every referenced component basis;
-- retained component bases survive every exact live obligation and reclaim
-  only afterward;
-- derived Bridge indexes rebuild to identical references and history; and
-- copied, stale, foreign, representation-equal, or equal-ordinal artifacts
-  open no door.
+Independent component and composite-history oracles must observe exact
+single-parent history, one winner per expected head, no half-current product
+world, exact unchanged-component reuse, independent branch progress, and
+complete obligation transfer or cleanup. Deleting the product-head comparison,
+publishing after only one owner succeeds, resolving latest, accepting a foreign
+basis, or releasing a component pin early must turn the court red.
 
 ## Product Decision Lock
 
-1. Runtime Bridge owns composite correspondence, composite commits, product
-   branch references, composite currentness, and publication orchestration.
-2. Relational and Signal remain the only owners capable of validating,
-   preparing, publishing, or advancing their component state.
-3. A composite basis is an admitted fixed-shape pairing of exact owner-issued
-   component bases plus correspondence and compatibility posture. A raw tuple
-   has no authority.
-4. Correspondence names why these exact bases may constitute one product world;
-   equal identity representation or ordinal does not imply correspondence.
-5. A composite commit is immutable and binds one exact ordinary parent, exact
-   component bases, per-component retained/advanced posture, provenance,
-   expected product head, owner outcomes, and performed composite publication.
-6. A product branch reference is a mutable generation-qualified CAS target for
-   one composite commit. Component branch heads do not move it implicitly.
-7. Product branch creation begins from one exact retained composite commit and
-   an explicit per-component plan: retain exact basis or request owner-issued
-   fork/advance. Omission is not a selection policy.
-8. Unchanged components retain the exact prior basis. The Bridge never refreshes
-   or re-resolves them opportunistically.
-9. Owner preparation candidates cannot become product-current individually.
-   Bridge publication consumes compatible owner outcomes and the exact expected
-   composite head.
-10. Composite publication is the single currentness transition. Derived
-    receipts, history projections, notifications, and Query artifacts descend
-    from its canonical performed artifact.
-11. Same-product-head races resolve through one atomic compare-and-publish.
-    Independent product branches do not coordinate except for bounded shared
-    mechanical allocation and exact retention.
-12. A component failure or stale result causes no product-head movement.
-    Successful immutable owner work receives exact cleanup, retained-candidate,
-    or orphan posture; it never becomes silently current.
-13. Indeterminate external or process outcomes retain a recovery handle capable
-    of determining whether composite publication occurred without guessing
-    from component heads.
-14. Retention is transitive and exact: a retained composite commit retains its
-    parent requirements and selected component bases according to declared
-    policy and live obligations.
-15. Deleting a product reference never reclaims a component basis required by
-    another branch, snapshot, transaction, correction, publication, or
-    recovery obligation.
-16. Foundational canonical identities and locators describe and compare the
-    crossing. They do not authorize admission or publication.
-17. Proof progression, fixed-shape composition, freshness, readmission, and
-    performed-effect law sit beneath private Bridge artifacts. Generic Proof
-    types cannot mint Bridge currentness.
-18. Query has no writable access to composite storage and cannot assemble
-    component pairs into authority.
-19. Single-parent ordinary history is final for this milestone. Merge, rebase,
-    multi-parent commits, offline synchronization, and distributed recovery are
-    not hidden extension points in the ordinary coordinator.
-20. Runtime Bridge owns the versioned composite durable artifact, compatibility,
-    bounded decode, recovery validation, and product-head store port.
-21. The PostgreSQL adapter atomically stores the immutable composite commit and
-    compares/moves its product head before Bridge may mint performed publication.
-    Affected-row counts and stored bytes are observations, not authority.
-22. Fresh-process recovery opens component owners first, asks them to readmit
-    every referenced basis, then lets Bridge reconstruct composite history and
-    currentness. Missing or incompatible owner truth fails readiness.
-23. An owner-local commit, including a Relational outbox fact, cannot authorize
-    product notifications or external dispatch. Only the performed composite
-    publication can gate that later Query consequence.
+1. Product, Relational, and Signal branch identities are distinct types and
+   meanings.
+2. A composite basis contains exact owner-admitted Relational and Signal bases
+   plus admitted correspondence; it selects nothing ambiently.
+3. A composite commit is immutable and has exactly one ordinary parent.
+4. A product branch is a mutable reference to one composite commit and carries
+   an independently changing reference generation.
+5. Component change posture is explicit: retain exact basis, fork/advance, or
+   reject. Omitted does not mean refresh.
+6. Bridge prepares compatibility and retention before the first owner effect.
+7. Owner-local performed results remain non-current candidates until Bridge
+   compare-and-publish succeeds.
+8. The product-head comparison uses the exact expected branch observation, not
+   commit id or version alone.
+9. Losing same-head races return typed stale/conflict outcomes and do not
+   rebase automatically.
+10. Cancellation is no-effect only before the first owner effect. After an
+    owner performs, settlement reports retained candidate, compensatable,
+    reconcilable, irreversible, or performed posture honestly.
+11. Product-head movement is the sole composition-currentness linearization
+    point. Readers see the complete old or complete new composite basis.
+12. Retaining a product commit retains every exact component basis needed to
+    interpret it. Reclamation is maintenance work.
+13. Bridge owns bounded orphan/retained-candidate lifecycle and exposes typed
+    inspection; no invisible queue or unbounded history is permitted.
+14. Performed Bridge publication is private authority consumed by Query 9.17.3.
+15. All state in this milestone is memory-resident. No codec, backend port,
+    SQL row, checkpoint, recovery cursor, or application-composition crate is
+    introduced.
 
 ## Compiler-Enforced Progression
 
-The Bridge progression must be visible in types and owner-specific transitions:
-
 ```text
-component basis descriptors
-    -> owner-readmitted component bases
-    -> admitted composite basis
-    -> retained expected product head
-    -> prepared component program
-    -> owner preparation outcomes
-    -> compatible composite publication candidate
-    -> composite execution-ready publication
-    -> performed composite head transition
-    -> immutable composite commit + new product branch head
+ProductBranchIntent
+    -> ResolvedExpectedProductHead
+    -> AdmittedCompositeBasis
+    -> LoweredComponentPublicationPlan
+    -> BridgePreparedCompositePublication
+    -> ComponentPublicationSettlement
+    -> BridgeExecutionReadyPublication
+    -> BridgeCompositePublicationOutcome
+         Performed(PerformedCompositePublication)
+         Stale(ProductHeadConflict)
+         Rejected(CompositePublicationDenial)
+         Cancelled(CompositeCancellation)
+         Retained(OwnerPerformedCompositeNotCurrent)
 ```
 
-The implementation may refine names and split owner outcomes, but it must
-enforce these laws:
-
-- admission consumes current owner bases and an owner-backed correspondence;
-- preparation consumes one expected product head and explicit component plan;
-- compatibility consumes the exact owner outcomes produced for that plan;
-- execution-ready publication cannot be minted from raw candidates;
-- performed publication is minted only by the product-head store after the CAS
-  outcome is observed;
-- history append and public receipts derive from performed publication;
-- stale, denied, deferred, cancelled, rebind-required, and indeterminate
-  outcomes cannot enter the success transition; and
-- every boundary-crossed artifact loses currentness until the owning Bridge or
-  component owner readmits it.
-
-Use `worth-proof::Binding` or equivalent owner wrappers to declare every axis:
-Bridge runtime, product branch, expected head generation, parent composite
-commit, Relational runtime/branch/basis, Signal runtime/branch/basis,
-correspondence version, operation/attempt, and publication candidate. One-axis
-drift twins must cover every declared axis.
-
-Use Foundational canonicalization for portable composite identity and report
-digests. Do not hash debug output or treat the resulting digest as the CAS key
-authority unless the Bridge owner wraps and validates it under its own store.
+Every transition consumes its exact predecessor. Public compiler evidence must
+deny raw basis construction, cross-head pairing, component-result promotion,
+phase skipping, duplicate performed-witness use, and a generic authority marker
+at any governed owner facade.
 
 ## Destination Topology
 
 ```text
-worth-runtime-bridge/
-    runtime_world/
-        basis/
-            component_basis.rs
-            correspondence.rs
-            compatibility.rs
-            admission.rs
-        history/
-            composite_commit.rs
-            parentage.rs
-            store.rs
-            retention.rs
-        branch/
-            identity.rs
-            reference.rs
-            creation.rs
-            lifecycle.rs
-        publication/
-            intent.rs
-            preparation.rs
-            component_program.rs
-            component_outcomes.rs
-            compatibility.rs
-            execution_ready.rs
-            compare_and_publish.rs
-            outcome.rs
-            recovery.rs
-        durability/
-            artifact.rs
-            compatibility.rs
-            product_head_store.rs
-            recovery.rs
-        facade/
-            observation.rs
-            branch_control.rs
-            publication.rs
-            recovery.rs
-
-worth-runtime-postgres/
-    owner/
-        runtime_world/
-            composite_commit.rs
-            product_head.rs
-            retention.rs
-            recovery.rs
-
-worth-runtime-bridge certification owner/
-    runtime_world_branching/
-        shared_component_basis.rs
-        component_divergence.rs
-        same_head_race.rs
-        partial_preparation.rs
-        response_loss.rs
+crates/worth-runtime-bridge/src/runtime_world/
+    basis/
+        descriptor.rs
+        admission.rs
+        correspondence.rs
+    history/
+        commit.rs
+        identity.rs
+        parentage.rs
+        catalog.rs
         retention.rs
+    branch/
+        identity.rs
+        reference.rs
+        observation.rs
+        lifecycle.rs
+    publication/
+        intent.rs
+        preparation.rs
+        component_plan.rs
+        settlement.rs
+        comparison.rs
+        outcome.rs
+        retained_candidate.rs
+    inspection/
+        history.rs
+        retention.rs
+        cost.rs
+    facade.rs
+
+crates/worth-runtime-bridge/tests/runtime_world_certification/
+    world.rs
+    oracle.rs
+    component_reuse.rs
+    partial_preparation.rs
+    same_head_race.rs
+    independent_progress.rs
+    substitution.rs
+    cancellation.rs
+    retention.rs
+    cost.rs
 ```
 
-The `runtime_world` parent is composition authority. `basis`, `history`,
-`branch`, and `publication` are separate lifecycle and failure axes. Forbidden
-placement includes a generic `branch_manager`, Query-owned composite storage,
-component mutation logic inside Bridge, a second history store under
-diagnostics, SQL inside Runtime Bridge, adapter-minted performed publication, or
-one function that admits, prepares, durably publishes, records history, and
-emits receipts inline.
+Existing repository naming may refine literal leaves, but basis, immutable
+history, mutable product reference, publication progression, and inspection
+must remain distinct responsibility axes. Forbidden placement includes Query-
+owned product heads, Relational-owned Signal correspondence, a generic
+`branch_manager`, Bridge access to private owner storage, persistence adapters,
+or facade files implementing publication behavior.
 
-## Phase Plan
+## Ordered Phase Plan
 
-### Phase 1: Exact Component Correspondence And Composite Basis Admission
+### Phase 1: Freeze Composite Basis And Correspondence
 
-Install the Bridge-owned admission boundary over the exact owner ports from
-9.17.1. Define complete binding axes, compatibility, currentness, boundary
-readmission, and typed mismatch outcomes. Preserve the 9.17.1 distinction
-between a pre-effect prepared candidate, a post-effect performed owner commit,
-and a product-current composite publication. Retire Bridge-authored string
-joins, branch-id derivation, and raw pair construction as authority paths.
+Define the exact composite-basis descriptor, owner-admission progression, and
+component correspondence without product-head mutation. Prove foreign, stale,
+equal-ordinal, and mixed-owner substitution fails.
 
-This phase emits an admitted composite basis, not a composite commit or branch
-head.
+### Phase 2: Immutable Composite History And Product References
 
-### Phase 2: Immutable Composite Commit And Product Branch History
+Install single-parent composite commits, distinct mutable product references,
+exact observations, lifecycle, and retention closure into component bases.
+Prove branch creation and exact component reuse without copying owner truth.
 
-Install the immutable single-parent composite commit, canonical identity,
-history store, product branch reference, exact head generation, branch
-creation, and transitive retention. Derive history projections from the one
-canonical commit artifact. Prove arbitrary retained-commit branch creation
-without introducing merge or multi-parent semantics.
+### Phase 3: Prepare Component Publication
 
-### Phase 3: Component Preparation Program And Owner Handoffs
+Lower explicit retain/fork/advance posture into an owner-call plan, acquire
+obligations, validate compatibility, and freeze cancellation points before
+effects. Prove single-component work contacts no unchanged owner beyond the
+fixed validation required for publication.
 
-Compile an operation against one expected product head into explicit per-
-component retain/prepare posture. Invoke only the required owner ports. Preserve
-fixed component ordering, cancellation, bounded resources, exact unchanged-
-component validation, and owner-specific typed outcomes. The Bridge may
-coordinate, but no owner is hidden behind a generic mutable callback.
+### Phase 4: Coordinated Compare-And-Publish
 
-### Phase 4: Compatibility And Durable Composite Compare-And-Publish
+Consume owner settlements, compare the exact expected product head, move the
+product reference once, and issue performed composite authority. Prove same-
+head race, partial preparation, post-effect failure, and cancellation topology
+without half-publication or automatic rebase.
 
-Readmit the owner outcomes, validate complete binding and compatibility, form an
-execution-ready composite candidate, and perform one product-head CAS. Mint the
-performed Bridge transition only after the PostgreSQL owner adapter atomically
-stores the canonical composite commit and moves the expected product head.
-Derive receipts and notification eligibility without a second currentness path.
+### Phase 5: Retention, Inspection, Documentation, And Certification
 
-### Phase 5: Failure, Cancellation, Fresh-Process Recovery, And Retained Candidates
+Close retained-candidate cleanup, history/component obligations, bounded
+memory, public owner facade, executable docs, adversarial certification,
+dependency enforcement, line caps, and residue. Freeze the exact performed
+artifact and readmission surface Milestone 9.17.3 may consume.
 
-Close every non-success boundary: owner denial, stale component, stale product
-head, cancellation, timeout, partial preparation, response loss, indeterminate
-publication, cleanup, retained immutable candidates, orphan expiry, archive,
-and reclamation. Populate the runtime-world PostgreSQL owner sibling. Recovery
-opens and readmits component owners before Bridge history, determines
-performed-versus-not-performed from Bridge durable authority, and never guesses
-from component heads or SQL rows alone.
+## Performance And Resource Contract
 
-### Phase 6: Bridge Certification And Query Integration Contract
-
-Run the complete Bridge courtroom with real owner facades, independent
-component and composite-history oracles, default and admitted parallel lanes,
-one-axis binding drift, derived-index destruction/rebuild, exact counters,
-response loss, and mutation controls. Freeze the read/admission/publication
-ports 9.17.3 may consume; expose no storage mutation or authority constructors.
-Include real-PostgreSQL crash/reopen and destroyed-projection rebuild courts.
-
-## Performance Contract
-
-- Composite basis admission is O(fixed component count), O(1) for the ordinary
-  Relational-plus-Signal product.
-- Product head observation and CAS are O(1) in one product branch reference.
-- Publication preparation contacts only components explicitly marked to
-  advance; unchanged components perform only the carried exact-basis
-  validation required by the contract.
-- Independent product branches do not wait on one another's head locks.
-- Exact Signal basis reuse performs zero graph copy, evaluation, or cache
-  duplication.
-- Composite history append is O(1) plus fixed component identity carriage;
-  ancestry traversal is a separate bounded history operation.
-- Successful publication performs one bounded durable composite-commit append
-  and one product-head CAS in the same PostgreSQL transaction; unrelated
-  product branches incur zero semantic coordination.
-- Retention pin/release work is proportional to the selected composite commit
-  and fixed component set; reclamation scans remain maintenance-lane work.
-- Recovery and orphan cleanup are explicit non-ordinary lanes.
-- Counters distinguish correspondence admission, component basis checks,
-  owner preparations, unchanged validations, compatibility checks, product CAS
-  attempts, stale races, commits appended, retained candidates, cleanup,
-  recovery lookups, durable bytes/barriers, and unrelated-branch waits.
-
-## Proof Portfolio
-
-The proof portfolio must include:
-
-- shared exact Signal basis across divergent product/Relational branches;
-- Relational-only, Signal-only, and combined-component publication;
-- equal-ordinal and representation-collision substitution denials;
-- stale correspondence and one-axis binding drift for every authority axis;
-- same-product-head winner/loser and independent-product-branch progress;
-- partial preparation, cancellation at every owner/Bridge boundary, timeout,
-  and bounded retained-candidate cleanup;
-- response-loss publication recovery and duplicate retry denial/idempotent
-  observation;
-- real-PostgreSQL kills before commit, after durable CAS, before response, and
-  during owner-first fresh-process recovery;
-- exact parentage, arbitrary retained-commit branch creation, archive,
-  retention, and reclamation;
-- derived Bridge index destruction and exact rebuild from composite authority;
-- compile-fail public misuse cases for raw pairing, phase skipping, candidate
-  promotion, weaker proof substitution, and direct head mutation;
-- structural cost slopes over unrelated branches, history, and component
-  population; and
-- mutation probes for floating component selection, unchanged-component
-  refresh, compatibility bypass, product-CAS bypass, premature performed
-  minting, and half-publication observation.
-
-The independent oracle must construct expected component and composite history
-from scenario actions, not from Bridge classifiers or current branch state.
+- Composite basis admission and product-head comparison are O(1) in the fixed
+  component count.
+- Composite publication contacts only operation-named changing owners plus
+  fixed Bridge validation; unchanged owner execution is exactly zero.
+- Independent product branches contribute zero synchronous waits or owner
+  contacts to one another.
+- Branch creation retains component bases without graph or truth copying.
+- History traversal, retention scans, and orphan cleanup are explicit
+  maintenance lanes.
+- Counters expose owner contacts, basis validations, obligation acquire/release,
+  candidate creation/retention/cleanup, comparison attempts, stale outcomes,
+  performed movements, and unique retained bytes.
+- Product branches, retained candidates, history, and obligations have explicit
+  count/byte/age budgets; exhaustion rejects before new owner effects.
 
 ## Documentation Deliverables
 
-- composite runtime-world basis and correspondence guide;
-- product branch, immutable commit, and single-parent history guide;
-- coordinated publication progression and typed outcome reference;
-- cancellation, partial preparation, retained candidate, and recovery guide;
-- PostgreSQL composite-history/product-head durability, migration, and
-  owner-first recovery operator guide;
-- exact retention and component-reuse guide;
-- executable Bridge facade examples; and
-- a 9.17.3 integration contract naming only admitted observation, workflow,
-  publication, history, retention, and recovery surfaces.
+- Runtime Bridge product-world mental model: component truth versus composition
+  currentness.
+- Composite commit and product branch reference guide.
+- Exact component retain/fork/advance guide.
+- Partial-preparation, stale-head, cancellation, and retained-candidate outcome
+  reference.
+- Retention and inspection guide with memory-resident limits.
+- Executable owner-facade examples consumed by 9.17.3.
+
+Every document must say plainly that state is memory-resident and restart
+durability begins with Worth Store integration.
 
 ## Must Preserve
 
-- every 9.17.1 owner boundary and independent-progress guarantee;
-- component owners as sole component currentness and publication authorities;
-- Bridge as composition owner only;
-- continuous 9.16.2/9.17.1 PostgreSQL durability through the runtime-level
-  facade without SQL entering component or Bridge semantics;
-- Foundational portable meaning without operational promotion;
-- Proof progression without runtime ownership;
-- ordinary/recovery/maintenance cost separation; and
-- cert-only replay.
+- every 9.17.1 owner basis, branch isolation, independent progress, retention,
+  and performed-publication guarantee;
+- distinct Relational, Signal, Bridge, and Query authority;
+- Foundational descriptive vocabulary without authority promotion;
+- concrete owner-specialized Proof carriers;
+- one canonical owner artifact for each performed component publication;
+- Query's existing outbox payload inside the Relational component result;
+- ordinary versus history/maintenance cost separation; and
+- certification-only replay.
 
 ## Explicit Non-Goals
 
-- final Query plan/session/receipt carriage;
-- public Query product branch facade;
-- semantic correction, undo, redo, merge, or rebase;
-- multi-parent commits, tags, offline synchronization, or distributed atomic
-  recovery;
-- component mutation or conflict semantics inside Runtime Bridge.
+- Query public branch workflow or complete Query carriage;
+- persistence, PostgreSQL, Worth Store adapters, checkpoints, restart recovery,
+  physical residency, or application composition;
+- semantic merge, rebase, multi-parent history, tags, or offline sync;
+- undo/redo or compensation product semantics; and
+- distributed publication or replication.
 
-## Allowed Debt
+## Acceptance And Handoff
 
-- Store-native graph persistence, replication, distributed atomic recovery,
-  merge, rebase, and multi-parent history remain later owners. PostgreSQL
-  composite-history restart is not debt.
-- No floating component lookup, raw tuple correspondence, parallel composite
-  store, half-publication observation, performed-evidence pre-minting, or
-  unbounded retained-candidate lane may remain debt.
+Milestone 9.17.2 closes when the real Runtime Bridge owner facade and independent
+component/composite-history oracles prove exact correspondence, immutable
+single-parent commits, distinct product references, explicit component posture,
+independent progress, one-winner same-head races, no half-publication, typed
+partial settlement, bounded retention, compiler-enforced progression, exact
+counters, executable docs, dependency direction, and zero legacy composition
+authority.
 
-## Parallelization And Store Dependency
-
-Composite history/retention mechanics and publication-progression type design
-may progress in parallel only after exact component-basis admission freezes.
-Owner adapters may be implemented independently against the same fixed
-component program. Compare-and-publish and failure lifecycle integrate those
-lanes before certification. This milestone is not blocked on `worth-store`.
-
-## Acceptance Evidence
-
-Milestone 9.17.2 closes only when `Composite Runtime-World History And
-Coordinated Publication Certification` in
-[test-requirements.md](./test-requirements.md) passes and:
-
-- the Bridge admits only exact owner-issued component bases;
-- composite commits and product branch references have one canonical storage
-  and mutation path;
-- shared immutable component reuse, component divergence, and unchanged-
-  component retention are exact;
-- partial preparation, stale heads, cancellation, response loss, and owner
-  rejection never expose a half-current world;
-- every successful product-head movement is compiler-ordered and backed by one
-  observed performed CAS;
-- parentage, retention, archive, recovery, and derived-index rebuild agree with
-  an independent oracle;
-- a fresh process reconstructs component owners before the exact Bridge history
-  and product heads, and missing/foreign component bases fail readiness;
-- no Relational outbox or other owner-local consequence becomes product-
-  eligible without performed Bridge publication;
-- exact counters and slopes match the declared cost boundary;
-- facade, dependency, residue, structural, documentation, and constitutional
-  evidence agree; and
-- no public Query completion or correction semantics are claimed.
-
-## Handoff
-
-[Milestone 9.17.3](./milestone-9.17.3.md) receives narrow Bridge facade
-capabilities for:
-
-- exact product branch/head observation;
-- admitted composite basis use and readmission;
-- branch creation with explicit component posture;
-- coordinated publication intent/progression;
-- immutable history and retention inspection;
-- owner-first durable composite recovery and readiness;
-- typed cancellation, recovery, and terminal outcomes; and
-- canonical receipts, diagnostics, and exact counters.
-
-Query may carry and project these capabilities. It may not mint them, mutate
-Bridge stores directly, infer composite currentness from component heads, or
-retain the old Relational-only product-world lane beside them.
+Milestone 9.17.3 receives exact product-branch observation, admitted composite
+basis, performed composite publication, history/inspection projections, and
+typed losing/partial outcomes. It may carry and project those artifacts but may
+not mint them, rebuild them from component ids, move product heads, or repair a
+missing owner/Bridge guarantee with Query facade logic.

@@ -53,7 +53,6 @@ pub struct WorthUiPresentationSemanticExecution {
 
 pub struct WorthUiPresentationSemanticQueryObservation {
     outcome: worth_query::facade::domain::WorthQueryConditionalOutcomeClass,
-    counters: worth_query::facade::domain::WorthQueryOperationExecutionCounters,
     performed: worth_signal::facade::adapters::InvalidationExecutionSummary,
 }
 
@@ -63,18 +62,18 @@ pub enum WorthUiPresentationSemanticExecutionDenial {
     ScopeCounterOverflow,
     MissingSourceInstance,
     Delivery(runtime::WorthQueryOwnedConditionalInstanceDenial),
-    DeliveryDenied(worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryDenial),
+    DeliveryDenied(Box<worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryDenial>),
     DeliveryDeferred(worth_runtime_bridge::facade::BridgeCorrespondenceDeferred),
     DeliveryStale(worth_runtime_bridge::facade::BridgeCorrespondenceStale),
     DeliveryRebindRequired(worth_runtime_bridge::facade::BridgeCorrespondenceRebindRequired),
     DeliveryFailed(worth_runtime_bridge::facade::BridgeCorrespondenceAdmissionFailure),
     Domain(worth_query::facade::domain::WorthQueryDomainHandleDenial),
-    OperatingWorld(worth_query::facade::installed::WorthQueryOperatingWorldEntryDenial),
-    Binding(worth_query::facade::domain::WorthQueryOperationBindingDenial),
+    OperatingWorld(Box<worth_query::facade::installed::WorthQueryOperatingWorldEntryDenial>),
+    Binding(Box<worth_query::facade::domain::WorthQueryOperationBindingDenial>),
     Resources(
         worth_query::facade::installed::operation::WorthQueryExecutionResourceAdmissionDenial,
     ),
-    Query(worth_query::facade::domain::WorthQueryOwnedConditionalExecutionDenial),
+    Query(Box<worth_query::facade::domain::WorthQueryOwnedConditionalExecutionDenial>),
 }
 
 #[derive(Clone)]
@@ -89,6 +88,7 @@ struct AdmissionSemanticRegistration {
     partitions: [PresentationSemanticPartition; DEPENDENCY_COUNT],
 }
 
+#[derive(Default)]
 pub struct WorthUiPresentationAsyncRegistry {
     next_partition_identity: u64,
     next_semantic_version: u64,
@@ -100,23 +100,6 @@ pub struct WorthUiPresentationAsyncRegistry {
     semantic_retirements: HashMap<SemanticExecutionKey, usize>,
     admissions: HashMap<SemanticExecutionKey, Vec<AdmissionSemanticRegistration>>,
     instances: SemanticSubscriberIndex,
-}
-
-impl Default for WorthUiPresentationAsyncRegistry {
-    fn default() -> Self {
-        Self {
-            next_partition_identity: 0,
-            next_semantic_version: 0,
-            next_execution_attempt: 0,
-            partitions: HashMap::new(),
-            partition_references: HashMap::new(),
-            execution_attempts: HashMap::new(),
-            semantic_executions: HashMap::new(),
-            semantic_retirements: HashMap::new(),
-            admissions: HashMap::new(),
-            instances: SemanticSubscriberIndex::default(),
-        }
-    }
 }
 
 impl PresentationSemanticPublication {
@@ -277,25 +260,9 @@ impl WorthUiPresentationAsyncRegistry {
         }
         Ok(PresentationSemanticPublication::new(change, partitions))
     }
-
-    #[cfg(test)]
-    pub(crate) fn retained_partition_count(&self) -> usize {
-        self.partitions.len()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn retained_execution_attempt_count(&self) -> usize {
-        self.execution_attempts.len()
-    }
 }
 
 impl WorthUiPresentationSemanticExecution {
-    #[cfg(test)]
-    pub fn delivery(&self) -> &worth_runtime_bridge::facade::CorrespondenceDeliveryCounters {
-        self.deliveries
-            .first()
-            .expect("test semantic execution retains at least one delivery")
-    }
     pub fn deliveries(&self) -> &[worth_runtime_bridge::facade::CorrespondenceDeliveryCounters] {
         &self.deliveries
     }
@@ -318,15 +285,32 @@ impl WorthUiPresentationSemanticQueryObservation {
         self.outcome
     }
 
-    pub const fn counters(
-        &self,
-    ) -> worth_query::facade::domain::WorthQueryOperationExecutionCounters {
-        self.counters
-    }
-
     pub const fn performed_signal_invalidation(
         &self,
     ) -> &worth_signal::facade::adapters::InvalidationExecutionSummary {
         &self.performed
+    }
+}
+
+impl std::fmt::Display for WorthUiPresentationSemanticExecutionDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ExecutionAttemptExhausted => formatter.write_str("execution attempt exhausted"),
+            Self::ScopeCounterOverflow => formatter.write_str("scope counter overflow"),
+            Self::MissingSourceInstance => formatter.write_str("missing source instance"),
+            Self::Delivery(denial) => write!(formatter, "semantic delivery: {denial:?}"),
+            Self::DeliveryDenied(denial) => write!(formatter, "delivery denied: {denial:?}"),
+            Self::DeliveryDeferred(denial) => write!(formatter, "delivery deferred: {denial:?}"),
+            Self::DeliveryStale(denial) => write!(formatter, "delivery stale: {denial:?}"),
+            Self::DeliveryRebindRequired(denial) => {
+                write!(formatter, "delivery rebind required: {denial:?}")
+            }
+            Self::DeliveryFailed(denial) => write!(formatter, "delivery failed: {denial:?}"),
+            Self::Domain(denial) => write!(formatter, "domain access: {denial:?}"),
+            Self::OperatingWorld(denial) => write!(formatter, "operating world: {denial:?}"),
+            Self::Binding(denial) => write!(formatter, "operation binding: {denial:?}"),
+            Self::Resources(denial) => write!(formatter, "execution resources: {denial:?}"),
+            Self::Query(denial) => write!(formatter, "Query execution: {denial:?}"),
+        }
     }
 }

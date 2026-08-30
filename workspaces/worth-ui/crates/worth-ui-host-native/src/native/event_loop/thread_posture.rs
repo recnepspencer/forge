@@ -1,13 +1,8 @@
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum UiNativeEventLoopThreadPosture {
+    #[default]
     MainThreadRequired,
     CertificationWorker,
-}
-
-impl Default for UiNativeEventLoopThreadPosture {
-    fn default() -> Self {
-        Self::MainThreadRequired
-    }
 }
 
 impl UiNativeEventLoopThreadPosture {

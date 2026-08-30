@@ -2,7 +2,9 @@
 mod windows;
 
 #[cfg(target_os = "windows")]
-pub(crate) use windows::{install_pointer_input, UiNativePointerInputPort};
+pub(crate) use windows::{
+    install_pointer_input, observe_reduced_motion_posture, UiNativePointerInputPort,
+};
 
 #[cfg(not(target_os = "windows"))]
 pub(crate) struct UiNativePointerInputPort;
@@ -15,6 +17,12 @@ pub(crate) fn install_pointer_input(
 }
 
 #[cfg(not(target_os = "windows"))]
+pub(crate) const fn observe_reduced_motion_posture() -> crate::native::UiNativeReducedMotionPosture
+{
+    crate::native::UiNativeReducedMotionPosture::Unavailable
+}
+
+#[cfg(not(target_os = "windows"))]
 impl UiNativePointerInputPort {
     pub(crate) fn refresh_client_origin(&mut self) {}
 
@@ -23,6 +31,10 @@ impl UiNativePointerInputPort {
         _button: winit::event::MouseButton,
         _state: winit::event::ElementState,
     ) -> Option<winit::dpi::PhysicalPosition<f64>> {
+        None
+    }
+
+    pub(crate) fn take_scroll_position(&mut self) -> Option<winit::dpi::PhysicalPosition<f64>> {
         None
     }
 }

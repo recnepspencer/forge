@@ -25,6 +25,7 @@ use crate::mounting::projection::{
 
 mod frame_affinity;
 mod phase4_locality;
+mod phase4_portal_children;
 
 #[test]
 pub(crate) fn mechanic_source_routes_paint_only_work_through_current_mounted_authority() {
@@ -251,7 +252,8 @@ fn semantic_rows(
         .iter()
         .filter_map(|command| match command {
             UiMountedPaintCommand::SemanticText { mechanic, .. } => Some(mechanic.clone()),
-            UiMountedPaintCommand::FilledRect { .. } => None,
+            UiMountedPaintCommand::FilledRect { .. }
+            | UiMountedPaintCommand::PortalOverlay { .. } => None,
         })
         .collect()
 }
@@ -328,6 +330,11 @@ fn semantic_projection_with_static_color(
             static_paint: Some(UiMountedStaticPaintSeed::for_test(static_color)),
             semantic_text: Some(seed),
             hit_test: Some(UiMountedHitTestSeed::for_test(0)),
+            focus_support: crate::capability::ComponentFocusSupport::not_focusable(),
+            focus_scope: None,
+            focus_container_owner: None,
+            component_id: None,
+            portal_child_owner: None,
         }],
         vec![UiMountedProjectionSurface {
             surface,

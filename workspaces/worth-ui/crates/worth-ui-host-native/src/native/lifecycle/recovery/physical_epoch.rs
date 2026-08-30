@@ -147,7 +147,7 @@ impl UiNativePhysicalRecoveryPreparation {
 }
 
 impl UiNativePhysicalRecoveryFact {
-    #[cfg(any(test, feature = "certification-support"))]
+    #[cfg(test)]
     pub(crate) const fn generations(self) -> [u64; 2] {
         [self.device_generation, self.surface_generation]
     }

@@ -65,6 +65,22 @@ def platform_check_commands() -> list[list[str]]:
     return [cargo("check", "--workspace", "--all-targets", "--all-features")]
 
 
+def compile_only_platform_commands() -> list[list[str]]:
+    return [
+        cargo(
+            "check",
+            "--target",
+            "x86_64-unknown-linux-gnu",
+            "-p",
+            "worth-ui-platform-pulse",
+            "--features",
+            "executable-world",
+            "--test",
+            "executable_world",
+        )
+    ]
+
+
 def filesystem_contract_commands() -> list[list[str]]:
     return [
         cargo(
@@ -169,6 +185,8 @@ def commands_for(lane: str) -> list[list[str]]:
         return dependency_contract_commands()
     if lane == "platform-check":
         return platform_check_commands()
+    if lane == "compile-only-platform":
+        return compile_only_platform_commands()
     if lane == "filesystem-contract":
         return filesystem_contract_commands()
     if lane == "closure-stress":
@@ -189,6 +207,7 @@ def parse_args() -> argparse.Namespace:
             "hostile-certification",
             "dependency-contract",
             "platform-check",
+            "compile-only-platform",
             "filesystem-contract",
             "closure-stress",
             "full",

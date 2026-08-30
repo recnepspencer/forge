@@ -1,3 +1,4 @@
+use crate::portable_identity::WorthQueryPortableType;
 use worth_foundational::facade::{AspectValue, InternedString, ScalarAspectType};
 
 use super::ApplicationFieldPresence;
@@ -7,7 +8,7 @@ use super::ApplicationFieldPresence;
 ///
 /// Implementing this trait grants no schema or runtime authority. Installation
 /// checks the declared scalar family before a typed intent can be bound.
-pub trait TypedApplicationValue: Sized {
+pub trait TypedApplicationValue: WorthQueryPortableType + Sized {
     const SCALAR_FAMILY: ScalarAspectType;
 
     fn into_foundational_value(self) -> AspectValue;

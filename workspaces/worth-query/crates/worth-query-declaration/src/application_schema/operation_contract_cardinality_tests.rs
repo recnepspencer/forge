@@ -5,13 +5,20 @@ use crate::application_aftermath::{
 
 use super::operation_contract_cardinality::validate_operation_contract_cardinality;
 use super::{
-    ApplicationOperationRef, ApplicationSchema, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
-    ApplicationSchemaMember, WorthQueryExternalEffectCorrelationFamily,
+    ApplicationOperationMarkerIdentity, ApplicationOperationRef, ApplicationSchema,
+    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+    ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 
 struct CardinalitySchema;
 struct CardinalityOperation;
+
+impl ApplicationOperationMarkerIdentity for CardinalityOperation {
+    type Schema = CardinalitySchema;
+    type Input = ();
+    const IDENTIFIER: &'static str = "CardinalityOperation";
+}
 
 impl ApplicationSchema for CardinalitySchema {
     const OWNER: &'static str = "CardinalityOwner";
@@ -126,7 +133,9 @@ fn external_effect(operation: &str, effect: &str) -> ApplicationSchemaMember {
     ApplicationSchemaMember::OperationExternalEffect {
         operation: operation.to_owned(),
         effect: effect.to_owned(),
-        rust_payload_type: "Payload".to_owned(),
+        rust_payload_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "Payload",
+        ),
         protocol: super::ApplicationExternalEffectProtocol::new(
             worth_foundational::facade::BoundaryProtocolIdentity::new("test.external-payload"),
             worth_foundational::facade::BoundaryProtocolVersion::new(1),
@@ -164,21 +173,30 @@ fn aftermath_member(
     operation: &'static str,
     contract: DeclaredApplicationAftermathContract<CardinalitySchema>,
 ) -> ApplicationSchemaMember {
-    let definition = ApplicationOperationRef::<CardinalitySchema, CardinalityOperation, ()>::
-        from_schema_identifier(operation)
-        .definition()
-        .no_external_effect()
-        .aftermath(contract)
-        .finish();
+    let definition =
+        ApplicationOperationRef::<CardinalitySchema, CardinalityOperation, ()>::from_declaration()
+            .definition()
+            .no_external_effect()
+            .aftermath(contract)
+            .finish();
     let declaration = ApplicationSchemaDeclarationBuilder::<CardinalitySchema>::for_schema()
         .operation(definition)
         .build()
         .expect("the owner builder accepts one aftermath");
-    declaration
+    let mut member = declaration
         .erased()
         .members()
         .iter()
         .find(|member| matches!(member, ApplicationSchemaMember::OperationAftermath { .. }))
         .expect("the owner builder emits the portable aftermath member")
-        .clone()
+        .clone();
+    let ApplicationSchemaMember::OperationAftermath {
+        operation: declared_operation,
+        ..
+    } = &mut member
+    else {
+        unreachable!("the selected member is an aftermath member")
+    };
+    *declared_operation = operation.to_owned();
+    member
 }

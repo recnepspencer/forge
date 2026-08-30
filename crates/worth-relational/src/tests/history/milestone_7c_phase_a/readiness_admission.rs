@@ -18,14 +18,10 @@ use worth_foundational::facade::AspectKey;
 
 #[test]
 fn prepare_merge_execution_admits_fully_ready_source_only_addition() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let request = MergeExecutionRequest {
         target_branch: BranchId("main".to_string()),
@@ -58,12 +54,12 @@ fn prepare_merge_execution_admits_fully_ready_source_only_addition() {
 
 #[test]
 fn prepare_merge_execution_rejects_blocked_merge_plans() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, shared, "shared-main");
+    let runtime = persisted_runtime_with_test_schema();
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, shared, "shared-main");
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         shared,
         "shared-feature",
         BranchId("feature".to_string()),
@@ -124,14 +120,14 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(registry)
         .build();
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, shared, "shared-main");
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, shared, "shared-main");
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         shared,
         "shared-feature",
         BranchId("feature".to_string()),
@@ -162,14 +158,10 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
 
 #[test]
 fn runtime_prepare_merge_execution_matches_merge_access_surface() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     let request = MergeExecutionRequest {
         target_branch: BranchId("main".to_string()),
         source_branch: BranchId("feature".to_string()),

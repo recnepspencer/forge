@@ -75,3 +75,50 @@ fn restoring_inactive_branch_snapshot_then_editing_other_field_keeps_branch_loca
         "feature branch teeth should remain isolated after main restore/edit"
     );
 }
+
+#[test]
+fn general_restore_rejects_an_inactive_branch_and_substituted_payload() {
+    let mut runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "value".to_owned(),
+            initial: SignalValue::Number(1.0),
+            produces_aspects: None,
+        })
+        .unwrap();
+    let mut main_snapshot = runtime.snapshot().unwrap();
+    let feature = runtime.create_branch("feature".to_owned()).unwrap();
+    runtime.switch_branch(feature.id.0).unwrap();
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "value".to_owned(),
+            value: SignalValue::Number(2.0),
+            aspect: None,
+            aspects: None,
+        }])
+        .unwrap();
+
+    let inactive = runtime.restore_snapshot(main_snapshot.clone()).unwrap_err();
+    assert!(inactive.message.contains("while active branch"));
+    assert_eq!(
+        runtime.read_value("value").unwrap(),
+        SignalValue::Number(2.0)
+    );
+
+    runtime
+        .switch_branch(main_snapshot.snapshot.meta.branch_id.0)
+        .unwrap();
+    main_snapshot
+        .snapshot
+        .meta
+        .branch_name
+        .push_str("-substituted");
+    let substituted = runtime.restore_snapshot(main_snapshot).unwrap_err();
+    assert!(substituted
+        .message
+        .contains("does not match the owner-admitted snapshot"));
+    assert_eq!(
+        runtime.read_value("value").unwrap(),
+        SignalValue::Number(1.0)
+    );
+}

@@ -30,6 +30,9 @@ pub(crate) enum WorthQueryOrdinaryAuthorityDrift {
 pub(crate) enum WorthQueryMergeAuthorityValidationError {
     ForeignOwner,
     StaleSnapshot,
+    RetentionBackpressure,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
 }
 
 impl WorthQueryOrdinaryAuthorityFamily {
@@ -232,7 +235,18 @@ impl WorthQueryRuntime {
             .ok_or(WorthQueryMergeAuthorityValidationError::StaleSnapshot)?;
         self.backend
             .validate_query_merge_authority(&backend_authority)
-            .map_err(|_| WorthQueryMergeAuthorityValidationError::StaleSnapshot)?;
+            .map_err(|error| match error.kind() {
+                crate::memory_workspace::WorthQueryWorkspaceErrorKind::RetentionCapacityExhausted => {
+                    WorthQueryMergeAuthorityValidationError::RetentionBackpressure
+                }
+                crate::memory_workspace::WorthQueryWorkspaceErrorKind::RetentionIdentityExhausted => {
+                    WorthQueryMergeAuthorityValidationError::RetentionIdentityExhausted
+                }
+                crate::memory_workspace::WorthQueryWorkspaceErrorKind::SnapshotIdentityExhausted => {
+                    WorthQueryMergeAuthorityValidationError::SnapshotIdentityExhausted
+                }
+                _ => WorthQueryMergeAuthorityValidationError::StaleSnapshot,
+            })?;
         Ok(WorthQueryValidatedMergeAuthority {
             backend_authority,
             snapshot_identity: admission.snapshot_identity,

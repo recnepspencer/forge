@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationCapability,
     WorthQueryInstalledApplicationSchema,
@@ -159,9 +160,10 @@ impl WorthQueryInstalledCapabilityRegistry {
         self.plans.get(capability_identity)
     }
 
-    pub(super) fn elevation_lifecycle_operation<Operation, Input>(
+    pub(super) fn elevation_lifecycle_operation<Operation>(
         &self,
         operation: &str,
+        input_type: &str,
     ) -> Result<
         Option<(
             [u8; 32],
@@ -169,9 +171,12 @@ impl WorthQueryInstalledCapabilityRegistry {
             WorthQueryElevationLifecycleOperationRole,
         )>,
         (),
-    > {
+    >
+    where
+        Operation: ApplicationOperationMarkerIdentity,
+    {
         self.elevation_lifecycles
-            .operation::<Operation, Input>(operation)
+            .operation::<Operation>(operation, input_type)
     }
 
     pub(super) const fn compilation(&self) -> WorthQueryCapabilityPlanCompilationEvidence {

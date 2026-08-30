@@ -35,26 +35,32 @@ pub mod rebind;
 pub mod registry;
 mod retained_obligation_registry;
 pub mod runtime_handoff;
+pub mod service;
 pub mod source_ingress;
 pub mod text;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-support"))]
 pub(crate) use crate::declaration::WorthUiRustAuthoredDeclarationFixture;
 pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 
 pub use entry::{
-    CapabilityRegistrationBuilder, UiChangeProfileInstalled, UiChangeProfileMissing, WorthUi,
-    WorthUiActiveApplicationGenerationIdentity, WorthUiActiveApplicationSession,
-    WorthUiActiveApplicationSessionIdentity, WorthUiActiveCanvasSpatialFrameCompletion,
-    WorthUiActiveFrameworkTurnCompletion, WorthUiActiveFrameworkTurnExecution,
-    WorthUiActiveInspectionReceipt, WorthUiActiveOrdinaryFrameCompletion,
-    WorthUiActiveRealtimeFrameCompletion, WorthUiActiveVirtualizedDataFrameCompletion,
-    WorthUiAllocationCatalogActivationDenial, WorthUiApp, WorthUiApplicationBuilder,
-    WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
-    WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
-    WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
-    WorthUiApplicationSemanticNoOpReceipt, WorthUiCandidateInspectionReceipt,
-    WorthUiHostNeutralApp, WorthUiLoweredApplicationReplacement,
+    CapabilityRegistrationBuilder, UiChangeProfileInstalled, UiChangeProfileMissing,
+    UiFocusHostPlacementReconciliationDenial, UiFocusHostPlacementReconciliationOutcome,
+    UiFocusHostPlacementReconciliationReceipt, UiFocusHostPlacementShutdownReport,
+    UiFocusPlacementReconciliationExecutionDenial, UiPortalDismissalPublicationReceipt,
+    UiSemanticFocusParticipantObservation, UiSemanticFocusPhysicalPlacementOutcome,
+    UiSemanticFocusPublicationCause, UiSemanticFocusPublicationOutcome,
+    UiSemanticFocusPublicationReceipt, WorthUi, WorthUiActiveApplicationGenerationIdentity,
+    WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity,
+    WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveFrameworkTurnCompletion,
+    WorthUiActiveFrameworkTurnExecution, WorthUiActiveInspectionReceipt,
+    WorthUiActiveOrdinaryFrameCompletion, WorthUiActiveRealtimeFrameCompletion,
+    WorthUiActiveVirtualizedDataFrameCompletion, WorthUiAllocationCatalogActivationDenial,
+    WorthUiApp, WorthUiApplicationBuilder, WorthUiApplicationCutoverDenial,
+    WorthUiApplicationCutoverReceipt, WorthUiApplicationReplacementLoweringDenial,
+    WorthUiApplicationReplacementOutcome, WorthUiApplicationReplacementPreparationDenial,
+    WorthUiApplicationReplacementStagingDenial, WorthUiApplicationSemanticNoOpReceipt,
+    WorthUiCandidateInspectionReceipt, WorthUiHostNeutralApp, WorthUiLoweredApplicationReplacement,
     WorthUiMountedApplicationReplacementInFlight,
     WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
     WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
@@ -77,9 +83,12 @@ pub use entry::{
     WorthUiNativeManagedIntentConsequencePublicationOutcome,
     WorthUiNativeManagedIntentPosturePublicationDenial,
     WorthUiNativeManagedIntentPosturePublicationOutcome,
-    WorthUiNativeManagedProjectionRebindOutcome, WorthUiNativeManagedRebindDenial,
-    WorthUiNativeManagedRebindProgress, WorthUiNativeManagedRebindStop,
-    WorthUiNativeManagedSourceRebindOutcome, WorthUiNativeProjectionRebindDenial,
+    WorthUiNativeManagedPortalDismissalOutcome, WorthUiNativeManagedProjectionRebindOutcome,
+    WorthUiNativeManagedRebindDenial, WorthUiNativeManagedRebindProgress,
+    WorthUiNativeManagedRebindStop, WorthUiNativeManagedSourceRebindOutcome,
+    WorthUiNativePhysicalPresentationRecovery, WorthUiNativePortalDismissalStop,
+    WorthUiNativePredecessorRecovery, WorthUiNativePresentationRecoveryDenial,
+    WorthUiNativeProjectionRebindDenial, WorthUiNativeReducedMotionPosture,
     WorthUiNativeSourceRebindDenial, WorthUiPendingApplicationCutover,
     WorthUiPendingMountedPreview, WorthUiPreparedApplicationReplacement,
     WorthUiPreparedMountedApplicationReplacement, WorthUiPreparedMountedPreview,

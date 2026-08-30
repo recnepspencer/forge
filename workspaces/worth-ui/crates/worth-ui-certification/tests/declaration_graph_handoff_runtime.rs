@@ -151,7 +151,7 @@ fn invalid_declared_posture_denies_before_graph_handoff_promotion() {
         WorthUiApplicationPreparationPhase::GraphHandoff
     );
     match denial {
-        WorthUiApplicationPreparationDenial::GraphHandoff(
+        WorthUiApplicationPreparationDenial::GraphHandoff(denial) => match *denial {
             UiDeclarationGraphHandoffDenial::DeclaredPostureNotAdmitted {
                 denial:
                     UiDeclaredPostureAdmissionDenial::InvalidLaneClaim {
@@ -159,12 +159,13 @@ fn invalid_declared_posture_denies_before_graph_handoff_promotion() {
                         lane,
                         observed,
                     },
-            },
-        ) => {
-            assert_eq!(family, UiDeclarationFamilyKind::Control);
-            assert_eq!(lane, UiDeclaredPostureLaneKind::ServiceUsage);
-            assert_eq!(observed, ["service:unknown"]);
-        }
+            } => {
+                assert_eq!(family, UiDeclarationFamilyKind::Control);
+                assert_eq!(lane, UiDeclaredPostureLaneKind::ServiceUsage);
+                assert_eq!(observed, ["service:unknown"]);
+            }
+            other => panic!("unexpected graph-handoff denial: {other:?}"),
+        },
         other => panic!("unexpected application-preparation denial: {other:?}"),
     }
 }

@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+#[cfg(test)]
+#[path = "semantic_content_tests.rs"]
+mod tests;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiMountedSemanticContentInput {
     by_graph_node: BTreeMap<crate::graph::UiGraphNodeIdentity, UiMountedSemanticTextContent>,
@@ -107,6 +111,28 @@ impl UiMountedSemanticContentInput {
             projection_inputs: UiMountedProjectionInputTransition::Retain,
             schema_transitions: Vec::new(),
         }
+    }
+
+    pub(crate) fn merge_application_presentation(
+        &mut self,
+        presentation: Self,
+    ) -> Result<(), crate::mounting::UiMountedProjectionDenial> {
+        if !matches!(
+            presentation.projection_inputs,
+            UiMountedProjectionInputTransition::Retain
+        ) || !presentation.schema_transitions.is_empty()
+        {
+            return Err(crate::mounting::UiMountedProjectionDenial::DuplicateLaneContribution);
+        }
+        if presentation
+            .by_graph_node
+            .keys()
+            .any(|graph_node| self.by_graph_node.contains_key(graph_node))
+        {
+            return Err(crate::mounting::UiMountedProjectionDenial::DuplicateLaneContribution);
+        }
+        self.by_graph_node.extend(presentation.by_graph_node);
+        Ok(())
     }
 
     pub(crate) fn insert_scalar(

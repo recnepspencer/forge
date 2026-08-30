@@ -13,7 +13,9 @@ pub use native::{
 };
 #[cfg(feature = "certification-support")]
 pub use native::{
-    classify_presentation_fault, UiNativePresentationFault, UiNativePresentationFaultDisposition,
+    certify_portal_sample_replay, classify_presentation_fault,
+    UiNativePortalSampleReplayCertification, UiNativePortalSampleReplayCertificationDenial,
+    UiNativePresentationFault, UiNativePresentationFaultDisposition,
     UiNativePresentationRecoveryClass,
 };
 pub use native::{
@@ -36,18 +38,19 @@ pub use native::{
     UiNativeClientVisualSnapshotRelation, UiNativeDerivedStateLossClass,
     UiNativeDerivedStateReconstructionObservation, UiNativeEffectPosture, UiNativeEventLoopCleanup,
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
-    UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
-    UiNativeEventLoopShutdownOverlapObservation, UiNativeEventLoopStopReport,
-    UiNativeEventLoopThreadPosture, UiNativeGlyphObservation, UiNativeGraphicsObservation,
-    UiNativeInputObservationEventFamily, UiNativeInputObservationReport,
-    UiNativeInputObservationStop, UiNativeInputReachability, UiNativeObservationReadinessGrant,
-    UiNativePhysicalPresentationCorrelation, UiNativePhysicalProgressClass,
-    UiNativePhysicalProgressGrant, UiNativePhysicalSignalExternalStatusClass,
-    UiNativePhysicalSignalLifecycleObservation, UiNativePhysicalSignalObservationOriginClass,
-    UiNativePhysicalSignalSettlementClass, UiNativePhysicalSignalTransitionObservation,
-    UiNativePhysicalSignalWorkClass, UiNativePointerButtonObservation,
-    UiNativePresentationEffectPhase, UiNativePresentationObservation, UiNativePresentationWorkKind,
-    UiNativeReadinessGrant, UiNativeResourceCensus, UiNativeRetainedFrameObservation,
+    UiNativeEventLoopClientFailure, UiNativeEventLoopDirective, UiNativeEventLoopRunDenial,
+    UiNativeEventLoopRunReport, UiNativeEventLoopShutdownOverlapObservation,
+    UiNativeEventLoopStopReport, UiNativeEventLoopThreadPosture, UiNativeGlyphObservation,
+    UiNativeGraphicsObservation, UiNativeInputObservationEventFamily,
+    UiNativeInputObservationReport, UiNativeInputObservationStop, UiNativeInputReachability,
+    UiNativeObservationReadinessGrant, UiNativePhysicalPresentationCorrelation,
+    UiNativePhysicalProgressClass, UiNativePhysicalProgressGrant,
+    UiNativePhysicalSignalExternalStatusClass, UiNativePhysicalSignalLifecycleObservation,
+    UiNativePhysicalSignalObservationOriginClass, UiNativePhysicalSignalSettlementClass,
+    UiNativePhysicalSignalTransitionObservation, UiNativePhysicalSignalWorkClass,
+    UiNativePointerButtonObservation, UiNativePresentationEffectPhase,
+    UiNativePresentationObservation, UiNativePresentationWorkKind, UiNativeReadinessGrant,
+    UiNativeReducedMotionPosture, UiNativeResourceCensus, UiNativeRetainedFrameObservation,
     UiNativeScrollDeltaObservation, UiNativeTextAtlasPlanObservation, UiNativeTextPinObservation,
     WorthUiNativeEventLoop,
 };
@@ -69,7 +72,8 @@ pub use native::{
 };
 #[cfg(feature = "certification-support")]
 pub use native::{
-    UiNativeReadinessContract, UiNativeReadinessContractOutcome, UiNativeReadinessContractWork,
+    UiNativeReadinessContract, UiNativeReadinessContractDenial, UiNativeReadinessContractOutcome,
+    UiNativeReadinessContractWork,
 };
 pub use native_profile::{
     UiNativeMechanicsCapacities, UiNativePlatformProfileIdentity, WORTH_UI_NATIVE_PROFILE_MANIFEST,

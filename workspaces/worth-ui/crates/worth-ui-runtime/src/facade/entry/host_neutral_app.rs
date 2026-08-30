@@ -36,6 +36,10 @@ impl WorthUiHostNeutralApp {
         self.prepared.capabilities()
     }
 
+    pub const fn service_policy_plan(&self) -> crate::declaration::UiNormalizedServicePolicyPlan {
+        self.prepared.service_policy_plan()
+    }
+
     pub fn mounted_frame_retention_budget(&self) -> crate::mounting::UiMountedFrameRetentionBudget {
         self.mounted_frame_retention_budget
     }

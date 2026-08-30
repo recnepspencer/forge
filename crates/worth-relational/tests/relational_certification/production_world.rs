@@ -142,7 +142,7 @@ fn standard_supply_chain_baseline_matches_oracle_and_forks_without_copying() {
         certified.observed.relations.len(),
         certified.expected.relations.len()
     );
-    let mut world = certified.world;
+    let world = certified.world;
     let catalog_before = world.runtime.history().immutable_commit_count();
     let (_, basis) = world
         .runtime

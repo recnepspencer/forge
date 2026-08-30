@@ -48,6 +48,7 @@ impl UiNativeLifecycleTransition {
         }
     }
 
+    #[cfg(feature = "certification-support")]
     pub const fn phase(self) -> UiNativeLifecyclePhase {
         self.phase
     }
@@ -56,10 +57,12 @@ impl UiNativeLifecycleTransition {
         self.effect
     }
 
+    #[cfg(feature = "certification-support")]
     pub const fn retained_delta(self) -> u64 {
         self.retained_delta
     }
 
+    #[cfg(feature = "certification-support")]
     pub const fn predecessor(self) -> Option<UiHostPresentationEpoch> {
         self.predecessor
     }

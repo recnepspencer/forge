@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_parity() {
-    let mut runtime = persisted_runtime_with_index_field_aspects();
-    let source = create_entity_outcome(&mut runtime, "source");
-    let target = create_entity_outcome(&mut runtime, "target");
+    let runtime = persisted_runtime_with_index_field_aspects();
+    let source = create_entity_outcome(&runtime, "source");
+    let target = create_entity_outcome(&runtime, "target");
     let relation = create_relation_outcome(
-        &mut runtime,
+        &runtime,
         changed_entities(&source)[0],
         changed_entities(&target)[0],
         "edge",
@@ -60,8 +60,8 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         )
         .expect("original outcome");
 
-    let (_recovery, mut recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_index_field_aspects);
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_index_field_aspects);
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let recovered_context = recovered
         .read_truth()
@@ -93,8 +93,8 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
 
 #[test]
 fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parity() {
-    let mut runtime = persisted_runtime_with_index_field_aspects();
-    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = persisted_runtime_with_index_field_aspects();
+    let alpha = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
@@ -144,8 +144,8 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         )
         .expect("original outcome");
 
-    let (_recovery, mut recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_index_field_aspects);
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_index_field_aspects);
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let recovered_context = recovered
         .read_truth()
@@ -183,8 +183,8 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
         crate::facade::runtime::RelationalRuntime,
         crate::facade::snapshots::SnapshotHandle,
     ) {
-        let mut runtime = runtime_with_test_schema_execution_model(execution_model);
-        let alpha = create_entity_outcome(&mut runtime, "alpha");
+        let runtime = runtime_with_test_schema_execution_model(execution_model);
+        let alpha = create_entity_outcome(&runtime, "alpha");
         let index = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: DerivedIndexId(0),
             name: "entity.name.lookup".to_string(),
@@ -304,8 +304,8 @@ fn derived_index_contract_staged_parallel_generation_matches_serial_reference() 
         crate::facade::history::CommitId,
         Vec<crate::facade::indexes::DerivedIndexId>,
     ) {
-        let mut runtime = runtime_with_test_schema_execution_model(execution_model);
-        let commit = create_entity_outcome(&mut runtime, "main-a");
+        let runtime = runtime_with_test_schema_execution_model(execution_model);
+        let commit = create_entity_outcome(&runtime, "main-a");
         let name_index = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: DerivedIndexId(0),
             name: "entity.name".to_string(),
@@ -330,9 +330,9 @@ fn derived_index_contract_staged_parallel_generation_matches_serial_reference() 
         )
     }
 
-    let (mut serial_runtime, serial_commit_id, index_ids) =
+    let (serial_runtime, serial_commit_id, index_ids) =
         build_runtime(RelationalExecutionModel::SingleLaneExecution);
-    let (mut staged_runtime, staged_commit_id, staged_index_ids) =
+    let (staged_runtime, staged_commit_id, staged_index_ids) =
         build_runtime(RelationalExecutionModel::ParallelPreparation);
 
     serial_runtime.performance_access().reset_counters();

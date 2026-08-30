@@ -249,6 +249,7 @@ pub(super) fn branch_head(
             &BranchId(branch.to_string()),
         )
         .unwrap()
+        .unwrap()
     })
 }
 
@@ -276,8 +277,11 @@ fn change_account_label(
         )]));
         let branch_id = BranchId(branch.to_string());
         let mut transaction = {
+            let identity = runtime
+                .branch_identity(&branch_id)
+                .expect("branch identity");
             let transaction_validation_input = runtime
-                .admit_named_branch_basis(&branch_id)
+                .admit_branch_basis(&identity)
                 .expect("branch binding");
             runtime
                 .begin_branch_transaction(
@@ -286,15 +290,20 @@ fn change_account_label(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("query-lane-label").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: account,
-                    fields,
-                },
-            )),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(
+                WorkerIntentBatch::new("query-lane-label").push(MutationIntent::Entity(
+                    EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                        entity_id: account,
+                        fields,
+                    }),
+                )),
+            )
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+            runtime, &committed,
+        );
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

@@ -12,8 +12,8 @@ use super::super::super::filesystem_mounted_world::{
     component_graph_nodes, launch_mounted_components,
 };
 use super::super::interaction_world::InteractionWorld;
+use super::topology::build_scoped;
 pub(super) use super::topology::OccupancyLayout;
-use super::topology::{build_scoped, build_unsupported};
 use super::OperabilityFacts;
 
 pub(super) const PRIMARY_POINT: [i64; 2] = [10, 20];
@@ -28,11 +28,6 @@ pub(super) struct OperabilityWorld {
 impl OperabilityWorld {
     pub(super) fn scoped(layout: OccupancyLayout) -> Self {
         let (app, facts) = build_scoped(layout);
-        Self::launch(app, facts)
-    }
-
-    pub(super) fn unsupported() -> Self {
-        let (app, facts) = build_unsupported();
         Self::launch(app, facts)
     }
 
@@ -78,7 +73,7 @@ impl OperabilityWorld {
         &mut self,
         interaction: UiSemanticInteraction,
     ) -> UiPreparedIntentPayload {
-        let route = product_route(&self.interaction, interaction);
+        let route = product_route(&mut self.interaction, interaction);
         self.interaction
             .session
             .prepare_intent_payload(route)
@@ -115,7 +110,7 @@ fn activation(
 }
 
 fn product_route(
-    world: &InteractionWorld,
+    world: &mut InteractionWorld,
     interaction: UiSemanticInteraction,
 ) -> worth_ui::facade::intent::UiResolvedProductIntentRoute {
     match world

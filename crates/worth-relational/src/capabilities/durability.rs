@@ -1,30 +1,34 @@
+use std::sync::Arc;
+
 use crate::durability::data::{DurabilityError, DurableCheckpoint, DurableStore};
 use crate::history::data::PositionedCanonicalCommit;
 use crate::runtime::RelationalRuntime;
 
+/// Durable truth read through shared ownership: each accessor carries its
+/// answer out of the durability lock rather than lending a borrow into it.
 pub(crate) trait DurabilityRead {
-    fn durable_checkpoints(&self) -> &[DurableCheckpoint];
-    fn durable_store(&self) -> Option<&DurableStore>;
-    fn durable_log(&self) -> &[PositionedCanonicalCommit];
+    fn durable_checkpoints(&self) -> Vec<Arc<DurableCheckpoint>>;
+    fn durable_store(&self) -> Option<Arc<DurableStore>>;
+    fn durable_log(&self) -> Vec<Arc<PositionedCanonicalCommit>>;
 }
 
 impl DurabilityRead for RelationalRuntime {
-    fn durable_checkpoints(&self) -> &[DurableCheckpoint] {
-        &self.durability.checkpoints
+    fn durable_checkpoints(&self) -> Vec<Arc<DurableCheckpoint>> {
+        self.durability.checkpoints()
     }
 
-    fn durable_store(&self) -> Option<&DurableStore> {
-        self.durability.store.as_ref()
+    fn durable_store(&self) -> Option<Arc<DurableStore>> {
+        self.durability.store()
     }
 
-    fn durable_log(&self) -> &[PositionedCanonicalCommit] {
-        &self.durability.log
+    fn durable_log(&self) -> Vec<Arc<PositionedCanonicalCommit>> {
+        self.durability.log()
     }
 }
 
 pub(crate) trait DurabilityWrite {
     fn append_durable_envelope(
-        &mut self,
+        &self,
         authority: crate::durability::authority::DurableAppendAuthority,
         commit: &PositionedCanonicalCommit,
     ) -> Result<(), DurabilityError>;
@@ -32,7 +36,7 @@ pub(crate) trait DurabilityWrite {
 
 impl DurabilityWrite for RelationalRuntime {
     fn append_durable_envelope(
-        &mut self,
+        &self,
         authority: crate::durability::authority::DurableAppendAuthority,
         commit: &PositionedCanonicalCommit,
     ) -> Result<(), DurabilityError> {
