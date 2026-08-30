@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -25,10 +25,10 @@ pub(crate) enum SignalBranchRegistryDenial {
     UnknownBranch(SignalBranchId),
     LiveCapacityExhausted { maximum_live_branches: usize },
     ReservationCapacityExhausted { maximum_reservations: usize },
-    ExpiredReservation(SignalBranchId),
     RetirementInProgress(SignalBranchId),
     ExpiredRetirement(SignalBranchId),
     TargetCellDenied(SignalBranchCellAdmissionDenial),
+    OwnerMetadataOrdering,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,14 +38,16 @@ pub(crate) enum SignalBranchRegistryPoisonRecovery {
 
 #[derive(Debug)]
 enum SignalBranchRegistryEntry<S> {
+    Reserved,
     Live(Arc<SignalBranchExecutionCell<S>>),
     Retiring(Arc<SignalBranchExecutionCell<S>>),
 }
 
 #[derive(Debug)]
 struct SignalBranchRegistryState<S> {
-    cells: BTreeMap<SignalBranchId, SignalBranchRegistryEntry<S>>,
-    reservations: BTreeSet<SignalBranchId>,
+    entries: BTreeMap<SignalBranchId, SignalBranchRegistryEntry<S>>,
+    live_count: usize,
+    reservation_count: usize,
 }
 
 #[derive(Debug)]
@@ -71,8 +73,9 @@ impl<S> SignalBranchRegistry<S> {
             maximum_live_branches,
             maximum_reservations,
             state: Mutex::new(SignalBranchRegistryState {
-                cells: BTreeMap::new(),
-                reservations: BTreeSet::new(),
+                entries: BTreeMap::new(),
+                live_count: 0,
+                reservation_count: 0,
             }),
             counters: lifecycle.counters(),
             recovered_poison: AtomicBool::new(false),
@@ -86,7 +89,10 @@ impl<S> SignalBranchRegistry<S> {
     ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
         self.counters.record_branch_registry_lookup();
-        match self.lock_state().cells.get(&branch_id) {
+        match self.lock_state().entries.get(&branch_id) {
+            Some(SignalBranchRegistryEntry::Reserved) => {
+                Err(SignalBranchRegistryDenial::UnknownBranch(branch_id))
+            }
             Some(SignalBranchRegistryEntry::Live(cell)) => Ok(Arc::clone(cell)),
             Some(SignalBranchRegistryEntry::Retiring(_)) => {
                 Err(SignalBranchRegistryDenial::RetirementInProgress(branch_id))
@@ -104,8 +110,14 @@ impl<S> SignalBranchRegistry<S> {
         let mut state = self.lock_state();
         self.validate_available_identity(&state, branch_id)?;
         self.validate_capacity(&state)?;
-        let inserted = state.reservations.insert(branch_id);
-        debug_assert!(inserted, "accepted reservation identity must be vacant");
+        let displaced = state
+            .entries
+            .insert(branch_id, SignalBranchRegistryEntry::Reserved);
+        debug_assert!(
+            displaced.is_none(),
+            "accepted reservation identity must be vacant"
+        );
+        state.reservation_count += 1;
         self.counters.record_branch_registry_reservation();
         Ok(SignalBranchReservation {
             registry: self,
@@ -116,11 +128,11 @@ impl<S> SignalBranchRegistry<S> {
     }
 
     pub(crate) fn live_count(&self) -> usize {
-        self.lock_state().cells.len()
+        self.lock_state().live_count
     }
 
     pub(crate) fn reservation_count(&self) -> usize {
-        self.lock_state().reservations.len()
+        self.lock_state().reservation_count
     }
 
     pub(crate) fn maximum_live_branches(&self) -> usize {
@@ -137,8 +149,8 @@ impl<S> SignalBranchRegistry<S> {
     ) -> Result<Vec<Arc<SignalBranchExecutionCell<S>>>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
         let state = self.lock_state();
-        let mut cells = Vec::with_capacity(state.cells.len());
-        for entry in state.cells.values() {
+        let mut cells = Vec::with_capacity(state.live_count);
+        for entry in state.entries.values() {
             self.counters.record_branch_registry_entry_scanned();
             if let SignalBranchRegistryEntry::Live(cell) = entry {
                 cells.push(Arc::clone(cell));
@@ -156,10 +168,13 @@ impl<S> SignalBranchRegistry<S> {
         let cell = {
             let mut state = self.lock_state();
             let entry = state
-                .cells
+                .entries
                 .get_mut(&branch_id)
                 .ok_or(SignalBranchRegistryDenial::UnknownBranch(branch_id))?;
             let cell = match entry {
+                SignalBranchRegistryEntry::Reserved => {
+                    return Err(SignalBranchRegistryDenial::UnknownBranch(branch_id));
+                }
                 SignalBranchRegistryEntry::Live(cell) => Arc::clone(cell),
                 SignalBranchRegistryEntry::Retiring(_) => {
                     return Err(SignalBranchRegistryDenial::RetirementInProgress(branch_id));
@@ -168,20 +183,13 @@ impl<S> SignalBranchRegistry<S> {
             *entry = SignalBranchRegistryEntry::Retiring(Arc::clone(&cell));
             cell
         };
-        let mut retirement = SignalBranchRetirement {
+        let retirement = SignalBranchRetirement {
             registry: self,
             admission,
             branch_id,
             cell,
-            cell_marked_retiring: false,
-            cell_retired: false,
             completed: false,
         };
-        retirement
-            .cell
-            .begin_retirement()
-            .map_err(SignalBranchRegistryDenial::TargetCellDenied)?;
-        retirement.cell_marked_retiring = true;
         Ok(retirement)
     }
 
@@ -208,18 +216,15 @@ impl<S> SignalBranchRegistry<S> {
         state: &SignalBranchRegistryState<S>,
         branch_id: SignalBranchId,
     ) -> Result<(), SignalBranchRegistryDenial> {
-        if let Some(entry) = state.cells.get(&branch_id) {
+        if let Some(entry) = state.entries.get(&branch_id) {
             return match entry {
-                SignalBranchRegistryEntry::Live(_) => {
+                SignalBranchRegistryEntry::Reserved | SignalBranchRegistryEntry::Live(_) => {
                     Err(SignalBranchRegistryDenial::DuplicateBranch(branch_id))
                 }
                 SignalBranchRegistryEntry::Retiring(_) => {
                     Err(SignalBranchRegistryDenial::RetirementInProgress(branch_id))
                 }
             };
-        }
-        if state.reservations.contains(&branch_id) {
-            return Err(SignalBranchRegistryDenial::DuplicateBranch(branch_id));
         }
         Ok(())
     }
@@ -228,12 +233,12 @@ impl<S> SignalBranchRegistry<S> {
         &self,
         state: &SignalBranchRegistryState<S>,
     ) -> Result<(), SignalBranchRegistryDenial> {
-        if state.cells.len() + state.reservations.len() >= self.maximum_live_branches {
+        if state.live_count + state.reservation_count >= self.maximum_live_branches {
             return Err(SignalBranchRegistryDenial::LiveCapacityExhausted {
                 maximum_live_branches: self.maximum_live_branches,
             });
         }
-        if state.reservations.len() >= self.maximum_reservations {
+        if state.reservation_count >= self.maximum_reservations {
             return Err(SignalBranchRegistryDenial::ReservationCapacityExhausted {
                 maximum_reservations: self.maximum_reservations,
             });
@@ -275,7 +280,7 @@ pub(crate) struct SignalBranchReservation<'a, S> {
     consumed: bool,
 }
 
-impl<S> SignalBranchReservation<'_, S> {
+impl<'a, S> SignalBranchReservation<'a, S> {
     pub(crate) fn install(
         self,
         state: S,
@@ -290,11 +295,26 @@ impl<S> SignalBranchReservation<'_, S> {
         self.install_cell(state, true)
     }
 
+    pub(crate) fn prepare_fork_destination(
+        self,
+        state: S,
+    ) -> Result<SignalPreparedBranchInstallation<'a, S>, SignalBranchRegistryDenial> {
+        self.prepare_cell(state, true)
+    }
+
     fn install_cell(
-        mut self,
+        self,
         state: S,
         is_fork_destination: bool,
     ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
+        Ok(self.prepare_cell(state, is_fork_destination)?.install())
+    }
+
+    fn prepare_cell(
+        self,
+        state: S,
+        is_fork_destination: bool,
+    ) -> Result<SignalPreparedBranchInstallation<'a, S>, SignalBranchRegistryDenial> {
         self.registry.validate_admission(self.admission)?;
         let cell = Arc::new(SignalBranchExecutionCell::new(
             SignalBranchCellConstruction(()),
@@ -304,34 +324,66 @@ impl<S> SignalBranchReservation<'_, S> {
             self.branch_id,
             Arc::clone(&self.registry.counters),
         ));
-        let mut registry_state = self.registry.lock_state();
-        if !registry_state.reservations.remove(&self.branch_id) {
-            return Err(SignalBranchRegistryDenial::ExpiredReservation(
-                self.branch_id,
-            ));
-        }
-        registry_state.cells.insert(
-            self.branch_id,
-            SignalBranchRegistryEntry::Live(Arc::clone(&cell)),
-        );
-        self.consumed = true;
-        drop(registry_state);
         if is_fork_destination {
-            self.registry
+            self.registry.counters.record_fork_destination_preparation();
+        }
+        Ok(SignalPreparedBranchInstallation {
+            reservation: self,
+            cell,
+            is_fork_destination,
+        })
+    }
+}
+
+pub(crate) struct SignalPreparedBranchInstallation<'a, S> {
+    reservation: SignalBranchReservation<'a, S>,
+    cell: Arc<SignalBranchExecutionCell<S>>,
+    is_fork_destination: bool,
+}
+
+impl<S> SignalPreparedBranchInstallation<'_, S> {
+    pub(crate) fn install(mut self) -> Arc<SignalBranchExecutionCell<S>> {
+        let mut state = self.reservation.registry.lock_state();
+        let entry = state
+            .entries
+            .get_mut(&self.reservation.branch_id)
+            .expect("prepared Signal branch reservation must remain registered");
+        assert!(
+            matches!(entry, SignalBranchRegistryEntry::Reserved),
+            "prepared Signal branch reservation must remain vacant"
+        );
+        *entry = SignalBranchRegistryEntry::Live(Arc::clone(&self.cell));
+        state.reservation_count = state
+            .reservation_count
+            .checked_sub(1)
+            .expect("prepared Signal branch installation must consume one reservation");
+        state.live_count += 1;
+        self.reservation.consumed = true;
+        drop(state);
+        if self.is_fork_destination {
+            self.reservation
+                .registry
                 .counters
                 .record_fork_destination_installation();
         }
-        Ok(cell)
+        Arc::clone(&self.cell)
     }
 }
 
 impl<S> Drop for SignalBranchReservation<'_, S> {
     fn drop(&mut self) {
         if !self.consumed {
-            self.registry
-                .lock_state()
-                .reservations
-                .remove(&self.branch_id);
+            let mut state = self.registry.lock_state();
+            if matches!(
+                state.entries.get(&self.branch_id),
+                Some(SignalBranchRegistryEntry::Reserved)
+            ) {
+                state.entries.remove(&self.branch_id);
+                state.reservation_count = state
+                    .reservation_count
+                    .checked_sub(1)
+                    .expect("dropping a Signal branch reservation must release capacity");
+            }
         }
     }
 }

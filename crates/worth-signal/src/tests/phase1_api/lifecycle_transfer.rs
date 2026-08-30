@@ -15,6 +15,11 @@ fn branch_snapshot_restore_packets_are_mediated_through_transition_helpers() {
         "branch snapshot restore should rebuild stored branch state through the snapshot transition helper"
     );
     assert!(
+        BRANCHES_SOURCE.contains("prepare_owner_cell_restore")
+            && BRANCHES_SOURCE.contains("snapshot_state.into_branch_state("),
+        "sealed owner cells should rebuild branch state through the same snapshot transition"
+    );
+    assert!(
         !RUNTIME_SNAPSHOTTING_SOURCE.contains("let mut state = BranchState {")
             && !RUNTIME_SNAPSHOTTING_SOURCE.contains("let state = BranchState {"),
         "branch snapshot restore should not hand-assemble branch state by struct literal"
@@ -59,7 +64,7 @@ fn branch_snapshot_restore_packets_are_mediated_through_transition_helpers() {
             && !BRANCHES_SOURCE.contains("pub parent_branch_id:")
             && !BRANCHES_SOURCE.contains("pub forked_from_snapshot_id:")
             && !BRANCHES_SOURCE.contains("pub latest_merge_reference:")
-            && BRANCHES_SOURCE.contains("pub(in crate::logic::transaction::runtime) struct SnapshotStatePacket")
+            && BRANCHES_SOURCE.contains("pub(crate) struct SnapshotStatePacket")
             && BRANCHES_SOURCE.contains("pub fn packet(self, snapshot_id: SignalSnapshotId) -> SnapshotStatePacket"),
         "branch lifecycle transfer packets should not be assembled by open struct literal on runtime paths"
     );

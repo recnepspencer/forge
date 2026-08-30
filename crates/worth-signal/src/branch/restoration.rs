@@ -3,10 +3,12 @@ use worth_foundational::FoundationalBranchReferenceMismatchAxis;
 use crate::data::error::SignalError;
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
-use super::SignalBranchRetentionAcquisitionDenial;
+use super::{SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable};
 
 #[derive(Debug)]
 pub enum SignalBranchRestoreDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
+    CancelledNoMovement,
     UnknownBranch {
         branch_id: SignalBranchId,
     },

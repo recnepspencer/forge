@@ -1,6 +1,8 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use std::sync::Arc;
+use std::thread;
 
 use crate::state::SignalBranchId;
 
@@ -9,6 +11,8 @@ use super::super::{
     SignalBranchRegistryDenial, SignalBranchRegistryPoisonRecovery, SignalOwnerLifecycleState,
     SignalOwnerServiceCounters,
 };
+use super::progress_bound::{wait_until_progress, worker_park, PROGRESS_BOUND};
+use super::with_movement_permit;
 
 #[test]
 fn registry_preserves_one_cell_per_id_and_direct_unknown_denial() {
@@ -184,17 +188,9 @@ fn retirement_busy_guard_stale_handle_and_reinstall_restore_exact_live_capacity(
         registry.reserve(&admission, branch_id).unwrap_err(),
         SignalBranchRegistryDenial::RetirementInProgress(branch_id)
     );
-    let busy_mutation_executed = AtomicBool::new(false);
-    assert_eq!(
-        old_cell
-            .with_state(&admission, |state, _| {
-                busy_mutation_executed.store(true, Ordering::Release);
-                *state += 1;
-            })
-            .unwrap_err(),
-        SignalBranchCellAdmissionDenial::RetirementInProgress
-    );
-    assert!(!busy_mutation_executed.load(Ordering::Acquire));
+    old_cell
+        .with_state(&admission, |state, _| *state += 1)
+        .expect("a pre-looked-up operation completes before retirement linearizes");
     drop(pending);
     assert!(Arc::ptr_eq(
         &old_cell,
@@ -206,8 +202,13 @@ fn retirement_busy_guard_stale_handle_and_reinstall_restore_exact_live_capacity(
     registry
         .begin_retirement(&admission, branch_id)
         .expect("healthy retirement restarts")
-        .complete()
-        .expect("cell becomes inert before membership is removed");
+        .execute(|state, work| {
+            assert_eq!(*state, 8);
+            with_movement_permit(|permit| work.record_canonical_movement(permit));
+            Ok::<_, ()>(())
+        })
+        .expect("retirement holds the exact target cell")
+        .expect("canonical retirement performs before membership removal");
     assert_eq!(registry.live_count(), 0);
     let stale_mutation_executed = AtomicBool::new(false);
     assert_eq!(
@@ -239,6 +240,74 @@ fn retirement_busy_guard_stale_handle_and_reinstall_restore_exact_live_capacity(
     assert_eq!(registry.live_count(), 1);
     assert_eq!(counters.snapshot().branch_registry_reservations(), 2);
     assert_eq!(counters.snapshot().branch_registry_entries_scanned(), 0);
+}
+
+#[test]
+fn retirement_excludes_new_lookup_then_waits_for_prelooked_cell_work() {
+    let counters = Arc::new(SignalOwnerServiceCounters::default());
+    let lifecycle = SignalOwnerLifecycleState::new(41, Arc::clone(&counters));
+    let registry = Arc::new(SignalBranchRegistry::new(&lifecycle, 1, 1));
+    let installation = lifecycle.admit(41).expect("owner admits installation");
+    let branch_id = SignalBranchId(7);
+    registry
+        .reserve(&installation, branch_id)
+        .expect("identity reserves")
+        .install(3_u64)
+        .expect("state installs");
+    drop(installation);
+
+    let (park, mut control) = worker_park();
+    let (operation_done_tx, operation_done_rx) = mpsc::sync_channel(1);
+    let operation_lifecycle = Arc::clone(&lifecycle);
+    let operation_registry = Arc::clone(&registry);
+    thread::spawn(move || {
+        let admission = operation_lifecycle
+            .admit(41)
+            .expect("prelooked operation is admitted");
+        let cell = operation_registry
+            .lookup(&admission, branch_id)
+            .expect("operation looks up the live cell before retirement");
+        let result = cell.with_state(&admission, |state, _| {
+            park.park("prelooked retirement target operation");
+            *state = 9;
+        });
+        let _ = operation_done_tx.send(result);
+    });
+    control.wait_until_parked("prelooked retirement target operation");
+
+    let retirement_admission = lifecycle.admit(41).expect("retirement is admitted");
+    let retirement = registry
+        .begin_retirement(&retirement_admission, branch_id)
+        .expect("retirement excludes new target lookup");
+    assert_eq!(
+        registry
+            .lookup(&retirement_admission, branch_id)
+            .unwrap_err(),
+        SignalBranchRegistryDenial::RetirementInProgress(branch_id)
+    );
+
+    let waits_before = counters.snapshot().target_cell_waits();
+    let release_counters = Arc::clone(&counters);
+    let (wait_seen_tx, wait_seen_rx) = mpsc::sync_channel(1);
+    thread::spawn(move || {
+        let wait_seen = wait_until_progress("retirement target-cell wait", || {
+            release_counters.snapshot().target_cell_waits() == waits_before + 1
+        });
+        let _ = wait_seen_tx.send(wait_seen);
+        control.release();
+    });
+    retirement
+        .execute(|state, work| {
+            assert_eq!(*state, 9, "prelooked work finishes before deletion");
+            with_movement_permit(|permit| work.record_canonical_movement(permit));
+            Ok::<_, ()>(())
+        })
+        .expect("retirement obtains the exact cell")
+        .expect("retirement performs");
+
+    assert_eq!(wait_seen_rx.recv_timeout(PROGRESS_BOUND), Ok(true));
+    assert_eq!(operation_done_rx.recv_timeout(PROGRESS_BOUND), Ok(Ok(())));
+    assert_eq!(registry.live_count(), 0);
 }
 
 #[test]

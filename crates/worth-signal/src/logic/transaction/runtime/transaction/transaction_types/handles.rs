@@ -8,7 +8,7 @@ use crate::logic::events::EventBus;
 
 use super::super::super::config::SignalRuntimeConfig;
 use super::super::super::state::{
-    BranchManager, ResourceRuntimeState, RuntimeObservationRegistry, TemporalRuntimeState,
+    BranchMutationLedger, ResourceRuntimeState, RuntimeObservationRegistry, TemporalRuntimeState,
 };
 
 use super::rollback::TransactionRollbackPacketSet;
@@ -36,7 +36,10 @@ where
     pub(in crate::logic::transaction::runtime) resource: &'a mut ResourceRuntimeState,
     pub(in crate::logic::transaction::runtime) temporal: &'a mut TemporalRuntimeState,
     pub(in crate::logic::transaction::runtime) telemetry: Option<&'a mut RuntimeTelemetry>,
-    pub(in crate::logic::transaction::runtime) branches: &'a mut BranchManager<D, I, T>,
+    pub(in crate::logic::transaction::runtime) branch_mutation_ledger: &'a mut BranchMutationLedger,
+    pub(in crate::logic::transaction::runtime) branch_head_generation: &'a mut u64,
+    pub(in crate::logic::transaction::runtime) branch_restore_snapshot_id:
+        &'a mut Option<crate::state::SignalSnapshotId>,
     pub(in crate::logic::transaction::runtime) scratch: TransactionScratch<D, I, E>,
     pub(in crate::logic::transaction::runtime) rollback_packets: TransactionRollbackPacketSet<T>,
     pub(in crate::logic::transaction::runtime) poisoned: bool,

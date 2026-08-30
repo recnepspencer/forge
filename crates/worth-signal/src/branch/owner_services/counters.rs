@@ -15,6 +15,7 @@ pub struct SignalOwnerServiceCostSnapshot {
     canonical_movements: u64,
     retention_registry_contacts: u64,
     fork_source_captures: u64,
+    fork_destination_preparations: u64,
     fork_destination_installations: u64,
     forked_mutable_graph_nodes_copied: u64,
     diagnostic_events_recorded: u64,
@@ -59,6 +60,10 @@ impl SignalOwnerServiceCostSnapshot {
         self.fork_source_captures
     }
 
+    pub const fn fork_destination_preparations(&self) -> u64 {
+        self.fork_destination_preparations
+    }
+
     pub const fn fork_destination_installations(&self) -> u64 {
         self.fork_destination_installations
     }
@@ -91,6 +96,7 @@ pub(crate) struct SignalOwnerServiceCounters {
     canonical_movements: AtomicU64,
     retention_registry_contacts: AtomicU64,
     fork_source_captures: AtomicU64,
+    fork_destination_preparations: AtomicU64,
     fork_destination_installations: AtomicU64,
     forked_mutable_graph_nodes_copied: AtomicU64,
     diagnostic_events_recorded: AtomicU64,
@@ -112,6 +118,9 @@ impl SignalOwnerServiceCounters {
             canonical_movements: self.canonical_movements.load(Ordering::SeqCst),
             retention_registry_contacts: self.retention_registry_contacts.load(Ordering::SeqCst),
             fork_source_captures: self.fork_source_captures.load(Ordering::SeqCst),
+            fork_destination_preparations: self
+                .fork_destination_preparations
+                .load(Ordering::SeqCst),
             fork_destination_installations: self
                 .fork_destination_installations
                 .load(Ordering::SeqCst),
@@ -160,12 +169,17 @@ impl SignalOwnerServiceCounters {
         Self::increment(&self.fork_source_captures);
     }
 
+    pub(crate) fn record_fork_destination_preparation(&self) {
+        Self::increment(&self.fork_destination_preparations);
+    }
+
     pub(crate) fn record_fork_destination_installation(&self) {
         Self::increment(&self.fork_destination_installations);
     }
 
-    pub(crate) fn record_forked_mutable_graph_node_copy(&self) {
-        Self::increment(&self.forked_mutable_graph_nodes_copied);
+    pub(crate) fn record_forked_mutable_graph_node_copies(&self, copied_nodes: u64) {
+        self.forked_mutable_graph_nodes_copied
+            .fetch_add(copied_nodes, Ordering::SeqCst);
     }
 
     pub(crate) fn record_diagnostic_event(&self) {
@@ -201,11 +215,12 @@ mod tests {
             canonical_movements: 7,
             retention_registry_contacts: 8,
             fork_source_captures: 9,
-            fork_destination_installations: 10,
-            forked_mutable_graph_nodes_copied: 11,
-            diagnostic_events_recorded: 12,
-            diagnostic_events_dropped: 13,
-            close_batches: 14,
+            fork_destination_preparations: 10,
+            fork_destination_installations: 11,
+            forked_mutable_graph_nodes_copied: 12,
+            diagnostic_events_recorded: 13,
+            diagnostic_events_dropped: 14,
+            close_batches: 15,
         };
 
         assert_eq!(snapshot.owner_upgrade_attempts(), 1);
@@ -217,10 +232,11 @@ mod tests {
         assert_eq!(snapshot.canonical_movements(), 7);
         assert_eq!(snapshot.retention_registry_contacts(), 8);
         assert_eq!(snapshot.fork_source_captures(), 9);
-        assert_eq!(snapshot.fork_destination_installations(), 10);
-        assert_eq!(snapshot.forked_mutable_graph_nodes_copied(), 11);
-        assert_eq!(snapshot.diagnostic_events_recorded(), 12);
-        assert_eq!(snapshot.diagnostic_events_dropped(), 13);
-        assert_eq!(snapshot.close_batches(), 14);
+        assert_eq!(snapshot.fork_destination_preparations(), 10);
+        assert_eq!(snapshot.fork_destination_installations(), 11);
+        assert_eq!(snapshot.forked_mutable_graph_nodes_copied(), 12);
+        assert_eq!(snapshot.diagnostic_events_recorded(), 13);
+        assert_eq!(snapshot.diagnostic_events_dropped(), 14);
+        assert_eq!(snapshot.close_batches(), 15);
     }
 }

@@ -1,16 +1,22 @@
 mod authority;
+mod canonical_transaction;
 mod catalog;
 mod lifecycle;
+mod owner_partition;
+mod owner_snapshot;
 mod retention;
 mod selection;
 mod snapshot_storage;
 mod transfer;
 
+pub(crate) use authority::BranchState;
 pub(in crate::logic::transaction::runtime) use authority::{
-    BranchAncestryState, BranchState, LatestMergeReference,
+    BranchAncestryState, LatestMergeReference,
 };
 pub(in crate::logic::transaction::runtime) use catalog::BranchManager;
 pub(in crate::logic::transaction::runtime::state) use catalog::DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS;
+pub(in crate::logic::transaction::runtime) use owner_partition::SignalOwnerPartitionDenial;
+pub(crate) use owner_partition::{SignalOwnerMetadataState, SignalOwnerPartition};
 pub(in crate::logic::transaction::runtime) use snapshot_storage::SignalBranchSnapshotStorageDenial;
 
 use crate::data::graph::SignalGraph;
@@ -22,7 +28,7 @@ use super::super::merge::BranchMutationLedger;
 use super::super::reconstructability::{AuthorityState, DerivedState};
 
 #[derive(Debug, Clone)]
-pub(in crate::logic::transaction::runtime) struct SnapshotBranchState<D, I, T>
+pub(crate) struct SnapshotBranchState<D, I, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -35,7 +41,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub(in crate::logic::transaction::runtime) struct SnapshotStatePacket<D, I, T>
+pub(crate) struct SnapshotStatePacket<D, I, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,

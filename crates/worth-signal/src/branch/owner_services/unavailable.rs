@@ -4,5 +4,5 @@
 /// constructing a counterfeit denial while preserving equality for one stable
 /// closing-or-gone posture.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SignalOwnerUnavailable;

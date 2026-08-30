@@ -8,9 +8,11 @@ use crate::state::SignalBranchId;
 
 use super::super::{
     SignalBranchCellAdmissionDenial, SignalBranchCellPoisonRecovery, SignalBranchExecutionCell,
-    SignalBranchRegistry, SignalOwnerLifecycleState, SignalOwnerServiceCounters,
+    SignalBranchRegistry, SignalOwnerCancellationSource, SignalOwnerLifecycleState,
+    SignalOwnerServiceCounters,
 };
 use super::progress_bound::{wait_until_progress, worker_park, PROGRESS_BOUND};
+use super::with_movement_permit;
 
 #[test]
 fn parked_cell_keeps_unrelated_registry_lookup_and_work_independently_live() {
@@ -185,7 +187,7 @@ fn one_admission_denies_nested_second_cell_and_releases_on_success_and_unwind() 
 }
 
 #[test]
-fn cell_poison_policy_preserves_partial_mutation_and_contains_recovery() {
+fn cell_poison_policy_quarantines_partial_mutation_and_contains_failure() {
     let (counters, lifecycle, registry) = kernel(2);
     let installation = lifecycle.admit(61).expect("owner admits installation");
     let branch_a = install(&registry, &installation, SignalBranchId(1), 0_u64);
@@ -198,7 +200,7 @@ fn cell_poison_policy_preserves_partial_mutation_and_contains_recovery() {
         branch_a
             .with_state(&panic_admission, |state, work| {
                 *state += 1;
-                work.record_canonical_movement();
+                with_movement_permit(|permit| work.record_canonical_movement(permit));
                 panic!("exercise branch-local poison recovery");
             })
             .expect("admission is valid before the injected panic");
@@ -210,25 +212,24 @@ fn cell_poison_policy_preserves_partial_mutation_and_contains_recovery() {
     branch_b
         .with_state(&healthy_admission, |state, work| {
             *state += 1;
-            work.record_canonical_movement();
+            with_movement_permit(|permit| work.record_canonical_movement(permit));
         })
         .expect("unrelated branch remains healthy");
-    branch_a
-        .with_state(&healthy_admission, |state, work| {
-            *state += 1;
-            work.record_canonical_movement();
-        })
-        .expect("poisoned cell follows its recoverable owner policy");
+    assert_eq!(
+        branch_a
+            .with_state(&healthy_admission, |state, _| *state += 1)
+            .unwrap_err(),
+        SignalBranchCellAdmissionDenial::PoisonedIncarnation
+    );
 
     assert_eq!(
         branch_a.poison_recovery(),
-        Some(SignalBranchCellPoisonRecovery::PreservedPartialMutation)
+        Some(SignalBranchCellPoisonRecovery::TerminallyQuarantinedPartialMutation)
     );
-    assert_eq!(read(&branch_a, &healthy_admission), 2);
     assert_eq!(read(&branch_b, &healthy_admission), 1);
     assert_eq!(
         counters.snapshot().canonical_movements(),
-        baseline.canonical_movements() + 3
+        baseline.canonical_movements() + 2
     );
 }
 
@@ -241,9 +242,9 @@ fn cell_work_records_exact_semantic_deltas_without_reconstruction() {
 
     cell.with_state(&admission, |state, work| {
         *state = 9;
-        work.record_canonical_movement();
+        with_movement_permit(|permit| work.record_canonical_movement(permit));
         work.record_retention_registry_contact();
-        work.record_fork_source_capture();
+        work.record_fork_source_capture(0);
         work.record_diagnostic_event();
         work.record_dropped_diagnostic_event();
     })
@@ -265,6 +266,29 @@ fn cell_work_records_exact_semantic_deltas_without_reconstruction() {
     assert_eq!(snapshot.diagnostic_events_dropped(), 1);
     assert_eq!(snapshot.forked_mutable_graph_nodes_copied(), 0);
     assert_eq!(snapshot.branch_registry_entries_scanned(), 0);
+}
+
+#[test]
+fn cancellation_after_preflight_cannot_erase_recorded_movement() {
+    let (counters, lifecycle, registry) = kernel(1);
+    let admission = lifecycle.admit(61).expect("owner admits work");
+    let cell = install(&registry, &admission, SignalBranchId(1), 0_u64);
+    let cancellation = SignalOwnerCancellationSource::new();
+    let token = cancellation.token();
+    let permit = token
+        .preflight_movement()
+        .expect("cancellation is open before linearization");
+    cancellation.cancel();
+
+    cell.with_state(&admission, |state, work| {
+        *state = 1;
+        work.record_canonical_movement(&permit);
+    })
+    .expect("late cancellation remains descriptive");
+
+    assert!(token.preflight_movement().is_err());
+    assert_eq!(read(&cell, &admission), 1);
+    assert_eq!(counters.snapshot().canonical_movements(), 1);
 }
 
 fn kernel(
@@ -309,7 +333,7 @@ fn run_cell_work(
         .map_err(|error| format!("{error:?}"))?;
     cell.with_state(&admission, |state, work| {
         let result = operation(state);
-        work.record_canonical_movement();
+        with_movement_permit(|permit| work.record_canonical_movement(permit));
         result
     })
     .map_err(|error| format!("{error:?}"))
@@ -323,7 +347,7 @@ fn admitted_cell_work(
     let admission = lifecycle.admit(61).map_err(|error| format!("{error:?}"))?;
     cell.with_state(&admission, |state, work| {
         operation(state);
-        work.record_canonical_movement();
+        with_movement_permit(|permit| work.record_canonical_movement(permit));
     })
     .map_err(|error| format!("{error:?}"))
 }

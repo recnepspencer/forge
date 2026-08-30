@@ -1,10 +1,9 @@
+use super::super::resource::ResourceRuntimeState;
+use super::super::temporal::TemporalRuntimeState;
 use crate::data::graph::SignalGraph;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::transaction::runtime::config::SignalRuntimeConfig;
-
-use super::super::resource::ResourceRuntimeState;
-use super::super::temporal::TemporalRuntimeState;
 
 #[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) struct AuthorityState<T>
@@ -24,6 +23,12 @@ where
             graph: graph.clone_stateful(),
             config: config.clone(),
         }
+    }
+
+    pub(in crate::logic::transaction::runtime) fn into_parts(
+        self,
+    ) -> (SignalGraph, SignalRuntimeConfig<T>) {
+        (self.graph, self.config)
     }
 }
 

@@ -1,15 +1,23 @@
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 
 use crate::state::SignalBranchId;
 
 use super::branch_registry::SignalBranchCellConstruction;
+use super::cancellation::SignalOwnerMovementPermit;
 use super::cell_incarnation::SignalBranchCellIncarnation;
 use super::counters::SignalOwnerServiceCounters;
 use super::lifecycle_state::{
     SignalOwnerAdmissionMismatch, SignalOwnerBranchCellHoldDenial, SignalOwnerLifecycleIdentity,
     SignalOwnerOperationAdmission,
 };
+
+pub(crate) mod advance;
+pub(crate) mod basis;
+pub(crate) mod fork;
+pub(crate) mod restoration;
+pub(crate) mod retirement;
+pub(crate) mod snapshot;
 
 const CELL_LIVE: u8 = 0;
 const CELL_RETIRING: u8 = 1;
@@ -22,11 +30,33 @@ pub(crate) enum SignalBranchCellAdmissionDenial {
     SecondCellWhileHeld,
     RetirementInProgress,
     RetiredIncarnation,
+    PoisonedIncarnation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SignalBranchCellPoisonRecovery {
-    PreservedPartialMutation,
+    TerminallyQuarantinedPartialMutation,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct SignalBranchCellCostSnapshot {
+    contacts: u64,
+    waits: u64,
+    movements: u64,
+}
+
+impl SignalBranchCellCostSnapshot {
+    pub(crate) const fn contacts(&self) -> u64 {
+        self.contacts
+    }
+
+    pub(crate) const fn waits(&self) -> u64 {
+        self.waits
+    }
+
+    pub(crate) const fn movements(&self) -> u64 {
+        self.movements
+    }
 }
 
 #[derive(Debug)]
@@ -38,6 +68,9 @@ pub(crate) struct SignalBranchExecutionCell<S> {
     incarnation: SignalBranchCellIncarnation,
     lifecycle_posture: AtomicU8,
     counters: Arc<SignalOwnerServiceCounters>,
+    contacts: AtomicU64,
+    waits: AtomicU64,
+    movements: AtomicU64,
     recovered_poison: AtomicBool,
 }
 
@@ -58,6 +91,9 @@ impl<S> SignalBranchExecutionCell<S> {
             incarnation: SignalBranchCellIncarnation::issue(),
             lifecycle_posture: AtomicU8::new(CELL_LIVE),
             counters,
+            contacts: AtomicU64::new(0),
+            waits: AtomicU64::new(0),
+            movements: AtomicU64::new(0),
             recovered_poison: AtomicBool::new(false),
         }
     }
@@ -66,6 +102,7 @@ impl<S> SignalBranchExecutionCell<S> {
         self.branch_id
     }
 
+    #[cfg(test)]
     pub(crate) fn with_state<R>(
         &self,
         admission: &SignalOwnerOperationAdmission,
@@ -76,65 +113,70 @@ impl<S> SignalBranchExecutionCell<S> {
             .hold_branch_cell(self.incarnation)
             .map_err(SignalBranchCellAdmissionDenial::from)?;
         self.counters.record_target_cell_contact();
-        let mut state = self.lock_state_after_contention_observation();
+        self.contacts.fetch_add(1, Ordering::SeqCst);
+        let mut state = self.lock_state_after_contention_observation()?;
         self.require_live_posture()?;
         let work = SignalBranchCellWork {
             counters: &self.counters,
+            movements: &self.movements,
         };
         Ok(operation(&mut state, &work))
     }
 
-    pub(super) fn begin_retirement(&self) -> Result<(), SignalBranchCellAdmissionDenial> {
-        match self.lifecycle_posture.compare_exchange(
-            CELL_LIVE,
-            CELL_RETIRING,
-            Ordering::AcqRel,
-            Ordering::Acquire,
-        ) {
-            Ok(_) => Ok(()),
-            Err(CELL_RETIRING) => Err(SignalBranchCellAdmissionDenial::RetirementInProgress),
-            Err(CELL_RETIRED) => Err(SignalBranchCellAdmissionDenial::RetiredIncarnation),
-            Err(_) => unreachable!("branch cell lifecycle posture is owner-defined"),
-        }
-    }
-
-    pub(super) fn cancel_retirement(&self) {
-        let result = self.lifecycle_posture.compare_exchange(
-            CELL_RETIRING,
-            CELL_LIVE,
-            Ordering::AcqRel,
-            Ordering::Acquire,
-        );
-        debug_assert!(result.is_ok(), "only a pending retirement may reopen");
-    }
-
-    pub(super) fn finish_retirement(
+    #[cfg(test)]
+    pub(super) fn with_retirement<R, D>(
         &self,
         admission: &SignalOwnerOperationAdmission,
-    ) -> Result<(), SignalBranchCellAdmissionDenial> {
+        operation: impl FnOnce(&mut S, &SignalBranchCellWork<'_>) -> Result<R, D>,
+    ) -> Result<Result<R, D>, SignalBranchCellAdmissionDenial> {
         self.validate_admission(admission)?;
         let _cell_hold = admission
             .hold_branch_cell(self.incarnation)
             .map_err(SignalBranchCellAdmissionDenial::from)?;
         self.counters.record_target_cell_contact();
-        let _state = self.lock_state_after_contention_observation();
-        match self.lifecycle_posture.compare_exchange(
-            CELL_RETIRING,
-            CELL_RETIRED,
-            Ordering::AcqRel,
-            Ordering::Acquire,
-        ) {
-            Ok(_) => Ok(()),
-            Err(CELL_LIVE) => Err(SignalBranchCellAdmissionDenial::RetirementInProgress),
-            Err(CELL_RETIRED) => Err(SignalBranchCellAdmissionDenial::RetiredIncarnation),
-            Err(_) => unreachable!("branch cell lifecycle posture is owner-defined"),
+        self.contacts.fetch_add(1, Ordering::SeqCst);
+        let mut state = self.lock_state_after_contention_observation()?;
+        self.lifecycle_posture
+            .compare_exchange(
+                CELL_LIVE,
+                CELL_RETIRING,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .map_err(|observed| match observed {
+                CELL_RETIRING => SignalBranchCellAdmissionDenial::RetirementInProgress,
+                CELL_RETIRED => SignalBranchCellAdmissionDenial::RetiredIncarnation,
+                _ => unreachable!("branch cell lifecycle posture is owner-defined"),
+            })?;
+        let mut posture = SignalBranchCellRetirementPosture {
+            lifecycle_posture: &self.lifecycle_posture,
+            retired: false,
+        };
+        let work = SignalBranchCellWork {
+            counters: &self.counters,
+            movements: &self.movements,
+        };
+        let result = operation(&mut state, &work);
+        if result.is_ok() {
+            self.lifecycle_posture
+                .store(CELL_RETIRED, Ordering::Release);
+            posture.retired = true;
         }
+        Ok(result)
     }
 
     pub(crate) fn poison_recovery(&self) -> Option<SignalBranchCellPoisonRecovery> {
         self.recovered_poison
             .load(Ordering::Acquire)
-            .then_some(SignalBranchCellPoisonRecovery::PreservedPartialMutation)
+            .then_some(SignalBranchCellPoisonRecovery::TerminallyQuarantinedPartialMutation)
+    }
+
+    pub(crate) fn cost_snapshot(&self) -> SignalBranchCellCostSnapshot {
+        SignalBranchCellCostSnapshot {
+            contacts: self.contacts.load(Ordering::SeqCst),
+            waits: self.waits.load(Ordering::SeqCst),
+            movements: self.movements.load(Ordering::SeqCst),
+        }
     }
 
     fn validate_admission(
@@ -149,26 +191,30 @@ impl<S> SignalBranchExecutionCell<S> {
             .map_err(SignalBranchCellAdmissionDenial::from)
     }
 
-    fn lock_state_after_contention_observation(&self) -> MutexGuard<'_, S> {
+    fn lock_state_after_contention_observation(
+        &self,
+    ) -> Result<MutexGuard<'_, S>, SignalBranchCellAdmissionDenial> {
         match self.state.try_lock() {
-            Ok(state) => state,
+            Ok(state) => Ok(state),
             Err(TryLockError::WouldBlock) => {
                 self.counters.record_target_cell_wait();
+                self.waits.fetch_add(1, Ordering::SeqCst);
                 match self.state.lock() {
-                    Ok(state) => state,
-                    Err(poisoned) => self.recover_poisoned_state(poisoned),
+                    Ok(state) => Ok(state),
+                    Err(poisoned) => self.quarantine_poisoned_state(poisoned),
                 }
             }
-            Err(TryLockError::Poisoned(poisoned)) => self.recover_poisoned_state(poisoned),
+            Err(TryLockError::Poisoned(poisoned)) => self.quarantine_poisoned_state(poisoned),
         }
     }
 
-    fn recover_poisoned_state<'a>(
+    fn quarantine_poisoned_state<'a>(
         &self,
         poisoned: std::sync::PoisonError<MutexGuard<'a, S>>,
-    ) -> MutexGuard<'a, S> {
+    ) -> Result<MutexGuard<'a, S>, SignalBranchCellAdmissionDenial> {
         self.recovered_poison.store(true, Ordering::Release);
-        poisoned.into_inner()
+        drop(poisoned.into_inner());
+        Err(SignalBranchCellAdmissionDenial::PoisonedIncarnation)
     }
 
     fn require_live_posture(&self) -> Result<(), SignalBranchCellAdmissionDenial> {
@@ -200,23 +246,36 @@ impl From<SignalOwnerBranchCellHoldDenial> for SignalBranchCellAdmissionDenial {
 
 pub(crate) struct SignalBranchCellWork<'a> {
     counters: &'a SignalOwnerServiceCounters,
+    movements: &'a AtomicU64,
+}
+
+struct SignalBranchCellRetirementPosture<'a> {
+    lifecycle_posture: &'a AtomicU8,
+    retired: bool,
+}
+
+impl Drop for SignalBranchCellRetirementPosture<'_> {
+    fn drop(&mut self) {
+        if !self.retired {
+            self.lifecycle_posture.store(CELL_LIVE, Ordering::Release);
+        }
+    }
 }
 
 impl SignalBranchCellWork<'_> {
-    pub(crate) fn record_canonical_movement(&self) {
+    pub(crate) fn record_canonical_movement(&self, _permit: &SignalOwnerMovementPermit<'_>) {
         self.counters.record_canonical_movement();
+        self.movements.fetch_add(1, Ordering::SeqCst);
     }
 
     pub(crate) fn record_retention_registry_contact(&self) {
         self.counters.record_retention_registry_contact();
     }
 
-    pub(crate) fn record_fork_source_capture(&self) {
+    pub(crate) fn record_fork_source_capture(&self, copied_mutable_graph_nodes: u64) {
         self.counters.record_fork_source_capture();
-    }
-
-    pub(crate) fn record_forked_mutable_graph_node_copy(&self) {
-        self.counters.record_forked_mutable_graph_node_copy();
+        self.counters
+            .record_forked_mutable_graph_node_copies(copied_mutable_graph_nodes);
     }
 
     pub(crate) fn record_diagnostic_event(&self) {

@@ -122,6 +122,10 @@ pub use state::{
     TEMPORAL_CERTIFICATION_BUNDLE_SCHEMA_VERSION, TEMPORAL_REPLAY_PARITY_SCHEMA_VERSION,
 };
 pub(crate) use state::{
+    BranchState, SignalOwnerMetadataState, SignalOwnerPartition, SnapshotBranchState,
+    SnapshotStatePacket,
+};
+pub(crate) use state::{
     SignalObservationCaptureGate, SignalObservationDropCleanup, SignalObservationSessionState,
 };
 #[allow(unused_imports)]

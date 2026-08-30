@@ -85,16 +85,16 @@ impl BranchAncestryState {
 }
 
 #[derive(Debug, Clone)]
-pub(in crate::logic::transaction::runtime) struct BranchState<D, I, T>
+pub(crate) struct BranchState<D, I, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    authority: AuthorityState<T>,
+    pub(super) authority: AuthorityState<T>,
     pub(super) derived: DerivedState<D, I>,
     ancestry: BranchAncestryState,
-    mutation_ledger: BranchMutationLedger,
+    pub(super) mutation_ledger: BranchMutationLedger,
 }
 
 impl<D, I, T> BranchState<D, I, T>
@@ -103,7 +103,34 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn new(
+    pub(crate) fn fork_for_owner_cell(
+        &self,
+        parent: &crate::state::SignalBranchHandle,
+        destination: crate::state::SignalBranchHandle,
+    ) -> Self {
+        let mut fork = self.clone();
+        *fork.ancestry_mut() = BranchAncestryState::new(
+            destination.id,
+            Some(parent.id),
+            destination.head_snapshot_id,
+        );
+        fork.reset_mutation_ledger(destination.head_snapshot_id);
+        fork.clear_branch_mutation_nodes();
+        let catalog = std::iter::once((destination.id, destination.clone())).collect();
+        fork.graph_mut()
+            .diagnostics_state_mut()
+            .synchronize_branch_catalog(&catalog, destination.id);
+        crate::diagnostics::recorder::record_branch_fork_lineage(
+            fork.graph_mut(),
+            destination.id,
+            parent.id,
+            destination.name,
+            parent.name.clone(),
+        );
+        fork
+    }
+
+    pub(in crate::logic::transaction::runtime) fn new(
         authority: AuthorityState<T>,
         derived: DerivedState<D, I>,
         ancestry: BranchAncestryState,
@@ -125,11 +152,13 @@ where
         &mut self.authority.graph
     }
 
-    pub fn ancestry(&self) -> &BranchAncestryState {
+    pub(in crate::logic::transaction::runtime) fn ancestry(&self) -> &BranchAncestryState {
         &self.ancestry
     }
 
-    pub fn ancestry_mut(&mut self) -> &mut BranchAncestryState {
+    pub(in crate::logic::transaction::runtime) fn ancestry_mut(
+        &mut self,
+    ) -> &mut BranchAncestryState {
         &mut self.ancestry
     }
 
@@ -153,7 +182,7 @@ where
         &self.derived.telemetry
     }
 
-    pub fn temporal(&self) -> &TemporalRuntimeState {
+    pub(in crate::logic::transaction::runtime) fn temporal(&self) -> &TemporalRuntimeState {
         &self.derived.temporal
     }
 
@@ -167,7 +196,7 @@ where
         self.ancestry.branch_id()
     }
 
-    pub fn into_parts(
+    pub(in crate::logic::transaction::runtime) fn into_parts(
         self,
     ) -> (
         AuthorityState<T>,
@@ -194,7 +223,7 @@ where
     }
 
     pub fn clear_branch_mutation_nodes(&mut self) {
-        self.authority.graph.clear_branch_mutation_nodes();
+        self.graph_mut().clear_branch_mutation_nodes();
     }
 
     pub fn replace_node_from_checkpoint_image(
@@ -202,14 +231,13 @@ where
         node: crate::data::handle::NodeId,
         image: CheckpointNodeImage,
     ) -> Result<TemporalWakeRetirementBatch, crate::data::error::SignalError> {
-        if !self.authority.graph.is_alive(node) {
+        if !self.graph().is_alive(node) {
             return Err(crate::data::error::SignalError::invalid_input(format!(
                 "cannot replace checkpoint image for non-live node owner {node}"
             )));
         }
 
-        self.authority
-            .graph
+        self.graph_mut()
             .replace_entry_from_checkpoint_image(node, image)?;
         self.derived.temporal.retire_wakes_for_owner(
             TemporalWakeOwner::Node(node),

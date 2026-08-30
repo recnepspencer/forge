@@ -121,6 +121,10 @@ where
     }
 
     pub fn event_bus_mut(&mut self) -> &mut EventBus<E, D, Ctx> {
+        assert!(
+            !self.owner_services.is_sealed(),
+            "event subscribers cannot be configured after owner-service sealing"
+        );
         self.event_bus
             .set_telemetry_capture(self.graph.captures_observation_surface(
                 crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
@@ -133,6 +137,10 @@ where
     }
 
     pub fn observations_mut(&mut self) -> &mut RuntimeObservationRegistry<D, I, E, Ctx, T> {
+        assert!(
+            !self.owner_services.is_sealed(),
+            "observation listeners cannot be configured after owner-service sealing"
+        );
         &mut self.observations
     }
 

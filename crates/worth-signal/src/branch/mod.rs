@@ -6,7 +6,7 @@ mod fork;
 mod identity;
 mod lifecycle;
 mod merge;
-mod owner_services;
+pub(crate) mod owner_services;
 mod readmission;
 mod reference;
 mod restoration;
@@ -40,8 +40,13 @@ pub use lifecycle::{
 pub use merge::{SignalBranchMergeDenial, SignalBranchMergeOutcome};
 #[cfg(feature = "test-operation-control")]
 pub use owner_services::SignalOwnerOperationBoundary;
+#[allow(
+    unused_imports,
+    reason = "Phase 4 port signatures consume the Phase 3 cancellation vocabulary"
+)]
 pub use owner_services::{
-    SignalOwnerLifecycleObservation, SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable,
+    SignalOwnerCancellationSource, SignalOwnerCancellationToken, SignalOwnerLifecycleObservation,
+    SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable,
 };
 pub use readmission::{
     SignalBranchBasisCompatibilityDenial, SignalBranchBasisObservationDenial,

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::branch::SignalBranchTarget;
+use crate::branch::{SignalBranchTarget, SignalOwnerUnavailable};
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
 use super::lease::SignalBranchRetentionLease;
@@ -12,6 +12,7 @@ use super::lease::SignalBranchRetentionLease;
 /// target is: an exact obligation over a historical target is legitimate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetentionAcquisitionDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
     ForeignBasis,
     UnknownBranch {
         branch_id: SignalBranchId,
@@ -40,6 +41,7 @@ pub enum SignalBranchRetentionAcquisitionDenial {
 /// did not issue it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetentionReleaseDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
     ForeignRuntime,
 }
 

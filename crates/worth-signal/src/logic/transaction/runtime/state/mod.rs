@@ -35,6 +35,10 @@ pub use branching::{
     SignalBranchTransactionHead, StaleSignalBranchBasisArtifact,
     ValidatedBranchTargetedTransactionRequest, SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
 };
+pub(crate) use branching::{
+    BranchState, SignalOwnerMetadataState, SignalOwnerPartition, SnapshotBranchState,
+    SnapshotStatePacket,
+};
 pub use builder::SignalRuntimeBuilder;
 pub use canonical_merge_guidance::{PlannedRuntimeMerge, RuntimeMerge};
 #[cfg(test)]

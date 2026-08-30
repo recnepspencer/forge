@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
+use crate::branch::{PlannedSignalBranchRetirement, SignalBranchRetirementDenial};
 use crate::state::SignalBranchId;
 
+use super::super::branch_execution_cell::retirement::SignalBranchRetirementCellOutcome;
+use super::super::{SignalBranchCellState, SignalOwnerCancellationToken};
 use super::{
     SignalBranchExecutionCell, SignalBranchRegistry, SignalBranchRegistryDenial,
     SignalBranchRegistryEntry, SignalOwnerOperationAdmission,
@@ -17,27 +20,71 @@ pub(crate) struct SignalBranchRetirement<'a, S> {
     pub(super) admission: &'a SignalOwnerOperationAdmission,
     pub(super) branch_id: SignalBranchId,
     pub(super) cell: Arc<SignalBranchExecutionCell<S>>,
-    pub(super) cell_marked_retiring: bool,
-    pub(super) cell_retired: bool,
     pub(super) completed: bool,
 }
 
 impl<S> SignalBranchRetirement<'_, S> {
-    pub(crate) fn complete(mut self) -> Result<(), SignalBranchRegistryDenial> {
+    #[cfg(test)]
+    pub(crate) fn execute<R, D>(
+        mut self,
+        operation: impl FnOnce(&mut S, &super::super::SignalBranchCellWork<'_>) -> Result<R, D>,
+    ) -> Result<Result<R, D>, SignalBranchRegistryDenial> {
         self.registry.validate_admission(self.admission)?;
-        self.cell
-            .finish_retirement(self.admission)
+        let result = self
+            .cell
+            .with_retirement(self.admission, operation)
             .map_err(SignalBranchRegistryDenial::TargetCellDenied)?;
-        self.cell_retired = true;
+        if result.is_err() {
+            return Ok(result);
+        }
         let mut state = self.registry.lock_state();
-        if !entry_is_retiring_cell(state.cells.get(&self.branch_id), &self.cell) {
+        if !entry_is_retiring_cell(state.entries.get(&self.branch_id), &self.cell) {
             return Err(SignalBranchRegistryDenial::ExpiredRetirement(
                 self.branch_id,
             ));
         }
-        state.cells.remove(&self.branch_id);
+        state.entries.remove(&self.branch_id);
+        state.live_count = state
+            .live_count
+            .checked_sub(1)
+            .expect("completed Signal branch retirement must release live capacity");
         self.completed = true;
-        Ok(())
+        Ok(result)
+    }
+}
+
+impl<D, I, T> SignalBranchRetirement<'_, SignalBranchCellState<D, I, T>>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(crate) fn execute_exact(
+        mut self,
+        plan: PlannedSignalBranchRetirement,
+        cancellation: &SignalOwnerCancellationToken,
+    ) -> Result<
+        Result<SignalBranchRetirementCellOutcome, SignalBranchRetirementDenial>,
+        SignalBranchRegistryDenial,
+    > {
+        self.registry.validate_admission(self.admission)?;
+        let outcome = self.cell.retire_exact(self.admission, plan, cancellation);
+        if outcome.is_err() {
+            return Ok(outcome);
+        }
+        let mut state = self.registry.lock_state();
+        if !entry_is_retiring_cell(state.entries.get(&self.branch_id), &self.cell) {
+            return Err(SignalBranchRegistryDenial::ExpiredRetirement(
+                self.branch_id,
+            ));
+        }
+        state.entries.remove(&self.branch_id);
+        state.live_count = state
+            .live_count
+            .checked_sub(1)
+            .expect("completed Signal branch retirement must release live capacity");
+        self.completed = true;
+        Ok(outcome)
     }
 }
 
@@ -46,19 +93,9 @@ impl<S> Drop for SignalBranchRetirement<'_, S> {
         if self.completed {
             return;
         }
-        if self.cell_retired {
-            let mut state = self.registry.lock_state();
-            if entry_is_retiring_cell(state.cells.get(&self.branch_id), &self.cell) {
-                state.cells.remove(&self.branch_id);
-            }
-            return;
-        }
-        if self.cell_marked_retiring {
-            self.cell.cancel_retirement();
-        }
         let mut state = self.registry.lock_state();
-        if entry_is_retiring_cell(state.cells.get(&self.branch_id), &self.cell) {
-            state.cells.insert(
+        if entry_is_retiring_cell(state.entries.get(&self.branch_id), &self.cell) {
+            state.entries.insert(
                 self.branch_id,
                 SignalBranchRegistryEntry::Live(Arc::clone(&self.cell)),
             );

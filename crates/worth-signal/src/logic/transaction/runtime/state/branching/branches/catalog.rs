@@ -42,7 +42,7 @@ where
     pub(super) active_merge_participants: BTreeSet<SignalBranchId>,
     pub(super) branch_head_generations: BTreeMap<SignalBranchId, u64>,
     pub(super) branch_restore_snapshot_ids: BTreeMap<SignalBranchId, Option<SignalSnapshotId>>,
-    pub(super) retention: SignalBranchRetentionRegistry,
+    pub(super) retention: Option<SignalBranchRetentionRegistry>,
     pub(super) next_node_index: u32,
     pub(super) next_snapshot_id: u64,
     pub(super) next_branch_id: u64,
@@ -69,7 +69,7 @@ where
             active_merge_participants: BTreeSet::new(),
             branch_head_generations: BTreeMap::new(),
             branch_restore_snapshot_ids: BTreeMap::new(),
-            retention: SignalBranchRetentionRegistry::new(0),
+            retention: Some(SignalBranchRetentionRegistry::new(0)),
             next_node_index: 0,
             next_snapshot_id: 0,
             next_branch_id: 1,
@@ -97,7 +97,9 @@ where
             live_branch_catalog,
             branch_head_generations,
             branch_restore_snapshot_ids,
-            retention: SignalBranchRetentionRegistry::new(owner_runtime_instance_id),
+            retention: Some(SignalBranchRetentionRegistry::new(
+                owner_runtime_instance_id,
+            )),
             ..Self::new()
         }
     }
@@ -158,8 +160,9 @@ where
             .diagnostics_state_mut()
             .synchronize_branch_catalog(&self.live_branch_catalog, branch_id);
         let (authority, derived, _, _) = state.into_parts();
-        *graph = authority.graph;
-        *config = authority.config;
+        let (restored_graph, restored_config) = authority.into_parts();
+        *graph = restored_graph;
+        *config = restored_config;
         *checkpoint = derived.checkpoint;
         *resource = derived.resource;
         *temporal = derived.temporal;
@@ -265,6 +268,31 @@ where
                     .with_baseline_snapshot(baseline_snapshot_id),
             })
             .mutation_ledger
+    }
+
+    pub(in crate::logic::transaction::runtime) fn transaction_branch_state_mut(
+        &mut self,
+        branch_id: SignalBranchId,
+        baseline_snapshot_id: Option<crate::state::SignalSnapshotId>,
+    ) -> (
+        &mut BranchMutationLedger,
+        &mut u64,
+        &mut Option<crate::state::SignalSnapshotId>,
+    ) {
+        let meta = self
+            .branch_meta
+            .entry(branch_id)
+            .or_insert_with(|| BranchRuntimeMeta {
+                ancestry: BranchAncestryState::new(branch_id, None, baseline_snapshot_id),
+                mutation_ledger: BranchMutationLedger::default()
+                    .with_baseline_snapshot(baseline_snapshot_id),
+            });
+        let generation = self.branch_head_generations.entry(branch_id).or_insert(0);
+        let restore_snapshot_id = self
+            .branch_restore_snapshot_ids
+            .entry(branch_id)
+            .or_insert(None);
+        (&mut meta.mutation_ledger, generation, restore_snapshot_id)
     }
 
     fn observe_allocator_state(&mut self, graph: &SignalGraph) {

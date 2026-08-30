@@ -5,10 +5,20 @@ use crate::data::error::SignalError;
 use crate::state::SignalBranchId;
 
 use super::SignalBranchIdentityConstructionDenial;
-use super::{AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial};
+use super::{
+    AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable,
+};
 
 #[derive(Debug)]
 pub enum SignalBranchForkOperationDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
+    CancelledNoMovement,
+    LiveBranchCapacityExhausted {
+        maximum_live_branches: usize,
+    },
+    ReservationCapacityExhausted {
+        maximum_reservations: usize,
+    },
     UnknownBranch {
         branch_id: SignalBranchId,
     },

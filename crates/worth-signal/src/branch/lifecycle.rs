@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
-use super::AdmittedSignalBranchBasis;
+use super::{AdmittedSignalBranchBasis, SignalOwnerUnavailable};
 
 /// Descriptive lifecycle posture bound into a transported Signal basis.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,6 +22,8 @@ pub enum SignalBranchRetirementReason {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetirementDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
+    CancelledNoMovement,
     UnknownBranch {
         branch_id: SignalBranchId,
     },

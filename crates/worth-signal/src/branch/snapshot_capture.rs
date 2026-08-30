@@ -7,6 +7,7 @@ use crate::state::{SignalBranchId, SignalSnapshotV1};
 
 use super::{
     AdmittedSignalBranchBasis, SignalBranchAdmissionLease, SignalBranchRetentionAcquisitionDenial,
+    SignalOwnerUnavailable,
 };
 
 /// Owner-bound snapshot authority accepted by canonical restore operations.
@@ -53,6 +54,8 @@ impl AdmittedSignalBranchSnapshot {
 
 #[derive(Debug)]
 pub enum SignalBranchSnapshotCaptureDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
+    CancelledNoMovement,
     UnknownBranch {
         branch_id: SignalBranchId,
     },

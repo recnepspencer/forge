@@ -6,6 +6,7 @@ use super::counters::SignalOwnerServiceCounters;
 use super::SignalOwnerLifecycleObservation;
 
 static NEXT_SIGNAL_OWNER_LIFECYCLE_IDENTITY: AtomicU64 = AtomicU64::new(1);
+const OWNER_METADATA_HOLD: u64 = u64::MAX;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SignalOwnerAdmissionDenial {
@@ -200,11 +201,27 @@ impl SignalOwnerOperationAdmission {
             incarnation,
         })
     }
+
+    pub(super) fn hold_owner_metadata(
+        &self,
+    ) -> Result<SignalOwnerMetadataHold<'_>, SignalOwnerMetadataHoldDenial> {
+        self.held_branch_cell_incarnation
+            .compare_exchange(0, OWNER_METADATA_HOLD, Ordering::Acquire, Ordering::Relaxed)
+            .map_err(|_| SignalOwnerMetadataHoldDenial::BranchCellOrMetadataAlreadyHeld)?;
+        Ok(SignalOwnerMetadataHold {
+            held_posture: &self.held_branch_cell_incarnation,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum SignalOwnerBranchCellHoldDenial {
     SecondCellWhileHeld,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SignalOwnerMetadataHoldDenial {
+    BranchCellOrMetadataAlreadyHeld,
 }
 
 pub(super) struct SignalOwnerBranchCellHold<'a> {
@@ -216,6 +233,17 @@ impl Drop for SignalOwnerBranchCellHold<'_> {
     fn drop(&mut self) {
         let released = self.held_incarnation.swap(0, Ordering::Release);
         debug_assert_eq!(released, self.incarnation.get());
+    }
+}
+
+pub(super) struct SignalOwnerMetadataHold<'a> {
+    held_posture: &'a AtomicU64,
+}
+
+impl Drop for SignalOwnerMetadataHold<'_> {
+    fn drop(&mut self) {
+        let released = self.held_posture.swap(0, Ordering::Release);
+        debug_assert_eq!(released, OWNER_METADATA_HOLD);
     }
 }
 

@@ -1,0 +1,86 @@
+use super::super::branching::{BranchManager, SignalOwnerPartitionDenial};
+use crate::branch::owner_services::{
+    SignalBranchBasisPort, SignalBranchLifecyclePort, SignalBranchMutationPort,
+    SignalOwnerServiceIssuanceDenial, DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES,
+};
+
+use super::SignalRuntime;
+
+type SignalOwnerPortSlots<D, I, E, Ctx, T> = (
+    SignalBranchBasisPort<D, I, T>,
+    SignalBranchMutationPort<D, I, E, Ctx, T>,
+    SignalBranchLifecyclePort<D, I, T>,
+);
+
+impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(crate) fn owner_service_issuance_capability(
+        &self,
+    ) -> Result<(), SignalOwnerServiceIssuanceDenial> {
+        if self.owner_services.is_sealed() {
+            return Ok(());
+        }
+        if !self.event_bus.independent_branch_service_compatible() {
+            return Err(SignalOwnerServiceIssuanceDenial::EventSubscriberStateConfigured);
+        }
+        if self.observations.registration_count() != 0 {
+            return Err(SignalOwnerServiceIssuanceDenial::ObservationRegistrationStateConfigured);
+        }
+        let bound_queue_count = self.resource.bound_managed_queue_count();
+        if bound_queue_count != 0 {
+            return Err(
+                SignalOwnerServiceIssuanceDenial::ManagedQueueStateConfigured { bound_queue_count },
+            );
+        }
+        match self.branches.validate_owner_partition(
+            self.graph.current_branch().id,
+            DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES,
+        ) {
+            Ok(()) => Ok(()),
+            Err(SignalOwnerPartitionDenial::LiveBranchCapacityExhausted {
+                maximum_live_branches,
+            }) => Err(
+                SignalOwnerServiceIssuanceDenial::LiveBranchCapacityExhausted {
+                    maximum_live_branches,
+                },
+            ),
+            Err(denial) => panic!("Signal branch owner partition invariant failed: {denial:?}"),
+        }
+    }
+
+    pub(crate) fn owner_port_slots(
+        &mut self,
+    ) -> Result<SignalOwnerPortSlots<D, I, E, Ctx, T>, SignalOwnerServiceIssuanceDenial>
+    where
+        D: Send + Sync + 'static,
+        I: Send + Sync + 'static,
+        T: Send + Sync + 'static,
+    {
+        self.owner_service_issuance_capability()?;
+        if !self.owner_services.is_sealed() {
+            let runtime_instance_id = self.branches.owner_runtime_instance_id();
+            let active_state = self
+                .take_heavy_active_branch_state()
+                .expect("issuance preflight rejects non-transferable active state");
+            let empty_legacy =
+                BranchManager::with_live_catalog(Default::default(), runtime_instance_id);
+            let branches = std::mem::replace(&mut self.branches, empty_legacy);
+            let partition = branches.into_owner_partition(active_state);
+            self.owner_services.seal(partition);
+        }
+        let weak_owner = self
+            .owner_services
+            .downgrade_owner()
+            .expect("a sealed owner root always downgrades");
+        let diagnostic_owner_runtime_instance_id = self.branches.owner_runtime_instance_id();
+        Ok((
+            SignalBranchBasisPort::new(weak_owner.clone(), diagnostic_owner_runtime_instance_id),
+            SignalBranchMutationPort::new(weak_owner.clone(), diagnostic_owner_runtime_instance_id),
+            SignalBranchLifecyclePort::new(weak_owner, diagnostic_owner_runtime_instance_id),
+        ))
+    }
+}
