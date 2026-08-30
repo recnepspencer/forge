@@ -4,6 +4,7 @@ use worth_query_decl::facade::application_schema::{
 };
 use worth_query_decl::facade::{
     worth_query_application_schema, worth_query_aspect, worth_query_entity, worth_query_field,
+    worth_query_portable_type,
 };
 
 worth_query_application_schema! {
@@ -71,6 +72,11 @@ pub struct UiMeasurementValue(CanonicalF32);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct UiSizeValue(CanonicalF32);
+
+worth_query_portable_type!(
+    UiMeasurementValue => "worth.ui.query-binding.measurement-value.v1"
+);
+worth_query_portable_type!(UiSizeValue => "worth.ui.query-binding.size-value.v1");
 
 macro_rules! float_application_value_api {
     ($type:ty) => {

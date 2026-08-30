@@ -87,6 +87,13 @@ impl StreamingDatasetRuntimeBackend {
     }
 }
 
+impl worth_query::facade::runtime::WorthQuerySettlementRecoveryBackend
+    for StreamingDatasetRuntimeBackend
+{
+}
+
+impl worth_query::facade::runtime::WorthQueryMergeSnapshotOwner for StreamingDatasetRuntimeBackend {}
+
 impl WorthQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         WorthQueryRuntimeSupportProfile::scaffold_backend_profile()

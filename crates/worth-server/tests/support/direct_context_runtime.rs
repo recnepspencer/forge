@@ -87,6 +87,10 @@ impl RemaskRuntimeBackend {
     }
 }
 
+impl worth_query::facade::runtime::WorthQuerySettlementRecoveryBackend for RemaskRuntimeBackend {}
+
+impl worth_query::facade::runtime::WorthQueryMergeSnapshotOwner for RemaskRuntimeBackend {}
+
 impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()

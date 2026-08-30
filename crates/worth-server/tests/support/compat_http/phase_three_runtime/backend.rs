@@ -1,5 +1,15 @@
 use super::*;
 
+impl worth_query::facade::runtime::WorthQuerySettlementRecoveryBackend
+    for StatefulCountingMutationRuntimeBackend
+{
+}
+
+impl worth_query::facade::runtime::WorthQueryMergeSnapshotOwner
+    for StatefulCountingMutationRuntimeBackend
+{
+}
+
 impl WorthQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()
