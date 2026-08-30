@@ -13,7 +13,8 @@ submilestones:
 2. [Milestone 9.17.1.1](./milestone-9.17.1.1.md) corrects the owner-port
    concurrency, performed-settlement recovery, exact Signal retention,
    facade, evidence-lane, and documentation defects discovered after 9.17.1
-   closure without reopening its historical phase record.
+   closure without reopening its historical phase record. Closed on
+   2026-08-29, which is what allows 9.17.2 to begin.
 3. [Milestone 9.17.2](./milestone-9.17.2.md) establishes Runtime Bridge-owned
    in-memory composite runtime-world history and coordinated publication.
 4. [Milestone 9.17.3](./milestone-9.17.3.md) carries that authority through

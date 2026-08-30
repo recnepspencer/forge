@@ -5149,23 +5149,30 @@ composite product claim.
 
 #### Milestone 9.17.1.1: Owner-Port Concurrency And Lifecycle Closure
 
-Status: Proposed corrective prerequisite for 9.17.2. Milestone 9.17.1 remains
-closed and historical. Independent post-closure review found that the current
-owner handoff still requires exclusive Relational runtime borrowing around
-preparation and settlement, can lose the only recoverable performed-settlement
-state, rejects exact historical Signal retention as stale, and can leak a
-dropped Signal external lease. It also found a missing concrete facade export,
-unexecuted scheduled and feature-gated evidence, an untested contention outcome,
-and owner documentation that does not match the implemented lifecycle.
+Status: Closed on 2026-08-29. The corrected 9.17.2 handoff is frozen in
+`crates/worth-relational/OWNER_COMPONENT_PORT.md` and
+`crates/worth-signal/BRANCH_BASES.md`; the executable owner flows are
+`crates/worth-relational/BRANCH_LOCAL_MVCC.md` and its `branch_local_mvcc`
+example, and the `branch_bases` example beside the Signal guide. Milestone
+9.17.1 remains closed and historical. Independent post-closure review had found
+that the owner handoff still required exclusive Relational runtime borrowing
+around preparation and settlement, could lose the only recoverable
+performed-settlement state, rejected exact historical Signal retention as stale,
+and could leak a dropped Signal external lease. It also found a missing concrete
+facade export, unexecuted scheduled and feature-gated evidence, an untested
+contention outcome, and owner documentation that did not match the implemented
+lifecycle.
 
-This corrective milestone replaces those seams with independently borrowable
-Relational preparation, fork, publication, and settlement services; installs
-bounded runtime-owned settlement recovery before component movement;
-retains exact Signal targets independently of currentness; makes ordinary lease
-drop terminal; and closes the facade, defensive failure, executable example,
-CI, cost-scope, naming, and documentation contracts. Runtime Bridge 9.17.2 may
-consume only this corrected owner surface and may not repair it in the
-composition layer.
+This corrective milestone replaced those seams with independently borrowable
+Relational preparation, fork, publication, and settlement services; installed
+bounded runtime-owned settlement recovery before component movement; retained
+exact Signal targets independently of currentness; made ordinary lease drop
+terminal; and closed the facade, defensive failure, executable example, CI,
+cost-scope, naming, and documentation contracts. Every documented feature-gated
+and scheduled proof now executes under its real compiled name through one named
+selection authority that fails a lane reaching zero executable tests. Runtime
+Bridge 9.17.2 may consume only this corrected owner surface and may not repair
+it in the composition layer.
 
 #### Milestone 9.17.2: Composite Runtime-World History And Coordinated Publication
 

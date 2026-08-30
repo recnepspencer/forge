@@ -1,6 +1,10 @@
 # Milestone 9.17.1.1: Owner-Port Concurrency And Lifecycle Closure
 
-> **Status:** Proposed corrective prerequisite for Milestone 9.17.2
+> **Status:** Closed on 2026-08-29. Every phase is implemented, independently
+> reviewed, and verified on the integrated tree. The corrected owner-component
+> surface Milestone 9.17.2 consumes is frozen in the handoff below and,
+> normatively, in `crates/worth-relational/OWNER_COMPONENT_PORT.md` and
+> `crates/worth-signal/BRANCH_BASES.md`.
 >
 > **Historical posture:** Milestone 9.17.1 remains closed and historical. This
 > corrective sub-milestone repairs the current owner-component contract exposed
@@ -795,21 +799,47 @@ path, or non-current exact retention does not close the corresponding claim.
 
 ## Exact Handoff To Milestone 9.17.2
 
-After 9.17.1.1 closes, Runtime Bridge may depend only on public owner facades to:
+Runtime Bridge may depend only on public owner facades to:
 
 - obtain independently borrowable Relational preparation, fork, publication,
-  settlement, observation, retention, and lifecycle services;
-- obtain or readmit exact owner-issued Relational and Signal bases;
+  settlement, observation, retention, and lifecycle services, through
+  `facade::mvcc::{RelationalPreparationPort, RelationalPublicationPort,
+  RelationalSettlementPort}` and `facade::branch::RelationalForkPort`, each
+  taken by shared borrow;
+- obtain or readmit exact owner-issued Relational and Signal bases, through
+  `facade::branch::{AdmittedRelationalBranchBasis,
+  AdmittedRelationalForkSourceBasis}` and
+  `worth_signal::facade::branch::AdmittedSignalBranchBasis`;
 - retain and release a current or historical exact component basis for one
-  named composite obligation;
+  named composite obligation, through
+  `facade::branch::RelationalBranchRetentionLease` and
+  `worth_signal::facade::branch::SignalBranchRetentionLease`, whose ordinary
+  drop is terminal;
 - prepare and consume one opaque Relational candidate without borrowing the
-  entire runtime mutably;
+  entire runtime mutably, through
+  `facade::mvcc::{PreparedRelationalCommitCandidate,
+  DiscardedRelationalCommitCandidate}`;
 - receive and settle a performed Relational publication, or recover it by owner
   commit identity through the runtime-affine settlement service after
-  capability loss;
+  capability loss, through `facade::mvcc::PerformedRelationalCommit` and
+  `RelationalSettlementPort`;
 - receive typed stale, denied, interrupted, deferred, failed, owner-loss, and
-  terminal release outcomes; and
-- observe exact cost and sharing artifacts through the frozen facade names.
+  terminal release outcomes, through
+  `facade::mvcc::{RelationalPublicationOutcome, RelationalPublicationDenial,
+  RelationalPublicationDeferred, RelationalPublicationFailureKind,
+  StaleRelationalBranchObservation}` and
+  `facade::branch::RelationalBranchRetentionTerminalOutcome`; and
+- observe exact cost and sharing artifacts through the frozen facade names
+  `observe_mvcc_cost` and `observe_branch_sharing`, whose observations and
+  declared byte scope are
+  `facade::inspection::{RelationalMvccCostObservation,
+  RelationalBranchSharingObservation, RelationalSharingByteMetricScope}`.
+
+These routes name the surface; they do not restate its contract. The normative
+owner contract, including exact preconditions, outcome meanings, and lifecycle
+obligations, is frozen in `crates/worth-relational/OWNER_COMPONENT_PORT.md` and
+`crates/worth-signal/BRANCH_BASES.md`. Where this section and those guides could
+be read differently, the guides govern.
 
 Runtime Bridge may not inspect pending-settlement or retention registries,
 construct an owner authority, retain only a branch id, treat currentness as
