@@ -1,9 +1,42 @@
 use worth_store_physical_integrity::{
+    IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointBindingCompaction,
+    IntegrityValidatedCheckpointDirtyBasis, IntegrityValidatedCheckpointFooter,
+    IntegrityValidatedCheckpointStreamHeader,
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
     IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedRootManifest, IntegrityValidatedWalFrame,
 };
+
+fn escape_checkpoint_header<'media>(
+    validation: IntegrityValidatedCheckpointStreamHeader<'media>,
+) -> IntegrityValidatedCheckpointStreamHeader<'static> {
+    validation
+}
+
+fn escape_checkpoint_dirty<'media>(
+    validation: IntegrityValidatedCheckpointDirtyBasis<'media>,
+) -> IntegrityValidatedCheckpointDirtyBasis<'static> {
+    validation
+}
+
+fn escape_checkpoint_compaction<'media>(
+    validation: IntegrityValidatedCheckpointBindingCompaction<'media>,
+) -> IntegrityValidatedCheckpointBindingCompaction<'static> {
+    validation
+}
+
+fn escape_checkpoint_binding<'media>(
+    validation: IntegrityValidatedCheckpointBinding<'media>,
+) -> IntegrityValidatedCheckpointBinding<'static> {
+    validation
+}
+
+fn escape_checkpoint_footer<'media>(
+    validation: IntegrityValidatedCheckpointFooter<'media>,
+) -> IntegrityValidatedCheckpointFooter<'static> {
+    validation
+}
 
 fn escape_current<'media>(
     validation: IntegrityValidatedCurrentRootSelector<'media>,

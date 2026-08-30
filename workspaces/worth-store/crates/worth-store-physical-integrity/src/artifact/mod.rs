@@ -1,3 +1,4 @@
+pub(crate) mod checkpoint;
 mod durable_frame_rejection;
 pub(crate) mod extent;
 pub(crate) mod free_space;
@@ -6,6 +7,13 @@ pub(crate) mod physical_work_obligation;
 pub(crate) mod root;
 mod wal_frame;
 
+pub use checkpoint::{
+    validate_checkpoint_binding, validate_checkpoint_binding_compaction,
+    validate_checkpoint_dirty_basis, validate_checkpoint_footer, validate_checkpoint_stream_header,
+    CheckpointBindingCompactionIntegrityValidation, CheckpointBindingIntegrityValidation,
+    CheckpointDirtyBasisIntegrityValidation, CheckpointFooterIntegrityValidation,
+    CheckpointFooterValidationBasis, CheckpointStreamHeaderIntegrityValidation,
+};
 pub use extent::{
     validate_extent_chunk, validate_extent_manifest, ExtentChunkIntegrityValidation,
     ExtentManifestIntegrityValidation,

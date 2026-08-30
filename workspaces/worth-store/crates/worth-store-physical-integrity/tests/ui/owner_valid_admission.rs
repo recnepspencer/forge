@@ -1,5 +1,8 @@
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 use worth_store_physical_integrity::{
+    CheckpointFooterValidationBasis, IntegrityValidatedCheckpointBinding,
+    IntegrityValidatedCheckpointBindingCompaction, IntegrityValidatedCheckpointDirtyBasis,
+    IntegrityValidatedCheckpointFooter, IntegrityValidatedCheckpointStreamHeader,
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest, PhysicalArtifactScope,
     IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
@@ -9,6 +12,81 @@ use worth_store_physical_integrity::{
 
 fn main() {
     let _input = UntrustedPhysicalArtifact::from_bounded_bytes(b"untrusted");
+}
+
+fn valid_checkpoint_header<'media>(
+    validated: IntegrityValidatedCheckpointStreamHeader<'media>,
+    input: UntrustedPhysicalArtifact<'media>,
+) -> PhysicalIntegrityValidationRecord {
+    let scope = validated.scope();
+    let _identity = validated.checkpoint_identity();
+    let _source = validated.source();
+    let _same_incarnation = validated.matches_input(input);
+    let record = validated.into_validation_record();
+    let _same_scope = record.matches_scope(scope);
+    record
+}
+
+fn valid_checkpoint_dirty<'media>(
+    validated: IntegrityValidatedCheckpointDirtyBasis<'media>,
+    input: UntrustedPhysicalArtifact<'media>,
+) -> PhysicalIntegrityValidationRecord {
+    let scope = validated.scope();
+    let _basis = validated.basis();
+    let _same_incarnation = validated.matches_input(input);
+    let record = validated.into_validation_record();
+    let _same_scope = record.matches_scope(scope);
+    record
+}
+
+fn valid_checkpoint_compaction<'media>(
+    validated: IntegrityValidatedCheckpointBindingCompaction<'media>,
+    input: UntrustedPhysicalArtifact<'media>,
+) -> PhysicalIntegrityValidationRecord {
+    let scope = validated.scope();
+    let _generation = validated.generation();
+    let _wal_cutoff = validated.wal_cutoff_lsn_exclusive();
+    let _same_incarnation = validated.matches_input(input);
+    let record = validated.into_validation_record();
+    let _same_scope = record.matches_scope(scope);
+    record
+}
+
+fn valid_checkpoint_binding<'media>(
+    validated: IntegrityValidatedCheckpointBinding<'media>,
+    input: UntrustedPhysicalArtifact<'media>,
+) -> PhysicalIntegrityValidationRecord {
+    let scope = validated.scope();
+    let _payload_bytes = validated.payload_bytes();
+    let _encoded_bytes = validated.encoded_bytes();
+    let _same_incarnation = validated.matches_input(input);
+    let record = validated.into_validation_record();
+    let _same_scope = record.matches_scope(scope);
+    record
+}
+
+fn valid_checkpoint_footer<'media>(
+    validated: IntegrityValidatedCheckpointFooter<'media>,
+    input: UntrustedPhysicalArtifact<'media>,
+) -> PhysicalIntegrityValidationRecord {
+    let scope = validated.scope();
+    let _footer = validated.footer();
+    let _same_incarnation = validated.matches_input(input);
+    let record = validated.into_validation_record();
+    let _same_scope = record.matches_scope(scope);
+    record
+}
+
+fn valid_checkpoint_progression<'records, 'media>(
+    header: &'records IntegrityValidatedCheckpointStreamHeader<'media>,
+    dirty: &'records [IntegrityValidatedCheckpointDirtyBasis<'media>],
+    compaction: &'records IntegrityValidatedCheckpointBindingCompaction<'media>,
+    bindings: &'records [IntegrityValidatedCheckpointBinding<'media>],
+    range: PhysicalByteRange,
+) {
+    let identity = header.checkpoint_identity();
+    let _later_scope = PhysicalArtifactScope::checkpoint_dirty_basis(identity, range);
+    let _footer_basis = CheckpointFooterValidationBasis::new(header, dirty, compaction, bindings);
 }
 
 fn selector_scope(store: StableStoreIdentity) -> PhysicalArtifactScope {

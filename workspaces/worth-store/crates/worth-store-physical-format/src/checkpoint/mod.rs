@@ -7,6 +7,7 @@ mod footer;
 mod identity;
 mod inspection;
 mod record;
+mod selective_aggregate;
 mod source;
 mod stream;
 
@@ -15,6 +16,9 @@ pub use footer::{CheckpointStreamFooter, CHECKPOINT_STREAM_FOOTER_RECORD_BYTES};
 pub use identity::PhysicalCheckpointIdentity;
 pub use inspection::{inspect_checkpoint_stream, VerifiedCheckpointStream};
 pub use record::CheckpointStreamDecodeDenial;
+pub use selective_aggregate::{
+    CheckpointSelectiveRecordAggregate, CheckpointSelectiveRecordSummary,
+};
 pub use source::{
     CheckpointRootBasis, CheckpointWalSourceRange, PhysicalCheckpointSecurityBinding,
     PhysicalCheckpointSource, CHECKPOINT_STREAM_HEADER_RECORD_BYTES,

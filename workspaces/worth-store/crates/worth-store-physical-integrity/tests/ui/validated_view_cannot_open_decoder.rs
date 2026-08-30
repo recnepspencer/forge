@@ -1,15 +1,40 @@
 use worth_store_physical_format::physical_work_obligation::decode_physical_work_obligation_v6;
 use worth_store_physical_format::wal_frame::decode_bounded_wal_frame_v1;
 use worth_store_physical_format::{
-    decode_extent_chunk, inspect_inline_page, DurableExtentManifest,
-    DurablePhysicalRootManifest, DurableRootSelector, ExtentChunkCoordinate,
+    decode_checkpoint_binding_record, decode_extent_chunk, inspect_inline_page,
+    CheckpointBindingCompactionHeader,
+    CheckpointDirtyFrameBasis, CheckpointStreamFooter, DurablePhysicalRootManifest,
+    DurableExtentManifest, DurableRootSelector, ExtentChunkCoordinate, PhysicalCheckpointSource,
 };
 use worth_store_physical_integrity::{
+    IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointBindingCompaction,
+    IntegrityValidatedCheckpointDirtyBasis, IntegrityValidatedCheckpointFooter,
+    IntegrityValidatedCheckpointStreamHeader,
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
     IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedRootManifest, IntegrityValidatedWalFrame,
 };
+
+fn decode_checkpoint_header(validated: IntegrityValidatedCheckpointStreamHeader<'_>) {
+    let _ = PhysicalCheckpointSource::decode_stream_header_record(validated);
+}
+
+fn decode_checkpoint_dirty(validated: IntegrityValidatedCheckpointDirtyBasis<'_>) {
+    let _ = CheckpointDirtyFrameBasis::decode_record(validated);
+}
+
+fn decode_checkpoint_compaction(validated: IntegrityValidatedCheckpointBindingCompaction<'_>) {
+    let _ = CheckpointBindingCompactionHeader::decode_record(validated);
+}
+
+fn decode_checkpoint_binding(validated: IntegrityValidatedCheckpointBinding<'_>) {
+    let _ = decode_checkpoint_binding_record(validated);
+}
+
+fn decode_checkpoint_footer(validated: IntegrityValidatedCheckpointFooter<'_>) {
+    let _ = CheckpointStreamFooter::decode_record(validated);
+}
 
 fn decode_selector(validated: IntegrityValidatedCurrentRootSelector<'_>) {
     let _ = DurableRootSelector::decode(validated);

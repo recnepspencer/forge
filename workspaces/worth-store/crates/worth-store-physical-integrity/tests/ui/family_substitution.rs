@@ -1,9 +1,16 @@
 use worth_store_physical_integrity::{
+    IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointDirtyBasis,
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
     IntegrityValidatedPageFrame, IntegrityValidatedPreviousRootSelector,
     IntegrityValidatedWalFrame,
 };
+
+fn requires_dirty(_: IntegrityValidatedCheckpointDirtyBasis<'_>) {}
+
+fn substitute_checkpoint(binding: IntegrityValidatedCheckpointBinding<'_>) {
+    requires_dirty(binding);
+}
 
 fn requires_current(_: IntegrityValidatedCurrentRootSelector<'_>) {}
 fn requires_physical_work(_: IntegrityValidatedPhysicalWorkObligation<'_>) {}

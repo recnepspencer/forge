@@ -91,6 +91,7 @@ pub use checkpoint::{
     CheckpointBackupArtifactInput, CheckpointBindingCompactionDecoder,
     CheckpointBindingCompactionEncoder, CheckpointBindingCompactionHeader,
     CheckpointBindingRecordFrameLength, CheckpointDirtyFrameBasis, CheckpointRootBasis,
+    CheckpointSelectiveRecordAggregate, CheckpointSelectiveRecordSummary,
     CheckpointStreamDecodeDenial, CheckpointStreamDecoder, CheckpointStreamEncoder,
     CheckpointStreamFooter, CheckpointWalSourceRange, DecodedCheckpointBackupArtifact,
     PersistedCompactionCutoverRecord, PersistedCompactionProductRole, PhysicalCheckpointIdentity,

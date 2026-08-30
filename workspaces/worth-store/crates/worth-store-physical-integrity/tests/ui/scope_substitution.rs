@@ -1,7 +1,8 @@
 use worth_store_physical_integrity::{
+    CheckpointStreamHeaderScopeIdentity, IntegrityValidatedCheckpointDirtyBasis,
     IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
     IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedRootManifest,
-    PhysicalArtifactScope,
+    PhysicalArtifactScope, PhysicalByteRange,
 };
 
 fn retarget(validated: IntegrityValidatedRootManifest<'_>, other_scope: PhysicalArtifactScope) {
@@ -31,6 +32,17 @@ fn retarget_extent_chunk(
     other_scope: PhysicalArtifactScope,
 ) {
     let _ = validated.with_scope(other_scope);
+}
+
+fn retarget_checkpoint(
+    validated: IntegrityValidatedCheckpointDirtyBasis<'_>,
+    other_scope: PhysicalArtifactScope,
+) {
+    let _ = validated.with_scope(other_scope);
+}
+
+fn stage_later_record(identity: CheckpointStreamHeaderScopeIdentity, range: PhysicalByteRange) {
+    let _ = PhysicalArtifactScope::checkpoint_dirty_basis(identity, range);
 }
 
 fn main() {}

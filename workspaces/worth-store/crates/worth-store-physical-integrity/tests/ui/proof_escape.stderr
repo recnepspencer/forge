@@ -1,71 +1,116 @@
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:11:5
+  --> tests/ui/proof_escape.rs:14:5
    |
- 8 | fn escape_current<'media>(
+11 | fn escape_checkpoint_header<'media>(
+   |                             ------ lifetime `'media` defined here
+...
+14 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:20:5
+   |
+17 | fn escape_checkpoint_dirty<'media>(
+   |                            ------ lifetime `'media` defined here
+...
+20 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:26:5
+   |
+23 | fn escape_checkpoint_compaction<'media>(
+   |                                 ------ lifetime `'media` defined here
+...
+26 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:32:5
+   |
+29 | fn escape_checkpoint_binding<'media>(
+   |                              ------ lifetime `'media` defined here
+...
+32 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:38:5
+   |
+35 | fn escape_checkpoint_footer<'media>(
+   |                             ------ lifetime `'media` defined here
+...
+38 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:44:5
+   |
+41 | fn escape_current<'media>(
    |                   ------ lifetime `'media` defined here
 ...
-11 |     validation
+44 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:17:5
+  --> tests/ui/proof_escape.rs:50:5
    |
-14 | fn escape_previous<'media>(
+47 | fn escape_previous<'media>(
    |                    ------ lifetime `'media` defined here
 ...
-17 |     validation
+50 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:23:5
+  --> tests/ui/proof_escape.rs:56:5
    |
-20 | fn escape_manifest<'media>(
+53 | fn escape_manifest<'media>(
    |                    ------ lifetime `'media` defined here
 ...
-23 |     validation
+56 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:29:5
+  --> tests/ui/proof_escape.rs:62:5
    |
-26 | fn escape_physical_work<'media>(
+59 | fn escape_physical_work<'media>(
    |                         ------ lifetime `'media` defined here
 ...
-29 |     validation
+62 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:35:5
+  --> tests/ui/proof_escape.rs:68:5
    |
-32 | fn escape_page<'media>(
+65 | fn escape_page<'media>(
    |                ------ lifetime `'media` defined here
 ...
-35 |     validation
+68 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:41:5
+  --> tests/ui/proof_escape.rs:74:5
    |
-38 | fn escape_wal<'media>(
+71 | fn escape_wal<'media>(
    |               ------ lifetime `'media` defined here
 ...
-41 |     validation
+74 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:47:5
+  --> tests/ui/proof_escape.rs:80:5
    |
-44 | fn escape_extent_manifest<'media>(
+77 | fn escape_extent_manifest<'media>(
    |                           ------ lifetime `'media` defined here
 ...
-47 |     validation
+80 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
 
 error: lifetime may not live long enough
-  --> tests/ui/proof_escape.rs:53:5
+  --> tests/ui/proof_escape.rs:86:5
    |
-50 | fn escape_extent_chunk<'media>(
+83 | fn escape_extent_chunk<'media>(
    |                        ------ lifetime `'media` defined here
 ...
-53 |     validation
+86 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`

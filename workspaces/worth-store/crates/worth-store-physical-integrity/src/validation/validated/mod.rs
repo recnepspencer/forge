@@ -1,3 +1,4 @@
+mod checkpoint;
 mod current_root_selector;
 mod extent_chunk;
 mod extent_manifest;
@@ -9,6 +10,11 @@ mod previous_root_selector;
 mod root_manifest;
 mod wal_frame;
 
+pub use checkpoint::{
+    IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointBindingCompaction,
+    IntegrityValidatedCheckpointDirtyBasis, IntegrityValidatedCheckpointFooter,
+    IntegrityValidatedCheckpointStreamHeader,
+};
 pub use current_root_selector::IntegrityValidatedCurrentRootSelector;
 pub use extent_chunk::IntegrityValidatedExtentChunkFrame;
 pub use extent_manifest::IntegrityValidatedExtentManifest;

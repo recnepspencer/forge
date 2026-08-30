@@ -1,4 +1,5 @@
 mod backup_artifact;
+mod golden;
 mod hostile;
 mod roundtrip;
 
