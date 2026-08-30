@@ -45,7 +45,7 @@ impl super::PhysicalSignalGraph {
                 None => transaction.mark_changed(source, aspect),
             })
             .map_err(|_| PhysicalSignalDeltaApplicationFailure::SignalMutationRejected)?;
-        self.evaluate_dirty()
+        self.settle_dependency(source)
             .map_err(|_| PhysicalSignalDeltaApplicationFailure::SignalEvaluationRejected)
     }
 }
