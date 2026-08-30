@@ -9,6 +9,13 @@ pub(super) struct RelationalOwnerServiceBinding {
     lifecycle: RelationalRuntimeOwnerBinding,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RelationalOwnerServiceLifecyclePosture {
+    Open,
+    Closing,
+    Closed,
+}
+
 impl RelationalOwnerServiceBinding {
     pub(super) fn new(
         state: Weak<RelationalRuntimeState>,
@@ -17,8 +24,14 @@ impl RelationalOwnerServiceBinding {
         Self { state, lifecycle }
     }
 
-    pub(super) fn state_is_alive(&self) -> bool {
-        self.state.strong_count() != 0
+    pub(super) fn lifecycle_posture(&self) -> RelationalOwnerServiceLifecyclePosture {
+        if self.lifecycle.accepts_operations() {
+            return RelationalOwnerServiceLifecyclePosture::Open;
+        }
+        match self.state.upgrade() {
+            Some(_state) => RelationalOwnerServiceLifecyclePosture::Closing,
+            None => RelationalOwnerServiceLifecyclePosture::Closed,
+        }
     }
 
     pub(super) fn admitted_runtime(&self) -> Option<RelationalRuntime> {

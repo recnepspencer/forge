@@ -1,6 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
+use super::cell_incarnation::SignalBranchCellIncarnation;
 use super::counters::SignalOwnerServiceCounters;
 use super::SignalOwnerLifecycleObservation;
 
@@ -22,6 +23,11 @@ pub(crate) enum SignalOwnerAdmissionMismatch {
 pub(crate) struct SignalOwnerCloseDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SignalOwnerLifecyclePoisonRecovery {
+    PreservedLifecycleStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct SignalOwnerLifecycleIdentity(u64);
 
 #[derive(Debug)]
@@ -37,6 +43,7 @@ pub(crate) struct SignalOwnerLifecycleState {
     status: Mutex<SignalOwnerLifecycleStatus>,
     drain: Condvar,
     counters: Arc<SignalOwnerServiceCounters>,
+    recovered_poison: AtomicBool,
 }
 
 impl SignalOwnerLifecycleState {
@@ -53,6 +60,7 @@ impl SignalOwnerLifecycleState {
             }),
             drain: Condvar::new(),
             counters,
+            recovered_poison: AtomicBool::new(false),
         })
     }
 
@@ -72,6 +80,7 @@ impl SignalOwnerLifecycleState {
             lifecycle: Arc::clone(self),
             owner_runtime_instance_id,
             lifecycle_identity: self.lifecycle_identity,
+            held_branch_cell_incarnation: AtomicU64::new(0),
         })
     }
 
@@ -93,10 +102,10 @@ impl SignalOwnerLifecycleState {
                 self.drain.notify_all();
                 break;
             }
-            status = self
-                .drain
-                .wait(status)
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            status = match self.drain.wait(status) {
+                Ok(status) => status,
+                Err(poisoned) => self.recover_poisoned_status(poisoned),
+            };
         }
         Ok(())
     }
@@ -117,6 +126,12 @@ impl SignalOwnerLifecycleState {
         Arc::clone(&self.counters)
     }
 
+    pub(crate) fn poison_recovery(&self) -> Option<SignalOwnerLifecyclePoisonRecovery> {
+        self.recovered_poison
+            .load(Ordering::Acquire)
+            .then_some(SignalOwnerLifecyclePoisonRecovery::PreservedLifecycleStatus)
+    }
+
     fn release_operation(&self) {
         let mut status = self.lock_status();
         debug_assert!(status.admitted_operations > 0);
@@ -129,9 +144,24 @@ impl SignalOwnerLifecycleState {
     }
 
     fn lock_status(&self) -> MutexGuard<'_, SignalOwnerLifecycleStatus> {
-        self.status
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        match self.status.lock() {
+            Ok(status) => status,
+            Err(poisoned) => self.recover_poisoned_status(poisoned),
+        }
+    }
+
+    fn recover_poisoned_status<'a>(
+        &self,
+        poisoned: std::sync::PoisonError<MutexGuard<'a, SignalOwnerLifecycleStatus>>,
+    ) -> MutexGuard<'a, SignalOwnerLifecycleStatus> {
+        self.recovered_poison.store(true, Ordering::Release);
+        poisoned.into_inner()
+    }
+
+    #[cfg(test)]
+    pub(super) fn poison_status_for_test(&self) {
+        let _status = self.lock_status();
+        panic!("inject lifecycle-status poison");
     }
 }
 
@@ -140,6 +170,7 @@ pub(crate) struct SignalOwnerOperationAdmission {
     lifecycle: Arc<SignalOwnerLifecycleState>,
     owner_runtime_instance_id: u64,
     lifecycle_identity: SignalOwnerLifecycleIdentity,
+    held_branch_cell_incarnation: AtomicU64,
 }
 
 impl SignalOwnerOperationAdmission {
@@ -155,6 +186,36 @@ impl SignalOwnerOperationAdmission {
             return Err(SignalOwnerAdmissionMismatch::ExpiredLifecycle);
         }
         Ok(())
+    }
+
+    pub(super) fn hold_branch_cell(
+        &self,
+        incarnation: SignalBranchCellIncarnation,
+    ) -> Result<SignalOwnerBranchCellHold<'_>, SignalOwnerBranchCellHoldDenial> {
+        self.held_branch_cell_incarnation
+            .compare_exchange(0, incarnation.get(), Ordering::Acquire, Ordering::Relaxed)
+            .map_err(|_| SignalOwnerBranchCellHoldDenial::SecondCellWhileHeld)?;
+        Ok(SignalOwnerBranchCellHold {
+            held_incarnation: &self.held_branch_cell_incarnation,
+            incarnation,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SignalOwnerBranchCellHoldDenial {
+    SecondCellWhileHeld,
+}
+
+pub(super) struct SignalOwnerBranchCellHold<'a> {
+    held_incarnation: &'a AtomicU64,
+    incarnation: SignalBranchCellIncarnation,
+}
+
+impl Drop for SignalOwnerBranchCellHold<'_> {
+    fn drop(&mut self) {
+        let released = self.held_incarnation.swap(0, Ordering::Release);
+        debug_assert_eq!(released, self.incarnation.get());
     }
 }
 

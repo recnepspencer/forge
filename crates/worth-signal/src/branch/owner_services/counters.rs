@@ -136,6 +136,10 @@ impl SignalOwnerServiceCounters {
         Self::increment(&self.branch_registry_reservations);
     }
 
+    pub(crate) fn record_branch_registry_entry_scanned(&self) {
+        Self::increment(&self.branch_registry_entries_scanned);
+    }
+
     pub(crate) fn record_target_cell_contact(&self) {
         Self::increment(&self.target_cell_contacts);
     }

@@ -2,6 +2,7 @@ mod admission_affinity;
 mod branch_registry;
 mod cell_progress;
 mod lifecycle;
+mod progress_bound;
 
 #[cfg(feature = "test-operation-control")]
 #[test]

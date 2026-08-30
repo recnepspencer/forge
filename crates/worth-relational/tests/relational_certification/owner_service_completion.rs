@@ -7,6 +7,9 @@ mod healthy_bundle;
 #[cfg(feature = "test-operation-control")]
 #[path = "owner_service_completion/lifecycle_locality.rs"]
 mod lifecycle_locality;
+#[cfg(feature = "test-operation-control")]
+#[path = "owner_service_completion/owner_lifecycle_observation.rs"]
+mod owner_lifecycle_observation;
 #[path = "owner_service_completion/owner_loss.rs"]
 mod owner_loss;
 #[path = "owner_service_completion/service_properties.rs"]

@@ -1,4 +1,4 @@
-use super::owner_binding::RelationalOwnerServiceBinding;
+use super::owner_binding::{RelationalOwnerServiceBinding, RelationalOwnerServiceLifecyclePosture};
 use crate::branch::{
     ArchivedRelationalBranch, RelationalBranchArchiveDenial, RelationalBranchDeleteDenial,
     RelationalBranchDeletionOutcome, RelationalBranchIdentity,
@@ -46,13 +46,16 @@ impl RelationalBranchLifecyclePort {
     }
 
     pub fn owner_lifecycle_observation(&self) -> RelationalOwnerLifecycleObservation {
-        if !self.owner.state_is_alive() {
-            return RelationalOwnerLifecycleObservation::Closed;
-        }
-        match self.owner.admitted_runtime() {
-            Some(_owner) => RelationalOwnerLifecycleObservation::Open,
-            None if self.owner.state_is_alive() => RelationalOwnerLifecycleObservation::Closing,
-            None => RelationalOwnerLifecycleObservation::Closed,
+        match self.owner.lifecycle_posture() {
+            RelationalOwnerServiceLifecyclePosture::Open => {
+                RelationalOwnerLifecycleObservation::Open
+            }
+            RelationalOwnerServiceLifecyclePosture::Closing => {
+                RelationalOwnerLifecycleObservation::Closing
+            }
+            RelationalOwnerServiceLifecyclePosture::Closed => {
+                RelationalOwnerLifecycleObservation::Closed
+            }
         }
     }
 }

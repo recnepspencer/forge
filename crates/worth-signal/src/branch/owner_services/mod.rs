@@ -5,6 +5,7 @@
 
 mod branch_execution_cell;
 mod branch_registry;
+mod cell_incarnation;
 mod counters;
 mod lifecycle_observation;
 mod lifecycle_state;
@@ -13,15 +14,17 @@ mod operation_control;
 mod unavailable;
 
 pub(crate) use branch_execution_cell::{
-    SignalBranchCellAdmissionDenial, SignalBranchCellWork, SignalBranchExecutionCell,
+    SignalBranchCellAdmissionDenial, SignalBranchCellPoisonRecovery, SignalBranchCellWork,
+    SignalBranchExecutionCell,
 };
 pub(crate) use branch_registry::{
-    SignalBranchRegistry, SignalBranchRegistryDenial, SignalBranchReservation,
+    SignalBranchRegistry, SignalBranchRegistryDenial, SignalBranchRegistryPoisonRecovery,
+    SignalBranchReservation, SignalBranchRetirement,
 };
 pub(crate) use counters::SignalOwnerServiceCounters;
 pub(crate) use lifecycle_state::{
     SignalOwnerAdmissionDenial, SignalOwnerCloseDenial, SignalOwnerLifecycleIdentity,
-    SignalOwnerLifecycleState, SignalOwnerOperationAdmission,
+    SignalOwnerLifecyclePoisonRecovery, SignalOwnerLifecycleState, SignalOwnerOperationAdmission,
 };
 
 pub use counters::SignalOwnerServiceCostSnapshot;

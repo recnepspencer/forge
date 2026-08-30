@@ -1,14 +1,19 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::state::SignalBranchId;
 
-use super::branch_execution_cell::SignalBranchExecutionCell;
+use super::branch_execution_cell::{SignalBranchCellAdmissionDenial, SignalBranchExecutionCell};
 use super::counters::SignalOwnerServiceCounters;
 use super::lifecycle_state::{
     SignalOwnerAdmissionMismatch, SignalOwnerLifecycleIdentity, SignalOwnerLifecycleState,
     SignalOwnerOperationAdmission,
 };
+
+#[path = "branch_registry/retirement.rs"]
+mod retirement;
+pub(crate) use retirement::SignalBranchRetirement;
 
 pub(super) struct SignalBranchCellConstruction(());
 
@@ -21,11 +26,25 @@ pub(crate) enum SignalBranchRegistryDenial {
     LiveCapacityExhausted { maximum_live_branches: usize },
     ReservationCapacityExhausted { maximum_reservations: usize },
     ExpiredReservation(SignalBranchId),
+    RetirementInProgress(SignalBranchId),
+    ExpiredRetirement(SignalBranchId),
+    TargetCellDenied(SignalBranchCellAdmissionDenial),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SignalBranchRegistryPoisonRecovery {
+    PreservedCanonicalMembership,
+}
+
+#[derive(Debug)]
+enum SignalBranchRegistryEntry<S> {
+    Live(Arc<SignalBranchExecutionCell<S>>),
+    Retiring(Arc<SignalBranchExecutionCell<S>>),
 }
 
 #[derive(Debug)]
 struct SignalBranchRegistryState<S> {
-    cells: BTreeMap<SignalBranchId, Arc<SignalBranchExecutionCell<S>>>,
+    cells: BTreeMap<SignalBranchId, SignalBranchRegistryEntry<S>>,
     reservations: BTreeSet<SignalBranchId>,
 }
 
@@ -37,6 +56,7 @@ pub(crate) struct SignalBranchRegistry<S> {
     maximum_reservations: usize,
     state: Mutex<SignalBranchRegistryState<S>>,
     counters: Arc<SignalOwnerServiceCounters>,
+    recovered_poison: AtomicBool,
 }
 
 impl<S> SignalBranchRegistry<S> {
@@ -55,6 +75,7 @@ impl<S> SignalBranchRegistry<S> {
                 reservations: BTreeSet::new(),
             }),
             counters: lifecycle.counters(),
+            recovered_poison: AtomicBool::new(false),
         }
     }
 
@@ -65,11 +86,13 @@ impl<S> SignalBranchRegistry<S> {
     ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
         self.counters.record_branch_registry_lookup();
-        self.lock_state()
-            .cells
-            .get(&branch_id)
-            .cloned()
-            .ok_or(SignalBranchRegistryDenial::UnknownBranch(branch_id))
+        match self.lock_state().cells.get(&branch_id) {
+            Some(SignalBranchRegistryEntry::Live(cell)) => Ok(Arc::clone(cell)),
+            Some(SignalBranchRegistryEntry::Retiring(_)) => {
+                Err(SignalBranchRegistryDenial::RetirementInProgress(branch_id))
+            }
+            None => Err(SignalBranchRegistryDenial::UnknownBranch(branch_id)),
+        }
     }
 
     pub(crate) fn reserve<'a>(
@@ -78,11 +101,12 @@ impl<S> SignalBranchRegistry<S> {
         branch_id: SignalBranchId,
     ) -> Result<SignalBranchReservation<'a, S>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
-        self.counters.record_branch_registry_reservation();
         let mut state = self.lock_state();
         self.validate_available_identity(&state, branch_id)?;
         self.validate_capacity(&state)?;
-        state.reservations.insert(branch_id);
+        let inserted = state.reservations.insert(branch_id);
+        debug_assert!(inserted, "accepted reservation identity must be vacant");
+        self.counters.record_branch_registry_reservation();
         Ok(SignalBranchReservation {
             registry: self,
             admission,
@@ -107,6 +131,66 @@ impl<S> SignalBranchRegistry<S> {
         self.maximum_reservations
     }
 
+    pub(crate) fn live_cells_in_identity_order(
+        &self,
+        admission: &SignalOwnerOperationAdmission,
+    ) -> Result<Vec<Arc<SignalBranchExecutionCell<S>>>, SignalBranchRegistryDenial> {
+        self.validate_admission(admission)?;
+        let state = self.lock_state();
+        let mut cells = Vec::with_capacity(state.cells.len());
+        for entry in state.cells.values() {
+            self.counters.record_branch_registry_entry_scanned();
+            if let SignalBranchRegistryEntry::Live(cell) = entry {
+                cells.push(Arc::clone(cell));
+            }
+        }
+        Ok(cells)
+    }
+
+    pub(crate) fn begin_retirement<'a>(
+        &'a self,
+        admission: &'a SignalOwnerOperationAdmission,
+        branch_id: SignalBranchId,
+    ) -> Result<SignalBranchRetirement<'a, S>, SignalBranchRegistryDenial> {
+        self.validate_admission(admission)?;
+        let cell = {
+            let mut state = self.lock_state();
+            let entry = state
+                .cells
+                .get_mut(&branch_id)
+                .ok_or(SignalBranchRegistryDenial::UnknownBranch(branch_id))?;
+            let cell = match entry {
+                SignalBranchRegistryEntry::Live(cell) => Arc::clone(cell),
+                SignalBranchRegistryEntry::Retiring(_) => {
+                    return Err(SignalBranchRegistryDenial::RetirementInProgress(branch_id));
+                }
+            };
+            *entry = SignalBranchRegistryEntry::Retiring(Arc::clone(&cell));
+            cell
+        };
+        let mut retirement = SignalBranchRetirement {
+            registry: self,
+            admission,
+            branch_id,
+            cell,
+            cell_marked_retiring: false,
+            cell_retired: false,
+            completed: false,
+        };
+        retirement
+            .cell
+            .begin_retirement()
+            .map_err(SignalBranchRegistryDenial::TargetCellDenied)?;
+        retirement.cell_marked_retiring = true;
+        Ok(retirement)
+    }
+
+    pub(crate) fn poison_recovery(&self) -> Option<SignalBranchRegistryPoisonRecovery> {
+        self.recovered_poison
+            .load(Ordering::Acquire)
+            .then_some(SignalBranchRegistryPoisonRecovery::PreservedCanonicalMembership)
+    }
+
     fn validate_admission(
         &self,
         admission: &SignalOwnerOperationAdmission,
@@ -124,7 +208,17 @@ impl<S> SignalBranchRegistry<S> {
         state: &SignalBranchRegistryState<S>,
         branch_id: SignalBranchId,
     ) -> Result<(), SignalBranchRegistryDenial> {
-        if state.cells.contains_key(&branch_id) || state.reservations.contains(&branch_id) {
+        if let Some(entry) = state.cells.get(&branch_id) {
+            return match entry {
+                SignalBranchRegistryEntry::Live(_) => {
+                    Err(SignalBranchRegistryDenial::DuplicateBranch(branch_id))
+                }
+                SignalBranchRegistryEntry::Retiring(_) => {
+                    Err(SignalBranchRegistryDenial::RetirementInProgress(branch_id))
+                }
+            };
+        }
+        if state.reservations.contains(&branch_id) {
             return Err(SignalBranchRegistryDenial::DuplicateBranch(branch_id));
         }
         Ok(())
@@ -148,9 +242,19 @@ impl<S> SignalBranchRegistry<S> {
     }
 
     fn lock_state(&self) -> MutexGuard<'_, SignalBranchRegistryState<S>> {
-        self.state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        match self.state.lock() {
+            Ok(state) => state,
+            Err(poisoned) => {
+                self.recovered_poison.store(true, Ordering::Release);
+                poisoned.into_inner()
+            }
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn poison_state_for_test(&self) {
+        let _state = self.lock_state();
+        panic!("inject branch-registry poison");
     }
 }
 
@@ -206,9 +310,10 @@ impl<S> SignalBranchReservation<'_, S> {
                 self.branch_id,
             ));
         }
-        registry_state
-            .cells
-            .insert(self.branch_id, Arc::clone(&cell));
+        registry_state.cells.insert(
+            self.branch_id,
+            SignalBranchRegistryEntry::Live(Arc::clone(&cell)),
+        );
         self.consumed = true;
         drop(registry_state);
         if is_fork_destination {

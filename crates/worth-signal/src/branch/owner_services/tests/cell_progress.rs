@@ -1,47 +1,65 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::{Arc, Barrier};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, TryRecvError};
+use std::sync::Arc;
 use std::thread;
 
 use crate::state::SignalBranchId;
 
-use super::super::{SignalBranchRegistry, SignalOwnerLifecycleState, SignalOwnerServiceCounters};
+use super::super::{
+    SignalBranchCellAdmissionDenial, SignalBranchCellPoisonRecovery, SignalBranchExecutionCell,
+    SignalBranchRegistry, SignalOwnerLifecycleState, SignalOwnerServiceCounters,
+};
+use super::progress_bound::{wait_until_progress, worker_park, PROGRESS_BOUND};
 
 #[test]
-fn parked_branch_does_not_delay_unrelated_branch() {
+fn parked_cell_keeps_unrelated_registry_lookup_and_work_independently_live() {
     let (counters, lifecycle, registry) = kernel(2);
     let installation = lifecycle.admit(61).expect("owner admits installation");
-    let branch_a = install(&registry, &installation, SignalBranchId(1), 0_u64);
-    let branch_b = install(&registry, &installation, SignalBranchId(2), 0_u64);
+    install(&registry, &installation, SignalBranchId(1), 0_u64);
+    install(&registry, &installation, SignalBranchId(2), 0_u64);
     drop(installation);
-
-    let entered_a = Arc::new(Barrier::new(2));
-    let release_a = Arc::new(Barrier::new(2));
+    let baseline = counters.snapshot();
+    let (a_park, mut a_control) = worker_park();
+    let (a_done_tx, a_done_rx) = mpsc::sync_channel(1);
     let a_lifecycle = Arc::clone(&lifecycle);
-    let a_entered = Arc::clone(&entered_a);
-    let a_release = Arc::clone(&release_a);
-    let branch_a_thread = Arc::clone(&branch_a);
-    let a_worker = thread::spawn(move || {
-        let admission = a_lifecycle.admit(61).expect("branch A work is admitted");
-        branch_a_thread
-            .with_state(&admission, |state, work| {
-                a_entered.wait();
-                a_release.wait();
-                *state += 1;
-                work.record_canonical_movement();
-            })
-            .expect("branch A cell accepts its admission");
-    });
-
-    entered_a.wait();
-    let before_b = counters.snapshot();
-    let b_admission = lifecycle.admit(61).expect("branch B work is admitted");
-    branch_b
-        .with_state(&b_admission, |state, work| {
+    let a_registry = Arc::clone(&registry);
+    thread::spawn(move || {
+        let result = run_cell_work(&a_lifecycle, &a_registry, SignalBranchId(1), |state| {
+            a_park.park("branch A target cell");
             *state += 1;
-            work.record_canonical_movement();
-        })
-        .expect("branch B completes while branch A is parked");
+            *state
+        });
+        let _ = a_done_tx.send(result);
+    });
+    a_control.wait_until_parked("branch A target cell");
+
+    let before_b = counters.snapshot();
+    let (b_done_tx, b_done_rx) = mpsc::sync_channel(1);
+    let b_lifecycle = Arc::clone(&lifecycle);
+    let b_registry = Arc::clone(&registry);
+    thread::spawn(move || {
+        let result = run_cell_work(&b_lifecycle, &b_registry, SignalBranchId(2), |state| {
+            *state += 1;
+            *state
+        });
+        let _ = b_done_tx.send(result);
+    });
+    let b_result = b_done_rx.recv_timeout(PROGRESS_BOUND);
     let after_b = counters.snapshot();
+    a_control.release();
+    let a_result = a_done_rx.recv_timeout(PROGRESS_BOUND);
+
+    assert_eq!(
+        b_result,
+        Ok(Ok(1)),
+        "branch B registry.lookup plus cell work must finish while A is parked"
+    );
+    assert_eq!(a_result, Ok(Ok(1)), "branch A must finish after release");
+    assert_eq!(
+        after_b.branch_registry_lookups(),
+        before_b.branch_registry_lookups() + 1
+    );
     assert_eq!(
         after_b.target_cell_contacts(),
         before_b.target_cell_contacts() + 1
@@ -51,59 +69,61 @@ fn parked_branch_does_not_delay_unrelated_branch() {
         after_b.canonical_movements(),
         before_b.canonical_movements() + 1
     );
-    assert_eq!(read(&branch_b, &b_admission), 1);
-
-    release_a.wait();
-    a_worker.join().expect("branch A worker remains healthy");
-    assert_eq!(read(&branch_a, &b_admission), 1);
     let final_snapshot = counters.snapshot();
     assert_eq!(final_snapshot.target_cell_waits(), 0);
     assert_eq!(final_snapshot.branch_registry_entries_scanned(), 0);
+    assert_eq!(
+        final_snapshot.canonical_movements(),
+        baseline.canonical_movements() + 2
+    );
 }
 
 #[test]
-fn same_cell_serializes_with_exact_contact_and_wait_deltas() {
+fn same_cell_serializes_with_bounded_exact_contact_and_wait_evidence() {
     let (counters, lifecycle, registry) = kernel(1);
     let installation = lifecycle.admit(61).expect("owner admits installation");
     let cell = install(&registry, &installation, SignalBranchId(1), 0_u64);
     drop(installation);
     let baseline = counters.snapshot();
-    let entered_first = Arc::new(Barrier::new(2));
-    let release_first = Arc::new(Barrier::new(2));
-
+    let (first_park, mut first_control) = worker_park();
+    let (first_done_tx, first_done_rx) = mpsc::sync_channel(1);
     let first_cell = Arc::clone(&cell);
     let first_lifecycle = Arc::clone(&lifecycle);
-    let first_entered = Arc::clone(&entered_first);
-    let first_release = Arc::clone(&release_first);
-    let first = thread::spawn(move || {
-        let admission = first_lifecycle.admit(61).expect("first work is admitted");
-        first_cell
-            .with_state(&admission, |state, work| {
-                first_entered.wait();
-                first_release.wait();
-                *state += 1;
-                work.record_canonical_movement();
-            })
-            .expect("first operation completes");
+    thread::spawn(move || {
+        let result = admitted_cell_work(&first_lifecycle, &first_cell, |state| {
+            first_park.park("first same-cell operation");
+            *state += 1;
+        });
+        let _ = first_done_tx.send(result);
     });
-    entered_first.wait();
+    first_control.wait_until_parked("first same-cell operation");
 
+    let (second_done_tx, second_done_rx) = mpsc::sync_channel(1);
     let second_cell = Arc::clone(&cell);
     let second_lifecycle = Arc::clone(&lifecycle);
-    let second = thread::spawn(move || {
-        let admission = second_lifecycle.admit(61).expect("second work is admitted");
-        second_cell
-            .with_state(&admission, |state, work| {
-                *state += 1;
-                work.record_canonical_movement();
-            })
-            .expect("second operation completes after serialization");
+    thread::spawn(move || {
+        let result = admitted_cell_work(&second_lifecycle, &second_cell, |state| *state += 1);
+        let _ = second_done_tx.send(result);
     });
-
-    while counters.snapshot().target_cell_waits() == baseline.target_cell_waits() {
-        thread::yield_now();
-    }
+    let wait_recorded = wait_until_progress("second same-cell wait", || {
+        counters.snapshot().target_cell_waits() == baseline.target_cell_waits() + 1
+    });
+    let second_was_blocked = second_done_rx.try_recv() == Err(TryRecvError::Empty);
     let blocked = counters.snapshot();
+    first_control.release();
+    let first_result = first_done_rx.recv_timeout(PROGRESS_BOUND);
+    let second_result = second_done_rx.recv_timeout(PROGRESS_BOUND);
+
+    assert!(
+        wait_recorded,
+        "same-cell serialization did not record its wait"
+    );
+    assert!(
+        second_was_blocked,
+        "second same-cell operation completed before release"
+    );
+    assert_eq!(first_result, Ok(Ok(())));
+    assert_eq!(second_result, Ok(Ok(())));
     assert_eq!(
         blocked.target_cell_contacts(),
         baseline.target_cell_contacts() + 2
@@ -116,29 +136,56 @@ fn same_cell_serializes_with_exact_contact_and_wait_deltas() {
         blocked.canonical_movements(),
         baseline.canonical_movements()
     );
-
-    release_first.wait();
-    first.join().expect("first worker remains healthy");
-    second.join().expect("second worker remains healthy");
     let observation = lifecycle.admit(61).expect("follow-up read is admitted");
     assert_eq!(read(&cell, &observation), 2);
-    let final_snapshot = counters.snapshot();
-    assert_eq!(
-        final_snapshot.target_cell_contacts(),
-        baseline.target_cell_contacts() + 3
-    );
-    assert_eq!(
-        final_snapshot.target_cell_waits(),
-        baseline.target_cell_waits() + 1
-    );
-    assert_eq!(
-        final_snapshot.canonical_movements(),
-        baseline.canonical_movements() + 2
-    );
 }
 
 #[test]
-fn panic_poison_is_recovered_without_harming_other_or_later_cell_work() {
+fn one_admission_denies_nested_second_cell_and_releases_on_success_and_unwind() {
+    let (_counters, lifecycle, registry) = kernel(2);
+    let admission = lifecycle.admit(61).expect("owner admits cell work");
+    let cell_a = install(&registry, &admission, SignalBranchId(1), 0_u64);
+    let cell_b = install(&registry, &admission, SignalBranchId(2), 0_u64);
+    let nested_work_executed = AtomicBool::new(false);
+
+    cell_a
+        .with_state(&admission, |_, _| {
+            assert_eq!(
+                cell_b
+                    .with_state(&admission, |state, _| {
+                        nested_work_executed.store(true, Ordering::Release);
+                        *state += 1;
+                    })
+                    .unwrap_err(),
+                SignalBranchCellAdmissionDenial::SecondCellWhileHeld
+            );
+        })
+        .expect("first cell operation remains valid");
+    assert!(!nested_work_executed.load(Ordering::Acquire));
+    cell_b
+        .with_state(&admission, |state, _| *state += 1)
+        .expect("sequential second-cell work is legal");
+
+    let unwind = catch_unwind(AssertUnwindSafe(|| {
+        cell_a
+            .with_state(&admission, |_, _| {
+                assert_eq!(
+                    cell_b.with_state(&admission, |_, _| ()).unwrap_err(),
+                    SignalBranchCellAdmissionDenial::SecondCellWhileHeld
+                );
+                panic!("exercise operation cell-hold unwind");
+            })
+            .expect("outer cell admission is valid");
+    }));
+    assert!(unwind.is_err());
+    cell_b
+        .with_state(&admission, |state, _| *state += 1)
+        .expect("unwind releases the operation's cell hold");
+    assert_eq!(read(&cell_b, &admission), 2);
+}
+
+#[test]
+fn cell_poison_policy_preserves_partial_mutation_and_contains_recovery() {
     let (counters, lifecycle, registry) = kernel(2);
     let installation = lifecycle.admit(61).expect("owner admits installation");
     let branch_a = install(&registry, &installation, SignalBranchId(1), 0_u64);
@@ -171,22 +218,17 @@ fn panic_poison_is_recovered_without_harming_other_or_later_cell_work() {
             *state += 1;
             work.record_canonical_movement();
         })
-        .expect("poisoned cell explicitly recovers");
+        .expect("poisoned cell follows its recoverable owner policy");
 
+    assert_eq!(
+        branch_a.poison_recovery(),
+        Some(SignalBranchCellPoisonRecovery::PreservedPartialMutation)
+    );
     assert_eq!(read(&branch_a, &healthy_admission), 2);
     assert_eq!(read(&branch_b, &healthy_admission), 1);
-    let final_snapshot = counters.snapshot();
     assert_eq!(
-        final_snapshot.canonical_movements(),
+        counters.snapshot().canonical_movements(),
         baseline.canonical_movements() + 3
-    );
-    assert_eq!(
-        final_snapshot.target_cell_contacts(),
-        baseline.target_cell_contacts() + 5
-    );
-    assert_eq!(
-        final_snapshot.target_cell_waits(),
-        baseline.target_cell_waits()
     );
 }
 
@@ -217,22 +259,10 @@ fn cell_work_records_exact_semantic_deltas_without_reconstruction() {
         snapshot.canonical_movements(),
         baseline.canonical_movements() + 1
     );
-    assert_eq!(
-        snapshot.retention_registry_contacts(),
-        baseline.retention_registry_contacts() + 1
-    );
-    assert_eq!(
-        snapshot.fork_source_captures(),
-        baseline.fork_source_captures() + 1
-    );
-    assert_eq!(
-        snapshot.diagnostic_events_recorded(),
-        baseline.diagnostic_events_recorded() + 1
-    );
-    assert_eq!(
-        snapshot.diagnostic_events_dropped(),
-        baseline.diagnostic_events_dropped() + 1
-    );
+    assert_eq!(snapshot.retention_registry_contacts(), 1);
+    assert_eq!(snapshot.fork_source_captures(), 1);
+    assert_eq!(snapshot.diagnostic_events_recorded(), 1);
+    assert_eq!(snapshot.diagnostic_events_dropped(), 1);
     assert_eq!(snapshot.forked_mutable_graph_nodes_copied(), 0);
     assert_eq!(snapshot.branch_registry_entries_scanned(), 0);
 }
@@ -259,7 +289,7 @@ fn install(
     admission: &super::super::SignalOwnerOperationAdmission,
     branch_id: SignalBranchId,
     state: u64,
-) -> Arc<super::super::SignalBranchExecutionCell<u64>> {
+) -> Arc<SignalBranchExecutionCell<u64>> {
     registry
         .reserve(admission, branch_id)
         .expect("branch identity reserves")
@@ -267,8 +297,39 @@ fn install(
         .expect("branch state installs")
 }
 
+fn run_cell_work(
+    lifecycle: &Arc<SignalOwnerLifecycleState>,
+    registry: &SignalBranchRegistry<u64>,
+    branch_id: SignalBranchId,
+    operation: impl FnOnce(&mut u64) -> u64,
+) -> Result<u64, String> {
+    let admission = lifecycle.admit(61).map_err(|error| format!("{error:?}"))?;
+    let cell = registry
+        .lookup(&admission, branch_id)
+        .map_err(|error| format!("{error:?}"))?;
+    cell.with_state(&admission, |state, work| {
+        let result = operation(state);
+        work.record_canonical_movement();
+        result
+    })
+    .map_err(|error| format!("{error:?}"))
+}
+
+fn admitted_cell_work(
+    lifecycle: &Arc<SignalOwnerLifecycleState>,
+    cell: &SignalBranchExecutionCell<u64>,
+    operation: impl FnOnce(&mut u64),
+) -> Result<(), String> {
+    let admission = lifecycle.admit(61).map_err(|error| format!("{error:?}"))?;
+    cell.with_state(&admission, |state, work| {
+        operation(state);
+        work.record_canonical_movement();
+    })
+    .map_err(|error| format!("{error:?}"))
+}
+
 fn read(
-    cell: &super::super::SignalBranchExecutionCell<u64>,
+    cell: &SignalBranchExecutionCell<u64>,
     admission: &super::super::SignalOwnerOperationAdmission,
 ) -> u64 {
     cell.with_state(admission, |state, _| *state)

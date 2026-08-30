@@ -484,8 +484,8 @@ or compatibility lanes.
   plus causal `OwnerUnavailable` additions to the three existing denial enums;
   add only their `pub use` line, exact facade entries, and
   `#[path = "relational_certification/owner_service_completion.rs"] mod owner_service_completion;`; run
-  `cargo test -p worth-relational --test relational_certification
-  owner_service_completion`;
+  `cargo test -p worth-relational --features test-operation-control
+  --test relational_certification owner_service_completion`;
 - **Signal kernel lane:** own Signal `owner_services/mod.rs`, lifecycle state,
   registry, execution cell, unavailable posture, counters, and their unit tests;
   run `cargo test -p worth-signal --lib branch::owner_services::`;
