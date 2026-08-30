@@ -16,6 +16,7 @@ profile-compact = []
 profile-standard = []
 profile-extended = []
 test-operation-control = []
+test-peak-allocation = []
 
 [dependencies]
 tracing = "0.1"
@@ -31,6 +32,7 @@ im = { version = "15.1", features = ["serde"] }
 [dev-dependencies]
 worth-harness.workspace = true
 stats_alloc = "0.1"
+tracking-allocator = { version = "0.4", default-features = false }
 trybuild = "1"
 quote = "1"
 syn = { version = "2", features = ["full", "visit"] }

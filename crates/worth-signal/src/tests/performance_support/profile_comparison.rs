@@ -6,6 +6,9 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use super::measurement_capture::{PerfCaseContract, PerfCaseSummary, PerfTimingPolicy};
+use super::regression_budgets::{
+    ALLOCATION, MEDIAN_ONLY, PHASE, STRICT_MAX, STRICT_MEDIAN, STRICT_P95,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct PerfBaselineFile {
@@ -25,6 +28,11 @@ struct PerfEnvironmentFingerprint {
 }
 
 pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: &PerfCaseSummary) {
+    if super::measurement_output::capture_requested() {
+        // Explicit capture is measurement-only. The runner compares only after
+        // every profile and its workload assertions have completed successfully.
+        return;
+    }
     let key = baseline_case_key(&summary.suite, &summary.profile, &summary.executor);
     let mut baseline = load_baseline_file();
     if update_perf_baseline() {
@@ -47,19 +55,19 @@ pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: 
                     "elapsed median",
                     summary.elapsed_micros.median,
                     expected.elapsed_micros.median,
-                    1.20,
+                    STRICT_MEDIAN,
                 );
                 assert_perf_regression_budget(
                     "elapsed p95",
                     summary.elapsed_micros.p95,
                     expected.elapsed_micros.p95,
-                    1.25,
+                    STRICT_P95,
                 );
                 assert_perf_regression_budget(
                     "elapsed max",
                     summary.elapsed_micros.max,
                     expected.elapsed_micros.max,
-                    1.35,
+                    STRICT_MAX,
                 );
             }
             PerfTimingPolicy::MedianOnly => {
@@ -67,7 +75,7 @@ pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: 
                     "elapsed median",
                     summary.elapsed_micros.median,
                     expected.elapsed_micros.median,
-                    1.35,
+                    MEDIAN_ONLY,
                 );
             }
             PerfTimingPolicy::StructuralOnly => {}
@@ -93,25 +101,40 @@ pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: 
         "allocated bytes median",
         summary.allocated_bytes.median,
         expected.allocated_bytes.median,
-        1.10,
+        ALLOCATION,
     );
     assert_perf_regression_budget(
         "allocated bytes max",
         summary.allocated_bytes.max,
         expected.allocated_bytes.max,
-        1.10,
+        ALLOCATION,
+    );
+    if let (Some(observed), Some(expected)) = (summary.allocation_calls, expected.allocation_calls)
+    {
+        assert_perf_regression_budget(
+            "allocation calls median",
+            observed.median,
+            expected.median,
+            ALLOCATION,
+        );
+        assert_perf_regression_budget(
+            "allocation calls max",
+            observed.max,
+            expected.max,
+            ALLOCATION,
+        );
+    }
+    assert_perf_regression_budget(
+        "legacy end live bytes median",
+        summary.legacy_end_live_bytes.median,
+        expected.legacy_end_live_bytes.median,
+        ALLOCATION,
     );
     assert_perf_regression_budget(
-        "peak live bytes median",
-        summary.peak_live_bytes.median,
-        expected.peak_live_bytes.median,
-        1.10,
-    );
-    assert_perf_regression_budget(
-        "peak live bytes max",
-        summary.peak_live_bytes.max,
-        expected.peak_live_bytes.max,
-        1.10,
+        "legacy end live bytes max",
+        summary.legacy_end_live_bytes.max,
+        expected.legacy_end_live_bytes.max,
+        ALLOCATION,
     );
 
     for (counter, observed) in &summary.access_counters {
@@ -142,7 +165,7 @@ pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: 
                 &format!("phase metric {phase_metric} median"),
                 observed.median,
                 expected.median,
-                1.25,
+                PHASE,
             );
         }
     }
@@ -211,5 +234,18 @@ fn current_environment_fingerprint() -> PerfEnvironmentFingerprint {
         profile: env::var("PROFILE").unwrap_or_else(|_| "unknown".to_string()),
         toolchain: env::var("RUSTUP_TOOLCHAIN").ok(),
         processor_identifier: env::var("PROCESSOR_IDENTIFIER").ok(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn legacy_end_live_name_preserves_the_checked_golden_schema() {
+        let baseline = super::load_baseline_file();
+        let summary = baseline.cases.values().next().expect("checked perf case");
+        assert!(summary.legacy_end_live_bytes.max > 0);
+        let encoded = serde_json::to_value(summary).unwrap();
+        assert!(encoded.get("peak_live_bytes").is_some());
+        assert!(encoded.get("legacy_end_live_bytes").is_none());
     }
 }
