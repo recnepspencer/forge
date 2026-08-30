@@ -223,7 +223,7 @@ fn expected_damage(
         Operator::B | Operator::K => (
             OfflinePhysicalDamageCause::ChecksumMismatch,
             Some((0, artifact_bytes)),
-            Some(OfflinePhysicalFormatField::Checksum),
+            None,
             OfflinePhysicalBlastRadius::Frame,
         ),
         Operator::L => (

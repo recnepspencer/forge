@@ -97,12 +97,14 @@ pub(crate) fn read_durable_frame<'a>(
             OfflinePhysicalDamageLocalization::new(
                 OfflinePhysicalDamageCause::ChecksumMismatch,
                 Some((0, bytes.len() as u64)),
-                Some(OfflinePhysicalFormatField::Checksum),
+                // A mismatch proves only that the stored value differs from the CRC32C over the
+                // declared ranges; it cannot identify which covered or stored bytes are corrupt.
+                None,
                 OfflinePhysicalBlastRadius::Frame,
             ),
         ));
     }
-    counters.durable_frame_decoder_entries += 1;
+    counters.checksum_validated_durable_frames += 1;
     Ok(DurableFrameFacts {
         identity: read_u64(bytes, 28),
         format: bytes[10..20].try_into().expect("fixed format declaration"),

@@ -45,13 +45,13 @@ fn encode_component(component: &std::ffi::OsStr) -> String {
     #[cfg(unix)]
     {
         use std::os::unix::ffi::OsStrExt;
-        return encode_native_units(component.as_bytes(), "~b");
+        encode_native_units(component.as_bytes(), "~b")
     }
     #[cfg(windows)]
     {
         use std::os::windows::ffi::OsStrExt;
         let units: Vec<u16> = component.encode_wide().collect();
-        return encode_windows_units(&units);
+        encode_windows_units(&units)
     }
     #[cfg(not(any(unix, windows)))]
     encode_native_units(component.to_string_lossy().as_bytes(), "~b")

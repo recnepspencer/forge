@@ -61,7 +61,7 @@ pub(crate) fn derive_parent_expectation(
         RootCorruptionOperation::CoveredByteFlip { offset, .. } => (
             ExpectedRootPosture::Damaged,
             ExpectedRootCause::CoveredByteIntegrityMismatch,
-            vec![*offset..*offset + 1],
+            std::iter::once(*offset..*offset + 1).collect(),
             ExpectedMinimumBlastRadius::CanonicalFrame,
         ),
         RootCorruptionOperation::ChecksumFieldFlip { .. } => (
@@ -91,19 +91,19 @@ pub(crate) fn derive_parent_expectation(
         RootCorruptionOperation::StrictPrefixTruncation { retained_length } => (
             ExpectedRootPosture::Damaged,
             ExpectedRootCause::Truncated,
-            vec![*retained_length..record.exact_length()],
+            std::iter::once(*retained_length..record.exact_length()).collect(),
             ExpectedMinimumBlastRadius::CompleteArtifact,
         ),
         RootCorruptionOperation::ArtifactRemoval => (
             ExpectedRootPosture::Missing,
             ExpectedRootCause::ArtifactRemoval,
-            vec![0..record.exact_length()],
+            std::iter::once(0..record.exact_length()).collect(),
             ExpectedMinimumBlastRadius::ReachableSubtree,
         ),
         RootCorruptionOperation::ArtifactDuplication { .. } => (
             ExpectedRootPosture::Duplicate,
             ExpectedRootCause::ArtifactDuplication,
-            vec![0..record.exact_length()],
+            std::iter::once(0..record.exact_length()).collect(),
             ExpectedMinimumBlastRadius::CompleteArtifact,
         ),
         RootCorruptionOperation::UnsupportedFormatVersion { range, .. } => (

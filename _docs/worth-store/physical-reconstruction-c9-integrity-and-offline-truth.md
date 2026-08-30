@@ -1751,19 +1751,38 @@ manifest ban to unrelated legacy responsibilities.
 ```text
 workspaces/worth-store/crates/worth-store-physical-certification/src/
 └── c9_integrity_localization/                       [create]
-    ├── mod.rs
-    ├── scenario.rs
+    ├── artifact_editor.rs
     ├── clean_artifact_manifest.rs
     ├── corruption_operator.rs
-    ├── producer_process.rs
-    ├── artifact_editor_process.rs
-    ├── recovery_process.rs
-    ├── verifier_process.rs
-    ├── scrub_subject.rs
-    ├── parent_oracle.rs
-    ├── wire.rs
     ├── counters.rs
-    └── tests.rs
+    ├── editor_result_audit.rs
+    ├── external_report_paths.rs
+    ├── external_report_paths_tests.rs
+    ├── frame_checksum.rs
+    ├── mod.rs
+    ├── oracle_expectation_assertions.rs
+    ├── parent_oracle.rs
+    ├── process_courtroom.rs
+    ├── process_courtroom_assertions.rs
+    ├── process_identity_substitution.rs
+    ├── process_manifest.rs
+    ├── process_poison.rs
+    ├── process_protocol.rs
+    ├── process_recovery_observation.rs
+    ├── process_subject.rs
+    ├── producer_fixture.rs
+    ├── production_store.rs
+    ├── recovery_adapter.rs
+    ├── recovery_request.rs
+    ├── root_artifact_role.rs
+    ├── scenario.rs
+    ├── test_world.rs
+    ├── tests.rs
+    ├── wire.rs
+    └── wire_tests.rs
+
+scripts/ci/
+└── run_worth_store_c9_root_process_courtroom.py
 ```
 
 This is test orchestration, not a new certification framework. It reuses
@@ -2850,7 +2869,7 @@ cargo test -p worth-store-buffer-pool
 cargo test -p worth-store-recovery-runtime
 cargo test -p worth-store-offline-integrity-observer
 cargo test -p worth-store
-cargo test -p worth-store-physical-certification c9_integrity_localization
+python scripts/ci/run_worth_store_c9_root_process_courtroom.py
 ```
 
 If workspace configuration requires an explicit manifest path, the commands

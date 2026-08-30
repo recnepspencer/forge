@@ -97,7 +97,7 @@ pub(crate) fn read_namespace_identity(
             OfflinePhysicalFormatField::StoreIdentity,
         ));
     }
-    counters.namespace_identity_decoder_entries += 1;
+    counters.namespace_identity_payload_decoder_entries += 1;
     Ok(OfflineNamespaceIdentityFacts { store_identity })
 }
 

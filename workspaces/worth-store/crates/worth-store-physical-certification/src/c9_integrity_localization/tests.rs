@@ -25,7 +25,7 @@ const CODES: [RootCorruptionCode; 9] = [
 ];
 
 #[test]
-fn clean_manifest_records_exact_root_roles_and_external_report_boundary() {
+fn clean_manifest_records_exact_root_roles() {
     let fixture = root_fixture();
     assert_ne!(fixture.manifest.identity(), [0; 32]);
     assert_eq!(fixture.manifest.records().count(), 3);
@@ -58,43 +58,6 @@ fn clean_manifest_records_exact_root_roles_and_external_report_boundary() {
             }
         );
     }
-    assert!(!fixture
-        .scenario
-        .reports()
-        .runtime()
-        .starts_with(fixture.scenario.clean_store_root()));
-    assert!(!fixture
-        .scenario
-        .reports()
-        .offline()
-        .starts_with(fixture.scenario.clean_store_root()));
-    assert!(ExternalReportPaths::new(
-        fixture.scenario.clean_store_root(),
-        fixture.scenario.clean_store_root().join("runtime.bin"),
-        fixture.root.path().join("outside.bin"),
-    )
-    .is_err());
-    assert_eq!(
-        ExternalReportPaths::new(
-            fixture.scenario.clean_store_root(),
-            fixture.root.path().join("reports/../clean-store/runtime.bin"),
-            fixture.root.path().join("reports/offline.bin"),
-        ),
-        Err(ExternalReportPathDenial::ParentTraversal)
-    );
-    let outside_root = fixture.root.path().join("physical-reports");
-    std::fs::create_dir(&outside_root).unwrap();
-    let prospective = outside_root.join("nested/runtime.bin");
-    let resolved = ExternalReportPaths::new(
-        fixture.scenario.clean_store_root(),
-        prospective,
-        outside_root.join("offline.bin"),
-    )
-    .unwrap();
-    assert!(resolved
-        .runtime()
-        .starts_with(std::fs::canonicalize(&outside_root).unwrap()));
-    assert_report_alias_is_rejected_when_supported(&fixture);
     let mut counters = RootLocalizationCounters::default();
     assert!(matches!(
         FreshRootArtifactRow::copy_from(
@@ -115,8 +78,13 @@ fn clean_manifest_rejects_checksum_valid_same_scope_substitution_source() {
         .target_for_role(RootArtifactRole::CurrentSelector);
     let record = fixture.manifest.record(target).unwrap();
     let same_scope_path = std::path::PathBuf::from("substitution-sources/same-scope.selector");
-    let mut same_scope_bytes =
-        std::fs::read(fixture.scenario.clean_store_root().join(record.relative_path())).unwrap();
+    let mut same_scope_bytes = std::fs::read(
+        fixture
+            .scenario
+            .clean_store_root()
+            .join(record.relative_path()),
+    )
+    .unwrap();
     same_scope_bytes[90] ^= 1;
     refresh_checksum(&mut same_scope_bytes);
     std::fs::write(
@@ -157,9 +125,7 @@ fn clean_manifest_rejects_checksum_valid_same_scope_substitution_source() {
             declarations,
             supporting,
         ),
-        Err(RootArtifactManifestDenial::InvalidSubstitutionScope(
-            target
-        ))
+        Err(RootArtifactManifestDenial::InvalidSubstitutionScope(target))
     );
 }
 
@@ -277,10 +243,8 @@ fn assert_operator_contract(
     }
     match edit.code() {
         RootCorruptionCode::B => {
-            assert_eq!(
-                audit.changed_ranges(),
-                &[record.covered_edit_offset()..record.covered_edit_offset() + 1]
-            );
+            let changed = record.covered_edit_offset()..record.covered_edit_offset() + 1;
+            assert_eq!(audit.changed_ranges(), std::slice::from_ref(&changed));
             assert_eq!(audit.checksum_valid_after_edit(), Some(false));
             assert_eq!(
                 expected.cause(),
@@ -288,10 +252,8 @@ fn assert_operator_contract(
             );
         }
         RootCorruptionCode::K => {
-            assert_eq!(
-                audit.changed_ranges(),
-                &[record.checksum_range().start..record.checksum_range().start + 1]
-            );
+            let changed = record.checksum_range().start..record.checksum_range().start + 1;
+            assert_eq!(audit.changed_ranges(), std::slice::from_ref(&changed));
             assert_eq!(audit.checksum_valid_after_edit(), Some(false));
             assert_eq!(expected.cause(), ExpectedRootCause::ChecksumFieldDamage);
         }
@@ -301,10 +263,7 @@ fn assert_operator_contract(
         }
         RootCorruptionCode::S => {
             assert_eq!(audit.checksum_valid_after_edit(), Some(true));
-            assert_eq!(
-                audit.changed_ranges(),
-                record.substitution_changed_ranges()
-            );
+            assert_eq!(audit.changed_ranges(), record.substitution_changed_ranges());
             assert_eq!(expected.posture(), ExpectedRootPosture::Damaged);
         }
         RootCorruptionCode::P => {
@@ -351,29 +310,4 @@ fn assert_operator_contract(
         assert_eq!(expected.minimum_reachable_paths().count(), 0);
     }
     let _ = expected.minimum_blast_radius();
-}
-
-fn assert_report_alias_is_rejected_when_supported(fixture: &super::test_world::RootFixture) {
-    let alias = fixture.root.path().join("store-alias");
-    if create_directory_alias(fixture.scenario.clean_store_root(), &alias).is_err() {
-        return;
-    }
-    assert_eq!(
-        ExternalReportPaths::new(
-            fixture.scenario.clean_store_root(),
-            alias.join("runtime.bin"),
-            fixture.root.path().join("alias-test-offline.bin"),
-        ),
-        Err(ExternalReportPathDenial::InsideStoreRoot)
-    );
-}
-
-#[cfg(windows)]
-fn create_directory_alias(target: &std::path::Path, alias: &std::path::Path) -> std::io::Result<()> {
-    std::os::windows::fs::symlink_dir(target, alias)
-}
-
-#[cfg(unix)]
-fn create_directory_alias(target: &std::path::Path, alias: &std::path::Path) -> std::io::Result<()> {
-    std::os::unix::fs::symlink(target, alias)
 }

@@ -12,10 +12,10 @@ pub struct OfflineIntegrityObservationCounters {
     pub(crate) indeterminate_reads: u64,
     pub(crate) exhausted_bounds: u64,
     pub(crate) checksum_calculations: u64,
-    pub(crate) namespace_identity_decoder_entries: u64,
-    pub(crate) durable_frame_decoder_entries: u64,
-    pub(crate) selector_decoder_entries: u64,
-    pub(crate) root_manifest_decoder_entries: u64,
+    pub(crate) namespace_identity_payload_decoder_entries: u64,
+    pub(crate) checksum_validated_durable_frames: u64,
+    pub(crate) selector_payload_decoder_entries: u64,
+    pub(crate) root_manifest_payload_decoder_entries: u64,
     pub(crate) report_bytes: u64,
 }
 
@@ -39,10 +39,10 @@ impl OfflineIntegrityObservationCounters {
         indeterminate_reads,
         exhausted_bounds,
         checksum_calculations,
-        namespace_identity_decoder_entries,
-        durable_frame_decoder_entries,
-        selector_decoder_entries,
-        root_manifest_decoder_entries,
+        namespace_identity_payload_decoder_entries,
+        checksum_validated_durable_frames,
+        selector_payload_decoder_entries,
+        root_manifest_payload_decoder_entries,
         report_bytes,
     );
 

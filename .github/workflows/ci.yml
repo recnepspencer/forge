@@ -342,6 +342,9 @@ jobs:
         run: cargo store-ci --partition scenario
       - name: Phase 8 fresh-process recovery
         run: cargo store-ci --partition process-scenario
+      - name: C.9 root process courtroom
+        working-directory: .
+        run: python scripts/ci/run_worth_store_c9_root_process_courtroom.py
       - name: Compiler boundaries
         run: cargo store-ci --partition ui
       - name: Formal models

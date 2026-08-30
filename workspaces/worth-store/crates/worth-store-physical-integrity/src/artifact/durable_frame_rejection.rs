@@ -26,7 +26,7 @@ impl DurableFrameFieldRange {
         Self { offset, length }
     }
 
-    pub(crate) fn bytes<'artifact>(self, artifact: &'artifact [u8]) -> &'artifact [u8] {
+    pub(crate) fn bytes(self, artifact: &[u8]) -> &[u8] {
         let start = usize::try_from(self.offset).expect("field offset fits platform usize");
         let length = usize::try_from(self.length).expect("field length fits platform usize");
         &artifact[start..start + length]

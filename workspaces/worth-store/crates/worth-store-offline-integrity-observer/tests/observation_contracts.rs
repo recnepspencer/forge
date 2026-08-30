@@ -78,10 +78,10 @@ fn clean_root_protocol_observation_and_counters_are_exact() {
     assert_eq!(counters.open_file_high_water(), 5);
     assert_eq!(counters.maximum_depth_reached(), 4);
     assert_eq!(counters.checksum_calculations(), 4);
-    assert_eq!(counters.namespace_identity_decoder_entries(), 1);
-    assert_eq!(counters.durable_frame_decoder_entries(), 3);
-    assert_eq!(counters.selector_decoder_entries(), 2);
-    assert_eq!(counters.root_manifest_decoder_entries(), 1);
+    assert_eq!(counters.namespace_identity_payload_decoder_entries(), 1);
+    assert_eq!(counters.checksum_validated_durable_frames(), 3);
+    assert_eq!(counters.selector_payload_decoder_entries(), 2);
+    assert_eq!(counters.root_manifest_payload_decoder_entries(), 1);
     assert_eq!(counters.unsupported_versions(), 0);
     assert_eq!(counters.exhausted_bounds(), 0);
     let wire = encode_offline_integrity_report(&report).unwrap();
@@ -90,6 +90,18 @@ fn clean_root_protocol_observation_and_counters_are_exact() {
         wire.starts_with("{\"protocol\":\"store.physical.integrity-observation\",\"version\":1")
     );
     assert!(wire.contains("\"role\":\"offline-root-observer\""));
+    for version_one_counter in [
+        "namespace_identity_decoders",
+        "durable_frame_decoders",
+        "selector_decoders",
+        "root_manifest_decoders",
+    ] {
+        assert!(wire.contains(&format!("\"{version_one_counter}\":")));
+    }
+    assert!(!wire.contains("namespace_identity_payload_decoder_entries"));
+    assert!(!wire.contains("checksum_validated_durable_frames"));
+    assert!(!wire.contains("selector_payload_decoder_entries"));
+    assert!(!wire.contains("root_manifest_payload_decoder_entries"));
     assert!(!wire.contains("admission"));
     assert!(!wire.contains("recovery_option"));
 }

@@ -35,8 +35,10 @@ worth-store-security = { workspace = true, features = ["certification-test-autho
 worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
 
 [dev-dependencies]
+serde_json = "1"
 tempfile = "3"
 worth-store-formal-models.workspace = true
+worth-store-physical-integrity.workspace = true
 worth-store-test-support = { workspace = true, features = ["certification-world"] }
 
 [features]

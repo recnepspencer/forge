@@ -37,7 +37,7 @@ pub(crate) fn read_selector(
         declaration,
         counters,
     )?;
-    counters.selector_decoder_entries += 1;
+    counters.selector_payload_decoder_entries += 1;
     if frame.payload[51..].iter().any(|byte| *byte != 0) {
         return Err(damaged_field(
             OfflinePhysicalDamageCause::MalformedPayload,

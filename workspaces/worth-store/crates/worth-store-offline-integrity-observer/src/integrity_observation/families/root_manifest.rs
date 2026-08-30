@@ -25,7 +25,7 @@ pub(crate) fn read_root_manifest(
         ROOT_MANIFEST_INTEGRITY_DECLARATION,
         counters,
     )?;
-    counters.root_manifest_decoder_entries += 1;
+    counters.root_manifest_payload_decoder_entries += 1;
     validate_reserved_and_flags(frame.payload)?;
     let generation = read_u64(frame.payload, 0);
     if generation == 0 || frame.identity != generation {

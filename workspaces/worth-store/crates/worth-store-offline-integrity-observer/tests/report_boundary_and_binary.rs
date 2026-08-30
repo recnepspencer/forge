@@ -112,6 +112,10 @@ fn shipped_observe_binary_emits_the_version_one_report() {
             fixture.store.to_str().unwrap(),
             "--report",
             "-",
+            "--run",
+            "courtroom-run",
+            "--scenario",
+            "courtroom-scenario",
             "--max-entries",
             "100",
             "--max-bytes",
@@ -143,6 +147,49 @@ fn shipped_observe_binary_emits_the_version_one_report() {
     assert_eq!(report.matches("\"posture\":\"intact\"").count(), 4);
     assert!(!report.contains("{,"), "object starts with a separator");
     assert_eq!(parsed.field("version").number(), 1);
+    assert_eq!(parsed.field("run").string(), "courtroom-run");
+    assert_eq!(parsed.field("scenario").string(), "courtroom-scenario");
+}
+
+#[test]
+fn shipped_observe_binary_defaults_run_identity_to_its_process() {
+    let fixture = clean_store("binary-default-run");
+    let output = Command::new(env!("CARGO_BIN_EXE_physical_store_integrity_observer"))
+        .args([
+            "observe",
+            "--store-root",
+            fixture.store.to_str().unwrap(),
+            "--report",
+            "-",
+            "--max-entries",
+            "100",
+            "--max-bytes",
+            "16384",
+            "--max-open-files",
+            "5",
+            "--max-depth",
+            "8",
+            "--max-symlinks",
+            "0",
+            "--max-elapsed-ms",
+            "5000",
+            "--max-report-bytes",
+            "65536",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = String::from_utf8(output.stdout).unwrap();
+    let parsed = parse_json(&report);
+    assert_eq!(
+        parsed.field("run").string(),
+        format!("offline-{}", parsed.field("process").string())
+    );
+    assert_eq!(parsed.field("scenario").string(), "operator-observe");
 }
 
 #[test]
@@ -186,6 +233,8 @@ fn shipped_help_has_normative_flags_without_patch_markers() {
     for flag in [
         "--store-root",
         "--report",
+        "--run",
+        "--scenario",
         "--max-entries",
         "--max-bytes",
         "--max-open-files",

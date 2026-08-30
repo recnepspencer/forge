@@ -1,6 +1,6 @@
 use super::{
-    CleanRootArtifactRecord, DeclaredRootCorruption, ExpectedMinimumBlastRadius,
-    ExpectedRootCause, ExpectedRootLocalization, ExpectedRootPosture, RootCorruptionCode,
+    CleanRootArtifactRecord, DeclaredRootCorruption, ExpectedMinimumBlastRadius, ExpectedRootCause,
+    ExpectedRootLocalization, ExpectedRootPosture, RootCorruptionCode,
 };
 
 pub(super) fn assert_exact_parent_expectation(
@@ -13,7 +13,8 @@ pub(super) fn assert_exact_parent_expectation(
         RootCorruptionCode::B => (
             ExpectedRootPosture::Damaged,
             ExpectedRootCause::CoveredByteIntegrityMismatch,
-            vec![record.covered_edit_offset()..record.covered_edit_offset() + 1],
+            std::iter::once(record.covered_edit_offset()..record.covered_edit_offset() + 1)
+                .collect(),
             ExpectedMinimumBlastRadius::CanonicalFrame,
         ),
         RootCorruptionCode::K => (
@@ -43,19 +44,19 @@ pub(super) fn assert_exact_parent_expectation(
         RootCorruptionCode::T => (
             ExpectedRootPosture::Damaged,
             ExpectedRootCause::Truncated,
-            vec![exact_length - 1..exact_length],
+            std::iter::once(exact_length - 1..exact_length).collect(),
             ExpectedMinimumBlastRadius::CompleteArtifact,
         ),
         RootCorruptionCode::R => (
             ExpectedRootPosture::Missing,
             ExpectedRootCause::ArtifactRemoval,
-            vec![0..exact_length],
+            std::iter::once(0..exact_length).collect(),
             ExpectedMinimumBlastRadius::ReachableSubtree,
         ),
         RootCorruptionCode::D => (
             ExpectedRootPosture::Duplicate,
             ExpectedRootCause::ArtifactDuplication,
-            vec![0..exact_length],
+            std::iter::once(0..exact_length).collect(),
             ExpectedMinimumBlastRadius::CompleteArtifact,
         ),
         RootCorruptionCode::U => (

@@ -161,12 +161,21 @@ pub(crate) fn assert_counters(
     assert_eq!(counters.maximum_depth_reached(), expected.depth);
     assert_eq!(counters.checksum_calculations(), expected.checksums);
     assert_eq!(
-        counters.namespace_identity_decoder_entries(),
+        counters.namespace_identity_payload_decoder_entries(),
         expected.namespace_decoders
     );
-    assert_eq!(counters.durable_frame_decoder_entries(), expected.frames);
-    assert_eq!(counters.selector_decoder_entries(), expected.selectors);
-    assert_eq!(counters.root_manifest_decoder_entries(), expected.roots);
+    assert_eq!(
+        counters.checksum_validated_durable_frames(),
+        expected.frames
+    );
+    assert_eq!(
+        counters.selector_payload_decoder_entries(),
+        expected.selectors
+    );
+    assert_eq!(
+        counters.root_manifest_payload_decoder_entries(),
+        expected.roots
+    );
     assert_eq!(counters.duplicate_identities(), expected.duplicates);
     assert_eq!(counters.missing_artifacts(), expected.missing);
 }

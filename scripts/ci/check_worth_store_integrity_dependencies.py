@@ -28,6 +28,14 @@ def production_dependencies(document: dict) -> set[str]:
     return dependencies
 
 
+def all_dependencies(document: dict) -> set[str]:
+    dependencies = production_dependencies(document)
+    dependencies.update(document.get("dev-dependencies", {}))
+    for target in document.get("target", {}).values():
+        dependencies.update(target.get("dev-dependencies", {}))
+    return dependencies
+
+
 def forbidden_format_routes(source: str) -> list[int]:
     lines: list[int] = []
     for match in FORMAT_CRATE.finditer(source):
@@ -38,14 +46,21 @@ def forbidden_format_routes(source: str) -> list[int]:
 
 def main() -> int:
     violations: list[str] = []
-    for crate in (RUNTIME_INTEGRITY, OBSERVER):
-        with (crate / "Cargo.toml").open("rb") as source:
-            dependencies = production_dependencies(tomllib.load(source))
-        if dependencies != LOWER_INTEGRITY_DEPENDENCIES:
-            violations.append(
-                f"{crate.name} production dependencies must be exactly "
-                f"{sorted(LOWER_INTEGRITY_DEPENDENCIES)}, found {sorted(dependencies)}"
-            )
+    with (RUNTIME_INTEGRITY / "Cargo.toml").open("rb") as source:
+        runtime_dependencies = production_dependencies(tomllib.load(source))
+    if runtime_dependencies != LOWER_INTEGRITY_DEPENDENCIES:
+        violations.append(
+            f"{RUNTIME_INTEGRITY.name} production dependencies must be exactly "
+            f"{sorted(LOWER_INTEGRITY_DEPENDENCIES)}, found {sorted(runtime_dependencies)}"
+        )
+
+    with (OBSERVER / "Cargo.toml").open("rb") as source:
+        observer_dependencies = all_dependencies(tomllib.load(source))
+    if observer_dependencies != LOWER_INTEGRITY_DEPENDENCIES:
+        violations.append(
+            f"{OBSERVER.name} dependencies of every kind must be exactly "
+            f"{sorted(LOWER_INTEGRITY_DEPENDENCIES)}, found {sorted(observer_dependencies)}"
+        )
 
     for source_root in (OBSERVER / "src", OBSERVER / "tests"):
         if not source_root.exists():

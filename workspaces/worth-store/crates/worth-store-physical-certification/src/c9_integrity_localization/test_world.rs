@@ -21,7 +21,7 @@ pub(super) fn root_fixture() -> RootFixture {
         root.path().join("reports/offline.bin"),
     )
     .unwrap();
-    let scenario = RootSliceScenario::new(store_root, &manifest, reports);
+    let scenario = RootSliceScenario::new(store_root, reports);
     RootFixture {
         root,
         manifest,

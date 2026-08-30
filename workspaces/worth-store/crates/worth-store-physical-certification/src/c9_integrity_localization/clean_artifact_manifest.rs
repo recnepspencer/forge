@@ -9,13 +9,7 @@ use super::frame_checksum::{
     checksum_is_valid, FRAME_CHECKSUM_RANGE, FRAME_FORMAT_VERSION_RANGE, FRAME_HEADER_BYTES,
     FRAME_LENGTH_RANGE,
 };
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) enum RootArtifactRole {
-    CurrentSelector,
-    PreviousSelector,
-    AddressedRootManifest,
-}
+use super::RootArtifactRole;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct RootArtifactIdentity {

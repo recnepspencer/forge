@@ -117,7 +117,8 @@ fn validate_operation_result(
     let valid = match operation {
         RootCorruptionOperation::CoveredByteFlip { offset, .. }
         | RootCorruptionOperation::ChecksumFieldFlip { offset, .. } => after.is_some_and(|after| {
-            changed_byte_ranges(before, after) == [*offset..*offset + 1]
+            changed_byte_ranges(before, after)
+                == std::iter::once(*offset..*offset + 1).collect::<Vec<_>>()
                 && !checksum_is_valid(after)
         }),
         RootCorruptionOperation::FramingLengthLie {

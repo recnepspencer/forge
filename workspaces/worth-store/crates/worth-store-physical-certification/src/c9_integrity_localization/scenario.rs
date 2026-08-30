@@ -1,28 +1,13 @@
 use std::collections::BTreeSet;
-use std::ffi::OsString;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
-use super::{CleanRootArtifactManifest, RootLocalizationCounters};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ExternalReportPaths {
-    runtime: PathBuf,
-    offline: PathBuf,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ExternalReportPathDenial {
-    InsideStoreRoot,
-    ParentTraversal,
-    PathResolution,
-    ReusedPath,
-}
+use super::external_report_paths::resolve_prospective_path;
+use super::{CleanRootArtifactManifest, ExternalReportPaths, RootLocalizationCounters};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RootSliceScenario {
-    identity: [u8; 32],
     clean_store_root: PathBuf,
     reports: ExternalReportPaths,
 }
@@ -41,66 +26,14 @@ pub(crate) struct FreshRootArtifactRow {
     baseline_identity: [u8; 32],
 }
 
-impl ExternalReportPaths {
-    pub(crate) fn new(
-        store_root: &Path,
-        runtime: PathBuf,
-        offline: PathBuf,
-    ) -> Result<Self, ExternalReportPathDenial> {
-        if [&runtime, &offline]
-            .into_iter()
-            .any(|path| path.components().any(|part| part == Component::ParentDir))
-        {
-            return Err(ExternalReportPathDenial::ParentTraversal);
-        }
-        let store_root = std::fs::canonicalize(store_root)
-            .map_err(|_| ExternalReportPathDenial::PathResolution)?;
-        let runtime = resolve_prospective_path(&runtime)?;
-        let offline = resolve_prospective_path(&offline)?;
-        if runtime == offline {
-            return Err(ExternalReportPathDenial::ReusedPath);
-        }
-        if runtime.starts_with(&store_root) || offline.starts_with(&store_root) {
-            return Err(ExternalReportPathDenial::InsideStoreRoot);
-        }
-        Ok(Self { runtime, offline })
-    }
-
-    pub(crate) fn runtime(&self) -> &Path {
-        &self.runtime
-    }
-    pub(crate) fn offline(&self) -> &Path {
-        &self.offline
-    }
-}
-
 impl RootSliceScenario {
-    pub(crate) fn new(
-        clean_store_root: PathBuf,
-        manifest: &CleanRootArtifactManifest,
-        reports: ExternalReportPaths,
-    ) -> Self {
-        let identity = Sha256::digest(
-            bincode::serialize(&(
-                "worth-store-c9-root-slice-scenario-v1",
-                manifest.identity(),
-                clean_store_root.to_string_lossy().replace('\\', "/"),
-                reports.runtime.to_string_lossy().replace('\\', "/"),
-                reports.offline.to_string_lossy().replace('\\', "/"),
-            ))
-            .expect("scenario identity fields are serializable"),
-        )
-        .into();
+    pub(crate) fn new(clean_store_root: PathBuf, reports: ExternalReportPaths) -> Self {
         Self {
-            identity,
             clean_store_root,
             reports,
         }
     }
 
-    pub(crate) const fn identity(&self) -> [u8; 32] {
-        self.identity
-    }
     pub(crate) fn clean_store_root(&self) -> &Path {
         &self.clean_store_root
     }
@@ -121,8 +54,8 @@ impl FreshRootArtifactRow {
         }
         let destination = resolve_prospective_path(&destination)
             .map_err(|_| FreshRootArtifactRowDenial::CopyFailed)?;
-        if scenario.reports.runtime.starts_with(&destination)
-            || scenario.reports.offline.starts_with(&destination)
+        if scenario.reports.runtime().starts_with(&destination)
+            || scenario.reports.offline().starts_with(&destination)
         {
             return Err(FreshRootArtifactRowDenial::ReportPathCollision);
         }
@@ -201,35 +134,4 @@ fn copied_manifest_identity(
         }
     }
     Ok(manifest.identity())
-}
-
-fn absolute(path: &Path) -> PathBuf {
-    if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .expect("test orchestration requires a working directory")
-            .join(path)
-    }
-}
-
-fn resolve_prospective_path(path: &Path) -> Result<PathBuf, ExternalReportPathDenial> {
-    let absolute = absolute(path);
-    let mut ancestor = absolute.as_path();
-    let mut missing: Vec<OsString> = Vec::new();
-    while !ancestor.exists() {
-        let name = ancestor
-            .file_name()
-            .ok_or(ExternalReportPathDenial::PathResolution)?;
-        missing.push(name.to_os_string());
-        ancestor = ancestor
-            .parent()
-            .ok_or(ExternalReportPathDenial::PathResolution)?;
-    }
-    let mut resolved = std::fs::canonicalize(ancestor)
-        .map_err(|_| ExternalReportPathDenial::PathResolution)?;
-    for component in missing.into_iter().rev() {
-        resolved.push(component);
-    }
-    Ok(resolved)
 }

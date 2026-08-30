@@ -9,8 +9,8 @@ pub(super) fn observe(arguments: ObserveArguments) -> Result<(), String> {
     let context = OfflineIntegrityProtocolContext::new(
         "physical_store_integrity_observer",
         process.clone(),
-        format!("offline-{process}"),
-        "operator-observe",
+        arguments.run_identity.clone(),
+        arguments.scenario_identity.clone(),
     )
     .map_err(|denial| format!("protocol context denied: {denial:?}"))?;
     let request = OfflineIntegrityObservationRequest::new(

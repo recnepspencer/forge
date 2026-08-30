@@ -104,16 +104,19 @@ fn render(report: &OfflineIntegrityReport) -> RenderedWire {
         ("checksum_calculations", counters.checksum_calculations()),
         (
             "namespace_identity_decoders",
-            counters.namespace_identity_decoder_entries(),
+            counters.namespace_identity_payload_decoder_entries(),
         ),
         (
             "durable_frame_decoders",
-            counters.durable_frame_decoder_entries(),
+            counters.checksum_validated_durable_frames(),
         ),
-        ("selector_decoders", counters.selector_decoder_entries()),
+        (
+            "selector_decoders",
+            counters.selector_payload_decoder_entries(),
+        ),
         (
             "root_manifest_decoders",
-            counters.root_manifest_decoder_entries(),
+            counters.root_manifest_payload_decoder_entries(),
         ),
         ("report_bytes", counters.report_bytes()),
     ];

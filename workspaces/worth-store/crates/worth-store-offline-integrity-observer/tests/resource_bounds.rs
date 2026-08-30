@@ -38,9 +38,9 @@ fn entry_bound_preserves_indeterminate_addressed_root_and_exact_work() {
     assert_eq!(counters.files_opened(), 11);
     assert_eq!(counters.maximum_depth_reached(), 3);
     assert_eq!(counters.checksum_calculations(), 3);
-    assert_eq!(counters.namespace_identity_decoder_entries(), 1);
-    assert_eq!(counters.selector_decoder_entries(), 2);
-    assert_eq!(counters.root_manifest_decoder_entries(), 0);
+    assert_eq!(counters.namespace_identity_payload_decoder_entries(), 1);
+    assert_eq!(counters.selector_payload_decoder_entries(), 2);
+    assert_eq!(counters.root_manifest_payload_decoder_entries(), 0);
     assert_eq!(counters.missing_artifacts(), 0);
     assert_eq!(counters.exhausted_bounds(), 1);
 }
@@ -136,8 +136,8 @@ fn partial_directory_prefix_is_reported_without_loss() {
     assert_eq!(report.counters().entries_visited(), 6);
     assert_eq!(report.counters().bytes_read(), 663);
     assert_eq!(report.counters().files_opened(), 20);
-    assert_eq!(report.counters().selector_decoder_entries(), 2);
-    assert_eq!(report.counters().root_manifest_decoder_entries(), 1);
+    assert_eq!(report.counters().selector_payload_decoder_entries(), 2);
+    assert_eq!(report.counters().root_manifest_payload_decoder_entries(), 1);
 }
 
 #[test]
@@ -192,7 +192,7 @@ fn byte_and_depth_bounds_stop_before_open_or_decode() {
     assert_eq!(depth_counters.bytes_read(), 286);
     assert_eq!(depth_counters.files_opened(), 11);
     assert_eq!(depth_counters.maximum_depth_reached(), 4);
-    assert_eq!(depth_counters.root_manifest_decoder_entries(), 0);
+    assert_eq!(depth_counters.root_manifest_payload_decoder_entries(), 0);
     assert_eq!(depth_counters.exhausted_bounds(), 1);
 }
 
@@ -221,7 +221,7 @@ fn open_file_bound_is_typed_before_deepest_root_acquisition() {
     assert_eq!(counters.bytes_read(), 286);
     assert_eq!(counters.files_opened(), 15);
     assert_eq!(counters.open_file_high_water(), 4);
-    assert_eq!(counters.root_manifest_decoder_entries(), 0);
+    assert_eq!(counters.root_manifest_payload_decoder_entries(), 0);
     assert_eq!(counters.exhausted_bounds(), 1);
 }
 
@@ -254,7 +254,7 @@ fn symlinked_artifact_is_refused_without_reading_its_target() {
     assert_eq!(counters.symlinks_refused(), 1);
     assert_eq!(counters.bytes_read(), 286);
     assert_eq!(counters.files_opened(), 11);
-    assert_eq!(counters.root_manifest_decoder_entries(), 0);
+    assert_eq!(counters.root_manifest_payload_decoder_entries(), 0);
     assert_eq!(counters.exhausted_bounds(), 1);
 }
 
