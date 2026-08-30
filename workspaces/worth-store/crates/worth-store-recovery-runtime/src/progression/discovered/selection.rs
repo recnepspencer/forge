@@ -78,7 +78,9 @@ pub(super) fn select_sources(
         input.root_protocol_denials,
         counters,
     )
-    .map_err(|failure| failure.with_integrity_observations(wal_integrity_observations.clone()))?;
+    .map_err(|failure| failure
+        .with_integrity_trace(integrity_trace.clone())
+        .with_integrity_observations(wal_integrity_observations.clone()))?;
     let (page_facts, retained_previous_page_facts) = select_manifest_facts(
         &root,
         ManifestSelectionInput {

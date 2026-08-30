@@ -142,7 +142,7 @@ fn selected_world(name: &str, segment_pages: u32) -> SelectedWorld {
     drop(world);
     let admitted = admitted_recovery(retained.path());
     let selected = admitted.discover().unwrap().select().unwrap();
-    let (authority, coordination, selection, _, _, _) = selected.into_parts();
+    let (authority, coordination, selection, _, _, _, _) = selected.into_parts();
     SelectedWorld {
         authority,
         coordination,
