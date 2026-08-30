@@ -1,5 +1,6 @@
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
+    IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedRootManifest, IntegrityValidatedWalFrame, PhysicalArtifactScope,
 };
@@ -32,6 +33,13 @@ fn forge_physical_work(scope: PhysicalArtifactScope) {
     };
 }
 
+fn forge_extent_manifest(scope: PhysicalArtifactScope) {
+    let _forged = IntegrityValidatedExtentManifest {
+        scope,
+        inspected: todo!(),
+    };
+}
+
 fn forge_page(scope: PhysicalArtifactScope) {
     let _forged = IntegrityValidatedPageFrame {
         scope,
@@ -41,6 +49,13 @@ fn forge_page(scope: PhysicalArtifactScope) {
 
 fn forge_wal(scope: PhysicalArtifactScope) {
     let _forged = IntegrityValidatedWalFrame {
+        scope,
+        inspected: todo!(),
+    };
+}
+
+fn forge_extent_chunk(scope: PhysicalArtifactScope) {
+    let _forged = IntegrityValidatedExtentChunkFrame {
         scope,
         inspected: todo!(),
     };

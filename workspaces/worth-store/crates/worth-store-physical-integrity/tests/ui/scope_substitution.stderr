@@ -1,7 +1,7 @@
 error[E0599]: no method named `with_scope` found for struct `IntegrityValidatedRootManifest<'media>` in the current scope
- --> tests/ui/scope_substitution.rs:7:23
+ --> tests/ui/scope_substitution.rs:8:23
   |
-7 |     let _ = validated.with_scope(other_scope);
+8 |     let _ = validated.with_scope(other_scope);
   |                       ^^^^^^^^^^
   |
 help: there is a method `scope` with a similar name, but with different arguments
@@ -11,9 +11,9 @@ help: there is a method `scope` with a similar name, but with different argument
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0599]: no method named `with_scope` found for struct `IntegrityValidatedPhysicalWorkObligation<'media>` in the current scope
-  --> tests/ui/scope_substitution.rs:14:23
+  --> tests/ui/scope_substitution.rs:15:23
    |
-14 |     let _ = validated.with_scope(other_scope);
+15 |     let _ = validated.with_scope(other_scope);
    |                       ^^^^^^^^^^
    |
 help: there is a method `scope` with a similar name, but with different arguments
@@ -23,7 +23,31 @@ help: there is a method `scope` with a similar name, but with different argument
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0599]: no method named `with_wal_lsn_range` found for struct `PhysicalArtifactScope` in the current scope
-  --> tests/ui/scope_substitution.rs:18:19
+  --> tests/ui/scope_substitution.rs:19:19
    |
-18 |     let _ = scope.with_wal_lsn_range(3, 4);
+19 |     let _ = scope.with_wal_lsn_range(3, 4);
    |                   ^^^^^^^^^^^^^^^^^^ method not found in `PhysicalArtifactScope`
+
+error[E0599]: no method named `with_scope` found for struct `IntegrityValidatedExtentManifest<'media>` in the current scope
+  --> tests/ui/scope_substitution.rs:26:23
+   |
+26 |     let _ = validated.with_scope(other_scope);
+   |                       ^^^^^^^^^^
+   |
+help: there is a method `scope` with a similar name, but with different arguments
+  --> src/validation/validated/extent_manifest.rs
+   |
+   |     pub const fn scope(&self) -> PhysicalArtifactScope {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `with_scope` found for struct `IntegrityValidatedExtentChunkFrame<'media>` in the current scope
+  --> tests/ui/scope_substitution.rs:33:23
+   |
+33 |     let _ = validated.with_scope(other_scope);
+   |                       ^^^^^^^^^^
+   |
+help: there is a method `scope` with a similar name, but with different arguments
+  --> src/validation/validated/extent_chunk.rs
+   |
+   |     pub const fn scope(&self) -> PhysicalArtifactScope {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

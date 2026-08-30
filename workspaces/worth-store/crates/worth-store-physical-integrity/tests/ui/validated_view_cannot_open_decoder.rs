@@ -1,10 +1,12 @@
 use worth_store_physical_format::physical_work_obligation::decode_physical_work_obligation_v6;
 use worth_store_physical_format::wal_frame::decode_bounded_wal_frame_v1;
 use worth_store_physical_format::{
-    inspect_inline_page, DurablePhysicalRootManifest, DurableRootSelector,
+    decode_extent_chunk, inspect_inline_page, DurableExtentManifest,
+    DurablePhysicalRootManifest, DurableRootSelector, ExtentChunkCoordinate,
 };
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
+    IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedRootManifest, IntegrityValidatedWalFrame,
 };
@@ -31,6 +33,21 @@ fn decode_page(validated: IntegrityValidatedPageFrame<'_>) {
 
 fn decode_wal(validated: IntegrityValidatedWalFrame<'_>) {
     let _ = decode_bounded_wal_frame_v1(validated);
+}
+
+fn decode_extent_manifest(validated: IntegrityValidatedExtentManifest<'_>) {
+    let _ = DurableExtentManifest::decode(validated);
+}
+
+fn decode_extent(
+    validated: IntegrityValidatedExtentChunkFrame<'_>,
+    expected: ExtentChunkCoordinate,
+) {
+    let _ = decode_extent_chunk(validated, expected);
+}
+
+fn extract_extent_payload(validated: IntegrityValidatedExtentChunkFrame<'_>) {
+    let _ = validated.chunk_bytes();
 }
 
 fn main() {}

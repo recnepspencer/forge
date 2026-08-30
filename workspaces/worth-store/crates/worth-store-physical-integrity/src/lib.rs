@@ -13,11 +13,13 @@ mod scrub;
 mod validation;
 
 pub use artifact::{
-    validate_current_root_selector, validate_inline_page, validate_physical_work_obligation,
-    validate_previous_root_selector, validate_root_manifest, validate_wal_frame,
-    CurrentRootSelectorIntegrityValidation, InlinePageIntegrityValidation,
-    PhysicalWorkObligationIntegrityValidation, PreviousRootSelectorIntegrityValidation,
-    RootManifestIntegrityValidation, WalFrameIntegrityValidation,
+    validate_current_root_selector, validate_extent_chunk, validate_extent_manifest,
+    validate_inline_page, validate_physical_work_obligation, validate_previous_root_selector,
+    validate_root_manifest, validate_wal_frame, CurrentRootSelectorIntegrityValidation,
+    ExtentChunkIntegrityValidation, ExtentManifestIntegrityValidation,
+    InlinePageIntegrityValidation, PhysicalWorkObligationIntegrityValidation,
+    PreviousRootSelectorIntegrityValidation, RootManifestIntegrityValidation,
+    WalFrameIntegrityValidation,
 };
 pub use localization::{
     PhysicalBlastRadius, PhysicalByteRange, PhysicalByteRangeDenial, PhysicalDamageCause,
@@ -35,6 +37,7 @@ pub use scrub::{
 pub use validation::{
     CheckpointStreamHeaderScopeIdentity, IndeterminatePhysicalIntegrityCause,
     IndeterminatePhysicalIntegrityPosture, IntegrityValidatedCurrentRootSelector,
+    IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest,
     IntegrityValidatedWalFrame, PhysicalArtifactScope, PhysicalArtifactScopeDenial,

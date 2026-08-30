@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:13:41
+  --> tests/ui/validated_view_cannot_open_decoder.rs:15:41
    |
-13 |     let _ = DurableRootSelector::decode(validated);
+15 |     let _ = DurableRootSelector::decode(validated);
    |             --------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedCurrentRootSelector<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -13,9 +13,9 @@ note: associated function defined here
    |            ^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:17:41
+  --> tests/ui/validated_view_cannot_open_decoder.rs:19:41
    |
-17 |     let _ = DurableRootSelector::decode(validated);
+19 |     let _ = DurableRootSelector::decode(validated);
    |             --------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedPreviousRootSelector<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -27,9 +27,9 @@ note: associated function defined here
    |            ^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:21:49
+  --> tests/ui/validated_view_cannot_open_decoder.rs:23:49
    |
-21 |     let _ = DurablePhysicalRootManifest::decode(validated, 2);
+23 |     let _ = DurablePhysicalRootManifest::decode(validated, 2);
    |             ----------------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedRootManifest<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -41,9 +41,9 @@ note: associated function defined here
    |            ^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:25:48
+  --> tests/ui/validated_view_cannot_open_decoder.rs:27:48
    |
-25 |     let _ = decode_physical_work_obligation_v6(validated);
+27 |     let _ = decode_physical_work_obligation_v6(validated);
    |             ---------------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedPhysicalWorkObligation<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -55,9 +55,9 @@ note: function defined here
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:29:60
+  --> tests/ui/validated_view_cannot_open_decoder.rs:31:60
    |
-29 |     let _ = inspect_inline_page(validated.record_format(), validated);
+31 |     let _ = inspect_inline_page(validated.record_format(), validated);
    |             -------------------                            ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedPageFrame<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -69,9 +69,9 @@ note: function defined here
    |        ^^^^^^^^^^^^^^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/validated_view_cannot_open_decoder.rs:33:41
+  --> tests/ui/validated_view_cannot_open_decoder.rs:35:41
    |
-33 |     let _ = decode_bounded_wal_frame_v1(validated);
+35 |     let _ = decode_bounded_wal_frame_v1(validated);
    |             --------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedWalFrame<'_>`
    |             |
    |             arguments to this function are incorrect
@@ -81,3 +81,37 @@ note: function defined here
    |
    | pub fn decode_bounded_wal_frame_v1(
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/validated_view_cannot_open_decoder.rs:39:43
+   |
+39 |     let _ = DurableExtentManifest::decode(validated);
+   |             ----------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedExtentManifest<'_>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-store-physical-format/src/manifest/durable_extent.rs
+   |
+   |     pub fn decode(
+   |            ^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/validated_view_cannot_open_decoder.rs:46:33
+   |
+46 |     let _ = decode_extent_chunk(validated, expected);
+   |             ------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedExtentChunkFrame<'_>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: function defined here
+  --> $WORKSPACE/crates/worth-store-physical-format/src/extent_record/durable_extent.rs
+   |
+   | pub fn decode_extent_chunk(
+   |        ^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `chunk_bytes` found for struct `IntegrityValidatedExtentChunkFrame<'media>` in the current scope
+  --> tests/ui/validated_view_cannot_open_decoder.rs:50:23
+   |
+50 |     let _ = validated.chunk_bytes();
+   |                       ^^^^^^^^^^^ method not found in `IntegrityValidatedExtentChunkFrame<'_>`
