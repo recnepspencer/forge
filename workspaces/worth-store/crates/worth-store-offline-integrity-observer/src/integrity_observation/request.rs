@@ -1,21 +1,21 @@
 use std::path::{Path, PathBuf};
 
 use super::{
-    OfflineIntegrityObservationLimits, OfflineIntegrityReportBoundary,
-    OfflineIntegrityReportBoundaryDenial, OfflineIntegrityReportDestination,
+    OfflineIntegrityObservationLimits, OfflineIntegrityProtocolContext,
+    OfflineIntegrityReportDestination,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OfflineIntegrityObservationRequest {
     store_root: PathBuf,
     limits: OfflineIntegrityObservationLimits,
-    report: OfflineIntegrityReportBoundary,
+    report_destination: OfflineIntegrityReportDestination,
+    protocol_context: OfflineIntegrityProtocolContext,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OfflineIntegrityObservationRequestDenial {
     EmptyStoreRoot,
-    ReportBoundary(OfflineIntegrityReportBoundaryDenial),
 }
 
 impl OfflineIntegrityObservationRequest {
@@ -23,20 +23,16 @@ impl OfflineIntegrityObservationRequest {
         store_root: PathBuf,
         limits: OfflineIntegrityObservationLimits,
         report_destination: OfflineIntegrityReportDestination,
+        protocol_context: OfflineIntegrityProtocolContext,
     ) -> Result<Self, OfflineIntegrityObservationRequestDenial> {
         if store_root.as_os_str().is_empty() {
             return Err(OfflineIntegrityObservationRequestDenial::EmptyStoreRoot);
         }
-        let report = OfflineIntegrityReportBoundary::new(
-            &store_root,
-            report_destination,
-            limits.maximum_report_bytes(),
-        )
-        .map_err(OfflineIntegrityObservationRequestDenial::ReportBoundary)?;
         Ok(Self {
             store_root,
             limits,
-            report,
+            report_destination,
+            protocol_context,
         })
     }
 
@@ -48,7 +44,11 @@ impl OfflineIntegrityObservationRequest {
         self.limits
     }
 
-    pub const fn report(&self) -> &OfflineIntegrityReportBoundary {
-        &self.report
+    pub const fn report_destination(&self) -> &OfflineIntegrityReportDestination {
+        &self.report_destination
+    }
+
+    pub const fn protocol_context(&self) -> &OfflineIntegrityProtocolContext {
+        &self.protocol_context
     }
 }

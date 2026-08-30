@@ -1,26 +1,119 @@
 # WORTH Store offline integrity observer
 
-This crate is the process-independent C.9 observation owner. It will walk a
-closed or isolated Store artifact tree under explicit entry, byte, open-file,
-depth, symlink, elapsed-time, and report-size limits and emit descriptive
-integrity observations. It must not import the live Store, recovery,
-buffer-pool, or runtime-integrity crates, and its findings grant no decoder,
-recovery, quarantine, or repair authority.
+This crate owns the implementation-independent C.9 offline root-observer lane.
+It reads Store content from a closed or isolated Store root through ordinary
+read-only OS file handles, applies finite caller-declared resource bounds, and
+emits a descriptive version-1 report. It grants no runtime admission, recovery choice, repair,
+quarantine mutation, reachability mutation, or semantic-service authority.
 
-Phase 2 installs only the independent dependency, bounded request, report
-destination, version-1 protocol identity, and declaration-only root-protocol
-boundary. A file destination is rejected when it is lexically equal to or
-beneath the declared Store root. The future report-emission boundary must also
-canonicalize both paths and repeat that exclusion; this descriptive request
-does not claim filesystem identity or perform I/O.
+## Phase 3 observation contract
 
-The artifact walk, separately implemented family readers and checksum
-calculation, report wire format, comparison, and executable arrive with their
-gated family phases. No parser, checksum, traversal, classifier, command, or
-process orchestration exists in this Phase 2 crate.
+`observe_store` follows one staged root-protocol chain:
 
-The only normal dependencies are `worth-foundational` for cross-runtime
-protocol descriptions and `worth-store-physical-format` for
-`integrity_declarations`. Imports from runtime codecs, checksum execution,
-Store, recovery, runtime integrity, maintenance, repair, operations, or the
-legacy offline verifier are forbidden.
+1. independently read and SHA-256-check the fixed `namespace/identity` trust
+   anchor under the same acquisition bounds;
+2. enumerate `families/records/` under the entry/depth/time budget;
+3. acquire the fixed `root-current.selector` and `root-previous.selector` slots
+   and lawful-looking selector candidates under the byte/open-file/symlink
+   budgets;
+4. independently validate the durable-frame envelope, supported physical-format
+   declaration, CRC32C relation, exact selector role, selector identity,
+   Store binding, declared reciprocal linkage, and duplicated embedded format;
+5. use only still-intact, exactly scoped canonical selector fields to address
+   `families/records/roots/root-<generation>.manifest`;
+6. independently validate every recognized manifest candidate (including
+   unaddressed damaged or unsupported evidence), while only selectors address
+   missing-root obligations, checking envelope, generation scope,
+   capacity, shape, and root/segment/free-space pointer encodings; and
+7. retain typed artifact outcomes, exact localization, completeness, and
+   traversal/decoder counters in an `OfflineIntegrityReport`.
+
+The current and previous selectors are separate reader entry points even though
+they share one persisted grammar. Missing fixed slots, missing addressed roots,
+unaddressed root candidates, hostile unknown entry kinds, hard-link aliases,
+and duplicate selector/root identities remain explicit. Per-path validation
+outcomes are non-lossy; physical-alias and semantic-identity duplication are
+orthogonal evidence rather than replacement damage verdicts. A checksum
+mismatch localizes the failed relation to the complete frame and checksum field;
+the lone damaged artifact cannot honestly infer whether the covered bytes or the
+stored checksum were edited.
+
+The observer imports only `worth-store-physical-format::integrity_declarations`
+and foundational descriptive protocol vocabulary. SHA-256, CRC32C, framing,
+field decoding, traversal, physical-alias/duplicate detection, classification,
+and report projection are implemented here. Runtime codecs, runtime validators, Store, recovery,
+repair, maintenance, operations, and the legacy verifier are forbidden sources.
+
+## Command
+
+```text
+physical_store_integrity_observer observe \
+  --store-root <closed-or-isolated-store-root> \
+  --report <path-outside-store-root|-> \
+  --max-entries <n> \
+  --max-bytes <n> \
+  --max-open-files <n> \
+  --max-depth <n> \
+  --max-symlinks <n> \
+  --max-elapsed-ms <n> \
+  --max-report-bytes <n>
+```
+
+`-` emits the report to stdout. A file target uses create-new semantics and is
+never overwritten. Its parent must already exist, and `--max-open-files` must
+be at least `2` so the parent identity guard remains live through create-new.
+The current root-protocol layout requires a traversal high water of `5`: the
+canonical Store root, each lexical ancestor through `families/records/roots`,
+and the observed root file remain open together. A lower declared limit yields
+typed `OpenFileBoundExceeded` evidence without opening the next handle.
+
+Before observation and again immediately before file creation, the implementation
+canonicalizes the Store root and the report parent. Relative paths and dot
+segments are normalized; resolvable symlinked parents are canonicalized; path
+containment is component-wise, so a lexical lookalike such as `store-copy` is
+not confused with `store`. A target equal to or beneath the canonical Store is
+rejected. Store-root and destination-parent filesystem identities are compared
+under the caller's shared elapsed budget. No output file or directory is
+created before this proof succeeds. Emission is a separate post-observation
+operation and does not retroactively alter traversal counters.
+
+The caller owns the operational fact that the Store is closed or isolated.
+Directory and file symlinks, including unrecognized entries, are classified and
+never followed outside the canonical Store. Every entry admitted before a
+directory bound is retained, sorted, and reported; exhaustion never discards an
+already admitted candidate prefix.
+Physical aliases are cached by filesystem identity before another semantic
+parser runs, so one physical file is content-read once across roles and
+families. On Windows, the observer opens non-reparse handles for the canonical
+Store root, every lexical ancestor, and the final file. Those handles deny
+delete sharing (and the final file also denies write sharing) while path-based
+identity is queried, bytes are read, and the binding is rechecked. It then
+obtains volume-qualified identity through bounded `fsutil file queryFileID`
+and volume-serial adapters. Adapter output is capped by `max-bytes`, and the
+child is killed at the remaining shared `max-elapsed-ms`; unavailable identity is a typed
+`Indeterminate` outcome, never a canonical-path fallback. A detectable length,
+timestamp, or identity change across bounded acquisition is `Indeterminate`;
+the observer does not claim detection when a filesystem preserves all compared
+snapshot metadata, and it does not retry until a convenient answer appears.
+
+## Version-1 report wire
+
+`encode_offline_integrity_report` emits deterministic UTF-8 JSON with:
+
+- protocol `store.physical.integrity-observation`, version `1`, compatibility
+  window `[1,1]`, and role `offline-root-observer`;
+- executable, process, run, scenario, and independently anchored Store identity;
+- every declared entry/byte/open-file/depth/symlink/elapsed/report bound;
+- consumed entries, bytes, files, high water, depth, symlink refusals,
+  duplicates, missing artifacts, checksum calculations, decoder entries, and exact
+  report bytes;
+- ordered artifact path, family, identity, generation, range, validator outcome,
+  damage/unsupported/unknown/indeterminate detail, duplicate evidence, and
+  blast radius; and
+- `complete`, `bound_exhausted`, or `indeterminate` completeness.
+
+Rendering counts every output byte while retaining at most the declared report
+budget, so report-size exhaustion is enforced before an oversized allocation or
+emission. The wire contains no admission proof, recovery option, repair token, owner
+disposition, or reconciled verdict. Report-size exhaustion prevents emission and
+does not alter the already observed Store bytes.

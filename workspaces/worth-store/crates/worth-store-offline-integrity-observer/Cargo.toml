@@ -5,6 +5,15 @@ edition.workspace = true
 version.workspace = true
 license.workspace = true
 description = "Independent bounded observation of inert WORTH Store physical artifacts."
+autotests = false
+
+[[bin]]
+name = "physical_store_integrity_observer"
+path = "src/bin/physical_store_integrity_observer.rs"
+
+[[test]]
+name = "observation_contracts"
+path = "tests/observation_contracts.rs"
 
 [dependencies]
 worth-foundational = { path = "../../../../crates/worth-foundational" }
