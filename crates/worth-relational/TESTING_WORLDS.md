@@ -276,6 +276,23 @@ The ordinary certification command is:
 cargo test -p worth-relational --test relational_certification --no-fail-fast
 ```
 
+Two public examples are executable compatibility contracts rather than
+compile-only samples. The `Run tests` step of the `build-and-test` job runs
+`cargo test --workspace`, and that command executes each example's own `main`.
+No separate lane exists or is wanted: the manifest keys alone place these
+examples in the lane that already runs.
+
+| Executable example | Manifest declaration | Local reproduction |
+| --- | --- | --- |
+| `crates/worth-signal/examples/branch_bases.rs` | `[[example]] name = "branch_bases", test = true, harness = false` | `cargo test -p worth-signal --examples` |
+| `crates/worth-relational/examples/branch_local_mvcc.rs` | `[[example]] name = "branch_local_mvcc", test = true, harness = false` | `cargo test -p worth-relational --examples` |
+
+Cargo leaves an example at `test = false` by default, so an unregistered example
+builds and never runs while the command above still reports success. `test =
+true` is what makes it evidence, and `harness = false` makes `main` the whole
+test, so there is no `test result:` line to count and the proof is the example's
+own named output.
+
 The complete Scale admission court, maximum 4,096-fork slope, and maximum
 retained-history ceiling are `#[ignore]`d so the ordinary loop stays
 responsive. They are not optional evidence: the `WORTH Relational scheduled
