@@ -122,6 +122,7 @@ impl RecordPublicationDirector {
                 foundation.frame_ports,
                 CanonicalFrameReadSource::new(planning_read),
                 writeback,
+                runtime.lifecycle_state(),
             ),
             mutation,
             generation: foundation.generation,

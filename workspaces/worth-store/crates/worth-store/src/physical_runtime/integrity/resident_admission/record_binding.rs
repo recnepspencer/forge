@@ -94,6 +94,10 @@ impl<'lease> ResidentIntegrityRecordBinding<'lease> {
         self.scope
     }
 
+    pub(super) const fn validation_record(&self) -> PhysicalIntegrityValidationRecord {
+        self.record
+    }
+
     fn new(
         lease: &'lease PhysicalFrameLease,
         lifecycle: std::sync::Arc<LifecycleState>,

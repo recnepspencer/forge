@@ -3,11 +3,12 @@ use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageLsn,
 };
 use worth_store_physical_integrity::{
-    validate_extent_chunk, ExtentChunkIntegrityValidation, ExtentChunkProjectionDenial,
-    UntrustedPhysicalArtifact,
+    validate_extent_chunk, validate_extent_chunk_membership, ExtentChunkIntegrityValidation,
+    ExtentChunkProjectionDenial, PhysicalDamageCause, PhysicalIntegrityRejection,
+    PhysicalIntegrityRejectionClass, UntrustedPhysicalArtifact,
 };
 
-use super::support::{record, validated_manifest, ExtentFixture};
+use super::support::{chunk_scope, record, store, validated_manifest, ExtentFixture};
 
 #[test]
 fn sealed_extent_chunk_projects_exact_payload_and_page_lsn() {
@@ -140,6 +141,36 @@ fn extent_projection_denies_foreign_incarnation_generation_and_ordinal() {
             )
             .unwrap_err(),
         ExtentChunkProjectionDenial::ChunkOrdinalMismatch
+    );
+}
+
+#[test]
+fn admitted_manifest_membership_rejects_a_foreign_store_scope() {
+    let fixture = ExtentFixture::new();
+    let manifest_bytes = fixture.manifest_bytes();
+    let manifest = validated_manifest(&manifest_bytes, fixture.manifest_scope());
+    let bytes = fixture.tail_chunk_bytes();
+    let coordinate = fixture.chunk_coordinate(2);
+    let foreign_scope = chunk_scope(store(9), fixture.format, coordinate, bytes.len() as u64);
+
+    let (validation, counters) = validate_extent_chunk_membership(
+        UntrustedPhysicalArtifact::from_bounded_bytes(&bytes),
+        foreign_scope,
+        manifest.membership(),
+    );
+
+    let ExtentChunkIntegrityValidation::Rejected(PhysicalIntegrityRejection::Damaged(damage)) =
+        validation
+    else {
+        panic!("foreign store scope must be rejected as localized physical damage")
+    };
+    assert_eq!(damage.cause(), PhysicalDamageCause::StoreIdentityMismatch);
+    assert_eq!(counters.rejected_frames(), 1);
+    assert_eq!(
+        counters.rejected_for(PhysicalIntegrityRejectionClass::Damaged(
+            PhysicalDamageCause::StoreIdentityMismatch,
+        )),
+        1
     );
 }
 

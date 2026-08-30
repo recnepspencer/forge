@@ -4,6 +4,7 @@ use super::*;
 
 pub fn admit_physical_redo_members(
     mut members: Vec<PhysicalRedoMemberInput>,
+    store: StableStoreIdentity,
     format: PhysicalRecordFormatDeclaration,
     limits: PhysicalRedoAdmissionLimits,
 ) -> Result<AdmittedPhysicalRedoMembers, PhysicalRedoPlanningDenial> {
@@ -25,7 +26,7 @@ pub fn admit_physical_redo_members(
             Some((&mut distinct, limits.distinct_targets)),
             projection,
         )?;
-        validate_projection_semantics(&records, &decoded, format)?;
+        validate_projection_semantics(&records, &decoded, store, format)?;
         targets = targets
             .checked_add(
                 records

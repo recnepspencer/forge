@@ -26,7 +26,7 @@ pub use extent_chunk::{
     ExtentChunkProjectionDenial, IntegrityValidatedExtentChunkFrame,
     IntegrityValidatedExtentChunkProjection,
 };
-pub use extent_manifest::IntegrityValidatedExtentManifest;
+pub use extent_manifest::{IntegrityValidatedExtentManifest, IntegrityValidatedExtentMembership};
 pub use free_space_header::IntegrityValidatedFreeSpaceHeader;
 pub use free_space_membership_block::IntegrityValidatedFreeSpaceMembershipBlock;
 pub use page_frame::{

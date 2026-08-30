@@ -60,6 +60,18 @@ fn page_b_k_l_s_t_u_matrix_is_exact_at_16_32_and_64_kib() {
             PhysicalBlastRadius::CompleteArtifact,
         );
 
+        let mut zero_generation = clean_page(page_size, identity);
+        zero_generation[28..36].copy_from_slice(&0_u64.to_le_bytes());
+        reseal(&mut zero_generation);
+        assert_damage(
+            &zero_generation,
+            scope,
+            PhysicalDamageCause::PhysicalGenerationMismatch,
+            field_range(scope, 28, 8),
+            Some(PhysicalFormatField::PhysicalGeneration),
+            PhysicalBlastRadius::CanonicalFrame,
+        );
+
         let complete = clean_page(page_size, identity);
         let truncated = &complete[..complete.len() - 7];
         assert_damage(
@@ -143,6 +155,31 @@ fn kind_format_segment_page_and_generation_substitutions_name_the_exact_field() 
             range,
             Some(field),
             PhysicalBlastRadius::CompleteArtifact,
+        );
+    }
+
+    for (encoded_range, damage_range, field) in [
+        (
+            48..56,
+            field_range(scope, 48, 8),
+            PhysicalFormatField::SegmentIdentity,
+        ),
+        (
+            56..64,
+            field_range(scope, 56, 8),
+            PhysicalFormatField::PageIdentity,
+        ),
+    ] {
+        let mut zero_identity = clean_page(page_size, identity);
+        zero_identity[encoded_range].copy_from_slice(&0_u64.to_le_bytes());
+        reseal(&mut zero_identity);
+        assert_damage(
+            &zero_identity,
+            scope,
+            PhysicalDamageCause::ArtifactIdentityMismatch,
+            damage_range,
+            Some(field),
+            PhysicalBlastRadius::CanonicalFrame,
         );
     }
 

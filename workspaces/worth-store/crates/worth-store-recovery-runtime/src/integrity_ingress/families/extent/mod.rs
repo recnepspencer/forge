@@ -1,8 +1,13 @@
 mod chunk;
 mod manifest;
 
-pub(in crate::integrity_ingress) use chunk::IntegrityAdmittedExtentChunkFrame;
-pub(in crate::integrity_ingress) use manifest::IntegrityAdmittedExtentManifest;
+pub(crate) use chunk::{
+    admit_extent_chunk_projection, ExtentChunkProjection, IntegrityAdmittedExtentChunkFrame,
+};
+pub(crate) use manifest::{
+    admit_extent_manifest_projection, AdmittedRecoveryExtentManifest, ExtentManifestProjection,
+    IntegrityAdmittedExtentManifest,
+};
 
 #[cfg(test)]
 pub(super) fn owner_valid_compile_contracts() {

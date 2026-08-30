@@ -21,6 +21,26 @@ pub(crate) struct RecoveryIntegrityIngressCounters {
 }
 
 impl RecoveryIntegrityIngressCounters {
+    pub(crate) const fn attempted(self) -> u64 {
+        self.attempted
+    }
+
+    pub(crate) const fn admitted(self) -> u64 {
+        self.admitted
+    }
+
+    pub(crate) const fn rejected(self) -> u64 {
+        self.attempted.saturating_sub(self.admitted)
+    }
+
+    pub(crate) const fn owner_projection_entries(self) -> u64 {
+        self.owner_projection_entries
+    }
+
+    pub(crate) const fn owner_decoder_entries(self) -> u64 {
+        self.owner_decoder_entries
+    }
+
     pub(super) fn record(&mut self, observation: RecoveryIntegrityIngressObservation) {
         self.attempted += 1;
         match observation.outcome() {

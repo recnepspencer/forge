@@ -54,6 +54,7 @@ fn incomplete_group_carriage_cannot_obtain_observation_authority() {
     let format = PhysicalRecordFormatDeclaration::builder().admit().unwrap();
     let denied = admit_physical_redo_members(
         vec![member],
+        test_store(),
         format,
         PhysicalRedoAdmissionLimits {
             targets: 1,

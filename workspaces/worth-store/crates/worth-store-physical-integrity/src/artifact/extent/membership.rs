@@ -5,7 +5,7 @@ use worth_store_physical_format::{
 use crate::artifact::durable_frame_rejection::{damaged, field_damage, DurableFrameFieldRange};
 use crate::localization::{PhysicalBlastRadius, PhysicalDamageCause, PhysicalFormatField};
 use crate::validation::{
-    IntegrityValidatedExtentManifest, PhysicalArtifactScope, PhysicalIntegrityRejection,
+    IntegrityValidatedExtentMembership, PhysicalArtifactScope, PhysicalIntegrityRejection,
 };
 
 const FORMAT_DECLARATION_FIELD: DurableFrameFieldRange = DurableFrameFieldRange::new(10, 10);
@@ -21,7 +21,7 @@ pub(super) fn validate_manifest_membership(
     scope: PhysicalArtifactScope,
     record_format: PhysicalRecordFormatDeclaration,
     chunk_bytes: usize,
-    manifest: &IntegrityValidatedExtentManifest<'_>,
+    manifest: IntegrityValidatedExtentMembership,
 ) -> Option<PhysicalIntegrityRejection> {
     let coordinate = scope
         .extent_chunk_coordinate()

@@ -20,6 +20,7 @@ use super::{
 pub(in crate::physical_runtime::record_serving) struct PhysicalResidencyWorkPort {
     access: Arc<PhysicalResidencyWorkAccess>,
     source: CanonicalFrameReadSource,
+    lifecycle: Arc<crate::physical_runtime::lifecycle::LifecycleState>,
 }
 
 struct PhysicalResidencyWorkAccess {
@@ -35,6 +36,7 @@ impl PhysicalResidencyWorkPort {
         frame_ports: RecordFramePorts,
         source: CanonicalFrameReadSource,
         writeback: FrameWritebackPort,
+        lifecycle: Arc<crate::physical_runtime::lifecycle::LifecycleState>,
     ) -> Self {
         Self {
             access: Arc::new(PhysicalResidencyWorkAccess {
@@ -42,7 +44,17 @@ impl PhysicalResidencyWorkPort {
                 writeback,
             }),
             source,
+            lifecycle,
         }
+    }
+
+    pub(in crate::physical_runtime) fn resident_admission_context(
+        &self,
+    ) -> crate::physical_runtime::integrity::ResidentAdmissionContext<'_> {
+        crate::physical_runtime::integrity::ResidentAdmissionContext::new(
+            Arc::clone(&self.lifecycle),
+            self.access.frame_ports.resident_integrity_counter_cells(),
+        )
     }
 
     pub(in crate::physical_runtime::record_serving) fn for_scan(mut self) -> Self {

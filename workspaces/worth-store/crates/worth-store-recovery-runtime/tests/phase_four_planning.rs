@@ -1,3 +1,5 @@
+#[path = "phase_four_planning/page_extent_recovery.rs"]
+mod page_extent_recovery;
 #[path = "phase_four_planning/phase_four_denial_counters.rs"]
 mod phase_four_denial_counters;
 #[path = "phase_four_planning/phase_six_publication.rs"]
@@ -271,6 +273,11 @@ fn ordinary_store_mutation_reopens_as_a_nonempty_effect_free_plan() {
     assert_eq!(counters.redo_skip_page_lsn(), 1);
     assert_eq!(counters.redo_skip_operation(), 0);
     assert_eq!(counters.fate_counts(), [1, 1, 0, 1]);
+    assert_eq!(counters.page_extent_integrity_attempts(), 1);
+    assert_eq!(counters.page_extent_integrity_admissions(), 1);
+    assert_eq!(counters.page_extent_integrity_rejections(), 0);
+    assert_eq!(counters.page_extent_owner_projections(), 1);
+    assert_eq!(counters.page_extent_owner_decoders(), 1);
     assert_ne!(planned.publication_plan().plan_identity(), [0; 32]);
     let protocol = planned.publication_plan().root_protocol();
     let publication = protocol.publication();

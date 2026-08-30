@@ -107,6 +107,7 @@ pub(super) fn admit(
     let format = context.selection.root().selected().selector().format();
     let redo = match admit_physical_redo_members(
         redo_inputs,
+        context.authority.media.store_identity(),
         format,
         PhysicalRedoAdmissionLimits {
             targets: context.limits.redo_targets,

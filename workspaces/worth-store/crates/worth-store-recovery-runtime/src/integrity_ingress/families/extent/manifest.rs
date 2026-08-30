@@ -1,7 +1,9 @@
 use worth_store_physical_format::{
     PersistedRecordIdentity, PhysicalRecordFormatDeclaration, RecordExtentGenerationCell,
 };
-use worth_store_physical_integrity::IntegrityValidatedExtentManifest;
+use worth_store_physical_integrity::{
+    validate_extent_manifest, IntegrityValidatedExtentManifest, PhysicalArtifactScope,
+};
 
 use super::super::super::admission::require_observed_recovery_source;
 use super::super::super::{
@@ -23,7 +25,41 @@ pub(crate) struct ExtentManifestProjection {
     pub chunk_count: u32,
 }
 
+pub(crate) struct AdmittedRecoveryExtentManifest {
+    pub projection: ExtentManifestProjection,
+    pub membership: worth_store_physical_integrity::IntegrityValidatedExtentMembership,
+}
+
+pub(crate) fn admit_extent_manifest_projection(
+    observed: &ObservedRecoveryArtifact,
+    scope: PhysicalArtifactScope,
+    counters: &mut RecoveryIntegrityIngressCounters,
+) -> Result<AdmittedRecoveryExtentManifest, RecoveryIntegrityIngressRejection> {
+    let input = ObservedRecoverySource::complete(observed, scope).input()?;
+    let validation = validate_extent_manifest(input, scope).0;
+    match super::super::super::IntegrityAdmittedRecoveryArtifact::bind_extent_manifest(
+        observed, scope, validation, counters,
+    )
+    .into_outcome()?
+    {
+        super::super::super::IntegrityAdmittedRecoveryArtifact::ExtentManifest(admitted) => {
+            let membership = admitted.membership();
+            Ok(AdmittedRecoveryExtentManifest {
+                projection: admitted.project(counters),
+                membership,
+            })
+        }
+        _ => unreachable!("extent ingress returns its family-specific admitted variant"),
+    }
+}
+
 impl<'media> IntegrityAdmittedExtentManifest<'media> {
+    pub(crate) const fn membership(
+        &self,
+    ) -> worth_store_physical_integrity::IntegrityValidatedExtentMembership {
+        self.validated.membership()
+    }
+
     pub(in crate::integrity_ingress) fn bind(
         source: ObservedRecoverySource<'media>,
         validated: IntegrityValidatedExtentManifest<'media>,
@@ -65,3 +101,4 @@ pub(super) fn owner_valid_compile_contract() {
     }
     let _ = bind;
 }
+use worth_store::physical_runtime::ObservedRecoveryArtifact;

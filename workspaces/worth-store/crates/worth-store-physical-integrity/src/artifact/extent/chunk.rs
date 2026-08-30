@@ -9,8 +9,9 @@ use crate::artifact::durable_frame_rejection::{
 use crate::localization::{PhysicalBlastRadius, PhysicalDamageCause, PhysicalFormatField};
 use crate::observation::PhysicalIntegrityObservationCounters;
 use crate::validation::{
-    IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest, PhysicalArtifactScope,
-    PhysicalIntegrityRejection, UntrustedPhysicalArtifact,
+    IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
+    IntegrityValidatedExtentMembership, PhysicalArtifactScope, PhysicalIntegrityRejection,
+    UntrustedPhysicalArtifact,
 };
 
 use super::membership::validate_manifest_membership;
@@ -37,6 +38,17 @@ pub fn validate_extent_chunk<'media>(
     artifact: UntrustedPhysicalArtifact<'media>,
     scope: PhysicalArtifactScope,
     manifest: &IntegrityValidatedExtentManifest<'_>,
+) -> (
+    ExtentChunkIntegrityValidation<'media>,
+    PhysicalIntegrityObservationCounters,
+) {
+    validate_extent_chunk_membership(artifact, scope, manifest.membership())
+}
+
+pub fn validate_extent_chunk_membership<'media>(
+    artifact: UntrustedPhysicalArtifact<'media>,
+    scope: PhysicalArtifactScope,
+    manifest: IntegrityValidatedExtentMembership,
 ) -> (
     ExtentChunkIntegrityValidation<'media>,
     PhysicalIntegrityObservationCounters,

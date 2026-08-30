@@ -147,6 +147,7 @@ impl ServingPhysicalRuntime {
                 frame_ports,
                 super::super::residency::frame_loading::CanonicalFrameReadSource::new(read),
                 writeback,
+                self.parts.core.lifecycle_state(),
             ),
         }
     }

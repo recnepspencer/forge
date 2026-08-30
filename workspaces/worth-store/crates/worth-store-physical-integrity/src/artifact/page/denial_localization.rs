@@ -76,22 +76,33 @@ fn invalid_page_identity(scope: PhysicalArtifactScope, bytes: &[u8]) -> Physical
     let expected = scope
         .page_identity()
         .expect("page-family scope carries a page identity");
-    if read_u64(bytes, SEGMENT_IDENTITY) != expected.segment_id().get() {
+    let observed_segment = read_u64(bytes, SEGMENT_IDENTITY);
+    if observed_segment != expected.segment_id().get() {
         return field_damage(
             scope,
             PhysicalDamageCause::ArtifactIdentityMismatch,
             SEGMENT_IDENTITY,
             PhysicalFormatField::SegmentIdentity,
-            PhysicalBlastRadius::CompleteArtifact,
+            identity_blast_radius(observed_segment),
         );
     }
-    if read_u64(bytes, PAGE_IDENTITY) != expected.page_id().get() {
+    let observed_page = read_u64(bytes, PAGE_IDENTITY);
+    if observed_page != expected.page_id().get() {
         return field_damage(
             scope,
             PhysicalDamageCause::ArtifactIdentityMismatch,
             PAGE_IDENTITY,
             PhysicalFormatField::PageIdentity,
-            PhysicalBlastRadius::CompleteArtifact,
+            identity_blast_radius(observed_page),
+        );
+    }
+    if read_u64(bytes, FRAME_GENERATION) == 0 {
+        return field_damage(
+            scope,
+            PhysicalDamageCause::PhysicalGenerationMismatch,
+            FRAME_GENERATION,
+            PhysicalFormatField::PhysicalGeneration,
+            PhysicalBlastRadius::CanonicalFrame,
         );
     }
     field_damage(
@@ -101,6 +112,14 @@ fn invalid_page_identity(scope: PhysicalArtifactScope, bytes: &[u8]) -> Physical
         PhysicalFormatField::PhysicalGeneration,
         PhysicalBlastRadius::CompleteArtifact,
     )
+}
+
+const fn identity_blast_radius(observed: u64) -> PhysicalBlastRadius {
+    if observed == 0 {
+        PhysicalBlastRadius::CanonicalFrame
+    } else {
+        PhysicalBlastRadius::CompleteArtifact
+    }
 }
 
 fn invalid_geometry(scope: PhysicalArtifactScope, bytes: &[u8]) -> PhysicalIntegrityRejection {

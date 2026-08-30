@@ -30,6 +30,14 @@ pub use disposition::{
 pub(in crate::physical_runtime) use recovery_join::{
     RecoveryIntegrityHandoffBinding, RecoveryIntegrityRuntimeGeneration,
 };
+pub(in crate::physical_runtime) use resident_admission::denial::ResidentIntegrityAdmissionDenial;
+pub(in crate::physical_runtime) use resident_admission::extent::{
+    admit_resident_extent_chunk, admit_resident_extent_manifest,
+};
+pub(in crate::physical_runtime) use resident_admission::load::ResidentAdmissionContext;
+pub(in crate::physical_runtime) use resident_admission::page::{
+    admit_resident_page, IntegrityAdmittedResidentPageBasis,
+};
 pub use root_protocol_admission_denial::RootProtocolAdmissionDenial;
 pub(in crate::physical_runtime) use scrub::{
     ManagedPhysicalIntegrityScrubHandle, ManagedPhysicalIntegrityScrubProgress,

@@ -48,6 +48,11 @@ fn page_failures_retain_distinct_exact_phase_four_read_counters() {
         3
     );
     assert_eq!(page_counters.fate_counts(), [1, 0, 0, 2]);
+    assert_eq!(page_counters.page_extent_integrity_attempts(), 1);
+    assert_eq!(page_counters.page_extent_integrity_admissions(), 0);
+    assert_eq!(page_counters.page_extent_integrity_rejections(), 1);
+    assert_eq!(page_counters.page_extent_owner_projections(), 0);
+    assert_eq!(page_counters.page_extent_owner_decoders(), 0);
     assert_eq!(invalid.recovery_effects(), 0);
     assert_eq!(invalid_page.recovery_effects(), 0);
 }

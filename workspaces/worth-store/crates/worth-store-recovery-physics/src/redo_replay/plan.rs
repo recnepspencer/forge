@@ -6,11 +6,11 @@ use super::{
 };
 use crate::RecoveryOperationFate;
 use std::collections::{BTreeMap, BTreeSet};
+use worth_store_physical_format::store_namespace::StableStoreIdentity;
 use worth_store_physical_format::{
-    decode_data_frame_page_lsn, decode_extent_chunk, decode_inline_record,
-    inspect_inline_page_records, CurrentPhysicalRecordPlacement, DurableExtentManifest,
-    DurableFrameKind, PersistedPhysicalDataFrameSubject, PersistedPhysicalRecoveryProjection,
-    PhysicalRecordFormatDeclaration, PhysicalRecoveryProjectionDecodeLimits,
+    CurrentPhysicalRecordPlacement, PersistedPhysicalDataFrameSubject,
+    PersistedPhysicalRecoveryProjection, PhysicalRecordFormatDeclaration,
+    PhysicalRecoveryProjectionDecodeLimits,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,6 +41,7 @@ mod accessors;
 mod admission;
 mod allocation_truth;
 mod group_admission;
+mod projection_admission;
 mod projection_materialization;
 mod projection_validation;
 
@@ -132,12 +133,14 @@ pub fn plan_physical_redo(
     members: Vec<PhysicalRedoMemberInput>,
     observations: Vec<RecoveryPageObservation>,
     maximum_targets: u64,
+    store: StableStoreIdentity,
 ) -> Result<ImmutablePhysicalRedoPlan, PhysicalRedoPlanningDenial> {
     let format = PhysicalRecordFormatDeclaration::builder()
         .admit()
         .map_err(|_| PhysicalRedoPlanningDenial::InvalidRecoveryProjection)?;
     admit_physical_redo_members(
         members,
+        store,
         format,
         PhysicalRedoAdmissionLimits {
             targets: maximum_targets,

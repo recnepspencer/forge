@@ -22,12 +22,12 @@ pub use validated::{
     IntegrityValidatedCheckpointFooter, IntegrityValidatedCheckpointStreamHeader,
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedExtentChunkFrame,
     IntegrityValidatedExtentChunkProjection, IntegrityValidatedExtentManifest,
-    IntegrityValidatedFreeSpaceHeader, IntegrityValidatedFreeSpaceMembershipBlock,
-    IntegrityValidatedInlineRecordProjection, IntegrityValidatedPageFrame,
-    IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedPreviousRootSelector,
-    IntegrityValidatedRootManifest, IntegrityValidatedRootRoutingBlock,
-    IntegrityValidatedSegmentMembershipBlock, IntegrityValidatedWalFrame,
-    IntegrityValidatedWalPayloadProjection, WalPayloadProjectionDenial,
+    IntegrityValidatedExtentMembership, IntegrityValidatedFreeSpaceHeader,
+    IntegrityValidatedFreeSpaceMembershipBlock, IntegrityValidatedInlineRecordProjection,
+    IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
+    IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest,
+    IntegrityValidatedRootRoutingBlock, IntegrityValidatedSegmentMembershipBlock,
+    IntegrityValidatedWalFrame, IntegrityValidatedWalPayloadProjection, WalPayloadProjectionDenial,
 };
 pub use validation_record::{
     PhysicalIntegrityValidationDigest, PhysicalIntegrityValidationMechanism,

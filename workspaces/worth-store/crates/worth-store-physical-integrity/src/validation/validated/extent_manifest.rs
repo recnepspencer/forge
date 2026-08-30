@@ -22,6 +22,19 @@ pub struct IntegrityValidatedExtentManifest<'media> {
     inspected: UntrustedPhysicalArtifact<'media>,
 }
 
+/// Byte-free membership facts projected from one validated extent manifest.
+/// It can constrain chunk validation but grants no access to chunk bytes.
+#[derive(Debug, Clone, Copy)]
+pub struct IntegrityValidatedExtentMembership {
+    scope: PhysicalArtifactScope,
+    record_format: PhysicalRecordFormatDeclaration,
+    record: PersistedRecordIdentity,
+    extent: RecordExtentGenerationCell,
+    logical_bytes: u64,
+    chunk_payload_capacity: u32,
+    chunk_count: u32,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ExtentManifestChunkMembership {
     coordinate: ExtentChunkCoordinate,
@@ -98,6 +111,18 @@ impl<'media> IntegrityValidatedExtentManifest<'media> {
         self.chunk_count
     }
 
+    pub const fn membership(&self) -> IntegrityValidatedExtentMembership {
+        IntegrityValidatedExtentMembership {
+            scope: self.scope,
+            record_format: self.record_format,
+            record: self.record,
+            extent: self.extent,
+            logical_bytes: self.logical_bytes,
+            chunk_payload_capacity: self.chunk_payload_capacity,
+            chunk_count: self.chunk_count,
+        }
+    }
+
     pub const fn into_validation_record(self) -> PhysicalIntegrityValidationRecord {
         self.validation_record
     }
@@ -105,8 +130,59 @@ impl<'media> IntegrityValidatedExtentManifest<'media> {
     pub fn matches_input(&self, input: UntrustedPhysicalArtifact<'media>) -> bool {
         self.inspected.same_incarnation(input)
     }
+}
 
-    pub(crate) fn chunk_membership(&self, ordinal: u32) -> Option<ExtentManifestChunkMembership> {
+impl IntegrityValidatedExtentMembership {
+    pub fn from_validation_record(
+        record: PhysicalIntegrityValidationRecord,
+        scope: PhysicalArtifactScope,
+    ) -> Option<Self> {
+        let placement = scope.extent_manifest_placement()?;
+        if !record.matches_scope(scope) {
+            return None;
+        }
+        let maximum_frame_bytes = scope.record_format().page_size().bytes();
+        let overhead = worth_store_physical_format::DURABLE_EXTENT_FRAME_HEADER_BYTES
+            + worth_store_physical_format::EXTENT_CHUNK_METADATA_BYTES;
+        let chunk_payload_capacity = maximum_frame_bytes.checked_sub(overhead as u32)?;
+        let chunk_count = u32::try_from(
+            placement
+                .payload_bytes()
+                .div_ceil(u64::from(chunk_payload_capacity)),
+        )
+        .ok()?;
+        Some(Self {
+            scope,
+            record_format: scope.record_format(),
+            record: placement.record(),
+            extent: placement.extent_cell(),
+            logical_bytes: placement.payload_bytes(),
+            chunk_payload_capacity,
+            chunk_count,
+        })
+    }
+
+    pub(crate) const fn scope(self) -> PhysicalArtifactScope {
+        self.scope
+    }
+
+    pub(crate) const fn record_format(self) -> PhysicalRecordFormatDeclaration {
+        self.record_format
+    }
+
+    pub(crate) const fn record(self) -> PersistedRecordIdentity {
+        self.record
+    }
+
+    pub(crate) const fn extent_cell(self) -> RecordExtentGenerationCell {
+        self.extent
+    }
+
+    pub(crate) const fn logical_bytes(self) -> u64 {
+        self.logical_bytes
+    }
+
+    pub(crate) fn chunk_membership(self, ordinal: u32) -> Option<ExtentManifestChunkMembership> {
         if ordinal == 0 || ordinal > self.chunk_count {
             return None;
         }
@@ -116,15 +192,14 @@ impl<'media> IntegrityValidatedExtentManifest<'media> {
             .logical_bytes
             .checked_sub(logical_offset)?
             .min(u64::from(self.chunk_payload_capacity));
-        let coordinate = ExtentChunkCoordinate::new(
-            self.record,
-            self.extent,
-            self.logical_bytes,
-            logical_offset,
-            ordinal,
-        )?;
         Some(ExtentManifestChunkMembership {
-            coordinate,
+            coordinate: ExtentChunkCoordinate::new(
+                self.record,
+                self.extent,
+                self.logical_bytes,
+                logical_offset,
+                ordinal,
+            )?,
             payload_bytes,
         })
     }

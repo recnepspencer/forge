@@ -1,9 +1,12 @@
 use sha2::{Digest, Sha256};
+use worth_store::physical_runtime::ObservedRecoveryArtifact;
 use worth_store_physical_format::{
-    decode_data_frame_page_lsn, DurableFrameKind, ExtentChunkCoordinate, PersistedRecordIdentity,
-    PhysicalPageLsn, PhysicalRecordFormatDeclaration, RecordExtentGenerationCell,
+    ExtentChunkCoordinate, PersistedRecordIdentity, PhysicalPageLsn,
+    PhysicalRecordFormatDeclaration, RecordExtentGenerationCell,
 };
-use worth_store_physical_integrity::IntegrityValidatedExtentChunkFrame;
+use worth_store_physical_integrity::{
+    validate_extent_chunk_membership, IntegrityValidatedExtentChunkFrame, PhysicalArtifactScope,
+};
 
 use super::super::super::admission::require_observed_recovery_source;
 use super::super::super::{
@@ -25,6 +28,26 @@ pub(crate) struct ExtentChunkProjection {
     pub ordinal: u32,
     pub page_lsn: PhysicalPageLsn,
     pub encoded_digest: [u8; 32],
+}
+
+pub(crate) fn admit_extent_chunk_projection(
+    observed: &ObservedRecoveryArtifact,
+    scope: PhysicalArtifactScope,
+    membership: worth_store_physical_integrity::IntegrityValidatedExtentMembership,
+    counters: &mut RecoveryIntegrityIngressCounters,
+) -> Result<ExtentChunkProjection, RecoveryIntegrityIngressRejection> {
+    let input = ObservedRecoverySource::complete(observed, scope).input()?;
+    let validation = validate_extent_chunk_membership(input, scope, membership).0;
+    match super::super::super::IntegrityAdmittedRecoveryArtifact::bind_extent_chunk(
+        observed, scope, validation, counters,
+    )
+    .into_outcome()?
+    {
+        super::super::super::IntegrityAdmittedRecoveryArtifact::ExtentChunk(admitted) => {
+            Ok(admitted.project(counters))
+        }
+        _ => unreachable!("extent ingress returns its family-specific admitted variant"),
+    }
 }
 
 impl<'media> IntegrityAdmittedExtentChunkFrame<'media> {
@@ -56,8 +79,7 @@ impl<'media> IntegrityAdmittedExtentChunkFrame<'media> {
             logical_bytes: self.validated.logical_bytes(),
             logical_offset: self.validated.logical_offset(),
             ordinal: self.validated.ordinal(),
-            page_lsn: decode_data_frame_page_lsn(input.bytes(), DurableFrameKind::Extent)
-                .expect("an intact Phase 4 extent chunk retains a decodable page LSN"),
+            page_lsn: self.validated.page_lsn(),
             encoded_digest: Sha256::digest(input.bytes()).into(),
         }
     }

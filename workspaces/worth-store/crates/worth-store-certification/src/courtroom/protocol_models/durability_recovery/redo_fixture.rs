@@ -1,4 +1,7 @@
 use sha2::{Digest, Sha256};
+use worth_store_physical_format::store_namespace::{
+    ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
+};
 use worth_store_physical_format::{
     append_inline_records_owned, encode_data_frame_page_lsn, CurrentPhysicalRecordPlacement,
     DurableFrameKind, DurableInlineRecordPlacement, InlineRecordAppend,
@@ -27,6 +30,7 @@ pub(super) fn applied_plan() -> ImmutablePhysicalRedoPlan {
         )],
         vec![observation(1, 9, [0; 32])],
         1,
+        store(),
     )
     .expect("canonical redo fixture applies after the prior page observation")
 }
@@ -41,6 +45,7 @@ pub(super) fn skipped_plan() -> ImmutablePhysicalRedoPlan {
         )],
         vec![observation(2, 10, result_digest())],
         1,
+        store(),
     )
     .expect("canonical redo fixture skips an already materialized page")
 }
@@ -55,8 +60,17 @@ pub(super) fn generation_denial() -> PhysicalRedoPlanningDenial {
         )],
         vec![observation(10, 10, [0; 32])],
         1,
+        store(),
     )
     .expect_err("foreign page generation must be rejected before replay")
+}
+
+fn store() -> StableStoreIdentity {
+    StoreNamespaceIdentityRecord::new(
+        StoreNamespaceVersion::CURRENT,
+        ProposedStoreIdentity::from_nonzero_bytes([0x51; 16]).unwrap(),
+    )
+    .published_identity()
 }
 
 fn range() -> WalLsnRange {

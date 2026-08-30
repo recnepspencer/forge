@@ -227,6 +227,10 @@ impl PhysicalWorkSubmissionOwner {
         &self.shared
     }
 
+    pub(in crate::physical_runtime) fn lifecycle_state(&self) -> Arc<LifecycleState> {
+        self.shared.lifecycle_state()
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime) fn pause_after_command_shard_lock_for_certification(
         &self,
@@ -258,6 +262,10 @@ impl PhysicalSubmissionState {
         &self,
     ) -> crate::physical_runtime::lifecycle::LifecycleStateSnapshot {
         self.lifecycle.snapshot()
+    }
+
+    pub(in crate::physical_runtime) fn lifecycle_state(&self) -> Arc<LifecycleState> {
+        Arc::clone(&self.lifecycle)
     }
 
     pub(super) const fn lifecycle_phase(

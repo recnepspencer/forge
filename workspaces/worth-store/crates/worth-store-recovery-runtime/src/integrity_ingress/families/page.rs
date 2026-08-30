@@ -1,9 +1,11 @@
 use sha2::{Digest, Sha256};
+use worth_store::physical_runtime::ObservedRecoveryArtifact;
 use worth_store_physical_format::{
-    decode_data_frame_page_lsn, DurableFrameKind, PageGenerationCell, PhysicalPageLsn,
-    PhysicalRecordFormatDeclaration,
+    PageGenerationCell, PhysicalPageLsn, PhysicalRecordFormatDeclaration,
 };
-use worth_store_physical_integrity::IntegrityValidatedPageFrame;
+use worth_store_physical_integrity::{
+    validate_inline_page, IntegrityValidatedPageFrame, PhysicalArtifactScope,
+};
 
 use super::super::admission::require_observed_recovery_source;
 use super::super::{
@@ -22,6 +24,25 @@ pub(crate) struct PageFrameProjection {
     pub free_bytes: u32,
     pub page_lsn: PhysicalPageLsn,
     pub encoded_digest: [u8; 32],
+}
+
+pub(crate) fn admit_page_projection(
+    observed: &ObservedRecoveryArtifact,
+    scope: PhysicalArtifactScope,
+    counters: &mut RecoveryIntegrityIngressCounters,
+) -> Result<PageFrameProjection, RecoveryIntegrityIngressRejection> {
+    let input = ObservedRecoverySource::complete(observed, scope).input()?;
+    let validation = validate_inline_page(input, scope).0;
+    match super::super::IntegrityAdmittedRecoveryArtifact::bind_page_frame(
+        observed, scope, validation, counters,
+    )
+    .into_outcome()?
+    {
+        super::super::IntegrityAdmittedRecoveryArtifact::PageFrame(admitted) => {
+            Ok(admitted.project(counters))
+        }
+        _ => unreachable!("page ingress returns its family-specific admitted variant"),
+    }
 }
 
 impl<'media> IntegrityAdmittedPageFrame<'media> {
@@ -50,8 +71,7 @@ impl<'media> IntegrityAdmittedPageFrame<'media> {
             page_identity: self.validated.page_identity(),
             slot_count: self.validated.slot_count(),
             free_bytes: self.validated.free_bytes(),
-            page_lsn: decode_data_frame_page_lsn(input.bytes(), DurableFrameKind::InlinePage)
-                .expect("an intact Phase 4 page frame retains a decodable page LSN"),
+            page_lsn: self.validated.page_lsn(),
             encoded_digest: Sha256::digest(input.bytes()).into(),
         }
     }

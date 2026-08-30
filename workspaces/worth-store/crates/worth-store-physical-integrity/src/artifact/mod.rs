@@ -17,8 +17,8 @@ pub use checkpoint::{
     CheckpointFooterValidationBasis, CheckpointStreamHeaderIntegrityValidation,
 };
 pub use extent::{
-    validate_extent_chunk, validate_extent_manifest, ExtentChunkIntegrityValidation,
-    ExtentManifestIntegrityValidation,
+    validate_extent_chunk, validate_extent_chunk_membership, validate_extent_manifest,
+    ExtentChunkIntegrityValidation, ExtentManifestIntegrityValidation,
 };
 pub use free_space::{
     validate_free_space_header, validate_free_space_membership_block,

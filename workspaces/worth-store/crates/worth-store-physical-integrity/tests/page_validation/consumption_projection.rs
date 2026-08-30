@@ -4,6 +4,7 @@ use worth_store_physical_format::{
 };
 use worth_store_physical_integrity::{
     validate_inline_page, InlinePageIntegrityValidation, InlineRecordProjectionDenial,
+    PhysicalDamageCause, PhysicalIntegrityRejection, PhysicalIntegrityRejectionClass,
     UntrustedPhysicalArtifact,
 };
 
@@ -90,6 +91,34 @@ fn page_projection_denies_foreign_incarnation_and_each_owner_identity_mismatch()
             .project_record(input, placement(page_cell, record(0xb2, 2), 2, 22, 5))
             .unwrap_err(),
         InlineRecordProjectionDenial::PayloadLengthMismatch
+    );
+}
+
+#[test]
+fn clean_page_is_rejected_under_a_foreign_page_incarnation_scope() {
+    let exact = page(3, 4, 5);
+    let bytes = clean_page(PhysicalPageSizeClass::KiB16, exact);
+    let input = UntrustedPhysicalArtifact::from_bounded_bytes(&bytes);
+    let (validation, counters) = validate_inline_page(
+        input,
+        page_scope(store(7), PhysicalPageSizeClass::KiB16, page(3, 4, 6)),
+    );
+
+    let InlinePageIntegrityValidation::Rejected(PhysicalIntegrityRejection::Damaged(damage)) =
+        validation
+    else {
+        panic!("foreign page incarnation must be rejected as localized physical damage")
+    };
+    assert_eq!(
+        damage.cause(),
+        PhysicalDamageCause::PhysicalGenerationMismatch
+    );
+    assert_eq!(counters.rejected_frames(), 1);
+    assert_eq!(
+        counters.rejected_for(PhysicalIntegrityRejectionClass::Damaged(
+            PhysicalDamageCause::PhysicalGenerationMismatch,
+        )),
+        1
     );
 }
 

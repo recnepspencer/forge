@@ -4,6 +4,9 @@ use crate::{
     RecoveryOperationEvidenceInput, RecoveryOperationFate, RecoveryOperationIdentity,
     RecoveryPageSource,
 };
+use worth_store_physical_format::store_namespace::{
+    ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
+};
 use worth_store_physical_format::RecordArtifactFile;
 
 #[path = "plan_tests/fixtures.rs"]
@@ -14,6 +17,22 @@ mod group_atomic;
 mod projection_mutants;
 
 use fixtures::*;
+
+fn plan_physical_redo(
+    members: Vec<PhysicalRedoMemberInput>,
+    observations: Vec<RecoveryPageObservation>,
+    maximum_targets: u64,
+) -> Result<ImmutablePhysicalRedoPlan, PhysicalRedoPlanningDenial> {
+    super::plan_physical_redo(members, observations, maximum_targets, test_store())
+}
+
+fn test_store() -> StableStoreIdentity {
+    StoreNamespaceIdentityRecord::new(
+        StoreNamespaceVersion::CURRENT,
+        ProposedStoreIdentity::from_nonzero_bytes([0x51; 16]).unwrap(),
+    )
+    .published_identity()
+}
 
 #[test]
 fn page_lsn_and_operation_fate_make_one_fixed_apply_or_skip_decision() {

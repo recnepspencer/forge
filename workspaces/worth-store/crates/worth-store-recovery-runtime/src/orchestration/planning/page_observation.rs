@@ -22,6 +22,7 @@ pub(super) struct PageObservationAttempt {
     pub(super) result: Result<ObservedPageBasis, PageObservationFailure>,
     pub(super) artifact_reads: u64,
     pub(super) bytes_read: u64,
+    pub(super) integrity: crate::integrity_ingress::RecoveryIntegrityIngressCounters,
 }
 
 pub(super) struct ObservedPageBasis {
@@ -51,6 +52,7 @@ pub(super) fn observe_selected_pages(
     let mut discovery = media
         .bounded_discovery(maximum_entries, maximum_bytes)
         .expect("admitted nonzero recovery limits create a bounded planning reader");
+    let mut integrity = crate::integrity_ingress::RecoveryIntegrityIngressCounters::default();
     let result = observe(
         &mut discovery,
         root_manifest,
@@ -61,6 +63,7 @@ pub(super) fn observe_selected_pages(
         admitted_manifest_entries,
         maximum_manifest_entries,
         maximum_bytes,
+        &mut integrity,
     );
     let counters = discovery.counters();
     (
@@ -69,6 +72,7 @@ pub(super) fn observe_selected_pages(
             result,
             artifact_reads: counters.addressed_artifacts_read,
             bytes_read: counters.bytes_read,
+            integrity,
         },
     )
 }
@@ -86,6 +90,7 @@ fn observe(
     admitted_manifest_entries: u64,
     maximum_manifest_entries: u64,
     byte_limit: u64,
+    integrity: &mut crate::integrity_ingress::RecoveryIntegrityIngressCounters,
 ) -> Result<ObservedPageBasis, PageObservationFailure> {
     let already_observed = admitted_manifest_entries.saturating_sub(maximum_manifest_entries);
     let mut budget = super::manifest_entry_budget::ManifestEntryBudget::new(
@@ -148,6 +153,7 @@ fn observe(
                     format,
                     byte_limit,
                     &selected_source.segment_pages,
+                    integrity,
                 )?);
             }
             CurrentPhysicalRecordPlacement::Extent(extent) => {
@@ -162,6 +168,7 @@ fn observe(
                         format,
                         byte_limit,
                         &mut extent_manifests,
+                        integrity,
                     )?);
                 }
             }
