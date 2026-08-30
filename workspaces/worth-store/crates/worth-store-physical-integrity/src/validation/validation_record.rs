@@ -152,6 +152,9 @@ mod tests {
     fn selector_scope(byte: u8, length: u64) -> PhysicalArtifactScope {
         PhysicalArtifactScope::current_root_selector(
             store(byte),
+            worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+                .admit()
+                .unwrap(),
             PhysicalByteRange::new(0, length).unwrap(),
         )
     }
@@ -199,7 +202,10 @@ mod tests {
     #[test]
     fn record_cannot_be_retargeted_across_root_generation() {
         let range = PhysicalByteRange::new(0, 107).unwrap();
-        let scope = PhysicalArtifactScope::root_manifest(store(11), 41, range).unwrap();
+        let format = worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+            .admit()
+            .unwrap();
+        let scope = PhysicalArtifactScope::root_manifest(store(11), format, 41, range).unwrap();
         let record = PhysicalIntegrityValidationRecord::from_validated_scope(
             scope,
             Digest::crc32c(31),
@@ -209,8 +215,9 @@ mod tests {
         .unwrap();
 
         assert!(record.matches_scope(scope));
-        assert!(!record
-            .matches_scope(PhysicalArtifactScope::root_manifest(store(11), 42, range).unwrap()));
+        assert!(!record.matches_scope(
+            PhysicalArtifactScope::root_manifest(store(11), format, 42, range).unwrap()
+        ));
     }
 
     #[test]

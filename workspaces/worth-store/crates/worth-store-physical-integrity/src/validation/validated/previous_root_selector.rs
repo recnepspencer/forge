@@ -1,4 +1,6 @@
-use worth_store_physical_format::RootSelectorIdentity;
+use worth_store_physical_format::{
+    DurableRootSelector, PhysicalRecordFormatDeclaration, RootSelectorIdentity, RootSelectorRole,
+};
 
 use super::super::{
     PhysicalArtifactScope, PhysicalIntegrityValidationDigest, PhysicalIntegrityValidationMechanism,
@@ -9,6 +11,7 @@ use super::super::{
 pub struct IntegrityValidatedPreviousRootSelector<'media> {
     scope: PhysicalArtifactScope,
     selector_identity: RootSelectorIdentity,
+    record_format: PhysicalRecordFormatDeclaration,
     root_generation: u64,
     linked_selector: Option<RootSelectorIdentity>,
     linked_root_generation: Option<u64>,
@@ -19,33 +22,31 @@ pub struct IntegrityValidatedPreviousRootSelector<'media> {
 impl<'media> IntegrityValidatedPreviousRootSelector<'media> {
     pub(crate) fn new(
         scope: PhysicalArtifactScope,
-        selector_identity: RootSelectorIdentity,
-        root_generation: u64,
-        linked_selector: Option<RootSelectorIdentity>,
-        linked_root_generation: Option<u64>,
-        exact_scope_digest: u32,
+        selector: DurableRootSelector,
         validated_range_checksum: u32,
         inspected: UntrustedPhysicalArtifact<'media>,
     ) -> Option<Self> {
         if !scope.is_previous_selector()
-            || root_generation == 0
-            || linked_selector.is_some() != linked_root_generation.is_some()
+            || selector.role() != RootSelectorRole::Previous
+            || selector.store_identity() != scope.store_identity()
+            || selector.format() != scope.record_format()
             || inspected.byte_count() != scope.byte_range().length()
         {
             return None;
         }
         let validation_record = PhysicalIntegrityValidationRecord::from_validated_scope(
             scope,
-            PhysicalIntegrityValidationDigest::crc32c(exact_scope_digest),
+            PhysicalIntegrityValidationDigest::crc32c(scope.exact_scope_digest()),
             PhysicalIntegrityValidationDigest::crc32c(validated_range_checksum),
             PhysicalIntegrityValidationMechanism::Crc32cV1,
         )?;
         Some(Self {
             scope,
-            selector_identity,
-            root_generation,
-            linked_selector,
-            linked_root_generation,
+            selector_identity: selector.identity(),
+            record_format: selector.format(),
+            root_generation: selector.root_generation(),
+            linked_selector: selector.linked_selector(),
+            linked_root_generation: selector.linked_root_generation(),
             validation_record,
             inspected,
         })
@@ -57,6 +58,10 @@ impl<'media> IntegrityValidatedPreviousRootSelector<'media> {
 
     pub const fn selector_identity(&self) -> RootSelectorIdentity {
         self.selector_identity
+    }
+
+    pub const fn record_format(&self) -> PhysicalRecordFormatDeclaration {
+        self.record_format
     }
 
     pub const fn root_generation(&self) -> u64 {

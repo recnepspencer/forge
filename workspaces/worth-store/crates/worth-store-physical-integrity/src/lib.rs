@@ -13,6 +13,7 @@ mod scrub;
 mod validation;
 
 pub use artifact::{
+    validate_current_root_selector, validate_previous_root_selector, validate_root_manifest,
     CurrentRootSelectorIntegrityValidation, PreviousRootSelectorIntegrityValidation,
     RootManifestIntegrityValidation,
 };

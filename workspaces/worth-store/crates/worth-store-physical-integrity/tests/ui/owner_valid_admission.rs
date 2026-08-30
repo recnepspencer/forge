@@ -10,7 +10,13 @@ fn main() {
 }
 
 fn selector_scope(store: StableStoreIdentity) -> PhysicalArtifactScope {
-    PhysicalArtifactScope::current_root_selector(store, PhysicalByteRange::new(0, 107).unwrap())
+    PhysicalArtifactScope::current_root_selector(
+        store,
+        worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+            .admit()
+            .unwrap(),
+        PhysicalByteRange::new(0, 107).unwrap(),
+    )
 }
 
 fn valid_current<'media>(

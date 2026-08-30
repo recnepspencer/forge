@@ -1,6 +1,7 @@
 use worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily;
 
 use crate::localization::PhysicalDamageCause;
+use crate::validation::PhysicalIntegrityRejection;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalIntegrityRejectionClass {
@@ -10,7 +11,7 @@ pub enum PhysicalIntegrityRejectionClass {
     Indeterminate,
 }
 
-const REJECTION_CLASS_COUNT: usize = 15;
+const REJECTION_CLASS_COUNT: usize = 17;
 
 impl PhysicalIntegrityRejectionClass {
     const fn index(self) -> usize {
@@ -19,17 +20,19 @@ impl PhysicalIntegrityRejectionClass {
             Self::Damaged(PhysicalDamageCause::FamilyMismatch) => 1,
             Self::Damaged(PhysicalDamageCause::FramingLengthMismatch) => 2,
             Self::Damaged(PhysicalDamageCause::ChecksumMismatch) => 3,
-            Self::Damaged(PhysicalDamageCause::StoreIdentityMismatch) => 4,
-            Self::Damaged(PhysicalDamageCause::ArtifactIdentityMismatch) => 5,
-            Self::Damaged(PhysicalDamageCause::PhysicalGenerationMismatch) => 6,
-            Self::Damaged(PhysicalDamageCause::SelectorRoleMismatch) => 7,
-            Self::Damaged(PhysicalDamageCause::ChildReferenceMismatch) => 8,
-            Self::Damaged(PhysicalDamageCause::Truncated) => 9,
-            Self::Damaged(PhysicalDamageCause::MissingArtifact) => 10,
-            Self::Damaged(PhysicalDamageCause::DuplicateArtifact) => 11,
-            Self::Unsupported => 12,
-            Self::Unknown => 13,
-            Self::Indeterminate => 14,
+            Self::Damaged(PhysicalDamageCause::FormatMismatch) => 4,
+            Self::Damaged(PhysicalDamageCause::StoreIdentityMismatch) => 5,
+            Self::Damaged(PhysicalDamageCause::ArtifactIdentityMismatch) => 6,
+            Self::Damaged(PhysicalDamageCause::PhysicalGenerationMismatch) => 7,
+            Self::Damaged(PhysicalDamageCause::SelectorRoleMismatch) => 8,
+            Self::Damaged(PhysicalDamageCause::ChildReferenceMismatch) => 9,
+            Self::Damaged(PhysicalDamageCause::MalformedStructure) => 10,
+            Self::Damaged(PhysicalDamageCause::Truncated) => 11,
+            Self::Damaged(PhysicalDamageCause::MissingArtifact) => 12,
+            Self::Damaged(PhysicalDamageCause::DuplicateArtifact) => 13,
+            Self::Unsupported => 14,
+            Self::Unknown => 15,
+            Self::Indeterminate => 16,
         }
     }
 }
@@ -97,6 +100,26 @@ impl PhysicalIntegrityObservationCounters {
         Ok(())
     }
 
+    pub(crate) fn one_intact(family: PhysicalIntegrityArtifactFamily, byte_count: u64) -> Self {
+        let mut counters = Self::empty(family);
+        counters
+            .record_intact(byte_count)
+            .expect("one bounded validation cannot overflow counters");
+        counters
+    }
+
+    pub(crate) fn one_rejected(
+        family: PhysicalIntegrityArtifactFamily,
+        byte_count: u64,
+        rejection: PhysicalIntegrityRejection,
+    ) -> Self {
+        let mut counters = Self::empty(family);
+        counters
+            .record_rejected(byte_count, rejection_class(rejection))
+            .expect("one bounded validation cannot overflow counters");
+        counters
+    }
+
     pub const fn family(self) -> PhysicalIntegrityArtifactFamily {
         self.family
     }
@@ -119,6 +142,19 @@ impl PhysicalIntegrityObservationCounters {
 
     pub const fn rejected_for(self, rejection_class: PhysicalIntegrityRejectionClass) -> u64 {
         self.rejections_by_class[rejection_class.index()]
+    }
+}
+
+const fn rejection_class(rejection: PhysicalIntegrityRejection) -> PhysicalIntegrityRejectionClass {
+    match rejection {
+        PhysicalIntegrityRejection::Damaged(localization) => {
+            PhysicalIntegrityRejectionClass::Damaged(localization.cause())
+        }
+        PhysicalIntegrityRejection::Unsupported(_) => PhysicalIntegrityRejectionClass::Unsupported,
+        PhysicalIntegrityRejection::Unknown(_) => PhysicalIntegrityRejectionClass::Unknown,
+        PhysicalIntegrityRejection::Indeterminate(_) => {
+            PhysicalIntegrityRejectionClass::Indeterminate
+        }
     }
 }
 

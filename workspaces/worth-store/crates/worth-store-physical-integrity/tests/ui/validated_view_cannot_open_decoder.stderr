@@ -1,0 +1,41 @@
+error[E0308]: mismatched types
+ --> tests/ui/validated_view_cannot_open_decoder.rs:8:41
+  |
+8 |     let _ = DurableRootSelector::decode(validated);
+  |             --------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedCurrentRootSelector<'_>`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> $WORKSPACE/crates/worth-store-physical-format/src/root_selector.rs
+  |
+  |     pub fn decode(bytes: &[u8]) -> Result<Self, RootSelectorDecodeDenial> {
+  |            ^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/validated_view_cannot_open_decoder.rs:12:41
+   |
+12 |     let _ = DurableRootSelector::decode(validated);
+   |             --------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedPreviousRootSelector<'_>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-store-physical-format/src/root_selector.rs
+   |
+   |     pub fn decode(bytes: &[u8]) -> Result<Self, RootSelectorDecodeDenial> {
+   |            ^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/validated_view_cannot_open_decoder.rs:16:49
+   |
+16 |     let _ = DurablePhysicalRootManifest::decode(validated, 2);
+   |             ----------------------------------- ^^^^^^^^^ expected `&[u8]`, found `IntegrityValidatedRootManifest<'_>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-store-physical-format/src/manifest/durable_root.rs
+   |
+   |     pub fn decode(
+   |            ^^^^^^

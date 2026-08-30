@@ -7,4 +7,5 @@ fn physical_integrity_construction_boundaries() {
     cases.compile_fail("tests/ui/proof_escape.rs");
     cases.compile_fail("tests/ui/record_cannot_open_decoder.rs");
     cases.compile_fail("tests/ui/scope_substitution.rs");
+    cases.compile_fail("tests/ui/validated_view_cannot_open_decoder.rs");
 }

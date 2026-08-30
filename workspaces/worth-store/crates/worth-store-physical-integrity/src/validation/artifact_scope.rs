@@ -6,6 +6,7 @@ use worth_store_physical_format::integrity_declarations::{
     PhysicalIntegrityArtifactFamily, PhysicalIntegrityFormatDeclaration,
 };
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
+use worth_store_physical_format::{durable_artifact_checksum, PhysicalRecordFormatDeclaration};
 
 use crate::localization::PhysicalByteRange;
 
@@ -25,6 +26,7 @@ enum RootArtifactScope {
 pub struct PhysicalArtifactScope {
     store: StableStoreIdentity,
     artifact: RootArtifactScope,
+    record_format: PhysicalRecordFormatDeclaration,
     range: PhysicalByteRange,
 }
 
@@ -36,28 +38,33 @@ pub enum PhysicalArtifactScopeDenial {
 impl PhysicalArtifactScope {
     pub const fn current_root_selector(
         store: StableStoreIdentity,
+        record_format: PhysicalRecordFormatDeclaration,
         range: PhysicalByteRange,
     ) -> Self {
         Self {
             store,
             artifact: RootArtifactScope::CurrentSelector,
+            record_format,
             range,
         }
     }
 
     pub const fn previous_root_selector(
         store: StableStoreIdentity,
+        record_format: PhysicalRecordFormatDeclaration,
         range: PhysicalByteRange,
     ) -> Self {
         Self {
             store,
             artifact: RootArtifactScope::PreviousSelector,
+            record_format,
             range,
         }
     }
 
     pub const fn root_manifest(
         store: StableStoreIdentity,
+        record_format: PhysicalRecordFormatDeclaration,
         generation: u64,
         range: PhysicalByteRange,
     ) -> Result<Self, PhysicalArtifactScopeDenial> {
@@ -67,6 +74,7 @@ impl PhysicalArtifactScope {
         Ok(Self {
             store,
             artifact: RootArtifactScope::Manifest { generation },
+            record_format,
             range,
         })
     }
@@ -85,6 +93,10 @@ impl PhysicalArtifactScope {
             }
             RootArtifactScope::Manifest { .. } => PhysicalIntegrityArtifactFamily::RootManifest,
         }
+    }
+
+    pub const fn record_format(self) -> PhysicalRecordFormatDeclaration {
+        self.record_format
     }
 
     pub const fn declaration(self) -> PhysicalIntegrityFormatDeclaration {
@@ -117,6 +129,21 @@ impl PhysicalArtifactScope {
     pub(crate) const fn is_root_manifest(self) -> bool {
         matches!(self.artifact, RootArtifactScope::Manifest { .. })
     }
+
+    pub(crate) fn exact_scope_digest(self) -> u32 {
+        let mut bytes = [0_u8; 51];
+        bytes[..16].copy_from_slice(&self.store.bytes());
+        bytes[16] = match self.artifact {
+            RootArtifactScope::CurrentSelector => 1,
+            RootArtifactScope::PreviousSelector => 2,
+            RootArtifactScope::Manifest { .. } => 3,
+        };
+        bytes[17..25].copy_from_slice(&self.root_generation().unwrap_or(0).to_le_bytes());
+        bytes[25..33].copy_from_slice(&self.range.offset().to_le_bytes());
+        bytes[33..41].copy_from_slice(&self.range.length().to_le_bytes());
+        bytes[41..].copy_from_slice(&self.record_format.canonical_identity_bytes());
+        durable_artifact_checksum(&bytes)
+    }
 }
 
 #[cfg(test)]
@@ -137,10 +164,17 @@ mod tests {
         .published_identity()
     }
 
+    fn format() -> worth_store_physical_format::PhysicalRecordFormatDeclaration {
+        worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+            .admit()
+            .unwrap()
+    }
+
     #[test]
     fn selector_scope_does_not_invent_payload_only_root_generation() {
         let scope = PhysicalArtifactScope::current_root_selector(
             store(),
+            format(),
             PhysicalByteRange::new(0, 107).unwrap(),
         );
         assert_eq!(
@@ -154,14 +188,50 @@ mod tests {
     fn root_manifest_scope_requires_exact_nonzero_generation() {
         let range = PhysicalByteRange::new(0, 368).unwrap();
         assert_eq!(
-            PhysicalArtifactScope::root_manifest(store(), 0, range),
+            PhysicalArtifactScope::root_manifest(store(), format(), 0, range),
             Err(PhysicalArtifactScopeDenial::ZeroRootGeneration)
         );
         assert_eq!(
-            PhysicalArtifactScope::root_manifest(store(), 9, range)
+            PhysicalArtifactScope::root_manifest(store(), format(), 9, range)
                 .unwrap()
                 .root_generation(),
             Some(9)
+        );
+    }
+
+    #[test]
+    fn exact_scope_digest_changes_with_format_generation_or_range() {
+        use worth_store_physical_format::PhysicalPageSizeClass;
+
+        let range = PhysicalByteRange::new(4096, 368).unwrap();
+        let baseline = PhysicalArtifactScope::root_manifest(store(), format(), 9, range).unwrap();
+        let other_format = worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+            .page_size(PhysicalPageSizeClass::KiB32)
+            .admit()
+            .unwrap();
+
+        assert_ne!(
+            baseline.exact_scope_digest(),
+            PhysicalArtifactScope::root_manifest(store(), other_format, 9, range)
+                .unwrap()
+                .exact_scope_digest()
+        );
+        assert_ne!(
+            baseline.exact_scope_digest(),
+            PhysicalArtifactScope::root_manifest(store(), format(), 10, range)
+                .unwrap()
+                .exact_scope_digest()
+        );
+        assert_ne!(
+            baseline.exact_scope_digest(),
+            PhysicalArtifactScope::root_manifest(
+                store(),
+                format(),
+                9,
+                PhysicalByteRange::new(8192, 368).unwrap(),
+            )
+            .unwrap()
+            .exact_scope_digest()
         );
     }
 }
