@@ -15,7 +15,8 @@ pub use rejection::{
 pub use untrusted_artifact::UntrustedPhysicalArtifact;
 pub use validated::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedExtentChunkFrame,
-    IntegrityValidatedExtentManifest, IntegrityValidatedPageFrame,
+    IntegrityValidatedExtentManifest, IntegrityValidatedFreeSpaceHeader,
+    IntegrityValidatedFreeSpaceMembershipBlock, IntegrityValidatedPageFrame,
     IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedPreviousRootSelector,
     IntegrityValidatedRootManifest, IntegrityValidatedWalFrame,
 };

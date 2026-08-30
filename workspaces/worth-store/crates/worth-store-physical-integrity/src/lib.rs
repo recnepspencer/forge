@@ -14,12 +14,13 @@ mod validation;
 
 pub use artifact::{
     validate_current_root_selector, validate_extent_chunk, validate_extent_manifest,
-    validate_inline_page, validate_physical_work_obligation, validate_previous_root_selector,
-    validate_root_manifest, validate_wal_frame, CurrentRootSelectorIntegrityValidation,
-    ExtentChunkIntegrityValidation, ExtentManifestIntegrityValidation,
-    InlinePageIntegrityValidation, PhysicalWorkObligationIntegrityValidation,
-    PreviousRootSelectorIntegrityValidation, RootManifestIntegrityValidation,
-    WalFrameIntegrityValidation,
+    validate_free_space_header, validate_free_space_membership_block, validate_inline_page,
+    validate_physical_work_obligation, validate_previous_root_selector, validate_root_manifest,
+    validate_wal_frame, CurrentRootSelectorIntegrityValidation, ExtentChunkIntegrityValidation,
+    ExtentManifestIntegrityValidation, FreeSpaceHeaderIntegrityValidation,
+    FreeSpaceMembershipBlockIntegrityValidation, InlinePageIntegrityValidation,
+    PhysicalWorkObligationIntegrityValidation, PreviousRootSelectorIntegrityValidation,
+    RootManifestIntegrityValidation, WalFrameIntegrityValidation,
 };
 pub use localization::{
     PhysicalBlastRadius, PhysicalByteRange, PhysicalByteRangeDenial, PhysicalDamageCause,
@@ -38,6 +39,7 @@ pub use validation::{
     CheckpointStreamHeaderScopeIdentity, IndeterminatePhysicalIntegrityCause,
     IndeterminatePhysicalIntegrityPosture, IntegrityValidatedCurrentRootSelector,
     IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentManifest,
+    IntegrityValidatedFreeSpaceHeader, IntegrityValidatedFreeSpaceMembershipBlock,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest,
     IntegrityValidatedWalFrame, PhysicalArtifactScope, PhysicalArtifactScopeDenial,
