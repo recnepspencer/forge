@@ -61,6 +61,11 @@ fn bounded_discovery_joins_root_bound_checkpoint_cutover_and_contiguous_wal() {
     publish_synthetic_wal_tail(&root);
     let discovered = admitted_recovery(&root).discover().unwrap();
     assert_eq!(discovered.counters().checkpoint_candidates, 1);
+    assert_eq!(discovered.counters().checkpoint_integrity_attempts, 5);
+    assert_eq!(discovered.counters().checkpoint_integrity_admissions, 5);
+    assert_eq!(discovered.counters().checkpoint_integrity_rejections, 0);
+    assert_eq!(discovered.counters().checkpoint_owner_projections, 3);
+    assert_eq!(discovered.counters().checkpoint_owner_decoder_entries, 0);
     assert_eq!(discovered.counters().wal_entries, 1);
     assert_eq!(discovered.counters().wal_segments, 1);
     assert_eq!(discovered.counters().wal_frames, 1);
@@ -221,6 +226,10 @@ fn absent_and_rejected_checkpoints_have_distinct_terminal_evidence() {
     let discovered = admitted_recovery(&rejected_root).discover().unwrap();
     assert_eq!(discovered.counters().checkpoints_absent, 0);
     assert_eq!(discovered.counters().checkpoints_rejected, 1);
+    assert_eq!(discovered.counters().checkpoint_integrity_attempts, 1);
+    assert_eq!(discovered.counters().checkpoint_integrity_admissions, 0);
+    assert_eq!(discovered.counters().checkpoint_integrity_rejections, 1);
+    assert_eq!(discovered.counters().checkpoint_owner_decoder_entries, 0);
     let blocked = expect_blocked(
         discovered
             .select()
@@ -236,8 +245,10 @@ fn absent_and_rejected_checkpoints_have_distinct_terminal_evidence() {
         .iter()
         .any(|denial| matches!(
             denial,
-            PhysicalRecoverySourceDenial::CheckpointFormat(
-                worth_store_physical_format::CheckpointStreamDecodeDenial::Truncated
+            PhysicalRecoverySourceDenial::CheckpointIntegrity(
+                worth_store_recovery_runtime::PhysicalRecoveryCheckpointIntegrityDenial::Integrity(
+                    _
+                )
             )
         )));
     assert_eq!(

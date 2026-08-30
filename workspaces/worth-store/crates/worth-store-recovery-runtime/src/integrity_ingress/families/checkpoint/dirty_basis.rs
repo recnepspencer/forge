@@ -1,18 +1,11 @@
-use worth_store_physical_format::CheckpointDirtyFrameBasis;
 use worth_store_physical_integrity::IntegrityValidatedCheckpointDirtyBasis;
 
 use super::super::super::admission::require_observed_recovery_source;
-use super::super::super::{
-    ObservedRecoverySource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
-};
+use super::super::super::{ObservedRecoverySource, RecoveryIntegrityIngressRejection};
 
 pub(crate) struct IntegrityAdmittedCheckpointDirtyBasis<'media> {
     source: ObservedRecoverySource<'media>,
     validated: IntegrityValidatedCheckpointDirtyBasis<'media>,
-}
-
-pub(crate) struct CheckpointDirtyBasisProjection {
-    pub basis: CheckpointDirtyFrameBasis,
 }
 
 impl<'media> IntegrityAdmittedCheckpointDirtyBasis<'media> {
@@ -26,22 +19,18 @@ impl<'media> IntegrityAdmittedCheckpointDirtyBasis<'media> {
         Ok(Self { source, validated })
     }
 
-    pub(crate) fn project(
-        &self,
-        counters: &mut RecoveryIntegrityIngressCounters,
-    ) -> CheckpointDirtyBasisProjection {
-        counters.record_owner_projection();
-        CheckpointDirtyBasisProjection {
-            basis: self.validated.basis(),
-        }
-    }
-
     pub(crate) fn scope(&self) -> worth_store_physical_integrity::PhysicalArtifactScope {
         self.source.scope()
     }
 
     pub(in crate::integrity_ingress) const fn source(&self) -> &ObservedRecoverySource<'media> {
         &self.source
+    }
+
+    pub(in crate::integrity_ingress) const fn validated(
+        &self,
+    ) -> &IntegrityValidatedCheckpointDirtyBasis<'media> {
+        &self.validated
     }
 }
 

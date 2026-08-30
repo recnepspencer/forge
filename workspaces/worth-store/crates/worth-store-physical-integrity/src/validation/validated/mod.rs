@@ -16,10 +16,11 @@ mod wal_frame;
 
 pub use bootstrap_catalog::IntegrityValidatedBootstrapCatalog;
 pub use checkpoint::{
-    CheckpointBindingPayloadProjectionDenial, IntegrityValidatedCheckpointBinding,
-    IntegrityValidatedCheckpointBindingCompaction,
+    CheckpointBindingPayloadProjectionDenial, CheckpointFooterRoutingProjection,
+    IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointBindingCompaction,
     IntegrityValidatedCheckpointBindingPayloadProjection, IntegrityValidatedCheckpointDirtyBasis,
-    IntegrityValidatedCheckpointFooter, IntegrityValidatedCheckpointStreamHeader,
+    IntegrityValidatedCheckpointFooter, IntegrityValidatedCheckpointFooterEnvelope,
+    IntegrityValidatedCheckpointStreamHeader,
 };
 pub use current_root_selector::IntegrityValidatedCurrentRootSelector;
 pub use extent_chunk::{

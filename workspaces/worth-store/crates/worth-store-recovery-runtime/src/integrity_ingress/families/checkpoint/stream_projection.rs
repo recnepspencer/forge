@@ -1,21 +1,23 @@
-use worth_store::physical_runtime::ObservedRecoveryArtifact;
-use worth_store_physical_format::{
-    CheckpointDirtyFrameBasis, CheckpointStreamFooter, PhysicalCheckpointIdentity,
-    PhysicalCheckpointSource,
+use worth_store::physical_runtime::{
+    ObservedRecoveryArtifact, StoreRecoveryCheckpointBindingBasis,
+    StoreRecoveryCheckpointBindingRebuilder,
+};
+use worth_store_physical_format::PhysicalCheckpointIdentity;
+use worth_store_physical_integrity::{
+    UntrustedPhysicalArtifact, VerifiedCheckpointStream, VerifiedCheckpointStreamAssemblyDenial,
 };
 
-use super::binding::CheckpointBindingProjection;
 use super::{
     IntegrityAdmittedCheckpointBinding, IntegrityAdmittedCheckpointBindingCompaction,
     IntegrityAdmittedCheckpointDirtyBasis, IntegrityAdmittedCheckpointFooter,
     IntegrityAdmittedCheckpointStreamHeader,
 };
 use crate::integrity_ingress::{
-    ObservedRecoverySource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
+    ObservedRecoverySource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressObservation,
+    RecoveryIntegrityIngressRejection,
 };
 
 pub(crate) struct IntegrityAdmittedCheckpointStream<'media> {
-    encoded_bytes: u64,
     header: IntegrityAdmittedCheckpointStreamHeader<'media>,
     dirty: Vec<IntegrityAdmittedCheckpointDirtyBasis<'media>>,
     compaction: IntegrityAdmittedCheckpointBindingCompaction<'media>,
@@ -23,50 +25,9 @@ pub(crate) struct IntegrityAdmittedCheckpointStream<'media> {
     footer: IntegrityAdmittedCheckpointFooter<'media>,
 }
 
-/// Recovery-owner facts projected only from the complete admitted record set.
-pub(crate) struct IntegrityAdmittedCheckpointProjection<'media> {
-    source: PhysicalCheckpointSource,
-    checkpoint_identity: PhysicalCheckpointIdentity,
-    dirty_bases: Box<[CheckpointDirtyFrameBasis]>,
-    compaction_generation: u64,
-    wal_cutoff_lsn_exclusive: u64,
-    bindings: Box<[CheckpointBindingProjection<'media>]>,
-    footer: CheckpointStreamFooter,
-    encoded_bytes: u64,
-}
-
-impl<'media> IntegrityAdmittedCheckpointProjection<'media> {
-    pub(crate) const fn source(&self) -> PhysicalCheckpointSource {
-        self.source
-    }
-
-    pub(crate) const fn checkpoint_identity(&self) -> PhysicalCheckpointIdentity {
-        self.checkpoint_identity
-    }
-
-    pub(crate) fn dirty_bases(&self) -> &[CheckpointDirtyFrameBasis] {
-        &self.dirty_bases
-    }
-
-    pub(crate) const fn compaction_generation(&self) -> u64 {
-        self.compaction_generation
-    }
-
-    pub(crate) const fn wal_cutoff_lsn_exclusive(&self) -> u64 {
-        self.wal_cutoff_lsn_exclusive
-    }
-
-    pub(crate) fn bindings(&self) -> &[CheckpointBindingProjection<'media>] {
-        &self.bindings
-    }
-
-    pub(crate) const fn footer(&self) -> CheckpointStreamFooter {
-        self.footer
-    }
-
-    pub(crate) const fn encoded_bytes(&self) -> u64 {
-        self.encoded_bytes
-    }
+pub(crate) struct OwnerCheckpointProjection {
+    pub(crate) checkpoint: VerifiedCheckpointStream,
+    pub(crate) binding_basis: StoreRecoveryCheckpointBindingBasis,
 }
 
 impl<'media> IntegrityAdmittedCheckpointStream<'media> {
@@ -101,7 +62,6 @@ impl<'media> IntegrityAdmittedCheckpointStream<'media> {
             return Err(RecoveryIntegrityIngressRejection::ScopeMismatch);
         }
         Ok(Self {
-            encoded_bytes: next_offset,
             header,
             dirty,
             compaction,
@@ -110,33 +70,76 @@ impl<'media> IntegrityAdmittedCheckpointStream<'media> {
         })
     }
 
-    pub(crate) fn project(
+    pub(crate) fn into_owner_checkpoint(
         self,
+        maximum_binding_records: u64,
         counters: &mut RecoveryIntegrityIngressCounters,
-    ) -> IntegrityAdmittedCheckpointProjection<'media> {
-        let header = self.header.project(counters);
-        let dirty_bases = self
+    ) -> Result<OwnerCheckpointProjection, RecoveryIntegrityIngressRejection> {
+        let footer_scope = self.footer.scope();
+        let bytes = self
+            .header
+            .source()
+            .observed()
+            .bytes()
+            .ok_or(RecoveryIntegrityIngressRejection::MissingBoundedArtifact)?;
+        let dirty = self
             .dirty
             .iter()
-            .map(|record| record.project(counters).basis)
-            .collect();
-        let compaction = self.compaction.project(counters);
+            .map(IntegrityAdmittedCheckpointDirtyBasis::validated)
+            .collect::<Vec<_>>();
         let bindings = self
             .bindings
             .iter()
-            .map(|record| record.project(counters))
-            .collect();
-        let footer = self.footer.project(counters).footer;
-        IntegrityAdmittedCheckpointProjection {
-            source: header.source,
-            checkpoint_identity: header.checkpoint_identity,
-            dirty_bases,
-            compaction_generation: compaction.generation,
-            wal_cutoff_lsn_exclusive: compaction.wal_cutoff_lsn_exclusive,
-            bindings,
-            footer,
-            encoded_bytes: self.encoded_bytes,
+            .map(IntegrityAdmittedCheckpointBinding::validated)
+            .collect::<Vec<_>>();
+        let source = self.header.validated().source();
+        let mut binding_rebuilder = StoreRecoveryCheckpointBindingRebuilder::begin(
+            source.identity().store_identity(),
+            source,
+            self.footer
+                .validated()
+                .footer()
+                .binding_compaction_generation(),
+            maximum_binding_records,
+        );
+        for binding in &self.bindings {
+            binding_rebuilder.consume(binding.validated(), binding.source().input()?);
         }
+        let verified = VerifiedCheckpointStream::assemble_from_validated_records(
+            UntrustedPhysicalArtifact::from_bounded_bytes(bytes),
+            self.header.validated(),
+            &dirty,
+            self.compaction.validated(),
+            &bindings,
+            self.footer.validated(),
+        )
+        .map_err(|denial| match denial {
+            VerifiedCheckpointStreamAssemblyDenial::SourceIdentityMismatch
+            | VerifiedCheckpointStreamAssemblyDenial::RecordScopeMismatch => {
+                RecoveryIntegrityIngressRejection::ScopeMismatch
+            }
+            VerifiedCheckpointStreamAssemblyDenial::InputIncarnationMismatch => {
+                RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
+            }
+            VerifiedCheckpointStreamAssemblyDenial::FooterBasisMismatch(rejection) => {
+                RecoveryIntegrityIngressRejection::Integrity(rejection)
+            }
+        })?;
+        counters.record(RecoveryIntegrityIngressObservation::admitted(footer_scope));
+        counters.record_owner_projection();
+        for _ in &self.dirty {
+            counters.record_owner_projection();
+        }
+        counters.record_owner_projection();
+        for _ in &self.bindings {
+            counters.record_owner_projection();
+        }
+        counters.record_owner_projection();
+        let binding_basis = binding_rebuilder.finish(&verified);
+        Ok(OwnerCheckpointProjection {
+            checkpoint: verified,
+            binding_basis,
+        })
     }
 }
 

@@ -7,11 +7,11 @@ use worth_store_physical_format::RecordArtifactFile;
 mod addressed_payload;
 mod addressed_range;
 mod artifact;
-mod wal_artifacts;
 mod observed_artifact;
-pub use observed_artifact::ObservedRecoveryArtifact;
+mod wal_artifacts;
 pub(crate) use artifact::record_artifact;
 pub use artifact::RecoveryDiscoveryArtifact;
+pub use observed_artifact::ObservedRecoveryArtifact;
 pub use wal_artifacts::{ObservedWalArtifact, RecoveryWalObservationIdentity};
 
 pub struct BoundedRecoveryFilesystemDiscovery {
@@ -23,8 +23,6 @@ pub struct BoundedRecoveryFilesystemDiscovery {
     wal_observations_issued: u64,
     counters: RecoveryDiscoveryCounters,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RecoveryDiscoveryCounters {
@@ -211,11 +209,16 @@ impl BoundedRecoveryFilesystemDiscovery {
                 if !fixed {
                     self.counters.addressed_artifacts_read += 1;
                 }
-                Ok(ObservedRecoveryArtifact::new(self.parts.store_identity, context, 0, Some(bytes)))
+                Ok(ObservedRecoveryArtifact::new(
+                    self.parts.store_identity,
+                    context,
+                    0,
+                    Some(bytes),
+                ))
             }
-            Err(failure) if failure.kind() == ArtifactTreeFailureKind::Absent => {
-                Ok(ObservedRecoveryArtifact::new(self.parts.store_identity, context, 0, None))
-            }
+            Err(failure) if failure.kind() == ArtifactTreeFailureKind::Absent => Ok(
+                ObservedRecoveryArtifact::new(self.parts.store_identity, context, 0, None),
+            ),
             Err(failure) if failure.kind() == ArtifactTreeFailureKind::AccessLimitExceeded => {
                 let limit = failure.access_limit().unwrap_or(
                     crate::filesystem_media::ArtifactTreeAccessLimit {
@@ -244,8 +247,6 @@ impl BoundedRecoveryFilesystemDiscovery {
         }
     }
 }
-
-
 
 fn map_media(
     failure: ArtifactTreeFailure,

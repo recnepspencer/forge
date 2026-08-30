@@ -1,5 +1,5 @@
 use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
-use worth_store_physical_format::VerifiedCheckpointStream;
+use worth_store_physical_integrity::VerifiedCheckpointStream;
 use worth_store_wal::WalLsnRange;
 
 use crate::physical_runtime::IntegrityAdmittedRecoveryWalFrame;
@@ -23,6 +23,7 @@ impl RecoveryWalFrameInput for IntegrityAdmittedRecoveryWalFrame {
 
 pub(in crate::physical_runtime::recovery_freshness) fn sample_binding<'frame>(
     freshness: &super::super::PhysicalRecoveryFreshnessAuthority,
+    checkpoint_basis: Option<&super::StoreRecoveryCheckpointBindingBasis>,
     media: &AdmittedRecoveryFilesystemMedia,
     checkpoint: &VerifiedCheckpointStream,
     wal_frames: impl IntoIterator<Item = &'frame IntegrityAdmittedRecoveryWalFrame>,
@@ -31,6 +32,7 @@ pub(in crate::physical_runtime::recovery_freshness) fn sample_binding<'frame>(
 ) -> Result<StoreRecoveryBindingFreshnessSample, StoreRecoveryBindingSampleFailure> {
     super::sample_binding_from_frames(
         freshness,
+        checkpoint_basis,
         media,
         checkpoint,
         wal_frames,

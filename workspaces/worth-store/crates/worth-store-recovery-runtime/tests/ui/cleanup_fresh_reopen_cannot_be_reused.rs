@@ -2,7 +2,7 @@ use worth_store::physical_runtime::{
     AdmittedRecoveryFilesystemMedia, CompletedPhysicalRecoveryFreshReopen,
     IntegrityAdmittedRecoveryWalSegment, PhysicalRecoveryCoordination,
 };
-use worth_store_physical_format::VerifiedCheckpointStream;
+use worth_store_physical_integrity::VerifiedCheckpointStream;
 use std::sync::Arc;
 
 fn reuse_fresh_reopen(

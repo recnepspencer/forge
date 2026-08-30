@@ -41,29 +41,29 @@ pub fn validate_checkpoint_footer<'media>(
     let byte_count = artifact.byte_count();
     let family = PhysicalIntegrityArtifactFamily::CheckpointFooter;
     if scope.artifact_family() != family {
-        return rejected(wrong_scope(scope), byte_count);
+        return rejected_footer(wrong_scope(scope), byte_count);
     }
     if let Some(rejection) = input_length(scope, byte_count) {
-        return rejected(rejection, byte_count);
+        return rejected_footer(rejection, byte_count);
     }
     let footer = match CheckpointStreamFooter::decode_record(artifact.bytes()) {
         Ok(footer) => footer,
         Err(denial) => {
-            return rejected(
+            return rejected_footer(
                 checkpoint_record_denial(scope, artifact.bytes(), denial),
                 byte_count,
             )
         }
     };
     if let Some(rejection) = identity_mismatch(scope, footer) {
-        return rejected(rejection, byte_count);
+        return rejected_footer(rejection, byte_count);
     }
     let expected = match basis.expected_bindings(scope) {
         Ok(expected) => expected,
-        Err(rejection) => return rejected(rejection, byte_count),
+        Err(rejection) => return rejected_footer(rejection, byte_count),
     };
     if let Some(rejection) = binding_mismatch(scope, footer, expected) {
-        return rejected(rejection, byte_count);
+        return rejected_footer(rejection, byte_count);
     }
     let validated = IntegrityValidatedCheckpointFooter::new(
         scope,
@@ -78,7 +78,7 @@ pub fn validate_checkpoint_footer<'media>(
     )
 }
 
-fn identity_mismatch(
+pub(super) fn identity_mismatch(
     scope: PhysicalArtifactScope,
     footer: CheckpointStreamFooter,
 ) -> Option<PhysicalIntegrityRejection> {
@@ -143,7 +143,7 @@ fn binding_mismatch(
     ))
 }
 
-fn rejected<'media>(
+pub(super) fn rejected_footer<'media>(
     rejection: PhysicalIntegrityRejection,
     byte_count: u64,
 ) -> (

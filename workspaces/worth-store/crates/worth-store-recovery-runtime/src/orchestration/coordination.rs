@@ -144,6 +144,13 @@ impl RecoveryCoordination {
         &self.owner
     }
 
+    pub(crate) fn install_checkpoint_binding_basis(
+        &mut self,
+        basis: worth_store::physical_runtime::StoreRecoveryCheckpointBindingBasis,
+    ) -> bool {
+        self.owner.install_checkpoint_binding_basis(basis)
+    }
+
     pub(crate) fn into_owner(self) -> PhysicalRecoveryCoordination {
         self.owner
     }

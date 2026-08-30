@@ -1,15 +1,23 @@
+use super::binding_compaction::encode_binding_compaction_header;
+#[cfg(test)]
 use super::binding_compaction::{
-    decode_binding_compaction_header, encode_binding_compaction_header,
-    BINDING_COMPACTION_HEADER_PAYLOAD_BYTES,
+    decode_binding_compaction_header, BINDING_COMPACTION_HEADER_PAYLOAD_BYTES,
 };
-use super::dirty_basis::{decode_dirty_basis, encode_dirty_basis, DIRTY_BASIS_PAYLOAD_BYTES};
-use super::footer::{decode_footer, encode_footer, CheckpointStreamFooter, FOOTER_PAYLOAD_BYTES};
+use super::dirty_basis::encode_dirty_basis;
+#[cfg(test)]
+use super::dirty_basis::{decode_dirty_basis, DIRTY_BASIS_PAYLOAD_BYTES};
+#[cfg(test)]
+use super::footer::{decode_footer, FOOTER_PAYLOAD_BYTES};
+use super::footer::{encode_footer, CheckpointStreamFooter};
+#[cfg(test)]
+use super::record::{decode_bounded_record, decode_record};
 use super::record::{
-    decode_bounded_record, decode_record, encode_record, CheckpointStreamDecodeDenial,
-    BINDING_COMPACTION_HEADER_KIND, BINDING_RECORD_KIND, DIRTY_BASIS_KIND, FOOTER_KIND,
-    HEADER_KIND,
+    encode_record, CheckpointStreamDecodeDenial, BINDING_COMPACTION_HEADER_KIND,
+    BINDING_RECORD_KIND, DIRTY_BASIS_KIND, FOOTER_KIND, HEADER_KIND,
 };
-use super::source::{decode_header, encode_header, HEADER_PAYLOAD_BYTES};
+use super::source::encode_header;
+#[cfg(test)]
+use super::source::{decode_header, HEADER_PAYLOAD_BYTES};
 use super::{
     CheckpointBindingCompactionHeader, CheckpointDirtyFrameBasis,
     CheckpointSelectiveRecordAggregate, PhysicalCheckpointSource,
@@ -33,14 +41,16 @@ pub struct CheckpointBindingCompactionEncoder {
 }
 
 #[derive(Debug)]
-pub struct CheckpointStreamDecoder {
+#[cfg(test)]
+pub(crate) struct CheckpointStreamDecoder {
     source: PhysicalCheckpointSource,
     dirty_records: CheckpointSelectiveRecordAggregate,
     encoded_bytes: u64,
 }
 
 #[derive(Debug)]
-pub struct CheckpointBindingCompactionDecoder {
+#[cfg(test)]
+pub(crate) struct CheckpointBindingCompactionDecoder {
     source: PhysicalCheckpointSource,
     dirty_records: CheckpointSelectiveRecordAggregate,
     header: CheckpointBindingCompactionHeader,
@@ -130,6 +140,7 @@ impl CheckpointBindingCompactionEncoder {
     }
 }
 
+#[cfg(test)]
 impl CheckpointStreamDecoder {
     pub fn begin(header: &[u8]) -> Result<Self, CheckpointStreamDecodeDenial> {
         let payload = decode_record(header, HEADER_KIND, HEADER_PAYLOAD_BYTES)?;
@@ -177,6 +188,7 @@ impl CheckpointStreamDecoder {
     }
 }
 
+#[cfg(test)]
 impl CheckpointBindingCompactionDecoder {
     pub const fn header(&self) -> CheckpointBindingCompactionHeader {
         self.header

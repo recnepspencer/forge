@@ -15,19 +15,20 @@ pub use rejection::{
 };
 pub use untrusted_artifact::UntrustedPhysicalArtifact;
 pub use validated::{
-    CheckpointBindingPayloadProjectionDenial, ExtentChunkProjectionDenial,
-    InlineRecordProjectionDenial, IntegrityValidatedBootstrapCatalog,
+    CheckpointBindingPayloadProjectionDenial, CheckpointFooterRoutingProjection,
+    ExtentChunkProjectionDenial, InlineRecordProjectionDenial, IntegrityValidatedBootstrapCatalog,
     IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointBindingCompaction,
     IntegrityValidatedCheckpointBindingPayloadProjection, IntegrityValidatedCheckpointDirtyBasis,
-    IntegrityValidatedCheckpointFooter, IntegrityValidatedCheckpointStreamHeader,
-    IntegrityValidatedCurrentRootSelector, IntegrityValidatedExtentChunkFrame,
-    IntegrityValidatedExtentChunkProjection, IntegrityValidatedExtentManifest,
-    IntegrityValidatedExtentMembership, IntegrityValidatedFreeSpaceHeader,
-    IntegrityValidatedFreeSpaceMembershipBlock, IntegrityValidatedInlineRecordProjection,
-    IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
-    IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest,
-    IntegrityValidatedRootRoutingBlock, IntegrityValidatedSegmentMembershipBlock,
-    IntegrityValidatedWalFrame, IntegrityValidatedWalPayloadProjection, WalPayloadProjectionDenial,
+    IntegrityValidatedCheckpointFooter, IntegrityValidatedCheckpointFooterEnvelope,
+    IntegrityValidatedCheckpointStreamHeader, IntegrityValidatedCurrentRootSelector,
+    IntegrityValidatedExtentChunkFrame, IntegrityValidatedExtentChunkProjection,
+    IntegrityValidatedExtentManifest, IntegrityValidatedExtentMembership,
+    IntegrityValidatedFreeSpaceHeader, IntegrityValidatedFreeSpaceMembershipBlock,
+    IntegrityValidatedInlineRecordProjection, IntegrityValidatedPageFrame,
+    IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedPreviousRootSelector,
+    IntegrityValidatedRootManifest, IntegrityValidatedRootRoutingBlock,
+    IntegrityValidatedSegmentMembershipBlock, IntegrityValidatedWalFrame,
+    IntegrityValidatedWalPayloadProjection, WalPayloadProjectionDenial,
 };
 pub use validation_record::{
     PhysicalIntegrityValidationDigest, PhysicalIntegrityValidationMechanism,

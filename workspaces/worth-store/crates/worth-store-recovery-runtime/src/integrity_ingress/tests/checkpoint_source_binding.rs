@@ -1,6 +1,5 @@
 use std::num::NonZeroU64;
 
-use sha2::{Digest, Sha256};
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     FilesystemAccessPosture, FilesystemMediaAdmission, PhysicalRuntimeAdmission, PhysicalStore,
@@ -81,10 +80,7 @@ fn checkpoint_record_binds_a_borrowed_range_of_the_c4_observation() {
     else {
         panic!("checkpoint header admission routed to the wrong family")
     };
-    assert_eq!(
-        admitted.project(&mut counters).checkpoint_identity,
-        identity
-    );
+    assert_eq!(admitted.checkpoint_identity(), identity);
 
     let validation = validate_header(&observed_a, header_range, scope);
     let copied_read = IntegrityAdmittedRecoveryArtifact::bind_checkpoint_stream_header(
@@ -118,7 +114,7 @@ fn checkpoint_record_binds_a_borrowed_range_of_the_c4_observation() {
             counters.rejected_source_binding,
             counters.owner_projection_entries,
         ),
-        (3, 1, 2, 1)
+        (3, 1, 2, 0)
     );
 
     let binding_offset = header.len() + compaction_record.len();
@@ -146,19 +142,13 @@ fn checkpoint_record_binds_a_borrowed_range_of_the_c4_observation() {
     else {
         panic!("checkpoint binding admission routed to the wrong family")
     };
-    let projection = binding.project(&mut binding_counters);
-    assert_eq!(
-        projection.binding.byte_count(),
-        binding_payload.len() as u64
-    );
-    let expected_binding_digest: [u8; 32] = Sha256::digest(binding_payload).into();
-    assert_eq!(projection.binding.digest(), expected_binding_digest);
+    assert_eq!(binding.scope(), binding_scope);
     assert_eq!(
         (
             binding_counters.admitted,
             binding_counters.owner_projection_entries
         ),
-        (1, 1)
+        (1, 0)
     );
 
     drop(discovery.finish());

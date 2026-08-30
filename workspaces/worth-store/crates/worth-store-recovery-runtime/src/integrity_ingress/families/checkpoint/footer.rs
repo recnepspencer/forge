@@ -1,18 +1,11 @@
-use worth_store_physical_format::CheckpointStreamFooter;
 use worth_store_physical_integrity::IntegrityValidatedCheckpointFooter;
 
 use super::super::super::admission::require_observed_recovery_source;
-use super::super::super::{
-    ObservedRecoverySource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
-};
+use super::super::super::{ObservedRecoverySource, RecoveryIntegrityIngressRejection};
 
 pub(crate) struct IntegrityAdmittedCheckpointFooter<'media> {
     source: ObservedRecoverySource<'media>,
     validated: IntegrityValidatedCheckpointFooter<'media>,
-}
-
-pub(crate) struct CheckpointFooterProjection {
-    pub footer: CheckpointStreamFooter,
 }
 
 impl<'media> IntegrityAdmittedCheckpointFooter<'media> {
@@ -26,18 +19,14 @@ impl<'media> IntegrityAdmittedCheckpointFooter<'media> {
         Ok(Self { source, validated })
     }
 
-    pub(crate) fn project(
-        &self,
-        counters: &mut RecoveryIntegrityIngressCounters,
-    ) -> CheckpointFooterProjection {
-        counters.record_owner_projection();
-        CheckpointFooterProjection {
-            footer: self.validated.footer(),
-        }
-    }
-
     pub(crate) fn scope(&self) -> worth_store_physical_integrity::PhysicalArtifactScope {
         self.source.scope()
+    }
+
+    pub(in crate::integrity_ingress) const fn validated(
+        &self,
+    ) -> &IntegrityValidatedCheckpointFooter<'media> {
+        &self.validated
     }
 
     pub(in crate::integrity_ingress) const fn source(&self) -> &ObservedRecoverySource<'media> {

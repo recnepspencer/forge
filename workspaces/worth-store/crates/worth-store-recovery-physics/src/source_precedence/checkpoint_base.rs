@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_store_physical_format::VerifiedCheckpointStream;
+use worth_store_physical_integrity::VerifiedCheckpointStream;
 
 use super::SelectedPhysicalRoot;
 

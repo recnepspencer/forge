@@ -39,6 +39,11 @@ pub struct PhysicalRecoveryDiscoveryCounters {
     pub checkpoints_admitted: u64,
     pub checkpoints_rejected: u64,
     pub checkpoints_absent: u64,
+    pub checkpoint_integrity_attempts: u64,
+    pub checkpoint_integrity_admissions: u64,
+    pub checkpoint_integrity_rejections: u64,
+    pub checkpoint_owner_projections: u64,
+    pub checkpoint_owner_decoder_entries: u64,
     pub wal_entries: u64,
     pub wal_integrity_attempts: u64,
     pub wal_integrity_admissions: u64,
@@ -82,7 +87,7 @@ impl DiscoveredPhysicalRecovery {
     pub fn select(self) -> Result<super::SelectedPhysicalRecovery, PhysicalRecoveryOutcome> {
         let DiscoveryMaterial {
             authority,
-            coordination,
+            mut coordination,
             current,
             previous,
             bootstrap,
@@ -107,18 +112,23 @@ impl DiscoveredPhysicalRecovery {
             counters,
         };
         match select_sources(input, authority.limits) {
-            Ok(selected) => Ok(super::SelectedPhysicalRecovery::new(
-                authority,
-                coordination,
-                selected.selection,
-                super::RecoveryIntegrityEvidence::new(
-                    selected.admitted_wal,
-                    selected.wal_integrity_observations,
-                ),
-                selected.counters,
-                selected.root_protocol_denials,
-                selected.integrity_trace,
-            )),
+            Ok(selected) => {
+                if let Some(basis) = selected.checkpoint_binding_basis {
+                    assert!(coordination.install_checkpoint_binding_basis(basis));
+                }
+                Ok(super::SelectedPhysicalRecovery::new(
+                    authority,
+                    coordination,
+                    selected.selection,
+                    super::RecoveryIntegrityEvidence::new(
+                        selected.admitted_wal,
+                        selected.wal_integrity_observations,
+                    ),
+                    selected.counters,
+                    selected.root_protocol_denials,
+                    selected.integrity_trace,
+                ))
+            }
             Err(failure) => blocked(authority, coordination, failure.kind, failure.evidence),
         }
     }

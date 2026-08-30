@@ -4,8 +4,9 @@ use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
 use worth_store_physical_format::{
     store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity,
-    PhysicalRecordFormatDeclaration, VerifiedCheckpointStream,
+    PhysicalRecordFormatDeclaration,
 };
+use worth_store_physical_integrity::VerifiedCheckpointStream;
 use worth_store_wal::{LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity};
 
 use crate::physical_runtime::recovery_coordination::PhysicalRecoveryCleanupRemovalCommand;

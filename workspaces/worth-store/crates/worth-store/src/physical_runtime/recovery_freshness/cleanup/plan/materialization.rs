@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
-use worth_store_physical_format::VerifiedCheckpointStream;
+use worth_store_physical_integrity::VerifiedCheckpointStream;
 use worth_store_wal::WalSegmentArtifactIdentity;
 
 use crate::physical_runtime::{

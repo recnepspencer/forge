@@ -1,8 +1,7 @@
 use worth_store::physical_runtime::recovery_wal::WalSegmentArtifactIdentity;
 use worth_store::physical_runtime::{ArtifactTreeFailureKind, RecoveryDiscoveryArtifact};
 use worth_store_physical_format::{
-    store_namespace::StableStoreIdentity, CheckpointStreamDecodeDenial, ManifestBlockReference,
-    RootSelectorRole,
+    store_namespace::StableStoreIdentity, ManifestBlockReference, RootSelectorRole,
 };
 use worth_store_physical_integrity::PhysicalIntegrityRejection;
 
@@ -21,6 +20,16 @@ pub enum PhysicalRecoveryRootProtocolDenial {
     Absent,
     ConflictingDuplication { observed_sources: u64 },
     Integrity(PhysicalIntegrityRejection),
+    NonCanonicalEncoding,
+    ScopeMismatch,
+    SourceIncarnationMismatch,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalRecoveryCheckpointIntegrityDenial {
+    Integrity(PhysicalIntegrityRejection),
+    DirtyRecordLimit { observed: u64, admitted: u64 },
+    BindingRecordLimit { observed: u64, admitted: u64 },
     NonCanonicalEncoding,
     ScopeMismatch,
     SourceIncarnationMismatch,
@@ -64,7 +73,7 @@ pub enum PhysicalRecoverySourceDenial {
     RootSelection(PhysicalRootSelectionDenial),
     ManifestObservation(PhysicalManifestObservationDenial),
     ManifestFacts(PhysicalPageFactDenial),
-    CheckpointFormat(CheckpointStreamDecodeDenial),
+    CheckpointIntegrity(PhysicalRecoveryCheckpointIntegrityDenial),
     CheckpointBinding(PhysicalCheckpointBaseDenial),
     WalIntegrity(PhysicalRecoveryWalIntegrityDenial),
     WalTail(SelectedPhysicalWalTailDenial),

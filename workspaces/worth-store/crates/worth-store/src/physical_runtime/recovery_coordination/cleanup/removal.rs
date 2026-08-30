@@ -32,7 +32,7 @@ pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand {
     byte_count: u64,
     selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
     root_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
-    checkpoint_stream: Arc<worth_store_physical_format::VerifiedCheckpointStream>,
+    checkpoint_stream: Arc<worth_store_physical_integrity::VerifiedCheckpointStream>,
     admitted_wal: crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment,
 }
 
@@ -92,7 +92,7 @@ impl PhysicalRecoveryCleanupRemovalCommand {
     pub(in crate::physical_runtime) fn from_freshness(
         basis: crate::physical_runtime::recovery_freshness::StoreRecoveryCleanupRemovalBasis,
         selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
-        checkpoint_stream: Arc<worth_store_physical_format::VerifiedCheckpointStream>,
+        checkpoint_stream: Arc<worth_store_physical_integrity::VerifiedCheckpointStream>,
         admitted_wal: crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment,
     ) -> Self {
         let root_read = basis.root_read();

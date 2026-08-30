@@ -1,5 +1,4 @@
 use worth_store::physical_runtime::{RecoveryDiscoveryByteLimitScope, RecoveryDiscoveryFailure};
-use worth_store_physical_format::{CheckpointStreamDecodeDenial, VerifiedCheckpointStream};
 use worth_store_recovery_physics::PhysicalBootstrapFallbackAnchor;
 use worth_store_recovery_physics::{
     PhysicalRecoveryResidue, PhysicalRootSlotObservation, PhysicalWalSegmentCandidate,
@@ -37,8 +36,8 @@ pub(crate) struct DiscoveryMaterial {
 
 pub(crate) enum CheckpointDiscovery {
     Absent,
-    Rejected(CheckpointStreamDecodeDenial),
-    Admitted(VerifiedCheckpointStream),
+    Rejected(crate::entry::PhysicalRecoveryCheckpointIntegrityDenial),
+    Admitted(crate::integrity_ingress::OwnerCheckpointProjection),
 }
 
 pub(crate) enum BootstrapDiscovery {

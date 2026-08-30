@@ -41,9 +41,10 @@ pub use request::PhysicalRecoveryOpenRequest;
 pub use root_protocol_counters::PhysicalRecoveryRootProtocolCounters;
 pub use session::PhysicalRecoverySessionIdentity;
 pub use source_denial::{
-    PhysicalManifestObservationDenial, PhysicalRecoveryMediaObservationFailure,
-    PhysicalRecoveryRootProtocolArtifact, PhysicalRecoveryRootProtocolDenial,
-    PhysicalRecoverySourceDenial, PhysicalRecoveryWalIntegrityDenial,
+    PhysicalManifestObservationDenial, PhysicalRecoveryCheckpointIntegrityDenial,
+    PhysicalRecoveryMediaObservationFailure, PhysicalRecoveryRootProtocolArtifact,
+    PhysicalRecoveryRootProtocolDenial, PhysicalRecoverySourceDenial,
+    PhysicalRecoveryWalIntegrityDenial,
 };
 pub use staging::{
     PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingDenial,

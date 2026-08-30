@@ -10,6 +10,8 @@ mod ordered_stream;
 mod payload_projection;
 #[path = "checkpoint_validation/record_matrix.rs"]
 mod record_matrix;
+#[path = "checkpoint_validation/routing_projections.rs"]
+mod routing_projections;
 #[path = "checkpoint_validation/scope_denials.rs"]
 mod scope_denials;
 #[path = "checkpoint_validation/security_binding.rs"]
@@ -20,3 +22,5 @@ mod stream_bindings;
 mod support;
 #[path = "checkpoint_validation/validation_records.rs"]
 mod validation_records;
+#[path = "checkpoint_validation/verified_stream_assembly.rs"]
+mod verified_stream_assembly;

@@ -1,17 +1,16 @@
 use worth_store::physical_runtime::BoundedRecoveryFilesystemDiscovery;
-use worth_store_physical_format::{
-    inspect_checkpoint_stream, PhysicalRecordFormatDeclaration, BOOTSTRAP_CATALOG_BYTES,
-};
+use worth_store_physical_format::{PhysicalRecordFormatDeclaration, BOOTSTRAP_CATALOG_BYTES};
 use worth_store_recovery_physics::{
     PhysicalRecoveryResidue, PhysicalRootSelectorDenial, PhysicalRootSlotObservation,
 };
 
 use crate::entry::{
-    PhysicalRecoveryBlockKind as PhysicalRecoveryBlock, PhysicalRecoveryLimitDimension,
-    PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
+    PhysicalRecoveryBlockKind as PhysicalRecoveryBlock, PhysicalRecoveryCheckpointIntegrityDenial,
+    PhysicalRecoveryLimitDimension, PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
 };
 use crate::integrity_ingress::{
-    admit_observed_bootstrap_catalog, IntegrityAdmittedRecoveryArtifact,
+    admit_observed_bootstrap_catalog, admit_observed_checkpoint_stream,
+    CheckpointStreamAdmissionFailure, IntegrityAdmittedRecoveryArtifact,
     RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
 };
 use crate::progression::PhysicalRecoveryDiscoveryCounters;
@@ -68,7 +67,7 @@ pub(super) fn observe_all(
         )
     };
     let checkpoint =
-        observe_checkpoint(discovery, limits).map_err(&preserve_manifest_observations)?;
+        observe_checkpoint(discovery, limits, counters).map_err(&preserve_manifest_observations)?;
     record_checkpoint_counters(counters, &checkpoint);
     let (wal, residue, wal_entries) = observe_wal(discovery, coordination, limits, counters)
         .map_err(&preserve_manifest_observations)?;
@@ -255,6 +254,7 @@ fn observe_root_manifest_facts(
 fn observe_checkpoint(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
     limits: PhysicalRecoveryLimits,
+    counters: &mut PhysicalRecoveryDiscoveryCounters,
 ) -> Result<CheckpointDiscovery, DiscoveryFailure> {
     let declaration = limits.declaration();
     let artifact = discovery
@@ -266,19 +266,62 @@ fn observe_checkpoint(
                 PhysicalRecoveryLimitDimension::ObservationBytes,
             )
         })?;
-    let Some(bytes) = artifact.bytes() else {
-        return Ok(CheckpointDiscovery::Absent);
+    let mut ingress = RecoveryIntegrityIngressCounters::default();
+    let checkpoint = match admit_observed_checkpoint_stream(
+        &artifact,
+        discovery.store_identity(),
+        declaration.dirty_frames,
+        declaration.operation_bindings,
+        &mut ingress,
+    ) {
+        Ok(Some(checkpoint)) => CheckpointDiscovery::Admitted(checkpoint),
+        Ok(None) => CheckpointDiscovery::Absent,
+        Err(CheckpointStreamAdmissionFailure::Integrity(rejection)) => {
+            CheckpointDiscovery::Rejected(checkpoint_denial(rejection))
+        }
+        Err(CheckpointStreamAdmissionFailure::DirtyRecordLimit { observed, admitted }) => {
+            CheckpointDiscovery::Rejected(
+                PhysicalRecoveryCheckpointIntegrityDenial::DirtyRecordLimit { observed, admitted },
+            )
+        }
+        Err(CheckpointStreamAdmissionFailure::BindingRecordLimit { observed, admitted }) => {
+            CheckpointDiscovery::Rejected(
+                PhysicalRecoveryCheckpointIntegrityDenial::BindingRecordLimit {
+                    observed,
+                    admitted,
+                },
+            )
+        }
     };
-    Ok(
-        match inspect_checkpoint_stream(
-            bytes,
-            declaration.dirty_frames,
-            declaration.operation_bindings,
-        ) {
-            Ok(checkpoint) => CheckpointDiscovery::Admitted(checkpoint),
-            Err(denial) => CheckpointDiscovery::Rejected(denial),
-        },
-    )
+    counters.checkpoint_integrity_attempts = ingress.attempted;
+    counters.checkpoint_integrity_admissions = ingress.admitted;
+    counters.checkpoint_integrity_rejections = ingress.attempted - ingress.admitted;
+    counters.checkpoint_owner_projections = ingress.owner_projection_entries;
+    counters.checkpoint_owner_decoder_entries = ingress.owner_decoder_entries;
+    Ok(checkpoint)
+}
+
+fn checkpoint_denial(
+    rejection: RecoveryIntegrityIngressRejection,
+) -> PhysicalRecoveryCheckpointIntegrityDenial {
+    match rejection {
+        RecoveryIntegrityIngressRejection::Integrity(rejection) => {
+            PhysicalRecoveryCheckpointIntegrityDenial::Integrity(rejection)
+        }
+        RecoveryIntegrityIngressRejection::NonCanonicalEncoding => {
+            PhysicalRecoveryCheckpointIntegrityDenial::NonCanonicalEncoding
+        }
+        RecoveryIntegrityIngressRejection::ScopeMismatch
+        | RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation => {
+            PhysicalRecoveryCheckpointIntegrityDenial::ScopeMismatch
+        }
+        RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
+        | RecoveryIntegrityIngressRejection::Absent
+        | RecoveryIntegrityIngressRejection::MissingBoundedArtifact
+        | RecoveryIntegrityIngressRejection::ConflictingDuplication { .. } => {
+            PhysicalRecoveryCheckpointIntegrityDenial::SourceIncarnationMismatch
+        }
+    }
 }
 
 fn observe_wal(

@@ -10,9 +10,7 @@ pub(in crate::integrity_ingress) use binding_compaction::IntegrityAdmittedCheckp
 pub(in crate::integrity_ingress) use dirty_basis::IntegrityAdmittedCheckpointDirtyBasis;
 pub(in crate::integrity_ingress) use footer::IntegrityAdmittedCheckpointFooter;
 pub(in crate::integrity_ingress) use stream_header::IntegrityAdmittedCheckpointStreamHeader;
-pub(crate) use stream_projection::{
-    IntegrityAdmittedCheckpointProjection, IntegrityAdmittedCheckpointStream,
-};
+pub(crate) use stream_projection::{IntegrityAdmittedCheckpointStream, OwnerCheckpointProjection};
 
 #[cfg(test)]
 pub(super) fn owner_valid_compile_contracts() {

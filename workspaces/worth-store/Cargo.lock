@@ -1668,6 +1668,7 @@ dependencies = [
 name = "worth-store-physical-integrity"
 version = "0.1.0"
 dependencies = [
+ "sha2",
  "trybuild",
  "worth-foundational",
  "worth-store-physical-format",
@@ -1837,6 +1838,7 @@ dependencies = [
  "worth-store-physical-backend",
  "worth-store-physical-certification",
  "worth-store-physical-format",
+ "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-recovery-physics",
  "worth-store-recovery-runtime",

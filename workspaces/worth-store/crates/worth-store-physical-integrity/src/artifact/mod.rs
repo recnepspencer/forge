@@ -10,11 +10,15 @@ mod segment_membership_block_rejection;
 mod wal_frame;
 
 pub use checkpoint::{
-    validate_checkpoint_binding, validate_checkpoint_binding_compaction,
-    validate_checkpoint_dirty_basis, validate_checkpoint_footer, validate_checkpoint_stream_header,
-    CheckpointBindingCompactionIntegrityValidation, CheckpointBindingIntegrityValidation,
-    CheckpointDirtyBasisIntegrityValidation, CheckpointFooterIntegrityValidation,
-    CheckpointFooterValidationBasis, CheckpointStreamHeaderIntegrityValidation,
+    project_checkpoint_binding_frame_length, validate_checkpoint_binding,
+    validate_checkpoint_binding_compaction, validate_checkpoint_dirty_basis,
+    validate_checkpoint_footer, validate_checkpoint_footer_envelope,
+    validate_checkpoint_stream_header, CheckpointBindingCompactionIntegrityValidation,
+    CheckpointBindingFrameLengthProjection, CheckpointBindingIntegrityValidation,
+    CheckpointDirtyBasisIntegrityValidation, CheckpointFooterEnvelopeIntegrityValidation,
+    CheckpointFooterIntegrityValidation, CheckpointFooterValidationBasis,
+    CheckpointStreamHeaderIntegrityValidation, VerifiedCheckpointCompactionCutover,
+    VerifiedCheckpointStream, VerifiedCheckpointStreamAssemblyDenial,
 };
 pub use extent::{
     validate_extent_chunk, validate_extent_chunk_membership, validate_extent_manifest,

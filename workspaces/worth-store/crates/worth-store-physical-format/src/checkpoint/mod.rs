@@ -5,6 +5,7 @@ mod compaction_cutover_record;
 mod dirty_basis;
 mod footer;
 mod identity;
+#[cfg(test)]
 mod inspection;
 mod record;
 mod selective_aggregate;
@@ -14,7 +15,8 @@ mod stream;
 pub use dirty_basis::{CheckpointDirtyFrameBasis, CHECKPOINT_DIRTY_FRAME_RECORD_BYTES};
 pub use footer::{CheckpointStreamFooter, CHECKPOINT_STREAM_FOOTER_RECORD_BYTES};
 pub use identity::PhysicalCheckpointIdentity;
-pub use inspection::{inspect_checkpoint_stream, VerifiedCheckpointStream};
+#[cfg(test)]
+pub(crate) use inspection::{inspect_checkpoint_stream, VerifiedCheckpointStream};
 pub use record::CheckpointStreamDecodeDenial;
 pub use selective_aggregate::{
     CheckpointSelectiveRecordAggregate, CheckpointSelectiveRecordSummary,
@@ -23,10 +25,9 @@ pub use source::{
     CheckpointRootBasis, CheckpointWalSourceRange, PhysicalCheckpointSecurityBinding,
     PhysicalCheckpointSource, CHECKPOINT_STREAM_HEADER_RECORD_BYTES,
 };
-pub use stream::{
-    CheckpointBindingCompactionDecoder, CheckpointBindingCompactionEncoder,
-    CheckpointStreamDecoder, CheckpointStreamEncoder,
-};
+#[cfg(test)]
+pub(crate) use stream::{CheckpointBindingCompactionDecoder, CheckpointStreamDecoder};
+pub use stream::{CheckpointBindingCompactionEncoder, CheckpointStreamEncoder};
 
 #[cfg(test)]
 mod tests;
@@ -42,6 +43,6 @@ pub use binding_compaction::{
     CHECKPOINT_BINDING_RECORD_PREFIX_BYTES, MAX_CHECKPOINT_BINDING_RECORD_BYTES,
     PHYSICAL_MUTATION_BINDING_COMPACTION_RECORD_DOMAIN,
 };
-pub use compaction_cutover_record::{
-    PersistedCompactionCutoverRecord, PersistedCompactionProductRole,
-};
+#[cfg(test)]
+pub(crate) use compaction_cutover_record::PersistedCompactionCutoverRecord;
+pub use compaction_cutover_record::PersistedCompactionProductRole;

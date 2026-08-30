@@ -1,18 +1,11 @@
 use worth_store_physical_integrity::IntegrityValidatedCheckpointBindingCompaction;
 
 use super::super::super::admission::require_observed_recovery_source;
-use super::super::super::{
-    ObservedRecoverySource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
-};
+use super::super::super::{ObservedRecoverySource, RecoveryIntegrityIngressRejection};
 
 pub(crate) struct IntegrityAdmittedCheckpointBindingCompaction<'media> {
     source: ObservedRecoverySource<'media>,
     validated: IntegrityValidatedCheckpointBindingCompaction<'media>,
-}
-
-pub(crate) struct CheckpointBindingCompactionProjection {
-    pub generation: u64,
-    pub wal_cutoff_lsn_exclusive: u64,
 }
 
 impl<'media> IntegrityAdmittedCheckpointBindingCompaction<'media> {
@@ -26,23 +19,18 @@ impl<'media> IntegrityAdmittedCheckpointBindingCompaction<'media> {
         Ok(Self { source, validated })
     }
 
-    pub(crate) fn project(
-        &self,
-        counters: &mut RecoveryIntegrityIngressCounters,
-    ) -> CheckpointBindingCompactionProjection {
-        counters.record_owner_projection();
-        CheckpointBindingCompactionProjection {
-            generation: self.validated.generation(),
-            wal_cutoff_lsn_exclusive: self.validated.wal_cutoff_lsn_exclusive(),
-        }
-    }
-
     pub(crate) fn scope(&self) -> worth_store_physical_integrity::PhysicalArtifactScope {
         self.source.scope()
     }
 
     pub(in crate::integrity_ingress) const fn source(&self) -> &ObservedRecoverySource<'media> {
         &self.source
+    }
+
+    pub(in crate::integrity_ingress) const fn validated(
+        &self,
+    ) -> &IntegrityValidatedCheckpointBindingCompaction<'media> {
+        &self.validated
     }
 }
 

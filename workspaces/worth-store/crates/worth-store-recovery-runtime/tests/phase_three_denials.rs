@@ -6,17 +6,17 @@ use std::num::NonZeroU64;
 use phase_three_support::*;
 use worth_store_physical_format::{
     CheckpointBindingCompactionHeader, CheckpointDirtyFrameBasis, CheckpointRootBasis,
-    CheckpointStreamDecodeDenial, CheckpointStreamEncoder, CheckpointWalSourceRange,
-    DurableRootSelector, PhysicalCheckpointIdentity, PhysicalCheckpointSource, RecordArtifactFile,
+    CheckpointStreamEncoder, CheckpointWalSourceRange, DurableRootSelector,
+    PhysicalCheckpointIdentity, PhysicalCheckpointSource, RecordArtifactFile,
     RecordFrameCoordinate, RootSelectorRole, ROOT_SELECTOR_BYTES,
 };
 use worth_store_recovery_physics::{
     PhysicalRootCandidateDenial, PhysicalRootSelectionDenial, SelectedPhysicalWalTailDenial,
 };
 use worth_store_recovery_runtime::{
-    PhysicalRecoveryBlock, PhysicalRecoveryBlockKind, PhysicalRecoveryLimits,
-    PhysicalRecoveryRootProtocolArtifact, PhysicalRecoveryRootProtocolDenial,
-    PhysicalRecoverySourceDenial,
+    PhysicalRecoveryBlock, PhysicalRecoveryBlockKind, PhysicalRecoveryCheckpointIntegrityDenial,
+    PhysicalRecoveryLimits, PhysicalRecoveryRootProtocolArtifact,
+    PhysicalRecoveryRootProtocolDenial, PhysicalRecoverySourceDenial,
 };
 
 #[test]
@@ -132,7 +132,23 @@ fn checkpoint_denials_retain_truncation_integrity_and_count_causes() {
     let truncated = checkpoint_case("truncated", limits(), |path, _| {
         std::fs::write(path, b"short").unwrap();
     });
-    assert_checkpoint_denial(&truncated, CheckpointStreamDecodeDenial::Truncated);
+    assert_checkpoint_denial(&truncated, |denial| {
+        matches!(
+            denial,
+            PhysicalRecoveryCheckpointIntegrityDenial::Integrity(_)
+        )
+    });
+    assert_eq!(
+        truncated.evidence().counters.checkpoint_integrity_attempts,
+        1
+    );
+    assert_eq!(
+        truncated
+            .evidence()
+            .counters
+            .checkpoint_integrity_rejections,
+        1
+    );
 
     let integrity = checkpoint_case("integrity", limits(), |path, store| {
         publish_synthetic_checkpoint(path.parent().unwrap().parent().unwrap(), store);
@@ -140,7 +156,12 @@ fn checkpoint_denials_retain_truncation_integrity_and_count_causes() {
         *bytes.last_mut().unwrap() ^= 0x5a;
         std::fs::write(path, bytes).unwrap();
     });
-    assert_checkpoint_denial(&integrity, CheckpointStreamDecodeDenial::IntegrityMismatch);
+    assert_checkpoint_denial(&integrity, |denial| {
+        matches!(
+            denial,
+            PhysicalRecoveryCheckpointIntegrityDenial::Integrity(_)
+        )
+    });
 
     let mut declaration = limit_declaration(2, 8, 8 * 1024);
     declaration.dirty_frames = 1;
@@ -148,7 +169,15 @@ fn checkpoint_denials_retain_truncation_integrity_and_count_causes() {
     let count = checkpoint_case("record-count", count_limits, |path, store| {
         write_checkpoint_with_two_dirty_records(path, store);
     });
-    assert_checkpoint_denial(&count, CheckpointStreamDecodeDenial::RecordCountMismatch);
+    assert_checkpoint_denial(&count, |denial| {
+        matches!(
+            denial,
+            PhysicalRecoveryCheckpointIntegrityDenial::DirtyRecordLimit {
+                observed: 2,
+                admitted: 1
+            }
+        )
+    });
 }
 
 #[test]
@@ -283,16 +312,16 @@ fn checkpoint_case(
 
 fn assert_checkpoint_denial(
     blocked: &PhysicalRecoveryBlock,
-    expected: CheckpointStreamDecodeDenial,
+    expected: impl Fn(&PhysicalRecoveryCheckpointIntegrityDenial) -> bool,
 ) {
     assert!(blocked
         .evidence()
         .source_denials
         .iter()
-        .any(|denial| matches!(
-            denial,
-            PhysicalRecoverySourceDenial::CheckpointFormat(observed) if *observed == expected
-        )));
+        .any(|denial| match denial {
+            PhysicalRecoverySourceDenial::CheckpointIntegrity(observed) => expected(observed),
+            _ => false,
+        }));
 }
 
 fn current_selector(root: &std::path::Path) -> std::path::PathBuf {

@@ -6,40 +6,39 @@ use super::observer_evidence_accumulation::{
 };
 use super::physical_format;
 
+mod checkpoint_stream_integrity;
+
 pub(super) fn observe_stream(bytes: &[u8]) -> RecoveryObserverArtifactEvidence {
-    let Ok(stream) =
-        worth_store_physical_format::inspect_checkpoint_stream(bytes, u64::MAX, u64::MAX)
-    else {
+    let Some(stream) = checkpoint_stream_integrity::observe(bytes) else {
         return physical_format::residue(bytes);
     };
-    let source = stream.source();
-    let covered_start = source.wal().admitted_begin_lsn();
-    let covered_end = source.wal().covered_end_lsn_exclusive();
-    let durable_lsn = stream.footer().binding_wal_cutoff_lsn_exclusive();
+    let covered_start = stream.wal_begin();
+    let covered_end = stream.wal_end();
+    let durable_lsn = stream.durable_lsn();
     if covered_start >= covered_end || durable_lsn < covered_start || durable_lsn > covered_end {
         return physical_format::residue(bytes);
     }
     let mut generation_digest =
         EvidenceDigestBuilder::new(b"worth.store.recovery-observer.generation-link.v1");
-    generation_digest.record(&stream.source().identity().store_identity().bytes());
-    generation_digest.record(&stream.source().identity().sequence().get().to_le_bytes());
-    generation_digest.record(&source.root().generation().to_le_bytes());
-    generation_digest.record(&source.root().tree_identity().to_le_bytes());
-    generation_digest.record(&source.dirty_generation_frontier().to_le_bytes());
+    generation_digest.record(&stream.store());
+    generation_digest.record(&stream.sequence().to_le_bytes());
+    generation_digest.record(&stream.root_generation().to_le_bytes());
+    generation_digest.record(&stream.root_tree().to_le_bytes());
+    generation_digest.record(&stream.dirty_frontier().to_le_bytes());
     let mut coverage = Vec::with_capacity(40);
     coverage.extend_from_slice(&covered_start.to_le_bytes());
     coverage.extend_from_slice(&covered_end.to_le_bytes());
     coverage.extend_from_slice(&durable_lsn.to_le_bytes());
-    coverage.extend_from_slice(&stream.footer().dirty_record_count().to_le_bytes());
-    coverage.extend_from_slice(&stream.footer().binding_record_count().to_le_bytes());
+    coverage.extend_from_slice(&stream.dirty_records().to_le_bytes());
+    coverage.extend_from_slice(&stream.binding_records().to_le_bytes());
     let mut checkpoint_digest =
         EvidenceDigestBuilder::new(b"worth.store.recovery-observer.checkpoint-coverage.v1");
     checkpoint_digest.record(&coverage);
-    checkpoint_digest.record(&stream.encoded_digest());
+    checkpoint_digest.record(&Sha256::digest(bytes));
     RecoveryObserverArtifactEvidence {
         generation_links: generation_digest.finish(),
         checkpoint: Some(RecoveryObserverCheckpointObservation {
-            page_count: stream.footer().dirty_record_count(),
+            page_count: stream.dirty_records(),
             covered_lsn: (covered_start, covered_end),
             redo_lsn: covered_start,
             durable_checkpoint_lsn: durable_lsn,

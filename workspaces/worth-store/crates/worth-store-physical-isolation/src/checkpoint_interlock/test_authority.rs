@@ -10,11 +10,18 @@ use crate::{
 };
 use std::num::NonZeroU64;
 use worth_store_physical_format::{
-    inspect_checkpoint_stream, store_namespace::ProposedStoreIdentity,
-    store_namespace::StoreNamespaceIdentityRecord, store_namespace::StoreNamespaceVersion,
-    CheckpointBindingCompactionHeader, CheckpointRootBasis, CheckpointStreamEncoder,
-    CheckpointWalSourceRange, PhysicalCheckpointIdentity, PhysicalCheckpointSource,
-    VerifiedCheckpointStream,
+    store_namespace::ProposedStoreIdentity, store_namespace::StoreNamespaceIdentityRecord,
+    store_namespace::StoreNamespaceVersion, CheckpointBindingCompactionHeader, CheckpointRootBasis,
+    CheckpointStreamEncoder, CheckpointWalSourceRange, PhysicalCheckpointIdentity,
+    PhysicalCheckpointSource, CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES,
+    CHECKPOINT_STREAM_FOOTER_RECORD_BYTES, CHECKPOINT_STREAM_HEADER_RECORD_BYTES,
+};
+use worth_store_physical_integrity::{
+    validate_checkpoint_binding_compaction, validate_checkpoint_footer,
+    validate_checkpoint_stream_header, CheckpointBindingCompactionIntegrityValidation,
+    CheckpointFooterIntegrityValidation, CheckpointFooterValidationBasis,
+    CheckpointStreamHeaderIntegrityValidation, CheckpointStreamHeaderScopeIdentity,
+    PhysicalArtifactScope, PhysicalByteRange, UntrustedPhysicalArtifact, VerifiedCheckpointStream,
 };
 
 pub fn read_during_checkpoint_verdict_for_certification_test() -> ReadDuringCheckpointVerdict {
@@ -65,9 +72,67 @@ fn checkpoint_for_certification_test() -> VerifiedCheckpointStream {
         CheckpointBindingCompactionHeader::new(1, 12).expect("compaction binding header"),
     );
     bytes.extend(compaction_header);
-    let (_footer, footer) = encoder.finish();
+    let (_, footer) = encoder.finish();
     bytes.extend(footer);
-    inspect_checkpoint_stream(&bytes, 0, 0).expect("certification checkpoint stream")
+    admit_empty_checkpoint_stream(&bytes, source)
+}
+
+fn admit_empty_checkpoint_stream(
+    bytes: &[u8],
+    source: PhysicalCheckpointSource,
+) -> VerifiedCheckpointStream {
+    let header_range = PhysicalByteRange::new(0, CHECKPOINT_STREAM_HEADER_RECORD_BYTES as u64)
+        .expect("header range");
+    let compaction_range = PhysicalByteRange::new(
+        header_range.end_exclusive(),
+        CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES as u64,
+    )
+    .expect("compaction range");
+    let footer_range = PhysicalByteRange::new(
+        compaction_range.end_exclusive(),
+        CHECKPOINT_STREAM_FOOTER_RECORD_BYTES as u64,
+    )
+    .expect("footer range");
+    let header_scope = PhysicalArtifactScope::checkpoint_stream_header(
+        CheckpointStreamHeaderScopeIdentity::staged(source.identity().store_identity()),
+        header_range,
+    );
+    let compaction_scope =
+        PhysicalArtifactScope::checkpoint_binding_compaction(source.identity(), compaction_range);
+    let footer_scope = PhysicalArtifactScope::checkpoint_footer(source.identity(), footer_range);
+    let record = |range: PhysicalByteRange| {
+        UntrustedPhysicalArtifact::from_bounded_bytes(
+            &bytes[range.offset() as usize..range.end_exclusive() as usize],
+        )
+    };
+    let CheckpointStreamHeaderIntegrityValidation::Intact(header) =
+        validate_checkpoint_stream_header(record(header_range), header_scope).0
+    else {
+        panic!("certification checkpoint header must validate")
+    };
+    let CheckpointBindingCompactionIntegrityValidation::Intact(compaction) =
+        validate_checkpoint_binding_compaction(record(compaction_range), compaction_scope).0
+    else {
+        panic!("certification checkpoint compaction must validate")
+    };
+    let CheckpointFooterIntegrityValidation::Intact(footer) = validate_checkpoint_footer(
+        record(footer_range),
+        footer_scope,
+        CheckpointFooterValidationBasis::new(&header, &[], &compaction, &[]),
+    )
+    .0
+    else {
+        panic!("certification checkpoint footer must validate")
+    };
+    VerifiedCheckpointStream::assemble_from_validated_records(
+        UntrustedPhysicalArtifact::from_bounded_bytes(bytes),
+        &header,
+        &[],
+        &compaction,
+        &[],
+        &footer,
+    )
+    .expect("certification checkpoint stream must assemble")
 }
 
 fn current_root_for_certification_test(seed: u64) -> CurrentPhysicalRoot {

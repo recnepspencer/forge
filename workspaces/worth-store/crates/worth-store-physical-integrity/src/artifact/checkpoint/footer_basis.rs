@@ -14,9 +14,19 @@ use super::record_rejection::damaged;
 
 pub struct CheckpointFooterValidationBasis<'records, 'media> {
     header: &'records IntegrityValidatedCheckpointStreamHeader<'media>,
-    dirty_basis: &'records [IntegrityValidatedCheckpointDirtyBasis<'media>],
+    dirty_basis: CheckpointDirtyBasisEvidence<'records, 'media>,
     binding_compaction: &'records IntegrityValidatedCheckpointBindingCompaction<'media>,
-    bindings: &'records [IntegrityValidatedCheckpointBinding<'media>],
+    bindings: CheckpointBindingEvidence<'records, 'media>,
+}
+
+enum CheckpointDirtyBasisEvidence<'records, 'media> {
+    Values(&'records [IntegrityValidatedCheckpointDirtyBasis<'media>]),
+    References(&'records [&'records IntegrityValidatedCheckpointDirtyBasis<'media>]),
+}
+
+enum CheckpointBindingEvidence<'records, 'media> {
+    Values(&'records [IntegrityValidatedCheckpointBinding<'media>]),
+    References(&'records [&'records IntegrityValidatedCheckpointBinding<'media>]),
 }
 
 pub(super) struct CheckpointFooterExpectedBindings {
@@ -36,9 +46,23 @@ impl<'records, 'media> CheckpointFooterValidationBasis<'records, 'media> {
     ) -> Self {
         Self {
             header,
-            dirty_basis,
+            dirty_basis: CheckpointDirtyBasisEvidence::Values(dirty_basis),
             binding_compaction,
-            bindings,
+            bindings: CheckpointBindingEvidence::Values(bindings),
+        }
+    }
+
+    pub fn from_record_references(
+        header: &'records IntegrityValidatedCheckpointStreamHeader<'media>,
+        dirty_basis: &'records [&'records IntegrityValidatedCheckpointDirtyBasis<'media>],
+        binding_compaction: &'records IntegrityValidatedCheckpointBindingCompaction<'media>,
+        bindings: &'records [&'records IntegrityValidatedCheckpointBinding<'media>],
+    ) -> Self {
+        Self {
+            header,
+            dirty_basis: CheckpointDirtyBasisEvidence::References(dirty_basis),
+            binding_compaction,
+            bindings: CheckpointBindingEvidence::References(bindings),
         }
     }
 
@@ -55,9 +79,17 @@ impl<'records, 'media> CheckpointFooterValidationBasis<'records, 'media> {
         let header_range = self.header.scope().byte_range();
         let mut next_offset = header_range.end_exclusive();
         let mut dirty = CheckpointSelectiveRecordAggregate::new();
-        for record in self.dirty_basis {
-            next_offset = validate_record_scope(record.scope(), identity, next_offset)?;
-            include_record(&mut dirty, record.scope(), record.inspected_bytes())?;
+        match self.dirty_basis {
+            CheckpointDirtyBasisEvidence::Values(records) => {
+                for record in records {
+                    next_offset = include_dirty(record, identity, next_offset, &mut dirty)?;
+                }
+            }
+            CheckpointDirtyBasisEvidence::References(records) => {
+                for record in records {
+                    next_offset = include_dirty(record, identity, next_offset, &mut dirty)?;
+                }
+            }
         }
         let compaction_scope = self.binding_compaction.scope();
         next_offset = validate_record_scope(compaction_scope, identity, next_offset)?;
@@ -67,9 +99,17 @@ impl<'records, 'media> CheckpointFooterValidationBasis<'records, 'media> {
             .checked_sub(header_range.offset())
             .expect("ordered checkpoint records cannot precede their header");
         let mut bindings = CheckpointSelectiveRecordAggregate::new();
-        for record in self.bindings {
-            next_offset = validate_record_scope(record.scope(), identity, next_offset)?;
-            include_record(&mut bindings, record.scope(), record.inspected_bytes())?;
+        match self.bindings {
+            CheckpointBindingEvidence::Values(records) => {
+                for record in records {
+                    next_offset = include_binding(record, identity, next_offset, &mut bindings)?;
+                }
+            }
+            CheckpointBindingEvidence::References(records) => {
+                for record in records {
+                    next_offset = include_binding(record, identity, next_offset, &mut bindings)?;
+                }
+            }
         }
         if footer_scope.byte_range().offset() != next_offset {
             return Err(sequence_mismatch(footer_scope));
@@ -82,6 +122,28 @@ impl<'records, 'media> CheckpointFooterValidationBasis<'records, 'media> {
             bindings: bindings.summary(),
         })
     }
+}
+
+fn include_dirty(
+    record: &IntegrityValidatedCheckpointDirtyBasis<'_>,
+    identity: PhysicalCheckpointIdentity,
+    next_offset: u64,
+    aggregate: &mut CheckpointSelectiveRecordAggregate,
+) -> Result<u64, PhysicalIntegrityRejection> {
+    let next_offset = validate_record_scope(record.scope(), identity, next_offset)?;
+    include_record(aggregate, record.scope(), record.inspected_bytes())?;
+    Ok(next_offset)
+}
+
+fn include_binding(
+    record: &IntegrityValidatedCheckpointBinding<'_>,
+    identity: PhysicalCheckpointIdentity,
+    next_offset: u64,
+    aggregate: &mut CheckpointSelectiveRecordAggregate,
+) -> Result<u64, PhysicalIntegrityRejection> {
+    let next_offset = validate_record_scope(record.scope(), identity, next_offset)?;
+    include_record(aggregate, record.scope(), record.inspected_bytes())?;
+    Ok(next_offset)
 }
 
 fn validate_record_scope(

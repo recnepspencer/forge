@@ -1,5 +1,6 @@
 mod admission;
 mod admitted_artifact;
+mod checkpoint_stream;
 mod counters;
 mod families;
 mod namespace_join;
@@ -17,11 +18,13 @@ mod tests;
 
 #[allow(unused_imports)]
 pub(crate) use admitted_artifact::IntegrityAdmittedRecoveryArtifact;
+pub(crate) use checkpoint_stream::{
+    admit_observed_checkpoint_stream, CheckpointStreamAdmissionFailure,
+};
 pub(crate) use counters::RecoveryIntegrityIngressCounters;
 #[allow(unused_imports)]
-pub(crate) use families::checkpoint::{
-    IntegrityAdmittedCheckpointProjection, IntegrityAdmittedCheckpointStream,
-};
+pub(crate) use families::checkpoint::IntegrityAdmittedCheckpointStream;
+pub(crate) use families::checkpoint::OwnerCheckpointProjection;
 pub(crate) use families::extent::{
     admit_extent_chunk_projection, admit_extent_manifest_projection,
 };

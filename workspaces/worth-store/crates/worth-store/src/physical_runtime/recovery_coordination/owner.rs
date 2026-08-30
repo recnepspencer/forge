@@ -45,6 +45,7 @@ pub struct PhysicalRecoveryCoordination {
     pub(super) construction: crate::physical_runtime::PhysicalRecoveryConstructionAuthority,
     pub(super) cleanup_capacity: PhysicalRecoveryCoordinationCapacity,
     pub(super) root_protocol_counters: crate::physical_runtime::RootProtocolRouteCounterCells,
+    checkpoint_binding_basis: Option<crate::physical_runtime::StoreRecoveryCheckpointBindingBasis>,
     runtime: RuntimeIdentity,
     yieldpoint: Option<crate::physical_runtime::PhysicalRecoveryProcessYieldpoint>,
     #[cfg(feature = "certification-test-authority")]
@@ -131,6 +132,7 @@ impl PhysicalRecoveryCoordination {
             cleanup_capacity,
             root_protocol_counters: crate::physical_runtime::RootProtocolRouteCounterCells::default(
             ),
+            checkpoint_binding_basis: None,
             runtime,
             yieldpoint,
             #[cfg(feature = "certification-test-authority")]
@@ -161,6 +163,23 @@ impl PhysicalRecoveryCoordination {
 
     pub fn root_protocol_counters(&self) -> crate::physical_runtime::RootProtocolRouteCounters {
         self.root_protocol_counters.snapshot()
+    }
+
+    pub fn install_checkpoint_binding_basis(
+        &mut self,
+        basis: crate::physical_runtime::StoreRecoveryCheckpointBindingBasis,
+    ) -> bool {
+        if self.checkpoint_binding_basis.is_some() {
+            return false;
+        }
+        self.checkpoint_binding_basis = Some(basis);
+        true
+    }
+
+    pub(in crate::physical_runtime) fn checkpoint_binding_basis(
+        &self,
+    ) -> Option<&crate::physical_runtime::StoreRecoveryCheckpointBindingBasis> {
+        self.checkpoint_binding_basis.as_ref()
     }
 
     pub fn quiescence_observation(&self) -> PhysicalRecoveryQuiescenceObservation {

@@ -2,13 +2,21 @@ use std::num::NonZeroU64;
 use std::path::Path;
 
 use worth_store_physical_format::{
-    durable_artifact_checksum, inspect_checkpoint_stream, CheckpointBindingCompactionHeader,
-    CheckpointRootBasis, CheckpointStreamEncoder, CheckpointWalSourceRange,
-    CurrentPhysicalRecordPlacement, DurableInlineRecordPlacement, DurablePhysicalRootManifest,
-    DurableRootSelector, FreeSpaceBlockReference, FreeSpaceKey, PersistedRecordIdentity,
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
-    PhysicalRecordFormatDeclaration, PhysicalRecordSlot, PhysicalRootRoutingBlock,
-    PhysicalSegmentId, RootSelectorIdentity, RootSelectorRole,
+    durable_artifact_checksum, CheckpointBindingCompactionHeader, CheckpointRootBasis,
+    CheckpointStreamEncoder, CheckpointWalSourceRange, CurrentPhysicalRecordPlacement,
+    DurableInlineRecordPlacement, DurablePhysicalRootManifest, DurableRootSelector,
+    FreeSpaceBlockReference, FreeSpaceKey, PersistedRecordIdentity, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordFormatDeclaration,
+    PhysicalRecordSlot, PhysicalRootRoutingBlock, PhysicalSegmentId, RootSelectorIdentity,
+    RootSelectorRole, CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES,
+    CHECKPOINT_STREAM_FOOTER_RECORD_BYTES, CHECKPOINT_STREAM_HEADER_RECORD_BYTES,
+};
+use worth_store_physical_integrity::{
+    validate_checkpoint_binding_compaction, validate_checkpoint_footer,
+    validate_checkpoint_stream_header, CheckpointBindingCompactionIntegrityValidation,
+    CheckpointFooterIntegrityValidation, CheckpointFooterValidationBasis,
+    CheckpointStreamHeaderIntegrityValidation, CheckpointStreamHeaderScopeIdentity,
+    PhysicalArtifactScope, PhysicalByteRange, UntrustedPhysicalArtifact, VerifiedCheckpointStream,
 };
 use worth_store_recovery_physics::{
     admit_physical_page_facts, admit_physical_wal_tail, observe_structured_physical_root_candidate,
@@ -148,12 +156,70 @@ fn checkpoint_base(
     let mut bytes = header;
     bytes.extend_from_slice(&compaction);
     bytes.extend_from_slice(&footer);
-    let verified = inspect_checkpoint_stream(&bytes, 0, 0).unwrap();
+    let verified = admit_empty_checkpoint_stream(&bytes, source);
     worth_store_recovery_physics::PhysicalCheckpointBase::admit(
         &root_for_checkpoint(store),
         verified,
     )
     .unwrap()
+}
+
+fn admit_empty_checkpoint_stream(
+    bytes: &[u8],
+    source: worth_store_physical_format::PhysicalCheckpointSource,
+) -> VerifiedCheckpointStream {
+    let header_range = PhysicalByteRange::new(0, CHECKPOINT_STREAM_HEADER_RECORD_BYTES as u64)
+        .expect("header range");
+    let compaction_range = PhysicalByteRange::new(
+        CHECKPOINT_STREAM_HEADER_RECORD_BYTES as u64,
+        CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES as u64,
+    )
+    .expect("compaction range");
+    let footer_range = PhysicalByteRange::new(
+        compaction_range.end_exclusive(),
+        CHECKPOINT_STREAM_FOOTER_RECORD_BYTES as u64,
+    )
+    .expect("footer range");
+    let header_scope = PhysicalArtifactScope::checkpoint_stream_header(
+        CheckpointStreamHeaderScopeIdentity::staged(source.identity().store_identity()),
+        header_range,
+    );
+    let compaction_scope =
+        PhysicalArtifactScope::checkpoint_binding_compaction(source.identity(), compaction_range);
+    let footer_scope = PhysicalArtifactScope::checkpoint_footer(source.identity(), footer_range);
+    let record = |range: PhysicalByteRange| {
+        UntrustedPhysicalArtifact::from_bounded_bytes(
+            &bytes[range.offset() as usize..range.end_exclusive() as usize],
+        )
+    };
+    let CheckpointStreamHeaderIntegrityValidation::Intact(header) =
+        validate_checkpoint_stream_header(record(header_range), header_scope).0
+    else {
+        panic!("fixture checkpoint header must validate")
+    };
+    let CheckpointBindingCompactionIntegrityValidation::Intact(compaction) =
+        validate_checkpoint_binding_compaction(record(compaction_range), compaction_scope).0
+    else {
+        panic!("fixture checkpoint compaction must validate")
+    };
+    let CheckpointFooterIntegrityValidation::Intact(footer) = validate_checkpoint_footer(
+        record(footer_range),
+        footer_scope,
+        CheckpointFooterValidationBasis::new(&header, &[], &compaction, &[]),
+    )
+    .0
+    else {
+        panic!("fixture checkpoint footer must validate")
+    };
+    VerifiedCheckpointStream::assemble_from_validated_records(
+        UntrustedPhysicalArtifact::from_bounded_bytes(bytes),
+        &header,
+        &[],
+        &compaction,
+        &[],
+        &footer,
+    )
+    .expect("fixture checkpoint stream must assemble from exact admitted records")
 }
 
 fn root_for_checkpoint(

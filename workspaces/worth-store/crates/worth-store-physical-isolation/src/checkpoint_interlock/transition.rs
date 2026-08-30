@@ -3,9 +3,8 @@ use super::{
     CheckpointReadInterlockDenial,
 };
 use crate::{CheckpointPublicationRoot, CurrentPhysicalRoot};
-use worth_store_physical_format::{
-    CheckpointWalSourceRange, PersistedCompactionCutoverRecord, PhysicalCheckpointSource,
-};
+use worth_store_physical_format::{CheckpointWalSourceRange, PhysicalCheckpointSource};
+use worth_store_physical_integrity::VerifiedCheckpointCompactionCutover;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckpointRootEpochTransition {
@@ -58,7 +57,7 @@ impl CheckpointRootEpochTransition {
         self.readmission.checkpoint_source()
     }
 
-    pub const fn compaction_cutover(&self) -> PersistedCompactionCutoverRecord {
+    pub const fn compaction_cutover(&self) -> VerifiedCheckpointCompactionCutover {
         self.readmission.compaction_cutover()
     }
 

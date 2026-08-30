@@ -95,20 +95,19 @@ fn routing_is_exhaustive_over_every_current_recovery_family() {
                 let _ = value.into_owner_redo_projection(counters);
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointStreamHeader(value) => {
-                let _ = value.project(counters);
+                let _ = value.scope();
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointDirtyBasis(value) => {
-                let _ = value.project(counters);
+                let _ = value.scope();
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointBindingCompaction(value) => {
-                let _ = value.project(counters);
+                let _ = value.scope();
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointBinding(value) => {
-                let projection = value.project(counters);
-                let _ = (projection.binding.byte_count(), projection.binding.digest());
+                let _ = value.scope();
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointFooter(value) => {
-                let _ = value.project(counters);
+                let _ = value.scope();
             }
             IntegrityAdmittedRecoveryArtifact::FreeSpaceHeader(value) => {
                 let _ = value.project(counters);

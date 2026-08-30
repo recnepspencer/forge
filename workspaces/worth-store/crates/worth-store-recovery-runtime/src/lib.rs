@@ -16,7 +16,8 @@ pub use cleanup::{
 };
 pub use entry::{
     PhysicalManifestObservationDenial, PhysicalRecoveryAdmissionCounters, PhysicalRecoveryBlock,
-    PhysicalRecoveryBlockEvidence, PhysicalRecoveryBlockKind, PhysicalRecoveryEntryBindingDrift,
+    PhysicalRecoveryBlockEvidence, PhysicalRecoveryBlockKind,
+    PhysicalRecoveryCheckpointIntegrityDenial, PhysicalRecoveryEntryBindingDrift,
     PhysicalRecoveryIntegrityObservations, PhysicalRecoveryLimitDeclaration,
     PhysicalRecoveryLimitDenial, PhysicalRecoveryLimitDimension, PhysicalRecoveryLimitFailure,
     PhysicalRecoveryLimits, PhysicalRecoveryMediaObservationFailure, PhysicalRecoveryOpenRequest,

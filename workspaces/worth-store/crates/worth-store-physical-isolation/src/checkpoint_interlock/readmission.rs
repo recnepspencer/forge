@@ -1,8 +1,8 @@
 use super::CheckpointReadInterlockDenial;
 use crate::{CheckpointPublicationRoot, CurrentPhysicalRoot};
-use worth_store_physical_format::{
-    CheckpointWalSourceRange, PersistedCompactionCutoverRecord, PhysicalCheckpointSource,
-    VerifiedCheckpointStream,
+use worth_store_physical_format::{CheckpointWalSourceRange, PhysicalCheckpointSource};
+use worth_store_physical_integrity::{
+    VerifiedCheckpointCompactionCutover, VerifiedCheckpointStream,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,7 +10,7 @@ pub struct CheckpointPublicationReadmission {
     checkpoint_root: CheckpointPublicationRoot,
     published_current_root: CurrentPhysicalRoot,
     checkpoint_source: PhysicalCheckpointSource,
-    compaction_cutover: PersistedCompactionCutoverRecord,
+    compaction_cutover: VerifiedCheckpointCompactionCutover,
     checkpoint_wal_bound_to_cutover: bool,
 }
 
@@ -85,7 +85,7 @@ impl CheckpointPublicationReadmission {
         self.checkpoint_source
     }
 
-    pub const fn compaction_cutover(&self) -> PersistedCompactionCutoverRecord {
+    pub const fn compaction_cutover(&self) -> VerifiedCheckpointCompactionCutover {
         self.compaction_cutover
     }
 

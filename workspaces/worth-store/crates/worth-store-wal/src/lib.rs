@@ -4,7 +4,6 @@
 pub mod append;
 pub mod artifact_store;
 pub mod checkpoint;
-mod cleanup_admission;
 pub mod recovery_read;
 pub mod wal_topology;
 
@@ -45,10 +44,6 @@ pub use blob_records::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
     BlobWalReplayRebuildWitness,
-};
-pub use cleanup_admission::{
-    admit_checkpoint_covered_wal_cleanup, CheckpointCoveredWalCleanupAdmission,
-    CheckpointCoveredWalCleanupDenial,
 };
 pub use durability::{WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope};
 pub use operation_denial::{WalOperationDenial, WalOperationDenialKind};
