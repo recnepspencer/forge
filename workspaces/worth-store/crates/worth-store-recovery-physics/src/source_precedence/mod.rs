@@ -20,8 +20,8 @@ pub use checkpoint_base::{PhysicalCheckpointBase, PhysicalCheckpointBaseDenial};
 pub use checkpoint_covered_wal::CheckpointCoveredWalArtifact;
 pub use compaction_product::SelectedCompactionProduct;
 pub use current_previous_root::{
-    select_current_previous_root, PhysicalRootSelectionDenial, SelectedPhysicalRoot,
-    SelectedPhysicalRootRole,
+    select_current_previous_root, PhysicalBootstrapFallbackAnchor, PhysicalRootSelectionDenial,
+    SelectedPhysicalRoot, SelectedPhysicalRootRole,
 };
 pub use page_facts::{
     admit_physical_page_facts, PhysicalManifestBlockCandidate, PhysicalPageFactDenial,

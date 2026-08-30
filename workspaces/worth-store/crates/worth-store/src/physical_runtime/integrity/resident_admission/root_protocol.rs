@@ -14,6 +14,15 @@ use super::{
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentBootstrapCatalog<'frame> {
     source: ResidentIntegrityRecordBinding<'frame>,
+    projection: ResidentBootstrapCatalogProjection,
+}
+
+#[derive(Clone, Copy)]
+pub(in crate::physical_runtime) struct ResidentBootstrapCatalogProjection {
+    pub(in crate::physical_runtime) record_format:
+        worth_store_physical_format::PhysicalRecordFormatDeclaration,
+    pub(in crate::physical_runtime) current_root:
+        worth_store_physical_format::CurrentRootCatalogEntry,
 }
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentCurrentRootSelector<'frame> {
@@ -22,11 +31,6 @@ pub(in crate::physical_runtime) struct IntegrityAdmittedResidentCurrentRootSelec
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentPreviousRootSelector<'frame> {
     source: ResidentIntegrityRecordBinding<'frame>,
-}
-
-pub(in crate::physical_runtime) struct IntegrityAdmittedResidentBootstrapCatalogView<'frame> {
-    lease: &'frame PhysicalFrameLease,
-    scope: PhysicalArtifactScope,
 }
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentCurrentRootSelectorView<'frame> {
@@ -44,9 +48,6 @@ pub(in crate::physical_runtime) fn admit_resident_bootstrap_catalog<'frame>(
     scope: PhysicalArtifactScope,
     context: ResidentAdmissionContext<'_>,
 ) -> Result<IntegrityAdmittedResidentBootstrapCatalog<'frame>, ResidentIntegrityAdmissionDenial> {
-    if let Some(source) = context.reuse(lease, scope)? {
-        return Ok(IntegrityAdmittedResidentBootstrapCatalog { source });
-    }
     let input = context.exact_input(lease, scope)?;
     context.observe_fresh_validation();
     match validate_bootstrap_catalog(input, scope).0 {
@@ -55,6 +56,12 @@ pub(in crate::physical_runtime) fn admit_resident_bootstrap_catalog<'frame>(
         }
         BootstrapCatalogIntegrityValidation::Rejected(rejection) => {
             context.validation_rejected(rejection)
+        }
+        BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch) => context.deny(
+            ResidentIntegrityAdmissionDenial::BootstrapScopeMismatch(mismatch),
+        ),
+        BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported) => {
+            context.deny(ResidentIntegrityAdmissionDenial::BootstrapUnsupportedFormat(unsupported))
         }
     }
 }
@@ -110,9 +117,15 @@ fn bind_bootstrap<'frame>(
     if !validated.matches_input(input) {
         return context.deny(ResidentIntegrityAdmissionDenial::SourceIncarnationMismatch);
     }
+    let projection = ResidentBootstrapCatalogProjection {
+        record_format: validated.record_format(),
+        current_root: worth_store_physical_format::CurrentRootCatalogEntry::new(
+            validated.current_root_generation(),
+        ),
+    };
     let scope = validated.scope();
     let source = context.bind_validated(lease, scope, validated.into_validation_record())?;
-    Ok(IntegrityAdmittedResidentBootstrapCatalog { source })
+    Ok(IntegrityAdmittedResidentBootstrapCatalog { source, projection })
 }
 
 fn bind_current_selector<'frame>(
@@ -146,14 +159,11 @@ fn bind_previous_selector<'frame>(
 }
 
 impl<'frame> IntegrityAdmittedResidentBootstrapCatalog<'frame> {
-    pub(in crate::physical_runtime) fn with_owner_decoder<T>(
+    pub(in crate::physical_runtime) fn project(
         self,
         context: ResidentAdmissionContext<'_>,
-        decoder: impl for<'view> FnOnce(IntegrityAdmittedResidentBootstrapCatalogView<'view>) -> T,
-    ) -> Result<T, ResidentIntegrityAdmissionDenial> {
-        context.with_owner_decoder(self.source, |lease, scope| {
-            decoder(IntegrityAdmittedResidentBootstrapCatalogView { lease, scope })
-        })
+    ) -> Result<ResidentBootstrapCatalogProjection, ResidentIntegrityAdmissionDenial> {
+        context.with_owner_projection(self.source, || self.projection)
     }
 }
 
@@ -195,6 +205,5 @@ macro_rules! resident_root_protocol_view {
     };
 }
 
-resident_root_protocol_view!(IntegrityAdmittedResidentBootstrapCatalogView<'_>);
 resident_root_protocol_view!(IntegrityAdmittedResidentCurrentRootSelectorView<'_>);
 resident_root_protocol_view!(IntegrityAdmittedResidentPreviousRootSelectorView<'_>);

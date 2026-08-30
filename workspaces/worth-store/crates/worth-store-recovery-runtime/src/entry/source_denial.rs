@@ -1,13 +1,13 @@
 use worth_store::physical_runtime::{ArtifactTreeFailureKind, RecoveryDiscoveryArtifact};
 use worth_store_physical_format::{
-    store_namespace::StableStoreIdentity, BootstrapCatalogDenial, CheckpointStreamDecodeDenial,
-    ManifestBlockReference, PhysicalRecordFormatDeclaration, RootRoutingBlockDenial,
-    RootSelectorRole,
+    store_namespace::StableStoreIdentity, CheckpointStreamDecodeDenial, ManifestBlockReference,
+    PhysicalRecordFormatDeclaration, RootRoutingBlockDenial, RootSelectorRole,
 };
 use worth_store_physical_integrity::PhysicalIntegrityRejection;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalRecoveryRootProtocolArtifact {
+    BootstrapCatalog,
     CurrentSelector,
     PreviousSelector,
     StagedCurrentSelector { publication: u64 },
@@ -76,7 +76,6 @@ pub enum PhysicalRecoverySourceDenial {
         denial: PhysicalRecoveryRootProtocolDenial,
     },
     RootSelection(PhysicalRootSelectionDenial),
-    BootstrapCatalog(BootstrapCatalogDenial),
     ManifestObservation(PhysicalManifestObservationDenial),
     ManifestFacts(PhysicalPageFactDenial),
     CheckpointFormat(CheckpointStreamDecodeDenial),

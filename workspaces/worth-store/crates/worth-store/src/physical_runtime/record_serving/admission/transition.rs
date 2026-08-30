@@ -166,6 +166,8 @@ pub(in crate::physical_runtime) fn open(
         &bootstrap_allocation,
         format,
         access,
+        runtime.lifecycle_state(),
+        frame_ports.resident_integrity_counter_cells(),
     ) {
         Ok(bootstrap) => bootstrap,
         Err(failure) => return open_failure(runtime, failure),

@@ -1,10 +1,14 @@
 use worth_store_physical_backend::{ArtifactTreeFailureKind, QualifiedFilesystemMedia};
 use worth_store_physical_format::{
-    durable_artifact_checksum, BootstrapCatalog, DurableFreeSpaceManifestHeader,
-    DurablePhysicalRootManifest, PhysicalRecordFormatDeclaration, RecordArtifactFile,
+    durable_artifact_checksum, DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest,
+    PhysicalRecordFormatDeclaration, RecordArtifactFile,
 };
+use worth_store_physical_integrity::{PhysicalArtifactScope, PhysicalByteRange};
 
 use crate::physical_runtime::integrity::resident_admission::root_manifest::admit_loaded_root_manifest;
+use crate::physical_runtime::integrity::resident_admission::{
+    load::ResidentAdmissionContext, root_protocol::admit_resident_bootstrap_catalog,
+};
 
 use super::super::residency::serving_artifacts::ServingRecordArtifacts;
 use super::super::{
@@ -39,6 +43,8 @@ pub(in crate::physical_runtime::record_serving) fn open(
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
+    lifecycle: std::sync::Arc<crate::physical_runtime::lifecycle::LifecycleState>,
+    resident_integrity_counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
 ) -> Result<PhysicalRecordBootstrapOwner, BootstrapTransitionFailure> {
     if !access.admits(format) {
         return Err(BootstrapTransitionFailure::Denied(
@@ -60,7 +66,7 @@ pub(in crate::physical_runtime::record_serving) fn open(
         }
         RecordFamilyInventory::Published => {}
     }
-    let catalog_bytes = artifacts
+    let catalog_frame = artifacts
         .load_bounded(
             allocation,
             RecordArtifactFile::BootstrapCatalog,
@@ -86,27 +92,26 @@ pub(in crate::physical_runtime::record_serving) fn open(
             }
             _ => BootstrapTransitionFailure::Denied(RecordBootstrapDenial::CatalogDamaged),
         })?;
-    let catalog = BootstrapCatalog::decode(&catalog_bytes).map_err(classify_catalog_denial)?;
-    if catalog.store_identity() != media.store_identity() {
-        return Err(BootstrapTransitionFailure::RebindRequired(
-            RecordServingRebindReason::StoreIdentityMismatch,
-        ));
-    }
-    if catalog.format() != format.declaration() {
-        return Err(BootstrapTransitionFailure::Denied(
-            RecordBootstrapDenial::PhysicalRecordFormatMismatch(PhysicalRecordFormatMismatch::new(
-                format.declaration(),
-                catalog.format(),
-            )),
-        ));
-    }
+    let scope = PhysicalArtifactScope::bootstrap_catalog(
+        media.store_identity(),
+        format.declaration(),
+        PhysicalByteRange::new(0, u64::from(limits.catalog_bytes()))
+            .expect("the bootstrap catalog has a nonzero fixed width"),
+    );
+    let admission_context = ResidentAdmissionContext::new(lifecycle, resident_integrity_counters);
+    let admitted =
+        admit_resident_bootstrap_catalog(catalog_frame.lease(), scope, admission_context.clone())
+            .map_err(classify_catalog_integrity_denial)?;
+    let catalog = admitted
+        .project(admission_context)
+        .map_err(classify_catalog_integrity_denial)?;
     let observed_staging_residue = artifacts
         .has_staging_residue()
         .map_err(backend_before_effect)?;
     Ok(PhysicalRecordBootstrapOwner {
         format,
         access,
-        current_root: catalog.current_root(),
+        current_root: catalog.current_root,
         observed_staging_residue,
     })
 }
@@ -291,17 +296,48 @@ fn load_free_space_manifest(
     Ok(free_space)
 }
 
-fn classify_catalog_denial(
-    denial: worth_store_physical_format::BootstrapCatalogDenial,
+fn classify_catalog_integrity_denial(
+    denial: crate::physical_runtime::integrity::resident_admission::denial::ResidentIntegrityAdmissionDenial,
 ) -> BootstrapTransitionFailure {
     match denial {
-        worth_store_physical_format::BootstrapCatalogDenial::Frame(
-            worth_store_physical_format::DurableFrameDenial::UnsupportedFormat(reason),
-        ) => BootstrapTransitionFailure::Denied(
+        crate::physical_runtime::integrity::resident_admission::denial::ResidentIntegrityAdmissionDenial::BootstrapScopeMismatch(mismatch)
+            if mismatch.observed_store() != mismatch.rejection().scope().store_identity() =>
+        {
+            BootstrapTransitionFailure::RebindRequired(
+                RecordServingRebindReason::StoreIdentityMismatch,
+            )
+        }
+        crate::physical_runtime::integrity::resident_admission::denial::ResidentIntegrityAdmissionDenial::BootstrapScopeMismatch(mismatch) => {
+            BootstrapTransitionFailure::Denied(
+                RecordBootstrapDenial::PhysicalRecordFormatMismatch(
+                    PhysicalRecordFormatMismatch::new(
+                        mismatch.expected_format(),
+                        mismatch.observed_format(),
+                    ),
+                ),
+            )
+        }
+        crate::physical_runtime::integrity::resident_admission::denial::ResidentIntegrityAdmissionDenial::BootstrapUnsupportedFormat(unsupported) => {
+            BootstrapTransitionFailure::Denied(
+                RecordBootstrapDenial::UnsupportedPhysicalRecordFormat(
+                    UnsupportedPhysicalRecordFormat::new(unsupported.reason()),
+                ),
+            )
+        }
+        crate::physical_runtime::integrity::resident_admission::denial::ResidentIntegrityAdmissionDenial::Validation(
+            worth_store_physical_integrity::PhysicalIntegrityRejection::Unsupported(unsupported),
+        ) if unsupported.axis()
+            == worth_store_physical_integrity::PhysicalIntegrityVersionAxis::PhysicalFormat => {
+            BootstrapTransitionFailure::Denied(
             RecordBootstrapDenial::UnsupportedPhysicalRecordFormat(
-                UnsupportedPhysicalRecordFormat::new(reason),
+                UnsupportedPhysicalRecordFormat::new(
+                    worth_store_physical_format::PhysicalRecordFormatDenial::UnsupportedVersion(
+                        unsupported.observed() as u16,
+                    ),
+                ),
             ),
-        ),
+        )
+        }
         _ => BootstrapTransitionFailure::Denied(RecordBootstrapDenial::CatalogDamaged),
     }
 }

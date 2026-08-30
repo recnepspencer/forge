@@ -1,7 +1,6 @@
 use worth_store::physical_runtime::{BoundedRecoveryFilesystemDiscovery, ObservedWalArtifact};
 use worth_store_physical_format::{
-    inspect_checkpoint_stream, BootstrapCatalog, PhysicalRecordFormatDeclaration,
-    BOOTSTRAP_CATALOG_BYTES,
+    inspect_checkpoint_stream, PhysicalRecordFormatDeclaration, BOOTSTRAP_CATALOG_BYTES,
 };
 use worth_store_recovery_physics::{
     inspect_physical_wal_artifacts, InspectedPhysicalWalArtifacts, PhysicalRecoveryResidue,
@@ -11,6 +10,10 @@ use worth_store_recovery_physics::{
 use crate::entry::{
     PhysicalRecoveryBlockKind as PhysicalRecoveryBlock, PhysicalRecoveryLimitDimension,
     PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
+};
+use crate::integrity_ingress::{
+    admit_observed_bootstrap_catalog, IntegrityAdmittedRecoveryArtifact,
+    RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
 };
 use crate::progression::PhysicalRecoveryDiscoveryCounters;
 
@@ -50,7 +53,8 @@ pub(super) fn observe_all(
     let root_protocol_denials = roots.denials.clone();
     let preserve_root_denials =
         |failure: DiscoveryFailure| failure.with_root_protocol_denials(&root_protocol_denials);
-    let bootstrap = observe_fallback_anchor(discovery, &roots).map_err(&preserve_root_denials)?;
+    let bootstrap = observe_fallback_anchor(discovery, &roots, record_format, counters)
+        .map_err(&preserve_root_denials)?;
     let (current_manifest_facts, previous_manifest_facts) =
         observe_root_manifest_facts(discovery, limits, &mut roots, counters)
             .map_err(&preserve_root_denials)?;
@@ -82,6 +86,8 @@ pub(super) fn observe_all(
 fn observe_fallback_anchor(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
     roots: &RootObservations,
+    record_format: PhysicalRecordFormatDeclaration,
+    counters: &mut PhysicalRecoveryDiscoveryCounters,
 ) -> Result<BootstrapDiscovery, DiscoveryFailure> {
     if !current_requires_fallback_anchor(&roots.current)
         || !matches!(roots.previous, PhysicalRootSlotObservation::Candidate(_))
@@ -91,13 +97,43 @@ fn observe_fallback_anchor(
     let artifact = discovery
         .read_bootstrap_catalog(BOOTSTRAP_CATALOG_BYTES as u64)
         .map_err(map_selector_discovery_failure)?;
-    let Some(bytes) = artifact.bytes() else {
-        return Ok(BootstrapDiscovery::Absent);
+    let mut ingress_counters = RecoveryIntegrityIngressCounters::default();
+    let attempt = admit_observed_bootstrap_catalog(
+        &artifact,
+        discovery.store_identity(),
+        record_format,
+        &mut ingress_counters,
+    );
+    let discovery = match attempt.into_outcome() {
+        Ok(IntegrityAdmittedRecoveryArtifact::BootstrapCatalog(admitted)) => {
+            let projection = admitted.project(&mut ingress_counters);
+            BootstrapDiscovery::Admitted(
+                worth_store_recovery_physics::PhysicalBootstrapFallbackAnchor::from_integrity_projection(
+                    admitted.scope().store_identity(),
+                    projection.record_format,
+                    projection.current_root_generation,
+                ),
+            )
+        }
+        Ok(_) => unreachable!("bootstrap ingress routes only the bootstrap family"),
+        Err(RecoveryIntegrityIngressRejection::Absent) => BootstrapDiscovery::Absent,
+        Err(rejection) => BootstrapDiscovery::Rejected(rejection),
     };
-    Ok(match BootstrapCatalog::decode(bytes) {
-        Ok(catalog) => BootstrapDiscovery::Admitted(catalog),
-        Err(denial) => BootstrapDiscovery::Rejected(denial),
-    })
+    record_bootstrap_counters(counters, ingress_counters);
+    Ok(discovery)
+}
+
+fn record_bootstrap_counters(
+    counters: &mut PhysicalRecoveryDiscoveryCounters,
+    ingress: RecoveryIntegrityIngressCounters,
+) {
+    counters.bootstrap_integrity_attempts = ingress.attempted;
+    counters.bootstrap_integrity_admissions = ingress.admitted;
+    counters.bootstrap_absent = ingress.rejected_absent;
+    counters.bootstrap_integrity_rejections =
+        ingress.attempted - ingress.admitted - ingress.rejected_absent;
+    counters.bootstrap_owner_projections = ingress.owner_projection_entries;
+    counters.bootstrap_owner_decoder_entries = ingress.owner_decoder_entries;
 }
 
 fn current_requires_fallback_anchor(current: &PhysicalRootSlotObservation) -> bool {

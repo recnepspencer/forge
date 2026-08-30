@@ -26,6 +26,12 @@ impl<'media> IntegrityAdmittedRecoveryArtifact<'media> {
             BootstrapCatalogIntegrityValidation::Rejected(rejection) => {
                 rejected_integrity(expected_scope, rejection, counters)
             }
+            BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch) => {
+                rejected_integrity(expected_scope, mismatch.rejection(), counters)
+            }
+            BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported) => {
+                rejected_integrity(expected_scope, unsupported.rejection(), counters)
+            }
         }
     }
 }

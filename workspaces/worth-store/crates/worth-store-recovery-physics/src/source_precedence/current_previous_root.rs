@@ -1,4 +1,7 @@
-use worth_store_physical_format::BootstrapCatalog;
+use worth_store_physical_format::{
+    store_namespace::StableStoreIdentity, CurrentRootCatalogGeneration,
+    PhysicalRecordFormatDeclaration,
+};
 
 use super::{PhysicalRootSlotObservation, PhysicalRootSourceCandidate};
 
@@ -29,10 +32,31 @@ pub enum PhysicalRootSelectionDenial {
     PreviousFallbackAnchorIdentityMismatch,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalBootstrapFallbackAnchor {
+    store: StableStoreIdentity,
+    format: PhysicalRecordFormatDeclaration,
+    current_root_generation: CurrentRootCatalogGeneration,
+}
+
+impl PhysicalBootstrapFallbackAnchor {
+    pub const fn from_integrity_projection(
+        store: StableStoreIdentity,
+        format: PhysicalRecordFormatDeclaration,
+        current_root_generation: CurrentRootCatalogGeneration,
+    ) -> Self {
+        Self {
+            store,
+            format,
+            current_root_generation,
+        }
+    }
+}
+
 pub fn select_current_previous_root(
     current: PhysicalRootSlotObservation,
     previous: PhysicalRootSlotObservation,
-    fallback_anchor: Option<BootstrapCatalog>,
+    fallback_anchor: Option<PhysicalBootstrapFallbackAnchor>,
 ) -> Result<SelectedPhysicalRoot, PhysicalRootSelectionDenial> {
     match current {
         PhysicalRootSlotObservation::Candidate(current) => select_current(current, previous),
@@ -81,7 +105,7 @@ fn select_current(
 
 fn select_previous(
     previous: PhysicalRootSlotObservation,
-    fallback_anchor: Option<BootstrapCatalog>,
+    fallback_anchor: Option<PhysicalBootstrapFallbackAnchor>,
 ) -> Result<SelectedPhysicalRoot, PhysicalRootSelectionDenial> {
     let PhysicalRootSlotObservation::Candidate(previous) = previous else {
         return Err(PhysicalRootSelectionDenial::NoAdmittedRoot);
@@ -96,13 +120,13 @@ fn select_previous(
     let Some(anchor) = fallback_anchor else {
         return Err(PhysicalRootSelectionDenial::PreviousFallbackUnanchored);
     };
-    if anchor.store_identity() != selector.store_identity() {
+    if anchor.store != selector.store_identity() {
         return Err(PhysicalRootSelectionDenial::PreviousFallbackAnchorStoreMismatch);
     }
-    if anchor.format() != selector.format() {
+    if anchor.format != selector.format() {
         return Err(PhysicalRootSelectionDenial::PreviousFallbackAnchorFormatMismatch);
     }
-    let anchor_generation = anchor.current_root().generation().get();
+    let anchor_generation = anchor.current_root_generation.get();
     if anchor_generation != linked_generation {
         return Err(PhysicalRootSelectionDenial::PreviousFallbackAnchorGenerationMismatch);
     }
@@ -147,7 +171,6 @@ mod tests {
             ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord,
             StoreNamespaceVersion,
         },
-        BootstrapCatalog, CurrentRootCatalogEntry, CurrentRootCatalogGeneration,
         DurablePhysicalRootManifest, DurableRootSelector, FreeSpaceBlockReference, FreeSpaceKey,
         PhysicalRecordFormatDeclaration, RecordAllocationClass, RootSelectorIdentity,
         RootSelectorRole,
@@ -319,11 +342,11 @@ mod tests {
         PhysicalRecordFormatDeclaration::builder().admit().unwrap()
     }
 
-    fn catalog(generation: u64) -> BootstrapCatalog {
-        BootstrapCatalog::new(
+    fn catalog(generation: u64) -> PhysicalBootstrapFallbackAnchor {
+        PhysicalBootstrapFallbackAnchor::from_integrity_projection(
             store(),
             format(),
-            CurrentRootCatalogEntry::new(CurrentRootCatalogGeneration::new(generation).unwrap()),
+            CurrentRootCatalogGeneration::new(generation).unwrap(),
         )
     }
 

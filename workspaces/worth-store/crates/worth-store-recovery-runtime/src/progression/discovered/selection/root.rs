@@ -26,7 +26,10 @@ pub(super) fn select(
         .map(|selected| (selected, root_protocol_denials))
         .map_err(|denial| {
             if let Some(denial) = bootstrap_denial {
-                source_denials.push(PhysicalRecoverySourceDenial::BootstrapCatalog(denial));
+                source_denials.push(PhysicalRecoverySourceDenial::RootProtocol {
+                    artifact: crate::entry::PhysicalRecoveryRootProtocolArtifact::BootstrapCatalog,
+                    denial: denial.diagnostic(),
+                });
             }
             source_denials.push(PhysicalRecoverySourceDenial::RootSelection(denial));
             SelectionFailure::new(

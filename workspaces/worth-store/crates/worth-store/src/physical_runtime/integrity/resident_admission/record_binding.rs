@@ -68,6 +68,11 @@ impl<'lease> ResidentIntegrityRecordBinding<'lease> {
     pub(super) fn enter_owner_decoder(
         &self,
     ) -> Result<&'lease PhysicalFrameLease, ResidentIntegrityAdmissionDenial> {
+        self.require_current_binding()?;
+        Ok(self.lease)
+    }
+
+    pub(super) fn require_current_binding(&self) -> Result<(), ResidentIntegrityAdmissionDenial> {
         if self.lifecycle.snapshot() != self.lifecycle_snapshot {
             return Err(ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged);
         }
@@ -82,7 +87,7 @@ impl<'lease> ResidentIntegrityRecordBinding<'lease> {
         if record != self.record {
             return Err(ResidentIntegrityAdmissionDenial::RetainedRecordChanged);
         }
-        Ok(self.lease)
+        Ok(())
     }
 
     pub(super) const fn scope(&self) -> PhysicalArtifactScope {

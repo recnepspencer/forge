@@ -32,6 +32,14 @@ impl<'media> RecoveryIntegrityIngressAttempt<'media> {
     }
 }
 
+pub(crate) fn rejected_source_binding<'media>(
+    scope: PhysicalArtifactScope,
+    rejection: RecoveryIntegrityIngressRejection,
+    counters: &mut RecoveryIntegrityIngressCounters,
+) -> RecoveryIntegrityIngressAttempt<'media> {
+    recorded(scope, Err(rejection), counters)
+}
+
 fn recorded<'media>(
     scope: PhysicalArtifactScope,
     outcome: Result<IntegrityAdmittedRecoveryArtifact<'media>, RecoveryIntegrityIngressRejection>,

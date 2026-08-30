@@ -10,6 +10,7 @@ use worth_store_physical_integrity::{
     validate_root_manifest, RootManifestIntegrityValidation, UntrustedPhysicalArtifact,
 };
 
+mod bootstrap_catalog;
 mod support;
 use support::*;
 

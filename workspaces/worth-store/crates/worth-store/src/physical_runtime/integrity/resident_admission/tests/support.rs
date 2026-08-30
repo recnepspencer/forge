@@ -25,6 +25,18 @@ pub(super) fn loaded_manifest(
     worth_store_buffer_pool::OperationAllocationGrant,
     worth_store_buffer_pool::PhysicalFrameLease,
 ) {
+    loaded_frame(store, manifest_coordinate(generation, bytes.len()), bytes)
+}
+
+pub(super) fn loaded_frame(
+    store: StableStoreIdentity,
+    coordinate: RecordFrameCoordinate,
+    bytes: &[u8],
+) -> (
+    PhysicalResidencyPool,
+    worth_store_buffer_pool::OperationAllocationGrant,
+    worth_store_buffer_pool::PhysicalFrameLease,
+) {
     let pool = PhysicalResidencyPool::open(store, residency_limits(bytes.len() as u32)).unwrap();
     let allocation = pool
         .begin_operation(
@@ -32,7 +44,7 @@ pub(super) fn loaded_manifest(
             NonZeroU64::new(bytes.len() as u64).unwrap(),
         )
         .unwrap();
-    let key = PhysicalFrameKey::new(store, manifest_coordinate(generation, bytes.len()));
+    let key = PhysicalFrameKey::new(store, coordinate);
     let PhysicalFrameAccess::Fault(fault) = pool.access_frame(&allocation, key).unwrap() else {
         panic!("fresh pool must yield a frame fault");
     };

@@ -49,6 +49,12 @@ fn catalog_literal_vector_is_independent_of_writer_and_validates_directly() {
         BootstrapCatalogIntegrityValidation::Rejected(rejection) => {
             panic!("literal bootstrap catalog rejected: {rejection:?}")
         }
+        BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch) => {
+            panic!("literal bootstrap catalog mismatched scope: {mismatch:?}")
+        }
+        BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported) => {
+            panic!("literal bootstrap catalog has unsupported format: {unsupported:?}")
+        }
     }
 }
 
@@ -63,6 +69,12 @@ fn clean_catalog_seals_generation_record_range_and_incarnation() {
         (BootstrapCatalogIntegrityValidation::Intact(validated), counters) => (validated, counters),
         (BootstrapCatalogIntegrityValidation::Rejected(rejection), _) => {
             panic!("clean bootstrap catalog rejected: {rejection:?}")
+        }
+        (BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch), _) => {
+            panic!("clean bootstrap catalog mismatched scope: {mismatch:?}")
+        }
+        (BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported), _) => {
+            panic!("clean bootstrap catalog has unsupported format: {unsupported:?}")
         }
     };
     assert_eq!(validated.scope(), scope);
@@ -90,6 +102,12 @@ fn clean_catalog_seals_generation_record_range_and_incarnation() {
         }
         BootstrapCatalogIntegrityValidation::Rejected(rejection) => {
             panic!("range-bound clean catalog rejected: {rejection:?}")
+        }
+        BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch) => {
+            panic!("range-bound clean catalog mismatched scope: {mismatch:?}")
+        }
+        BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported) => {
+            panic!("range-bound clean catalog has unsupported format: {unsupported:?}")
         }
     };
     assert_ne!(record.exact_scope_digest(), alternate.exact_scope_digest());
@@ -253,6 +271,12 @@ fn validate_catalog_rejection(
     match validate_bootstrap_catalog(UntrustedPhysicalArtifact::from_bounded_bytes(bytes), scope) {
         (BootstrapCatalogIntegrityValidation::Rejected(rejection), counters) => {
             (rejection, counters)
+        }
+        (BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch), counters) => {
+            (mismatch.rejection(), counters)
+        }
+        (BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported), counters) => {
+            (unsupported.rejection(), counters)
         }
         (BootstrapCatalogIntegrityValidation::Intact(_), _) => {
             panic!("damaged bootstrap catalog validated")

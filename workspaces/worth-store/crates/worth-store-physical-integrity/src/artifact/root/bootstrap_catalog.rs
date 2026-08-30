@@ -1,6 +1,7 @@
 use worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily;
 use worth_store_physical_format::{
-    durable_artifact_checksum, BootstrapCatalog, BootstrapCatalogDenial,
+    durable_artifact_checksum, BootstrapCatalog, BootstrapCatalogDenial, DurableFrameDenial,
+    PhysicalRecordFormatDenial,
 };
 
 use crate::artifact::durable_frame_rejection::{
@@ -22,7 +23,57 @@ const PAYLOAD_FORMAT_FIELD: DurableFrameFieldRange = DurableFrameFieldRange::new
 #[derive(Debug)]
 pub enum BootstrapCatalogIntegrityValidation<'media> {
     Intact(IntegrityValidatedBootstrapCatalog<'media>),
+    ScopeMismatch(BootstrapCatalogScopeMismatch),
+    UnsupportedFormat(BootstrapCatalogUnsupportedFormat),
     Rejected(PhysicalIntegrityRejection),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BootstrapCatalogUnsupportedFormat {
+    rejection: PhysicalIntegrityRejection,
+    reason: PhysicalRecordFormatDenial,
+}
+
+impl BootstrapCatalogUnsupportedFormat {
+    pub const fn rejection(self) -> PhysicalIntegrityRejection {
+        self.rejection
+    }
+
+    pub const fn reason(self) -> PhysicalRecordFormatDenial {
+        self.reason
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BootstrapCatalogScopeMismatch {
+    rejection: PhysicalIntegrityRejection,
+    observed_store: worth_store_physical_format::store_namespace::StableStoreIdentity,
+    expected_format: worth_store_physical_format::PhysicalRecordFormatDeclaration,
+    observed_format: worth_store_physical_format::PhysicalRecordFormatDeclaration,
+}
+
+impl BootstrapCatalogScopeMismatch {
+    pub const fn rejection(self) -> PhysicalIntegrityRejection {
+        self.rejection
+    }
+
+    pub const fn observed_store(
+        self,
+    ) -> worth_store_physical_format::store_namespace::StableStoreIdentity {
+        self.observed_store
+    }
+
+    pub const fn observed_format(
+        self,
+    ) -> worth_store_physical_format::PhysicalRecordFormatDeclaration {
+        self.observed_format
+    }
+
+    pub const fn expected_format(
+        self,
+    ) -> worth_store_physical_format::PhysicalRecordFormatDeclaration {
+        self.expected_format
+    }
 }
 
 pub fn validate_bootstrap_catalog<'media>(
@@ -41,31 +92,53 @@ pub fn validate_bootstrap_catalog<'media>(
     }
     let catalog = match BootstrapCatalog::decode(artifact.bytes()) {
         Ok(catalog) => catalog,
+        Err(BootstrapCatalogDenial::Frame(DurableFrameDenial::UnsupportedFormat(reason))) => {
+            return unsupported_format(
+                BootstrapCatalogUnsupportedFormat {
+                    rejection: from_frame_denial(
+                        scope,
+                        DurableFrameDenial::UnsupportedFormat(reason),
+                    ),
+                    reason,
+                },
+                byte_count,
+            );
+        }
         Err(denial) => {
             return rejected(catalog_denial(scope, artifact.bytes(), denial), byte_count)
         }
     };
     if catalog.store_identity() != scope.store_identity() {
-        return rejected(
-            field_damage(
-                scope,
-                PhysicalDamageCause::StoreIdentityMismatch,
-                STORE_IDENTITY_FIELD,
-                PhysicalFormatField::StoreIdentity,
-                PhysicalBlastRadius::CompleteArtifact,
-            ),
+        return scope_mismatch(
+            BootstrapCatalogScopeMismatch {
+                rejection: field_damage(
+                    scope,
+                    PhysicalDamageCause::StoreIdentityMismatch,
+                    STORE_IDENTITY_FIELD,
+                    PhysicalFormatField::StoreIdentity,
+                    PhysicalBlastRadius::CompleteArtifact,
+                ),
+                observed_store: catalog.store_identity(),
+                expected_format: scope.record_format(),
+                observed_format: catalog.format(),
+            },
             byte_count,
         );
     }
     if catalog.format() != scope.record_format() {
-        return rejected(
-            field_damage(
-                scope,
-                PhysicalDamageCause::FormatMismatch,
-                ENVELOPE_FORMAT_FIELD,
-                PhysicalFormatField::FormatDeclaration,
-                PhysicalBlastRadius::CompleteArtifact,
-            ),
+        return scope_mismatch(
+            BootstrapCatalogScopeMismatch {
+                rejection: field_damage(
+                    scope,
+                    PhysicalDamageCause::FormatMismatch,
+                    ENVELOPE_FORMAT_FIELD,
+                    PhysicalFormatField::FormatDeclaration,
+                    PhysicalBlastRadius::CompleteArtifact,
+                ),
+                observed_store: catalog.store_identity(),
+                expected_format: scope.record_format(),
+                observed_format: catalog.format(),
+            },
             byte_count,
         );
     }
@@ -78,6 +151,40 @@ pub fn validate_bootstrap_catalog<'media>(
         PhysicalIntegrityObservationCounters::one_intact(
             PhysicalIntegrityArtifactFamily::BootstrapCatalog,
             byte_count,
+        ),
+    )
+}
+
+fn unsupported_format<'media>(
+    unsupported: BootstrapCatalogUnsupportedFormat,
+    byte_count: u64,
+) -> (
+    BootstrapCatalogIntegrityValidation<'media>,
+    PhysicalIntegrityObservationCounters,
+) {
+    (
+        BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported),
+        PhysicalIntegrityObservationCounters::one_rejected(
+            PhysicalIntegrityArtifactFamily::BootstrapCatalog,
+            byte_count,
+            unsupported.rejection(),
+        ),
+    )
+}
+
+fn scope_mismatch<'media>(
+    mismatch: BootstrapCatalogScopeMismatch,
+    byte_count: u64,
+) -> (
+    BootstrapCatalogIntegrityValidation<'media>,
+    PhysicalIntegrityObservationCounters,
+) {
+    (
+        BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch),
+        PhysicalIntegrityObservationCounters::one_rejected(
+            PhysicalIntegrityArtifactFamily::BootstrapCatalog,
+            byte_count,
+            mismatch.rejection(),
         ),
     )
 }

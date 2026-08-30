@@ -66,6 +66,7 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
         .read_current_selector(ROOT_SELECTOR_BYTES as u64)
         .unwrap();
     let bootstrap_source = discovery.read_bootstrap_catalog(256).unwrap();
+    let bootstrap_source_b = discovery.read_bootstrap_catalog(256).unwrap();
     let selector_scope = PhysicalArtifactScope::current_root_selector(
         store,
         format,
@@ -131,9 +132,26 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
     let projection = admitted.project(&mut counters);
     assert_eq!(projection.record_format, format);
     assert_eq!(projection.current_root_generation.get(), 1);
-    assert_eq!((counters.attempted, counters.admitted), (3, 2));
-    assert_eq!(counters.rejected_source_binding, 1);
+    let bootstrap_input = ObservedRecoverySource::complete(&bootstrap_source, bootstrap_scope)
+        .input()
+        .unwrap();
+    let (bootstrap_validation, _) = validate_bootstrap_catalog(bootstrap_input, bootstrap_scope);
+    let substituted_bootstrap = IntegrityAdmittedRecoveryArtifact::bind_bootstrap_catalog(
+        &bootstrap_source_b,
+        bootstrap_scope,
+        bootstrap_validation,
+        &mut counters,
+    );
+    assert_eq!(
+        substituted_bootstrap.observation().outcome(),
+        RecoveryIntegrityIngressObservationOutcome::Rejected(
+            RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
+        )
+    );
+    assert_eq!((counters.attempted, counters.admitted), (4, 2));
+    assert_eq!(counters.rejected_source_binding, 2);
     assert_eq!(counters.owner_projection_entries, 2);
+    assert_eq!(counters.owner_decoder_entries, 0);
 
     let validation = validate_selector(&source_a, selector_scope);
     let wrong_scope =

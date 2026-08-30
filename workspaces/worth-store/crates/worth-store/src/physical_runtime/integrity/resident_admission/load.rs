@@ -127,6 +127,26 @@ impl<'counter> ResidentAdmissionContext<'counter> {
         Ok(result)
     }
 
+    pub(super) fn with_owner_projection<'lease, T, F>(
+        &self,
+        binding: ResidentIntegrityRecordBinding<'lease>,
+        projection: F,
+    ) -> Result<T, ResidentIntegrityAdmissionDenial>
+    where
+        F: FnOnce() -> T,
+    {
+        self.require_live()?;
+        binding
+            .require_current_binding()
+            .map_err(|denial| self.reject(denial))?;
+        self.counters.observe_owner_projection_entry();
+        let result = projection();
+        binding
+            .require_current_binding()
+            .map_err(|denial| self.reject(denial))?;
+        Ok(result)
+    }
+
     fn require_live(&self) -> Result<(), ResidentIntegrityAdmissionDenial> {
         if self.lifecycle.snapshot() == self.snapshot
             && matches!(

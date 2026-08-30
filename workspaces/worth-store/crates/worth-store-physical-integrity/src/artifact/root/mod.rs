@@ -6,7 +6,10 @@ mod routing_block;
 mod routing_block_rejection;
 mod selector_validation;
 
-pub use bootstrap_catalog::{validate_bootstrap_catalog, BootstrapCatalogIntegrityValidation};
+pub use bootstrap_catalog::{
+    validate_bootstrap_catalog, BootstrapCatalogIntegrityValidation, BootstrapCatalogScopeMismatch,
+    BootstrapCatalogUnsupportedFormat,
+};
 pub use current_selector::{
     validate_current_root_selector, CurrentRootSelectorIntegrityValidation,
 };

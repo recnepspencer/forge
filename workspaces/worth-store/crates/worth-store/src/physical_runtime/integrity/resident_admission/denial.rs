@@ -10,5 +10,7 @@ pub(in crate::physical_runtime) enum ResidentIntegrityAdmissionDenial {
     RetainedRecordInvalidated,
     RetainedRecordChanged,
     Validation(PhysicalIntegrityRejection),
+    BootstrapScopeMismatch(worth_store_physical_integrity::BootstrapCatalogScopeMismatch),
+    BootstrapUnsupportedFormat(worth_store_physical_integrity::BootstrapCatalogUnsupportedFormat),
     Frame(CleanFrameIntegrityValidationDenial),
 }

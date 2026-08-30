@@ -205,6 +205,12 @@ fn assert_catalog_damage(
         (BootstrapCatalogIntegrityValidation::Rejected(rejection), counters) => {
             (rejection, counters)
         }
+        (BootstrapCatalogIntegrityValidation::ScopeMismatch(mismatch), counters) => {
+            (mismatch.rejection(), counters)
+        }
+        (BootstrapCatalogIntegrityValidation::UnsupportedFormat(unsupported), counters) => {
+            (unsupported.rejection(), counters)
+        }
         (BootstrapCatalogIntegrityValidation::Intact(_), _) => {
             panic!("damaged bootstrap catalog validated")
         }

@@ -31,6 +31,7 @@ pub use physical_work_obligation::{
 pub use root::{
     validate_bootstrap_catalog, validate_current_root_selector, validate_previous_root_selector,
     validate_root_manifest, validate_root_routing_block, BootstrapCatalogIntegrityValidation,
+    BootstrapCatalogScopeMismatch, BootstrapCatalogUnsupportedFormat,
     CurrentRootSelectorIntegrityValidation, PreviousRootSelectorIntegrityValidation,
     RootManifestIntegrityValidation, RootRoutingBlockIntegrityValidation,
 };

@@ -1,20 +1,47 @@
 use worth_store_physical_format::{
-    store_namespace::StableStoreIdentity, PhysicalRecordFormatDeclaration, ROOT_SELECTOR_BYTES,
+    store_namespace::StableStoreIdentity, PhysicalRecordFormatDeclaration, BOOTSTRAP_CATALOG_BYTES,
+    ROOT_SELECTOR_BYTES,
 };
 use worth_store_physical_integrity::{
-    validate_current_root_selector, validate_previous_root_selector, validate_root_manifest,
-    CurrentRootSelectorIntegrityValidation, PhysicalArtifactScope, PhysicalByteRange,
-    PreviousRootSelectorIntegrityValidation, RootManifestIntegrityValidation,
+    validate_bootstrap_catalog, validate_current_root_selector, validate_previous_root_selector,
+    validate_root_manifest, CurrentRootSelectorIntegrityValidation, PhysicalArtifactScope,
+    PhysicalByteRange, PreviousRootSelectorIntegrityValidation, RootManifestIntegrityValidation,
 };
 
 use super::families::root::{
     IntegrityAdmittedCurrentRootSelector, IntegrityAdmittedPreviousRootSelector,
     IntegrityAdmittedRootManifest,
 };
+use super::routing::rejected_source_binding;
 use super::{
     admit_current_root_selector, admit_previous_root_selector, admit_root_manifest,
-    ObservedRecoverySource, RecoveryArtifactNamespaceJoin, RecoveryIntegrityIngressRejection,
+    observe_absent_recovery_artifact, IntegrityAdmittedRecoveryArtifact, ObservedRecoverySource,
+    RecoveryArtifactNamespaceJoin, RecoveryIntegrityIngressAttempt,
+    RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
 };
+
+pub(crate) fn admit_observed_bootstrap_catalog<'media>(
+    observed: &'media worth_store::physical_runtime::ObservedRecoveryArtifact,
+    store: StableStoreIdentity,
+    format: PhysicalRecordFormatDeclaration,
+    counters: &mut RecoveryIntegrityIngressCounters,
+) -> RecoveryIntegrityIngressAttempt<'media> {
+    let scope = PhysicalArtifactScope::bootstrap_catalog(
+        store,
+        format,
+        PhysicalByteRange::new(0, BOOTSTRAP_CATALOG_BYTES as u64)
+            .expect("the bootstrap catalog has a nonzero fixed width"),
+    );
+    if observed.bytes().is_none() {
+        return observe_absent_recovery_artifact(observed, scope, counters);
+    }
+    let source = ObservedRecoverySource::complete(observed, scope);
+    let validation = match source.input() {
+        Ok(input) => validate_bootstrap_catalog(input, scope).0,
+        Err(rejection) => return rejected_source_binding(scope, rejection, counters),
+    };
+    IntegrityAdmittedRecoveryArtifact::bind_bootstrap_catalog(observed, scope, validation, counters)
+}
 
 pub(crate) fn admit_current_selector<'media>(
     join: RecoveryArtifactNamespaceJoin<'media>,
