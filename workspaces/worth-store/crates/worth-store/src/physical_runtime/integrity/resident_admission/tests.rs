@@ -272,23 +272,30 @@ fn eviction_reload_gets_new_frame_generation_and_forces_one_new_validation() {
 }
 
 #[test]
-fn closed_pool_and_terminal_runtime_cannot_readmit_a_pinned_frame() {
+fn terminal_runtime_rejects_before_hashing_an_otherwise_live_frame() {
     let store = store(77);
     let format = format();
     let bytes = manifest_bytes(14, format);
-    let (pool, _allocation, lease) = loaded_manifest(store, 14, &bytes);
+    let (_pool, _allocation, lease) = loaded_manifest(store, 14, &bytes);
     let lifecycle = lifecycle();
     let counters = ResidentAdmissionCounterCells::default();
-    pool.close();
     lifecycle.begin_termination();
     lifecycle.finish_closed();
 
-    assert!(admit_resident_root_manifest(
+    let denial = match admit_resident_root_manifest(
         &lease,
         scope(store, format, 14, bytes.len()),
         ResidentAdmissionContext::new(lifecycle.observation_state(), &counters),
-    )
-    .is_err());
+    ) {
+        Ok(_) => panic!("a terminal runtime must reject before validation"),
+        Err(denial) => denial,
+    };
+    assert_eq!(
+        denial,
+        super::denial::ResidentIntegrityAdmissionDenial::LifecycleGenerationChanged,
+    );
     assert_eq!(lease.integrity_validation(), None);
-    assert_eq!(counters.snapshot().rejections_before_decoder(), 1);
+    let observed = counters.snapshot();
+    assert_eq!(observed.fresh_validations(), 0);
+    assert_eq!(observed.rejections_before_decoder(), 1);
 }
