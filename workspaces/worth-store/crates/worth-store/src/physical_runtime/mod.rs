@@ -136,14 +136,16 @@ pub use instance::{
     PhysicalStoreCloseObservation, PhysicalStoreCloseOutcome, PhysicalStoreClosePhase,
     PhysicalStoreClosePlan, PhysicalWorkExecution,
 };
-pub(in crate::physical_runtime) use integrity::RootProtocolRouteCounterCells;
 pub use integrity::{
     DamagedPhysicalAuthorityObservation, DamagedPhysicalDerivedDisposition,
     IndeterminateDerivedRebuildability, IntactPhysicalAuthorityObservation,
     IntactPhysicalDerivedObservation, OwnerDispositionProjectionDenial,
     PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition, PhysicalRootProtocolRoute,
-    RebuildablePhysicalDerivedObservation, RootProtocolAdmissionDenial, RootProtocolRouteCounters,
-    UnknownDerivedRebuildability,
+    RebuildablePhysicalDerivedObservation, ResidentAdmissionCounters, RootProtocolAdmissionDenial,
+    RootProtocolRouteCounters, UnknownDerivedRebuildability,
+};
+pub(in crate::physical_runtime) use integrity::{
+    ResidentAdmissionCounterCells, RootProtocolRouteCounterCells,
 };
 pub use lifecycle::LifecycleGeneration;
 #[cfg(feature = "recovery-runtime-owner")]

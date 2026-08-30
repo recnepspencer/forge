@@ -8,17 +8,24 @@ use worth_store_physical_integrity::{
     PhysicalByteRange, RootManifestIntegrityValidation, UntrustedPhysicalArtifact,
 };
 
-use super::ResidentIntegrityRecordBinding;
+use super::{
+    denial::ResidentIntegrityAdmissionDenial, load::ResidentAdmissionContext,
+    record_binding::ResidentIntegrityRecordBinding,
+};
 use crate::physical_runtime::{LifecycleGeneration, RootProtocolAdmissionDenial};
 
 pub(in crate::physical_runtime) struct IntegrityAdmittedResidentRootManifest<'frame> {
     source: ResidentIntegrityRecordBinding<'frame>,
-    projection: AdmittedRootManifestProjection,
+    projection: Option<AdmittedRootManifestProjection>,
+}
+
+pub(in crate::physical_runtime) struct IntegrityAdmittedResidentRootManifestView<'frame> {
+    lease: &'frame PhysicalFrameLease,
+    scope: PhysicalArtifactScope,
 }
 
 struct BoundResidentRootManifestSource<'frame> {
     lease: &'frame PhysicalFrameLease,
-    lifecycle: LifecycleGeneration,
     scope: PhysicalArtifactScope,
 }
 
@@ -38,29 +45,50 @@ struct AdmittedRootManifestProjection {
     last_inline_segment: Option<worth_store_physical_format::SegmentGenerationCell>,
 }
 
-pub(in crate::physical_runtime) fn admit_loaded_root_manifest(
-    lease: &PhysicalFrameLease,
+pub(in crate::physical_runtime) fn admit_loaded_root_manifest<'frame>(
+    lease: &'frame PhysicalFrameLease,
     lifecycle: LifecycleGeneration,
     store: StableStoreIdentity,
     format: PhysicalRecordFormatDeclaration,
     generation: u64,
-) -> Result<IntegrityAdmittedResidentRootManifest<'_>, RootProtocolAdmissionDenial> {
-    let source =
-        BoundResidentRootManifestSource::bind(lease, lifecycle, store, format, generation)?;
-    let input = UntrustedPhysicalArtifact::from_bounded_bytes(lease);
+    counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
+) -> Result<IntegrityAdmittedResidentRootManifest<'frame>, RootProtocolAdmissionDenial> {
+    let context = ResidentAdmissionContext::new(lifecycle, counters);
+    let source = match BoundResidentRootManifestSource::bind(lease, store, format, generation) {
+        Ok(source) => source,
+        Err(denial) => {
+            counters.observe_rejection_before_decoder();
+            return Err(denial);
+        }
+    };
+    if let Some(source) = context
+        .reuse(lease, source.scope)
+        .map_err(map_resident_denial)?
+    {
+        return Ok(IntegrityAdmittedResidentRootManifest {
+            source,
+            projection: None,
+        });
+    }
+    let input = context
+        .exact_input(lease, source.scope)
+        .map_err(map_resident_denial)?;
+    context.observe_fresh_validation();
     let validated = match validate_root_manifest(input, source.scope).0 {
         RootManifestIntegrityValidation::Intact(validated) => validated,
         RootManifestIntegrityValidation::Rejected(rejection) => {
+            context
+                .validation_rejected::<()>(rejection)
+                .expect_err("rejected validation records a denial");
             return Err(RootProtocolAdmissionDenial::from_validation(rejection));
         }
     };
-    source.admit(input, validated)
+    source.admit(input, validated, context)
 }
 
 impl<'frame> BoundResidentRootManifestSource<'frame> {
     fn bind(
         lease: &'frame PhysicalFrameLease,
-        lifecycle: LifecycleGeneration,
         store: StableStoreIdentity,
         format: PhysicalRecordFormatDeclaration,
         generation: u64,
@@ -74,43 +102,72 @@ impl<'frame> BoundResidentRootManifestSource<'frame> {
             .map_err(|_| RootProtocolAdmissionDenial::SourceRangeMismatch)?;
         let scope = PhysicalArtifactScope::root_manifest(store, format, generation, range)
             .map_err(|_| RootProtocolAdmissionDenial::SourceArtifactMismatch)?;
-        Ok(Self {
-            lease,
-            lifecycle,
-            scope,
-        })
+        Ok(Self { lease, scope })
     }
 
     fn admit(
         self,
         input: UntrustedPhysicalArtifact<'frame>,
         validated: IntegrityValidatedRootManifest<'frame>,
+        context: ResidentAdmissionContext<'_>,
     ) -> Result<IntegrityAdmittedResidentRootManifest<'frame>, RootProtocolAdmissionDenial> {
         if !validated.matches_input(input) {
             return Err(RootProtocolAdmissionDenial::SourceIncarnationMismatch);
         }
         let projection = AdmittedRootManifestProjection::from_validated(&validated);
-        let source = ResidentIntegrityRecordBinding::bind_root_manifest(
-            self.lease,
-            self.lifecycle,
-            validated,
-        )
-        .map_err(|_| RootProtocolAdmissionDenial::ResidentFrame)?;
-        Ok(IntegrityAdmittedResidentRootManifest { source, projection })
+        let source = context
+            .bind_validated(self.lease, self.scope, validated.into_validation_record())
+            .map_err(map_resident_denial)?;
+        Ok(IntegrityAdmittedResidentRootManifest {
+            source,
+            projection: Some(projection),
+        })
     }
 }
 
-impl IntegrityAdmittedResidentRootManifest<'_> {
+impl<'frame> IntegrityAdmittedResidentRootManifest<'frame> {
+    pub(in crate::physical_runtime) fn enter_owner_decoder(
+        self,
+        current_lifecycle: LifecycleGeneration,
+        counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
+    ) -> Result<IntegrityAdmittedResidentRootManifestView<'frame>, RootProtocolAdmissionDenial>
+    {
+        let context = ResidentAdmissionContext::new(current_lifecycle, counters);
+        let scope = self.source.scope();
+        let lease = context
+            .enter_owner_decoder(self.source)
+            .map_err(map_resident_denial)?;
+        Ok(IntegrityAdmittedResidentRootManifestView { lease, scope })
+    }
+
     pub(in crate::physical_runtime) fn project(
         self,
+        current_lifecycle: LifecycleGeneration,
+        counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
     ) -> Result<DurablePhysicalRootManifest, RootProtocolAdmissionDenial> {
-        let _exact_resident_incarnation = (
-            self.source.lifecycle_generation(),
-            self.source.frame_generation(),
-            self.source.scope(),
-        );
-        self.projection.project()
+        let projection = self
+            .projection
+            .ok_or(RootProtocolAdmissionDenial::OwnerProjectionRejected)?;
+        let context = ResidentAdmissionContext::new(current_lifecycle, counters);
+        context
+            .enter_owner_decoder(self.source)
+            .map_err(map_resident_denial)?;
+        projection.project()
     }
+}
+
+impl IntegrityAdmittedResidentRootManifestView<'_> {
+    pub(in crate::physical_runtime) fn bytes(&self) -> &[u8] {
+        self.lease
+    }
+
+    pub(in crate::physical_runtime) const fn scope(&self) -> PhysicalArtifactScope {
+        self.scope
+    }
+}
+
+fn map_resident_denial(_: ResidentIntegrityAdmissionDenial) -> RootProtocolAdmissionDenial {
+    RootProtocolAdmissionDenial::ResidentFrame
 }
 
 impl AdmittedRootManifestProjection {

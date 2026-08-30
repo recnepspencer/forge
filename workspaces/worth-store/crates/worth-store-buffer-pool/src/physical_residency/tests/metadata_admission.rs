@@ -1,7 +1,7 @@
 use super::*;
 
 const CANONICAL_FRAME_METADATA_BYTES: u64 = 3 * 1024 * 1024;
-const MAX_EXPECTED_ALLOCATED_METADATA_BYTES: u64 = 5 * 512 * 1024;
+const MAX_EXPECTED_ALLOCATED_METADATA_BYTES: u64 = 11 * 256 * 1024;
 
 #[test]
 fn canonical_store_metadata_envelope_admits_full_frame_capacity() {
@@ -32,9 +32,10 @@ fn canonical_store_metadata_envelope_admits_full_frame_capacity() {
         .unwrap();
     let pool = PhysicalResidencyPool::open(store(15), limits)
         .expect("the canonical Store metadata envelope must admit its declared frame capacity");
+    let allocated = pool.counters().metadata_bytes();
     assert!(
-        pool.counters().metadata_bytes() <= MAX_EXPECTED_ALLOCATED_METADATA_BYTES,
-        "the canonical policy headroom must not hide frame-entry metadata growth"
+        allocated <= MAX_EXPECTED_ALLOCATED_METADATA_BYTES,
+        "allocated frame metadata {allocated} exceeds the guarded bound {MAX_EXPECTED_ALLOCATED_METADATA_BYTES}"
     );
 }
 

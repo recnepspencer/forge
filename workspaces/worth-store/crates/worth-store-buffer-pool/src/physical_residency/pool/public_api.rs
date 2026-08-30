@@ -229,6 +229,7 @@ impl PhysicalResidencyPool {
             return PhysicalResidencyShutdown::new(state.accounting.snapshot());
         }
         state.accepting = false;
+        state.invalidate_all_integrity_validation();
         self.inner.changed.notify_all();
         state.drain_all_legal_clean_frames();
         state.closed = true;

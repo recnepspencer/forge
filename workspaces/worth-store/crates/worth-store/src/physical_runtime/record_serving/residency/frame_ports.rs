@@ -37,6 +37,7 @@ pub(in crate::physical_runtime) struct RecordFramePorts {
     publisher: BoundedCandidateFramePublisher,
     writeback_clean: Arc<FrameWritebackCleanAuthority>,
     writeback_counters: Arc<PhysicalWritebackCounterCells>,
+    resident_integrity_counters: Arc<crate::physical_runtime::ResidentAdmissionCounterCells>,
     #[cfg(feature = "certification-test-authority")]
     candidate_counters: Arc<CandidateFrameCounterCells>,
 }
@@ -51,6 +52,8 @@ impl RecordFramePorts {
         let candidate_clean = Arc::new(candidate_clean);
         let candidate_counters = Arc::new(CandidateFrameCounterCells::default());
         let writeback_counters = Arc::new(PhysicalWritebackCounterCells::default());
+        let resident_integrity_counters =
+            Arc::new(crate::physical_runtime::ResidentAdmissionCounterCells::default());
         Ok(Self {
             loader: BoundedFrameLoader::new(pool.clone()),
             publisher: BoundedCandidateFramePublisher::new(
@@ -61,6 +64,7 @@ impl RecordFramePorts {
             pool,
             writeback_clean: Arc::new(writeback_clean),
             writeback_counters,
+            resident_integrity_counters,
             #[cfg(feature = "certification-test-authority")]
             candidate_counters,
         })
@@ -151,12 +155,25 @@ impl RecordFramePorts {
         self.pool.counters()
     }
 
+    pub(in crate::physical_runtime) fn resident_integrity_counter_cells(
+        &self,
+    ) -> &crate::physical_runtime::ResidentAdmissionCounterCells {
+        &self.resident_integrity_counters
+    }
+
+    pub(in crate::physical_runtime) fn resident_integrity_counters(
+        &self,
+    ) -> crate::physical_runtime::ResidentAdmissionCounters {
+        self.resident_integrity_counters.snapshot()
+    }
+
     pub(in crate::physical_runtime) fn invalidate_integrity_validation_for_runtime_transition(
         &self,
     ) {
         self.pool
             .invalidate_integrity_validation_for_runtime_transition();
     }
+
     pub(in crate::physical_runtime::record_serving) fn incarnation(
         &self,
     ) -> worth_store_buffer_pool::PhysicalResidencyIncarnation {

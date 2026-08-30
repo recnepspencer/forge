@@ -4,6 +4,8 @@ use worth_store_physical_format::{
     DurablePhysicalRootManifest, PhysicalRecordFormatDeclaration, RecordArtifactFile,
 };
 
+use crate::physical_runtime::integrity::resident_admission::root_manifest::admit_loaded_root_manifest;
+
 use super::super::residency::serving_artifacts::ServingRecordArtifacts;
 use super::super::{
     admission::bootstrap::{
@@ -28,6 +30,7 @@ struct CurrentRootAdmission<'a> {
     lifecycle: crate::physical_runtime::LifecycleGeneration,
     route: crate::physical_runtime::PhysicalRootProtocolRoute,
     counters: &'a crate::physical_runtime::RootProtocolRouteCounterCells,
+    resident_integrity_counters: &'a crate::physical_runtime::ResidentAdmissionCounterCells,
 }
 
 pub(in crate::physical_runtime::record_serving) fn open(
@@ -116,6 +119,7 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
     lifecycle: crate::physical_runtime::LifecycleGeneration,
     route: crate::physical_runtime::PhysicalRootProtocolRoute,
     counters: &crate::physical_runtime::RootProtocolRouteCounterCells,
+    resident_integrity_counters: &crate::physical_runtime::ResidentAdmissionCounterCells,
 ) -> Result<RecordServingState, BootstrapTransitionFailure> {
     let limits = BootstrapCatalogReadLimits::for_format(bootstrap.format, bootstrap.access);
     let generation = bootstrap.current_root.generation().get();
@@ -129,6 +133,7 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
         lifecycle,
         route,
         counters,
+        resident_integrity_counters,
     };
     let current_root = load_root_manifest(&admission)?;
     let previous_root = if generation == 1 {
@@ -188,15 +193,18 @@ fn load_root_manifest(
                 _ => RecordBootstrapDenial::CurrentRootDamaged,
             })
         })?;
-    let admitted = crate::physical_runtime::integrity::admit_loaded_root_manifest(
+    let admitted = admit_loaded_root_manifest(
         root_frame.lease(),
         admission.lifecycle,
         admission.media.store_identity(),
         admission.expected_format,
         admission.generation,
+        admission.resident_integrity_counters,
     )
     .map_err(classify_root_integrity_denial)?;
-    let current_root = admitted.project().map_err(classify_root_integrity_denial)?;
+    let current_root = admitted
+        .project(admission.lifecycle, admission.resident_integrity_counters)
+        .map_err(classify_root_integrity_denial)?;
     admission.counters.observe_root(admission.route);
     if !super::super::planning::policy_units::manifest_capacity_can_branch(
         current_root.node_capacity(),

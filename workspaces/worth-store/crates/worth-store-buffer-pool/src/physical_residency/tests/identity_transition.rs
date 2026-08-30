@@ -116,8 +116,15 @@ fn legal_complete_artifact_promotion_retargets_exact_and_bounded_identity() {
     publish_complete(&pool, &allocation, source, 5);
     let source_lease = expect_hit(&pool, &allocation, source);
     let validation = PhysicalIntegrityValidationRecord::for_test(
-        PhysicalArtifactScope::root_manifest(identity, 11, PhysicalByteRange::new(0, 32).unwrap())
-            .unwrap(),
+        PhysicalArtifactScope::root_manifest(
+            identity,
+            worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
+                .admit()
+                .unwrap(),
+            11,
+            PhysicalByteRange::new(0, 32).unwrap(),
+        )
+        .unwrap(),
         PhysicalIntegrityValidationDigest::crc32c(41),
         PhysicalIntegrityValidationDigest::crc32c(42),
         PhysicalIntegrityValidationMechanism::Crc32cV1,

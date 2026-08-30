@@ -87,6 +87,12 @@ impl ServingPhysicalRuntime {
         self.parts.root_protocol_counters
     }
 
+    pub fn resident_admission_counters(
+        &self,
+    ) -> crate::physical_runtime::ResidentAdmissionCounters {
+        self.parts.residency.ports().resident_integrity_counters()
+    }
+
     /// Returns read-only residency evidence for this serving Store generation.
     ///
     /// The observation exposes admitted limits and executed counters, never
