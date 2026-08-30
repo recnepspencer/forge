@@ -62,7 +62,7 @@ where
     T: Copy + Ord,
 {
     pub(crate) state: BranchState<D, I, T>,
-    pub(crate) copied_mutable_graph_nodes: u64,
+    pub(crate) work: crate::data::graph::signal_graph::SignalGraphForkWork,
 }
 
 impl<D, I, T> SignalBranchCellState<D, I, T>
@@ -182,13 +182,12 @@ where
         &self,
         destination: &SignalBranchHandle,
     ) -> SignalForkBranchState<D, I, T> {
-        let state = self
+        let forked = self
             .state
             .fork_for_owner_cell(&self.handle, destination.clone());
-        let copied_mutable_graph_nodes = state.graph().active_node_count() as u64;
         SignalForkBranchState {
-            state,
-            copied_mutable_graph_nodes,
+            state: forked.state,
+            work: forked.work,
         }
     }
 

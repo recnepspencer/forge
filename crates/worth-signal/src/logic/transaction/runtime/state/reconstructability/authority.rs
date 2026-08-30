@@ -49,6 +49,17 @@ where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
 {
+    pub(crate) fn fork_persistent(&self) -> Self {
+        self.clone()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_fork_storage_with(&self, other: &Self) -> bool {
+        self.checkpoint.shares_storage_with(&other.checkpoint)
+            && self.resource.shares_storage_with(&other.resource)
+            && self.temporal.shares_storage_with(&other.temporal)
+    }
+
     pub fn capture(
         checkpoint: &CheckpointRuntime<D, I>,
         resource: &ResourceRuntimeState,

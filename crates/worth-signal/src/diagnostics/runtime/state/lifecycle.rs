@@ -5,7 +5,18 @@ use crate::runtime_policy::SignalRuntimePolicy;
 use crate::state::SignalBranchId;
 
 impl DiagnosticsState {
+    pub(crate) fn fork_branch_carrier(&self) -> Self {
+        self.authority_carrier_with_catalog(BTreeMap::new())
+    }
+
     pub fn authority_carrier_clone(&self) -> Self {
+        self.authority_carrier_with_catalog(self.branch_catalog.clone())
+    }
+
+    fn authority_carrier_with_catalog(
+        &self,
+        branch_catalog: BTreeMap<SignalBranchId, crate::state::SignalBranchHandle>,
+    ) -> Self {
         let mut state = Self {
             request_mirror: self.request_mirror,
             installed_retention_budget: self.installed_retention_budget,
@@ -30,7 +41,7 @@ impl DiagnosticsState {
             lineage_records_by_node: BTreeMap::new(),
             explanation_facts: BTreeMap::new(),
             provenance_facts: BTreeMap::new(),
-            branch_catalog: self.branch_catalog.clone(),
+            branch_catalog,
             active_branch: self.active_branch,
             next_replay_cursor: self.next_replay_cursor,
             next_snapshot_id: self.next_snapshot_id,

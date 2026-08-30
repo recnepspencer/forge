@@ -272,10 +272,13 @@ impl SignalBranchCellWork<'_> {
         self.counters.record_retention_registry_contact();
     }
 
-    pub(crate) fn record_fork_source_capture(&self, copied_mutable_graph_nodes: u64) {
+    pub(crate) fn record_fork_source_capture(
+        &self,
+        work: crate::data::graph::signal_graph::SignalGraphForkWork,
+    ) {
         self.counters.record_fork_source_capture();
         self.counters
-            .record_forked_mutable_graph_node_copies(copied_mutable_graph_nodes);
+            .record_forked_mutable_graph_node_copies(work.copied_mutable_graph_nodes());
     }
 
     pub(crate) fn record_diagnostic_event(&self) {

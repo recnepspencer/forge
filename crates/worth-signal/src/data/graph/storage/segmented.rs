@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 
 use super::handles::{DependencySetId, SetHandle, SubscriberSetId};
 use crate::data::dependency::DependencyEdge;
@@ -12,20 +12,19 @@ struct Segment {
     len: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SegmentedStore<T, Id> {
-    items: Vec<T>,
-    segments: Vec<Segment>,
-    #[serde(skip, default)]
-    interner: HashMap<u64, Vec<Id>>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SegmentedStore<T: Clone, Id: Clone> {
+    segments: crate::data::persistent_vector::PersistentVector<Vec<T>>,
+    interner: im::HashMap<u64, im::Vector<Id>>,
+    id: PhantomData<Id>,
 }
 
-impl<T, Id> Default for SegmentedStore<T, Id> {
+impl<T: Clone, Id: Clone> Default for SegmentedStore<T, Id> {
     fn default() -> Self {
         Self {
-            items: Vec::new(),
-            segments: Vec::new(),
-            interner: HashMap::new(),
+            segments: crate::data::persistent_vector::PersistentVector::new(),
+            interner: im::HashMap::new(),
+            id: PhantomData,
         }
     }
 }
@@ -39,22 +38,17 @@ where
         if !self.interner.is_empty() || self.segments.is_empty() {
             return;
         }
-        self.interner.reserve(self.segments.len());
-        for (index, segment) in self.segments.iter().copied().enumerate() {
-            let slice = &self.items[segment.start as usize..(segment.start + segment.len) as usize];
+        for (index, segment) in self.segments.iter().enumerate() {
             self.interner
-                .entry(hash_slice(slice))
+                .entry(hash_slice(segment))
                 .or_default()
-                .push(Id::from_index(index + 1));
+                .push_back(Id::from_index(index + 1));
         }
     }
 
     pub fn get(&self, id: Id) -> &[T] {
         match id.index() {
-            Some(index) => {
-                let segment = self.segments[index - 1];
-                &self.items[segment.start as usize..(segment.start + segment.len) as usize]
-            }
+            Some(index) => self.segments[index - 1].as_slice(),
             None => &[],
         }
     }
@@ -72,24 +66,101 @@ where
                 }
             }
         }
-        let start = checked_segment_component(self.items.len(), "segment start");
-        self.items.extend_from_slice(items);
-        self.segments.push(Segment {
-            start,
-            len: checked_segment_component(items.len(), "segment length"),
-        });
+        self.segments.push_back(items.to_vec());
         let id = Id::from_index(self.segments.len());
-        self.interner.entry(hash).or_default().push(id);
+        self.interner.entry(hash).or_default().push_back(id);
         id
     }
 
     #[cfg(test)]
     pub(crate) fn storage_counts(&self) -> (usize, usize) {
-        (self.items.len(), self.segments.len())
+        (
+            self.segments.iter().map(Vec::len).sum(),
+            self.segments.len(),
+        )
     }
 
     pub(crate) fn live_segment_count(&self) -> usize {
         self.segments.len()
+    }
+}
+
+impl<T, Id> SegmentedStore<T, Id>
+where
+    T: Clone,
+    Id: Clone,
+{
+    pub(crate) fn operational_clone(&self) -> Self {
+        Self {
+            segments: self.segments.operational_clone(),
+            interner: self
+                .interner
+                .iter()
+                .map(|(hash, ids)| (*hash, ids.iter().cloned().collect()))
+                .collect(),
+            id: PhantomData,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.segments.shares_storage_with(&other.segments) && self.interner.ptr_eq(&other.interner)
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct SegmentedStoreWire<T> {
+    items: Vec<T>,
+    segments: Vec<Segment>,
+}
+
+impl<T, Id> Serialize for SegmentedStore<T, Id>
+where
+    T: Clone + Serialize,
+    Id: Clone,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut items = Vec::new();
+        let mut segments = Vec::with_capacity(self.segments.len());
+        for values in &self.segments {
+            let start = checked_segment_component(items.len(), "segment start");
+            items.extend(values.iter().cloned());
+            segments.push(Segment {
+                start,
+                len: checked_segment_component(values.len(), "segment length"),
+            });
+        }
+        SegmentedStoreWire { items, segments }.serialize(serializer)
+    }
+}
+
+impl<'de, T, Id> Deserialize<'de> for SegmentedStore<T, Id>
+where
+    T: Clone + Deserialize<'de>,
+    Id: Clone,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire = SegmentedStoreWire::<T>::deserialize(deserializer)?;
+        let mut segments = crate::data::persistent_vector::PersistentVector::new();
+        for segment in wire.segments {
+            let start = segment.start as usize;
+            let end = start.saturating_add(segment.len as usize);
+            let values = wire.items.get(start..end).ok_or_else(|| {
+                serde::de::Error::custom("segmented store range exceeds item storage")
+            })?;
+            segments.push_back(values.to_vec());
+        }
+        Ok(Self {
+            segments,
+            interner: im::HashMap::new(),
+            id: PhantomData,
+        })
     }
 }
 

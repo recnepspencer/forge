@@ -1,18 +1,16 @@
-use std::collections::BTreeMap;
-
 use super::impact::DomainImpact;
 
 /// Batched dirty map from domain -> impact.
 #[derive(Debug, Clone)]
 pub struct BatchedDirtySet<D: Copy + Ord, I: Copy + Ord> {
-    by_domain: BTreeMap<D, DomainImpact<I>>,
+    by_domain: im::OrdMap<D, DomainImpact<I>>,
 }
 
 impl<D: Copy + Ord, I: Copy + Ord> BatchedDirtySet<D, I> {
     /// Create an empty dirty set.
     pub fn new() -> Self {
         Self {
-            by_domain: BTreeMap::new(),
+            by_domain: im::OrdMap::new(),
         }
     }
 
@@ -94,6 +92,11 @@ impl<D: Copy + Ord, I: Copy + Ord> BatchedDirtySet<D, I> {
     /// Clear all dirty impacts.
     pub fn clear(&mut self) {
         self.by_domain.clear();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.by_domain.ptr_eq(&other.by_domain)
     }
 }
 

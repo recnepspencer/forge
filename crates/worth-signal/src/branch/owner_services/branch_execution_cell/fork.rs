@@ -55,7 +55,7 @@ where
             counters: &self.counters,
             movements: &self.movements,
         }
-        .record_fork_source_capture(captured.copied_mutable_graph_nodes);
+        .record_fork_source_capture(captured.work);
         Ok(prepared)
     }
 }

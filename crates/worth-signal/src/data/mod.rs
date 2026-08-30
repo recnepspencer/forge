@@ -22,6 +22,8 @@ pub mod node_meta;
 pub mod output;
 pub mod output_equivalence;
 pub mod performance;
+pub(crate) mod persistent_paged_vector;
+pub(crate) mod persistent_vector;
 pub mod proof;
 pub mod resource;
 pub mod reuse;

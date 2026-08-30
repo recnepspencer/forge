@@ -269,7 +269,7 @@ impl SignalGraph {
 }
 
 fn restore_optional_record(
-    records: &mut std::collections::BTreeMap<NodeId, BranchMutationRecord>,
+    records: &mut im::OrdMap<NodeId, BranchMutationRecord>,
     node: NodeId,
     record: Option<BranchMutationRecord>,
 ) {

@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
@@ -29,9 +27,9 @@ pub(crate) struct RuntimeObservation {
     #[serde(default)]
     pub(in crate::data::graph) partition_interner: PartitionInterner,
     #[serde(default)]
-    pub(in crate::data::graph) branch_mutation_view: BTreeMap<NodeId, BranchMutationRecord>,
+    pub(in crate::data::graph) branch_mutation_view: im::OrdMap<NodeId, BranchMutationRecord>,
     #[serde(default)]
-    pub(in crate::data::graph) branch_mutation_records: BTreeMap<NodeId, BranchMutationRecord>,
+    pub(in crate::data::graph) branch_mutation_records: im::OrdMap<NodeId, BranchMutationRecord>,
     #[serde(skip, default)]
     pub(in crate::data::graph) diagnostics: DiagnosticsState,
     #[serde(default)]
@@ -85,12 +83,49 @@ impl SignalObservationDropCleanup for ObservationCaptureCleanup {
 }
 
 impl RuntimeObservation {
+    pub(crate) fn operational_clone(&self) -> Self {
+        Self {
+            telemetry: self.telemetry,
+            reconstruction_counters: self.reconstruction_counters.clone(),
+            partition_interner: self.partition_interner.operational_clone(),
+            branch_mutation_view: self
+                .branch_mutation_view
+                .iter()
+                .map(|(node, record)| (*node, record.clone()))
+                .collect(),
+            branch_mutation_records: self
+                .branch_mutation_records
+                .iter()
+                .map(|(node, record)| (*node, record.clone()))
+                .collect(),
+            diagnostics: self.diagnostics.clone(),
+            installed_policy: self.installed_policy,
+        }
+    }
+
+    pub(crate) fn fork_branch_local(&self) -> Self {
+        Self {
+            telemetry: self.telemetry,
+            reconstruction_counters: self.reconstruction_counters.clone(),
+            partition_interner: self.partition_interner.clone(),
+            branch_mutation_view: im::OrdMap::new(),
+            branch_mutation_records: im::OrdMap::new(),
+            diagnostics: self.diagnostics.fork_branch_carrier(),
+            installed_policy: self.installed_policy,
+        }
+    }
+
     pub(crate) fn partition_interner_mut(&mut self) -> &mut PartitionInterner {
         &mut self.partition_interner
     }
 
     pub(crate) fn partition_interner(&self) -> &PartitionInterner {
         &self.partition_interner
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> PartitionInterner {
+        self.partition_interner.clone()
     }
 
     pub(crate) fn installed_policy(&self) -> InstalledSignalRuntimePolicy {

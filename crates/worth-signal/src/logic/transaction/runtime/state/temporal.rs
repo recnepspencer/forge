@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::data::temporal::{
     PreviousValueRevision, ReadyTemporalWake, RetiredTemporalWake, RuntimeClockBasis,
     ScheduledTemporalWake, TemporalWakeId, TemporalWakeOwner, WakeOrdinal,
@@ -22,13 +20,14 @@ pub(in crate::logic::transaction::runtime) struct TemporalRuntimeState {
     pub(super) next_wake_id: TemporalWakeId,
     pub(super) next_wake_ordinal: WakeOrdinal,
     pub(super) next_previous_value_revision: PreviousValueRevision,
-    pub(super) scheduled_wakes: BTreeMap<TemporalWakeId, ScheduledTemporalWake>,
+    pub(super) scheduled_wakes: im::OrdMap<TemporalWakeId, ScheduledTemporalWake>,
     pub(super) scheduled_frontier:
-        BTreeMap<crate::data::temporal::ClockTick, BTreeMap<WakeOrdinal, TemporalWakeId>>,
-    pub(super) ready_wakes: BTreeMap<TemporalWakeId, ReadyTemporalWake>,
-    pub(super) ready_frontier: BTreeMap<WakeOrdinal, TemporalWakeId>,
-    pub(super) owner_frontier: BTreeMap<TemporalWakeOwner, BTreeMap<WakeOrdinal, TemporalWakeId>>,
-    pub(super) retired_wakes: BTreeMap<TemporalWakeId, RetiredTemporalWake>,
+        im::OrdMap<crate::data::temporal::ClockTick, im::OrdMap<WakeOrdinal, TemporalWakeId>>,
+    pub(super) ready_wakes: im::OrdMap<TemporalWakeId, ReadyTemporalWake>,
+    pub(super) ready_frontier: im::OrdMap<WakeOrdinal, TemporalWakeId>,
+    pub(super) owner_frontier:
+        im::OrdMap<TemporalWakeOwner, im::OrdMap<WakeOrdinal, TemporalWakeId>>,
+    pub(super) retired_wakes: im::OrdMap<TemporalWakeId, RetiredTemporalWake>,
 }
 
 impl Default for TemporalRuntimeState {
@@ -39,12 +38,24 @@ impl Default for TemporalRuntimeState {
             next_wake_id: TemporalWakeId::new(0),
             next_wake_ordinal: WakeOrdinal::ZERO,
             next_previous_value_revision: PreviousValueRevision::ZERO,
-            scheduled_wakes: BTreeMap::new(),
-            scheduled_frontier: BTreeMap::new(),
-            ready_wakes: BTreeMap::new(),
-            ready_frontier: BTreeMap::new(),
-            owner_frontier: BTreeMap::new(),
-            retired_wakes: BTreeMap::new(),
+            scheduled_wakes: im::OrdMap::new(),
+            scheduled_frontier: im::OrdMap::new(),
+            ready_wakes: im::OrdMap::new(),
+            ready_frontier: im::OrdMap::new(),
+            owner_frontier: im::OrdMap::new(),
+            retired_wakes: im::OrdMap::new(),
         }
+    }
+}
+
+#[cfg(test)]
+impl TemporalRuntimeState {
+    pub(super) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.scheduled_wakes.ptr_eq(&other.scheduled_wakes)
+            && self.scheduled_frontier.ptr_eq(&other.scheduled_frontier)
+            && self.ready_wakes.ptr_eq(&other.ready_wakes)
+            && self.ready_frontier.ptr_eq(&other.ready_frontier)
+            && self.owner_frontier.ptr_eq(&other.owner_frontier)
+            && self.retired_wakes.ptr_eq(&other.retired_wakes)
     }
 }

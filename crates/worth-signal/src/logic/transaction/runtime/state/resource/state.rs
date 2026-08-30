@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use super::retry::budget::ResourceRetryBudgetLedger;
 use crate::data::resource::{
     AsyncDenialId, DeniedResourceCompletion, FrozenResourcePolicyRegistry, InFlightResourceRequest,
@@ -29,29 +27,30 @@ pub(in crate::logic::transaction::runtime) struct ResourceRuntimeState {
     pub(super) next_safe_point_observation_ordinal: ResourceSafePointObservationOrdinal,
     pub(super) restore_epoch: u64,
     pub(super) policy_registry: FrozenResourcePolicyRegistry,
-    pub(super) descriptors: BTreeMap<ResourceDescriptorId, LoweredResourceDescriptor>,
-    pub(super) descriptors_by_node: BTreeMap<ResourceNodeId, ResourceDescriptorId>,
-    pub(super) lifecycle_by_node: BTreeMap<ResourceNodeId, ResourceLifecycleSummary>,
-    pub(super) in_flight_by_request: BTreeMap<ResourceRequestId, InFlightResourceRequest>,
+    pub(super) descriptors: im::OrdMap<ResourceDescriptorId, LoweredResourceDescriptor>,
+    pub(super) descriptors_by_node: im::OrdMap<ResourceNodeId, ResourceDescriptorId>,
+    pub(super) lifecycle_by_node: im::OrdMap<ResourceNodeId, ResourceLifecycleSummary>,
+    pub(super) in_flight_by_request: im::OrdMap<ResourceRequestId, InFlightResourceRequest>,
     pub(super) retained_in_flight_history_by_request:
-        BTreeMap<ResourceRequestId, InFlightResourceRequest>,
+        im::OrdMap<ResourceRequestId, InFlightResourceRequest>,
     pub(super) pruned_in_flight_history_by_request:
-        BTreeMap<ResourceRequestId, ResourceRetainedHistoryAvailability>,
-    pub(super) terminal_in_flight_by_request: BTreeSet<ResourceRequestId>,
-    pub(super) active_request_by_node: BTreeMap<ResourceNodeId, ResourceRequestId>,
-    pub(super) stale_after_wake_by_node: BTreeMap<ResourceNodeId, TemporalWakeId>,
-    pub(super) pending_retry_by_request: BTreeMap<ResourceRequestId, ScheduledResourceRetry>,
-    pub(super) pending_retry_by_wake: BTreeMap<TemporalWakeId, ResourceRequestId>,
-    pub(super) pending_retry_by_node: BTreeMap<ResourceNodeId, ScheduledResourceRetry>,
+        im::OrdMap<ResourceRequestId, ResourceRetainedHistoryAvailability>,
+    pub(super) terminal_in_flight_by_request: im::OrdSet<ResourceRequestId>,
+    pub(super) active_request_by_node: im::OrdMap<ResourceNodeId, ResourceRequestId>,
+    pub(super) stale_after_wake_by_node: im::OrdMap<ResourceNodeId, TemporalWakeId>,
+    pub(super) pending_retry_by_request: im::OrdMap<ResourceRequestId, ScheduledResourceRetry>,
+    pub(super) pending_retry_by_wake: im::OrdMap<TemporalWakeId, ResourceRequestId>,
+    pub(super) pending_retry_by_node: im::OrdMap<ResourceNodeId, ScheduledResourceRetry>,
     pub(super) retained_retry_lineage_by_ordinal:
-        BTreeMap<ResourceRetryOrdinal, RetainedResourceRetryLineage>,
+        im::OrdMap<ResourceRetryOrdinal, RetainedResourceRetryLineage>,
     pub(super) pruned_retry_lineage_by_ordinal:
-        BTreeMap<ResourceRetryOrdinal, ResourceRetainedRetryLineageAvailability>,
+        im::OrdMap<ResourceRetryOrdinal, ResourceRetainedRetryLineageAvailability>,
     pub(super) retry_budget_ledger: ResourceRetryBudgetLedger,
-    pub(super) denied_completions: BTreeMap<AsyncDenialId, DeniedResourceCompletion>,
+    pub(super) denied_completions: im::OrdMap<AsyncDenialId, DeniedResourceCompletion>,
     pub(super) pruned_denied_completions_by_id:
-        BTreeMap<AsyncDenialId, ResourceRetainedDeniedCompletionAvailability>,
-    pub(super) latest_denied_completion_by_node: BTreeMap<ResourceNodeId, DeniedResourceCompletion>,
+        im::OrdMap<AsyncDenialId, ResourceRetainedDeniedCompletionAvailability>,
+    pub(super) latest_denied_completion_by_node:
+        im::OrdMap<ResourceNodeId, DeniedResourceCompletion>,
     pub(super) latest_branch_restore_report: Option<ResourceBranchRestoreReport>,
 }
 
@@ -72,25 +71,79 @@ impl Default for ResourceRuntimeState {
             next_safe_point_observation_ordinal: ResourceSafePointObservationOrdinal::ZERO,
             restore_epoch: 0,
             policy_registry: FrozenResourcePolicyRegistry::built_in(),
-            descriptors: BTreeMap::new(),
-            descriptors_by_node: BTreeMap::new(),
-            lifecycle_by_node: BTreeMap::new(),
-            in_flight_by_request: BTreeMap::new(),
-            retained_in_flight_history_by_request: BTreeMap::new(),
-            pruned_in_flight_history_by_request: BTreeMap::new(),
-            terminal_in_flight_by_request: BTreeSet::new(),
-            active_request_by_node: BTreeMap::new(),
-            stale_after_wake_by_node: BTreeMap::new(),
-            pending_retry_by_request: BTreeMap::new(),
-            pending_retry_by_wake: BTreeMap::new(),
-            pending_retry_by_node: BTreeMap::new(),
-            retained_retry_lineage_by_ordinal: BTreeMap::new(),
-            pruned_retry_lineage_by_ordinal: BTreeMap::new(),
+            descriptors: im::OrdMap::new(),
+            descriptors_by_node: im::OrdMap::new(),
+            lifecycle_by_node: im::OrdMap::new(),
+            in_flight_by_request: im::OrdMap::new(),
+            retained_in_flight_history_by_request: im::OrdMap::new(),
+            pruned_in_flight_history_by_request: im::OrdMap::new(),
+            terminal_in_flight_by_request: im::OrdSet::new(),
+            active_request_by_node: im::OrdMap::new(),
+            stale_after_wake_by_node: im::OrdMap::new(),
+            pending_retry_by_request: im::OrdMap::new(),
+            pending_retry_by_wake: im::OrdMap::new(),
+            pending_retry_by_node: im::OrdMap::new(),
+            retained_retry_lineage_by_ordinal: im::OrdMap::new(),
+            pruned_retry_lineage_by_ordinal: im::OrdMap::new(),
             retry_budget_ledger: ResourceRetryBudgetLedger::default(),
-            denied_completions: BTreeMap::new(),
-            pruned_denied_completions_by_id: BTreeMap::new(),
-            latest_denied_completion_by_node: BTreeMap::new(),
+            denied_completions: im::OrdMap::new(),
+            pruned_denied_completions_by_id: im::OrdMap::new(),
+            latest_denied_completion_by_node: im::OrdMap::new(),
             latest_branch_restore_report: None,
         }
+    }
+}
+
+#[cfg(test)]
+impl ResourceRuntimeState {
+    pub(in crate::logic::transaction::runtime) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.policy_registry
+            .shares_storage_with(&other.policy_registry)
+            && self.descriptors.ptr_eq(&other.descriptors)
+            && self.descriptors_by_node.ptr_eq(&other.descriptors_by_node)
+            && self.lifecycle_by_node.ptr_eq(&other.lifecycle_by_node)
+            && self
+                .in_flight_by_request
+                .ptr_eq(&other.in_flight_by_request)
+            && self
+                .retained_in_flight_history_by_request
+                .ptr_eq(&other.retained_in_flight_history_by_request)
+            && self
+                .pruned_in_flight_history_by_request
+                .ptr_eq(&other.pruned_in_flight_history_by_request)
+            && self
+                .terminal_in_flight_by_request
+                .ptr_eq(&other.terminal_in_flight_by_request)
+            && self
+                .active_request_by_node
+                .ptr_eq(&other.active_request_by_node)
+            && self
+                .stale_after_wake_by_node
+                .ptr_eq(&other.stale_after_wake_by_node)
+            && self
+                .pending_retry_by_request
+                .ptr_eq(&other.pending_retry_by_request)
+            && self
+                .pending_retry_by_wake
+                .ptr_eq(&other.pending_retry_by_wake)
+            && self
+                .pending_retry_by_node
+                .ptr_eq(&other.pending_retry_by_node)
+            && self
+                .retained_retry_lineage_by_ordinal
+                .ptr_eq(&other.retained_retry_lineage_by_ordinal)
+            && self
+                .pruned_retry_lineage_by_ordinal
+                .ptr_eq(&other.pruned_retry_lineage_by_ordinal)
+            && self
+                .retry_budget_ledger
+                .shares_storage_with(&other.retry_budget_ledger)
+            && self.denied_completions.ptr_eq(&other.denied_completions)
+            && self
+                .pruned_denied_completions_by_id
+                .ptr_eq(&other.pruned_denied_completions_by_id)
+            && self
+                .latest_denied_completion_by_node
+                .ptr_eq(&other.latest_denied_completion_by_node)
     }
 }

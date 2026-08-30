@@ -126,7 +126,6 @@ impl SignalGraph {
                 }
             }
         }
-        self.cause_sets.reserve(replacements.len());
         Ok(PreparedDirectCauseAdmission {
             producer: delta.producer,
             commit: Some(delta.clone()),

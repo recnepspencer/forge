@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
@@ -38,7 +36,7 @@ impl SignalGraph {
             .get(&producer)
             .cloned()
             .unwrap_or_default();
-        let mut current = BTreeSet::new();
+        let mut current = im::OrdSet::new();
         for consumer in candidates {
             if !self.is_alive(consumer) {
                 continue;
@@ -61,7 +59,7 @@ impl SignalGraph {
     }
 
     pub(crate) fn rebuild_pending_revalidation_waiters(&mut self) -> Result<(), SignalError> {
-        let mut rebuilt = BTreeMap::<NodeId, BTreeSet<NodeId>>::new();
+        let mut rebuilt = im::OrdMap::<NodeId, im::OrdSet<NodeId>>::new();
         for consumer in self.live_node_ids() {
             let Some(pending) = self.pending_dependency_revalidation(consumer)? else {
                 continue;

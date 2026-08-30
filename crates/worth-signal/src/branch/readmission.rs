@@ -12,6 +12,21 @@ pub enum SignalBranchBasisObservationDenial {
     UnknownBranch {
         branch_id: SignalBranchId,
     },
+    RetirementInProgress {
+        branch_id: SignalBranchId,
+    },
+    RetiredBranch {
+        branch_id: SignalBranchId,
+    },
+    QuarantinedBranch {
+        branch_id: SignalBranchId,
+    },
+    OwnerCellMisuse {
+        branch_id: SignalBranchId,
+    },
+    OwnerInvariantViolation {
+        branch_id: SignalBranchId,
+    },
     InvalidOwnerObservation {
         error: SignalError,
     },

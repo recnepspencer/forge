@@ -20,6 +20,8 @@ use super::{
     SignalOwnerServiceCounters, SignalOwnerUnavailable,
 };
 
+mod basis;
+
 pub(crate) const DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES: usize = 4_096;
 pub(crate) const DEFAULT_MAXIMUM_SIGNAL_BRANCH_RESERVATIONS: usize = 64;
 

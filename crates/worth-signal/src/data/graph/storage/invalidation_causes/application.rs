@@ -10,7 +10,11 @@ impl SignalGraph {
     #[cfg(test)]
     #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
     pub(crate) fn published_output_commit_order_for_test(&self) -> Vec<(u64, NodeId)> {
-        self.cause_sets.published_order_probe.clone()
+        self.cause_sets
+            .published_order_probe
+            .iter()
+            .copied()
+            .collect()
     }
 
     pub(crate) fn dependency_revision(

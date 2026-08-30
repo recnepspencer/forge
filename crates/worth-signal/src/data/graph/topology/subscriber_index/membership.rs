@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::SignalGraph;
@@ -37,7 +35,7 @@ impl SignalGraph {
 }
 
 pub(super) fn remove_member<Key: Ord + Copy>(
-    buckets: &mut BTreeMap<Key, BTreeSet<NodeId>>,
+    buckets: &mut im::OrdMap<Key, im::OrdSet<NodeId>>,
     key: Key,
     consumer: NodeId,
 ) {

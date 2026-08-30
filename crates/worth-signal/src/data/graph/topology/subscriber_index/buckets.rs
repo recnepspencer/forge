@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use crate::data::aspect::Aspect;
 use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::SignalGraph;
@@ -10,6 +8,8 @@ use crate::data::output::{
 use crate::data::proof::invalidation::output_commit::{ProducedAspectChange, ScopePrecision};
 
 use super::membership::remove_member;
+
+mod operational_clone;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum IndexedSubscriptionScope {
@@ -160,25 +160,25 @@ impl IndexedSubscriptionMembership {
 
 #[derive(Clone, Debug, Default)]
 struct SubscriberScopeBuckets {
-    all: BTreeSet<NodeId>,
-    unscoped: BTreeSet<NodeId>,
-    whole_partitions: BTreeMap<PartitionTokenId, BTreeSet<NodeId>>,
-    exact_details: BTreeMap<DetailScopeKey, BTreeSet<NodeId>>,
-    partition_scoped: BTreeMap<PartitionTokenId, BTreeSet<NodeId>>,
+    all: im::OrdSet<NodeId>,
+    unscoped: im::OrdSet<NodeId>,
+    whole_partitions: im::OrdMap<PartitionTokenId, im::OrdSet<NodeId>>,
+    exact_details: im::OrdMap<DetailScopeKey, im::OrdSet<NodeId>>,
+    partition_scoped: im::OrdMap<PartitionTokenId, im::OrdSet<NodeId>>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct ReverseSubscriptionIndex {
-    buckets: BTreeMap<ProducerAspectKey, SubscriberScopeBuckets>,
-    by_consumer: BTreeMap<NodeId, Vec<IndexedSubscriptionMembership>>,
+    buckets: im::OrdMap<ProducerAspectKey, SubscriberScopeBuckets>,
+    by_consumer: im::OrdMap<NodeId, Vec<IndexedSubscriptionMembership>>,
     valid: bool,
 }
 
 impl Default for ReverseSubscriptionIndex {
     fn default() -> Self {
         Self {
-            buckets: BTreeMap::new(),
-            by_consumer: BTreeMap::new(),
+            buckets: im::OrdMap::new(),
+            by_consumer: im::OrdMap::new(),
             valid: true,
         }
     }

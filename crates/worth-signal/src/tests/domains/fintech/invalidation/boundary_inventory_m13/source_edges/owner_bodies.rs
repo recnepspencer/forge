@@ -166,7 +166,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/causality/dependency_admission.rs",
         Method,
         "prepare_direct_output_causes",
-        "43301d4605f3a0ae3813b11634b123e58a1e9263b22a8b53899f1859b4574238"
+        "0c62e42f5ab5bc2da463606b342bc5b468a0d96fe6cd5160bf6e318068ea3a0b"
     ),
     owner!(
         "stable predecessor resolution",
@@ -238,7 +238,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/cause_sets.rs",
         Method,
         "publish_output_commit",
-        "0f9d30a3a2041c595b09edd3faca6e6c44cb451d27b99646722e284d7b35f877"
+        "60338be2dd18e21668b06eab033d38ea64e8069708bfa828e209e61465216b3c"
     ),
     owner!(
         "canonical cause insertion",
@@ -246,7 +246,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/cause_sets.rs",
         Method,
         "insert",
-        "633ac8956520a7fa24ad728201081d9efa7205751ac5db1c265927d4411a226b"
+        "fa6c0cc9cc34eb49ff62e862d5443dcab668ac3a7bea80823d3656a25c8e09a2"
     ),
     owner!(
         "canonical cause replacement",

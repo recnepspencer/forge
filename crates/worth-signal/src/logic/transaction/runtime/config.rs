@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
@@ -20,9 +18,10 @@ pub struct SignalRuntimeConfig<T: Copy + Ord> {
     tier_policies: TierPolicyTable<T>,
     fallback_comparator: VersionComparatorPolicy,
     pub(super) key_registry: RuntimeKeyRegistry,
-    computations: BTreeMap<RuntimeStringId, ComputationRegistration<T>>,
-    keyed_nodes: BTreeMap<(RuntimeStringId, RuntimeStringId), NodeId>,
-    memo_cache: BTreeMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), NodeEvaluationResult>,
+    computations: im::OrdMap<RuntimeStringId, ComputationRegistration<T>>,
+    keyed_nodes: im::OrdMap<(RuntimeStringId, RuntimeStringId), NodeId>,
+    memo_cache:
+        im::OrdMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), NodeEvaluationResult>,
     resource_runtime_deadline: Option<TemporalDuration>,
 }
 
@@ -40,15 +39,29 @@ impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
             tier_policies: TierPolicyTable::default(),
             fallback_comparator: VersionComparatorPolicy::Exact,
             key_registry: RuntimeKeyRegistry::default(),
-            computations: BTreeMap::new(),
-            keyed_nodes: BTreeMap::new(),
-            memo_cache: BTreeMap::new(),
+            computations: im::OrdMap::new(),
+            keyed_nodes: im::OrdMap::new(),
+            memo_cache: im::OrdMap::new(),
             resource_runtime_deadline: None,
         }
     }
 }
 
 impl<T: Copy + Ord> SignalRuntimeConfig<T> {
+    pub(crate) fn fork_persistent(&self) -> Self {
+        self.clone()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_fork_storage_with(&self, other: &Self) -> bool {
+        self.node_meta.shares_storage_with(&other.node_meta)
+            && self.tier_policies.shares_storage_with(&other.tier_policies)
+            && self.key_registry.shares_storage_with(&other.key_registry)
+            && self.computations.ptr_eq(&other.computations)
+            && self.keyed_nodes.ptr_eq(&other.keyed_nodes)
+            && self.memo_cache.ptr_eq(&other.memo_cache)
+    }
+
     pub fn new() -> Self {
         Self::default()
     }

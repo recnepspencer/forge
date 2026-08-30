@@ -19,13 +19,14 @@ test-operation-control = []
 
 [dependencies]
 tracing = "0.1"
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 smallvec = { version = "1", features = ["serde"] }
 rayon = "1"
 serde_json = "1"
 worth-proof = { path = "../worth-proof" }
 worth-foundational = { path = "../worth-foundational" }
 sha2 = "0.10"
+im = { version = "15.1", features = ["serde"] }
 
 [dev-dependencies]
 worth-harness.workspace = true

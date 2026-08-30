@@ -1,6 +1,5 @@
 //! Arena-based signal graph with dependency storage.
 
-use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
@@ -31,6 +30,7 @@ mod direct_invalidation_basis_tests;
 mod observation_state;
 mod performed_counter_state;
 mod performed_work_state;
+mod persistent_fork;
 mod reconstitution;
 #[cfg(test)]
 mod reconstitution_tests;
@@ -49,6 +49,11 @@ pub use branch_mutations::{
 pub(crate) use observation_state::{ObservationCaptureCleanup, RuntimeObservation};
 pub(crate) use performed_counter_state::InvalidationPerformedCounterState;
 pub(crate) use performed_work_state::PerformedWorkCaptureState;
+pub(crate) use persistent_fork::SignalGraphForkWork;
+#[cfg(test)]
+pub(crate) use persistent_fork::SignalGraphPersistentIdentity;
+#[cfg(test)]
+pub(crate) use persistent_fork::SignalGraphPersistentSharing;
 pub use reconstitution::{SignalGraphReconstitution, SignalGraphReconstitutionReport};
 pub(crate) use reconstruction_counters::ReconstructionCounters;
 pub(crate) use topology_state::EdgeTopology;
@@ -56,16 +61,45 @@ pub(crate) use traversal_state::TraversalResources;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct NodeArena {
-    pub(in crate::data::graph) nodes: Vec<Slot>,
-    pub(in crate::data::graph) hot: Vec<Option<NodeHotData>>,
-    pub(in crate::data::graph) warm: Vec<NodeWarmData>,
-    pub(in crate::data::graph) cold: Vec<Option<Box<NodeColdData>>>,
-    pub(in crate::data::graph) free_list: Vec<u32>,
+    pub(in crate::data::graph) nodes:
+        crate::data::persistent_paged_vector::PersistentPagedVector<Slot>,
+    pub(in crate::data::graph) hot:
+        crate::data::persistent_paged_vector::PersistentPagedVector<Option<NodeHotData>>,
+    pub(in crate::data::graph) warm:
+        crate::data::persistent_paged_vector::PersistentPagedVector<NodeWarmData>,
+    pub(in crate::data::graph) cold:
+        crate::data::persistent_paged_vector::PersistentPagedVector<Option<Box<NodeColdData>>>,
+    pub(in crate::data::graph) free_list: crate::data::persistent_vector::PersistentVector<u32>,
     #[serde(skip, default)]
     pub(in crate::data::graph) free_slots: DenseBitset,
     pub(in crate::data::graph) active_nodes: u32,
     #[serde(default)]
     pub(in crate::data::graph) compaction: CompactionState,
+}
+
+impl NodeArena {
+    fn operational_clone(&self) -> Self {
+        Self {
+            nodes: self.nodes.operational_clone(),
+            hot: self.hot.operational_clone(),
+            warm: self.warm.operational_clone(),
+            cold: self.cold.operational_clone(),
+            free_list: self.free_list.operational_clone(),
+            free_slots: self.free_slots.operational_clone(),
+            active_nodes: self.active_nodes,
+            compaction: self.compaction.clone(),
+        }
+    }
+
+    #[cfg(test)]
+    fn shares_storage_with(&self, other: &Self) -> bool {
+        self.nodes.shares_storage_with(&other.nodes)
+            && self.hot.shares_storage_with(&other.hot)
+            && self.warm.shares_storage_with(&other.warm)
+            && self.cold.shares_storage_with(&other.cold)
+            && self.free_list.shares_storage_with(&other.free_list)
+            && self.free_slots.shares_storage_with(&other.free_slots)
+    }
 }
 
 /// The reactive signal graph.
@@ -90,13 +124,13 @@ pub struct SignalGraph {
     pub(in crate::data::graph) traversal: TraversalResources,
     pub(in crate::data::graph) observation: RuntimeObservation,
     #[serde(skip, default)]
-    pub(in crate::data::graph) schema_registry: SignalSchemaRegistry,
+    pub(in crate::data::graph) schema_registry: std::sync::Arc<SignalSchemaRegistry>,
     #[serde(skip, default)]
     pub(crate) aspect_lowering_owner: Option<SignalAspectLoweringOwner>,
     #[serde(skip, default)]
-    pub(crate) conditional_dependency_versions: BTreeMap<NodeId, Vec<u64>>,
+    pub(crate) conditional_dependency_versions: im::OrdMap<NodeId, Vec<u64>>,
     #[serde(skip, default)]
-    pub(crate) authorization_policy_identities: BTreeSet<[u8; 32]>,
+    pub(crate) authorization_policy_identities: im::OrdSet<[u8; 32]>,
     #[serde(skip, default)]
     pub(crate) invalidation_readiness_epoch: u64,
     #[serde(skip, default)]
@@ -108,7 +142,7 @@ pub struct SignalGraph {
     #[serde(skip, default)]
     pub(crate) invalidation_performed_work: PerformedWorkCaptureState,
     #[serde(skip, default)]
-    pub(crate) pending_repeated_invalidation_admissions: BTreeMap<NodeId, u64>,
+    pub(crate) pending_repeated_invalidation_admissions: im::OrdMap<NodeId, u64>,
 }
 
 #[derive(Deserialize)]
@@ -136,16 +170,16 @@ impl<'de> Deserialize<'de> for SignalGraph {
             cause_readmission_required: false,
             traversal: wire.traversal,
             observation: wire.observation,
-            schema_registry: SignalSchemaRegistry::default(),
+            schema_registry: std::sync::Arc::new(SignalSchemaRegistry::default()),
             aspect_lowering_owner: None,
-            conditional_dependency_versions: BTreeMap::new(),
-            authorization_policy_identities: BTreeSet::new(),
+            conditional_dependency_versions: im::OrdMap::new(),
+            authorization_policy_identities: im::OrdSet::new(),
             invalidation_readiness_epoch: 0,
             observation_sessions: SignalObservationSessionState::default(),
             observation_capture_cleanup: None,
             invalidation_performed_counters: InvalidationPerformedCounterState::default(),
             invalidation_performed_work: PerformedWorkCaptureState::default(),
-            pending_repeated_invalidation_admissions: BTreeMap::new(),
+            pending_repeated_invalidation_admissions: im::OrdMap::new(),
         };
         graph.rebind_observation_capture_state();
         Ok(graph)

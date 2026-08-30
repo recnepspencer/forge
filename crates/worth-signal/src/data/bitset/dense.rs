@@ -1,11 +1,11 @@
 /// Dense bitset for deterministic, allocation-light index marking.
 #[derive(Debug, Clone, Default)]
 pub struct DenseBitset {
-    words: Vec<u64>,
+    words: crate::data::persistent_vector::PersistentVector<u64>,
 }
 
 pub struct DenseBitsetIter<'a> {
-    words: &'a [u64],
+    words: &'a crate::data::persistent_vector::PersistentVector<u64>,
     word_index: usize,
     pending: u64,
 }
@@ -13,14 +13,17 @@ pub struct DenseBitsetIter<'a> {
 impl DenseBitset {
     /// Create an empty bitset.
     pub fn new() -> Self {
-        Self { words: Vec::new() }
+        Self {
+            words: crate::data::persistent_vector::PersistentVector::new(),
+        }
     }
 
     /// Ensure capacity for indices up to `len`.
     pub fn ensure_len(&mut self, len: usize) {
         let word_len = len.div_ceil(64);
         if self.words.len() < word_len {
-            self.words.resize(word_len, 0);
+            let missing = word_len - self.words.len();
+            self.words.extend(std::iter::repeat_n(0, missing));
         }
     }
 
@@ -28,7 +31,8 @@ impl DenseBitset {
     pub fn mark(&mut self, idx: usize) -> bool {
         let word_idx = idx / 64;
         if word_idx >= self.words.len() {
-            self.words.resize(word_idx + 1, 0);
+            let missing = word_idx + 1 - self.words.len();
+            self.words.extend(std::iter::repeat_n(0, missing));
         }
         let bit = 1u64 << (idx % 64);
         let before = self.words[word_idx];
@@ -58,14 +62,17 @@ impl DenseBitset {
 
     /// Clear all bits.
     pub fn clear_all(&mut self) {
-        self.words.fill(0);
+        for word in self.words.iter_mut() {
+            *word = 0;
+        }
     }
 
     /// Merge `other` into this bitset.
     #[cfg(test)]
     pub fn merge(&mut self, other: &Self) {
         if self.words.len() < other.words.len() {
-            self.words.resize(other.words.len(), 0);
+            let missing = other.words.len() - self.words.len();
+            self.words.extend(std::iter::repeat_n(0, missing));
         }
         for (idx, word) in other.words.iter().copied().enumerate() {
             self.words[idx] |= word;
@@ -89,6 +96,17 @@ impl DenseBitset {
     /// Return marked indices in ascending order.
     pub fn marked_indices(&self) -> Vec<usize> {
         self.iter_marked().collect()
+    }
+
+    pub(crate) fn operational_clone(&self) -> Self {
+        Self {
+            words: self.words.operational_clone(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.words.shares_storage_with(&other.words)
     }
 }
 

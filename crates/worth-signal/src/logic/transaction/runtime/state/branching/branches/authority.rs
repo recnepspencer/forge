@@ -12,6 +12,53 @@ use super::super::super::merge::{BranchMergeKind, BranchMergeStrategy, BranchMut
 use super::super::super::reconstructability::{AuthorityState, DerivedState};
 use super::super::super::temporal::TemporalRuntimeState;
 
+pub(crate) struct SignalForkedBranchState<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(crate) state: BranchState<D, I, T>,
+    pub(crate) work: crate::data::graph::signal_graph::SignalGraphForkWork,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SignalBranchPersistentSharing {
+    pub(crate) graph: crate::data::graph::signal_graph::SignalGraphPersistentSharing,
+    pub(crate) config_roots_shared: bool,
+    pub(crate) derived_roots_shared: bool,
+}
+
+#[cfg(test)]
+pub(crate) struct SignalBranchPersistentIdentity<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    graph: crate::data::graph::signal_graph::SignalGraphPersistentIdentity,
+    config: SignalRuntimeConfig<T>,
+    derived: DerivedState<D, I>,
+    pub(crate) hot_page_identities: Vec<usize>,
+}
+
+#[cfg(test)]
+impl<D, I, T> SignalBranchPersistentIdentity<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(crate) fn sharing_with(&self, other: &Self) -> SignalBranchPersistentSharing {
+        SignalBranchPersistentSharing {
+            graph: self.graph.sharing_with(&other.graph),
+            config_roots_shared: self.config.shares_fork_storage_with(&other.config),
+            derived_roots_shared: self.derived.shares_fork_storage_with(&other.derived),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::logic::transaction::runtime) struct LatestMergeReference {
     source_branch_id: SignalBranchId,
@@ -107,15 +154,21 @@ where
         &self,
         parent: &crate::state::SignalBranchHandle,
         destination: crate::state::SignalBranchHandle,
-    ) -> Self {
-        let mut fork = self.clone();
-        *fork.ancestry_mut() = BranchAncestryState::new(
-            destination.id,
-            Some(parent.id),
-            destination.head_snapshot_id,
+    ) -> SignalForkedBranchState<D, I, T> {
+        let (graph, work) = self.graph().fork_persistent();
+        let mut fork = Self::new(
+            AuthorityState {
+                graph,
+                config: self.authority.config.fork_persistent(),
+            },
+            self.derived.fork_persistent(),
+            BranchAncestryState::new(
+                destination.id,
+                Some(parent.id),
+                destination.head_snapshot_id,
+            ),
+            BranchMutationLedger::default().with_baseline_snapshot(destination.head_snapshot_id),
         );
-        fork.reset_mutation_ledger(destination.head_snapshot_id);
-        fork.clear_branch_mutation_nodes();
         let catalog = std::iter::once((destination.id, destination.clone())).collect();
         fork.graph_mut()
             .diagnostics_state_mut()
@@ -127,7 +180,17 @@ where
             destination.name,
             parent.name.clone(),
         );
-        fork
+        SignalForkedBranchState { state: fork, work }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn persistent_identity(&self) -> SignalBranchPersistentIdentity<D, I, T> {
+        SignalBranchPersistentIdentity {
+            graph: self.graph().persistent_identity(),
+            config: self.authority.config.fork_persistent(),
+            derived: self.derived.fork_persistent(),
+            hot_page_identities: self.graph().hot_page_identities(),
+        }
     }
 
     pub(in crate::logic::transaction::runtime) fn new(

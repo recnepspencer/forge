@@ -18,6 +18,12 @@ pub struct CheckpointRuntime<D: Copy + Ord, I: Copy + Ord> {
 }
 
 impl<D: Copy + Ord, I: Copy + Ord> CheckpointRuntime<D, I> {
+    #[cfg(test)]
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.dirty.shares_storage_with(&other.dirty)
+            && self.policy.shares_storage_with(&other.policy)
+    }
+
     /// Create a new runtime with a per-domain checkpoint policy.
     pub fn new(policy: CheckpointPolicy<D>) -> Self {
         Self {

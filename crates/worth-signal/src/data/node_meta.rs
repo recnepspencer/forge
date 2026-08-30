@@ -9,19 +9,22 @@ struct NodeTier<T: Copy> {
 /// Arena-aligned per-node metadata storage.
 #[derive(Debug, Clone)]
 pub struct NodeMetaStore<T: Copy> {
-    tiers: Vec<Option<NodeTier<T>>>,
+    tiers: crate::data::persistent_vector::PersistentVector<Option<NodeTier<T>>>,
 }
 
 impl<T: Copy> NodeMetaStore<T> {
     /// Create an empty metadata store.
     pub fn new() -> Self {
-        Self { tiers: Vec::new() }
+        Self {
+            tiers: crate::data::persistent_vector::PersistentVector::new(),
+        }
     }
 
     /// Ensure storage covers node slots up to `len`.
     pub fn ensure_capacity(&mut self, len: usize) {
         if self.tiers.len() < len {
-            self.tiers.resize(len, None);
+            let missing = len - self.tiers.len();
+            self.tiers.extend(std::iter::repeat_n(None, missing));
         }
     }
 
@@ -63,6 +66,11 @@ impl<T: Copy> NodeMetaStore<T> {
     #[cfg(test)]
     pub(crate) fn occupied_slot_count(&self) -> usize {
         self.tiers.iter().filter(|entry| entry.is_some()).count()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.tiers.shares_storage_with(&other.tiers)
     }
 }
 

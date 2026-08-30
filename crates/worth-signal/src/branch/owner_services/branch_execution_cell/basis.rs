@@ -24,6 +24,8 @@ where
             .map_err(|denial| map_basis_cell_denial(denial, self.branch_id))?;
         self.counters.record_target_cell_contact();
         self.contacts.fetch_add(1, Ordering::SeqCst);
+        self.require_live_posture()
+            .map_err(|denial| map_basis_cell_denial(denial, self.branch_id))?;
         let state = self
             .lock_state_after_contention_observation()
             .map_err(|denial| map_basis_cell_denial(denial, self.branch_id))?;
@@ -35,7 +37,7 @@ where
     }
 }
 
-fn map_basis_cell_denial(
+pub(in crate::branch::owner_services) fn map_basis_cell_denial(
     denial: SignalBranchCellAdmissionDenial,
     branch_id: crate::state::SignalBranchId,
 ) -> SignalBranchBasisObservationDenial {
@@ -44,6 +46,17 @@ fn map_basis_cell_denial(
         | SignalBranchCellAdmissionDenial::ExpiredLifecycle => {
             SignalBranchBasisObservationDenial::OwnerUnavailable(SignalOwnerUnavailable)
         }
-        _ => SignalBranchBasisObservationDenial::UnknownBranch { branch_id },
+        SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
+            SignalBranchBasisObservationDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetirementInProgress => {
+            SignalBranchBasisObservationDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::RetiredIncarnation => {
+            SignalBranchBasisObservationDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::PoisonedIncarnation => {
+            SignalBranchBasisObservationDenial::QuarantinedBranch { branch_id }
+        }
     }
 }

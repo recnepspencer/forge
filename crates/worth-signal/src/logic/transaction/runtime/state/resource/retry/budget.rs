@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::data::resource::{
     InFlightResourceRequest, ResourceGeneration, ResourceNodeId, ResourceRetryBudgetScope,
 };
@@ -27,12 +25,18 @@ impl ResourceRetryBudgetCharge {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(in crate::logic::transaction::runtime::state::resource) struct ResourceRetryBudgetLedger {
-    spend_by_generation: BTreeMap<ResourceGeneration, u32>,
-    spend_by_node: BTreeMap<ResourceNodeId, u32>,
+    spend_by_generation: im::OrdMap<ResourceGeneration, u32>,
+    spend_by_node: im::OrdMap<ResourceNodeId, u32>,
     runtime_spend: u32,
 }
 
 impl ResourceRetryBudgetLedger {
+    #[cfg(test)]
+    pub(in crate::logic::transaction::runtime) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.spend_by_generation.ptr_eq(&other.spend_by_generation)
+            && self.spend_by_node.ptr_eq(&other.spend_by_node)
+    }
+
     pub(in crate::logic::transaction::runtime::state::resource) fn charge_for(
         &self,
         in_flight: &InFlightResourceRequest,

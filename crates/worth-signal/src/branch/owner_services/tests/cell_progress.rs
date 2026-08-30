@@ -239,12 +239,13 @@ fn cell_work_records_exact_semantic_deltas_without_reconstruction() {
     let admission = lifecycle.admit(61).expect("owner admits work");
     let cell = install(&registry, &admission, SignalBranchId(1), 0_u64);
     let baseline = counters.snapshot();
+    let (_, fork_work) = crate::data::graph::SignalGraph::new().fork_persistent();
 
     cell.with_state(&admission, |state, work| {
         *state = 9;
         with_movement_permit(|permit| work.record_canonical_movement(permit));
         work.record_retention_registry_contact();
-        work.record_fork_source_capture(0);
+        work.record_fork_source_capture(fork_work);
         work.record_diagnostic_event();
         work.record_dropped_diagnostic_event();
     })
