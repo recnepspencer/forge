@@ -3,12 +3,16 @@ mod binding_compaction;
 mod dirty_basis;
 mod footer;
 mod stream_header;
+mod stream_projection;
 
 pub(in crate::integrity_ingress) use binding::IntegrityAdmittedCheckpointBinding;
 pub(in crate::integrity_ingress) use binding_compaction::IntegrityAdmittedCheckpointBindingCompaction;
 pub(in crate::integrity_ingress) use dirty_basis::IntegrityAdmittedCheckpointDirtyBasis;
 pub(in crate::integrity_ingress) use footer::IntegrityAdmittedCheckpointFooter;
 pub(in crate::integrity_ingress) use stream_header::IntegrityAdmittedCheckpointStreamHeader;
+pub(in crate::integrity_ingress) use stream_projection::{
+    CheckpointStreamProjectionDenial, IntegrityAdmittedCheckpointStream,
+};
 
 #[cfg(test)]
 pub(super) fn owner_valid_compile_contracts() {

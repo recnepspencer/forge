@@ -2,7 +2,9 @@ use worth_store_physical_format::{DurableRootSelector, RootSelectorRole};
 use worth_store_physical_integrity::IntegrityValidatedCurrentRootSelector;
 
 use super::super::super::admission::require_observed_recovery_source;
-use super::super::super::{ObservedRecoverySource, RecoveryIntegrityIngressRejection};
+use super::super::super::{
+    ObservedRecoverySource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
+};
 
 pub(crate) struct IntegrityAdmittedCurrentRootSelector<'media> {
     source: ObservedRecoverySource<'media>,
@@ -38,6 +40,14 @@ impl<'media> IntegrityAdmittedCurrentRootSelector<'media> {
     }
 
     pub(crate) fn project(self) -> DurableRootSelector {
+        self.selector()
+    }
+
+    pub(crate) fn project_for_recovery(
+        &self,
+        counters: &mut RecoveryIntegrityIngressCounters,
+    ) -> DurableRootSelector {
+        counters.record_owner_projection();
         self.selector()
     }
 

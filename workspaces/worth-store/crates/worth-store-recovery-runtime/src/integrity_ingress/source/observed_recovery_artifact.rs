@@ -12,6 +12,7 @@ pub(crate) struct ObservedRecoverySource<'media> {
     selection: ObservationSelection,
 }
 
+#[derive(Clone, Copy)]
 enum ObservationSelection {
     Complete,
     RelativeRange(PhysicalByteRange),
@@ -43,6 +44,17 @@ impl<'media> ObservedRecoverySource<'media> {
 
     pub(in crate::integrity_ingress) const fn scope(&self) -> PhysicalArtifactScope {
         self.scope
+    }
+
+    pub(in crate::integrity_ingress) const fn observed(&self) -> &'media ObservedRecoveryArtifact {
+        self.observed
+    }
+
+    pub(in crate::integrity_ingress) const fn selected_range(&self) -> PhysicalByteRange {
+        match self.selection {
+            ObservationSelection::Complete => self.scope.byte_range(),
+            ObservationSelection::RelativeRange(range) => range,
+        }
     }
 
     pub(in crate::integrity_ingress) fn input(

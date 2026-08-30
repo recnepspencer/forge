@@ -84,10 +84,15 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
         admitted.observation().outcome(),
         RecoveryIntegrityIngressObservationOutcome::Admitted
     );
-    assert!(matches!(
-        admitted.into_outcome().unwrap(),
-        IntegrityAdmittedRecoveryArtifact::CurrentSelector(_)
-    ));
+    let IntegrityAdmittedRecoveryArtifact::CurrentSelector(admitted) =
+        admitted.into_outcome().unwrap()
+    else {
+        panic!("current selector admission routed to the wrong family")
+    };
+    assert_eq!(
+        admitted.project_for_recovery(&mut counters).role(),
+        RootSelectorRole::Current
+    );
 
     let validation = validate_selector(&source_a, selector_scope);
     let substituted = IntegrityAdmittedRecoveryArtifact::bind_current_selector(
@@ -128,7 +133,7 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
     assert_eq!(projection.current_root_generation.get(), 1);
     assert_eq!((counters.attempted, counters.admitted), (3, 2));
     assert_eq!(counters.rejected_source_binding, 1);
-    assert_eq!(counters.owner_projection_entries, 1);
+    assert_eq!(counters.owner_projection_entries, 2);
 
     let validation = validate_selector(&source_a, selector_scope);
     let wrong_scope =

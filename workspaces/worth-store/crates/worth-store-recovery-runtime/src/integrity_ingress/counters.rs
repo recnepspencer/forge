@@ -17,6 +17,7 @@ pub(crate) struct RecoveryIntegrityIngressCounters {
     pub rejected_conflicting: u64,
     pub rejected_source_binding: u64,
     pub owner_projection_entries: u64,
+    pub owner_decoder_entries: u64,
 }
 
 impl RecoveryIntegrityIngressCounters {
@@ -32,6 +33,10 @@ impl RecoveryIntegrityIngressCounters {
 
     pub(super) fn record_owner_projection(&mut self) {
         self.owner_projection_entries += 1;
+    }
+
+    pub(super) fn record_owner_decoder(&mut self) {
+        self.owner_decoder_entries += 1;
     }
 
     fn record_rejection(&mut self, rejection: RecoveryIntegrityIngressRejection) {

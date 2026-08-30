@@ -41,6 +41,16 @@ impl<'media> IntegrityAdmittedCheckpointStreamHeader<'media> {
     pub(crate) fn scope(&self) -> worth_store_physical_integrity::PhysicalArtifactScope {
         self.source.scope()
     }
+
+    pub(in crate::integrity_ingress) const fn source(&self) -> &ObservedRecoverySource<'media> {
+        &self.source
+    }
+
+    pub(in crate::integrity_ingress) const fn checkpoint_identity(
+        &self,
+    ) -> PhysicalCheckpointIdentity {
+        self.validated.checkpoint_identity()
+    }
 }
 
 #[cfg(test)]

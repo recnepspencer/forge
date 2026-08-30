@@ -39,6 +39,10 @@ impl<'media> IntegrityAdmittedCheckpointFooter<'media> {
     pub(crate) fn scope(&self) -> worth_store_physical_integrity::PhysicalArtifactScope {
         self.source.scope()
     }
+
+    pub(in crate::integrity_ingress) const fn source(&self) -> &ObservedRecoverySource<'media> {
+        &self.source
+    }
 }
 
 #[cfg(test)]

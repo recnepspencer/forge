@@ -40,6 +40,7 @@ impl<'media> IntegrityAdmittedPageFrame<'media> {
         counters: &mut RecoveryIntegrityIngressCounters,
     ) -> PageFrameProjection {
         counters.record_owner_projection();
+        counters.record_owner_decoder();
         let input = self
             .source
             .input()

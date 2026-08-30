@@ -18,7 +18,7 @@ pub(crate) struct RecoveryIntegrityIngressAttempt<'media> {
     observation: RecoveryIntegrityIngressObservation,
 }
 
-pub(crate) use absence::{observe_absent_recovery_artifact, observe_absent_wal_artifact};
+pub(crate) use absence::observe_absent_recovery_artifact;
 
 impl<'media> RecoveryIntegrityIngressAttempt<'media> {
     pub(crate) fn into_outcome(

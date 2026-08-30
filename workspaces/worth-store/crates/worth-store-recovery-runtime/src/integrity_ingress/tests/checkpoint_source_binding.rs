@@ -11,12 +11,18 @@ use worth_store_physical_format::{
     CheckpointWalSourceRange, PhysicalCheckpointIdentity, PhysicalCheckpointSource,
 };
 use worth_store_physical_integrity::{
-    validate_checkpoint_binding, validate_checkpoint_stream_header,
+    validate_checkpoint_binding, validate_checkpoint_binding_compaction,
+    validate_checkpoint_footer, validate_checkpoint_stream_header,
+    CheckpointBindingCompactionIntegrityValidation, CheckpointBindingIntegrityValidation,
+    CheckpointFooterIntegrityValidation, CheckpointFooterValidationBasis,
     CheckpointStreamHeaderIntegrityValidation, CheckpointStreamHeaderScopeIdentity,
     PhysicalArtifactScope, PhysicalByteRange, UntrustedPhysicalArtifact,
 };
 
 use super::super::admitted_artifact::IntegrityAdmittedRecoveryArtifact;
+use super::super::families::checkpoint::{
+    CheckpointStreamProjectionDenial, IntegrityAdmittedCheckpointStream,
+};
 use super::super::{RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection};
 
 #[test]
@@ -47,9 +53,7 @@ fn checkpoint_record_binds_a_borrowed_range_of_the_c4_observation() {
     let binding_payload = b"typed-checkpoint-binding";
     let binding_record = compaction.encode_binding_record(binding_payload).unwrap();
     let (_, footer) = compaction.finish();
-    let prefix = b"c4-prefix";
-    let mut checkpoint = prefix.to_vec();
-    checkpoint.extend_from_slice(&header);
+    let mut checkpoint = header.clone();
     checkpoint.extend_from_slice(&compaction_record);
     checkpoint.extend_from_slice(&binding_record);
     checkpoint.extend_from_slice(&footer);
@@ -64,7 +68,7 @@ fn checkpoint_record_binds_a_borrowed_range_of_the_c4_observation() {
     let mut discovery = media.bounded_discovery(3, 4096).unwrap();
     let observed_a = discovery.read_current_checkpoint(4096).unwrap();
     let observed_b = discovery.read_current_checkpoint(4096).unwrap();
-    let header_range = PhysicalByteRange::new(prefix.len() as u64, header.len() as u64).unwrap();
+    let header_range = PhysicalByteRange::new(0, header.len() as u64).unwrap();
     let scope = PhysicalArtifactScope::checkpoint_stream_header(
         CheckpointStreamHeaderScopeIdentity::staged(store),
         header_range,
@@ -123,7 +127,7 @@ fn checkpoint_record_binds_a_borrowed_range_of_the_c4_observation() {
         (3, 1, 2, 1)
     );
 
-    let binding_offset = prefix.len() + header.len() + compaction_record.len();
+    let binding_offset = header.len() + compaction_record.len();
     let binding_range =
         PhysicalByteRange::new(binding_offset as u64, binding_record.len() as u64).unwrap();
     let binding_scope = PhysicalArtifactScope::checkpoint_binding(identity, binding_range);
@@ -161,6 +165,125 @@ fn checkpoint_record_binds_a_borrowed_range_of_the_c4_observation() {
             binding_counters.owner_projection_entries
         ),
         (1, 1)
+    );
+
+    let compaction_offset = header.len();
+    let compaction_range =
+        PhysicalByteRange::new(compaction_offset as u64, compaction_record.len() as u64).unwrap();
+    let compaction_scope =
+        PhysicalArtifactScope::checkpoint_binding_compaction(identity, compaction_range);
+    let footer_offset = binding_offset + binding_record.len();
+    let footer_range = PhysicalByteRange::new(footer_offset as u64, footer.len() as u64).unwrap();
+    let footer_scope = PhysicalArtifactScope::checkpoint_footer(identity, footer_range);
+
+    let header_validation = validate_header(&observed_a, header_range, scope);
+    let CheckpointStreamHeaderIntegrityValidation::Intact(header_validated) = header_validation
+    else {
+        panic!("checkpoint header must remain intact")
+    };
+    let compaction_validation = validate_checkpoint_binding_compaction(
+        UntrustedPhysicalArtifact::from_bounded_bytes(
+            &bytes[compaction_offset..compaction_offset + compaction_record.len()],
+        ),
+        compaction_scope,
+    )
+    .0;
+    let CheckpointBindingCompactionIntegrityValidation::Intact(compaction_validated) =
+        compaction_validation
+    else {
+        panic!("checkpoint compaction must remain intact")
+    };
+    let binding_validation = validate_checkpoint_binding(
+        UntrustedPhysicalArtifact::from_bounded_bytes(
+            &bytes[binding_offset..binding_offset + binding_record.len()],
+        ),
+        binding_scope,
+    )
+    .0;
+    let CheckpointBindingIntegrityValidation::Intact(binding_validated) = binding_validation else {
+        panic!("checkpoint binding must remain intact")
+    };
+    let footer_validation = validate_checkpoint_footer(
+        UntrustedPhysicalArtifact::from_bounded_bytes(&bytes[footer_offset..]),
+        footer_scope,
+        CheckpointFooterValidationBasis::new(
+            &header_validated,
+            &[],
+            &compaction_validated,
+            std::slice::from_ref(&binding_validated),
+        ),
+    )
+    .0;
+    let CheckpointFooterIntegrityValidation::Intact(footer_validated) = footer_validation else {
+        panic!("checkpoint footer must remain intact")
+    };
+
+    let mut stream_counters = RecoveryIntegrityIngressCounters::default();
+    let header = IntegrityAdmittedRecoveryArtifact::bind_checkpoint_stream_header(
+        &observed_a,
+        scope,
+        header_range,
+        CheckpointStreamHeaderIntegrityValidation::Intact(header_validated),
+        &mut stream_counters,
+    )
+    .into_outcome()
+    .unwrap();
+    let compaction = IntegrityAdmittedRecoveryArtifact::bind_checkpoint_binding_compaction(
+        &observed_a,
+        compaction_scope,
+        compaction_range,
+        CheckpointBindingCompactionIntegrityValidation::Intact(compaction_validated),
+        &mut stream_counters,
+    )
+    .into_outcome()
+    .unwrap();
+    let binding = IntegrityAdmittedRecoveryArtifact::bind_checkpoint_binding(
+        &observed_a,
+        binding_scope,
+        binding_range,
+        CheckpointBindingIntegrityValidation::Intact(binding_validated),
+        &mut stream_counters,
+    )
+    .into_outcome()
+    .unwrap();
+    let footer = IntegrityAdmittedRecoveryArtifact::bind_checkpoint_footer(
+        &observed_a,
+        footer_scope,
+        footer_range,
+        CheckpointFooterIntegrityValidation::Intact(footer_validated),
+        &mut stream_counters,
+    )
+    .into_outcome()
+    .unwrap();
+    let (
+        IntegrityAdmittedRecoveryArtifact::CheckpointStreamHeader(header),
+        IntegrityAdmittedRecoveryArtifact::CheckpointBindingCompaction(compaction),
+        IntegrityAdmittedRecoveryArtifact::CheckpointBinding(binding),
+        IntegrityAdmittedRecoveryArtifact::CheckpointFooter(footer),
+    ) = (header, compaction, binding, footer)
+    else {
+        panic!("checkpoint record admission routed to a wrong family")
+    };
+    let stream = IntegrityAdmittedCheckpointStream::assemble(
+        header,
+        Vec::new(),
+        compaction,
+        vec![binding],
+        footer,
+    )
+    .unwrap();
+    let projected: Result<_, CheckpointStreamProjectionDenial> =
+        stream.project(0, 1, &mut stream_counters);
+    let verified = projected.unwrap();
+    assert_eq!(verified.source(), source);
+    assert_eq!(verified.binding_records().len(), 1);
+    assert_eq!(
+        (
+            stream_counters.admitted,
+            stream_counters.owner_projection_entries,
+            stream_counters.owner_decoder_entries,
+        ),
+        (4, 1, 1)
     );
     drop(discovery.finish());
 }

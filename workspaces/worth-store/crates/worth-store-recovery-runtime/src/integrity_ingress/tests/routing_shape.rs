@@ -66,13 +66,13 @@ fn routing_is_exhaustive_over_every_current_recovery_family() {
                 let _ = value.project(counters);
             }
             IntegrityAdmittedRecoveryArtifact::CurrentSelector(value) => {
-                let _ = value.project();
+                let _ = value.project_for_recovery(counters);
             }
             IntegrityAdmittedRecoveryArtifact::PreviousSelector(value) => {
-                let _ = value.project();
+                let _ = value.project_for_recovery(counters);
             }
             IntegrityAdmittedRecoveryArtifact::RootManifest(value) => {
-                let _ = value.project();
+                let _ = value.project_for_recovery(counters);
             }
             IntegrityAdmittedRecoveryArtifact::RootRoutingBlock(value) => {
                 let _ = value.project(counters);
@@ -93,7 +93,11 @@ fn routing_is_exhaustive_over_every_current_recovery_family() {
             }
             IntegrityAdmittedRecoveryArtifact::WalFrame(value) => {
                 let projection = value.project(counters);
-                let _ = (projection.redo.byte_count(), projection.redo.digest());
+                let _ = (
+                    projection.redo.byte_count(),
+                    projection.redo.digest(),
+                    projection.redo.interpret(1, counters),
+                );
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointStreamHeader(value) => {
                 let _ = value.project(counters);

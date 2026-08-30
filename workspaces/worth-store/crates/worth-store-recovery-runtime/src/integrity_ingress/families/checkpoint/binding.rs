@@ -50,6 +50,7 @@ impl<'media> IntegrityAdmittedCheckpointBinding<'media> {
         counters: &mut RecoveryIntegrityIngressCounters,
     ) -> CheckpointBindingProjection<'media> {
         counters.record_owner_projection();
+        counters.record_owner_decoder();
         let input = self
             .source
             .input()
@@ -68,6 +69,10 @@ impl<'media> IntegrityAdmittedCheckpointBinding<'media> {
 
     pub(crate) fn scope(&self) -> worth_store_physical_integrity::PhysicalArtifactScope {
         self.source.scope()
+    }
+
+    pub(in crate::integrity_ingress) const fn source(&self) -> &ObservedRecoverySource<'media> {
+        &self.source
     }
 }
 

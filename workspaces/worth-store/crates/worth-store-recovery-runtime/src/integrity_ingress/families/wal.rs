@@ -1,7 +1,11 @@
 use std::ffi::OsStr;
 
+use worth_store::physical_runtime::recovery_wal::{LogSequenceNumber, WalLsnRange};
 use worth_store_physical_format::{store_namespace::NamespaceEntryType, WalSegmentIdentity};
 use worth_store_physical_integrity::IntegrityValidatedWalFrame;
+use worth_store_recovery_physics::{
+    decode_physical_redo_records, PhysicalRedoPlanningDenial, PhysicalRedoRecord,
+};
 
 use super::super::admission::require_observed_wal_source;
 use super::super::{
@@ -28,6 +32,8 @@ pub(crate) struct WalFrameProjection<'view> {
 pub(crate) struct IntegrityAdmittedWalRedo<'media> {
     payload: &'media [u8],
     digest: [u8; 32],
+    lsn_start: u64,
+    lsn_end: u64,
 }
 
 impl IntegrityAdmittedWalRedo<'_> {
@@ -37,6 +43,20 @@ impl IntegrityAdmittedWalRedo<'_> {
 
     pub(crate) const fn digest(&self) -> [u8; 32] {
         self.digest
+    }
+
+    pub(crate) fn interpret(
+        &self,
+        maximum_targets: u64,
+        counters: &mut RecoveryIntegrityIngressCounters,
+    ) -> Result<Box<[PhysicalRedoRecord]>, PhysicalRedoPlanningDenial> {
+        counters.record_owner_decoder();
+        let range = WalLsnRange::new(
+            LogSequenceNumber::new(self.lsn_start),
+            LogSequenceNumber::new(self.lsn_end),
+        )
+        .map_err(|_| PhysicalRedoPlanningDenial::LsnRangeMismatch)?;
+        decode_physical_redo_records(self.payload, range, maximum_targets)
     }
 }
 
@@ -67,6 +87,8 @@ impl<'media> IntegrityAdmittedWalFrame<'media> {
             redo: IntegrityAdmittedWalRedo {
                 payload: self.validated.payload(),
                 digest: self.validated.payload_digest(),
+                lsn_start: self.validated.lsn_start(),
+                lsn_end: self.validated.lsn_end(),
             },
         }
     }

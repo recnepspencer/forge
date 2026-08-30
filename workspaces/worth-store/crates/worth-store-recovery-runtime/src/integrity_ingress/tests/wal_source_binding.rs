@@ -1,10 +1,17 @@
+use sha2::{Digest, Sha256};
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     FilesystemAccessPosture, FilesystemMediaAdmission, PhysicalRuntimeAdmission, PhysicalStore,
     QualifiedRecoveryFilesystemMedia,
 };
-use worth_store_physical_format::wal_frame::{
-    encode_wal_frame_v1, WalFrameV1EncodeRequest, WalSegmentIdentity,
+use worth_store_physical_format::{
+    wal_frame::{encode_wal_frame_v1, WalFrameV1EncodeRequest, WalSegmentIdentity},
+    CurrentPhysicalRecordPlacement, DurableInlineRecordPlacement, PersistedInlineSegmentAllocation,
+    PersistedPhysicalDataFrameSubject, PersistedPhysicalRecoveryFrame,
+    PersistedPhysicalRecoveryProjection, PersistedPhysicalRecoveryRootState,
+    PersistedRecordIdentity, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
+    PhysicalRecordSlot, PhysicalSegmentId, RecordArtifactFile, RecordFrameCoordinate,
+    RecordSegmentPageManifestEntry,
 };
 use worth_store_physical_integrity::{
     validate_wal_frame, PhysicalArtifactScope, PhysicalByteRange, UntrustedPhysicalArtifact,
@@ -33,15 +40,10 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
     let store = media.store_identity();
     let _ = media.close();
     let identity = WalSegmentIdentity::new(1, 2).unwrap();
+    let redo = canonical_redo_payload();
     let frame = encode_wal_frame_v1(
-        WalFrameV1EncodeRequest::from_segment_identity(
-            identity,
-            3,
-            4,
-            b"c9-ingress-wal",
-            b"typed-redo-payload",
-        )
-        .unwrap(),
+        WalFrameV1EncodeRequest::from_segment_identity(identity, 3, 4, b"c9-ingress-wal", &redo)
+            .unwrap(),
     );
     let wal = root.join("families").join("wal");
     std::fs::create_dir_all(&wal).unwrap();
@@ -82,11 +84,11 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
     assert_eq!((projection.lsn_start, projection.lsn_end), (3, 4));
     assert_eq!(projection.source_entry_type, observed[0].entry_type());
     assert_eq!(projection.source_name, observed[0].name());
-    assert_eq!(
-        projection.redo.byte_count(),
-        b"typed-redo-payload".len() as u64
-    );
+    assert_eq!(projection.redo.byte_count(), redo.len() as u64);
     assert_eq!(projection.redo.digest(), projection.payload_digest);
+    let records = projection.redo.interpret(1, &mut counters).unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].lsn().get(), 3);
 
     let validation = validate(&observed[0], frame_range, scope);
     let substituted = IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
@@ -126,7 +128,91 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
         (3, 1, 2)
     );
     assert_eq!(counters.owner_projection_entries, 1);
+    assert_eq!(counters.owner_decoder_entries, 1);
     drop(discovery.finish());
+}
+
+fn canonical_redo_payload() -> Vec<u8> {
+    let authority = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let segment = PhysicalSegmentId::from_raw(1).unwrap();
+    let page_cell = authority
+        .page_cell(segment, PhysicalPageId::from_raw(1).unwrap())
+        .with_page_generation(PhysicalGeneration::from_raw(1).unwrap());
+    let frame_bytes = vec![1; 8];
+    let coordinate = RecordFrameCoordinate::new(
+        RecordArtifactFile::Segment {
+            segment: 1,
+            generation: 1,
+        },
+        0,
+        frame_bytes.len() as u32,
+    )
+    .unwrap();
+    let frame = PersistedPhysicalRecoveryFrame::new(
+        PersistedPhysicalDataFrameSubject::InlinePage(page_cell),
+        coordinate,
+        &frame_bytes,
+    )
+    .unwrap();
+    let record = PersistedRecordIdentity::new([1; 16], 1).unwrap();
+    let slot = authority
+        .slot_cell(
+            segment,
+            page_cell.page_id(),
+            PhysicalRecordSlot::from_raw(1).unwrap(),
+        )
+        .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
+    let segment_cell = authority
+        .segment_cell(segment)
+        .with_segment_generation(PhysicalGeneration::from_raw(1).unwrap());
+    let placement =
+        DurableInlineRecordPlacement::new(record, segment_cell, page_cell, slot, 4, 4).unwrap();
+    let routing = RecordSegmentPageManifestEntry::new(page_cell, segment_cell, 1, 0).unwrap();
+    let projection = PersistedPhysicalRecoveryProjection::new(
+        1,
+        PersistedPhysicalRecoveryRootState::new(
+            4096,
+            1,
+            4,
+            vec![PersistedInlineSegmentAllocation::new(segment_cell, 4, 1).unwrap()],
+            Some(record),
+            Some(segment_cell),
+        )
+        .unwrap(),
+        vec![record],
+        vec![frame],
+        vec![CurrentPhysicalRecordPlacement::Inline(placement)],
+        vec![routing],
+        Vec::new(),
+    )
+    .unwrap();
+    let mut target = Vec::new();
+    target.push(1);
+    target.extend_from_slice(&1_u64.to_le_bytes());
+    target.extend_from_slice(&1_u64.to_le_bytes());
+    target.extend_from_slice(&1_u64.to_le_bytes());
+    target.push(5);
+    target.extend_from_slice(&1_u64.to_le_bytes());
+    target.extend_from_slice(&1_u64.to_le_bytes());
+    target.extend_from_slice(&0_u64.to_le_bytes());
+    target.extend_from_slice(&(frame_bytes.len() as u32).to_le_bytes());
+    let mut encoded = Vec::new();
+    encode_field(&mut encoded, b"store.physical.wal.canonical-redo.v3");
+    encoded.extend_from_slice(&1_u64.to_le_bytes());
+    encoded.extend_from_slice(&0_u32.to_le_bytes());
+    encoded.extend_from_slice(&3_u64.to_le_bytes());
+    encoded.extend_from_slice(&1_u64.to_le_bytes());
+    encode_field(&mut encoded, &target);
+    let digest: [u8; 32] = Sha256::digest(&frame_bytes).into();
+    encoded.extend_from_slice(&digest);
+    encode_field(&mut encoded, b"redo");
+    encode_field(&mut encoded, &projection.encode());
+    encoded
+}
+
+fn encode_field(target: &mut Vec<u8>, bytes: &[u8]) {
+    target.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+    target.extend_from_slice(bytes);
 }
 
 fn validate<'media>(

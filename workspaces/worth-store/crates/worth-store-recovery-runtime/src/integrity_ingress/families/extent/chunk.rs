@@ -43,6 +43,7 @@ impl<'media> IntegrityAdmittedExtentChunkFrame<'media> {
         counters: &mut RecoveryIntegrityIngressCounters,
     ) -> ExtentChunkProjection {
         counters.record_owner_projection();
+        counters.record_owner_decoder();
         let input = self
             .source
             .input()
