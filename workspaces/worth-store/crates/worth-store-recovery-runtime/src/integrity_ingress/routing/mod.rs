@@ -1,17 +1,24 @@
+mod absence;
+mod bootstrap;
 mod checkpoint;
-mod data;
-mod root_tree;
+mod extent;
+mod free_space;
+mod page;
+mod root;
+mod segment_membership;
 mod wal;
 
 use super::admitted_artifact::IntegrityAdmittedRecoveryArtifact;
 use super::observation::RecoveryIntegrityIngressObservation;
 use super::{RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection};
-use worth_store_physical_integrity::PhysicalArtifactScope;
+use worth_store_physical_integrity::{PhysicalArtifactScope, PhysicalIntegrityRejection};
 
 pub(crate) struct RecoveryIntegrityIngressAttempt<'media> {
     outcome: Result<IntegrityAdmittedRecoveryArtifact<'media>, RecoveryIntegrityIngressRejection>,
     observation: RecoveryIntegrityIngressObservation,
 }
+
+pub(crate) use absence::{observe_absent_recovery_artifact, observe_absent_wal_artifact};
 
 impl<'media> RecoveryIntegrityIngressAttempt<'media> {
     pub(crate) fn into_outcome(
@@ -35,4 +42,17 @@ fn recorded<'media>(
         outcome,
         observation,
     }
+}
+
+fn rejected_integrity<'media>(
+    expected_scope: PhysicalArtifactScope,
+    rejection: PhysicalIntegrityRejection,
+    counters: &mut RecoveryIntegrityIngressCounters,
+) -> RecoveryIntegrityIngressAttempt<'media> {
+    let rejection = if rejection.scope() == expected_scope {
+        RecoveryIntegrityIngressRejection::Integrity(rejection)
+    } else {
+        RecoveryIntegrityIngressRejection::ScopeMismatch
+    };
+    recorded(expected_scope, Err(rejection), counters)
 }

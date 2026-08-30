@@ -29,7 +29,9 @@ pub(crate) use root_protocol::{
     admit_addressed_root, admit_current_selector, admit_previous_selector,
 };
 #[allow(unused_imports)]
-pub(crate) use routing::RecoveryIntegrityIngressAttempt;
+pub(crate) use routing::{
+    observe_absent_recovery_artifact, observe_absent_wal_artifact, RecoveryIntegrityIngressAttempt,
+};
 use source::{ObservedRecoverySource, ObservedWalFrameSource};
 
 #[cfg(test)]

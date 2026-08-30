@@ -21,6 +21,23 @@ pub(crate) struct WalFrameProjection<'view> {
     pub lsn_end: u64,
     pub identity_digest: [u8; 32],
     pub payload_digest: [u8; 32],
+    pub redo: IntegrityAdmittedWalRedo<'view>,
+}
+
+/// Opaque, source-borrowed redo content. It deliberately exposes no byte slice.
+pub(crate) struct IntegrityAdmittedWalRedo<'media> {
+    payload: &'media [u8],
+    digest: [u8; 32],
+}
+
+impl IntegrityAdmittedWalRedo<'_> {
+    pub(crate) fn byte_count(&self) -> u64 {
+        self.payload.len() as u64
+    }
+
+    pub(crate) const fn digest(&self) -> [u8; 32] {
+        self.digest
+    }
 }
 
 impl<'media> IntegrityAdmittedWalFrame<'media> {
@@ -47,6 +64,10 @@ impl<'media> IntegrityAdmittedWalFrame<'media> {
             lsn_end: self.validated.lsn_end(),
             identity_digest: self.validated.identity_digest(),
             payload_digest: self.validated.payload_digest(),
+            redo: IntegrityAdmittedWalRedo {
+                payload: self.validated.payload(),
+                digest: self.validated.payload_digest(),
+            },
         }
     }
 

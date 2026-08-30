@@ -1,6 +1,6 @@
 use worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifactFamily;
 
-use super::super::IntegrityAdmittedRecoveryArtifact;
+use super::super::{IntegrityAdmittedRecoveryArtifact, RecoveryIntegrityIngressCounters};
 
 #[test]
 fn routing_is_exhaustive_over_every_current_recovery_family() {
@@ -56,4 +56,68 @@ fn routing_is_exhaustive_over_every_current_recovery_family() {
         }
     }
     let _ = family;
+
+    fn project(
+        artifact: IntegrityAdmittedRecoveryArtifact<'_>,
+        counters: &mut RecoveryIntegrityIngressCounters,
+    ) {
+        match artifact {
+            IntegrityAdmittedRecoveryArtifact::BootstrapCatalog(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::CurrentSelector(value) => {
+                let _ = value.project();
+            }
+            IntegrityAdmittedRecoveryArtifact::PreviousSelector(value) => {
+                let _ = value.project();
+            }
+            IntegrityAdmittedRecoveryArtifact::RootManifest(value) => {
+                let _ = value.project();
+            }
+            IntegrityAdmittedRecoveryArtifact::RootRoutingBlock(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::SegmentMembershipBlock(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::PageFrame(value) => {
+                let projection = value.project(counters);
+                let _ = (projection.page_lsn, projection.encoded_digest);
+            }
+            IntegrityAdmittedRecoveryArtifact::ExtentManifest(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::ExtentChunk(value) => {
+                let projection = value.project(counters);
+                let _ = (projection.page_lsn, projection.encoded_digest);
+            }
+            IntegrityAdmittedRecoveryArtifact::WalFrame(value) => {
+                let projection = value.project(counters);
+                let _ = (projection.redo.byte_count(), projection.redo.digest());
+            }
+            IntegrityAdmittedRecoveryArtifact::CheckpointStreamHeader(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::CheckpointDirtyBasis(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::CheckpointBindingCompaction(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::CheckpointBinding(value) => {
+                let projection = value.project(counters);
+                let _ = (projection.binding.byte_count(), projection.binding.digest());
+            }
+            IntegrityAdmittedRecoveryArtifact::CheckpointFooter(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::FreeSpaceHeader(value) => {
+                let _ = value.project(counters);
+            }
+            IntegrityAdmittedRecoveryArtifact::FreeSpaceMembershipBlock(value) => {
+                let _ = value.project(counters);
+            }
+        }
+    }
+    let _ = project;
 }

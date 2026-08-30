@@ -1,16 +1,22 @@
+use worth_proof::TransitionOutcome;
+use worth_store::physical_runtime::{
+    FilesystemAccessPosture, FilesystemMediaAdmission, PhysicalRuntimeAdmission, PhysicalStore,
+    QualifiedRecoveryFilesystemMedia,
+};
 use worth_store_physical_format::store_namespace::{
     ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
 };
 use worth_store_physical_format::PhysicalRecordFormatDeclaration;
 use worth_store_physical_integrity::{
-    IndeterminatePhysicalIntegrityCause, IndeterminatePhysicalIntegrityPosture,
-    PhysicalArtifactScope, PhysicalBlastRadius, PhysicalByteRange, PhysicalDamageCause,
-    PhysicalDamageLocalization, PhysicalIntegrityRejection, PhysicalIntegrityVersionAxis,
-    UnknownPhysicalIntegrityCause, UnknownPhysicalIntegrityPosture,
+    BootstrapCatalogIntegrityValidation, IndeterminatePhysicalIntegrityCause,
+    IndeterminatePhysicalIntegrityPosture, PhysicalArtifactScope, PhysicalBlastRadius,
+    PhysicalByteRange, PhysicalDamageCause, PhysicalDamageLocalization, PhysicalIntegrityRejection,
+    PhysicalIntegrityVersionAxis, UnknownPhysicalIntegrityCause, UnknownPhysicalIntegrityPosture,
     UnsupportedPhysicalIntegrityVersion,
 };
 
 use super::super::{
+    admitted_artifact::IntegrityAdmittedRecoveryArtifact, observe_absent_recovery_artifact,
     RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressObservation,
     RecoveryIntegrityIngressObservationOutcome, RecoveryIntegrityIngressRejection,
 };
@@ -41,19 +47,38 @@ fn counters_preserve_every_validator_and_binding_rejection_class() {
             IndeterminatePhysicalIntegrityCause::StableRangeNotProven,
             Some(scope.byte_range()),
         ));
-    let rejections = [
-        RecoveryIntegrityIngressRejection::Integrity(damage),
-        RecoveryIntegrityIngressRejection::Integrity(unsupported),
-        RecoveryIntegrityIngressRejection::Integrity(unknown),
-        RecoveryIntegrityIngressRejection::Integrity(indeterminate),
-        RecoveryIntegrityIngressRejection::Absent,
+    let rejections = [damage, unsupported, unknown, indeterminate];
+    let observed = observed_artifact();
+    let mut counters = RecoveryIntegrityIngressCounters::default();
+    for rejection in rejections {
+        let attempt = IntegrityAdmittedRecoveryArtifact::bind_bootstrap_catalog(
+            &observed,
+            scope,
+            BootstrapCatalogIntegrityValidation::Rejected(rejection),
+            &mut counters,
+        );
+        assert_eq!(
+            attempt.observation().outcome(),
+            RecoveryIntegrityIngressObservationOutcome::Rejected(
+                RecoveryIntegrityIngressRejection::Integrity(rejection)
+            )
+        );
+        assert_eq!(attempt.observation().scope(), scope);
+    }
+    let absent = observe_absent_recovery_artifact(&observed, scope, &mut counters);
+    assert_eq!(
+        absent.observation().outcome(),
+        RecoveryIntegrityIngressObservationOutcome::Rejected(
+            RecoveryIntegrityIngressRejection::Absent
+        )
+    );
+    let local_rejections = [
         RecoveryIntegrityIngressRejection::ConflictingDuplication {
             observed_sources: 2,
         },
         RecoveryIntegrityIngressRejection::ScopeMismatch,
     ];
-    let mut counters = RecoveryIntegrityIngressCounters::default();
-    for rejection in rejections {
+    for rejection in local_rejections {
         let observation = RecoveryIntegrityIngressObservation::rejected(scope, rejection);
         assert_eq!(
             observation.outcome(),
@@ -72,6 +97,29 @@ fn counters_preserve_every_validator_and_binding_rejection_class() {
     assert_eq!(counters.rejected_conflicting, 1);
     assert_eq!(counters.rejected_source_binding, 1);
     assert_eq!(counters.owner_projection_entries, 0);
+}
+
+fn observed_artifact() -> worth_store::physical_runtime::ObservedRecoveryArtifact {
+    let parent = tempfile::tempdir().expect("test parent");
+    let root = parent.path().join("ingress-rejection-observation");
+    let runtime =
+        PhysicalStore::admit(PhysicalRuntimeAdmission::new(root.clone()).expect("declared root"))
+            .expect("ordinary runtime admission");
+    let admission =
+        FilesystemMediaAdmission::production(FilesystemAccessPosture::CoordinatedServiceAccount);
+    let media = match runtime.try_admit_filesystem_media(admission).into_raw() {
+        TransitionOutcome::Success(media) => media,
+        _ => panic!("ordinary media initialization failed"),
+    };
+    let _ = media.close();
+    let media = QualifiedRecoveryFilesystemMedia::qualify_existing(&root)
+        .unwrap()
+        .admit_persisted_store()
+        .unwrap();
+    let mut discovery = media.bounded_discovery(1, 256).unwrap();
+    let observed = discovery.read_bootstrap_catalog(256).unwrap();
+    drop(discovery.finish());
+    observed
 }
 
 fn scope() -> PhysicalArtifactScope {

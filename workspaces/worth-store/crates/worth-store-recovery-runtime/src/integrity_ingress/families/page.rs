@@ -1,4 +1,8 @@
-use worth_store_physical_format::{PageGenerationCell, PhysicalRecordFormatDeclaration};
+use sha2::{Digest, Sha256};
+use worth_store_physical_format::{
+    decode_data_frame_page_lsn, DurableFrameKind, PageGenerationCell, PhysicalPageLsn,
+    PhysicalRecordFormatDeclaration,
+};
 use worth_store_physical_integrity::IntegrityValidatedPageFrame;
 
 use super::super::admission::require_observed_recovery_source;
@@ -16,6 +20,8 @@ pub(crate) struct PageFrameProjection {
     pub page_identity: PageGenerationCell,
     pub slot_count: u16,
     pub free_bytes: u32,
+    pub page_lsn: PhysicalPageLsn,
+    pub encoded_digest: [u8; 32],
 }
 
 impl<'media> IntegrityAdmittedPageFrame<'media> {
@@ -34,11 +40,18 @@ impl<'media> IntegrityAdmittedPageFrame<'media> {
         counters: &mut RecoveryIntegrityIngressCounters,
     ) -> PageFrameProjection {
         counters.record_owner_projection();
+        let input = self
+            .source
+            .input()
+            .expect("an admitted page retains its exact C.4 observation");
         PageFrameProjection {
             record_format: self.validated.record_format(),
             page_identity: self.validated.page_identity(),
             slot_count: self.validated.slot_count(),
             free_bytes: self.validated.free_bytes(),
+            page_lsn: decode_data_frame_page_lsn(input.bytes(), DurableFrameKind::InlinePage)
+                .expect("an intact Phase 4 page frame retains a decodable page LSN"),
+            encoded_digest: Sha256::digest(input.bytes()).into(),
         }
     }
 

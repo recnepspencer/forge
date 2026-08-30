@@ -42,7 +42,7 @@ impl<'media> ObservedWalFrameSource<'media> {
     pub(in crate::integrity_ingress) fn input(
         &self,
     ) -> Result<UntrustedPhysicalArtifact<'media>, RecoveryIntegrityIngressRejection> {
-        if self.relative_range.length() != self.scope.byte_range().length() {
+        if self.relative_range != self.scope.byte_range() {
             return Err(RecoveryIntegrityIngressRejection::ScopeMismatch);
         }
         let bytes = self

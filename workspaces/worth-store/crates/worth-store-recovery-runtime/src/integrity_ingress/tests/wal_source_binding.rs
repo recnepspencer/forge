@@ -45,8 +45,11 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
     );
     let wal = root.join("families").join("wal");
     std::fs::create_dir_all(&wal).unwrap();
-    std::fs::write(wal.join("a.wal"), &frame).unwrap();
-    std::fs::write(wal.join("b.wal"), &frame).unwrap();
+    let prefix = b"c4-prefix";
+    let mut wal_bytes = prefix.to_vec();
+    wal_bytes.extend_from_slice(&frame);
+    std::fs::write(wal.join("a.wal"), &wal_bytes).unwrap();
+    std::fs::write(wal.join("b.wal"), &wal_bytes).unwrap();
 
     let media = QualifiedRecoveryFilesystemMedia::qualify_existing(&root)
         .unwrap()
@@ -55,18 +58,15 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
     let mut discovery = media.bounded_discovery(4, 4096).unwrap();
     let observed = discovery.read_wal_artifacts(2, 4096).unwrap();
     assert_eq!(observed.len(), 2);
-    let scope = PhysicalArtifactScope::wal_frame(
-        store,
-        identity,
-        PhysicalByteRange::new(0, frame.len() as u64).unwrap(),
-    );
-    let frame_range = PhysicalByteRange::new(0, frame.len() as u64).unwrap();
-    let validated = validate(&observed[0], scope);
+    let frame_range = PhysicalByteRange::new(prefix.len() as u64, frame.len() as u64).unwrap();
+    let scope = PhysicalArtifactScope::wal_frame(store, identity, frame_range);
+    let validation = validate(&observed[0], frame_range, scope);
     let mut counters = RecoveryIntegrityIngressCounters::default();
     let admitted = IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
         &observed[0],
+        scope,
         frame_range,
-        validated,
+        validation,
         &mut counters,
     );
     assert_eq!(
@@ -82,12 +82,18 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
     assert_eq!((projection.lsn_start, projection.lsn_end), (3, 4));
     assert_eq!(projection.source_entry_type, observed[0].entry_type());
     assert_eq!(projection.source_name, observed[0].name());
+    assert_eq!(
+        projection.redo.byte_count(),
+        b"typed-redo-payload".len() as u64
+    );
+    assert_eq!(projection.redo.digest(), projection.payload_digest);
 
-    let validated = validate(&observed[0], scope);
+    let validation = validate(&observed[0], frame_range, scope);
     let substituted = IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
         &observed[1],
+        scope,
         frame_range,
-        validated,
+        validation,
         &mut counters,
     );
     assert_eq!(
@@ -97,17 +103,18 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
         )
     );
 
-    let validated = validate(&observed[0], scope);
+    let validation = validate(&observed[0], frame_range, scope);
     let shifted = IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
         &observed[0],
-        PhysicalByteRange::new(1, frame.len() as u64).unwrap(),
-        validated,
+        scope,
+        PhysicalByteRange::new(frame_range.offset() + 1, frame.len() as u64).unwrap(),
+        validation,
         &mut counters,
     );
     assert_eq!(
         shifted.observation().outcome(),
         RecoveryIntegrityIngressObservationOutcome::Rejected(
-            RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation
+            RecoveryIntegrityIngressRejection::ScopeMismatch
         )
     );
     assert_eq!(
@@ -124,16 +131,14 @@ fn wal_binding_retains_the_exact_c4_entry_and_frame_range() {
 
 fn validate<'media>(
     observed: &'media worth_store::physical_runtime::ObservedWalArtifact,
+    range: PhysicalByteRange,
     scope: PhysicalArtifactScope,
-) -> worth_store_physical_integrity::IntegrityValidatedWalFrame<'media> {
-    let input = UntrustedPhysicalArtifact::from_bounded_bytes(
-        observed
-            .bytes()
-            .expect("regular WAL entry has bounded bytes"),
-    );
-    let (validation, _) = validate_wal_frame(input, scope);
-    let WalFrameIntegrityValidation::Intact(validated) = validation else {
-        panic!("canonical WAL frame must validate")
-    };
-    validated
+) -> WalFrameIntegrityValidation<'media> {
+    let bytes = observed
+        .bytes()
+        .expect("regular WAL entry has bounded bytes");
+    let start = range.offset() as usize;
+    let end = range.end_exclusive() as usize;
+    let input = UntrustedPhysicalArtifact::from_bounded_bytes(&bytes[start..end]);
+    validate_wal_frame(input, scope).0
 }

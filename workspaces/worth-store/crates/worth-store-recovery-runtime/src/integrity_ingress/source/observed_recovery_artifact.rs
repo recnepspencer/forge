@@ -55,7 +55,7 @@ impl<'media> ObservedRecoverySource<'media> {
         let inspected = match self.selection {
             ObservationSelection::Complete => bytes,
             ObservationSelection::RelativeRange(range) => {
-                if range.length() != self.scope.byte_range().length() {
+                if range != self.scope.byte_range() {
                     return Err(RecoveryIntegrityIngressRejection::ScopeMismatch);
                 }
                 bounded_slice(bytes, range)?

@@ -9,12 +9,10 @@ use worth_store_physical_format::{
 };
 use worth_store_physical_integrity::{
     validate_bootstrap_catalog, validate_current_root_selector,
-    BootstrapCatalogIntegrityValidation, CurrentRootSelectorIntegrityValidation,
-    PhysicalArtifactScope, PhysicalByteRange,
+    CurrentRootSelectorIntegrityValidation, PhysicalArtifactScope, PhysicalByteRange,
 };
 
 use super::super::admitted_artifact::IntegrityAdmittedRecoveryArtifact;
-use super::super::families::root::admit_current_root_selector;
 use super::super::{
     ObservedRecoverySource, RecoveryIntegrityIngressCounters,
     RecoveryIntegrityIngressObservationOutcome, RecoveryIntegrityIngressRejection,
@@ -74,11 +72,12 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
         PhysicalByteRange::new(0, ROOT_SELECTOR_BYTES as u64).unwrap(),
     );
 
-    let validated = validate_selector(&source_a, selector_scope);
+    let validation = validate_selector(&source_a, selector_scope);
     let mut counters = RecoveryIntegrityIngressCounters::default();
     let admitted = IntegrityAdmittedRecoveryArtifact::bind_current_selector(
         &source_a,
-        validated,
+        selector_scope,
+        validation,
         &mut counters,
     );
     assert_eq!(
@@ -90,10 +89,11 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
         IntegrityAdmittedRecoveryArtifact::CurrentSelector(_)
     ));
 
-    let validated = validate_selector(&source_a, selector_scope);
+    let validation = validate_selector(&source_a, selector_scope);
     let substituted = IntegrityAdmittedRecoveryArtifact::bind_current_selector(
         &source_b,
-        validated,
+        selector_scope,
+        validation,
         &mut counters,
     );
     assert_eq!(
@@ -112,12 +112,10 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
         .input()
         .unwrap();
     let (validation, _) = validate_bootstrap_catalog(input, bootstrap_scope);
-    let BootstrapCatalogIntegrityValidation::Intact(validated) = validation else {
-        panic!("canonical bootstrap catalog must validate")
-    };
     let admitted = IntegrityAdmittedRecoveryArtifact::bind_bootstrap_catalog(
         &bootstrap_source,
-        validated,
+        bootstrap_scope,
+        validation,
         &mut counters,
     );
     let IntegrityAdmittedRecoveryArtifact::BootstrapCatalog(admitted) =
@@ -132,14 +130,17 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
     assert_eq!(counters.rejected_source_binding, 1);
     assert_eq!(counters.owner_projection_entries, 1);
 
-    let validated = validate_selector(&source_a, selector_scope);
+    let validation = validate_selector(&source_a, selector_scope);
     let wrong_scope =
         PhysicalArtifactScope::previous_root_selector(store, format, selector_scope.byte_range());
     assert!(matches!(
-        admit_current_root_selector(
-            ObservedRecoverySource::complete(&source_a, wrong_scope),
-            validated,
-        ),
+        IntegrityAdmittedRecoveryArtifact::bind_current_selector(
+            &source_a,
+            wrong_scope,
+            validation,
+            &mut counters,
+        )
+        .into_outcome(),
         Err(RecoveryIntegrityIngressRejection::ScopeMismatch)
     ));
     drop(discovery.finish());
@@ -148,13 +149,9 @@ fn exact_c4_incarnation_and_scope_gate_typed_projection() {
 fn validate_selector<'media>(
     source: &'media worth_store::physical_runtime::ObservedRecoveryArtifact,
     scope: PhysicalArtifactScope,
-) -> worth_store_physical_integrity::IntegrityValidatedCurrentRootSelector<'media> {
+) -> CurrentRootSelectorIntegrityValidation<'media> {
     let input = ObservedRecoverySource::complete(source, scope)
         .input()
         .expect("present selector");
-    let (validation, _) = validate_current_root_selector(input, scope);
-    let CurrentRootSelectorIntegrityValidation::Intact(validated) = validation else {
-        panic!("selector must validate")
-    };
-    validated
+    validate_current_root_selector(input, scope).0
 }

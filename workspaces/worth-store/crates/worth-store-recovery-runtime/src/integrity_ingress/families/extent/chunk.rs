@@ -1,6 +1,7 @@
+use sha2::{Digest, Sha256};
 use worth_store_physical_format::{
-    ExtentChunkCoordinate, PersistedRecordIdentity, PhysicalRecordFormatDeclaration,
-    RecordExtentGenerationCell,
+    decode_data_frame_page_lsn, DurableFrameKind, ExtentChunkCoordinate, PersistedRecordIdentity,
+    PhysicalPageLsn, PhysicalRecordFormatDeclaration, RecordExtentGenerationCell,
 };
 use worth_store_physical_integrity::IntegrityValidatedExtentChunkFrame;
 
@@ -22,6 +23,8 @@ pub(crate) struct ExtentChunkProjection {
     pub logical_bytes: u64,
     pub logical_offset: u64,
     pub ordinal: u32,
+    pub page_lsn: PhysicalPageLsn,
+    pub encoded_digest: [u8; 32],
 }
 
 impl<'media> IntegrityAdmittedExtentChunkFrame<'media> {
@@ -40,6 +43,10 @@ impl<'media> IntegrityAdmittedExtentChunkFrame<'media> {
         counters: &mut RecoveryIntegrityIngressCounters,
     ) -> ExtentChunkProjection {
         counters.record_owner_projection();
+        let input = self
+            .source
+            .input()
+            .expect("an admitted extent chunk retains its exact C.4 observation");
         ExtentChunkProjection {
             coordinate: self.validated.coordinate(),
             record: self.validated.record(),
@@ -48,6 +55,9 @@ impl<'media> IntegrityAdmittedExtentChunkFrame<'media> {
             logical_bytes: self.validated.logical_bytes(),
             logical_offset: self.validated.logical_offset(),
             ordinal: self.validated.ordinal(),
+            page_lsn: decode_data_frame_page_lsn(input.bytes(), DurableFrameKind::Extent)
+                .expect("an intact Phase 4 extent chunk retains a decodable page LSN"),
+            encoded_digest: Sha256::digest(input.bytes()).into(),
         }
     }
 

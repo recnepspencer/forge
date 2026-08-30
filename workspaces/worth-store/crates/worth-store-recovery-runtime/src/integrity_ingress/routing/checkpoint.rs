@@ -1,8 +1,8 @@
 use worth_store::physical_runtime::ObservedRecoveryArtifact;
 use worth_store_physical_integrity::{
-    IntegrityValidatedCheckpointBinding, IntegrityValidatedCheckpointBindingCompaction,
-    IntegrityValidatedCheckpointDirtyBasis, IntegrityValidatedCheckpointFooter,
-    IntegrityValidatedCheckpointStreamHeader, PhysicalByteRange,
+    CheckpointBindingCompactionIntegrityValidation, CheckpointBindingIntegrityValidation,
+    CheckpointDirtyBasisIntegrityValidation, CheckpointFooterIntegrityValidation,
+    CheckpointStreamHeaderIntegrityValidation, PhysicalArtifactScope, PhysicalByteRange,
 };
 
 use super::super::admitted_artifact::IntegrityAdmittedRecoveryArtifact;
@@ -12,26 +12,35 @@ use super::super::families::checkpoint::{
     IntegrityAdmittedCheckpointStreamHeader,
 };
 use super::super::{ObservedRecoverySource, RecoveryIntegrityIngressCounters};
-use super::{recorded, RecoveryIntegrityIngressAttempt};
+use super::{recorded, rejected_integrity, RecoveryIntegrityIngressAttempt};
 
 macro_rules! checkpoint_record_binding {
-    ($name:ident, $validated:ty, $wrapper:ty, $variant:ident) => {
+    ($name:ident, $validation:ident, $wrapper:ty, $variant:ident) => {
         pub(crate) fn $name(
             observed: &'media ObservedRecoveryArtifact,
+            expected_scope: PhysicalArtifactScope,
             relative_range: PhysicalByteRange,
-            validated: $validated,
+            validation: $validation<'media>,
             counters: &mut RecoveryIntegrityIngressCounters,
         ) -> RecoveryIntegrityIngressAttempt<'media> {
-            let scope = validated.scope();
-            recorded(
-                scope,
-                <$wrapper>::bind(
-                    ObservedRecoverySource::bounded_subrange(observed, scope, relative_range),
-                    validated,
-                )
-                .map(Self::$variant),
-                counters,
-            )
+            match validation {
+                $validation::Intact(validated) => recorded(
+                    expected_scope,
+                    <$wrapper>::bind(
+                        ObservedRecoverySource::bounded_subrange(
+                            observed,
+                            expected_scope,
+                            relative_range,
+                        ),
+                        validated,
+                    )
+                    .map(Self::$variant),
+                    counters,
+                ),
+                $validation::Rejected(rejection) => {
+                    rejected_integrity(expected_scope, rejection, counters)
+                }
+            }
         }
     };
 }
@@ -39,31 +48,31 @@ macro_rules! checkpoint_record_binding {
 impl<'media> IntegrityAdmittedRecoveryArtifact<'media> {
     checkpoint_record_binding!(
         bind_checkpoint_stream_header,
-        IntegrityValidatedCheckpointStreamHeader<'media>,
+        CheckpointStreamHeaderIntegrityValidation,
         IntegrityAdmittedCheckpointStreamHeader<'media>,
         CheckpointStreamHeader
     );
     checkpoint_record_binding!(
         bind_checkpoint_dirty_basis,
-        IntegrityValidatedCheckpointDirtyBasis<'media>,
+        CheckpointDirtyBasisIntegrityValidation,
         IntegrityAdmittedCheckpointDirtyBasis<'media>,
         CheckpointDirtyBasis
     );
     checkpoint_record_binding!(
         bind_checkpoint_binding_compaction,
-        IntegrityValidatedCheckpointBindingCompaction<'media>,
+        CheckpointBindingCompactionIntegrityValidation,
         IntegrityAdmittedCheckpointBindingCompaction<'media>,
         CheckpointBindingCompaction
     );
     checkpoint_record_binding!(
         bind_checkpoint_binding,
-        IntegrityValidatedCheckpointBinding<'media>,
+        CheckpointBindingIntegrityValidation,
         IntegrityAdmittedCheckpointBinding<'media>,
         CheckpointBinding
     );
     checkpoint_record_binding!(
         bind_checkpoint_footer,
-        IntegrityValidatedCheckpointFooter<'media>,
+        CheckpointFooterIntegrityValidation,
         IntegrityAdmittedCheckpointFooter<'media>,
         CheckpointFooter
     );
