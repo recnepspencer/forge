@@ -7,7 +7,7 @@ use worth_store_physical_integrity::{
     UntrustedPhysicalArtifact,
 };
 
-use super::support::{validated_manifest, ExtentFixture};
+use super::support::{record, validated_manifest, ExtentFixture};
 
 #[test]
 fn sealed_extent_chunk_projects_exact_payload_and_page_lsn() {
@@ -71,6 +71,52 @@ fn extent_projection_denies_foreign_incarnation_generation_and_ordinal() {
             )
             .unwrap_err(),
         ExtentChunkProjectionDenial::ExtentGenerationMismatch
+    );
+    assert_eq!(
+        validated
+            .project_chunk(
+                input,
+                ExtentChunkCoordinate::new(
+                    record(0x23, 7),
+                    fixture.extent,
+                    fixture.logical_bytes,
+                    exact.logical_offset(),
+                    exact.ordinal(),
+                )
+                .unwrap(),
+            )
+            .unwrap_err(),
+        ExtentChunkProjectionDenial::RecordIdentityMismatch
+    );
+    assert_eq!(
+        validated
+            .project_chunk(
+                input,
+                coordinate(
+                    fixture,
+                    extent_cell(fixture.extent.extent_id().get() + 1, 5),
+                    exact.logical_offset(),
+                    exact.ordinal(),
+                ),
+            )
+            .unwrap_err(),
+        ExtentChunkProjectionDenial::ExtentIdentityMismatch
+    );
+    assert_eq!(
+        validated
+            .project_chunk(
+                input,
+                ExtentChunkCoordinate::new(
+                    fixture.record,
+                    fixture.extent,
+                    fixture.logical_bytes + 1,
+                    exact.logical_offset(),
+                    exact.ordinal(),
+                )
+                .unwrap(),
+            )
+            .unwrap_err(),
+        ExtentChunkProjectionDenial::LogicalLengthMismatch
     );
     assert_eq!(
         validated

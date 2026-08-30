@@ -31,6 +31,24 @@ fn decode_checkpoint(
     let _ = decode_checkpoint_binding_record(projected);
 }
 
+fn page_has_no_raw_bytes(projected: IntegrityValidatedInlineRecordProjection<'_, '_>) {
+    let _: &[u8] = projected.bytes();
+}
+
+fn extent_has_no_raw_bytes(projected: IntegrityValidatedExtentChunkProjection<'_, '_>) {
+    let _: &[u8] = projected.bytes();
+}
+
+fn wal_has_no_raw_bytes(projected: IntegrityValidatedWalPayloadProjection<'_, '_>) {
+    let _: &[u8] = projected.bytes();
+}
+
+fn checkpoint_has_no_raw_bytes(
+    projected: IntegrityValidatedCheckpointBindingPayloadProjection<'_, '_>,
+) {
+    let _: &[u8] = projected.bytes();
+}
+
 fn escape_page<'view, 'media>(
     projected: IntegrityValidatedInlineRecordProjection<'view, 'media>,
 ) -> IntegrityValidatedInlineRecordProjection<'static, 'media> {
