@@ -52,11 +52,6 @@ The claim is false if:
 - cancellation is called no-effect after owner movement; or
 - existing `SignalRuntime` methods remain an ungoverned second mutation lane.
 
-## Corrective Boundary
-
-Relational needs basis/lifecycle ports; Signal needs independently borrowable
-services. Neither correction changes component meaning or ownership.
-
 ## Governing Ownership Decision
 
 | Truth or responsibility | Sole owner after this milestone | Explicit non-owner |
@@ -102,8 +97,8 @@ runtime method `owner_component_services()` issues one concrete, weak
 concrete ports. Lifecycle inspection returns descriptive
 `SignalOwnerLifecycleObservation::{Open, Closing, Closed}` without authority.
 
-Generic parameters follow the exposed capabilities; public types remain
-concrete Signal facade types, never consumer-defined erasure traits.
+Generic parameters follow capability bounds; public types remain concrete
+Signal facade types.
 
 The composition-capable issuance method exists only when the Signal runtime's
 captured definition, input, effect, transaction-value, and owner-state types
@@ -310,17 +305,20 @@ owner operation. No service adds an unbounded request queue.
 Ordinary work is target-local; fork adds source capture and bounded insertion,
 retirement adds retention accounting, and close uses bounded batches. Storage
 changes must preserve non-forking performance, not merely cheap fork counters.
-Before changing representation, freeze existing performance-profile workloads
-and budgets. Compare pre-milestone baseline and final release builds on identical
-hardware, features, ordering, warmup, and repetitions; isolate allocation probes.
-Measure elapsed distributions, allocation calls/bytes, peak live bytes, and
-structural work. Run the complete affected profile family. Neither stale goldens
-nor baseline regeneration may conceal a regression; apply existing budgets to
-the direct baseline comparison.
+Freeze workload setup (including preallocation), measured boundaries, warmups,
+repetitions, and budgets before refactoring. Compare complete affected
+families on pre-milestone and final release trees using identical harnesses,
+toolchains, hardware, effective configuration, and ordering. Record actual
+settings; isolate allocation probes from timing. Preserve workload assertions
+and absolute bounds alongside relative regression budgets. Stale goldens,
+regenerated baselines, partial captures, and selected successes cannot establish
+preservation; no aggregate may hide a failing case.
 
-Signal reports structural counts and installed capacities unless an existing
-owner-owned byte accountant measures the exact requested scope. This milestone
-must not invent an approximate total-memory byte claim for 9.17.2.
+Measure elapsed distributions, allocation calls/bytes, structural work, and scoped
+peak live bytes separately from end-live bytes. Peak means observed high-water
+mark, not end-live or cumulative allocations; missing instrumentation means
+unavailable, never zero. Byte claims require exact owner-owned accounting;
+scoped allocation is not total owner memory.
 
 The public diagnostic `SignalOwnerServiceCostSnapshot` exposes at least
 `owner_upgrade_attempts`, `branch_registry_lookups`,
