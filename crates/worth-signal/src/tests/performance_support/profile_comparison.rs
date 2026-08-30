@@ -125,15 +125,15 @@ pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: 
         );
     }
     assert_perf_regression_budget(
-        "legacy end live bytes median",
-        summary.legacy_end_live_bytes.median,
-        expected.legacy_end_live_bytes.median,
+        "end live bytes median",
+        summary.end_live_bytes.median,
+        expected.end_live_bytes.median,
         ALLOCATION,
     );
     assert_perf_regression_budget(
-        "legacy end live bytes max",
-        summary.legacy_end_live_bytes.max,
-        expected.legacy_end_live_bytes.max,
+        "end live bytes max",
+        summary.end_live_bytes.max,
+        expected.end_live_bytes.max,
         ALLOCATION,
     );
 
@@ -239,13 +239,66 @@ fn current_environment_fingerprint() -> PerfEnvironmentFingerprint {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::{json, Value};
+
+    use super::PerfCaseSummary;
+
     #[test]
-    fn legacy_end_live_name_preserves_the_checked_golden_schema() {
-        let baseline = super::load_baseline_file();
-        let summary = baseline.cases.values().next().expect("checked perf case");
-        assert!(summary.legacy_end_live_bytes.max > 0);
+    fn old_peak_key_is_decode_only_alias_for_end_live() {
+        let checked = super::load_baseline_file();
+        let checked_case = checked.cases.values().next().expect("checked perf case");
+        assert!(checked_case.end_live_bytes.max > 0);
+
+        let legacy = decode_summary(summary_json("peak_live_bytes", 41));
+        assert_eq!(legacy.end_live_bytes.median, 42);
+        assert_honest_encoding(&legacy, 42);
+
+        let honest = decode_summary(summary_json("end_live_bytes", 81));
+        assert_eq!(honest.end_live_bytes.median, 82);
+        assert_honest_encoding(&honest, 82);
+
+        let mut ambiguous = summary_json("end_live_bytes", 81);
+        ambiguous["peak_live_bytes"] = numeric_summary(41);
+        assert!(serde_json::from_value::<PerfCaseSummary>(ambiguous).is_err());
+    }
+
+    fn decode_summary(value: Value) -> PerfCaseSummary {
+        serde_json::from_value(value).expect("valid performance summary")
+    }
+
+    fn assert_honest_encoding(summary: &PerfCaseSummary, expected_median: u128) {
         let encoded = serde_json::to_value(summary).unwrap();
-        assert!(encoded.get("peak_live_bytes").is_some());
+        assert_eq!(
+            encoded["end_live_bytes"]["median"].as_u64(),
+            Some(expected_median as u64)
+        );
+        assert!(encoded.get("peak_live_bytes").is_none());
         assert!(encoded.get("legacy_end_live_bytes").is_none());
+    }
+
+    fn summary_json(end_live_key: &str, start: u128) -> Value {
+        let mut summary = json!({
+            "suite": "directional_contract",
+            "profile": "balanced",
+            "executor": "serial",
+            "sample_count": 5,
+            "elapsed_micros": numeric_summary(1),
+            "allocation_calls": numeric_summary(11),
+            "allocated_bytes": numeric_summary(21),
+            "access_counters": {},
+            "phase_metrics": {},
+        });
+        summary[end_live_key] = numeric_summary(start);
+        summary
+    }
+
+    fn numeric_summary(start: u128) -> Value {
+        json!({
+            "min": start,
+            "median": start + 1,
+            "p95": start + 2,
+            "p99": start + 3,
+            "max": start + 4,
+        })
     }
 }

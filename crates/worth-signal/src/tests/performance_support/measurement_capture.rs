@@ -115,8 +115,8 @@ pub(crate) struct PerfCaseSummary {
     #[serde(default)]
     pub(super) allocation_calls: Option<NumericSummary>,
     pub(super) allocated_bytes: NumericSummary,
-    #[serde(rename = "peak_live_bytes")]
-    pub(super) legacy_end_live_bytes: NumericSummary,
+    #[serde(alias = "peak_live_bytes")]
+    pub(super) end_live_bytes: NumericSummary,
     pub(super) access_counters: BTreeMap<String, NumericSummary>,
     #[serde(default)]
     pub(super) phase_metrics: BTreeMap<String, NumericSummary>,
@@ -219,7 +219,7 @@ pub(super) fn summarize_perf_samples(
         .iter()
         .map(|sample| numeric_metric(&sample.metrics, &["allocation_metrics", "allocation_calls"]))
         .collect::<Vec<_>>();
-    let legacy_end_live_bytes = samples
+    let end_live_bytes = samples
         .iter()
         .map(|sample| numeric_metric(&sample.metrics, &["allocation_metrics", "end_live_bytes"]))
         .collect::<Vec<_>>();
@@ -250,7 +250,7 @@ pub(super) fn summarize_perf_samples(
         elapsed_micros: summarize_u128(&elapsed),
         allocation_calls: Some(summarize_u128(&allocation_calls)),
         allocated_bytes: summarize_u128(&allocated_bytes),
-        legacy_end_live_bytes: summarize_u128(&legacy_end_live_bytes),
+        end_live_bytes: summarize_u128(&end_live_bytes),
         access_counters,
         phase_metrics,
     };
