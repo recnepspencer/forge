@@ -2,8 +2,8 @@ use worth_store_physical_format::store_namespace::StableStoreIdentity;
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPhysicalWorkObligation,
     IntegrityValidatedPreviousRootSelector, IntegrityValidatedRootManifest, PhysicalArtifactScope,
-    IntegrityValidatedPageFrame, PhysicalByteRange, PhysicalIntegrityValidationRecord,
-    UntrustedPhysicalArtifact,
+    IntegrityValidatedPageFrame, IntegrityValidatedWalFrame, PhysicalByteRange,
+    PhysicalIntegrityValidationRecord, UntrustedPhysicalArtifact,
 };
 
 fn main() {
@@ -73,6 +73,19 @@ fn valid_page<'media>(
     input: UntrustedPhysicalArtifact<'media>,
 ) -> PhysicalIntegrityValidationRecord {
     let scope = validated.scope();
+    let _same_incarnation = validated.matches_input(input);
+    let record = validated.into_validation_record();
+    let _same_scope = record.matches_scope(scope);
+    record
+}
+
+fn valid_wal<'media>(
+    validated: IntegrityValidatedWalFrame<'media>,
+    input: UntrustedPhysicalArtifact<'media>,
+) -> PhysicalIntegrityValidationRecord {
+    let scope = validated.scope();
+    let _identity = validated.segment_identity();
+    let _lsn_after_validation = (validated.lsn_start(), validated.lsn_end());
     let _same_incarnation = validated.matches_input(input);
     let record = validated.into_validation_record();
     let _same_scope = record.matches_scope(scope);

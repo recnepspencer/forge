@@ -21,3 +21,9 @@ help: there is a method `scope` with a similar name, but with different argument
    |
    |     pub const fn scope(&self) -> PhysicalArtifactScope {
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `with_wal_lsn_range` found for struct `PhysicalArtifactScope` in the current scope
+  --> tests/ui/scope_substitution.rs:18:19
+   |
+18 |     let _ = scope.with_wal_lsn_range(3, 4);
+   |                   ^^^^^^^^^^^^^^^^^^ method not found in `PhysicalArtifactScope`

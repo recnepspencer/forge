@@ -24,10 +24,14 @@ impl<'a> WalFrameV1EncodeRequest<'a> {
         declared_identity: &'a [u8],
         payload: &'a [u8],
     ) -> Result<Self, WalFrameV1Denial> {
-        let identity = match WalSegmentIdentity::new(segment_id, generation) {
-            Some(identity) => identity,
-            None => return Err(WalFrameV1Denial::InvalidIdentity),
-        };
+        if segment_id == 0 {
+            return Err(WalFrameV1Denial::InvalidSegmentIdentity);
+        }
+        if generation == 0 {
+            return Err(WalFrameV1Denial::InvalidGeneration);
+        }
+        let identity = WalSegmentIdentity::new(segment_id, generation)
+            .expect("nonzero WAL segment coordinates form canonical identity");
         if lsn_start >= lsn_end {
             return Err(WalFrameV1Denial::InvalidLsnRange);
         }

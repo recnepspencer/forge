@@ -53,3 +53,17 @@ note: function defined here
    |
  8 | fn requires_page(_: IntegrityValidatedPageFrame<'_>) {}
    |    ^^^^^^^^^^^^^ ----------------------------------
+
+error[E0308]: mismatched types
+  --> tests/ui/family_substitution.rs:27:22
+   |
+27 |     requires_current(wal);
+   |     ---------------- ^^^ expected `IntegrityValidatedCurrentRootSelector<'_>`, found `IntegrityValidatedWalFrame<'_>`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/ui/family_substitution.rs:6:4
+   |
+ 6 | fn requires_current(_: IntegrityValidatedCurrentRootSelector<'_>) {}
+   |    ^^^^^^^^^^^^^^^^ --------------------------------------------

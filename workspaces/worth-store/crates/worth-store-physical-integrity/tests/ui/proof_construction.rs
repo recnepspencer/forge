@@ -1,7 +1,7 @@
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
-    IntegrityValidatedRootManifest, PhysicalArtifactScope,
+    IntegrityValidatedRootManifest, IntegrityValidatedWalFrame, PhysicalArtifactScope,
 };
 
 fn forge_current(scope: PhysicalArtifactScope) {
@@ -34,6 +34,13 @@ fn forge_physical_work(scope: PhysicalArtifactScope) {
 
 fn forge_page(scope: PhysicalArtifactScope) {
     let _forged = IntegrityValidatedPageFrame {
+        scope,
+        inspected: todo!(),
+    };
+}
+
+fn forge_wal(scope: PhysicalArtifactScope) {
+    let _forged = IntegrityValidatedWalFrame {
         scope,
         inspected: todo!(),
     };

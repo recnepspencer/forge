@@ -114,3 +114,26 @@ warning: unreachable expression
    | |                    ------- any code following this expression is unreachable
 39 | |     };
    | |_____^ unreachable expression
+
+error: cannot construct `IntegrityValidatedWalFrame<'_>` with struct literal syntax due to private fields
+  --> tests/ui/proof_construction.rs:43:19
+   |
+43 |     let _forged = IntegrityValidatedWalFrame {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+44 |         scope,
+   |         ----- private field
+45 |         inspected: todo!(),
+   |         ------------------ private field
+   |
+   = note: ...and other private fields `lsn_start`, `lsn_end`, `identity_digest`, `payload_digest`, `payload` and `validation_record` that were not provided
+
+warning: unreachable expression
+  --> tests/ui/proof_construction.rs:43:19
+   |
+43 |       let _forged = IntegrityValidatedWalFrame {
+   |  ___________________^
+44 | |         scope,
+45 | |         inspected: todo!(),
+   | |                    ------- any code following this expression is unreachable
+46 | |     };
+   | |_____^ unreachable expression

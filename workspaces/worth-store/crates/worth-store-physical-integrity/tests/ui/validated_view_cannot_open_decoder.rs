@@ -1,11 +1,12 @@
 use worth_store_physical_format::physical_work_obligation::decode_physical_work_obligation_v6;
+use worth_store_physical_format::wal_frame::decode_bounded_wal_frame_v1;
 use worth_store_physical_format::{
     inspect_inline_page, DurablePhysicalRootManifest, DurableRootSelector,
 };
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
-    IntegrityValidatedRootManifest,
+    IntegrityValidatedRootManifest, IntegrityValidatedWalFrame,
 };
 
 fn decode_selector(validated: IntegrityValidatedCurrentRootSelector<'_>) {
@@ -26,6 +27,10 @@ fn decode_physical_work(validated: IntegrityValidatedPhysicalWorkObligation<'_>)
 
 fn decode_page(validated: IntegrityValidatedPageFrame<'_>) {
     let _ = inspect_inline_page(validated.record_format(), validated);
+}
+
+fn decode_wal(validated: IntegrityValidatedWalFrame<'_>) {
+    let _ = decode_bounded_wal_frame_v1(validated);
 }
 
 fn main() {}

@@ -16,7 +16,7 @@ pub use untrusted_artifact::UntrustedPhysicalArtifact;
 pub use validated::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPageFrame,
     IntegrityValidatedPhysicalWorkObligation, IntegrityValidatedPreviousRootSelector,
-    IntegrityValidatedRootManifest,
+    IntegrityValidatedRootManifest, IntegrityValidatedWalFrame,
 };
 pub use validation_record::{
     PhysicalIntegrityValidationDigest, PhysicalIntegrityValidationMechanism,

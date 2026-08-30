@@ -3,7 +3,13 @@ use sha2::{Digest, Sha256};
 use super::{WalFrameV1Denial, WalFrameV1Header, WAL_FRAME_V1_HEADER_BYTES};
 
 pub fn wal_frame_v1_declared_identity_digest(identity: &[u8]) -> [u8; 32] {
-    Sha256::digest(identity).into()
+    wal_frame_v1_validation_digest(identity)
+}
+
+/// SHA-256 mechanism used for WAL v1 validation evidence outside persisted
+/// fields, including exact-scope records in the runtime integrity owner.
+pub fn wal_frame_v1_validation_digest(bytes: &[u8]) -> [u8; 32] {
+    Sha256::digest(bytes).into()
 }
 
 /// Incremental WAL v1 checksum calculation for bounded streaming readers.
@@ -58,7 +64,14 @@ impl WalFrameV1ChecksumCalculator {
         self,
         header: WalFrameV1Header,
     ) -> Result<WalFrameV1CalculatedChecksums, WalFrameV1Denial> {
-        if self.observed_payload_bytes != header.payload_bytes() {
+        self.finish_for_payload_bytes(header.payload_bytes())
+    }
+
+    pub(super) fn finish_for_payload_bytes(
+        self,
+        expected_payload_bytes: u64,
+    ) -> Result<WalFrameV1CalculatedChecksums, WalFrameV1Denial> {
+        if self.observed_payload_bytes != expected_payload_bytes {
             return Err(WalFrameV1Denial::PayloadLengthMismatch);
         }
         Ok(WalFrameV1CalculatedChecksums {

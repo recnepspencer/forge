@@ -2,6 +2,7 @@ mod durable_frame_rejection;
 pub(crate) mod page;
 pub(crate) mod physical_work_obligation;
 pub(crate) mod root;
+mod wal_frame;
 
 pub use page::{validate_inline_page, InlinePageIntegrityValidation};
 pub use physical_work_obligation::{
@@ -12,3 +13,4 @@ pub use root::{
     CurrentRootSelectorIntegrityValidation, PreviousRootSelectorIntegrityValidation,
     RootManifestIntegrityValidation,
 };
+pub use wal_frame::{validate_wal_frame, WalFrameIntegrityValidation};

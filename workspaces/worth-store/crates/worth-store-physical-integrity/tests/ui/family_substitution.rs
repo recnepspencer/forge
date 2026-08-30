@@ -1,6 +1,6 @@
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPhysicalWorkObligation,
-    IntegrityValidatedPageFrame, IntegrityValidatedPreviousRootSelector,
+    IntegrityValidatedPageFrame, IntegrityValidatedPreviousRootSelector, IntegrityValidatedWalFrame,
 };
 
 fn requires_current(_: IntegrityValidatedCurrentRootSelector<'_>) {}
@@ -21,6 +21,10 @@ fn substitute_current(current: IntegrityValidatedCurrentRootSelector<'_>) {
 
 fn substitute_page(current: IntegrityValidatedCurrentRootSelector<'_>) {
     requires_page(current);
+}
+
+fn substitute_wal(wal: IntegrityValidatedWalFrame<'_>) {
+    requires_current(wal);
 }
 
 fn main() {}

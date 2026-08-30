@@ -2,8 +2,9 @@ mod support;
 
 use support::independent_sha256;
 use worth_store_physical_format::wal_frame::{
-    decode_wal_frame_v1_header, encode_wal_frame_v1, WalFrameV1ChecksumCalculator,
-    WalFrameV1EncodeRequest, WAL_FRAME_V1_FOOTER_BYTES, WAL_FRAME_V1_HEADER_BYTES,
+    decode_bounded_wal_frame_v1, decode_wal_frame_v1_header, encode_wal_frame_v1,
+    WalFrameV1BoundedDecodeDenial, WalFrameV1ChecksumCalculator, WalFrameV1EncodeRequest,
+    WAL_FRAME_V1_FOOTER_BYTES, WAL_FRAME_V1_HEADER_BYTES,
 };
 
 const HEADER_HEX: &str = "574f52544857414c0100740001000000000000000200000000000000030000000000000004000000000000000300000000000000d675c4a7b3dc55cebb3c413a084473b6e80a549d48106af3439bbdf5c76eb5768e1336ab78ebe687fd8056a37f2d3b0c32f4cf8fa8b691b653800fa693d570b9";
@@ -49,6 +50,33 @@ fn wal_frame_v1_matches_frozen_literal_and_independent_digests() {
     calculator.update_payload(&payload[1..]).unwrap();
     let footer: &[u8; 32] = expected_footer.as_slice().try_into().unwrap();
     calculator.finish(decoded, footer).unwrap();
+
+    let bounded = decode_bounded_wal_frame_v1(&expected_frame).unwrap();
+    assert_eq!(bounded.header(), decoded);
+    assert_eq!(bounded.payload(), payload);
+    assert_eq!(bounded.frame_digest().as_slice(), expected_footer);
+}
+
+#[test]
+fn bounded_decode_withholds_fields_when_declared_checksum_coverage_fails() {
+    let mut payload_damaged = literal(FRAME_HEX);
+    payload_damaged[WAL_FRAME_V1_HEADER_BYTES] ^= 1;
+    let denial = decode_bounded_wal_frame_v1(&payload_damaged).unwrap_err();
+    let WalFrameV1BoundedDecodeDenial::ChecksumMismatch(mismatch) = denial else {
+        panic!("covered payload mutation must fail checksum admission");
+    };
+    assert!(mismatch.payload_checksum());
+    assert!(mismatch.frame_checksum());
+
+    let complete = literal(FRAME_HEX);
+    let truncated = &complete[..150];
+    assert!(matches!(
+        decode_bounded_wal_frame_v1(truncated),
+        Err(WalFrameV1BoundedDecodeDenial::FrameLengthMismatch {
+            declared: 151,
+            observed: 150,
+        })
+    ));
 }
 
 fn literal(hex: &str) -> Vec<u8> {

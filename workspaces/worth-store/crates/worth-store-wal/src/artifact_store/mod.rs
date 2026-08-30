@@ -2,6 +2,7 @@
 mod append_planner;
 mod artifact_observation;
 mod exact_frontier_prefix;
+mod integrity_scope_adapter;
 mod inventory;
 mod offline_segment_verification;
 mod prefix_scan;
@@ -25,6 +26,7 @@ pub use exact_frontier_prefix::{
     inspect_wal_exact_frontier_prefix, WalExactFrontierPrefix, WalExactFrontierPrefixDenial,
     WalExactFrontierPrefixRequest,
 };
+pub use integrity_scope_adapter::wal_frame_integrity_scope_identity;
 pub use inventory::{
     WalArtifactInventory, WalArtifactInventoryIdentity, WalArtifactInventoryScan,
     WalArtifactObservation, WalArtifactObservationRead, WalArtifactScanCounters,
@@ -149,7 +151,8 @@ fn map_wal_frame_denial(
         WalFrameV1Denial::WrongMagic
         | WalFrameV1Denial::UnsupportedVersion(_)
         | WalFrameV1Denial::HeaderLengthMismatch(_)
-        | WalFrameV1Denial::InvalidIdentity
+        | WalFrameV1Denial::InvalidSegmentIdentity
+        | WalFrameV1Denial::InvalidGeneration
         | WalFrameV1Denial::InvalidLsnRange
         | WalFrameV1Denial::EmptyPayload
         | WalFrameV1Denial::PayloadLengthMismatch => WalArtifactStoreDenial::InvalidFrame,

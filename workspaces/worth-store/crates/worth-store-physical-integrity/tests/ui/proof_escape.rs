@@ -1,7 +1,7 @@
 use worth_store_physical_integrity::{
     IntegrityValidatedCurrentRootSelector, IntegrityValidatedPreviousRootSelector,
     IntegrityValidatedPageFrame, IntegrityValidatedPhysicalWorkObligation,
-    IntegrityValidatedRootManifest,
+    IntegrityValidatedRootManifest, IntegrityValidatedWalFrame,
 };
 
 fn escape_current<'media>(
@@ -31,6 +31,12 @@ fn escape_physical_work<'media>(
 fn escape_page<'media>(
     validation: IntegrityValidatedPageFrame<'media>,
 ) -> IntegrityValidatedPageFrame<'static> {
+    validation
+}
+
+fn escape_wal<'media>(
+    validation: IntegrityValidatedWalFrame<'media>,
+) -> IntegrityValidatedWalFrame<'static> {
     validation
 }
 

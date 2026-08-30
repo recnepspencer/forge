@@ -42,3 +42,12 @@ error: lifetime may not live long enough
 ...
 34 |     validation
    |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`
+
+error: lifetime may not live long enough
+  --> tests/ui/proof_escape.rs:40:5
+   |
+37 | fn escape_wal<'media>(
+   |               ------ lifetime `'media` defined here
+...
+40 |     validation
+   |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`

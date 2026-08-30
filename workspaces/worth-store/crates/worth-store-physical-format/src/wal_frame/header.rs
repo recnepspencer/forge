@@ -14,11 +14,23 @@ pub struct WalFrameV1Header {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct UnverifiedWalFrameV1Header {
+    segment_id: u64,
+    generation: u64,
+    lsn_start: u64,
+    lsn_end: u64,
+    payload_bytes: u64,
+    identity_digest: [u8; 32],
+    payload_digest: [u8; 32],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WalFrameV1Denial {
     WrongMagic,
     UnsupportedVersion(u16),
     HeaderLengthMismatch(u16),
-    InvalidIdentity,
+    InvalidSegmentIdentity,
+    InvalidGeneration,
     InvalidLsnRange,
     EmptyPayload,
     PayloadLengthMismatch,
@@ -28,6 +40,12 @@ pub enum WalFrameV1Denial {
 pub fn decode_wal_frame_v1_header(
     header: &[u8; WAL_FRAME_V1_HEADER_BYTES],
 ) -> Result<WalFrameV1Header, WalFrameV1Denial> {
+    decode_unverified_wal_frame_v1_header(header)?.admit()
+}
+
+pub(super) fn decode_unverified_wal_frame_v1_header(
+    header: &[u8; WAL_FRAME_V1_HEADER_BYTES],
+) -> Result<UnverifiedWalFrameV1Header, WalFrameV1Denial> {
     if &header[..8] != MAGIC {
         return Err(WalFrameV1Denial::WrongMagic);
     }
@@ -39,23 +57,50 @@ pub fn decode_wal_frame_v1_header(
     if header_bytes as usize != WAL_FRAME_V1_HEADER_BYTES {
         return Err(WalFrameV1Denial::HeaderLengthMismatch(header_bytes));
     }
-    let identity = WalSegmentIdentity::new(read_u64(header, 12), read_u64(header, 20))
-        .ok_or(WalFrameV1Denial::InvalidIdentity)?;
-    let value = WalFrameV1Header {
-        identity,
+    Ok(UnverifiedWalFrameV1Header {
+        segment_id: read_u64(header, 12),
+        generation: read_u64(header, 20),
         lsn_start: read_u64(header, 28),
         lsn_end: read_u64(header, 36),
         payload_bytes: read_u64(header, 44),
         identity_digest: header[52..84].try_into().expect("fixed identity digest"),
         payload_digest: header[84..116].try_into().expect("fixed payload digest"),
-    };
-    if value.lsn_start >= value.lsn_end {
-        return Err(WalFrameV1Denial::InvalidLsnRange);
+    })
+}
+
+impl UnverifiedWalFrameV1Header {
+    pub(super) fn admit(self) -> Result<WalFrameV1Header, WalFrameV1Denial> {
+        if self.segment_id == 0 {
+            return Err(WalFrameV1Denial::InvalidSegmentIdentity);
+        }
+        if self.generation == 0 {
+            return Err(WalFrameV1Denial::InvalidGeneration);
+        }
+        let identity = WalSegmentIdentity::new(self.segment_id, self.generation)
+            .expect("nonzero WAL segment coordinates form canonical identity");
+        if self.lsn_start >= self.lsn_end {
+            return Err(WalFrameV1Denial::InvalidLsnRange);
+        }
+        if self.payload_bytes == 0 {
+            return Err(WalFrameV1Denial::EmptyPayload);
+        }
+        Ok(WalFrameV1Header {
+            identity,
+            lsn_start: self.lsn_start,
+            lsn_end: self.lsn_end,
+            payload_bytes: self.payload_bytes,
+            identity_digest: self.identity_digest,
+            payload_digest: self.payload_digest,
+        })
     }
-    if value.payload_bytes == 0 {
-        return Err(WalFrameV1Denial::EmptyPayload);
+
+    pub(super) const fn payload_bytes(self) -> u64 {
+        self.payload_bytes
     }
-    Ok(value)
+
+    pub(super) const fn payload_digest(self) -> [u8; 32] {
+        self.payload_digest
+    }
 }
 
 impl WalFrameV1Header {

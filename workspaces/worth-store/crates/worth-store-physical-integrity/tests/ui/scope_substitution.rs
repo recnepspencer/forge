@@ -14,4 +14,8 @@ fn retarget_physical_work(
     let _ = validated.with_scope(other_scope);
 }
 
+fn invent_prevalidation_lsn(scope: PhysicalArtifactScope) {
+    let _ = scope.with_wal_lsn_range(3, 4);
+}
+
 fn main() {}
