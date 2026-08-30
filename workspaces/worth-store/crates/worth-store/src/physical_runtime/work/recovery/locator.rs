@@ -1,10 +1,10 @@
 use worth_store_physical_format::{
-    physical_work_obligation::decode_physical_work_obligation_v6,
     store_namespace::StableStoreIdentity, RecordArtifactFile, RecordFrameCoordinate,
 };
 
 use super::super::{PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition};
 use super::format_mapping::{operation_from_format, target_from_format};
+use super::integrity_admission::IntegrityAdmittedPhysicalWorkProjection;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkRecoveryTarget {
@@ -41,43 +41,6 @@ pub struct PhysicalWorkRecoveryLocator {
     recovery: PhysicalWorkRecoveryDisposition,
 }
 
-pub(super) fn decode_locator(
-    expected_store: StableStoreIdentity,
-    file_name: &str,
-    record: &[u8],
-) -> Option<PhysicalWorkRecoveryLocator> {
-    let decoded = decode_physical_work_obligation_v6(record).ok()?;
-    if decoded.store_identity() != expected_store.bytes() {
-        return None;
-    }
-    let family = operation_from_format(decoded.operation_code());
-    if matches!(
-        family,
-        PhysicalWorkOperationFamily::ArtifactMetadataRead
-            | PhysicalWorkOperationFamily::ArtifactRangeRead
-    ) {
-        return None;
-    }
-    let runtime = decoded.runtime();
-    let generation = decoded.generation();
-    let operation = decoded.operation();
-    let expected_name = format!("effect-{runtime:016x}-{generation:016x}-{operation:016x}.pending");
-    if file_name != expected_name {
-        return None;
-    }
-    let target = target_from_format(decoded.target())?;
-    Some(PhysicalWorkRecoveryLocator {
-        store: expected_store,
-        runtime,
-        generation,
-        operation,
-        family,
-        target,
-        payload_digest: decoded.payload_digest(),
-        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
-    })
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalCheckpointRecoveryAction {
     CreateCandidate { byte_count: u64 },
@@ -110,6 +73,30 @@ impl From<super::super::PhysicalCheckpointWorkAction> for PhysicalCheckpointReco
 }
 
 impl PhysicalWorkRecoveryLocator {
+    pub(super) fn from_integrity_admitted(
+        admitted: IntegrityAdmittedPhysicalWorkProjection,
+    ) -> Option<Self> {
+        let family = operation_from_format(admitted.operation());
+        if matches!(
+            family,
+            PhysicalWorkOperationFamily::ArtifactMetadataRead
+                | PhysicalWorkOperationFamily::ArtifactRangeRead
+        ) {
+            return None;
+        }
+        let identity = admitted.identity();
+        Some(Self {
+            store: admitted.scope().store_identity(),
+            runtime: identity.runtime().get(),
+            generation: identity.generation().get(),
+            operation: identity.operation().get(),
+            family,
+            target: target_from_format(admitted.target())?,
+            payload_digest: admitted.payload_digest(),
+            recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
+        })
+    }
+
     pub const fn store(self) -> StableStoreIdentity {
         self.store
     }

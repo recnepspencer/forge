@@ -6,7 +6,8 @@ use worth_store_physical_format::store_namespace::{
 
 use super::super::PhysicalWorkOperationFamily;
 use super::effect_obligation::encode_record;
-use super::locator::decode_locator;
+use super::integrity_admission::{admit_bounded_obligation, scope_from_pending_name};
+use super::observation::PhysicalWorkRecoveryAdmissionCounters;
 use super::PhysicalWorkRecoveryTarget;
 use crate::physical_runtime::work::{
     PhysicalOperationIdentity, PhysicalWorkGeneration, PhysicalWorkIdentity,
@@ -50,10 +51,16 @@ fn store_owner_mapping_reproduces_both_frozen_records_and_names() {
             identity.generation().lifecycle().get(),
             identity.operation().get(),
         );
-        let decoded = decode_locator(store, &name, &encoded).expect("Store mapping decodes");
+        let scope = scope_from_pending_name(store, &name).expect("pending name establishes scope");
+        let mut counters = PhysicalWorkRecoveryAdmissionCounters::default();
+        let decoded = admit_bounded_obligation(scope, &encoded, &mut counters)
+            .expect("integrity-admitted Store mapping projects");
         assert_eq!(decoded.family(), family);
         assert_eq!(decoded.target(), target);
         assert_eq!(decoded.payload_digest(), digest);
+        assert_eq!(counters.attempted(), 0);
+        assert_eq!(counters.admitted_count(), 1);
+        assert_eq!(counters.owner_interpretation_entries(), 1);
     }
 }
 

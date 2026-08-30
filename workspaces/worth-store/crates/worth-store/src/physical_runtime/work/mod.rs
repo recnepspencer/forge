@@ -78,6 +78,11 @@ pub use recovery::PhysicalCheckpointRecoveryAction;
 pub(in crate::physical_runtime) use recovery::{
     PhysicalEffectJournal, PhysicalEffectRecoveryInventory, PreparedPhysicalEffect,
 };
+pub use recovery::{
+    PhysicalWorkRecoveryAdmissionCounters, PhysicalWorkRecoveryAdmissionObservation,
+    PhysicalWorkRecoveryAdmissionOutcome, PhysicalWorkRecoveryIngressRejection,
+    PhysicalWorkRecoveryObservationSubject,
+};
 pub use recovery::{PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget};
 pub use request::{
     PhysicalMetadataReadWorkRequest, PhysicalMutationWorkRequest, PhysicalReadWorkRequest,
