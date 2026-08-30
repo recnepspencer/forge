@@ -54,10 +54,8 @@ The claim is false if:
 
 ## Corrective Boundary
 
-At milestone entry, Relational lacks basis/lifecycle ports beside its four
-existing services. Signal's exact bases, retention, outcomes, and branch-local
-engines still require whole-runtime mutation access. Neither gap authorizes
-changing component meaning or ownership.
+Relational needs basis/lifecycle ports; Signal needs independently borrowable
+services. Neither correction changes component meaning or ownership.
 
 ## Governing Ownership Decision
 
@@ -440,10 +438,8 @@ scripts/ci/
   run_signal_owner_service_selection.sh [create: fail zero-test named lanes]
 ```
 
-The final implementation may split a listed file when one semantic
-responsibility would exceed the repository line cap. It may not collapse the
-tree into `services.rs`, `helpers.rs`, `common.rs`, `util.rs`, or another
-catch-all module.
+Split files at semantic boundaries to meet the line cap; never collapse this
+tree into `services.rs`, `helpers.rs`, `common.rs`, `util.rs`, or catch-all modules.
 
 ## Dependency Enforcement
 
@@ -478,13 +474,13 @@ behavior or independent evidence, not placeholders or merge-only work. Contract
 defects return to one serial gate, never adapters, aliases, duplicate traits,
 or compatibility lanes.
 
-Each gate closes only its stated claim: inspect the integrated lane changes,
-run their affected proofs, and resolve material findings before dependents
-proceed. Stubs and internal-cell tests cannot certify public service completion.
+Each gate closes only its stated claim after integrated review and affected
+proofs pass. Stubs, private-cell tests, and worker summaries cannot certify
+public service completion; unresolved contract findings block dependents.
 
 ### Phase 1: Serial owner-contract gate
 
-- freeze exact Relational bundle names and Signal basis, mutation, lifecycle, owner-state, cell, denial, counter, and operation-control contracts;
+- freeze exact Relational bundle and Signal basis/mutation/lifecycle method signatures, owner/cell contracts, denials, counters, and operation-control seams;
 - create permanent shared vocabulary, feature/facade assembly, current fences,
   and exclusive shared-file ownership; and
 - assign subordinate roots, future source fences, and focused commands below.
@@ -552,6 +548,12 @@ only lane counts toward the two-to-four implementation lanes above.
 
 ## Test Evidence Architecture
 
+Owner-guide matrices enumerate every required method, receiver,
+input, outcome, and canonical owner before service implementation. Certification
+maps each row to named executable cases, including healthy and reachable denial
+postures. Derive rows from these contracts and inherited APIs, not implemented
+methods; omitted methods cannot disappear from the acceptance scope.
+
 Integration evidence follows the Relational Supply Chain and Query Bank courts:
 
 - the production side is causally compiled through
@@ -589,11 +591,10 @@ posture. Public observations expose semantic output values, branch identity,
 lifecycle incarnation, generation, and the structural counters relevant to the
 case. They do not expose private cells or turn diagnostics into authority.
 
-The pure `CargoRoutingSignalOracle` begins from separately authored semantic
-inputs and predicts each branch's outputs and generation/lifecycle transitions.
-The world compiler and oracle must not share a builder, transition function,
-comparison helper, or copied production representation. A case first proves
-the healthy baseline before applying its hostile change.
+`CargoRoutingSignalOracle` independently predicts outputs and generation/
+lifecycle transitions from semantic inputs. Compiler and oracle share no
+builder, transition, comparison helper, or production representation. Prove
+the healthy baseline before each hostile change.
 
 ## Required Owner-Service Scenario Families
 
@@ -626,7 +627,7 @@ families:
    effectful; prove that precondition with uncontended twins. Retention-blocked
    retirement is a separate typed-denial case. Losers preserve exact denial
    reasons; observers receive complete pre- or post-state, never mixed state.
-   Every race ends with a healthy follow-up.
+   Force both legal winner orderings; each ends with a healthy follow-up.
 5. **Legacy/port cutover:** interleave each remaining public
    `SignalRuntime` convenience operation with the corresponding port operation
    against one branch. Movement through either surface immediately stales the
@@ -636,11 +637,12 @@ families:
 6. **Fork and sharing:** prove a fork binds the exact source basis, receives a
    distinct owner-issued branch identity, and shares immutable graph structure.
    Capture/installation counters each increase once; copied mutable graph nodes
-   stay zero at every scale. Compare actual storage allocation identities and
-   prove fork allocation has no node-count slope. Mutate source and destination:
-   only the changed branch's oracle values move. Measure the first write too;
-   copying is bounded by the declared changed-state granule, never deferred
-   whole-graph cloning. An eager-copy twin must violate the allocation bound.
+   stay zero. Compare storage allocation identities and measure the whole public
+   call, including reservation and capture, not installation alone. Allocation
+   has no node-count slope. Mutate both branches: only the changed branch's
+   oracle values move. First-write copying obeys the declared changed-state
+   granule, never deferred whole-graph cloning. An eager-copy twin violates the
+   same allocation bound.
 7. **Cancellation cutoffs:** at every cancellable pre-movement boundary for
    advance, fork, restore, and retire, cancel and prove no canonical effect,
    released reservations, and an immediate healthy twin. At every
@@ -729,11 +731,11 @@ same public outcome, observation, counter, and cleanup posture as the ordinary
 binary. CI must fail if a command intended to select a required family executes
 zero cases or if a declared required test becomes ignored, renamed, or absent.
 
-Both selectors require explicit executable rosters for these milestone lanes;
-a merely nonempty family is insufficient. List and run identical targets,
-default-feature posture, features, filters, and ignored posture. The Signal
-selector must support `--no-default-features`; rosters are reviewed against the
-scenario matrix, never generated solely from whatever tests happen to exist.
+Both selectors require reviewed executable rosters derived from the scenario
+matrix, not discovered tests. List and run identical targets, default-feature
+posture, features, filters, and ignored posture; support `--no-default-features`.
+Parameterized families also assert completion of every required semantic case;
+one green test containing an empty or shortened loop is insufficient.
 
 The planned commands are:
 
@@ -775,17 +777,18 @@ truth, leaked capacity on any terminal path, diagnostic pressure denying a
 lawful mutation, owner clones hidden in ports, unarmed operation control
 changing behavior, or panic poisoning unrelated branches.
 
-Review may run targeted mutation probes, but this milestone does not create a
-mutation framework or a progressive proof ledger. Sensitivity comes from
-independent oracles, direct counters, hostile twins, and deliberate fault
-placement at the claimed boundary.
+Before closure, demonstrate sensitivity for global locking, omitted exact-basis
+comparison, fork copying, and cancellation erasing performed truth. Use targeted
+mutations or hostile twins reaching the disputed production boundary; setup or
+compilation failure is not conviction. Restore the correct implementation and
+rerun affected cases. No mutation framework or proof ledger is required.
 
 ## Structural Completion Review
 
-Passing tests is necessary and insufficient. An independent reviewer inspects
-the complete milestone diff, including earlier phase commits, not merely the
-last correction. Trace each required public operation from facade to canonical
-owner and its executable evidence. The review must establish:
+Passing tests is necessary and insufficient. A reviewer independent of the
+implementation inspects the complete milestone diff, including earlier phases,
+and reconciles the required method matrices with real facade-to-owner paths
+and executed cases. Worker approvals cannot substitute. Review must establish:
 
 - every pre-milestone public Signal branch observation, readmission, retention,
   fork, advance, snapshot, restoration, retirement, and owner-status entry point
@@ -814,31 +817,19 @@ rerun affected evidence; no permanent proof ledger or fingerprint system.
 
 ## Documentation Deliverables
 
-`crates/worth-relational/OWNER_COMPONENT_PORT.md` must replace its direct-runtime
-observation/retention/lifecycle guidance with the concrete bundle and preserve
-the four frozen publication-service contracts. It includes the complete six-
-port method/outcome table and identifies which compatibility methods delegate
-to each port.
+`crates/worth-relational/OWNER_COMPONENT_PORT.md` documents the concrete bundle,
+preserves the four frozen publication-service contracts, and maps all six
+ports' methods/outcomes to compatibility delegates.
 
-`crates/worth-signal/BRANCH_BASES.md` must be revised to show:
+`crates/worth-signal/BRANCH_BASES.md` preserves 9.17.1.1 meanings, shows basis
+observation/retention through `SignalBranchBasisPort`, and explains why Runtime
+World carries but cannot construct authority from descriptors or ids.
 
-- which closed 9.17.1.1 basis and retention meanings are unchanged;
-- how a basis is observed or retained through `SignalBranchBasisPort`;
-- why descriptors and ids are not authority; and
-- how Runtime World may carry but not construct the basis.
-
-`crates/worth-signal/OWNER_SERVICES.md` must explain:
-
-- owner-root and weak-port lifecycle;
-- the complete basis/mutation/lifecycle method, input, outcome, and receiver
-  matrix;
-- per-branch execution cells and lock ordering;
-- same-branch serialization versus cross-branch independence;
-- cancellation, panic, and owner-close postures;
-- operational capacity versus diagnostic omission and the exact public cost
-  counters;
-- runtime-context synchronous borrowing and non-retention; and
-- the exact service surface handed to 9.17.2.
+`crates/worth-signal/OWNER_SERVICES.md` owns the complete method/input/outcome/
+receiver matrix and 9.17.2 handoff. Explain weak-port/root lifecycle, cell lock
+ordering, same-branch serialization and unrelated progress, cancellation/panic/
+close, operational capacity versus diagnostic omission, exact cost counters,
+and synchronous runtime-context borrowing without retention.
 
 The executable example must create or obtain two admitted branches, issue the
 public ports, advance both branches without whole-runtime exclusive access,
@@ -911,10 +902,11 @@ Milestone 9.17.1.2 closes only when:
 
 Missing, skipped, timed-out, zero-selected, or unrun required evidence leaves
 the milestone open. Prior green revisions and phase summaries cannot close it;
-corrections invalidate affected results until rerun. Pre-existing failures are
-repository debt only when reproduced on the unchanged baseline and reviewed
-as outside the causal scope; never report them as passing. Closure states the
-verified revision, remaining debt, and residual risk without claiming certainty.
+corrections invalidate affected results until rerun. Baseline failures are debt
+only when reproduced unchanged and independently judged outside causal scope,
+never passing evidence. Closure names the integrated revision, exact commands/
+configurations and results, unresolved debt, and residual risk; neither test
+counts nor reviewer confidence constitutes a guarantee of completeness.
 
 ## Exact Handoff To Milestone 9.17.2
 
