@@ -132,6 +132,7 @@ ranged_route_contract!(
 );
 
 fn wal<'media>(
+    owner: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
     observed: &'media ObservedWalArtifact,
     expected_scope: PhysicalArtifactScope,
     relative_range: PhysicalByteRange,
@@ -139,6 +140,7 @@ fn wal<'media>(
     counters: &mut RecoveryIntegrityIngressCounters,
 ) -> RecoveryIntegrityIngressAttempt<'media> {
     IntegrityAdmittedRecoveryArtifact::bind_wal_frame(
+        owner,
         observed,
         expected_scope,
         relative_range,

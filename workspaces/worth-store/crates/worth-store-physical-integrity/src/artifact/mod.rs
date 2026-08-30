@@ -38,4 +38,4 @@ pub use root::{
 pub use segment_membership_block::{
     validate_segment_membership_block, SegmentMembershipBlockIntegrityValidation,
 };
-pub use wal_frame::{validate_wal_frame, WalFrameIntegrityValidation};
+pub use wal_frame::{validate_wal_frame, validate_wal_frame_prefix, WalFrameIntegrityValidation};

@@ -189,7 +189,7 @@ fn corrupt_wal_counts_scanned_separately_from_valid_and_retains_identity() {
         .source_denials
         .iter()
         .find_map(|denial| match denial {
-            PhysicalRecoverySourceDenial::WalArtifact(corruption) => Some(corruption),
+            PhysicalRecoverySourceDenial::WalIntegrity(corruption) => Some(corruption),
             _ => None,
         })
         .expect("corrupt canonical WAL must retain typed artifact evidence");
@@ -198,7 +198,7 @@ fn corrupt_wal_counts_scanned_separately_from_valid_and_retains_identity() {
         path.file_name().unwrap().to_string_lossy()
     );
     assert_eq!(corruption.identity().segment().get(), 1);
-    assert_eq!(format!("{:?}", corruption.denial()), "DigestMismatch");
+    assert!(format!("{:?}", corruption.rejection()).contains("ChecksumMismatch"));
 }
 
 #[test]

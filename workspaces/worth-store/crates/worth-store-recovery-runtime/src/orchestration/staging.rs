@@ -9,8 +9,8 @@ use crate::entry::{
 };
 use crate::handoff::RecoveryOperationFateSet;
 use crate::progression::{
-    PhysicalRecoveryDiscoveryCounters, RecoveryPublicationPlan, RecoveryQuiescencePlan,
-    RecoveryStagingLayoutPlan, StagedPhysicalRecovery,
+    PhysicalRecoveryDiscoveryCounters, RecoveryIntegrityEvidence, RecoveryPublicationPlan,
+    RecoveryQuiescencePlan, RecoveryStagingLayoutPlan, StagedPhysicalRecovery,
 };
 
 use super::RecoveryCoordination;
@@ -24,6 +24,7 @@ pub(crate) struct RecoveryStagingInput {
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery_counters: PhysicalRecoveryDiscoveryCounters,
     pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    pub(crate) integrity: RecoveryIntegrityEvidence,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning_counters: RecoveryPlanningCounters,
@@ -80,6 +81,7 @@ fn complete(
         input.selection,
         input.discovery_counters,
         input.root_protocol_denials,
+        input.integrity,
         input.freshness,
         input.fates,
         input.planning_counters,
@@ -112,6 +114,7 @@ fn block(
         PhysicalRecoveryBlockEvidence {
             counters: input.discovery_counters,
             source_denials: input.root_protocol_denials,
+            integrity_observations: input.integrity.into_observations(),
             planning_counters: Some(input.planning_counters),
             root_protocol_counters: Some(input.root_protocol_counters),
             staging_counters: Some(execution.counters),

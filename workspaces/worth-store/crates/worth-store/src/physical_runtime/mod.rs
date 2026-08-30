@@ -144,6 +144,11 @@ pub use integrity::{
     RebuildablePhysicalDerivedObservation, ResidentAdmissionCounters, RootProtocolAdmissionDenial,
     RootProtocolRouteCounters, UnknownDerivedRebuildability,
 };
+#[cfg(feature = "recovery-runtime-owner")]
+pub use integrity::{
+    IntegrityAdmittedRecoveryWalFrame, IntegrityAdmittedRecoveryWalSegment,
+    RecoveryWalIntegrityAdmissionDenial,
+};
 pub(in crate::physical_runtime) use integrity::{
     ResidentAdmissionCounterCells, RootProtocolRouteCounterCells,
 };

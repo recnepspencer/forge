@@ -6,9 +6,7 @@ use worth_store_physical_format::{
     store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity,
     PhysicalRecordFormatDeclaration, VerifiedCheckpointStream,
 };
-use worth_store_wal::{
-    LogSequenceNumber, VerifiedWalArtifact, WalLsnRange, WalSegmentArtifactIdentity,
-};
+use worth_store_wal::{LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity};
 
 use crate::physical_runtime::recovery_coordination::PhysicalRecoveryCleanupRemovalCommand;
 use crate::physical_runtime::{
@@ -64,7 +62,7 @@ pub struct StoreRecoveryCleanupFreshnessFailure {
 /// exact verified WAL facts, Store/session bindings, and the cleanup plan are
 /// bound together.
 pub(super) struct StoreRecoveryCleanupEligibility {
-    wal: VerifiedWalArtifact,
+    wal: crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment,
     removal: StoreRecoveryCleanupRemovalBasis,
 }
 

@@ -46,6 +46,11 @@ impl RecoveredPhysicalRuntimeHandoff {
     pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
         &self.evidence.root_protocol_denials
     }
+    pub fn wal_integrity_observations(
+        &self,
+    ) -> &[crate::entry::PhysicalRecoveryWalIntegrityObservation] {
+        self.evidence.integrity_observations.wal()
+    }
     pub const fn freshness_sample(
         &self,
     ) -> &worth_store::physical_runtime::StoreRecoveryBindingFreshnessSample {

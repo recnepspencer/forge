@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_format::VerifiedCheckpointStream;
-use worth_store_wal::{VerifiedWalArtifact, WalLsnRange, WalSegmentArtifactIdentity};
+use worth_store_wal::{WalLsnRange, WalSegmentArtifactIdentity};
 
 use crate::physical_runtime::{CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCoordination};
 
@@ -18,7 +18,7 @@ pub(super) struct CandidateAdmissionContext<'a> {
 }
 
 pub(super) struct PendingCandidate {
-    pub(super) wal: VerifiedWalArtifact,
+    pub(super) wal: crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment,
     pub(super) artifact: WalSegmentArtifactIdentity,
     pub(super) lsn_range: WalLsnRange,
     pub(super) byte_count: u64,
@@ -33,7 +33,7 @@ pub(super) struct AdmittedCandidates {
 
 pub(super) fn admit(
     context: CandidateAdmissionContext<'_>,
-    wal: impl IntoIterator<Item = VerifiedWalArtifact>,
+    wal: impl IntoIterator<Item = crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment>,
 ) -> Result<AdmittedCandidates, StoreRecoveryCleanupFreshnessFailure> {
     if context.descriptive_plan_identity == [0; 32] {
         return Err(invalid());

@@ -36,6 +36,7 @@ pub(crate) fn finish_recovery_after_cleanup(
                     selection: state.selection,
                     discovery: state.discovery_counters,
                     root_protocol_denials: state.root_protocol_denials,
+                    integrity_observations: state.integrity.into_observations(),
                     freshness: state.freshness,
                     fates: state.fates,
                     planning: state.planning_counters,
@@ -67,6 +68,7 @@ pub(crate) fn finish_recovery_after_cleanup(
                     recovery_effects,
                 )
                 .with_integrity_trace(state.integrity_trace)
+                .with_integrity_observations(state.integrity.into_observations())
                 .with_handoff_failure(denial),
             )
         }

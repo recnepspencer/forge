@@ -1,3 +1,9 @@
+error[E0432]: unresolved import `worth_store::physical_runtime::recovery_wal::VerifiedWalArtifact`
+ --> tests/ui/cleanup_fresh_reopen_cannot_be_reused.rs:6:5
+  |
+6 | use worth_store::physical_runtime::recovery_wal::VerifiedWalArtifact;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `VerifiedWalArtifact` in `physical_runtime::recovery_wal`
+
 error[E0308]: mismatched types
   --> tests/ui/cleanup_fresh_reopen_cannot_be_reused.rs:19:9
    |

@@ -1,10 +1,9 @@
-use worth_store::physical_runtime::{BoundedRecoveryFilesystemDiscovery, ObservedWalArtifact};
+use worth_store::physical_runtime::BoundedRecoveryFilesystemDiscovery;
 use worth_store_physical_format::{
     inspect_checkpoint_stream, PhysicalRecordFormatDeclaration, BOOTSTRAP_CATALOG_BYTES,
 };
 use worth_store_recovery_physics::{
-    inspect_physical_wal_artifacts, InspectedPhysicalWalArtifacts, PhysicalRecoveryResidue,
-    PhysicalRecoveryResidueKind, PhysicalRootSelectorDenial, PhysicalRootSlotObservation,
+    PhysicalRecoveryResidue, PhysicalRootSelectorDenial, PhysicalRootSlotObservation,
 };
 
 use crate::entry::{
@@ -19,6 +18,7 @@ use crate::progression::PhysicalRecoveryDiscoveryCounters;
 
 use super::super::manifest_facts::{observe_manifest_facts, ManifestObservationBudget};
 use super::super::ManifestFactsDiscovery;
+use super::wal::{discover_wal_inventory, WalDiscoveryInventoryDenial};
 use super::{
     discovery_limit, map_discovery_failure, BootstrapDiscovery, CheckpointDiscovery,
     DiscoveryFailure, WalDiscovery,
@@ -44,6 +44,7 @@ pub(super) struct ObservedSources {
 
 pub(super) fn observe_all(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
+    coordination: &super::super::RecoveryCoordination,
     limits: PhysicalRecoveryLimits,
     record_format: PhysicalRecordFormatDeclaration,
     counters: &mut PhysicalRecoveryDiscoveryCounters,
@@ -70,7 +71,7 @@ pub(super) fn observe_all(
         observe_checkpoint(discovery, limits).map_err(&preserve_manifest_observations)?;
     record_checkpoint_counters(counters, &checkpoint);
     let (wal, residue, wal_entries) =
-        observe_wal(discovery, limits).map_err(&preserve_manifest_observations)?;
+        observe_wal(discovery, coordination, limits).map_err(&preserve_manifest_observations)?;
     record_wal_counters(counters, &wal, &residue, wal_entries);
     if discovery.counters().bytes_read > declaration.observation_bytes {
         return Err(preserve_manifest_observations(discovery_limit(
@@ -279,6 +280,7 @@ fn observe_checkpoint(
 
 fn observe_wal(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
+    coordination: &super::super::RecoveryCoordination,
     limits: PhysicalRecoveryLimits,
 ) -> Result<(WalDiscovery, Vec<PhysicalRecoveryResidue>, u64), DiscoveryFailure> {
     let declaration = limits.declaration();
@@ -292,80 +294,51 @@ fn observe_wal(
             )
         })?;
     let wal_entries = observed.len() as u64;
-    let (regular, mut residue) = partition_wal_entries(observed);
-    let inspected =
-        inspect_physical_wal_artifacts(regular, declaration.wal_frames).map_err(|denial| {
-            match denial {
-            worth_store_recovery_physics::PhysicalWalArtifactInspectionDenial::CounterOverflow => {
-                DiscoveryFailure::from(PhysicalRecoveryBlock::DiscoveryLimit)
-            }
-            worth_store_recovery_physics::PhysicalWalArtifactInspectionDenial::FrameLimitExceeded {
-                observed,
-                admitted,
-            } => discovery_limit(
-                PhysicalRecoveryLimitDimension::WalFrames,
-                observed,
-                admitted,
-            ),
+    let inspected = discover_wal_inventory(
+        coordination.owner(),
+        observed,
+        discovery.store_identity(),
+        declaration.wal_frames,
+    )
+    .map_err(|denial| match denial {
+        WalDiscoveryInventoryDenial::CounterOverflow => {
+            DiscoveryFailure::from(PhysicalRecoveryBlock::DiscoveryLimit)
         }
-        })?;
-    validate_wal_limits(&inspected, limits)?;
-    residue.extend_from_slice(inspected.residue());
-    Ok((wal_discovery(inspected), residue, wal_entries))
-}
-
-fn partition_wal_entries(
-    observed: Vec<ObservedWalArtifact>,
-) -> (Vec<(String, Vec<u8>)>, Vec<PhysicalRecoveryResidue>) {
-    let mut regular = Vec::new();
-    let mut residue = Vec::new();
-    for artifact in observed {
-        let name = artifact.name().to_string_lossy().into_owned();
-        if artifact.entry_type()
-            != worth_store_physical_format::store_namespace::NamespaceEntryType::RegularFile
-        {
-            residue.push(PhysicalRecoveryResidue::new(
-                name,
-                PhysicalRecoveryResidueKind::NonRegularWalEntry,
-            ));
-            continue;
+        WalDiscoveryInventoryDenial::FrameLimitExceeded { observed, admitted } => discovery_limit(
+            PhysicalRecoveryLimitDimension::WalFrames,
+            observed,
+            admitted,
+        ),
+        WalDiscoveryInventoryDenial::SourceBinding => {
+            DiscoveryFailure::from(PhysicalRecoveryBlock::WalInventory)
         }
-        regular.push((name, artifact.bytes().unwrap_or_default().to_vec()));
-    }
-    (regular, residue)
-}
-
-fn validate_wal_limits(
-    inspected: &InspectedPhysicalWalArtifacts,
-    limits: PhysicalRecoveryLimits,
-) -> Result<(), DiscoveryFailure> {
-    let declaration = limits.declaration();
-    let wal_frames = inspected.frames_scanned();
-    let wal_bytes = inspected.byte_count();
-    if wal_bytes > declaration.wal_bytes {
+    })?;
+    if inspected.observed_bytes > declaration.wal_bytes {
         return Err(discovery_limit(
             PhysicalRecoveryLimitDimension::WalBytes,
-            wal_bytes,
+            inspected.observed_bytes,
             declaration.wal_bytes,
         ));
     }
-    debug_assert!(wal_frames <= declaration.wal_frames);
-    Ok(())
-}
-
-fn wal_discovery(inspected: InspectedPhysicalWalArtifacts) -> WalDiscovery {
-    WalDiscovery {
-        candidates: inspected.candidates().to_vec(),
-        rejected: inspected.rejected(),
-        scanned_frames: inspected.frames_scanned(),
-        valid_frames: inspected.frame_count(),
-        valid_bytes: inspected.valid_byte_count(),
-        observed_bytes: inspected.byte_count(),
-        torn_suffix_frames: inspected.torn_suffix_frames(),
-        torn_suffix_bytes: inspected.torn_suffix_bytes(),
-        corruption_denials: inspected.corruption_denials(),
-        scanned_segments: inspected.canonical_segment_count(),
-        valid_segments: inspected.valid_segment_count(),
-        corruptions: inspected.corruptions().to_vec(),
-    }
+    debug_assert!(inspected.frames_scanned <= declaration.wal_frames);
+    let mut residue = inspected.residue;
+    let valid_segments = inspected.candidates.len() as u64;
+    let wal = WalDiscovery {
+        rejected: !inspected.corruptions.is_empty(),
+        candidates: inspected.candidates,
+        admitted: inspected.admitted,
+        integrity_observations: inspected.observations,
+        integrity_ingress: inspected.ingress,
+        scanned_frames: inspected.frames_scanned,
+        valid_frames: inspected.valid_frames,
+        valid_bytes: inspected.valid_bytes,
+        observed_bytes: inspected.observed_bytes,
+        torn_suffix_frames: inspected.torn_suffix_frames,
+        torn_suffix_bytes: inspected.torn_suffix_bytes,
+        corruption_denials: inspected.corruptions.len() as u64,
+        scanned_segments: inspected.canonical_segments,
+        valid_segments,
+        corruptions: inspected.corruptions,
+    };
+    Ok((wal, std::mem::take(&mut residue), wal_entries))
 }

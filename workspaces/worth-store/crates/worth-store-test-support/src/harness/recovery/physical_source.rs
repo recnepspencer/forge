@@ -199,7 +199,16 @@ fn wal_tail(frontier: u64) -> worth_store_recovery_physics::SelectedPhysicalWalT
         .inspection();
     admit_physical_wal_tail(
         frontier,
-        vec![PhysicalWalSegmentCandidate::verified(inspection, None)],
+        vec![PhysicalWalSegmentCandidate::from_frame_facts(
+            inspection,
+            None,
+            vec![worth_store_recovery_physics::PhysicalWalFrameFacts::new(
+                inspection.lsn_range(),
+                inspection.byte_count(),
+            )
+            .unwrap()],
+        )
+        .unwrap()],
     )
     .unwrap()
 }

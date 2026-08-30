@@ -1,5 +1,7 @@
 mod diagnostics;
 mod disposition;
+#[cfg(feature = "recovery-runtime-owner")]
+mod recovery_wal_admission;
 #[allow(
     dead_code,
     reason = "Wave A establishes family cutover seams before record-serving consumers move"
@@ -33,6 +35,11 @@ pub(in crate::physical_runtime) use resident_admission::extent::{
 pub(in crate::physical_runtime) use resident_admission::load::ResidentAdmissionContext;
 pub(in crate::physical_runtime) use resident_admission::page::{
     admit_resident_page, IntegrityAdmittedResidentPageBasis,
+};
+#[cfg(feature = "recovery-runtime-owner")]
+pub use recovery_wal_admission::{
+    IntegrityAdmittedRecoveryWalFrame, IntegrityAdmittedRecoveryWalSegment,
+    RecoveryWalIntegrityAdmissionDenial,
 };
 pub use root_protocol_admission_denial::RootProtocolAdmissionDenial;
 pub(in crate::physical_runtime) use scrub::{

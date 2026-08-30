@@ -18,6 +18,7 @@ pub(crate) struct RecoveredPhysicalRuntimeHandoffEvidence {
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery: PhysicalRecoveryDiscoveryCounters,
     pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    pub(crate) integrity_observations: crate::entry::PhysicalRecoveryIntegrityObservations,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning: RecoveryPlanningCounters,

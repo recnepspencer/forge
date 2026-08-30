@@ -10,8 +10,8 @@ use crate::handoff::RecoveryOperationFateSet;
 use crate::orchestration::RecoveryCoordination;
 
 use super::{
-    PhysicalRecoveryDiscoveryCounters, RecoveryBaseImagePlan, RecoveryPublicationPlan,
-    RecoveryQuiescencePlan,
+    PhysicalRecoveryDiscoveryCounters, RecoveryBaseImagePlan, RecoveryIntegrityEvidence,
+    RecoveryPublicationPlan, RecoveryQuiescencePlan,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,6 +28,7 @@ pub struct StagedPhysicalRecovery {
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery_counters: PhysicalRecoveryDiscoveryCounters,
     pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    pub(crate) integrity: RecoveryIntegrityEvidence,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning_counters: RecoveryPlanningCounters,
@@ -49,6 +50,7 @@ impl StagedPhysicalRecovery {
         selection: PhysicalSourceSelection,
         discovery_counters: PhysicalRecoveryDiscoveryCounters,
         root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+        integrity: RecoveryIntegrityEvidence,
         freshness: StoreRecoveryBindingFreshnessSample,
         fates: RecoveryOperationFateSet,
         planning_counters: RecoveryPlanningCounters,
@@ -67,6 +69,7 @@ impl StagedPhysicalRecovery {
             selection,
             discovery_counters,
             root_protocol_denials,
+            integrity,
             freshness,
             fates,
             planning_counters,
@@ -110,6 +113,11 @@ impl StagedPhysicalRecovery {
     }
     pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
         &self.root_protocol_denials
+    }
+    pub fn wal_integrity_observations(
+        &self,
+    ) -> &[crate::entry::PhysicalRecoveryWalIntegrityObservation] {
+        self.integrity.observations().wal()
     }
     pub const fn freshness_sample(&self) -> &StoreRecoveryBindingFreshnessSample {
         &self.freshness
@@ -162,6 +170,7 @@ impl StagedPhysicalRecovery {
         let Self {
             authority,
             coordination,
+            integrity,
             discovery_counters,
             root_protocol_denials,
             planning_counters,
@@ -185,6 +194,7 @@ impl StagedPhysicalRecovery {
             crate::entry::PhysicalRecoveryBlockEvidence {
                 counters: discovery_counters,
                 source_denials: root_protocol_denials,
+                integrity_observations: integrity.into_observations(),
                 planning_counters: Some(planning_counters),
                 root_protocol_counters: Some(root_protocol_counters),
                 staging_counters: Some(staging_counters),

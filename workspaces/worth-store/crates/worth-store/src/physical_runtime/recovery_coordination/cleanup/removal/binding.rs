@@ -28,7 +28,7 @@ pub(super) fn effect(
     command: &PhysicalRecoveryCleanupRemovalCommand,
     work: crate::physical_runtime::PhysicalWorkIdentity,
 ) -> CleanupEffectBinding {
-    let inspection = command.verified_wal.inspection();
+    let inspection = command.admitted_wal.inspection();
     #[cfg(feature = "certification-test-authority")]
     let artifact_generation =
         if _coordination.take_certification_cleanup_authorization_substitution() {
@@ -93,7 +93,7 @@ pub(super) fn matches(
     selector: worth_store_physical_format::DurableRootSelector,
     root: worth_store_physical_format::DurablePhysicalRootManifest,
 ) -> bool {
-    let inspection = command.verified_wal.inspection();
+    let inspection = command.admitted_wal.inspection();
     binding.store == command.store.bytes()
         && selector.store_identity() == command.store
         && selector.root_generation() == command.published_generation

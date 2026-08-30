@@ -96,7 +96,7 @@ fn routing_is_exhaustive_over_every_current_recovery_family() {
                 let _ = (
                     projection.redo.byte_count(),
                     projection.redo.digest(),
-                    projection.redo.interpret(1, counters),
+                    projection.redo.admitted_frame().lsn_range(),
                 );
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointStreamHeader(value) => {

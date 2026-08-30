@@ -76,6 +76,11 @@ impl ReopenedPhysicalRecovery {
     pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
         &self.state.root_protocol_denials
     }
+    pub fn wal_integrity_observations(
+        &self,
+    ) -> &[crate::entry::PhysicalRecoveryWalIntegrityObservation] {
+        self.state.integrity.observations().wal()
+    }
     pub const fn planning_counters(&self) -> RecoveryPlanningCounters {
         self.state.planning_counters
     }

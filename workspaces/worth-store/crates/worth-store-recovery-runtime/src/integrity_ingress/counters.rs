@@ -57,6 +57,34 @@ impl RecoveryIntegrityIngressCounters {
         }
     }
 
+    pub(crate) fn checked_add(self, other: Self) -> Option<Self> {
+        Some(Self {
+            attempted: self.attempted.checked_add(other.attempted)?,
+            admitted: self.admitted.checked_add(other.admitted)?,
+            rejected_damaged: self.rejected_damaged.checked_add(other.rejected_damaged)?,
+            rejected_unsupported: self
+                .rejected_unsupported
+                .checked_add(other.rejected_unsupported)?,
+            rejected_unknown: self.rejected_unknown.checked_add(other.rejected_unknown)?,
+            rejected_indeterminate: self
+                .rejected_indeterminate
+                .checked_add(other.rejected_indeterminate)?,
+            rejected_absent: self.rejected_absent.checked_add(other.rejected_absent)?,
+            rejected_conflicting: self
+                .rejected_conflicting
+                .checked_add(other.rejected_conflicting)?,
+            rejected_source_binding: self
+                .rejected_source_binding
+                .checked_add(other.rejected_source_binding)?,
+            owner_projection_entries: self
+                .owner_projection_entries
+                .checked_add(other.owner_projection_entries)?,
+            owner_decoder_entries: self
+                .owner_decoder_entries
+                .checked_add(other.owner_decoder_entries)?,
+        })
+    }
+
     pub(super) fn record(&mut self, observation: RecoveryIntegrityIngressObservation) {
         self.attempted += 1;
         match observation.outcome() {

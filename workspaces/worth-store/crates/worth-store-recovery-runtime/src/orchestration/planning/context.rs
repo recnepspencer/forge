@@ -9,7 +9,9 @@ use crate::entry::{
     PhysicalRecoveryRootProtocolArtifact, PhysicalRecoveryRootProtocolDenial,
     PhysicalRecoverySourceDenial,
 };
-use crate::progression::{PhysicalRecoveryDiscoveryCounters, SelectedPhysicalRecovery};
+use crate::progression::{
+    PhysicalRecoveryDiscoveryCounters, RecoveryIntegrityEvidence, SelectedPhysicalRecovery,
+};
 
 use super::super::RecoveryCoordination;
 use super::denial::{
@@ -20,6 +22,7 @@ pub(super) struct PlanningContext {
     pub(super) authority: AdmittedPlatformAuthority,
     pub(super) coordination: RecoveryCoordination,
     pub(super) selection: PhysicalSourceSelection,
+    pub(super) integrity: RecoveryIntegrityEvidence,
     pub(super) counters: PhysicalRecoveryDiscoveryCounters,
     pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(super) root_protocol_counters: crate::entry::PhysicalRecoveryRootProtocolCounters,
@@ -30,7 +33,7 @@ pub(super) struct PlanningContext {
 
 impl PlanningContext {
     pub(super) fn from_selected(selected: SelectedPhysicalRecovery) -> Self {
-        let (authority, coordination, selection, counters, root_protocol_denials, integrity_trace) =
+        let (authority, coordination, selection, integrity, counters, root_protocol_denials, integrity_trace) =
             selected.into_parts();
         let limits = authority.limits.declaration();
         let effects_before = authority.media.recovery_effect_count();
@@ -38,6 +41,7 @@ impl PlanningContext {
             authority,
             coordination,
             selection,
+            integrity,
             counters,
             root_protocol_denials,
             root_protocol_counters: Default::default(),

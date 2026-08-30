@@ -3,6 +3,7 @@ mod authority;
 mod authority_binding;
 mod configuration;
 mod counters;
+mod integrity_observations;
 mod limits;
 mod outcome;
 mod publication;
@@ -18,6 +19,10 @@ pub use authority::{PhysicalRecoveryPlatformAdmissionError, PhysicalRecoveryPlat
 pub use authority_binding::PhysicalRecoveryEntryBindingDrift;
 pub use configuration::PhysicalRecoveryStaticConfiguration;
 pub use counters::PhysicalRecoveryAdmissionCounters;
+pub use integrity_observations::{
+    PhysicalRecoveryIntegrityObservations, PhysicalRecoveryWalIntegrityObservation,
+    PhysicalRecoveryWalIntegrityObservationOutcome,
+};
 pub use limits::{
     PhysicalRecoveryLimitDeclaration, PhysicalRecoveryLimitDenial, PhysicalRecoveryLimits,
 };
@@ -38,7 +43,7 @@ pub use session::PhysicalRecoverySessionIdentity;
 pub use source_denial::{
     PhysicalManifestObservationDenial, PhysicalRecoveryMediaObservationFailure,
     PhysicalRecoveryRootProtocolArtifact, PhysicalRecoveryRootProtocolDenial,
-    PhysicalRecoverySourceDenial,
+    PhysicalRecoverySourceDenial, PhysicalRecoveryWalIntegrityDenial,
 };
 pub use staging::{
     PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingDenial,

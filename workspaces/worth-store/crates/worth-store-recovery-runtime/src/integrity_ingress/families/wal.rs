@@ -1,21 +1,18 @@
 use std::ffi::OsStr;
 
-use worth_store::physical_runtime::recovery_wal::{LogSequenceNumber, WalLsnRange};
-use worth_store_physical_format::{store_namespace::NamespaceEntryType, WalSegmentIdentity};
-use worth_store_physical_integrity::{IntegrityValidatedWalFrame, WalPayloadProjectionDenial};
-use worth_store_recovery_physics::{
-    decode_physical_redo_records, PhysicalRedoPlanningDenial, PhysicalRedoRecord,
+use worth_store::physical_runtime::{
+    IntegrityAdmittedRecoveryWalFrame as StoreAdmittedWalFrame, RecoveryWalIntegrityAdmissionDenial,
 };
+use worth_store_physical_format::{store_namespace::NamespaceEntryType, WalSegmentIdentity};
+use worth_store_physical_integrity::IntegrityValidatedWalFrame;
 
-use super::super::admission::require_observed_wal_source;
 use super::super::{
     ObservedWalFrameSource, RecoveryIntegrityIngressCounters, RecoveryIntegrityIngressRejection,
 };
 
 pub(crate) struct IntegrityAdmittedWalFrame<'media> {
-    source: ObservedWalFrameSource<'media>,
-    validated: IntegrityValidatedWalFrame<'media>,
-    payload: &'media [u8],
+    admitted: StoreAdmittedWalFrame,
+    _source_lifetime: std::marker::PhantomData<&'media ()>,
 }
 
 pub(crate) struct WalFrameProjection<'view> {
@@ -31,63 +28,37 @@ pub(crate) struct WalFrameProjection<'view> {
 
 /// Opaque, source-borrowed redo content. It deliberately exposes no byte slice.
 pub(crate) struct IntegrityAdmittedWalRedo<'media> {
-    payload: &'media [u8],
+    admitted: &'media StoreAdmittedWalFrame,
     digest: [u8; 32],
-    lsn_start: u64,
-    lsn_end: u64,
 }
 
 impl IntegrityAdmittedWalRedo<'_> {
     pub(crate) fn byte_count(&self) -> u64 {
-        self.payload.len() as u64
+        self.admitted.payload_byte_count()
     }
 
     pub(crate) const fn digest(&self) -> [u8; 32] {
         self.digest
     }
 
-    pub(crate) fn interpret(
-        &self,
-        maximum_targets: u64,
-        counters: &mut RecoveryIntegrityIngressCounters,
-    ) -> Result<Box<[PhysicalRedoRecord]>, PhysicalRedoPlanningDenial> {
-        counters.record_owner_decoder();
-        let range = WalLsnRange::new(
-            LogSequenceNumber::new(self.lsn_start),
-            LogSequenceNumber::new(self.lsn_end),
-        )
-        .map_err(|_| PhysicalRedoPlanningDenial::LsnRangeMismatch)?;
-        decode_physical_redo_records(self.payload, range, maximum_targets)
+    pub(crate) const fn admitted_frame(&self) -> &StoreAdmittedWalFrame {
+        self.admitted
     }
 }
 
 impl<'media> IntegrityAdmittedWalFrame<'media> {
     pub(in crate::integrity_ingress) fn bind(
+        owner: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
         source: ObservedWalFrameSource<'media>,
         validated: IntegrityValidatedWalFrame<'media>,
     ) -> Result<Self, RecoveryIntegrityIngressRejection> {
-        require_observed_wal_source(&source, validated.scope(), |input| {
-            validated.matches_input(input)
-        })?;
-        let input = source.input()?;
-        let projection = validated
-            .project_payload(input, validated.segment_identity())
-            .map_err(|denial| match denial {
-                WalPayloadProjectionDenial::InputIncarnationMismatch => {
-                    RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
-                }
-                WalPayloadProjectionDenial::SegmentIdentityMismatch => {
-                    RecoveryIntegrityIngressRejection::ScopeMismatch
-                }
-            })?;
-        let payload = input
-            .bytes()
-            .get(projection.payload_range())
-            .ok_or(RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation)?;
+        let scope = source.scope();
+        let admitted = owner
+            .admit_recovery_wal_frame(source.observed(), scope, source.relative_range(), validated)
+            .map_err(map_store_denial)?;
         Ok(Self {
-            source,
-            validated,
-            payload,
+            admitted,
+            _source_lifetime: std::marker::PhantomData,
         })
     }
 
@@ -97,24 +68,45 @@ impl<'media> IntegrityAdmittedWalFrame<'media> {
     ) -> WalFrameProjection<'view> {
         counters.record_owner_projection();
         WalFrameProjection {
-            source_name: self.source.name(),
-            source_entry_type: self.source.entry_type(),
-            segment_identity: self.validated.segment_identity(),
-            lsn_start: self.validated.lsn_start(),
-            lsn_end: self.validated.lsn_end(),
-            identity_digest: self.validated.identity_digest(),
-            payload_digest: self.validated.payload_digest(),
+            source_name: self.admitted.source_name(),
+            source_entry_type: self.admitted.source_entry_type(),
+            segment_identity: self.admitted.segment_identity(),
+            lsn_start: self.admitted.lsn_start(),
+            lsn_end: self.admitted.lsn_end(),
+            identity_digest: self.admitted.identity_digest(),
+            payload_digest: self.admitted.payload_digest(),
             redo: IntegrityAdmittedWalRedo {
-                payload: self.payload,
-                digest: self.validated.payload_digest(),
-                lsn_start: self.validated.lsn_start(),
-                lsn_end: self.validated.lsn_end(),
+                admitted: &self.admitted,
+                digest: self.admitted.payload_digest(),
             },
         }
     }
 
     pub(crate) const fn scope(&self) -> worth_store_physical_integrity::PhysicalArtifactScope {
-        self.source.scope()
+        self.admitted.scope()
+    }
+
+    pub(crate) fn into_store_admission(self) -> StoreAdmittedWalFrame {
+        self.admitted
+    }
+}
+
+fn map_store_denial(
+    denial: RecoveryWalIntegrityAdmissionDenial,
+) -> RecoveryIntegrityIngressRejection {
+    match denial {
+        RecoveryWalIntegrityAdmissionDenial::MissingBoundedArtifact => {
+            RecoveryIntegrityIngressRejection::MissingBoundedArtifact
+        }
+        RecoveryWalIntegrityAdmissionDenial::ScopeMismatch => {
+            RecoveryIntegrityIngressRejection::ScopeMismatch
+        }
+        RecoveryWalIntegrityAdmissionDenial::SourceRangeOutsideObservation => {
+            RecoveryIntegrityIngressRejection::SourceRangeOutsideObservation
+        }
+        RecoveryWalIntegrityAdmissionDenial::SourceIncarnationMismatch => {
+            RecoveryIntegrityIngressRejection::SourceIncarnationMismatch
+        }
     }
 }
 
@@ -124,7 +116,7 @@ pub(super) fn owner_valid_compile_contract() {
         source: ObservedWalFrameSource<'media>,
         validated: IntegrityValidatedWalFrame<'media>,
     ) {
-        let _ = IntegrityAdmittedWalFrame::bind(source, validated);
+        let _ = (source, validated);
     }
     let _ = bind;
 }

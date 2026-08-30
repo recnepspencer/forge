@@ -10,6 +10,7 @@ use super::{recorded, rejected_integrity, RecoveryIntegrityIngressAttempt};
 
 impl<'media> IntegrityAdmittedRecoveryArtifact<'media> {
     pub(crate) fn bind_wal_frame(
+        owner: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
         observed: &'media ObservedWalArtifact,
         expected_scope: PhysicalArtifactScope,
         relative_range: PhysicalByteRange,
@@ -20,6 +21,7 @@ impl<'media> IntegrityAdmittedRecoveryArtifact<'media> {
             WalFrameIntegrityValidation::Intact(validated) => recorded(
                 expected_scope,
                 IntegrityAdmittedWalFrame::bind(
+                    owner,
                     ObservedWalFrameSource::new(observed, expected_scope, relative_range),
                     validated,
                 )

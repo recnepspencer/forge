@@ -2,8 +2,7 @@ use worth_store::physical_runtime::{RecoveryDiscoveryByteLimitScope, RecoveryDis
 use worth_store_physical_format::{CheckpointStreamDecodeDenial, VerifiedCheckpointStream};
 use worth_store_recovery_physics::PhysicalBootstrapFallbackAnchor;
 use worth_store_recovery_physics::{
-    PhysicalRecoveryResidue, PhysicalRootSlotObservation, PhysicalWalArtifactCorruption,
-    PhysicalWalSegmentCandidate,
+    PhysicalRecoveryResidue, PhysicalRootSlotObservation, PhysicalWalSegmentCandidate,
 };
 
 use crate::entry::{
@@ -16,8 +15,10 @@ use crate::entry::{
 use super::{ManifestFactsDiscovery, RecoveryCoordination};
 
 mod observation;
+mod wal;
 
 use observation::observe_all;
+pub(crate) use wal::AdmittedWalInventory;
 
 pub(crate) struct DiscoveryMaterial {
     pub(crate) authority: AdmittedPlatformAuthority,
@@ -50,6 +51,9 @@ pub(crate) enum BootstrapDiscovery {
 pub(crate) struct WalDiscovery {
     pub(crate) candidates: Vec<PhysicalWalSegmentCandidate>,
     pub(crate) rejected: bool,
+    pub(super) admitted: AdmittedWalInventory,
+    pub(super) integrity_observations: Vec<crate::entry::PhysicalRecoveryWalIntegrityObservation>,
+    pub(super) integrity_ingress: crate::integrity_ingress::RecoveryIntegrityIngressCounters,
     scanned_frames: u64,
     valid_frames: u64,
     valid_bytes: u64,
@@ -59,7 +63,7 @@ pub(crate) struct WalDiscovery {
     corruption_denials: u64,
     scanned_segments: u64,
     valid_segments: u64,
-    pub(crate) corruptions: Vec<PhysicalWalArtifactCorruption>,
+    pub(crate) corruptions: Vec<crate::entry::PhysicalRecoveryWalIntegrityDenial>,
 }
 
 impl WalDiscovery {
@@ -68,9 +72,17 @@ impl WalDiscovery {
     ) -> (
         Vec<PhysicalWalSegmentCandidate>,
         bool,
-        Vec<PhysicalWalArtifactCorruption>,
+        Vec<crate::entry::PhysicalRecoveryWalIntegrityDenial>,
+        AdmittedWalInventory,
+        Vec<crate::entry::PhysicalRecoveryWalIntegrityObservation>,
     ) {
-        (self.candidates, self.rejected, self.corruptions)
+        (
+            self.candidates,
+            self.rejected,
+            self.corruptions,
+            self.admitted,
+            self.integrity_observations,
+        )
     }
 }
 
@@ -168,7 +180,13 @@ pub(crate) fn discover_sources(
         .bounded_discovery(maximum_entries, declaration.observation_bytes)
         .expect("a nonzero admitted discovery limit constructs a bounded observer");
     let mut counters = crate::progression::PhysicalRecoveryDiscoveryCounters::default();
-    let result = observe_all(&mut discovery, limits, record_format, &mut counters);
+    let result = observe_all(
+        &mut discovery,
+        &coordination,
+        limits,
+        record_format,
+        &mut counters,
+    );
     counters.bytes_observed = discovery.counters().bytes_read;
     counters.wal_entries = discovery.counters().directory_entries_observed;
     counters.wal_bytes = discovery.counters().wal_bytes_read;

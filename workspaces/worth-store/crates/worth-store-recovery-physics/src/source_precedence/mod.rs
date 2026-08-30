@@ -9,7 +9,7 @@ mod physical_source;
 mod residue;
 mod selection;
 mod structured_observation;
-mod wal_artifacts;
+mod wal_segment_disposition;
 mod wal_tail;
 
 pub use candidate::{
@@ -35,11 +35,11 @@ pub use selection::{
     PhysicalSourceSelectionTrace,
 };
 pub use structured_observation::observe_structured_physical_root_candidate;
-pub use wal_artifacts::{
-    inspect_physical_wal_artifacts, InspectedPhysicalWalArtifacts, PhysicalWalArtifactCorruption,
-    PhysicalWalArtifactInspectionDenial,
+pub use wal_segment_disposition::{
+    classify_admitted_wal_segment, AdmittedWalFrameRejectionKind, AdmittedWalSegmentPolicyInput,
+    PhysicalWalSegmentDisposition,
 };
 pub use wal_tail::{
-    admit_physical_wal_tail, PhysicalWalSegmentCandidate, SelectedPhysicalWalTail,
-    SelectedPhysicalWalTailDenial,
+    admit_physical_wal_tail, PhysicalWalFrameFacts, PhysicalWalSegmentCandidate,
+    SelectedPhysicalWalTail, SelectedPhysicalWalTailDenial,
 };

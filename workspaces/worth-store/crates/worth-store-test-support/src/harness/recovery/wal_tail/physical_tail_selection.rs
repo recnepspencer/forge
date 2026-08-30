@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use worth_store_recovery_physics::{
-    admit_physical_wal_tail, PhysicalWalSegmentCandidate, SelectedPhysicalWalTail,
+    admit_physical_wal_tail, PhysicalWalFrameFacts, PhysicalWalSegmentCandidate,
+    SelectedPhysicalWalTail,
 };
 use worth_store_wal::{
     inspect_verified_wal_segment, prepare_wal_frame_append, WalLsnRange,
@@ -28,7 +29,12 @@ pub fn selected_wal_tail(range: WalLsnRange) -> SelectedPhysicalWalTail {
         .inspection();
     admit_physical_wal_tail(
         range.start().get(),
-        vec![PhysicalWalSegmentCandidate::verified(inspection, None)],
+        vec![PhysicalWalSegmentCandidate::from_frame_facts(
+            inspection,
+            None,
+            vec![PhysicalWalFrameFacts::new(range, inspection.byte_count()).unwrap()],
+        )
+        .unwrap()],
     )
     .expect("verified recovery tail fixture is contiguous from its frontier")
 }

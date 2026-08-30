@@ -39,7 +39,7 @@ impl PhysicalRecoveryCoordination {
         reopened: CompletedPhysicalRecoveryFreshReopen,
         checkpoint: std::sync::Arc<worth_store_physical_format::VerifiedCheckpointStream>,
         descriptive_plan_identity: [u8; 32],
-        wal: impl IntoIterator<Item = worth_store_wal::VerifiedWalArtifact>,
+        wal: impl IntoIterator<Item = crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment>,
     ) -> Result<StoreRecoveryCleanupPlan, StoreRecoveryCleanupPlanAdmissionFailure> {
         crate::physical_runtime::recovery_freshness::admit_cleanup_plan(
             self,

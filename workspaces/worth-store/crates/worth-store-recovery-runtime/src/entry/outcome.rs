@@ -27,6 +27,7 @@ pub struct PhysicalRecoveryPublicationIndeterminate {
     settlement: super::PhysicalRecoveryPublicationSettlementLedger,
     root_protocol_denials: Vec<super::PhysicalRecoverySourceDenial>,
     root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters,
+    integrity_observations: super::PhysicalRecoveryIntegrityObservations,
     reopen: Option<super::PhysicalRecoveryReopenFailure>,
     handoff: Option<RecoveredPhysicalRuntimeConstructionDenial>,
     recovery_effects: u64,
@@ -38,6 +39,7 @@ pub struct PhysicalRecoveryRefusal {
     pub kind: PhysicalRecoveryRefusalKind,
     root_protocol_denials: Vec<super::PhysicalRecoverySourceDenial>,
     root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters,
+    integrity_observations: super::PhysicalRecoveryIntegrityObservations,
     recovery_effects: u64,
     integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
 }
@@ -48,6 +50,7 @@ impl PhysicalRecoveryRefusal {
             kind,
             root_protocol_denials: Vec::new(),
             root_protocol_counters: super::PhysicalRecoveryRootProtocolCounters::default(),
+            integrity_observations: super::PhysicalRecoveryIntegrityObservations::new(Vec::new()),
             recovery_effects,
             integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace::new(),
         }
@@ -94,6 +97,18 @@ impl PhysicalRecoveryRefusal {
     ) -> Self {
         self.integrity_trace = trace;
         self
+    }
+
+    pub(crate) fn with_integrity_observations(
+        mut self,
+        observations: super::PhysicalRecoveryIntegrityObservations,
+    ) -> Self {
+        self.integrity_observations = observations;
+        self
+    }
+
+    pub const fn wal_integrity_observations(&self) -> &super::PhysicalRecoveryIntegrityObservations {
+        &self.integrity_observations
     }
 }
 
@@ -159,6 +174,7 @@ pub struct PhysicalRecoveryBlockEvidence {
     pub source_generation: Option<u64>,
     pub lsn: Option<u64>,
     pub source_denials: Vec<super::PhysicalRecoverySourceDenial>,
+    pub integrity_observations: super::PhysicalRecoveryIntegrityObservations,
     pub planning_denial: Option<PhysicalRecoveryPlanningDenial>,
     pub staging_counters: Option<super::PhysicalRecoveryStagingCounters>,
     pub staging_denial: Option<super::PhysicalRecoveryStagingDenial>,
@@ -196,6 +212,7 @@ impl PhysicalRecoveryPublicationIndeterminate {
             settlement,
             root_protocol_denials,
             root_protocol_counters,
+            integrity_observations: super::PhysicalRecoveryIntegrityObservations::new(Vec::new()),
             reopen: None,
             handoff: None,
             recovery_effects,
@@ -237,6 +254,18 @@ impl PhysicalRecoveryPublicationIndeterminate {
     ) -> Self {
         self.integrity_trace = trace;
         self
+    }
+
+    pub(crate) fn with_integrity_observations(
+        mut self,
+        observations: super::PhysicalRecoveryIntegrityObservations,
+    ) -> Self {
+        self.integrity_observations = observations;
+        self
+    }
+
+    pub const fn wal_integrity_observations(&self) -> &super::PhysicalRecoveryIntegrityObservations {
+        &self.integrity_observations
     }
 
     pub(crate) fn with_reopen_failure(

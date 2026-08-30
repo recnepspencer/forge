@@ -20,6 +20,7 @@ pub use artifact::{
     validate_free_space_header, validate_free_space_membership_block, validate_inline_page,
     validate_physical_work_obligation, validate_previous_root_selector, validate_root_manifest,
     validate_root_routing_block, validate_segment_membership_block, validate_wal_frame,
+    validate_wal_frame_prefix,
     BootstrapCatalogIntegrityValidation, BootstrapCatalogScopeMismatch,
     BootstrapCatalogUnsupportedFormat, CheckpointBindingCompactionIntegrityValidation,
     CheckpointBindingIntegrityValidation, CheckpointDirtyBasisIntegrityValidation,

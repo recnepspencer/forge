@@ -1,3 +1,4 @@
+use worth_store::physical_runtime::recovery_wal::WalSegmentArtifactIdentity;
 use worth_store::physical_runtime::{ArtifactTreeFailureKind, RecoveryDiscoveryArtifact};
 use worth_store_physical_format::{
     store_namespace::StableStoreIdentity, CheckpointStreamDecodeDenial, ManifestBlockReference,
@@ -40,8 +41,7 @@ pub enum PhysicalManifestObservationDenial {
 }
 use worth_store_recovery_physics::{
     PhysicalCheckpointBaseDenial, PhysicalPageFactDenial, PhysicalRootCandidateDenial,
-    PhysicalRootSelectionDenial, PhysicalSourceSelectionDenial, PhysicalWalArtifactCorruption,
-    SelectedPhysicalWalTailDenial,
+    PhysicalRootSelectionDenial, PhysicalSourceSelectionDenial, SelectedPhysicalWalTailDenial,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,9 +66,40 @@ pub enum PhysicalRecoverySourceDenial {
     ManifestFacts(PhysicalPageFactDenial),
     CheckpointFormat(CheckpointStreamDecodeDenial),
     CheckpointBinding(PhysicalCheckpointBaseDenial),
-    WalArtifact(PhysicalWalArtifactCorruption),
+    WalIntegrity(PhysicalRecoveryWalIntegrityDenial),
     WalTail(SelectedPhysicalWalTailDenial),
     FinalSelection(PhysicalSourceSelectionDenial),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalRecoveryWalIntegrityDenial {
+    artifact: String,
+    identity: WalSegmentArtifactIdentity,
+    rejection: PhysicalIntegrityRejection,
+}
+
+impl PhysicalRecoveryWalIntegrityDenial {
+    pub(crate) fn new(
+        artifact: String,
+        identity: WalSegmentArtifactIdentity,
+        rejection: PhysicalIntegrityRejection,
+    ) -> Self {
+        Self {
+            artifact,
+            identity,
+            rejection,
+        }
+    }
+
+    pub fn artifact(&self) -> &str {
+        &self.artifact
+    }
+    pub const fn identity(&self) -> WalSegmentArtifactIdentity {
+        self.identity
+    }
+    pub const fn rejection(&self) -> PhysicalIntegrityRejection {
+        self.rejection
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -12,7 +12,7 @@ use crate::orchestration::RecoveryCoordination;
 
 use super::{
     ClosedRecoveryStagingGeneration, PhysicalRecoveryDiscoveryCounters, RecoveryBaseImagePlan,
-    RecoveryPublicationExpectation, RecoveryQuiescencePlan,
+    RecoveryIntegrityEvidence, RecoveryPublicationExpectation, RecoveryQuiescencePlan,
 };
 
 pub struct NamespaceDurablePhysicalRecovery {
@@ -28,6 +28,7 @@ pub(crate) struct NamespaceDurableState {
     pub(crate) selection: PhysicalSourceSelection,
     pub(crate) discovery_counters: PhysicalRecoveryDiscoveryCounters,
     pub(crate) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    pub(crate) integrity: RecoveryIntegrityEvidence,
     pub(crate) freshness: StoreRecoveryBindingFreshnessSample,
     pub(crate) fates: RecoveryOperationFateSet,
     pub(crate) planning_counters: RecoveryPlanningCounters,
@@ -81,6 +82,11 @@ impl NamespaceDurablePhysicalRecovery {
     }
     pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
         &self.state.root_protocol_denials
+    }
+    pub fn wal_integrity_observations(
+        &self,
+    ) -> &[crate::entry::PhysicalRecoveryWalIntegrityObservation] {
+        self.state.integrity.observations().wal()
     }
     pub const fn freshness_sample(&self) -> &StoreRecoveryBindingFreshnessSample {
         &self.state.freshness

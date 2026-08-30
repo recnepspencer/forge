@@ -6,7 +6,7 @@ use worth_store_physical_backend::{
 use worth_store_physical_format::{
     store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity, VerifiedCheckpointStream,
 };
-use worth_store_wal::{LogSequenceNumber, VerifiedWalArtifact};
+use worth_store_wal::LogSequenceNumber;
 
 use crate::physical_runtime::{
     ClosedPhysicalRecoveryCleanup, CompletedPhysicalRecoveryFreshReopen,
@@ -37,7 +37,7 @@ pub(in crate::physical_runtime) fn admit(
     reopened: CompletedPhysicalRecoveryFreshReopen,
     checkpoint: Arc<VerifiedCheckpointStream>,
     descriptive_plan_identity: [u8; 32],
-    wal: impl IntoIterator<Item = VerifiedWalArtifact>,
+    wal: impl IntoIterator<Item = crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment>,
 ) -> Result<StoreRecoveryCleanupPlan, StoreRecoveryCleanupPlanAdmissionFailure> {
     #[cfg(feature = "certification-test-authority")]
     if coordination.take_certification_cleanup_plan_admission_failure() {

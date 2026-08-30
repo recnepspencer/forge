@@ -46,7 +46,10 @@ pub(super) fn admit(
         context.coordination.owner(),
         &context.authority.media,
         checkpoint.checkpoint(),
-        context.selection.wal_tail().frames(),
+        context
+            .integrity
+            .admitted_wal()
+            .selected_frames(context.selection.wal_tail()),
         context.limits.operation_bindings,
         context.limits.redo_bytes,
     ) {

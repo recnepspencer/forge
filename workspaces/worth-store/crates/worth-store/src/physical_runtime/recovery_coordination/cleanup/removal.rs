@@ -33,7 +33,7 @@ pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand {
     selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
     root_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
     checkpoint_stream: Arc<worth_store_physical_format::VerifiedCheckpointStream>,
-    verified_wal: worth_store_wal::VerifiedWalArtifact,
+    admitted_wal: crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment,
 }
 
 pub struct CompletedPhysicalRecoveryCleanupRemoval {
@@ -93,7 +93,7 @@ impl PhysicalRecoveryCleanupRemovalCommand {
         basis: crate::physical_runtime::recovery_freshness::StoreRecoveryCleanupRemovalBasis,
         selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
         checkpoint_stream: Arc<worth_store_physical_format::VerifiedCheckpointStream>,
-        verified_wal: worth_store_wal::VerifiedWalArtifact,
+        admitted_wal: crate::physical_runtime::IntegrityAdmittedRecoveryWalSegment,
     ) -> Self {
         let root_read = basis.root_read();
         Self {
@@ -113,7 +113,7 @@ impl PhysicalRecoveryCleanupRemovalCommand {
             selector_read,
             root_read,
             checkpoint_stream,
-            verified_wal,
+            admitted_wal,
         }
     }
 }

@@ -1,17 +1,16 @@
 use std::ffi::OsString;
 
+use super::{AdmittedRecoveryFilesystemMedia, RecoveryFilesystemQualificationError};
 use crate::filesystem_media::{
     ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile,
 };
 use worth_store_physical_format::{store_namespace::NamespaceEntryType, RecordArtifactFile};
-
-use super::{AdmittedRecoveryFilesystemMedia, RecoveryFilesystemQualificationError};
+type StableStoreIdentity = worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 mod addressed_payload;
 mod addressed_range;
 mod artifact;
 mod observed_artifact;
-
 pub(crate) use artifact::record_artifact;
 pub use artifact::RecoveryDiscoveryArtifact;
 pub use observed_artifact::ObservedRecoveryArtifact;
@@ -26,6 +25,7 @@ pub struct BoundedRecoveryFilesystemDiscovery {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObservedWalArtifact {
+    store: StableStoreIdentity,
     name: OsString,
     entry_type: NamespaceEntryType,
     bytes: Option<Vec<u8>>,
@@ -227,6 +227,7 @@ impl BoundedRecoveryFilesystemDiscovery {
                 None
             };
             observed.push(ObservedWalArtifact {
+                store: self.parts.store_identity,
                 name,
                 entry_type: entry.entry_type(),
                 bytes,
@@ -346,6 +347,10 @@ impl BoundedRecoveryFilesystemDiscovery {
 }
 
 impl ObservedWalArtifact {
+    pub const fn store_identity(&self) -> StableStoreIdentity {
+        self.store
+    }
+
     pub fn name(&self) -> &std::ffi::OsStr {
         &self.name
     }

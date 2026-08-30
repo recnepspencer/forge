@@ -4,7 +4,7 @@ use std::num::NonZeroU64;
 use sha2::{Digest, Sha256};
 use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_format::{store_namespace::StableStoreIdentity, VerifiedCheckpointStream};
-use worth_store_wal::{VerifiedWalFrame, WalLsnRange};
+use worth_store_wal::WalLsnRange;
 
 use crate::physical_runtime::durability::{
     DecodedPhysicalMutationBindingRecord, PersistedPhysicalMutationAttemptBinding,
@@ -19,10 +19,13 @@ mod accessors;
 mod failure;
 #[cfg(test)]
 mod merge_tests;
+mod wal_frame_input;
 mod wal_payload;
 
 pub use failure::StoreRecoveryBindingSampleFailure;
 use failure::{empty_failure, sample_failure};
+pub(super) use wal_frame_input::sample_binding;
+use wal_frame_input::RecoveryWalFrameInput;
 use wal_payload::decode_wal_member_payload;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,11 +89,11 @@ pub enum StoreRecoveryBindingSampleDenial {
     RedoByteLimit,
 }
 
-pub(super) fn sample_binding<'frame>(
+pub(super) fn sample_binding_from_frames<'frame, Frame: RecoveryWalFrameInput + 'frame>(
     freshness: &super::PhysicalRecoveryFreshnessAuthority,
     media: &AdmittedRecoveryFilesystemMedia,
     checkpoint: &VerifiedCheckpointStream,
-    wal_frames: impl IntoIterator<Item = &'frame VerifiedWalFrame>,
+    wal_frames: impl IntoIterator<Item = &'frame Frame>,
     maximum_operation_bindings: u64,
     maximum_redo_bytes: u64,
 ) -> Result<StoreRecoveryBindingFreshnessSample, StoreRecoveryBindingSampleFailure> {
@@ -138,8 +141,10 @@ pub(super) fn sample_binding<'frame>(
             .map_err(|denial| sample_failure(denial, &operations, wal_members.len(), redo_bytes))?;
     }
     for frame in wal_frames {
-        let (binding_bytes, canonical_redo) = decode_wal_member_payload(frame.payload())
-            .map_err(|denial| sample_failure(denial, &operations, wal_members.len(), redo_bytes))?;
+        let (binding_bytes, canonical_redo) = decode_wal_member_payload(frame.recovery_payload())
+            .map_err(|denial| {
+            sample_failure(denial, &operations, wal_members.len(), redo_bytes)
+        })?;
         redo_bytes = redo_bytes
             .checked_add(canonical_redo.len() as u64)
             .ok_or_else(|| {
@@ -162,7 +167,7 @@ pub(super) fn sample_binding<'frame>(
         let binding = PersistedPhysicalMutationAttemptBinding::decode_from_wal_member(
             binding_bytes,
             context,
-            frame.lsn_range(),
+            frame.recovery_lsn_range(),
             redo_digest,
         )
         .map_err(|_| {
@@ -184,7 +189,7 @@ pub(super) fn sample_binding<'frame>(
             .map_err(|denial| sample_failure(denial, &operations, wal_members.len(), redo_bytes))?;
         wal_group_bindings.push((binding.mutation(), group, binding.idempotency_identity()));
         wal_members.push(StoreRecoveryWalMember {
-            lsn_range: frame.lsn_range(),
+            lsn_range: frame.recovery_lsn_range(),
             operation_identity,
             group_identity: group.group_identity().bytes(),
             group_member_identity: group.member_identity().bytes(),

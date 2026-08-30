@@ -9,8 +9,8 @@ use phase_three_support::{
 };
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    PhysicalCheckpointDeadline, PhysicalCheckpointIdempotencyKey, PhysicalCheckpointOutcome,
-    PhysicalCheckpointRequest,
+    recovery_wal::WalSegmentArtifactIdentity, PhysicalCheckpointDeadline,
+    PhysicalCheckpointIdempotencyKey, PhysicalCheckpointOutcome, PhysicalCheckpointRequest,
 };
 use worth_store_physical_format::RecordArtifactFile;
 use worth_store_recovery_physics::{
@@ -40,6 +40,7 @@ fn ordinary_store_state_crosses_process_death_into_one_recovered_handoff() {
     let root = PathBuf::from(std::fs::read_to_string(&marker).expect("writer root marker"));
     assert!(root.starts_with(parent.path()));
     assert!(root.is_dir());
+    append_torn_terminal_wal_segment(&root);
     let planner = run_child(PLANNER_TEST, &root, parent.path());
     assert_child_succeeded("planner", &planner);
 }
@@ -142,7 +143,7 @@ fn phase_four_planner_process() {
     assert_eq!(cost.distinct_targets(), 2);
     assert_eq!(cost.operation_bindings(), 3);
     assert_eq!(cost.observation_reads(), 7);
-    assert_eq!(cost.observation_bytes(), 73_238);
+    assert_eq!(cost.observation_bytes(), 73_275);
     assert_eq!(cost.staging_bytes(), 3_276_800);
     assert_eq!(cost.dirty_frames(), 1);
     assert_eq!(planned.staging_layout().actions().len(), 1);
@@ -203,7 +204,47 @@ fn phase_four_planner_process() {
         handoff.core().recovery_runtime_identity()
     );
     assert_eq!(handoff.operation_fates().operations().len(), 3);
+    assert!(handoff
+        .wal_integrity_observations()
+        .iter()
+        .any(|observation| matches!(
+            observation.outcome(),
+            worth_store_recovery_runtime::PhysicalRecoveryWalIntegrityObservationOutcome::Admitted
+        )));
+    assert!(handoff
+        .wal_integrity_observations()
+        .iter()
+        .any(|observation| matches!(
+            observation.outcome(),
+            worth_store_recovery_runtime::PhysicalRecoveryWalIntegrityObservationOutcome::Rejected(
+                _
+            )
+        )));
     assert!(handoff.core().recovery_effect_count() > 0);
+}
+
+fn append_torn_terminal_wal_segment(root: &Path) {
+    let wal = root.join("families").join("wal");
+    let latest = std::fs::read_dir(&wal)
+        .unwrap()
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            WalSegmentArtifactIdentity::parse(&name).map(|identity| (identity, entry.path()))
+        })
+        .max_by_key(|(identity, _)| *identity)
+        .unwrap();
+    let next_segment = latest.0.segment().get() + 1;
+    let (path, frame) =
+        worth_store_test_support::harness::recovery::wal_tail::prepare_persisted_wal_frame(
+            &root.join("families"),
+            next_segment,
+            0,
+            1,
+            "terminal-torn-observation",
+            b"not-owner-visible",
+        );
+    std::fs::write(path, &frame[..37]).unwrap();
 }
 
 #[test]

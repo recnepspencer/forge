@@ -11,6 +11,7 @@ use crate::entry::{
 };
 use crate::orchestration::{
     BootstrapDiscovery, CheckpointDiscovery, ManifestFactsDiscovery, ManifestFactsState,
+    AdmittedWalInventory,
     WalDiscovery,
 };
 
@@ -33,6 +34,9 @@ pub(super) struct SelectionInput {
 
 pub(super) struct SelectionOutput {
     pub(super) selection: PhysicalSourceSelection,
+    pub(super) admitted_wal: AdmittedWalInventory,
+    pub(super) wal_integrity_observations:
+        Vec<crate::entry::PhysicalRecoveryWalIntegrityObservation>,
     pub(super) counters: PhysicalRecoveryDiscoveryCounters,
     pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(super) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
@@ -98,11 +102,11 @@ pub(super) fn select_sources(
     let frontier = checkpoint
         .as_ref()
         .map_or(0, |checkpoint| checkpoint.wal_tail_begin_lsn());
-    let wal_tail = select_wal(&root, input.wal, frontier, &mut counters).map_err(|failure| {
-        failure
-            .with_root_protocol_denials(&root_protocol_denials)
-            .with_integrity_trace(integrity_trace.clone())
-    })?;
+    let (wal_tail, admitted_wal, wal_integrity_observations) =
+        select_wal(&root, input.wal, frontier, &mut counters).map_err(|failure| {
+            failure.with_root_protocol_denials(&root_protocol_denials)
+                .with_integrity_trace(integrity_trace.clone())
+        })?;
     let compaction = checkpoint.as_ref().map(SelectedCompactionProduct::admit);
     let selection = select_final_cut(FinalSelectionInput {
         root,
@@ -119,9 +123,12 @@ pub(super) fn select_sources(
         failure
             .with_root_protocol_denials(&root_protocol_denials)
             .with_integrity_trace(integrity_trace.clone())
+            .with_integrity_observations(wal_integrity_observations.clone())
     })?;
     Ok(SelectionOutput {
         selection,
+        admitted_wal,
+        wal_integrity_observations,
         counters,
         root_protocol_denials,
         integrity_trace,
@@ -249,13 +256,20 @@ fn select_wal(
     wal: WalDiscovery,
     frontier: u64,
     counters: &mut PhysicalRecoveryDiscoveryCounters,
-) -> Result<SelectedPhysicalWalTail, SelectionFailure> {
+) -> Result<
+    (
+        SelectedPhysicalWalTail,
+        AdmittedWalInventory,
+        Vec<crate::entry::PhysicalRecoveryWalIntegrityObservation>,
+    ),
+    SelectionFailure,
+> {
     let generation = root.selected().selector().root_generation();
-    let (candidates, rejected, corruptions) = wal.into_selection_parts();
+    let (candidates, rejected, corruptions, admitted, observations) = wal.into_selection_parts();
     if rejected {
         let denials = corruptions
             .into_iter()
-            .map(PhysicalRecoverySourceDenial::WalArtifact)
+            .map(PhysicalRecoverySourceDenial::WalIntegrity)
             .collect();
         return Err(SelectionFailure::new(
             PhysicalRecoveryBlockKind::WalInventory,
@@ -264,19 +278,24 @@ fn select_wal(
         )
         .with_generation(generation)
         .with_lsn(frontier)
+        .with_integrity_observations(observations)
         .with_source_denials(denials));
     }
-    admit_physical_wal_tail(frontier, candidates).map_err(|denial| {
-        counters.wal_missing_range_denials += 1;
-        SelectionFailure::new(
-            PhysicalRecoveryBlockKind::WalInventory,
-            *counters,
-            "families/wal",
-        )
-        .with_generation(generation)
-        .with_lsn(frontier)
-        .with_source_denials(vec![PhysicalRecoverySourceDenial::WalTail(denial)])
-    })
+    match admit_physical_wal_tail(frontier, candidates) {
+        Ok(selected) => Ok((selected, admitted, observations)),
+        Err(denial) => {
+            counters.wal_missing_range_denials += 1;
+            Err(SelectionFailure::new(
+                PhysicalRecoveryBlockKind::WalInventory,
+                *counters,
+                "families/wal",
+            )
+            .with_generation(generation)
+            .with_lsn(frontier)
+            .with_integrity_observations(observations)
+            .with_source_denials(vec![PhysicalRecoverySourceDenial::WalTail(denial)]))
+        }
+    }
 }
 
 fn select_final_cut(
@@ -367,6 +386,15 @@ impl SelectionFailure {
 
     fn with_source_denials(mut self, denials: Vec<PhysicalRecoverySourceDenial>) -> Self {
         self.evidence.source_denials = denials;
+        self
+    }
+
+    fn with_integrity_observations(
+        mut self,
+        wal: Vec<crate::entry::PhysicalRecoveryWalIntegrityObservation>,
+    ) -> Self {
+        self.evidence.integrity_observations =
+            crate::entry::PhysicalRecoveryIntegrityObservations::new(wal);
         self
     }
 

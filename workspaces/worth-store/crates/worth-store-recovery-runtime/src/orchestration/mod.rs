@@ -10,7 +10,8 @@ mod staging;
 
 pub(crate) use coordination::RecoveryCoordination;
 pub(crate) use discovery::{
-    discover_sources, BootstrapDiscovery, CheckpointDiscovery, DiscoveryMaterial, WalDiscovery,
+    discover_sources, AdmittedWalInventory, BootstrapDiscovery, CheckpointDiscovery,
+    DiscoveryMaterial, WalDiscovery,
 };
 pub(crate) use handoff::finish_recovery_after_cleanup;
 pub(crate) use manifest_facts::{ManifestFactsDiscovery, ManifestFactsState};

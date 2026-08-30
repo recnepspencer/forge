@@ -106,6 +106,7 @@ fn indeterminate(
             state.root_protocol_counters,
             recovery_effects,
         )
+        .with_integrity_observations(state.integrity.into_observations())
         .with_reopen_failure(failure),
     )
 }

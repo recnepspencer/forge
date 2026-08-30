@@ -10,7 +10,7 @@ use crate::entry::{
 use crate::handoff::RecoveryOperationFateSet;
 use crate::orchestration::RecoveryCoordination;
 
-use super::PhysicalRecoveryDiscoveryCounters;
+use super::{PhysicalRecoveryDiscoveryCounters, RecoveryIntegrityEvidence};
 
 pub struct PlannedPhysicalRecovery {
     authority: AdmittedPlatformAuthority,
@@ -18,6 +18,7 @@ pub struct PlannedPhysicalRecovery {
     selection: PhysicalSourceSelection,
     discovery_counters: PhysicalRecoveryDiscoveryCounters,
     root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+    integrity: RecoveryIntegrityEvidence,
     freshness: StoreRecoveryBindingFreshnessSample,
     fates: RecoveryOperationFateSet,
     redo: ImmutablePhysicalRedoPlan,
@@ -40,6 +41,7 @@ impl PlannedPhysicalRecovery {
         selection: PhysicalSourceSelection,
         discovery_counters: PhysicalRecoveryDiscoveryCounters,
         root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
+        integrity: RecoveryIntegrityEvidence,
         freshness: StoreRecoveryBindingFreshnessSample,
         fates: RecoveryOperationFateSet,
         redo: ImmutablePhysicalRedoPlan,
@@ -57,6 +59,7 @@ impl PlannedPhysicalRecovery {
             selection,
             discovery_counters,
             root_protocol_denials,
+            integrity,
             freshness,
             fates,
             redo,
@@ -78,6 +81,11 @@ impl PlannedPhysicalRecovery {
     }
     pub fn root_protocol_denials(&self) -> &[PhysicalRecoverySourceDenial] {
         &self.root_protocol_denials
+    }
+    pub fn wal_integrity_observations(
+        &self,
+    ) -> &[crate::entry::PhysicalRecoveryWalIntegrityObservation] {
+        self.integrity.observations().wal()
     }
     pub const fn freshness_sample(&self) -> &StoreRecoveryBindingFreshnessSample {
         &self.freshness
@@ -144,6 +152,7 @@ impl PlannedPhysicalRecovery {
         let Self {
             authority,
             coordination,
+            integrity,
             root_protocol_denials,
             root_protocol_counters,
             integrity_trace,
@@ -161,7 +170,8 @@ impl PlannedPhysicalRecovery {
             )
             .with_root_protocol_denials(root_protocol_denials)
             .with_root_protocol_counters(root_protocol_counters)
-            .with_integrity_trace(integrity_trace),
+            .with_integrity_trace(integrity_trace)
+            .with_integrity_observations(integrity.into_observations()),
         )
     }
 
@@ -209,6 +219,7 @@ impl PlannedPhysicalRecovery {
             quiescence,
             root_protocol_denials,
             integrity_trace,
+            integrity,
         } = self;
         crate::orchestration::stage_recovery(crate::orchestration::RecoveryStagingInput {
             authority,
@@ -216,6 +227,7 @@ impl PlannedPhysicalRecovery {
             selection,
             discovery_counters,
             root_protocol_denials,
+            integrity,
             freshness,
             fates,
             planning_counters,

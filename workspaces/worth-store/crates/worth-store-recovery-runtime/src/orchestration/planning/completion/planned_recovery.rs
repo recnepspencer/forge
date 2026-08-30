@@ -20,6 +20,7 @@ pub(super) fn construct(
         context.selection,
         context.counters,
         context.root_protocol_denials,
+        context.integrity,
         basis.sample,
         RecoveryOperationFateSet::new(basis.fates),
         basis.redo,

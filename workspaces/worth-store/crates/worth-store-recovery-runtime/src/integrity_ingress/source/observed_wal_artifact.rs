@@ -29,6 +29,14 @@ impl<'media> ObservedWalFrameSource<'media> {
         self.scope
     }
 
+    pub(in crate::integrity_ingress) const fn observed(&self) -> &'media ObservedWalArtifact {
+        self.observed
+    }
+
+    pub(in crate::integrity_ingress) const fn relative_range(&self) -> PhysicalByteRange {
+        self.relative_range
+    }
+
     pub(in crate::integrity_ingress) fn name(&self) -> &'media std::ffi::OsStr {
         self.observed.name()
     }
