@@ -6,18 +6,20 @@ use worth_store_recovery_physics::{
 };
 
 use crate::entry::{
-    PhysicalRecoveryBlockEvidence, PhysicalRecoveryBlockKind, PhysicalRecoveryLimitDimension,
-    PhysicalRecoveryLimitFailure, PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
+    PhysicalRecoveryBlockKind, PhysicalRecoveryLimitDimension, PhysicalRecoveryLimitFailure,
+    PhysicalRecoveryLimits, PhysicalRecoverySourceDenial,
 };
 use crate::orchestration::{
-    BootstrapDiscovery, CheckpointDiscovery, ManifestFactsDiscovery, ManifestFactsState,
-    AdmittedWalInventory,
-    WalDiscovery,
+    AdmittedWalInventory, BootstrapDiscovery, CheckpointDiscovery, ManifestFactsDiscovery,
+    ManifestFactsState, WalDiscovery,
 };
 
 use super::PhysicalRecoveryDiscoveryCounters;
 
+mod failure;
 mod root;
+
+use failure::SelectionFailure;
 
 pub(super) struct SelectionInput {
     pub(super) current: PhysicalRootSlotObservation,
@@ -40,11 +42,6 @@ pub(super) struct SelectionOutput {
     pub(super) counters: PhysicalRecoveryDiscoveryCounters,
     pub(super) root_protocol_denials: Vec<PhysicalRecoverySourceDenial>,
     pub(super) integrity_trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
-}
-
-pub(super) struct SelectionFailure {
-    pub(super) kind: PhysicalRecoveryBlockKind,
-    pub(super) evidence: PhysicalRecoveryBlockEvidence,
 }
 
 struct ManifestSelectionInput {
@@ -73,13 +70,15 @@ pub(super) fn select_sources(
     let (previous_manifest_facts, previous_integrity_trace) =
         input.previous_manifest_facts.into_parts();
     integrity_trace.append(previous_integrity_trace);
+    let wal_integrity_observations = input.wal.integrity_observations();
     let (root, root_protocol_denials) = root::select(
         input.current,
         input.previous,
         input.bootstrap,
         input.root_protocol_denials,
         counters,
-    )?;
+    )
+    .map_err(|failure| failure.with_integrity_observations(wal_integrity_observations.clone()))?;
     let (page_facts, retained_previous_page_facts) = select_manifest_facts(
         &root,
         ManifestSelectionInput {
@@ -93,18 +92,21 @@ pub(super) fn select_sources(
         failure
             .with_root_protocol_denials(&root_protocol_denials)
             .with_integrity_trace(integrity_trace.clone())
+            .with_integrity_observations(wal_integrity_observations.clone())
     })?;
     let checkpoint = select_checkpoint(&root, input.checkpoint, counters).map_err(|failure| {
         failure
             .with_root_protocol_denials(&root_protocol_denials)
             .with_integrity_trace(integrity_trace.clone())
+            .with_integrity_observations(wal_integrity_observations.clone())
     })?;
     let frontier = checkpoint
         .as_ref()
         .map_or(0, |checkpoint| checkpoint.wal_tail_begin_lsn());
     let (wal_tail, admitted_wal, wal_integrity_observations) =
         select_wal(&root, input.wal, frontier, &mut counters).map_err(|failure| {
-            failure.with_root_protocol_denials(&root_protocol_denials)
+            failure
+                .with_root_protocol_denials(&root_protocol_denials)
                 .with_integrity_trace(integrity_trace.clone())
         })?;
     let compaction = checkpoint.as_ref().map(SelectedCompactionProduct::admit);
@@ -356,60 +358,4 @@ fn manifest_failure(
         _ => {}
     }
     failure
-}
-
-impl SelectionFailure {
-    fn new(
-        kind: PhysicalRecoveryBlockKind,
-        counters: PhysicalRecoveryDiscoveryCounters,
-        artifact: &str,
-    ) -> Self {
-        Self {
-            kind,
-            evidence: PhysicalRecoveryBlockEvidence {
-                counters,
-                artifact: Some(artifact.to_owned()),
-                ..PhysicalRecoveryBlockEvidence::default()
-            },
-        }
-    }
-
-    fn with_generation(mut self, generation: u64) -> Self {
-        self.evidence.source_generation = Some(generation);
-        self
-    }
-
-    fn with_lsn(mut self, lsn: u64) -> Self {
-        self.evidence.lsn = Some(lsn);
-        self
-    }
-
-    fn with_source_denials(mut self, denials: Vec<PhysicalRecoverySourceDenial>) -> Self {
-        self.evidence.source_denials = denials;
-        self
-    }
-
-    fn with_integrity_observations(
-        mut self,
-        wal: Vec<crate::entry::PhysicalRecoveryWalIntegrityObservation>,
-    ) -> Self {
-        self.evidence.integrity_observations =
-            crate::entry::PhysicalRecoveryIntegrityObservations::new(wal);
-        self
-    }
-
-    fn with_root_protocol_denials(mut self, denials: &[PhysicalRecoverySourceDenial]) -> Self {
-        let mut combined = denials.to_vec();
-        combined.append(&mut self.evidence.source_denials);
-        self.evidence.source_denials = combined;
-        self
-    }
-
-    fn with_integrity_trace(
-        mut self,
-        trace: crate::integrity_ingress::RecoveryIntegrityIngressTrace,
-    ) -> Self {
-        self.evidence.integrity_trace = trace;
-        self
-    }
 }

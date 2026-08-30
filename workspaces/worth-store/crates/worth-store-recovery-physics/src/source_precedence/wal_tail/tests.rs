@@ -117,14 +117,16 @@ fn interrupted_candidate(
     let mut bytes = first.frame().encoded_frame().to_vec();
     bytes.extend_from_slice(&second.frame().encoded_frame()[..20]);
     let active = inspect_verified_wal_active_tail(identity, &bytes).unwrap();
-    let interruption = active.interrupted_tail();
+    let interruption = active.interrupted_tail().map(|tail| {
+        PhysicalWalInterruptionFacts::new(tail.valid_prefix_bytes(), tail.observed_bytes()).unwrap()
+    });
     let verified = active.into_verified_prefix();
     candidate_from_verified(verified.to_owned_artifact(), interruption)
 }
 
 fn candidate_from_verified(
     verified: worth_store_wal::VerifiedWalArtifact,
-    interruption: Option<InterruptedWalTail>,
+    interruption: Option<PhysicalWalInterruptionFacts>,
 ) -> PhysicalWalSegmentCandidate {
     let inspection = verified.inspection();
     let facts = verified

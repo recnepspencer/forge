@@ -92,12 +92,7 @@ fn routing_is_exhaustive_over_every_current_recovery_family() {
                 let _ = (projection.page_lsn, projection.encoded_digest);
             }
             IntegrityAdmittedRecoveryArtifact::WalFrame(value) => {
-                let projection = value.project(counters);
-                let _ = (
-                    projection.redo.byte_count(),
-                    projection.redo.digest(),
-                    projection.redo.admitted_frame().lsn_range(),
-                );
+                let _ = value.into_owner_redo_projection(counters);
             }
             IntegrityAdmittedRecoveryArtifact::CheckpointStreamHeader(value) => {
                 let _ = value.project(counters);

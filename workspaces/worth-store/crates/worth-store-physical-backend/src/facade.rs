@@ -203,7 +203,7 @@ pub use crate::recovery_media::{
     RecoveryMediaHandleObservation, RecoveryReopenReadOutcome,
     RecoveryRootProtocolPublicationDenial, RecoveryRootProtocolPublicationPlan,
     RecoveryStagingIndeterminatePhysical, RecoveryStagingSynchronizationOutcome,
-    RecoveryStagingWriteDisposition, RecoveryStagingWriteOutcome,
+    RecoveryStagingWriteDisposition, RecoveryStagingWriteOutcome, RecoveryWalObservationIdentity,
 };
 pub use crate::recovery_staging::{
     ClosedNonCurrentStagingMedia, ClosedStagingArtifactVerificationDenial,

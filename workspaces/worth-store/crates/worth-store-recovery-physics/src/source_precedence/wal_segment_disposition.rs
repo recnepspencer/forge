@@ -1,8 +1,8 @@
-use worth_store_wal::{InterruptedWalTail, WalSegmentArtifactIdentity, WalSegmentInspection};
+use worth_store_wal::{WalSegmentArtifactIdentity, WalSegmentInspection};
 
 use super::{
     PhysicalRecoveryResidue, PhysicalRecoveryResidueKind, PhysicalWalFrameFacts,
-    PhysicalWalSegmentCandidate,
+    PhysicalWalInterruptionFacts, PhysicalWalSegmentCandidate,
 };
 
 /// C.8's recovery-policy view of one C.9 admission transcript.
@@ -88,7 +88,7 @@ pub fn classify_admitted_wal_segment(
         return None;
     }
     let interruption = terminal_truncation.then(|| {
-        InterruptedWalTail::from_observed_suffix(inspection.byte_count(), input.observed_bytes)
+        PhysicalWalInterruptionFacts::new(inspection.byte_count(), input.observed_bytes)
             .expect("terminal rejection follows a nonempty admitted prefix")
     });
     let candidate =

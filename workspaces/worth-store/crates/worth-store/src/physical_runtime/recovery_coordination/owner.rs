@@ -33,6 +33,7 @@ pub enum PhysicalRecoveryCoordinationAdmissionError {
 
 pub struct PhysicalRecoveryCoordination {
     pub(super) store: worth_store_physical_format::store_namespace::StableStoreIdentity,
+    pub(super) media_generation: worth_store_physical_backend::PhysicalRecoveryMediaGeneration,
     _registered_session: PhysicalRecoveryRegisteredSessionAuthority,
     pub(super) signal: PhysicalWorkSignalOwner,
     pub(super) submission: PhysicalWorkSubmissionOwner,
@@ -117,6 +118,7 @@ impl PhysicalRecoveryCoordination {
             PhysicalWorkAdmissionAuthority::from_recovery_media(media, runtime, lifecycle);
         Ok(Self {
             store: media.store_identity(),
+            media_generation: media.media_generation(),
             _registered_session: session,
             signal,
             submission,

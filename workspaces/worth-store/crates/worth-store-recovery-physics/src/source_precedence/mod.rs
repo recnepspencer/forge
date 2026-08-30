@@ -40,6 +40,6 @@ pub use wal_segment_disposition::{
     PhysicalWalSegmentDisposition,
 };
 pub use wal_tail::{
-    admit_physical_wal_tail, PhysicalWalFrameFacts, PhysicalWalSegmentCandidate,
-    SelectedPhysicalWalTail, SelectedPhysicalWalTailDenial,
+    admit_physical_wal_tail, PhysicalWalFrameFacts, PhysicalWalInterruptionFacts,
+    PhysicalWalSegmentCandidate, SelectedPhysicalWalTail, SelectedPhysicalWalTailDenial,
 };

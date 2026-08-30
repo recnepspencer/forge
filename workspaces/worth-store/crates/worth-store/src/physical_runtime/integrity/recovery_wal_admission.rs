@@ -15,7 +15,7 @@ use worth_store_physical_integrity::{
 pub struct IntegrityAdmittedRecoveryWalFrame {
     source_name: OsString,
     source_entry_type: NamespaceEntryType,
-    source_incarnation: ObservedWalSourceIncarnation,
+    source_incarnation: crate::physical_runtime::RecoveryWalObservationIdentity,
     scope: PhysicalArtifactScope,
     segment_identity: WalSegmentIdentity,
     lsn_start: u64,
@@ -24,12 +24,6 @@ pub struct IntegrityAdmittedRecoveryWalFrame {
     payload_digest: [u8; 32],
     encoded: Box<[u8]>,
     payload_range: std::ops::Range<usize>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ObservedWalSourceIncarnation {
-    base_address: usize,
-    byte_count: usize,
 }
 
 /// Store-owned exact-frame evidence for one complete C.9-admitted WAL segment.
@@ -66,7 +60,7 @@ impl IntegrityAdmittedRecoveryWalFrame {
         let bytes = observed
             .bytes()
             .ok_or(RecoveryWalIntegrityAdmissionDenial::MissingBoundedArtifact)?;
-        let source_incarnation = ObservedWalSourceIncarnation::capture(bytes);
+        let source_incarnation = observed.observation_identity();
         let start = usize::try_from(relative_range.offset())
             .map_err(|_| RecoveryWalIntegrityAdmissionDenial::SourceRangeOutsideObservation)?;
         let end = usize::try_from(relative_range.end_exclusive())
@@ -158,7 +152,7 @@ impl IntegrityAdmittedRecoveryWalSegment {
             let source_matches = frame.source_name() == observed.name()
                 && frame.source_entry_type() == observed.entry_type()
                 && frame.scope().store_identity() == observed.store_identity()
-                && frame.source_incarnation.matches(observed_bytes)
+                && frame.source_incarnation == observed.observation_identity()
                 && start
                     .zip(end)
                     .and_then(|(start, end)| observed_bytes.get(start..end))
@@ -203,19 +197,6 @@ impl IntegrityAdmittedRecoveryWalSegment {
 
     pub fn frames(&self) -> &[IntegrityAdmittedRecoveryWalFrame] {
         &self.frames
-    }
-}
-
-impl ObservedWalSourceIncarnation {
-    fn capture(bytes: &[u8]) -> Self {
-        Self {
-            base_address: bytes.as_ptr() as usize,
-            byte_count: bytes.len(),
-        }
-    }
-
-    fn matches(self, bytes: &[u8]) -> bool {
-        self.base_address == bytes.as_ptr() as usize && self.byte_count == bytes.len()
     }
 }
 
@@ -279,7 +260,11 @@ mod tests {
         let mut discovery_a = media_a.bounded_discovery(2, 4096).unwrap();
         let mut discovery_b = media_b.bounded_discovery(2, 4096).unwrap();
         let observed_a = discovery_a.read_wal_artifacts(1, 4096).unwrap();
+        let repeated_a = discovery_a.read_wal_artifacts(1, 4096).unwrap();
         let observed_b = discovery_b.read_wal_artifacts(1, 4096).unwrap();
+        let media_a = discovery_a.finish();
+        let mut rediscovery_a = media_a.bounded_discovery(1, 4096).unwrap();
+        let rediscovered_a = rediscovery_a.read_wal_artifacts(1, 4096).unwrap();
         let range = PhysicalByteRange::new(0, frame.len() as u64).unwrap();
         let scope = PhysicalArtifactScope::wal_frame(store_a, identity, range);
         let validation = validate_wal_frame(
@@ -303,9 +288,14 @@ mod tests {
             vec![admitted.clone()],
         )
         .is_none());
-        let alternate_same_store = observed_a[0].clone();
         assert!(IntegrityAdmittedRecoveryWalSegment::from_complete_frames(
-            &alternate_same_store,
+            &repeated_a[0],
+            artifact_identity,
+            vec![admitted.clone()],
+        )
+        .is_none());
+        assert!(IntegrityAdmittedRecoveryWalSegment::from_complete_frames(
+            &rediscovered_a[0],
             artifact_identity,
             vec![admitted.clone()],
         )
@@ -316,7 +306,7 @@ mod tests {
             vec![admitted],
         )
         .is_some());
-        drop(discovery_a.finish());
+        drop(rediscovery_a.finish());
         drop(discovery_b.finish());
     }
 
@@ -337,3 +327,6 @@ mod tests {
         store
     }
 }
+
+#[cfg(test)]
+mod media_generation_tests;

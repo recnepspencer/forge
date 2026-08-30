@@ -33,8 +33,15 @@ pub(super) struct PlanningContext {
 
 impl PlanningContext {
     pub(super) fn from_selected(selected: SelectedPhysicalRecovery) -> Self {
-        let (authority, coordination, selection, integrity, counters, root_protocol_denials, integrity_trace) =
-            selected.into_parts();
+        let (
+            authority,
+            coordination,
+            selection,
+            integrity,
+            counters,
+            root_protocol_denials,
+            integrity_trace,
+        ) = selected.into_parts();
         let limits = authority.limits.declaration();
         let effects_before = authority.media.recovery_effect_count();
         Self {
@@ -69,6 +76,7 @@ impl PlanningContext {
             self.root_protocol_denials,
         )
         .with_integrity_trace(integrity_trace)
+        .with_block_integrity_observations(self.integrity.into_observations())
     }
 
     pub(super) fn block_with_planning_attempt_denial(
@@ -93,6 +101,7 @@ impl PlanningContext {
             self.root_protocol_denials,
         )
         .with_integrity_trace(integrity_trace)
+        .with_block_integrity_observations(self.integrity.into_observations())
     }
 
     pub(super) fn root_protocol_block(
@@ -117,6 +126,7 @@ impl PlanningContext {
             self.root_protocol_denials,
         )
         .with_integrity_trace(integrity_trace)
+        .with_block_integrity_observations(self.integrity.into_observations())
     }
 
     pub(super) fn successor_candidate_block(
@@ -140,6 +150,7 @@ impl PlanningContext {
             self.root_protocol_denials,
         )
         .with_integrity_trace(integrity_trace)
+        .with_block_integrity_observations(self.integrity.into_observations())
     }
 
     pub(super) fn redo_block(
@@ -158,6 +169,7 @@ impl PlanningContext {
             self.root_protocol_denials,
         )
         .with_integrity_trace(integrity_trace)
+        .with_block_integrity_observations(self.integrity.into_observations())
     }
 
     pub(super) fn redo_denial_block(
@@ -178,6 +190,7 @@ impl PlanningContext {
             self.root_protocol_denials,
         )
         .with_integrity_trace(integrity_trace)
+        .with_block_integrity_observations(self.integrity.into_observations())
     }
 
     pub(super) fn cost_denial_block(
@@ -198,6 +211,7 @@ impl PlanningContext {
             self.root_protocol_denials,
         )
         .with_integrity_trace(integrity_trace)
+        .with_block_integrity_observations(self.integrity.into_observations())
     }
 
     pub(super) fn record_successor_root_route(

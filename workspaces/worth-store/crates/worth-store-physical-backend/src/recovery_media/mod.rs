@@ -25,7 +25,7 @@ pub use cleanup::{
 pub use discovery::{
     BoundedRecoveryFilesystemDiscovery, ObservedRecoveryArtifact, ObservedWalArtifact,
     RecoveryDiscoveryArtifact, RecoveryDiscoveryByteLimitScope, RecoveryDiscoveryCounters,
-    RecoveryDiscoveryFailure,
+    RecoveryDiscoveryFailure, RecoveryWalObservationIdentity,
 };
 pub use generation::PhysicalRecoveryMediaGeneration;
 pub use profile::QualifiedPhysicalBackendProfile;

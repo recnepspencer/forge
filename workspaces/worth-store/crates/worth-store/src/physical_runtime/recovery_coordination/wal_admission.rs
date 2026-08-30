@@ -18,6 +18,9 @@ impl super::PhysicalRecoveryCoordination {
         if expected_scope.store_identity() != self.store {
             return Err(RecoveryWalIntegrityAdmissionDenial::ScopeMismatch);
         }
+        if !observed.matches_media_generation(self.media_generation) {
+            return Err(RecoveryWalIntegrityAdmissionDenial::SourceIncarnationMismatch);
+        }
         IntegrityAdmittedRecoveryWalFrame::bind(observed, expected_scope, relative_range, validated)
     }
 
@@ -27,7 +30,9 @@ impl super::PhysicalRecoveryCoordination {
         identity: worth_store_wal::WalSegmentArtifactIdentity,
         frames: Vec<IntegrityAdmittedRecoveryWalFrame>,
     ) -> Option<IntegrityAdmittedRecoveryWalSegment> {
-        (observed.store_identity() == self.store).then_some(())?;
+        (observed.store_identity() == self.store
+            && observed.matches_media_generation(self.media_generation))
+        .then_some(())?;
         frames
             .iter()
             .all(|frame| frame.scope().store_identity() == self.store)

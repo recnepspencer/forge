@@ -28,8 +28,12 @@ pub fn validate_wal_frame_prefix<'media>(
     let inspected_length = inspected_frame_length(bytes);
     let input_length = inspected_length.min(bytes.len());
     let input = UntrustedPhysicalArtifact::from_bounded_bytes(&bytes[..input_length]);
-    let range = PhysicalByteRange::new(artifact_offset, inspected_length as u64)
-        .expect("a nonempty bounded WAL suffix yields a nonempty exact frame scope");
+    let range =
+        PhysicalByteRange::new(artifact_offset, inspected_length as u64).unwrap_or_else(|_| {
+            PhysicalByteRange::new(artifact_offset, input_length as u64).expect(
+                "a hostile declared length still has one bounded header at its artifact offset",
+            )
+        });
     validate_wal_frame(
         input,
         PhysicalArtifactScope::wal_frame(store, identity, range),
@@ -91,5 +95,37 @@ mod tests {
             damage.damaged_range(),
             PhysicalByteRange::new(40, 99).unwrap()
         );
+    }
+
+    #[test]
+    fn later_frame_with_overflowing_absolute_length_is_a_typed_rejection() {
+        let store = StoreNamespaceIdentityRecord::new(
+            StoreNamespaceVersion::CURRENT,
+            ProposedStoreIdentity::from_nonzero_bytes([7; 16]).unwrap(),
+        )
+        .published_identity();
+        let identity = WalSegmentIdentity::new(3, 4).unwrap();
+        let mut header = [0_u8; WAL_FRAME_V1_HEADER_BYTES];
+        header[..8].copy_from_slice(b"WORTHWAL");
+        header[8..10].copy_from_slice(&1_u16.to_le_bytes());
+        header[10..12].copy_from_slice(&(WAL_FRAME_V1_HEADER_BYTES as u16).to_le_bytes());
+        header[12..20].copy_from_slice(&3_u64.to_le_bytes());
+        header[20..28].copy_from_slice(&4_u64.to_le_bytes());
+        header[28..36].copy_from_slice(&5_u64.to_le_bytes());
+        header[36..44].copy_from_slice(&6_u64.to_le_bytes());
+        header[44..52].copy_from_slice(&(u64::MAX - 200).to_le_bytes());
+
+        let (validation, _) = validate_wal_frame_prefix(
+            UntrustedPhysicalArtifact::from_bounded_bytes(&header),
+            store,
+            identity,
+            256,
+        );
+        let WalFrameIntegrityValidation::Rejected(PhysicalIntegrityRejection::Damaged(damage)) =
+            validation
+        else {
+            panic!("overflowing absolute frame scope must be rejected")
+        };
+        assert_eq!(damage.cause(), PhysicalDamageCause::FramingLengthMismatch);
     }
 }

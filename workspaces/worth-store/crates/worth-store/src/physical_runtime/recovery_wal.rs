@@ -5,6 +5,6 @@
 //! while the WAL crate remains an implementation dependency of that owner.
 
 pub use worth_store_wal::{
-    wal_frame_integrity_scope_identity, InterruptedWalTail, LogSequenceNumber, WalLsnRange,
-    WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId, WalSegmentInspection,
+    wal_frame_integrity_scope_identity, LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity,
+    WalSegmentGeneration, WalSegmentId, WalSegmentInspection,
 };

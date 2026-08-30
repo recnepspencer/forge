@@ -28,6 +28,11 @@ pub use disposition::{
     PhysicalArtifactDisposition, PhysicalArtifactRoleDisposition,
     RebuildablePhysicalDerivedObservation, UnknownDerivedRebuildability,
 };
+#[cfg(feature = "recovery-runtime-owner")]
+pub use recovery_wal_admission::{
+    IntegrityAdmittedRecoveryWalFrame, IntegrityAdmittedRecoveryWalSegment,
+    RecoveryWalIntegrityAdmissionDenial,
+};
 pub(in crate::physical_runtime) use resident_admission::denial::ResidentIntegrityAdmissionDenial;
 pub(in crate::physical_runtime) use resident_admission::extent::{
     admit_resident_extent_chunk, admit_resident_extent_manifest,
@@ -35,11 +40,6 @@ pub(in crate::physical_runtime) use resident_admission::extent::{
 pub(in crate::physical_runtime) use resident_admission::load::ResidentAdmissionContext;
 pub(in crate::physical_runtime) use resident_admission::page::{
     admit_resident_page, IntegrityAdmittedResidentPageBasis,
-};
-#[cfg(feature = "recovery-runtime-owner")]
-pub use recovery_wal_admission::{
-    IntegrityAdmittedRecoveryWalFrame, IntegrityAdmittedRecoveryWalSegment,
-    RecoveryWalIntegrityAdmissionDenial,
 };
 pub use root_protocol_admission_denial::RootProtocolAdmissionDenial;
 pub(in crate::physical_runtime) use scrub::{

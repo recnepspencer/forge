@@ -1,10 +1,8 @@
-use worth_store_wal::{
-    InterruptedWalTail, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentInspection,
-};
+use worth_store_wal::{WalLsnRange, WalSegmentArtifactIdentity, WalSegmentInspection};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalWalSegmentCandidate {
     inspection: WalSegmentInspection,
-    interrupted_tail: Option<InterruptedWalTail>,
+    interrupted_tail: Option<PhysicalWalInterruptionFacts>,
     frame_facts: Box<[PhysicalWalFrameFacts]>,
     selected_frame_start: usize,
     selected_range: Option<WalLsnRange>,
@@ -14,6 +12,11 @@ pub struct PhysicalWalSegmentCandidate {
 pub struct PhysicalWalFrameFacts {
     lsn_range: WalLsnRange,
     encoded_bytes: u64,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalWalInterruptionFacts {
+    valid_prefix_bytes: u64,
+    observed_bytes: u64,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectedPhysicalWalTail {
@@ -35,7 +38,7 @@ pub enum SelectedPhysicalWalTailDenial {
 impl PhysicalWalSegmentCandidate {
     pub fn from_frame_facts(
         inspection: WalSegmentInspection,
-        interrupted_tail: Option<InterruptedWalTail>,
+        interrupted_tail: Option<PhysicalWalInterruptionFacts>,
         frame_facts: Vec<PhysicalWalFrameFacts>,
     ) -> Option<Self> {
         if frame_facts.len() as u64 != inspection.frame_count()
@@ -69,7 +72,7 @@ impl PhysicalWalSegmentCandidate {
         self.inspection
     }
 
-    pub const fn interrupted_tail(&self) -> Option<InterruptedWalTail> {
+    pub const fn interrupted_tail(&self) -> Option<PhysicalWalInterruptionFacts> {
         self.interrupted_tail
     }
 
@@ -262,6 +265,23 @@ impl PhysicalWalFrameFacts {
 
     pub const fn encoded_bytes(self) -> u64 {
         self.encoded_bytes
+    }
+}
+
+impl PhysicalWalInterruptionFacts {
+    pub fn new(valid_prefix_bytes: u64, observed_bytes: u64) -> Option<Self> {
+        (valid_prefix_bytes != 0 && observed_bytes > valid_prefix_bytes).then_some(Self {
+            valid_prefix_bytes,
+            observed_bytes,
+        })
+    }
+
+    pub const fn valid_prefix_bytes(self) -> u64 {
+        self.valid_prefix_bytes
+    }
+
+    pub const fn observed_bytes(self) -> u64 {
+        self.observed_bytes
     }
 }
 

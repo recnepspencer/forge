@@ -19,6 +19,20 @@ pub enum PhysicalRecoveryOutcome {
     PublicationIndeterminate(PhysicalRecoveryPublicationIndeterminate),
 }
 
+impl PhysicalRecoveryOutcome {
+    pub(crate) fn with_block_integrity_observations(
+        self,
+        observations: super::PhysicalRecoveryIntegrityObservations,
+    ) -> Self {
+        match self {
+            Self::Blocked(blocked) => {
+                Self::Blocked(blocked.with_integrity_observations(observations))
+            }
+            _ => unreachable!("planning denial construction always yields a blocked outcome"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct PhysicalRecoveryPublicationIndeterminate {
     store: StableStoreIdentity,
@@ -107,7 +121,9 @@ impl PhysicalRecoveryRefusal {
         self
     }
 
-    pub const fn wal_integrity_observations(&self) -> &super::PhysicalRecoveryIntegrityObservations {
+    pub const fn wal_integrity_observations(
+        &self,
+    ) -> &super::PhysicalRecoveryIntegrityObservations {
         &self.integrity_observations
     }
 }
@@ -264,7 +280,9 @@ impl PhysicalRecoveryPublicationIndeterminate {
         self
     }
 
-    pub const fn wal_integrity_observations(&self) -> &super::PhysicalRecoveryIntegrityObservations {
+    pub const fn wal_integrity_observations(
+        &self,
+    ) -> &super::PhysicalRecoveryIntegrityObservations {
         &self.integrity_observations
     }
 
@@ -367,6 +385,14 @@ impl PhysicalRecoveryBlock {
 
     pub const fn recovery_effects(&self) -> u64 {
         self.recovery_effects
+    }
+
+    fn with_integrity_observations(
+        mut self,
+        observations: super::PhysicalRecoveryIntegrityObservations,
+    ) -> Self {
+        self.evidence.integrity_observations = observations;
+        self
     }
 }
 

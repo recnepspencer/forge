@@ -43,8 +43,8 @@ pub use source_precedence::{
     PhysicalRecoverySource, PhysicalRootCandidateDenial, PhysicalRootManifestDenial,
     PhysicalRootSelectionDenial, PhysicalRootSelectorDenial, PhysicalRootSlotObservation,
     PhysicalRootSourceCandidate, PhysicalSourceSelection, PhysicalSourceSelectionDenial,
-    PhysicalSourceSelectionTrace, PhysicalWalFrameFacts, PhysicalWalSegmentCandidate,
-    PhysicalWalSegmentDisposition, SelectedCompactionProduct, SelectedPhysicalPageFacts,
-    SelectedPhysicalRoot, SelectedPhysicalRootRole, SelectedPhysicalWalTail,
-    SelectedPhysicalWalTailDenial,
+    PhysicalSourceSelectionTrace, PhysicalWalFrameFacts, PhysicalWalInterruptionFacts,
+    PhysicalWalSegmentCandidate, PhysicalWalSegmentDisposition, SelectedCompactionProduct,
+    SelectedPhysicalPageFacts, SelectedPhysicalRoot, SelectedPhysicalRootRole,
+    SelectedPhysicalWalTail, SelectedPhysicalWalTailDenial,
 };

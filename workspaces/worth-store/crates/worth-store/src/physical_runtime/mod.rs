@@ -281,7 +281,7 @@ pub use worth_store_physical_backend::{
     RecoveryFilesystemQualificationError, RecoveryReopenReadOutcome,
     RecoveryRootProtocolPublicationDenial, RecoveryRootProtocolPublicationPlan,
     RecoveryStagingIndeterminatePhysical, RecoveryStagingWriteDisposition,
-    RecoveryStagingWriteOutcome,
+    RecoveryStagingWriteOutcome, RecoveryWalObservationIdentity,
 };
 
 pub(in crate::physical_runtime) use work::{

@@ -15,6 +15,5 @@ pub(super) fn owner_valid_compile_contracts() {
     free_space::owner_valid_compile_contracts();
     page::owner_valid_compile_contract();
     extent::owner_valid_compile_contracts();
-    wal::owner_valid_compile_contract();
     checkpoint::owner_valid_compile_contracts();
 }

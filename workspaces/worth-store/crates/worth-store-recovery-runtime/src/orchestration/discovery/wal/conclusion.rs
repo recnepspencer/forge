@@ -21,20 +21,29 @@ pub(super) struct WalSegmentConclusion {
     pub torn_bytes: u64,
 }
 
+pub(super) struct WalSegmentConclusionFailure {
+    pub observations: Vec<PhysicalRecoveryWalIntegrityObservation>,
+}
+
 pub(super) fn conclude_segment(
     owner: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
     transcript: WalSegmentAdmissionTranscript,
     terminal: bool,
-) -> Option<WalSegmentConclusion> {
-    let admitted = (!transcript.frames.is_empty())
-        .then(|| {
-            owner.retain_admitted_recovery_wal_segment(
-                &transcript.artifact,
-                transcript.identity,
-                transcript.frames,
-            )
-        })
-        .flatten();
+) -> Result<WalSegmentConclusion, WalSegmentConclusionFailure> {
+    let admitted = if transcript.frames.is_empty() {
+        None
+    } else {
+        let Some(admitted) = owner.retain_admitted_recovery_wal_segment(
+            &transcript.artifact,
+            transcript.identity,
+            transcript.frames,
+        ) else {
+            return Err(WalSegmentConclusionFailure {
+                observations: transcript.observations,
+            });
+        };
+        Some(admitted)
+    };
     let prefix = admitted.as_ref().map(|segment| {
         let facts = segment
             .frames()
@@ -60,7 +69,10 @@ pub(super) fn conclude_segment(
         terminal,
         rejection_kind,
         prefix,
-    ))?;
+    ))
+    .ok_or_else(|| WalSegmentConclusionFailure {
+        observations: transcript.observations.clone(),
+    })?;
     let mut conclusion = WalSegmentConclusion {
         candidate: None,
         admitted: None,
@@ -102,7 +114,7 @@ pub(super) fn conclude_segment(
             }
         }
     }
-    Some(conclusion)
+    Ok(conclusion)
 }
 
 fn is_truncation(rejection: PhysicalIntegrityRejection) -> bool {

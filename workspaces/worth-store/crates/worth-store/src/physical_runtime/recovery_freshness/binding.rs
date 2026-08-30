@@ -89,7 +89,7 @@ pub enum StoreRecoveryBindingSampleDenial {
     RedoByteLimit,
 }
 
-pub(super) fn sample_binding_from_frames<'frame, Frame: RecoveryWalFrameInput + 'frame>(
+fn sample_binding_from_frames<'frame, Frame: RecoveryWalFrameInput + 'frame>(
     freshness: &super::PhysicalRecoveryFreshnessAuthority,
     media: &AdmittedRecoveryFilesystemMedia,
     checkpoint: &VerifiedCheckpointStream,

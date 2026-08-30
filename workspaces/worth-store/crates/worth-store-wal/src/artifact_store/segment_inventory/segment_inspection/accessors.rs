@@ -43,13 +43,6 @@ impl<'segment> VerifiedWalActiveTail<'segment> {
 }
 
 impl InterruptedWalTail {
-    pub fn from_observed_suffix(valid_prefix_bytes: u64, observed_bytes: u64) -> Option<Self> {
-        (valid_prefix_bytes != 0 && observed_bytes > valid_prefix_bytes).then_some(Self {
-            valid_prefix_bytes,
-            observed_bytes,
-        })
-    }
-
     pub const fn valid_prefix_bytes(self) -> u64 {
         self.valid_prefix_bytes
     }
