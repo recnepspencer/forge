@@ -244,9 +244,8 @@ The canonical Signal owner state is partitioned by responsibility:
 - owner lifecycle state; and
 - bounded diagnostics/counters.
 
-This is a physical ownership refactor, not a duplicate model. At all times
-there is exactly one canonical execution cell for a live branch identity and
-lifecycle incarnation. Moving state out of the monolithic runtime value must
+Each live branch identity/lifecycle incarnation has exactly one canonical
+execution cell. Moving state out of the monolithic runtime value must
 remove the old direct field authority or make it delegate to the same cell; it
 must not mirror branch state between two mutable homes.
 
@@ -454,13 +453,11 @@ authority reconstruction.
 
 ## Adversarial Courtroom
 
-The decisive court parks Signal branch A after cell admission but before
-movement, completes unrelated branch B, then releases A. It separately races
-two admissible operations from one basis and requires exactly one movement.
-Public observations must expose shadow state, global locking, leaked capacity,
-owner clones, and cross-branch poison. The Relational companion reaches the
-existing basis/lifecycle owners through the bundle alone. The families below
-define the denial, lifecycle, compiler, model, and scale evidence.
+The court parks Signal branch A after cell admission but before movement,
+completes unrelated B before releasing A, then races two admissible, effectful
+operations from one basis: exactly one moves. Public observations expose shadow
+state, global locking, leaked capacity, owner clones, and cross-branch poison.
+Relational reaches basis/lifecycle owners only through its bundle.
 
 ## Phase Progression
 
@@ -473,12 +470,15 @@ defects return to one serial gate, never adapters, aliases, duplicate traits,
 or compatibility lanes.
 
 Each gate closes only its stated claim after integrated review and affected
-proofs pass. Stubs, private-cell tests, and worker summaries cannot certify
-public service completion; unresolved contract findings block dependents.
+proofs pass. Contract changes invalidate dependent approvals until integrated
+reverification. Stubs, private-cell tests, and worker summaries cannot certify
+public services; unresolved contract findings block dependents.
 
 ### Phase 1: Serial owner-contract gate
 
-- freeze exact Relational bundle and Signal basis/mutation/lifecycle method signatures, owner/cell contracts, denials, counters, and operation-control seams;
+- freeze exact Relational bundle and Signal basis/mutation/lifecycle signatures
+  in owner-guide matrices, plus owner/cell contracts, denials, counters, and
+  operation-control seams;
 - create permanent shared vocabulary, feature/facade assembly, current fences,
   and exclusive shared-file ownership; and
 - assign subordinate roots, future source fences, and focused commands below.
@@ -546,11 +546,12 @@ only lane counts toward the two-to-four implementation lanes above.
 
 ## Test Evidence Architecture
 
-Owner-guide matrices enumerate every required method, receiver,
-input, outcome, and canonical owner before service implementation. Certification
-maps each row to named executable cases, including healthy and reachable denial
-postures. Derive rows from these contracts and inherited APIs, not implemented
-methods; omitted methods cannot disappear from the acceptance scope.
+Before service implementation, owner-guide matrices enumerate required methods,
+receivers, inputs, outcomes, and canonical owners from this spec and inherited
+APIs, never implemented methods. Each row maps to named public-facade runtime
+cases proving healthy results and reachable denials. Effectful cases assert exact
+observable post-state and cleanup, not merely `Ok` or counters; no-op or
+always-deny implementations must fail. Missing methods remain required.
 
 Integration evidence follows the Relational Supply Chain and Query Bank courts:
 
@@ -769,11 +770,11 @@ selector invocation above. Global test counts are not acceptance criteria.
 The suite must become red when a targeted negative twin or equivalent mutation
 introduces any of these defects: a runtime-wide lock at any real progression
 boundary, a second branch graph, a legacy method bypassing the cell, a missing
-public port operation, raw-id authority, missing expected-basis comparison, two
-movements from one basis, fork-by-copy, cancellation overriding performed
-truth, leaked capacity on any terminal path, diagnostic pressure denying a
-lawful mutation, owner clones hidden in ports, unarmed operation control
-changing behavior, or panic poisoning unrelated branches.
+public port operation, success-shaped no-ops, raw-id authority, missing
+expected-basis comparison, two movements from one basis, fork-by-copy,
+cancellation overriding performed truth, leaked capacity on any terminal path,
+diagnostic pressure denying a lawful mutation, owner clones hidden in ports,
+unarmed operation control changing behavior, or panic poisoning unrelated branches.
 
 Before closure, demonstrate sensitivity for global locking, omitted exact-basis
 comparison, fork copying, and cancellation erasing performed truth. Use targeted
@@ -785,7 +786,7 @@ rerun affected cases. No mutation framework or proof ledger is required.
 
 Passing tests is necessary and insufficient. A reviewer independent of the
 implementation inspects the complete milestone diff, including earlier phases,
-and reconciles the required method matrices with real facade-to-owner paths
+and reconciles required method matrices with facade-to-owner paths, real effects,
 and executed cases. Worker approvals cannot substitute. Review must establish:
 
 - every pre-milestone public Signal branch observation, readmission, retention,
