@@ -1,4 +1,8 @@
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
+use worth_store_physical_format::{
+    DurableInlineRecordPlacement, ExtentChunkCoordinate, PhysicalCheckpointIdentity,
+    WalSegmentIdentity,
+};
 use worth_store_physical_integrity::{
     CheckpointFooterValidationBasis, IntegrityValidatedCheckpointBinding,
     IntegrityValidatedCheckpointBindingCompaction, IntegrityValidatedCheckpointDirtyBasis,
@@ -55,11 +59,14 @@ fn valid_checkpoint_compaction<'media>(
 fn valid_checkpoint_binding<'media>(
     validated: IntegrityValidatedCheckpointBinding<'media>,
     input: UntrustedPhysicalArtifact<'media>,
+    checkpoint: PhysicalCheckpointIdentity,
 ) -> PhysicalIntegrityValidationRecord {
     let scope = validated.scope();
     let _payload_bytes = validated.payload_bytes();
     let _encoded_bytes = validated.encoded_bytes();
     let _same_incarnation = validated.matches_input(input);
+    let projection = validated.project_payload(input, checkpoint).unwrap();
+    let _payload_range = projection.payload_range();
     let record = validated.into_validation_record();
     let _same_scope = record.matches_scope(scope);
     record
@@ -150,9 +157,12 @@ fn valid_physical_work<'media>(
 fn valid_page<'media>(
     validated: IntegrityValidatedPageFrame<'media>,
     input: UntrustedPhysicalArtifact<'media>,
+    placement: DurableInlineRecordPlacement,
 ) -> PhysicalIntegrityValidationRecord {
     let scope = validated.scope();
     let _same_incarnation = validated.matches_input(input);
+    let projection = validated.project_record(input, placement).unwrap();
+    let _payload_range = projection.payload_range();
     let record = validated.into_validation_record();
     let _same_scope = record.matches_scope(scope);
     record
@@ -161,11 +171,14 @@ fn valid_page<'media>(
 fn valid_wal<'media>(
     validated: IntegrityValidatedWalFrame<'media>,
     input: UntrustedPhysicalArtifact<'media>,
+    segment: WalSegmentIdentity,
 ) -> PhysicalIntegrityValidationRecord {
     let scope = validated.scope();
     let _identity = validated.segment_identity();
     let _lsn_after_validation = (validated.lsn_start(), validated.lsn_end());
     let _same_incarnation = validated.matches_input(input);
+    let projection = validated.project_payload(input, segment).unwrap();
+    let _payload_range = projection.payload_range();
     let record = validated.into_validation_record();
     let _same_scope = record.matches_scope(scope);
     record
@@ -185,9 +198,12 @@ fn valid_extent_manifest<'media>(
 fn valid_extent_chunk<'media>(
     validated: IntegrityValidatedExtentChunkFrame<'media>,
     input: UntrustedPhysicalArtifact<'media>,
+    coordinate: ExtentChunkCoordinate,
 ) -> PhysicalIntegrityValidationRecord {
     let scope = validated.scope();
     let _same_incarnation = validated.matches_input(input);
+    let projection = validated.project_chunk(input, coordinate).unwrap();
+    let _payload_range = projection.payload_range();
     let record = validated.into_validation_record();
     let _same_scope = record.matches_scope(scope);
     record

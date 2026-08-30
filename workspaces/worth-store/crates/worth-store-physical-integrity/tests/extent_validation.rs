@@ -1,5 +1,7 @@
 #[path = "extent_validation/chunk.rs"]
 mod chunk;
+#[path = "extent_validation/consumption_projection.rs"]
+mod consumption_projection;
 #[path = "extent_validation/literal_vectors.rs"]
 mod literal_vectors;
 #[path = "extent_validation/manifest.rs"]

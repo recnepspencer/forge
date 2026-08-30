@@ -6,6 +6,8 @@ mod footer_record;
 mod literal_vectors;
 #[path = "checkpoint_validation/ordered_stream.rs"]
 mod ordered_stream;
+#[path = "checkpoint_validation/payload_projection.rs"]
+mod payload_projection;
 #[path = "checkpoint_validation/record_matrix.rs"]
 mod record_matrix;
 #[path = "checkpoint_validation/scope_denials.rs"]

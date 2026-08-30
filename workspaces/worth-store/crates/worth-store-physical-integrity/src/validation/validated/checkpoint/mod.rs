@@ -4,7 +4,10 @@ mod dirty_basis;
 mod footer;
 mod stream_header;
 
-pub use binding::IntegrityValidatedCheckpointBinding;
+pub use binding::{
+    CheckpointBindingPayloadProjectionDenial, IntegrityValidatedCheckpointBinding,
+    IntegrityValidatedCheckpointBindingPayloadProjection,
+};
 pub use binding_compaction::IntegrityValidatedCheckpointBindingCompaction;
 pub use dirty_basis::IntegrityValidatedCheckpointDirtyBasis;
 pub use footer::IntegrityValidatedCheckpointFooter;

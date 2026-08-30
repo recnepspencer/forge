@@ -1,4 +1,6 @@
-use worth_store_physical_format::wal_frame::BoundedWalFrameV1;
+use std::ops::Range;
+
+use worth_store_physical_format::wal_frame::{BoundedWalFrameV1, WAL_FRAME_V1_HEADER_BYTES};
 use worth_store_physical_format::WalSegmentIdentity;
 
 use super::super::{
@@ -13,9 +15,20 @@ pub struct IntegrityValidatedWalFrame<'media> {
     lsn_end: u64,
     identity_digest: [u8; 32],
     payload_digest: [u8; 32],
-    payload: &'media [u8],
+    payload_range: Range<usize>,
     validation_record: PhysicalIntegrityValidationRecord,
     inspected: UntrustedPhysicalArtifact<'media>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WalPayloadProjectionDenial {
+    InputIncarnationMismatch,
+    SegmentIdentityMismatch,
+}
+
+#[derive(Debug)]
+pub struct IntegrityValidatedWalPayloadProjection<'view, 'media> {
+    validated: &'view IntegrityValidatedWalFrame<'media>,
 }
 
 impl<'media> IntegrityValidatedWalFrame<'media> {
@@ -43,7 +56,8 @@ impl<'media> IntegrityValidatedWalFrame<'media> {
             lsn_end: header.lsn_end(),
             identity_digest: header.identity_digest(),
             payload_digest: header.payload_digest(),
-            payload: decoded.payload(),
+            payload_range: WAL_FRAME_V1_HEADER_BYTES
+                ..WAL_FRAME_V1_HEADER_BYTES + decoded.payload().len(),
             validation_record,
             inspected,
         })
@@ -76,8 +90,19 @@ impl<'media> IntegrityValidatedWalFrame<'media> {
         self.payload_digest
     }
 
-    pub const fn payload(&self) -> &'media [u8] {
-        self.payload
+    pub fn project_payload<'view>(
+        &'view self,
+        input: UntrustedPhysicalArtifact<'media>,
+        expected_segment: WalSegmentIdentity,
+    ) -> Result<IntegrityValidatedWalPayloadProjection<'view, 'media>, WalPayloadProjectionDenial>
+    {
+        if !self.inspected.same_incarnation(input) {
+            return Err(WalPayloadProjectionDenial::InputIncarnationMismatch);
+        }
+        if expected_segment != self.segment_identity() {
+            return Err(WalPayloadProjectionDenial::SegmentIdentityMismatch);
+        }
+        Ok(IntegrityValidatedWalPayloadProjection { validated: self })
     }
 
     pub const fn into_validation_record(self) -> PhysicalIntegrityValidationRecord {
@@ -86,5 +111,23 @@ impl<'media> IntegrityValidatedWalFrame<'media> {
 
     pub fn matches_input(&self, input: UntrustedPhysicalArtifact<'media>) -> bool {
         self.inspected.same_incarnation(input)
+    }
+}
+
+impl IntegrityValidatedWalPayloadProjection<'_, '_> {
+    pub const fn segment_identity(&self) -> WalSegmentIdentity {
+        self.validated.segment_identity()
+    }
+
+    pub const fn lsn_start(&self) -> u64 {
+        self.validated.lsn_start()
+    }
+
+    pub const fn lsn_end(&self) -> u64 {
+        self.validated.lsn_end()
+    }
+
+    pub fn payload_range(&self) -> Range<usize> {
+        self.validated.payload_range.clone()
     }
 }

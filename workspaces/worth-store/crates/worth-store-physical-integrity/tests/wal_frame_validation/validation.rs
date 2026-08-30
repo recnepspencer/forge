@@ -2,7 +2,7 @@ use worth_store_physical_format::integrity_declarations::PhysicalIntegrityArtifa
 use worth_store_physical_integrity::{
     validate_wal_frame, PhysicalArtifactScope, PhysicalBlastRadius, PhysicalByteRange,
     PhysicalDamageCause, PhysicalIntegrityValidationDigest, PhysicalIntegrityValidationMechanism,
-    UntrustedPhysicalArtifact, WalFrameIntegrityValidation,
+    UntrustedPhysicalArtifact, WalFrameIntegrityValidation, WalPayloadProjectionDenial,
 };
 
 use super::sha256::independent_sha256;
@@ -31,7 +31,11 @@ fn frozen_literal_exposes_lsn_payload_and_record_only_after_complete_validation(
         scope.wal_segment_identity().unwrap()
     );
     assert_eq!((validated.lsn_start(), validated.lsn_end()), (3, 4));
-    assert_eq!(validated.payload(), [0x10, 0x20, 0x30]);
+    let payload = validated
+        .project_payload(input, validated.segment_identity())
+        .unwrap();
+    assert_eq!((payload.lsn_start(), payload.lsn_end()), (3, 4));
+    assert_eq!(&bytes[payload.payload_range()], [0x10, 0x20, 0x30]);
     assert_eq!(validated.payload_digest(), bytes[84..116]);
     assert_eq!(validated.identity_digest(), bytes[52..84]);
     let record = validated.into_validation_record();
@@ -52,6 +56,36 @@ fn frozen_literal_exposes_lsn_payload_and_record_only_after_complete_validation(
     assert_eq!(
         (counters.intact_frames(), counters.rejected_frames()),
         (1, 0)
+    );
+}
+
+#[test]
+fn wal_payload_projection_denies_equal_copy_and_foreign_segment() {
+    let bytes = literal(CLEAN_HEX);
+    let scope = scope(7, 1, 2, bytes.len() as u64);
+    let input = UntrustedPhysicalArtifact::from_bounded_bytes(&bytes);
+    let (validation, _) = validate_wal_frame(input, scope);
+    let WalFrameIntegrityValidation::Intact(validated) = validation else {
+        panic!("frozen WAL frame must validate");
+    };
+    let equal_copy = bytes.clone();
+    assert_eq!(
+        validated
+            .project_payload(
+                UntrustedPhysicalArtifact::from_bounded_bytes(&equal_copy),
+                validated.segment_identity(),
+            )
+            .unwrap_err(),
+        WalPayloadProjectionDenial::InputIncarnationMismatch
+    );
+    assert_eq!(
+        validated
+            .project_payload(
+                input,
+                worth_store_physical_format::WalSegmentIdentity::new(2, 2).unwrap(),
+            )
+            .unwrap_err(),
+        WalPayloadProjectionDenial::SegmentIdentityMismatch
     );
 }
 

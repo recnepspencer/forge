@@ -1,3 +1,5 @@
+#[path = "page_validation/consumption_projection.rs"]
+mod consumption_projection;
 #[path = "page_validation/control.rs"]
 mod control;
 #[path = "page_validation/literal_vectors.rs"]

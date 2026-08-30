@@ -28,7 +28,7 @@ error: cannot construct `IntegrityValidatedCheckpointBinding<'_>` with struct li
 15 |     let _binding = IntegrityValidatedCheckpointBinding { scope };
    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   ----- private field
    |
-   = note: ...and other private fields `payload_bytes`, `validation_record` and `inspected` that were not provided
+   = note: ...and other private fields `payload_bytes`, `payload_range`, `validation_record` and `inspected` that were not provided
 
 error: cannot construct `IntegrityValidatedCheckpointFooter<'_>` with struct literal syntax due to private fields
   --> tests/ui/proof_construction.rs:16:19
@@ -165,7 +165,7 @@ error: cannot construct `IntegrityValidatedPageFrame<'_>` with struct literal sy
 57 |         inspected: todo!(),
    |         ------------------ private field
    |
-   = note: ...and other private fields `record_format`, `page`, `slot_count`, `free_bytes` and `validation_record` that were not provided
+   = note: ...and other private fields `record_format`, `page`, `slot_count`, `free_bytes`, `page_lsn` and `validation_record` that were not provided
 
 warning: unreachable expression
   --> tests/ui/proof_construction.rs:55:19
@@ -188,7 +188,7 @@ error: cannot construct `IntegrityValidatedWalFrame<'_>` with struct literal syn
 64 |         inspected: todo!(),
    |         ------------------ private field
    |
-   = note: ...and other private fields `lsn_start`, `lsn_end`, `identity_digest`, `payload_digest`, `payload` and `validation_record` that were not provided
+   = note: ...and other private fields `lsn_start`, `lsn_end`, `identity_digest`, `payload_digest`, `payload_range` and `validation_record` that were not provided
 
 warning: unreachable expression
   --> tests/ui/proof_construction.rs:62:19
@@ -211,7 +211,7 @@ error: cannot construct `IntegrityValidatedExtentChunkFrame<'_>` with struct lit
 71 |         inspected: todo!(),
    |         ------------------ private field
    |
-   = note: ...and other private fields `record_format`, `coordinate` and `validation_record` that were not provided
+   = note: ...and other private fields `record_format`, `coordinate`, `payload_range`, `page_lsn` and `validation_record` that were not provided
 
 warning: unreachable expression
   --> tests/ui/proof_construction.rs:69:19

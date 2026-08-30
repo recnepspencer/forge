@@ -1,6 +1,9 @@
+use std::ops::Range;
+
 use worth_store_physical_format::{
-    ExtentChunkCoordinate, PersistedRecordIdentity, PhysicalRecordFormatDeclaration,
-    RecordExtentGenerationCell,
+    ExtentChunkCoordinate, PersistedRecordIdentity, PhysicalPageLsn,
+    PhysicalRecordFormatDeclaration, RecordExtentGenerationCell, DURABLE_EXTENT_FRAME_HEADER_BYTES,
+    EXTENT_CHUNK_METADATA_BYTES,
 };
 
 use super::super::{
@@ -13,8 +16,26 @@ pub struct IntegrityValidatedExtentChunkFrame<'media> {
     scope: PhysicalArtifactScope,
     record_format: PhysicalRecordFormatDeclaration,
     coordinate: ExtentChunkCoordinate,
+    payload_range: Range<usize>,
+    page_lsn: PhysicalPageLsn,
     validation_record: PhysicalIntegrityValidationRecord,
     inspected: UntrustedPhysicalArtifact<'media>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExtentChunkProjectionDenial {
+    InputIncarnationMismatch,
+    RecordIdentityMismatch,
+    ExtentIdentityMismatch,
+    ExtentGenerationMismatch,
+    LogicalLengthMismatch,
+    LogicalOffsetMismatch,
+    ChunkOrdinalMismatch,
+}
+
+#[derive(Debug)]
+pub struct IntegrityValidatedExtentChunkProjection<'view, 'media> {
+    validated: &'view IntegrityValidatedExtentChunkFrame<'media>,
 }
 
 impl<'media> IntegrityValidatedExtentChunkFrame<'media> {
@@ -50,6 +71,11 @@ impl<'media> IntegrityValidatedExtentChunkFrame<'media> {
             scope,
             record_format,
             coordinate,
+            payload_range: DURABLE_EXTENT_FRAME_HEADER_BYTES + EXTENT_CHUNK_METADATA_BYTES
+                ..DURABLE_EXTENT_FRAME_HEADER_BYTES
+                    + EXTENT_CHUNK_METADATA_BYTES
+                    + chunk_bytes.len(),
+            page_lsn: super::data_frame_projection::page_lsn(inspected)?,
             validation_record,
             inspected,
         })
@@ -87,11 +113,59 @@ impl<'media> IntegrityValidatedExtentChunkFrame<'media> {
         self.coordinate.ordinal()
     }
 
+    pub const fn page_lsn(&self) -> PhysicalPageLsn {
+        self.page_lsn
+    }
+
+    pub fn project_chunk<'view>(
+        &'view self,
+        input: UntrustedPhysicalArtifact<'media>,
+        expected: ExtentChunkCoordinate,
+    ) -> Result<IntegrityValidatedExtentChunkProjection<'view, 'media>, ExtentChunkProjectionDenial>
+    {
+        if !self.inspected.same_incarnation(input) {
+            return Err(ExtentChunkProjectionDenial::InputIncarnationMismatch);
+        }
+        if expected.record() != self.coordinate.record() {
+            return Err(ExtentChunkProjectionDenial::RecordIdentityMismatch);
+        }
+        if expected.extent_cell().extent_id() != self.coordinate.extent_cell().extent_id() {
+            return Err(ExtentChunkProjectionDenial::ExtentIdentityMismatch);
+        }
+        if expected.extent_cell().generation() != self.coordinate.extent_cell().generation() {
+            return Err(ExtentChunkProjectionDenial::ExtentGenerationMismatch);
+        }
+        if expected.logical_bytes() != self.coordinate.logical_bytes() {
+            return Err(ExtentChunkProjectionDenial::LogicalLengthMismatch);
+        }
+        if expected.logical_offset() != self.coordinate.logical_offset() {
+            return Err(ExtentChunkProjectionDenial::LogicalOffsetMismatch);
+        }
+        if expected.ordinal() != self.coordinate.ordinal() {
+            return Err(ExtentChunkProjectionDenial::ChunkOrdinalMismatch);
+        }
+        Ok(IntegrityValidatedExtentChunkProjection { validated: self })
+    }
+
     pub const fn into_validation_record(self) -> PhysicalIntegrityValidationRecord {
         self.validation_record
     }
 
     pub fn matches_input(&self, input: UntrustedPhysicalArtifact<'media>) -> bool {
         self.inspected.same_incarnation(input)
+    }
+}
+
+impl IntegrityValidatedExtentChunkProjection<'_, '_> {
+    pub const fn coordinate(&self) -> ExtentChunkCoordinate {
+        self.validated.coordinate()
+    }
+
+    pub fn payload_range(&self) -> Range<usize> {
+        self.validated.payload_range.clone()
+    }
+
+    pub const fn page_lsn(&self) -> PhysicalPageLsn {
+        self.validated.page_lsn()
     }
 }
