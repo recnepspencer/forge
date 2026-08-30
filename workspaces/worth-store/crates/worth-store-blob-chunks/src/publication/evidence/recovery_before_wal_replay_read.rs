@@ -1,5 +1,3 @@
-use worth_store_physical_integrity::IntegrityCheckedFrame;
-
 use super::{
     BlobPublicationClassification, BlobPublicationCrashBoundaryReport, BlobPublicationCrashEdge,
     BlobPublicationCrashOutcome, BlobPublicationObservationSet, BlobPublicationPersistedBytes,
@@ -18,15 +16,6 @@ pub struct BlobPublicationBeforeWalReplayRead {
 struct BeforeWalReplayReadSeal;
 
 impl BlobPublicationBeforeWalReplayRead {
-    pub fn from_integrity_checked_frame(
-        checked_frame: IntegrityCheckedFrame<'_>,
-    ) -> Result<Self, BlobPublicationReplayReadDenial> {
-        let persisted_bytes = BlobPublicationPersistedBytes::from_replay_read_bytes(
-            checked_frame.checked_payload_bytes(),
-        );
-        Self::from_admitted_persisted_bytes(persisted_bytes)
-    }
-
     pub(crate) fn from_admitted_crash_edge(
         edge: BlobPublicationCrashEdge,
     ) -> Result<Self, BlobPublicationReplayReadDenial> {

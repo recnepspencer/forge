@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+ --> tests/ui/proof_escape.rs:6:5
+  |
+3 | fn escape<'media>(
+  |           ------ lifetime `'media` defined here
+...
+6 |     validation
+  |     ^^^^^^^^^^ returning this value requires that `'media` must outlive `'static`

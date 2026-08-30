@@ -1,14 +1,20 @@
 use std::sync::Mutex;
 
-use sha2::{Digest, Sha256};
 use worth_store_physical_backend::{
     ArtifactTreeDirectory, ArtifactTreeFile, QualifiedFilesystemMedia,
 };
-use worth_store_physical_format::store_namespace::StableStoreIdentity;
+use worth_store_physical_format::{
+    physical_work_obligation::{
+        encode_physical_work_obligation_v6, PhysicalWorkObligationV6,
+        PHYSICAL_WORK_OBLIGATION_V6_RECORD_BYTES,
+    },
+    store_namespace::StableStoreIdentity,
+};
 
 use super::{
     super::{PhysicalWorkIdentity, PhysicalWorkOperationFamily},
-    locator::{decode_locator, encode_family, encode_target, RECOVERY_RECORD_BYTES},
+    format_mapping::{operation_to_format, target_to_format},
+    locator::decode_locator,
     PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget,
 };
 
@@ -115,28 +121,23 @@ fn journal_directory() -> ArtifactTreeDirectory {
         .expect("portable physical-work recovery path")
 }
 
-fn encode_record(
+pub(super) fn encode_record(
     identity: PhysicalWorkIdentity,
     operation: PhysicalWorkOperationFamily,
     target: PhysicalWorkRecoveryTarget,
     payload_digest: Option<[u8; 32]>,
-) -> [u8; RECOVERY_RECORD_BYTES] {
-    let mut record = [0_u8; RECOVERY_RECORD_BYTES];
-    record[..8].copy_from_slice(b"WPEFFECT");
-    record[8] = 6;
-    record[9] = encode_family(operation);
-    record[16..32].copy_from_slice(&identity.store().bytes());
-    record[32..40].copy_from_slice(&identity.runtime().get().to_le_bytes());
-    record[40..48].copy_from_slice(&identity.generation().lifecycle().get().to_le_bytes());
-    record[48..56].copy_from_slice(&identity.operation().get().to_le_bytes());
-    encode_target(target, &mut record);
-    if let Some(digest) = payload_digest {
-        record[105] = 1;
-        record[72..104].copy_from_slice(&digest);
-    }
-    let checksum = Sha256::digest(&record[..128]);
-    record[128..].copy_from_slice(&checksum);
-    record
+) -> [u8; PHYSICAL_WORK_OBLIGATION_V6_RECORD_BYTES] {
+    let value = PhysicalWorkObligationV6::new(
+        identity.store().bytes(),
+        identity.runtime().get(),
+        identity.generation().lifecycle().get(),
+        identity.operation().get(),
+        operation_to_format(operation),
+        target_to_format(target),
+        payload_digest,
+    )
+    .expect("Store physical-work identity and target satisfy v6 format");
+    encode_physical_work_obligation_v6(value)
 }
 
 fn inspect_entries(
@@ -155,7 +156,10 @@ fn inspect_entries(
         let decoded = directory
             .file(&name)
             .ok()
-            .and_then(|file| tree.read_bounded(&file, RECOVERY_RECORD_BYTES as u64).ok())
+            .and_then(|file| {
+                tree.read_bounded(&file, PHYSICAL_WORK_OBLIGATION_V6_RECORD_BYTES as u64)
+                    .ok()
+            })
             .and_then(|record| decode_locator(store, &name, &record));
         match decoded {
             Some(locator) => obligations.push(locator),

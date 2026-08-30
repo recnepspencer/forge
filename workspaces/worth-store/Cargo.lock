@@ -1259,6 +1259,7 @@ dependencies = [
  "worth-store-offline-verifier",
  "worth-store-physical-backend",
  "worth-store-physical-format",
+ "worth-store-physical-integrity",
  "worth-store-security",
  "worth-store-wal",
 ]
@@ -1310,7 +1311,6 @@ dependencies = [
  "worth-store-offline-verifier",
  "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-reclaim-policy",
  "worth-store-retention",
@@ -1342,6 +1342,7 @@ version = "0.1.0"
 dependencies = [
  "worth-store-contracts",
  "worth-store-physical-format",
+ "worth-store-physical-integrity",
  "worth-store-security",
 ]
 
@@ -1379,7 +1380,6 @@ dependencies = [
  "worth-store-physical-backend",
  "worth-store-physical-certification",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-readiness",
  "worth-store-reclaim-policy",
@@ -1436,13 +1436,13 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "tempfile",
+ "worth-foundational",
  "worth-store-contracts",
  "worth-store-layout-indexes",
  "worth-store-lsm-authority",
  "worth-store-offline-verifier",
  "worth-store-operations",
  "worth-store-physical-backend",
- "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-recovery-physics",
  "worth-store-recovery-runtime",
@@ -1484,7 +1484,6 @@ dependencies = [
  "worth-store-lsm-authority",
  "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-recovery-physics",
  "worth-store-security",
@@ -1520,7 +1519,6 @@ dependencies = [
  "worth-store-contracts",
  "worth-store-layout-indexes",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
  "worth-store-test-support",
 ]
 
@@ -1530,6 +1528,14 @@ version = "0.1.0"
 dependencies = [
  "worth-store-authority",
  "worth-store-contracts",
+]
+
+[[package]]
+name = "worth-store-offline-integrity-observer"
+version = "0.1.0"
+dependencies = [
+ "worth-foundational",
+ "worth-store-physical-format",
 ]
 
 [[package]]
@@ -1631,7 +1637,6 @@ dependencies = [
  "worth-store-operations",
  "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-readiness",
  "worth-store-reclaim-policy",
@@ -1661,15 +1666,9 @@ dependencies = [
 name = "worth-store-physical-integrity"
 version = "0.1.0"
 dependencies = [
- "sha2",
+ "trybuild",
  "worth-foundational",
- "worth-proof",
- "worth-store",
- "worth-store-aspect-native",
- "worth-store-authority",
- "worth-store-contracts",
  "worth-store-physical-format",
- "worth-store-security",
 ]
 
 [[package]]
@@ -1742,6 +1741,7 @@ dependencies = [
  "worth-store-authority",
  "worth-store-offline-verifier",
  "worth-store-physical-format",
+ "worth-store-physical-integrity",
  "worth-store-recovery-physics",
  "worth-store-test-support",
 ]
@@ -1834,7 +1834,6 @@ dependencies = [
  "worth-store-physical-backend",
  "worth-store-physical-certification",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-recovery-physics",
  "worth-store-recovery-runtime",

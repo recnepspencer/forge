@@ -244,5 +244,5 @@ pub(crate) use declarations::layout_declarations;
 mod operational_repair;
 pub use operational_repair::{
     LayoutRepairConsequence, LayoutRepairConsequenceDenial, LayoutRepairConsequenceOwner,
-    LayoutRepairConsequencePlan, LayoutRepairConsequenceReceipt,
+    LayoutRepairConsequencePlan, LayoutRepairConsequenceReceipt, LayoutRepairRegionObservation,
 };

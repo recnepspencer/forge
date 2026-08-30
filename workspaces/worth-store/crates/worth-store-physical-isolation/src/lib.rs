@@ -107,8 +107,9 @@ pub use compaction_interlock::{
     CompactionOwnerCaseDeclaration, CompactionOwnerCaseId, CompactionOwnerCaseObservation,
     CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
     CompactionReadInterlockDenial, CompactionReadInterlockPlan, CompactionRecoveryEvidence,
-    CompactionRewritePublication, CompactionSourceIntegrityEvidence, DrainedCompactionReclaim,
-    ReadDuringCompactionVerdict,
+    CompactionRewritePublication, CompactionSourceIntegrityAdmission,
+    CompactionSourceIntegrityAdmissionDenial, CompactionSourceIntegrityEvidence,
+    DrainedCompactionReclaim, ReadDuringCompactionVerdict,
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use epoch::next_root_epoch_for_certification;

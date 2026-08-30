@@ -1,3 +1,6 @@
+use super::integrity_classification::{
+    IntegrityOperationalRepairOwner, IntegrityRepairClassificationReceipt,
+};
 use crate::workflow::restore::{
     BackupRestoreReplayDenial, BackupRestoreReplayOwner, RecoveredBackupFrontierReceipt,
 };
@@ -5,9 +8,6 @@ use worth_store_physical_backend::{
     ClosedNonCurrentStagingMedia, NonCurrentStagingExecutionDenial,
     NonCurrentStagingExecutionReceipt, NonCurrentStagingOwnerExecutionDenial,
     PhysicalRecoveryStagingOwner,
-};
-use worth_store_physical_integrity::{
-    IntegrityOperationalRepairOwner, IntegrityRepairClassificationReceipt,
 };
 
 use crate::authorization::StagingAuthorizationContinuation;

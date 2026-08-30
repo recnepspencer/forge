@@ -296,6 +296,11 @@ jobs:
       - name: Canonical residency feature graph
         working-directory: .
         run: bash scripts/ci/check_worth_store_residency_features.sh
+      - name: C.9 integrity dependency and observer source routes
+        working-directory: .
+        run: |
+          python3 scripts/ci/check_worth_store_integrity_dependencies.py
+          python3 scripts/ci/test_worth_store_integrity_dependencies.py
       - name: Lint every Store target
         run: cargo clippy --workspace --all-targets -- -D warnings
 

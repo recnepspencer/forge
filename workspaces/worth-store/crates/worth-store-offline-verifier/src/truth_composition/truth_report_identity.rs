@@ -1,10 +1,10 @@
+use super::OfflineIntegrityPosture;
 use super::{
     ObservedRecoveryFrontier, OfflineAuthorityClass, OfflineRecoveryAvailability,
     OfflineSecurityEvidencePosture, OperationalTruthRegion, OperationalTruthReport,
 };
 use sha2::{Digest, Sha256};
 use worth_store_physical_format::OfflinePhysicalArtifactFamily;
-use worth_store_physical_integrity::OfflineIntegrityPosture;
 
 impl OperationalTruthReport {
     /// Stable identity for canonical semantic truth composition.

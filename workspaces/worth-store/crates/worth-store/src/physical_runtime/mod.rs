@@ -6,6 +6,7 @@ mod diagnostics;
 mod durability;
 mod identity;
 mod instance;
+mod integrity;
 mod lifecycle;
 #[cfg(feature = "certification-test-authority")]
 mod media_evidence;

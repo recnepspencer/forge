@@ -56,6 +56,7 @@ pub use repair::{
     CurrentAuthorityPreservingMaintenancePlan, EvidenceBoundRepairPlan,
     ExecutedAuthorityAffectingRepair, ExecutedRepair, ExecutedRepairOwnerReceipt,
     ExecutedRepairOwnerReceiptDag, ExecutionReadyAuthorityAffectingRepair, ExecutionReadyRepair,
+    IntegrityRepairClassificationDenial, IntegrityRepairClassificationReceipt,
     LoweredAuthorityAffectingRepairOwnerPlanDag, LoweredRepairOwnerPlanDag, RepairCandidateSet,
     RepairExecutionBoundary, RepairExecutionBoundaryMoment, RepairExecutionControlPort,
     RepairExecutionDenial, RepairExecutionDisposition, RepairExecutionInterrupted,

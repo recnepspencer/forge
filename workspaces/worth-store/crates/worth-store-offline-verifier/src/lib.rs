@@ -145,10 +145,11 @@ pub use staged_recovery_verification::{
 };
 pub use truth_composition::{
     compose_operational_truth, CanonicalPhysicalCoverageProof, EvidenceBoundTruthRegion,
-    OfflineAuthorityClass, OfflineFileTruthEvidence, OfflineRecoveryAvailability,
-    OfflineSecurityEvidencePosture, OfflineTruthEvidenceAdmissionDenial,
-    OfflineTruthEvidenceReferences, OfflineTruthEvidenceSet, OperationalTruthCompositionBudget,
-    OperationalTruthCompositionDenial, OperationalTruthRegion, OperationalTruthReport,
+    OfflineAuthorityClass, OfflineFileTruthEvidence, OfflineIntegrityObservation,
+    OfflineIntegrityPosture, OfflineRecoveryAvailability, OfflineSecurityEvidencePosture,
+    OfflineTruthEvidenceAdmissionDenial, OfflineTruthEvidenceReferences, OfflineTruthEvidenceSet,
+    OperationalTruthCompositionBudget, OperationalTruthCompositionDenial, OperationalTruthRegion,
+    OperationalTruthReport,
 };
 pub use truth_composition::{
     discover_recovery_candidates, ObservedRecoveryFrontier, RecoveryCandidate,

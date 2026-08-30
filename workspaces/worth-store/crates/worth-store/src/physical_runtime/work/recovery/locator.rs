@@ -1,14 +1,10 @@
-use sha2::{Digest, Sha256};
 use worth_store_physical_format::{
+    physical_work_obligation::decode_physical_work_obligation_v6,
     store_namespace::StableStoreIdentity, RecordArtifactFile, RecordFrameCoordinate,
 };
 
 use super::super::{PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition};
-
-mod codec;
-pub(super) use codec::{encode_family, encode_target};
-
-pub(super) const RECOVERY_RECORD_BYTES: usize = 160;
+use super::format_mapping::{operation_from_format, target_from_format};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkRecoveryTarget {
@@ -50,18 +46,11 @@ pub(super) fn decode_locator(
     file_name: &str,
     record: &[u8],
 ) -> Option<PhysicalWorkRecoveryLocator> {
-    if record.len() != RECOVERY_RECORD_BYTES
-        || &record[..8] != b"WPEFFECT"
-        || record[16..32] != expected_store.bytes()
-        || record[10..16].iter().any(|byte| *byte != 0)
-    {
+    let decoded = decode_physical_work_obligation_v6(record).ok()?;
+    if decoded.store_identity() != expected_store.bytes() {
         return None;
     }
-    let checksum: [u8; 32] = Sha256::digest(&record[..128]).into();
-    if checksum != record[128..] {
-        return None;
-    }
-    let family = codec::decode_family(record[9])?;
+    let family = operation_from_format(decoded.operation_code());
     if matches!(
         family,
         PhysicalWorkOperationFamily::ArtifactMetadataRead
@@ -69,20 +58,14 @@ pub(super) fn decode_locator(
     ) {
         return None;
     }
-    let runtime = read_u64(record, 32)?;
-    let generation = read_u64(record, 40)?;
-    let operation = read_u64(record, 48)?;
-    if runtime == 0 || generation == 0 || operation == 0 {
-        return None;
-    }
+    let runtime = decoded.runtime();
+    let generation = decoded.generation();
+    let operation = decoded.operation();
     let expected_name = format!("effect-{runtime:016x}-{generation:016x}-{operation:016x}.pending");
     if file_name != expected_name {
         return None;
     }
-    if record[8] != 6 {
-        return None;
-    }
-    let (target, payload_digest) = codec::decode_target(record)?;
+    let target = target_from_format(decoded.target())?;
     Some(PhysicalWorkRecoveryLocator {
         store: expected_store,
         runtime,
@@ -90,7 +73,7 @@ pub(super) fn decode_locator(
         operation,
         family,
         target,
-        payload_digest,
+        payload_digest: decoded.payload_digest(),
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
     })
 }
@@ -124,12 +107,6 @@ impl From<super::super::PhysicalCheckpointWorkAction> for PhysicalCheckpointReco
             }
         }
     }
-}
-
-fn read_u64(record: &[u8], offset: usize) -> Option<u64> {
-    Some(u64::from_le_bytes(
-        record.get(offset..offset + 8)?.try_into().ok()?,
-    ))
 }
 
 impl PhysicalWorkRecoveryLocator {

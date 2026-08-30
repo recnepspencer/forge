@@ -150,6 +150,13 @@ impl RecordFramePorts {
     pub(in crate::physical_runtime) fn counters(&self) -> PhysicalResidencyCounters {
         self.pool.counters()
     }
+
+    pub(in crate::physical_runtime) fn invalidate_integrity_validation_for_runtime_transition(
+        &self,
+    ) {
+        self.pool
+            .invalidate_integrity_validation_for_runtime_transition();
+    }
     pub(in crate::physical_runtime::record_serving) fn incarnation(
         &self,
     ) -> worth_store_buffer_pool::PhysicalResidencyIncarnation {

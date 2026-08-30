@@ -243,15 +243,6 @@ let digest_text = String::from("sha256:page");
 let _page = PhysicalPageId::from_digest_text(digest_text);
 ```
 
-Digest strings cannot construct Store WAL authority:
-
-```compile_fail
-use worth_store_physical_integrity::WalFrameIntegrityAuthority;
-
-let digest_text = String::from("sha256:wal");
-let _wal = WalFrameIntegrityAuthority::from_digest_text(digest_text);
-```
-
 Certification cannot skip the readiness-owned S.7 capsule handoff:
 
 ```compile_fail

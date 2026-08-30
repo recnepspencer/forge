@@ -1,12 +1,10 @@
-use worth_store_contracts::DurableArtifactFamilyId;
+use worth_foundational::PhysicalQuarantinePosture;
+use worth_store_contracts::{DurableArtifactFamilyId, StableDigest};
 use worth_store_layout_indexes::integrity::{
-    layout_readmission, RecoveryLayoutReadmissionAdmissionDenial,
-    RecoveryLayoutReadmissionOutcomeView,
+    layout_readmission, RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
+    RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionOutcomeView,
 };
-use worth_store_test_support::harness::layout::{
-    audit_retained_layout_quarantine_record, authoritative_layout_quarantine_record,
-    layout_integrity_authority, unresolved_layout_authority_record,
-};
+use worth_store_test_support::harness::layout::layout_integrity_authority;
 
 use super::{
     map_quarantine_readmission_outcome, map_quarantine_record, QuarantineReadmissionDenial,
@@ -14,13 +12,11 @@ use super::{
 };
 
 #[test]
-fn real_quarantine_record_is_observation_not_repair_authority() {
-    let record = authoritative_layout_quarantine_record("formal-quarantine-record");
-    let observation = map_quarantine_record(&record);
+fn foundational_quarantine_posture_is_observation_not_repair_authority() {
+    let observation = map_quarantine_record(PhysicalQuarantinePosture::Observed);
 
-    assert!(!observation.receipt_digest().is_empty());
+    assert_eq!(observation.posture(), PhysicalQuarantinePosture::Observed);
     assert!(!observation.proves_repair());
-    assert!(!record.proves_recovery());
     assert_eq!(
         observation.states().collect::<Vec<_>>(),
         vec![
@@ -33,10 +29,11 @@ fn real_quarantine_record_is_observation_not_repair_authority() {
 #[test]
 fn real_layout_readmission_outcomes_map_to_readmitted_and_denied_states() {
     let fixture = layout_integrity_authority("formal-quarantine-admitted");
-    let record = authoritative_layout_quarantine_record("formal-quarantine-admitted");
+    let identity = observation_identity("formal-quarantine-admitted");
     let admitted = layout_readmission().admit_quarantine(
         DurableArtifactFamilyId::PhysicalRootManifest,
-        &record,
+        &identity,
+        RecoveryLayoutReadmissionClass::QuarantineRecovery,
         fixture.current_authority(),
         fixture.security_scope().witnesses(),
     );
@@ -54,10 +51,11 @@ fn real_layout_readmission_outcomes_map_to_readmitted_and_denied_states() {
         ]
     );
 
-    let denied_record = unresolved_layout_authority_record("formal-quarantine-denied");
+    let denied_identity = observation_identity("formal-quarantine-denied");
     let denied = layout_readmission().admit_quarantine(
         DurableArtifactFamilyId::PhysicalRootManifest,
-        &denied_record,
+        &denied_identity,
+        RecoveryLayoutReadmissionClass::ImportBoundaryReadmission,
         fixture.current_authority(),
         fixture.security_scope().witnesses(),
     );
@@ -81,10 +79,11 @@ fn real_layout_readmission_outcomes_map_to_readmitted_and_denied_states() {
 #[test]
 fn audit_retention_handoff_maps_to_retained_for_audit() {
     let fixture = layout_integrity_authority("formal-quarantine-audit-retention");
-    let record = audit_retained_layout_quarantine_record("formal-quarantine-audit-retention");
+    let identity = observation_identity("formal-quarantine-audit-retention");
     let retained = layout_readmission().admit_quarantine(
         DurableArtifactFamilyId::PhysicalRootManifest,
-        &record,
+        &identity,
+        RecoveryLayoutReadmissionClass::NoForegroundAuthority,
         fixture.current_authority(),
         fixture.security_scope().witnesses(),
     );
@@ -138,4 +137,11 @@ fn observation_and_operator_intent_are_not_repair_authority() {
         QuarantineReadmissionModel::reject_operator_repair(),
         QuarantineReadmissionDenial::OperatorIntentIsNotRepairAuthority
     );
+}
+
+fn observation_identity(seed: &str) -> RecoveryLayoutReadmissionIdentity {
+    RecoveryLayoutReadmissionIdentity::QuarantineObservation(
+        StableDigest::new(format!("sha256:formal-layout-observation:{seed}"))
+            .expect("test observation digest is non-empty"),
+    )
 }

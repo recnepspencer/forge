@@ -1249,11 +1249,14 @@ generation freshness through its Store owner, advance past effects only from
 concrete performed evidence, terminate the recovery session exactly once, and
 keep versioned cross-process reports descriptive.
 
-The only successor value is `RecoveredPhysicalRuntimeHandoff`. C.9 consumes
-that boundary to add integrity, corruption localization, quarantine, and
-offline truth. C.10 consumes it to add stable reads, epochs, reclaim, scheduled
-I/O, and maintenance interference. Descriptive recovery and observer reports
-cannot be promoted into either successor's authority.
+The C.8 successor value remains `RecoveredPhysicalRuntimeHandoff`. C.9 joins
+the C.8 recovery architecture at two seams: integrity ingress before
+owner-specific recovery interpretation, and the recovered-runtime handoff for
+resident admission, quarantine observation, and scrub. The handoff does not
+mint integrity admission. C.10 consumes the handoff to add stable reads,
+epochs, reclaim, scheduled I/O, and maintenance interference. Descriptive
+recovery and observer reports cannot be promoted into either successor's
+authority.
 
 ## C.9: Physical Integrity, Corruption Localization, And Offline Truth
 
@@ -1285,8 +1288,9 @@ logical mutation may be retried.
   distinct authority paths
 - quarantine observations separated from reachability mutation and repair
   authorization
-- classification of intact authority, damaged authority, rebuildable derived
-  state, quarantined region, unsupported version, unknown, and indeterminate
+- separate validator-outcome, owner-disposition, and quarantine-posture axes
+  preserving intact authority, damaged authority, rebuildable derived state,
+  quarantined region, unsupported version, unknown, and indeterminate
 - verifier/runtime disagreement as explicit evidence rather than hidden
   reconciliation
 - typed integrity evidence stable enough to cross the future adapter boundary:

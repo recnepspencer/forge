@@ -1,5 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use super::integrity_classification::{
+    IntegrityOperationalRepairOwner, IntegrityRepairClassificationDenial,
+    IntegrityRepairClassificationPlan,
+};
 use crate::workflow::restore::{
     BackupRestoreReplayDenial, BackupRestoreReplayOwner, BackupRestoreReplayPlan,
     BackupRestoreReplayRequest,
@@ -8,10 +12,6 @@ use worth_store_authority::StoreCurrentAuthorityWitness;
 use worth_store_physical_backend::{
     LoweredNonCurrentStagingPlan, NonCurrentStagingLoweringDenial, NonCurrentStagingPlanRequest,
     PhysicalRecoveryStagingOwner,
-};
-use worth_store_physical_integrity::{
-    IntegrityOperationalRepairOwner, IntegrityRepairClassificationDenial,
-    IntegrityRepairClassificationPlan,
 };
 
 use crate::authorization::{
@@ -101,13 +101,15 @@ impl AuthorityAffectingStagedRepairPlan {
                 backend.binding(),
             ))
             .map_err(AuthorityAffectingRepairLoweringDenial::Recovery)?;
+        let layout_regions = super::region_projection::layout_repair_regions(integrity.regions())?;
         let layout = worth_store_layout_indexes::LayoutRepairConsequenceOwner::lower(
-            integrity.regions(),
+            &layout_regions,
             backend.binding(),
         )
         .map_err(AuthorityAffectingRepairLoweringDenial::Layout)?;
+        let blob_regions = super::region_projection::blob_repair_regions(integrity.regions())?;
         let blob = worth_store_blob_chunks::BlobRepairConsequenceOwner::lower(
-            integrity.regions(),
+            &blob_regions,
             backend.binding(),
         )
         .map_err(AuthorityAffectingRepairLoweringDenial::Blob)?;

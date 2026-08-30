@@ -1,10 +1,23 @@
 use crate::{WalSegmentGeneration, WalSegmentId};
+use std::path::PathBuf;
 
 /// Canonical identity encoded by one Store-owned WAL segment artifact name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WalSegmentArtifactIdentity {
     segment: WalSegmentId,
     generation: WalSegmentGeneration,
+}
+
+pub(in crate::artifact_store) fn wal_segment_relative_path(
+    segment: u64,
+    generation: u64,
+) -> Result<PathBuf, crate::WalArtifactStoreDenial> {
+    let identity = WalSegmentArtifactIdentity::new(
+        WalSegmentId::new(segment).map_err(|_| crate::WalArtifactStoreDenial::InvalidFrame)?,
+        WalSegmentGeneration::new(generation)
+            .map_err(|_| crate::WalArtifactStoreDenial::InvalidFrame)?,
+    );
+    Ok(PathBuf::from("wal").join(identity.file_name()))
 }
 
 impl WalSegmentArtifactIdentity {

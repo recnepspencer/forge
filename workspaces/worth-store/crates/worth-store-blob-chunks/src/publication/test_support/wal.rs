@@ -72,34 +72,24 @@ pub(crate) fn with_recovery_replay_entry<R>(
     operation_digest: &str,
     run: impl FnOnce(RecoveryReplayReadProbe) -> R,
 ) -> R {
-    worth_store_test_support::harness::recovery::with_admitted_recovery_integrity_input(
-        operation_digest,
-        |input| {
-            let replay_read = BlobPublicationBeforeWalReplayRead::from_admitted_crash_edge(
-                BlobPublicationCrashEdge::before_wal_append(operation_digest),
-            )
-            .expect("test recovery entry carries admitted before-WAL replay bytes");
-            run(RecoveryReplayReadProbe {
-                entry_digest: input.payload().identity().as_str().to_owned(),
-                replay_read: Some(replay_read),
-            })
-        },
+    let replay_read = BlobPublicationBeforeWalReplayRead::from_admitted_crash_edge(
+        BlobPublicationCrashEdge::before_wal_append(operation_digest),
     )
+    .expect("test recovery entry carries admitted before-WAL replay bytes");
+    run(RecoveryReplayReadProbe {
+        entry_digest: operation_digest.to_owned(),
+        replay_read: Some(replay_read),
+    })
 }
 
 pub(crate) fn with_generic_recovery_replay_entry<R>(
     operation_digest: &str,
     run: impl FnOnce(RecoveryReplayReadProbe) -> R,
 ) -> R {
-    worth_store_test_support::harness::recovery::with_admitted_recovery_integrity_input(
-        operation_digest,
-        |input| {
-            run(RecoveryReplayReadProbe {
-                entry_digest: input.payload().identity().as_str().to_owned(),
-                replay_read: None,
-            })
-        },
-    )
+    run(RecoveryReplayReadProbe {
+        entry_digest: operation_digest.to_owned(),
+        replay_read: None,
+    })
 }
 
 impl RecoveryReplayReadProbe {

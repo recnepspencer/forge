@@ -8,6 +8,7 @@ mod authority_staging_artifacts;
 mod certification_control_store;
 mod execution;
 mod execution_control;
+mod integrity_classification;
 mod intent;
 mod journal;
 mod journal_replay;
@@ -31,6 +32,9 @@ pub use execution::{
 pub use execution_control::{
     RepairExecutionBoundary, RepairExecutionBoundaryMoment, RepairExecutionControlPort,
     RepairExecutionInterrupted, RepairExecutionInterruptionCause, UninterruptedRepairExecution,
+};
+pub use integrity_classification::{
+    IntegrityRepairClassificationDenial, IntegrityRepairClassificationReceipt,
 };
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use intent::{

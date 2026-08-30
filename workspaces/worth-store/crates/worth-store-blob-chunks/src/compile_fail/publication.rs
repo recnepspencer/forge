@@ -128,31 +128,6 @@
 //! let artifact: BlobPublicationReplayReadArtifact = todo!();
 //! let _record = BlobPublicationReplayReadRecord::from_replay_read_artifact(artifact);
 //! ```
-//! S.4 integrity handoff declarations cannot attach copied pre-WAL operation
-//! identity:
-//! ```compile_fail
-//! use worth_store_physical_integrity::IntegrityHandoffPayload;
-//!
-//! let _payload = IntegrityHandoffPayload::declare()
-//!     .partial_publication_before_wal_operation_digest("copied-operation");
-//! ```
-//! S.4 integrity handoff declarations cannot treat copied operation identity as
-//! a sealed replay-read payload:
-//! ```compile_fail
-//! use worth_store_physical_integrity::IntegrityHandoffPayload;
-//!
-//! let _payload = IntegrityHandoffPayload::declare()
-//!     .partial_publication_before_wal_replay_read("copied-operation");
-//! ```
-//! Protected physical bytes cannot be forged from caller-owned raw byte slices:
-//! ```compile_fail
-//! use worth_store_physical_integrity::ProtectedPhysicalByteView;
-//! use worth_store_blob_chunks::BlobPublicationBeforeWalReplayRead;
-//!
-//! let raw: &[u8] = b"worth-store.partial-publication.v1\nbefore-wal-append\ncopied";
-//! let protected = ProtectedPhysicalByteView { bytes: raw };
-//! let _read = BlobPublicationBeforeWalReplayRead::from_integrity_checked_frame(protected);
-//! ```
 //! Copied crash-edge representation cannot mint replayed crash-edge authority:
 //! ```compile_fail
 //! use worth_store_blob_chunks::{

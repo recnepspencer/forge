@@ -12,6 +12,7 @@ worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store = { workspace = true, features = ["recovery-runtime-owner"] }
 worth-store-physical-format.workspace = true
+worth-store-physical-integrity.workspace = true
 worth-store-recovery-physics.workspace = true
 
 [dev-dependencies]

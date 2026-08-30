@@ -32,7 +32,6 @@ physical-isolation-fixtures = [
     "dep:worth-store-budgets",
     "dep:worth-store-compatibility",
     "dep:worth-store-physical-backend",
-    "dep:worth-store-physical-integrity",
     "dep:worth-store-recovery-physics",
     "dep:worth-store-recovery-runtime",
     "worth-store-physical-isolation/certification-authority",
@@ -86,7 +85,6 @@ worth-store-physical-certification = { workspace = true, features = ["certificat
 worth-store-physical-backend = { workspace = true, optional = true }
 worth-store-physical-format = { workspace = true, optional = true }
 worth-store-physical-isolation = { workspace = true, optional = true }
-worth-store-physical-integrity = { workspace = true, optional = true }
 worth-store-recovery-physics = { workspace = true, optional = true }
 worth-store-recovery-runtime = { workspace = true, optional = true }
 worth-store-security = { workspace = true, optional = true }

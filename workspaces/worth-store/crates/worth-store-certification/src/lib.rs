@@ -8,7 +8,6 @@ pub mod evidence;
 #[cfg(test)]
 mod physical_fixture_encoding;
 
-include!("internal_modules.rs");
 mod public_api;
 
 pub use courtroom::blobs::capsule_readiness_provenance::{

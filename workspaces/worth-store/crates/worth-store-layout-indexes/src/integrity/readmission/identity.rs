@@ -8,9 +8,9 @@ impl LayoutReadmissionIdentity {
     pub(super) fn from_recovery(identity: &RecoveryLayoutReadmissionIdentity) -> Self {
         let mut digest = Sha256::new();
         match identity {
-            RecoveryLayoutReadmissionIdentity::QuarantineReceipt(receipt) => {
-                digest.update(b"quarantine-receipt");
-                update_field(&mut digest, receipt.as_str());
+            RecoveryLayoutReadmissionIdentity::QuarantineObservation(observation) => {
+                digest.update(b"quarantine-observation");
+                update_field(&mut digest, observation.as_str());
             }
         }
         Self(digest.finalize().into())

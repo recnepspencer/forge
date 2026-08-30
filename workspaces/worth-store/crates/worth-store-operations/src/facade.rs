@@ -103,6 +103,7 @@ pub use crate::workflow::{
     ExecutionReadyPointInTimeRecovery, ExecutionReadyRepair, ExecutionReadyReplicaBootstrap,
     ExecutionReadyReplicaPromotion, ExecutionReadyRollback, FencedReplicaPromotion,
     FrontierPartialOrder, GovernedOldPrimaryRejoinPlan, IndependentlyVerifiedBackup,
+    IntegrityRepairClassificationDenial, IntegrityRepairClassificationReceipt,
     LoweredAuthorityAffectingRepairOwnerPlanDag, LoweredBackupRestorePlan,
     LoweredPointInTimeRecoveryPlan, LoweredRepairOwnerPlanDag, LoweredReplicaBootstrapOwnerPlanDag,
     LoweredReplicaPromotionOwnerPlanDag, LoweredRollbackPlanDag, OnlineBackupAdmissionDenial,

@@ -5,6 +5,9 @@
 #![forbid(unsafe_code)]
 
 pub mod access;
+pub mod integrity_declarations;
+pub mod physical_work_obligation;
+pub mod wal_frame;
 
 mod backup_bundle;
 mod binary_format;

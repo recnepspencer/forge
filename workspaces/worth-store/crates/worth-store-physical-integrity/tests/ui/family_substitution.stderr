@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/family_substitution.rs:8:22
+  |
+8 |     requires_current(previous);
+  |     ---------------- ^^^^^^^^ expected `IntegrityValidatedCurrentRootSelector<'_>`, found `IntegrityValidatedPreviousRootSelector<'_>`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/family_substitution.rs:5:4
+  |
+5 | fn requires_current(_: IntegrityValidatedCurrentRootSelector<'_>) {}
+  |    ^^^^^^^^^^^^^^^^ --------------------------------------------

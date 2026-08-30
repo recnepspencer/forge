@@ -4,6 +4,7 @@ mod cleanup;
 
 mod entry;
 mod handoff;
+mod integrity_ingress;
 mod observation;
 mod orchestration;
 mod progression;

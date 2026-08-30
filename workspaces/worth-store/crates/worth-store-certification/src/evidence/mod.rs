@@ -2,4 +2,3 @@
 
 pub mod by_substrate;
 pub(crate) mod foundational;
-pub(crate) mod physical_integrity;

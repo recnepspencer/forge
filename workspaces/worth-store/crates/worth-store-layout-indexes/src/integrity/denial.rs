@@ -7,7 +7,7 @@ pub enum CorruptionDenial {
         family: crate::PhysicalArtifactFamily,
         source: super::readmission::LayoutReadmissionSource,
     },
-    QuarantineRecordBackedReadmissionEvidenceRequired {
+    QuarantineObservationReadmissionEvidenceRequired {
         family: crate::PhysicalArtifactFamily,
     },
     AdmittedFamilyReadmissionAuthorityRequired {

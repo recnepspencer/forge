@@ -39,6 +39,7 @@ mod identities;
 mod locators;
 mod performance;
 pub mod performance_api;
+pub mod physical_integrity_observation;
 mod profiles;
 pub mod profiles_api;
 mod responsibilities;
@@ -46,3 +47,4 @@ mod transitions;
 mod values;
 
 pub use facade::*;
+pub use physical_integrity_observation::*;

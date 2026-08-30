@@ -1,8 +1,11 @@
 # worth-store-physical-integrity
 
-Owns Roadmap 2 S.3: page/frame/chunk checksums, scrub, quarantine records,
-typed corruption localization, and damaged-authority versus rebuildable-derived
-reports.
+Owns C.9's pure runtime-side physical validation vocabulary: bounded untrusted
+artifact inputs, exact scopes, sealed family-validation results, rejection and
+localization descriptions, scrub windows, quarantine observations, and
+counters. Store and recovery own live admission and lifecycle; artifact owners
+own authority, rebuildability, repair, and mutation decisions.
 
-Checksums prove physical integrity, not authenticity. Semantic decoders should
-only see bytes after this boundary admits the physical frame.
+Checksums prove physical integrity, not authenticity. A validation result is
+descriptive and cannot open a semantic decoder without an owner-private binding
+to the exact live source incarnation.

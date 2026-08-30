@@ -1,0 +1,24 @@
+error: cannot construct `IntegrityValidatedRootManifest<'_>` with struct literal syntax due to private fields
+ --> tests/ui/proof_construction.rs:4:19
+  |
+4 |     let _forged = IntegrityValidatedRootManifest {
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         scope,
+  |         ----- private field
+6 |         inspected: todo!(),
+  |         ------------------ private field
+  |
+  = note: ...and other private field `validation_record` that was not provided
+
+warning: unreachable expression
+ --> tests/ui/proof_construction.rs:4:19
+  |
+4 |       let _forged = IntegrityValidatedRootManifest {
+  |  ___________________^
+5 | |         scope,
+6 | |         inspected: todo!(),
+  | |                    ------- any code following this expression is unreachable
+7 | |     };
+  | |_____^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

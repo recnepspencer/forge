@@ -30,6 +30,8 @@ mod eviction_siege;
 mod frame_access;
 #[path = "tests/identity_transition.rs"]
 mod identity_transition;
+#[path = "tests/integrity_validation.rs"]
+mod integrity_validation;
 #[path = "tests/metadata_admission.rs"]
 mod metadata_admission;
 #[path = "tests/operation_allocation.rs"]
