@@ -115,7 +115,7 @@ fn require_query_basis(
     query: &PlatformPulseQueryProjectionEvidence,
 ) -> Result<(), ExecutableSchemaTransitionFailure> {
     if query.posture() != PlatformPulseQueryProjectionPosture::Current
-        || query.native_value() != Some("QUERY STATUS CURRENT")
+        || query.native_value() != Some("SYNCHRONIZED")
     {
         return Err(ExecutableSchemaTransitionFailure::QueryValueNotCurrent);
     }
@@ -288,9 +288,7 @@ impl fmt::Display for ExecutableSchemaTransitionFailure {
             Self::PredecessorValueNotPreserved => {
                 "schema transition did not preserve the predecessor value"
             }
-            Self::QueryValueNotCurrent => {
-                "retained Query basis is not QUERY STATUS CURRENT/current"
-            }
+            Self::QueryValueNotCurrent => "retained Query basis is not SYNCHRONIZED/current",
             Self::QueryOwnerDidNotReachSecondCurrent => {
                 "retained Query basis is not owner order five"
             }
