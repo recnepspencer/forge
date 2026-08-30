@@ -453,11 +453,10 @@ authority reconstruction.
 
 ## Adversarial Courtroom
 
-The court parks Signal branch A after cell admission but before movement,
-completes unrelated B before releasing A, then races two admissible, effectful
-operations from one basis: exactly one moves. Public observations expose shadow
-state, global locking, leaked capacity, owner clones, and cross-branch poison.
-Relational reaches basis/lifecycle owners only through its bundle.
+Park Signal A after cell admission, before movement; finish unrelated B before
+releasing A. Race admissible, effectful requests from one basis: exactly one
+moves. Public observations expose shadow state, global locking, leaked capacity,
+owner clones, and cross-branch poison. Exercise Relational through its bundle.
 
 ## Phase Progression
 
@@ -546,12 +545,13 @@ only lane counts toward the two-to-four implementation lanes above.
 
 ## Test Evidence Architecture
 
-Before service implementation, owner-guide matrices enumerate required methods,
-receivers, inputs, outcomes, and canonical owners from this spec and inherited
-APIs, never implemented methods. Each row maps to named public-facade runtime
-cases proving healthy results and reachable denials. Effectful cases assert exact
-observable post-state and cleanup, not merely `Ok` or counters; no-op or
-always-deny implementations must fail. Missing methods remain required.
+Before implementation, freeze owner-guide matrices from this spec and
+inherited APIs, never implemented methods. Map each required method, receiver,
+input, outcome, and canonical owner to named public-facade cases and executable
+lanes. Cases prove healthy results, reachable typed denials, exact observable
+effects, and cleanup. `Ok`, counters, or agreement between delegates alone cannot
+prove behavior; no-op and always-deny implementations must fail. Unimplemented
+methods remain mandatory at closure.
 
 Integration evidence follows the Relational Supply Chain and Query Bank courts:
 
@@ -568,11 +568,10 @@ Integration evidence follows the Relational Supply Chain and Query Bank courts:
   leases, closing the owner, and proving every registry is empty or in its
   documented terminal posture.
 
-No test may compare one production path with another production path and call
-that an oracle. The oracle must not call the Signal evaluator, graph traversal,
-production basis comparator, private branch state, or production transition
-logic. It may use only test-local semantic identifiers, ordinary maps and sets,
-and independently written transition rules.
+Production-path comparisons are not oracles. The oracle uses only test-local
+semantic identifiers, ordinary maps/sets, and independent transition rules;
+never the Signal evaluator, production graph traversal, basis comparator,
+private branch state, or transition logic.
 
 ## Canonical Signal Court World
 
@@ -611,14 +610,13 @@ families:
    owner, branch, definition, lifecycle, generation, and restored-snapshot
    substitutions before movement with the exact typed reason, not generic error
    presence. Same-Rust-type foreign-owner substitutions require runtime proof.
-3. **Independent-progress matrix:** for advance execution, fork source capture,
-   snapshot capture, restoration, retirement, and close-drain work, park branch
-   A at every reachable seam surrounding branch work, after permitted short
-   metadata guards release. While A remains parked, complete every lawful
-   basis/mutation/lifecycle operation on B, with zero A contact/wait/movement.
-   During close, test already-admitted B separately from new admission, which
-   must deny. B cannot release A; widening a metadata lock across branch work
-   must make the test fail.
+3. **Independent-progress matrix:** park advance, fork capture, snapshot capture,
+   restoration, retirement, and close-drain on A at every reachable branch-work
+   seam after short metadata guards release. Before releasing A, each lawful
+   basis/mutation/lifecycle operation on B must produce its expected result and
+   observable effect, with zero A contact/wait/movement. Rejection is not progress.
+   During close, already-admitted B completes; new admission denies. B cannot
+   release A. Widening metadata exclusion across branch work must fail.
 4. **Same-branch race matrix:** from the same admitted posture run
    advance/advance, advance/restore, advance/retire, restore/restore,
    restore/retire, snapshot/advance, and observe/retire. Mutating pairs produce
@@ -633,15 +631,16 @@ families:
    other's prior basis and is visible through both observation routes. Race one
    legacy call with one port call and require one winner. This family must fail
    if either surface addresses separate mutable state or bypasses the cell.
-6. **Fork and sharing:** prove a fork binds the exact source basis, receives a
-   distinct owner-issued branch identity, and shares immutable graph structure.
-   Capture/installation counters each increase once; copied mutable graph nodes
-   stay zero. Compare storage allocation identities and measure the whole public
-   call, including reservation and capture, not installation alone. Allocation
-   has no node-count slope. Mutate both branches: only the changed branch's
-   oracle values move. First-write copying obeys the declared changed-state
-   granule, never deferred whole-graph cloning. An eager-copy twin violates the
-   same allocation bound.
+6. **Fork and sharing:** fork the exact source basis into a distinct owner-issued
+   branch sharing immutable storage. Populate each carried state family;
+   empty-container sharing proves nothing. Capture/installation each count once;
+   copied mutable graph nodes stay zero. Compare allocation identities and
+   measure the whole public fork at every declared graph scale, including
+   reservation, capture, and installation; container-only probes cannot substitute.
+   Allocation has no node-count slope. Mutate each branch and assert both its
+   expected changed oracle values and its sibling's unchanged values. First-write
+   copying obeys the declared changed-state granule, never deferred whole-graph
+   cloning. An eager-copy twin violates the same allocation bound.
 7. **Cancellation cutoffs:** at every cancellable pre-movement boundary for
    advance, fork, restore, and retire, cancel and prove no canonical effect,
    released reservations, and an immediate healthy twin. At every
@@ -667,14 +666,14 @@ families:
     Diagnostic exhaustion instead proves typed omission and exact drop counts
     while a lawful owner operation still performs.
 11. **Facade and compiler:** compile-pass every public port method through the
-    two concrete owner facades with its required `&self`, `Send + Sync`, and
-    operation-specific generic bounds. Compile-fail local-only Signal
-    configuration issuance, raw identifiers, forged bases,
+    concrete owner facades with required `&self`, `Send + Sync`, and generic
+    bounds. Compile-fail local-only issuance, raw identifiers, forged bases,
     basis-port mutation, retirement without linear authority, consumed-outcome
     reuse, generic marker substitution, private-cell access, default-build
-    test-control names/accessors, and public construction of port or unavailable
-    types. Each negative fixture has a valid counterpart and fails at the
-    intended authority boundary, not from missing imports or unrelated errors.
+    test-control names/accessors, and public port/unavailable construction.
+    Each negative targets the real API, type, or construction, with a valid
+    counterpart changing only the disputed condition. Test-local lookalike
+    functions, missing imports, and unrelated compiler failures prove nothing.
 12. **Seeded model sequences:** apply deterministic sequences of observe,
     readmit, retain/release, fork, advance, snapshot/restore, retire, close, and
     capability loss to the real owner and independent oracle. The CI profile
@@ -776,11 +775,11 @@ cancellation overriding performed truth, leaked capacity on any terminal path,
 diagnostic pressure denying a lawful mutation, owner clones hidden in ports,
 unarmed operation control changing behavior, or panic poisoning unrelated branches.
 
-Before closure, demonstrate sensitivity for global locking, omitted exact-basis
-comparison, fork copying, and cancellation erasing performed truth. Use targeted
-mutations or hostile twins reaching the disputed production boundary; setup or
-compilation failure is not conviction. Restore the correct implementation and
-rerun affected cases. No mutation framework or proof ledger is required.
+Before closure, demonstrate sensitivity to success-shaped no-ops, global locking,
+omitted exact-basis comparison, fork copying, and cancellation erasing performed
+truth. Targeted mutations or hostile twins must reach the disputed production
+boundary and fail on its required behavior, not setup or compilation. Restore
+production behavior and rerun affected cases; no mutation framework or ledger.
 
 ## Structural Completion Review
 
@@ -900,12 +899,12 @@ Milestone 9.17.1.2 closes only when:
   finding against the authority, lifecycle, topology, or evidence contracts.
 
 Missing, skipped, timed-out, zero-selected, or unrun required evidence leaves
-the milestone open. Prior green revisions and phase summaries cannot close it;
-corrections invalidate affected results until rerun. Baseline failures are debt
-only when reproduced unchanged and independently judged outside causal scope,
-never passing evidence. Closure names the integrated revision, exact commands/
-configurations and results, unresolved debt, and residual risk; neither test
-counts nor reviewer confidence constitutes a guarantee of completeness.
+the milestone open. Prior green revisions, worker approvals, and phase summaries
+cannot close it; corrections invalidate affected results. Closure names the
+final integrated revision, commands/configurations, terminal results, unresolved
+debt, and residual risk. Baseline failures require unchanged reproduction and
+independent out-of-scope judgment; they never count as passes. Neither test
+counts nor reviewer confidence guarantees completeness.
 
 ## Exact Handoff To Milestone 9.17.2
 
