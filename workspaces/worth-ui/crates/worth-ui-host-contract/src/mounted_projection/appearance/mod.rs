@@ -18,7 +18,7 @@ mod text_foreground;
 pub use backdrop::{
     UiMountedBackdropAppearanceAttribution, UiMountedBackdropCompletionDenial,
     UiMountedBackdropCompletionInput, UiMountedBackdropIdentity, UiMountedBackdropMechanic,
-    UiOverlayPlacementReceipt,
+    UiMountedBackdropScope, UiOverlayPlacementReceipt,
 };
 pub use bounds::{
     UiAppearanceAllocationBounds, UiAppearanceBackdropExtent, UiAppearanceClip,

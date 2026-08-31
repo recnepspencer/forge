@@ -69,3 +69,87 @@ impl UiMountedOverlayOrderMechanic {
         &self.bottom_to_top
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn complete(
+        semantic_surface: crate::UiSemanticSurfaceIdentity,
+        bottom_to_top: impl IntoIterator<Item = UiOverlayParticipantIdentity>,
+    ) -> Result<UiMountedOverlayOrderMechanic, UiMountedOverlayOrderMechanicDenial> {
+        UiMountedOverlayOrderMechanic::complete_from_runtime_overlay_order(
+            semantic_surface,
+            crate::UiMountedPresentationAttemptIdentity::mint_unbound().unwrap(),
+            1,
+            1,
+            bottom_to_top,
+        )
+    }
+
+    #[test]
+    fn overlay_order_denies_an_exact_duplicate_backdrop_identity() {
+        let surface = crate::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+        let identity = super::super::UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            super::super::UiMountedBackdropScope::SurfaceSingleton(surface),
+            1,
+        )
+        .unwrap();
+        let duplicate = UiOverlayParticipantIdentity::Backdrop(identity.clone());
+
+        assert_eq!(
+            complete(surface, [duplicate.clone(), duplicate.clone()]),
+            Err(UiMountedOverlayOrderMechanicDenial::DuplicateParticipant(
+                duplicate
+            ))
+        );
+    }
+
+    #[test]
+    fn overlay_order_accepts_one_declaration_for_two_portal_instances() {
+        let surface = crate::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+        let first_portal = crate::UiMountedInstanceIdentity::mint_unbound().unwrap();
+        let second_portal = crate::UiMountedInstanceIdentity::mint_unbound().unwrap();
+        let first = super::super::UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            super::super::UiMountedBackdropScope::PerPortalInstance(first_portal),
+            1,
+        )
+        .unwrap();
+        let second = super::super::UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            super::super::UiMountedBackdropScope::PerPortalInstance(second_portal),
+            1,
+        )
+        .unwrap();
+
+        let order = complete(
+            surface,
+            [
+                UiOverlayParticipantIdentity::Backdrop(first),
+                UiOverlayParticipantIdentity::Backdrop(second),
+            ],
+        )
+        .unwrap();
+        assert_eq!(order.bottom_to_top().len(), 2);
+    }
+
+    #[test]
+    fn overlay_order_distinguishes_a_rematerialized_surface_singleton() {
+        let surface = crate::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+        let first = super::super::UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            super::super::UiMountedBackdropScope::SurfaceSingleton(surface),
+            1,
+        )
+        .unwrap();
+        let rematerialized = super::super::UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            super::super::UiMountedBackdropScope::SurfaceSingleton(surface),
+            2,
+        )
+        .unwrap();
+        assert_ne!(first, rematerialized);
+    }
+}

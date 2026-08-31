@@ -5,9 +5,9 @@ fn runtime_can_complete_inert_mechanics_without_publication_authority() {
         UiAppearanceLogicalLength, UiAppearanceNormalizedLogicalRadii, UiAppearanceOutlineGeometry,
         UiHostPointerIdentity, UiMountedAppearanceColor, UiMountedAppearanceOpacity,
         UiMountedBackdropAppearanceAttribution, UiMountedBackdropCompletionInput,
-        UiMountedBackdropIdentity, UiMountedBackdropMechanic, UiMountedFrameIdentity,
-        UiMountedInstanceIdentity, UiMountedLayerProjection, UiMountedLayerReference,
-        UiMountedNodeAppearanceAttribution, UiMountedNodeReceiptIssuer,
+        UiMountedBackdropIdentity, UiMountedBackdropMechanic, UiMountedBackdropScope,
+        UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedLayerProjection,
+        UiMountedLayerReference, UiMountedNodeAppearanceAttribution, UiMountedNodeReceiptIssuer,
         UiMountedOutlineAppearanceCompletionInput, UiMountedOutlineAppearanceMechanic,
         UiMountedOverlayOrderMechanic, UiMountedPointerAffordanceMechanic,
         UiMountedPortalSurfaceAppearanceMechanic, UiMountedPresentationAttemptIdentity,
@@ -79,8 +79,12 @@ fn runtime_can_complete_inert_mechanics_without_publication_authority() {
         },
     )
     .unwrap();
-    let backdrop_identity =
-        UiMountedBackdropIdentity::from_runtime_mounting("dialog.backdrop").unwrap();
+    let backdrop_identity = UiMountedBackdropIdentity::from_runtime_mounting(
+        "dialog.backdrop",
+        UiMountedBackdropScope::PerPortalInstance(portal),
+        1,
+    )
+    .unwrap();
     let placement = UiOverlayPlacementReceipt::from_runtime_overlay_order(4, 1).unwrap();
     let backdrop_attribution =
         UiMountedBackdropAppearanceAttribution::from_runtime_transport(surface, placement, 2, 1)

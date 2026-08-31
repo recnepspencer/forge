@@ -1,5 +1,27 @@
+use std::num::NonZeroU64;
+
+/// Inert host transport projection of the scope that identifies one backdrop row.
+///
+/// The Portal identity is only a scope anchor. It does not turn the backdrop into
+/// a mounted node or grant any Portal lifecycle authority.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum UiMountedBackdropScope {
+    SurfaceSingleton(crate::UiSemanticSurfaceIdentity),
+    PerPortalInstance(crate::UiMountedInstanceIdentity),
+}
+
+/// Inert host correlation identity for one mounted backdrop mechanic.
+///
+/// This value transports a stable declaration projection, its exact mounted
+/// scope, and a nonzero runtime-supplied incarnation coordinate. It is not the
+/// runtime-owned semantic backdrop instance, grants no publication authority,
+/// and proves neither currentness nor lifecycle admission.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct UiMountedBackdropIdentity(Box<str>);
+pub struct UiMountedBackdropIdentity {
+    declaration_projection: Box<str>,
+    scope: UiMountedBackdropScope,
+    transport_incarnation: NonZeroU64,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiOverlayPlacementReceipt {
@@ -46,6 +68,7 @@ pub struct UiMountedBackdropCompletionInput {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedBackdropCompletionDenial {
+    IdentitySurfaceMismatch,
     AttributionSurfaceMismatch,
     AttributionOverlayRevisionMismatch,
 }
@@ -55,6 +78,13 @@ impl UiMountedBackdropMechanic {
     pub fn complete_from_runtime_mounting(
         input: UiMountedBackdropCompletionInput,
     ) -> Result<Self, UiMountedBackdropCompletionDenial> {
+        if matches!(
+            input.identity.scope(),
+            UiMountedBackdropScope::SurfaceSingleton(identity_surface)
+                if identity_surface != input.semantic_surface
+        ) {
+            return Err(UiMountedBackdropCompletionDenial::IdentitySurfaceMismatch);
+        }
         if input.attribution.semantic_surface != input.semantic_surface {
             return Err(UiMountedBackdropCompletionDenial::AttributionSurfaceMismatch);
         }
@@ -104,12 +134,26 @@ impl UiMountedBackdropMechanic {
 
 impl UiMountedBackdropIdentity {
     #[doc(hidden)]
-    pub fn from_runtime_mounting(value: impl Into<Box<str>>) -> Option<Self> {
-        let value = value.into();
-        (!value.is_empty()).then_some(Self(value))
+    pub fn from_runtime_mounting(
+        declaration_projection: impl Into<Box<str>>,
+        scope: UiMountedBackdropScope,
+        transport_incarnation: u64,
+    ) -> Option<Self> {
+        let declaration_projection = declaration_projection.into();
+        let transport_incarnation = NonZeroU64::new(transport_incarnation)?;
+        (!declaration_projection.is_empty()).then_some(Self {
+            declaration_projection,
+            scope,
+            transport_incarnation,
+        })
     }
-    pub fn as_str(&self) -> &str {
-        &self.0
+
+    pub fn declaration_projection(&self) -> &str {
+        &self.declaration_projection
+    }
+
+    pub const fn scope(&self) -> UiMountedBackdropScope {
+        self.scope
     }
 }
 
@@ -169,7 +213,12 @@ mod tests {
         let semantic_surface = crate::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
         let placement = UiOverlayPlacementReceipt::from_runtime_overlay_order(3, 0).unwrap();
         UiMountedBackdropCompletionInput {
-            identity: UiMountedBackdropIdentity::from_runtime_mounting("dialog.backdrop").unwrap(),
+            identity: UiMountedBackdropIdentity::from_runtime_mounting(
+                "dialog.backdrop",
+                UiMountedBackdropScope::SurfaceSingleton(semantic_surface),
+                1,
+            )
+            .unwrap(),
             semantic_surface,
             placement,
             extent: super::super::UiAppearanceBackdropExtent::new(0, 0, 100, 80).unwrap(),
@@ -191,6 +240,17 @@ mod tests {
         let mechanic = UiMountedBackdropMechanic::complete_from_runtime_mounting(input()).unwrap();
         assert_eq!(mechanic.attribution().identity(), 7);
         assert!(!mechanic.participates_in_hit_testing());
+    }
+
+    #[test]
+    fn backdrop_identity_denies_a_zero_transport_incarnation() {
+        let surface = crate::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+        assert!(UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            UiMountedBackdropScope::SurfaceSingleton(surface),
+            0,
+        )
+        .is_none());
     }
 
     #[test]
@@ -218,9 +278,32 @@ mod tests {
     fn backdrop_completion_denies_cross_surface_attribution() {
         let mut input = input();
         input.semantic_surface = crate::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+        input.identity = UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            UiMountedBackdropScope::SurfaceSingleton(input.semantic_surface),
+            1,
+        )
+        .unwrap();
         assert_eq!(
             UiMountedBackdropMechanic::complete_from_runtime_mounting(input),
             Err(UiMountedBackdropCompletionDenial::AttributionSurfaceMismatch)
+        );
+    }
+
+    #[test]
+    fn backdrop_completion_denies_a_foreign_singleton_surface() {
+        let mut input = input();
+        input.identity = UiMountedBackdropIdentity::from_runtime_mounting(
+            "dialog.backdrop",
+            UiMountedBackdropScope::SurfaceSingleton(
+                crate::UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
+            ),
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            UiMountedBackdropMechanic::complete_from_runtime_mounting(input),
+            Err(UiMountedBackdropCompletionDenial::IdentitySurfaceMismatch)
         );
     }
 }
