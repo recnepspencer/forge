@@ -70,7 +70,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/topology/subscriber_index/buckets.rs",
         Method,
         "replace_consumer",
-        "822b1ce50cd5c2615ac6754a3d8a515b1a1d6afc0aa8bcf7dfa0c73c8a9e7ae4"
+        "fe616dc3f20d08fba93429099f2fe455d44129d102658f51e2ed0065c8807e26"
     ),
     owner!(
         "reverse index authority rebuild",
