@@ -1,11 +1,8 @@
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) struct UiThemeDefinitionIdentity(Box<str>);
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiThemeDefinition {
-    identity: UiThemeDefinitionIdentity,
+    identity: super::UiThemeDefinitionIdentity,
     revision: u64,
     catalog_basis: super::UiThemeSlotCatalog,
     values: BTreeMap<crate::capability::ThemeTokenId, worth_ui_dsl::UiThemeValue>,
@@ -13,7 +10,6 @@ pub(crate) struct UiThemeDefinition {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum UiThemeDefinitionDenial {
-    EmptyIdentity,
     ZeroRevision,
     MissingSlot(crate::capability::ThemeTokenId),
     UnknownSlot(crate::capability::ThemeTokenId),
@@ -26,23 +22,9 @@ pub(crate) enum UiThemeDefinitionDenial {
     RevisionExhausted,
 }
 
-impl UiThemeDefinitionIdentity {
-    pub(crate) fn new(value: impl Into<Box<str>>) -> Result<Self, UiThemeDefinitionDenial> {
-        let value = value.into();
-        if value.is_empty() {
-            Err(UiThemeDefinitionDenial::EmptyIdentity)
-        } else {
-            Ok(Self(value))
-        }
-    }
-    pub(crate) fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
 impl UiThemeDefinition {
     pub(crate) fn admit(
-        identity: UiThemeDefinitionIdentity,
+        identity: super::UiThemeDefinitionIdentity,
         revision: u64,
         catalog: &super::UiThemeSlotCatalog,
         values: impl IntoIterator<Item = (crate::capability::ThemeTokenId, worth_ui_dsl::UiThemeValue)>,
@@ -80,7 +62,7 @@ impl UiThemeDefinition {
         })
     }
 
-    pub(crate) fn identity(&self) -> &UiThemeDefinitionIdentity {
+    pub(crate) fn identity(&self) -> &super::UiThemeDefinitionIdentity {
         &self.identity
     }
     pub(crate) const fn revision(&self) -> u64 {
@@ -134,7 +116,8 @@ impl UiThemeDefinition {
 #[cfg(test)]
 mod tests {
     use super::super::{
-        UiThemeSlotDeclaration, UiThemeSlotDisclosure, UiThemeSlotSuccessorCompatibility,
+        UiThemeDefinitionIdentity, UiThemeSlotDeclaration, UiThemeSlotDisclosure,
+        UiThemeSlotSuccessorCompatibility,
     };
     use super::*;
 

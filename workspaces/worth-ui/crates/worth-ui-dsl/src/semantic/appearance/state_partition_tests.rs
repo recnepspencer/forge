@@ -142,6 +142,66 @@ fn axis_declaration_permutations_have_identical_normalized_meaning() {
     assert_eq!(first, second);
 }
 
+#[test]
+fn all_six_axis_versions_and_exact_class_sets_are_locked() {
+    use UiAppearanceAxisClass::*;
+    let expected: &[(UiAppearanceStateAxis, &[UiAppearanceAxisClass])] = &[
+        (
+            UiAppearanceStateAxis::Operability,
+            &[
+                OperabilityReady,
+                OperabilityPending,
+                OperabilityOccupied,
+                OperabilityDenied,
+                OperabilityUnsupported,
+                OperabilityStale,
+            ],
+        ),
+        (
+            UiAppearanceStateAxis::Focus,
+            &[
+                FocusUnfocused,
+                FocusFocused,
+                FocusVisible,
+                FocusedWindowInactive,
+            ],
+        ),
+        (
+            UiAppearanceStateAxis::Validation,
+            &[
+                ValidationUnspecified,
+                ValidationValid,
+                ValidationAdvisory,
+                ValidationInvalid,
+                ValidationPending,
+                ValidationStale,
+            ],
+        ),
+        (
+            UiAppearanceStateAxis::Selection,
+            &[
+                SelectionUnselected,
+                SelectionSelected,
+                SelectionAnchor,
+                SelectionCursor,
+                SelectedAnchorCursor,
+            ],
+        ),
+        (UiAppearanceStateAxis::Hover, &[HoverOutside, Hovered]),
+        (
+            UiAppearanceStateAxis::Pressed,
+            &[PressedIdle, PressedArmedInside, PressedCapturedOutside],
+        ),
+    ];
+    for (axis, classes) in expected {
+        let domain = UiAppearanceAxisDomain::complete(*axis);
+        assert_eq!(domain.version().axis(), *axis);
+        assert_eq!(domain.version().revision(), 1);
+        assert_eq!(domain.classes(), *classes);
+        assert!(classes.iter().all(|class| class.axis() == *axis));
+    }
+}
+
 fn result() -> UiAppearanceDecisionResult {
     UiAppearanceDecisionResult::theme_slot(
         super::super::UiThemeSlotIdentity::new("test.slot").unwrap(),

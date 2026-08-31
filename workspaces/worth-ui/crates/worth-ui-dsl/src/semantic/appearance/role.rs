@@ -8,6 +8,13 @@ pub struct UiAppearanceRoleSchemaVersion(u16);
 pub struct UiAppearanceRoleRevision(u64);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum UiAppearanceRoleApplicability {
+    AnyComponent,
+    Component(crate::UiDslComponentReference),
+    Backdrop,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiThemeSlotUse {
     aspect: super::UiAppearanceAspect,
     slot: super::UiThemeSlotIdentity,
@@ -19,6 +26,7 @@ pub struct UiAppearanceRoleDeclaration {
     role: UiAppearanceRoleIdentity,
     schema: UiAppearanceRoleSchemaVersion,
     revision: UiAppearanceRoleRevision,
+    applicability: UiAppearanceRoleApplicability,
     aspect_contract: super::UiAppearanceAspectContract,
     partitions: Box<
         [(
@@ -42,6 +50,7 @@ pub enum UiAppearanceRoleDeclarationDenial {
     UnadmittedAspect,
     ResultValueKindMismatch,
     SlotUseCapacityExceeded,
+    ApplicabilityContractMismatch,
 }
 
 impl UiAppearanceRoleIdentity {
@@ -108,6 +117,7 @@ impl UiAppearanceRoleDeclaration {
     pub fn admit(
         role: UiAppearanceRoleIdentity,
         revision: UiAppearanceRoleRevision,
+        applicability: UiAppearanceRoleApplicability,
         contract: &super::UiAppearanceAspectContract,
         partitions: impl IntoIterator<
             Item = (
@@ -116,6 +126,20 @@ impl UiAppearanceRoleDeclaration {
             ),
         >,
     ) -> Result<Self, UiAppearanceRoleDeclarationDenial> {
+        let applicability_matches = matches!(
+            (&applicability, contract.applicability()),
+            (
+                UiAppearanceRoleApplicability::AnyComponent
+                    | UiAppearanceRoleApplicability::Component(_),
+                super::UiAppearanceAspectApplicability::Component
+            ) | (
+                UiAppearanceRoleApplicability::Backdrop,
+                super::UiAppearanceAspectApplicability::Backdrop
+            )
+        );
+        if !applicability_matches {
+            return Err(UiAppearanceRoleDeclarationDenial::ApplicabilityContractMismatch);
+        }
         let mut partitions = partitions.into_iter().collect::<Vec<_>>();
         if partitions.is_empty() {
             return Err(UiAppearanceRoleDeclarationDenial::Empty);
@@ -161,6 +185,7 @@ impl UiAppearanceRoleDeclaration {
             role,
             schema: UiAppearanceRoleSchemaVersion::current(),
             revision,
+            applicability,
             aspect_contract: contract.clone(),
             partitions: partitions.into_boxed_slice(),
             slot_uses: slot_uses.into_boxed_slice(),
@@ -175,6 +200,9 @@ impl UiAppearanceRoleDeclaration {
     }
     pub const fn revision(&self) -> UiAppearanceRoleRevision {
         self.revision
+    }
+    pub const fn applicability(&self) -> &UiAppearanceRoleApplicability {
+        &self.applicability
     }
     pub const fn aspect_contract(&self) -> &super::UiAppearanceAspectContract {
         &self.aspect_contract
@@ -220,6 +248,9 @@ mod tests {
         let declaration = UiAppearanceRoleDeclaration::admit(
             UiAppearanceRoleIdentity::new("test.role").unwrap(),
             UiAppearanceRoleRevision::new(1).unwrap(),
+            UiAppearanceRoleApplicability::Component(
+                crate::UiDslComponentReference::new("test.component").unwrap(),
+            ),
             &contract,
             [
                 (
@@ -291,10 +322,45 @@ mod tests {
             UiAppearanceRoleDeclaration::admit(
                 UiAppearanceRoleIdentity::new("capacity.role").unwrap(),
                 UiAppearanceRoleRevision::new(1).unwrap(),
+                UiAppearanceRoleApplicability::Component(
+                    crate::UiDslComponentReference::new("test.component").unwrap(),
+                ),
                 &contract,
                 [(super::super::UiAppearanceAspect::Background, partition)],
             ),
             Err(UiAppearanceRoleDeclarationDenial::SlotUseCapacityExceeded)
+        );
+    }
+
+    #[test]
+    fn role_applicability_must_match_the_aspect_contract_family() {
+        let contract = super::super::UiAppearanceAspectContract::backdrop();
+        assert_eq!(
+            UiAppearanceRoleDeclaration::admit(
+                UiAppearanceRoleIdentity::new("wrong.target.family").unwrap(),
+                UiAppearanceRoleRevision::new(1).unwrap(),
+                UiAppearanceRoleApplicability::Component(
+                    crate::UiDslComponentReference::new("test.component").unwrap(),
+                ),
+                &contract,
+                [],
+            ),
+            Err(UiAppearanceRoleDeclarationDenial::ApplicabilityContractMismatch)
+        );
+    }
+
+    #[test]
+    fn unconstrained_component_role_still_requires_a_component_contract() {
+        let contract = super::super::UiAppearanceAspectContract::backdrop();
+        assert_eq!(
+            UiAppearanceRoleDeclaration::admit(
+                UiAppearanceRoleIdentity::new("wrong.any-component.family").unwrap(),
+                UiAppearanceRoleRevision::new(1).unwrap(),
+                UiAppearanceRoleApplicability::AnyComponent,
+                &contract,
+                [],
+            ),
+            Err(UiAppearanceRoleDeclarationDenial::ApplicabilityContractMismatch)
         );
     }
 }

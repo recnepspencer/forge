@@ -17,8 +17,9 @@ pub use capacity::{
     UI_APPEARANCE_SLOT_USES_PER_ROLE_CAPACITY,
 };
 pub use role::{
-    UiAppearanceRoleDeclaration, UiAppearanceRoleDeclarationDenial, UiAppearanceRoleIdentity,
-    UiAppearanceRoleRevision, UiAppearanceRoleSchemaVersion, UiThemeSlotUse, UiThemeSlotUseDenial,
+    UiAppearanceRoleApplicability, UiAppearanceRoleDeclaration, UiAppearanceRoleDeclarationDenial,
+    UiAppearanceRoleIdentity, UiAppearanceRoleRevision, UiAppearanceRoleSchemaVersion,
+    UiThemeSlotUse, UiThemeSlotUseDenial,
 };
 pub use state_partition::{
     UiAppearanceAxisClass, UiAppearanceAxisDomain, UiAppearanceAxisPredicate,

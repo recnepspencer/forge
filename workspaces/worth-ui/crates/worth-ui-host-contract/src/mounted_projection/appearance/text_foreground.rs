@@ -3,7 +3,7 @@ pub struct UiMountedTextForegroundAppearanceMechanic {
     paint_span: crate::UiMountedTextPaintSpanIdentity,
     foreground: super::UiMountedAppearanceColor,
     opacity: super::UiMountedAppearanceOpacity,
-    projection: super::UiAppearanceProjectionAttribution,
+    projection: super::UiMountedNodeAppearanceAttribution,
 }
 
 #[doc(hidden)]
@@ -12,7 +12,7 @@ pub struct UiMountedTextForegroundAppearanceCompletionInput {
     pub paint_span: crate::UiMountedTextPaintSpanIdentity,
     pub foreground: super::UiMountedAppearanceColor,
     pub opacity: super::UiMountedAppearanceOpacity,
-    pub projection: super::UiAppearanceProjectionAttribution,
+    pub projection: super::UiMountedNodeAppearanceAttribution,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -46,7 +46,7 @@ impl UiMountedTextForegroundAppearanceMechanic {
     pub const fn opacity(&self) -> super::UiMountedAppearanceOpacity {
         self.opacity
     }
-    pub const fn projection(&self) -> super::UiAppearanceProjectionAttribution {
+    pub const fn projection(&self) -> super::UiMountedNodeAppearanceAttribution {
         self.projection
     }
 }

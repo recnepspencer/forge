@@ -43,6 +43,32 @@ impl FrozenAppearanceRoleCapabilities {
                     digest,
                     u64::from(role.schema().revision()),
                 );
+                match role.applicability() {
+                    worth_ui_dsl::UiAppearanceRoleApplicability::AnyComponent => {
+                        digest = super::semantic_digest::fold_semantic_digest(
+                            digest,
+                            0x616e_795f_636f_6d70,
+                        );
+                    }
+                    worth_ui_dsl::UiAppearanceRoleApplicability::Component(component) => {
+                        digest = super::semantic_digest::fold_semantic_digest(
+                            digest,
+                            0x636f_6d70_6f6e_656e,
+                        );
+                        for byte in component.as_str().as_bytes() {
+                            digest = super::semantic_digest::fold_semantic_digest(
+                                digest,
+                                u64::from(*byte),
+                            );
+                        }
+                    }
+                    worth_ui_dsl::UiAppearanceRoleApplicability::Backdrop => {
+                        digest = super::semantic_digest::fold_semantic_digest(
+                            digest,
+                            0x6261_636b_6472_6f70,
+                        );
+                    }
+                }
                 digest =
                     super::semantic_digest::fold_semantic_digest(digest, role.revision().value());
                 digest = super::semantic_digest::fold_semantic_digest(
@@ -97,5 +123,56 @@ impl FrozenAppearanceRoleCapabilities {
                 }
                 digest
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn role(
+        applicability: worth_ui_dsl::UiAppearanceRoleApplicability,
+    ) -> worth_ui_dsl::UiAppearanceRoleDeclaration {
+        let contract = worth_ui_dsl::UiAppearanceAspectContract::component(
+            [worth_ui_dsl::UiAppearanceAspect::Background],
+            [],
+        )
+        .unwrap();
+        let partition = worth_ui_dsl::UiAppearanceDecisionPartition::compile(
+            [],
+            [worth_ui_dsl::UiAppearanceDecisionRule::new(
+                [],
+                worth_ui_dsl::UiAppearanceDecisionResult::theme_slot(
+                    worth_ui_dsl::UiThemeSlotIdentity::new("test.slot").unwrap(),
+                    worth_ui_dsl::UiThemeValueKind::Color,
+                ),
+            )],
+        )
+        .unwrap();
+        worth_ui_dsl::UiAppearanceRoleDeclaration::admit(
+            worth_ui_dsl::UiAppearanceRoleIdentity::new("test.role").unwrap(),
+            worth_ui_dsl::UiAppearanceRoleRevision::new(1).unwrap(),
+            applicability,
+            &contract,
+            [(worth_ui_dsl::UiAppearanceAspect::Background, partition)],
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn applicability_changes_the_frozen_semantic_digest() {
+        let any = FrozenAppearanceRoleCapabilities {
+            roles: vec![role(
+                worth_ui_dsl::UiAppearanceRoleApplicability::AnyComponent,
+            )],
+        };
+        let constrained = FrozenAppearanceRoleCapabilities {
+            roles: vec![role(
+                worth_ui_dsl::UiAppearanceRoleApplicability::Component(
+                    worth_ui_dsl::UiDslComponentReference::new("test.component").unwrap(),
+                ),
+            )],
+        };
+        assert_ne!(any.digest_basis(), constrained.digest_basis());
     }
 }

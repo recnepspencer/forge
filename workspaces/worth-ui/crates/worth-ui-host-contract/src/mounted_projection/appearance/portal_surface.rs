@@ -40,25 +40,27 @@ mod tests {
         let frame = crate::UiMountedFrameIdentity::mint_unbound().unwrap();
         let issuer = crate::UiMountedNodeReceiptIssuer::mint_for(frame).unwrap();
         let surface_instance = crate::UiMountedInstanceIdentity::mint_unbound().unwrap();
-        let bounds = super::super::UiAppearanceDamageRegion::new(0, 0, 8, 8).unwrap();
+        let bounds = super::super::UiAppearanceAllocationBounds::new(0, 0, 8, 8).unwrap();
         let surface =
             super::super::UiMountedSurfaceAppearanceMechanic::complete_from_runtime_mounting(
                 super::super::UiMountedSurfaceAppearanceCompletionInput {
                     issuer,
                     node_receipt: issuer.receipt_for(surface_instance),
                     bounds,
-                    clip: super::super::UiAppearanceClip::new(bounds),
+                    clip: super::super::UiAppearanceClip::new(0, 0, 8, 8).unwrap(),
                     layer: crate::UiMountedLayerProjection::Layer(
                         crate::UiMountedLayerReference::new(0),
                     ),
-                    visual_bounds: bounds,
-                    radii: super::super::UiAppearancePhysicalRadii::normalize(bounds, [0; 4]),
+                    radii: super::super::UiAppearanceNormalizedLogicalRadii::normalize(
+                        bounds,
+                        [super::super::UiAppearanceLogicalLength::ZERO; 4],
+                    ),
                     paint: super::super::UiMountedSurfacePaint::Fill(
                         super::super::UiMountedAppearanceColor::from_straight_srgba([0; 4]),
                     ),
                     opacity: super::super::UiMountedAppearanceOpacity::ONE,
                     projection:
-                        super::super::UiAppearanceProjectionAttribution::from_runtime_mounting(
+                        super::super::UiMountedNodeAppearanceAttribution::from_runtime_mounting(
                             issuer, 1, 1,
                         )
                         .unwrap(),

@@ -103,3 +103,36 @@ fn canonical(
     }
     Ok(values.into_boxed_slice())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_gate_zero_aspect_has_its_exact_value_kind() {
+        assert_eq!(
+            UiAppearanceAspect::Background.value_kind(),
+            super::super::UiThemeValueKind::Color
+        );
+        assert_eq!(
+            UiAppearanceAspect::Foreground.value_kind(),
+            super::super::UiThemeValueKind::Color
+        );
+        assert_eq!(
+            UiAppearanceAspect::Border.value_kind(),
+            super::super::UiThemeValueKind::SolidStroke
+        );
+        assert_eq!(
+            UiAppearanceAspect::Radius.value_kind(),
+            super::super::UiThemeValueKind::CornerRadii
+        );
+        assert_eq!(
+            UiAppearanceAspect::Opacity.value_kind(),
+            super::super::UiThemeValueKind::Opacity
+        );
+        assert_eq!(
+            UiAppearanceAspect::Outline.value_kind(),
+            super::super::UiThemeValueKind::SolidOutline
+        );
+    }
+}

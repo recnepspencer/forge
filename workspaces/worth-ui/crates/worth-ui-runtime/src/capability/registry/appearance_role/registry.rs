@@ -30,6 +30,9 @@ mod tests {
                 worth_ui_dsl::UiAppearanceRoleIdentity::new(format!("capacity.role.{index}"))
                     .unwrap(),
                 worth_ui_dsl::UiAppearanceRoleRevision::new(1).unwrap(),
+                worth_ui_dsl::UiAppearanceRoleApplicability::Component(
+                    worth_ui_dsl::UiDslComponentReference::new("test.component").unwrap(),
+                ),
                 &contract,
                 [(
                     worth_ui_dsl::UiAppearanceAspect::Background,
@@ -42,6 +45,9 @@ mod tests {
         let overflow = worth_ui_dsl::UiAppearanceRoleDeclaration::admit(
             worth_ui_dsl::UiAppearanceRoleIdentity::new("capacity.role.overflow").unwrap(),
             worth_ui_dsl::UiAppearanceRoleRevision::new(1).unwrap(),
+            worth_ui_dsl::UiAppearanceRoleApplicability::Component(
+                worth_ui_dsl::UiDslComponentReference::new("test.component").unwrap(),
+            ),
             &contract,
             [(worth_ui_dsl::UiAppearanceAspect::Background, partition)],
         )

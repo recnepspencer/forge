@@ -2,13 +2,10 @@
 pub struct UiMountedOutlineAppearanceMechanic {
     node_receipt: crate::UiMountedNodeReceiptIdentity,
     clip: super::UiAppearanceClip,
-    visual_bounds: super::UiAppearanceDamageRegion,
+    geometry: super::UiAppearanceOutlineGeometry,
     color: super::UiMountedAppearanceColor,
-    width: u32,
-    offset: u32,
-    radii: super::UiAppearancePhysicalRadii,
     opacity: super::UiMountedAppearanceOpacity,
-    projection: super::UiAppearanceProjectionAttribution,
+    projection: super::UiMountedNodeAppearanceAttribution,
 }
 
 #[doc(hidden)]
@@ -16,13 +13,10 @@ pub struct UiMountedOutlineAppearanceCompletionInput {
     pub issuer: crate::UiMountedNodeReceiptIssuer,
     pub node_receipt: crate::UiMountedNodeReceiptIdentity,
     pub clip: super::UiAppearanceClip,
-    pub visual_bounds: super::UiAppearanceDamageRegion,
+    pub geometry: super::UiAppearanceOutlineGeometry,
     pub color: super::UiMountedAppearanceColor,
-    pub width: u32,
-    pub offset: u32,
-    pub radii: super::UiAppearancePhysicalRadii,
     pub opacity: super::UiMountedAppearanceOpacity,
-    pub projection: super::UiAppearanceProjectionAttribution,
+    pub projection: super::UiMountedNodeAppearanceAttribution,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,11 +39,8 @@ impl UiMountedOutlineAppearanceMechanic {
         Ok(Self {
             node_receipt: input.node_receipt,
             clip: input.clip,
-            visual_bounds: input.visual_bounds,
+            geometry: input.geometry,
             color: input.color,
-            width: input.width,
-            offset: input.offset,
-            radii: input.radii,
             opacity: input.opacity,
             projection: input.projection,
         })
@@ -60,28 +51,79 @@ impl UiMountedOutlineAppearanceMechanic {
     pub const fn clip(&self) -> super::UiAppearanceClip {
         self.clip
     }
-    pub const fn visual_bounds(&self) -> super::UiAppearanceDamageRegion {
-        self.visual_bounds
+    pub const fn allocation(&self) -> super::UiAppearanceAllocationBounds {
+        self.geometry.allocation()
+    }
+    pub const fn visual_bounds(&self) -> super::UiAppearanceVisualBounds {
+        self.geometry.visual_bounds()
     }
     pub const fn color(&self) -> super::UiMountedAppearanceColor {
         self.color
     }
-    pub const fn width(&self) -> u32 {
-        self.width
+    pub const fn width(&self) -> super::UiAppearanceLogicalLength {
+        self.geometry.width()
     }
-    pub const fn offset(&self) -> u32 {
-        self.offset
+    pub const fn offset(&self) -> super::UiAppearanceLogicalLength {
+        self.geometry.offset()
     }
-    pub const fn radii(&self) -> super::UiAppearancePhysicalRadii {
-        self.radii
+    pub const fn anti_alias_fringe(&self) -> super::UiAppearanceLogicalLength {
+        self.geometry.anti_alias_fringe()
+    }
+    pub const fn radii(&self) -> super::UiAppearanceNormalizedLogicalRadii {
+        self.geometry.radii()
     }
     pub const fn opacity(&self) -> super::UiMountedAppearanceOpacity {
         self.opacity
     }
-    pub const fn projection(&self) -> super::UiAppearanceProjectionAttribution {
+    pub const fn projection(&self) -> super::UiMountedNodeAppearanceAttribution {
         self.projection
     }
     pub const fn participates_in_hit_testing(&self) -> bool {
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn outline_completion_preserves_admitted_geometry() {
+        let frame = crate::UiMountedFrameIdentity::mint_unbound().unwrap();
+        let issuer = crate::UiMountedNodeReceiptIssuer::mint_for(frame).unwrap();
+        let allocation = super::super::UiAppearanceAllocationBounds::new(5, 6, 20, 30).unwrap();
+        let radii = super::super::UiAppearanceNormalizedLogicalRadii::normalize(
+            allocation,
+            [super::super::UiAppearanceLogicalLength::ZERO; 4],
+        );
+        let length = |value| super::super::UiAppearanceLogicalLength::new(value).unwrap();
+        let geometry = super::super::UiAppearanceOutlineGeometry::admit(
+            allocation,
+            radii,
+            length(2),
+            length(1),
+            length(1),
+        )
+        .unwrap();
+        let mechanic = UiMountedOutlineAppearanceMechanic::complete_from_runtime_mounting(
+            UiMountedOutlineAppearanceCompletionInput {
+                issuer,
+                node_receipt: issuer
+                    .receipt_for(crate::UiMountedInstanceIdentity::mint_unbound().unwrap()),
+                clip: super::super::UiAppearanceClip::new(0, 0, 100, 100).unwrap(),
+                geometry,
+                color: super::super::UiMountedAppearanceColor::from_straight_srgba([1, 2, 3, 4]),
+                opacity: super::super::UiMountedAppearanceOpacity::ONE,
+                projection:
+                    super::super::UiMountedNodeAppearanceAttribution::from_runtime_mounting(
+                        issuer, 1, 1,
+                    )
+                    .unwrap(),
+            },
+        )
+        .unwrap();
+        assert_eq!(mechanic.allocation(), allocation);
+        assert_eq!(mechanic.visual_bounds(), geometry.visual_bounds());
+        assert!(!mechanic.participates_in_hit_testing());
     }
 }

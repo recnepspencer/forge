@@ -207,3 +207,7 @@ accepted_identity_proof!(SurfaceAcceptedRegistrationProof);
 accepted_identity_proof!(TaskPresentationAcceptedRegistrationProof);
 accepted_identity_proof!(ThemeTokenAcceptedRegistrationProof);
 accepted_identity_proof!(ViewBindingAcceptedRegistrationProof);
+
+#[cfg(test)]
+#[path = "snapshot_freeze/mosaic_seam_region_set_mismatch_tests.rs"]
+mod mosaic_seam_region_set_mismatch_tests;

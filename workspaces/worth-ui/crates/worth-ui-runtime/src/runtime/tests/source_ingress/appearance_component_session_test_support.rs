@@ -213,6 +213,7 @@ pub(crate) fn validation_background_role(slot: &str) -> worth_ui_dsl::UiAppearan
     worth_ui_dsl::UiAppearanceRoleDeclaration::admit(
         worth_ui_dsl::UiAppearanceRoleIdentity::new("test.validation-background").unwrap(),
         worth_ui_dsl::UiAppearanceRoleRevision::new(1).unwrap(),
+        worth_ui_dsl::UiAppearanceRoleApplicability::AnyComponent,
         &contract,
         [(worth_ui_dsl::UiAppearanceAspect::Background, partition)],
     )

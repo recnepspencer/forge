@@ -3,54 +3,46 @@ pub enum UiMountedSurfacePaint {
     Fill(super::UiMountedAppearanceColor),
     Border {
         color: super::UiMountedAppearanceColor,
-        inward_width: u32,
+        inward_width: super::UiAppearanceLogicalLength,
     },
     FillAndBorder {
         fill: super::UiMountedAppearanceColor,
         border: super::UiMountedAppearanceColor,
-        inward_width: u32,
+        inward_width: super::UiAppearanceLogicalLength,
     },
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct UiAppearanceProjectionAttribution {
-    pub(super) frame: crate::UiMountedFrameIdentity,
-    pub(super) issuer_nonce: u64,
-    identity: u64,
-    revision: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMountedSurfaceAppearanceMechanic {
     node_receipt: crate::UiMountedNodeReceiptIdentity,
-    bounds: super::UiAppearanceDamageRegion,
+    bounds: super::UiAppearanceAllocationBounds,
     clip: super::UiAppearanceClip,
     layer: crate::UiMountedLayerProjection,
-    visual_bounds: super::UiAppearanceDamageRegion,
-    radii: super::UiAppearancePhysicalRadii,
+    visual_bounds: super::UiAppearanceVisualBounds,
+    radii: super::UiAppearanceNormalizedLogicalRadii,
     paint: UiMountedSurfacePaint,
     opacity: super::UiMountedAppearanceOpacity,
-    projection: UiAppearanceProjectionAttribution,
+    projection: super::UiMountedNodeAppearanceAttribution,
 }
 
 #[doc(hidden)]
 pub struct UiMountedSurfaceAppearanceCompletionInput {
     pub issuer: crate::UiMountedNodeReceiptIssuer,
     pub node_receipt: crate::UiMountedNodeReceiptIdentity,
-    pub bounds: super::UiAppearanceDamageRegion,
+    pub bounds: super::UiAppearanceAllocationBounds,
     pub clip: super::UiAppearanceClip,
     pub layer: crate::UiMountedLayerProjection,
-    pub visual_bounds: super::UiAppearanceDamageRegion,
-    pub radii: super::UiAppearancePhysicalRadii,
+    pub radii: super::UiAppearanceNormalizedLogicalRadii,
     pub paint: UiMountedSurfacePaint,
     pub opacity: super::UiMountedAppearanceOpacity,
-    pub projection: UiAppearanceProjectionAttribution,
+    pub projection: super::UiMountedNodeAppearanceAttribution,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedSurfaceAppearanceCompletionDenial {
     NodeReceiptFrameMismatch,
     ProjectionIssuerMismatch,
+    RadiiAllocationMismatch,
     BorderWidthExceedsHalfMinimumDimension,
 }
 
@@ -65,12 +57,15 @@ impl UiMountedSurfaceAppearanceMechanic {
         if !input.projection.matches_issuer(input.issuer) {
             return Err(UiMountedSurfaceAppearanceCompletionDenial::ProjectionIssuerMismatch);
         }
+        if !input.radii.matches_allocation(input.bounds) {
+            return Err(UiMountedSurfaceAppearanceCompletionDenial::RadiiAllocationMismatch);
+        }
         let inward_width = match &input.paint {
-            UiMountedSurfacePaint::Fill(_) => 0,
+            UiMountedSurfacePaint::Fill(_) => super::UiAppearanceLogicalLength::ZERO,
             UiMountedSurfacePaint::Border { inward_width, .. }
             | UiMountedSurfacePaint::FillAndBorder { inward_width, .. } => *inward_width,
         };
-        if inward_width > input.bounds.width().min(input.bounds.height()) / 2 {
+        if inward_width.subpixels() > input.bounds.width().min(input.bounds.height()) / 2 {
             return Err(
                 UiMountedSurfaceAppearanceCompletionDenial::BorderWidthExceedsHalfMinimumDimension,
             );
@@ -80,7 +75,7 @@ impl UiMountedSurfaceAppearanceMechanic {
             bounds: input.bounds,
             clip: input.clip,
             layer: input.layer,
-            visual_bounds: input.visual_bounds,
+            visual_bounds: super::UiAppearanceVisualBounds::from_surface_allocation(input.bounds),
             radii: input.radii,
             paint: input.paint,
             opacity: input.opacity,
@@ -91,7 +86,7 @@ impl UiMountedSurfaceAppearanceMechanic {
     pub const fn node_receipt(&self) -> crate::UiMountedNodeReceiptIdentity {
         self.node_receipt
     }
-    pub const fn bounds(&self) -> super::UiAppearanceDamageRegion {
+    pub const fn bounds(&self) -> super::UiAppearanceAllocationBounds {
         self.bounds
     }
     pub const fn clip(&self) -> super::UiAppearanceClip {
@@ -100,10 +95,10 @@ impl UiMountedSurfaceAppearanceMechanic {
     pub const fn layer(&self) -> crate::UiMountedLayerProjection {
         self.layer
     }
-    pub const fn visual_bounds(&self) -> super::UiAppearanceDamageRegion {
+    pub const fn visual_bounds(&self) -> super::UiAppearanceVisualBounds {
         self.visual_bounds
     }
-    pub const fn radii(&self) -> super::UiAppearancePhysicalRadii {
+    pub const fn radii(&self) -> super::UiAppearanceNormalizedLogicalRadii {
         self.radii
     }
     pub const fn paint(&self) -> &UiMountedSurfacePaint {
@@ -112,37 +107,8 @@ impl UiMountedSurfaceAppearanceMechanic {
     pub const fn opacity(&self) -> super::UiMountedAppearanceOpacity {
         self.opacity
     }
-    pub const fn projection(&self) -> UiAppearanceProjectionAttribution {
+    pub const fn projection(&self) -> super::UiMountedNodeAppearanceAttribution {
         self.projection
-    }
-}
-
-impl UiAppearanceProjectionAttribution {
-    #[doc(hidden)]
-    pub const fn from_runtime_mounting(
-        issuer: crate::UiMountedNodeReceiptIssuer,
-        identity: u64,
-        revision: u64,
-    ) -> Option<Self> {
-        if identity == 0 || revision == 0 {
-            None
-        } else {
-            Some(Self {
-                frame: issuer.frame_identity(),
-                issuer_nonce: issuer.issuer_nonce(),
-                identity,
-                revision,
-            })
-        }
-    }
-    pub(super) fn matches_issuer(self, issuer: crate::UiMountedNodeReceiptIssuer) -> bool {
-        self.frame == issuer.frame_identity() && self.issuer_nonce == issuer.issuer_nonce()
-    }
-    pub const fn identity(self) -> u64 {
-        self.identity
-    }
-    pub const fn revision(self) -> u64 {
-        self.revision
     }
 }
 
@@ -150,30 +116,38 @@ impl UiAppearanceProjectionAttribution {
 mod tests {
     use super::*;
 
+    fn length(value: i32) -> super::super::UiAppearanceLogicalLength {
+        super::super::UiAppearanceLogicalLength::new(value).unwrap()
+    }
+
     fn input(
         width: u32,
         height: u32,
-        inward_width: u32,
+        inward_width: i32,
     ) -> UiMountedSurfaceAppearanceCompletionInput {
         let frame = crate::UiMountedFrameIdentity::mint_unbound().unwrap();
         let issuer = crate::UiMountedNodeReceiptIssuer::mint_for(frame).unwrap();
         let instance = crate::UiMountedInstanceIdentity::mint_unbound().unwrap();
-        let bounds = super::super::UiAppearanceDamageRegion::new(0, 0, width, height).unwrap();
+        let bounds = super::super::UiAppearanceAllocationBounds::new(0, 0, width, height).unwrap();
         UiMountedSurfaceAppearanceCompletionInput {
             issuer,
             node_receipt: issuer.receipt_for(instance),
             bounds,
-            clip: super::super::UiAppearanceClip::new(bounds),
+            clip: super::super::UiAppearanceClip::new(0, 0, width, height).unwrap(),
             layer: crate::UiMountedLayerProjection::Layer(crate::UiMountedLayerReference::new(0)),
-            visual_bounds: bounds,
-            radii: super::super::UiAppearancePhysicalRadii::normalize(bounds, [0; 4]),
+            radii: super::super::UiAppearanceNormalizedLogicalRadii::normalize(
+                bounds,
+                [super::super::UiAppearanceLogicalLength::ZERO; 4],
+            ),
             paint: UiMountedSurfacePaint::Border {
                 color: super::super::UiMountedAppearanceColor::from_straight_srgba([0; 4]),
-                inward_width,
+                inward_width: length(inward_width),
             },
             opacity: super::super::UiMountedAppearanceOpacity::ONE,
-            projection: UiAppearanceProjectionAttribution::from_runtime_mounting(issuer, 1, 1)
-                .unwrap(),
+            projection: super::super::UiMountedNodeAppearanceAttribution::from_runtime_mounting(
+                issuer, 1, 1,
+            )
+            .unwrap(),
         }
     }
 
@@ -186,6 +160,31 @@ mod tests {
         assert_eq!(
             UiMountedSurfaceAppearanceMechanic::complete_from_runtime_mounting(input(5, 9, 3)),
             Err(UiMountedSurfaceAppearanceCompletionDenial::BorderWidthExceedsHalfMinimumDimension)
+        );
+    }
+
+    #[test]
+    fn surface_visual_bounds_are_derived_from_allocation() {
+        let mechanic =
+            UiMountedSurfaceAppearanceMechanic::complete_from_runtime_mounting(input(5, 9, 0))
+                .unwrap();
+        assert_eq!(
+            mechanic.visual_bounds(),
+            super::super::UiAppearanceVisualBounds::from_surface_allocation(mechanic.bounds())
+        );
+    }
+
+    #[test]
+    fn surface_completion_denies_radii_normalized_for_another_allocation() {
+        let mut mismatched = input(5, 9, 0);
+        let other = super::super::UiAppearanceAllocationBounds::new(0, 0, 50, 90).unwrap();
+        mismatched.radii = super::super::UiAppearanceNormalizedLogicalRadii::normalize(
+            other,
+            [super::super::UiAppearanceLogicalLength::ZERO; 4],
+        );
+        assert_eq!(
+            UiMountedSurfaceAppearanceMechanic::complete_from_runtime_mounting(mismatched),
+            Err(UiMountedSurfaceAppearanceCompletionDenial::RadiiAllocationMismatch)
         );
     }
 }

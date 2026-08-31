@@ -137,6 +137,7 @@ mod tests {
         super::super::super::UiAppearanceRoleDeclaration::admit(
             super::super::super::UiAppearanceRoleIdentity::new("backdrop.test").unwrap(),
             super::super::super::UiAppearanceRoleRevision::new(1).unwrap(),
+            super::super::super::UiAppearanceRoleApplicability::Backdrop,
             &contract,
             [
                 (
@@ -227,6 +228,14 @@ mod tests {
             &valid_role,
         )
         .is_ok());
+        assert!(admit(
+            crate::UiBackdropExtentBasis::SurfaceViewport(surface),
+            crate::UiBackdropPresenceBasis::WhilePortalPresented(portal),
+            crate::UiBackdropMotionBasis::None,
+            crate::UiBackdropPlacement::ImmediatelyBeforePortal(portal),
+            &valid_role,
+        )
+        .is_ok());
     }
 
     #[test]
@@ -260,6 +269,9 @@ mod tests {
         let role = crate::UiAppearanceRoleDeclaration::admit(
             crate::UiAppearanceRoleIdentity::new("component.same-aspects").unwrap(),
             crate::UiAppearanceRoleRevision::new(1).unwrap(),
+            crate::UiAppearanceRoleApplicability::Component(
+                crate::UiDslComponentReference::new("test.component").unwrap(),
+            ),
             &component_contract,
             [
                 (

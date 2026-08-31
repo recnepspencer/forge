@@ -9,7 +9,7 @@
   "required_host_contract_symbols": [
     "UiMountedSurfaceAppearanceMechanic", "UiMountedPortalSurfaceAppearanceMechanic",
     "UiMountedOutlineAppearanceMechanic", "UiMountedTextForegroundAppearanceMechanic",
-    "UiMountedBackdropMechanic", "UiOverlayStackSnapshot",
+    "UiMountedBackdropMechanic", "UiMountedOverlayOrderMechanic",
     "UiMountedPointerAffordanceMechanic", "UiAppearanceDamageRegion", "UiAppearanceClip",
     "UiMountedSurfaceAppearanceCompletionInput", "UiMountedOutlineAppearanceCompletionInput",
     "UiMountedBackdropCompletionInput", "UiMountedTextForegroundAppearanceCompletionInput",

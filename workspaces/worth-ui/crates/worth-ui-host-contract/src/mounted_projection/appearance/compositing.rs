@@ -81,7 +81,7 @@ fn encode_srgb(linear: u16) -> u8 {
     }
     let upper = decode_srgb(low as u8).abs_diff(linear);
     let lower = decode_srgb((low - 1) as u8).abs_diff(linear);
-    if lower < upper || (lower == upper && (low - 1) % 2 == 0) {
+    if lower < upper || (lower == upper && (low - 1).is_multiple_of(2)) {
         (low - 1) as u8
     } else {
         low as u8
@@ -109,7 +109,7 @@ fn fixed_nth_root(value: u64, degree: u32) -> u64 {
     }
     let low_error = value.abs_diff(fixed_pow(low, degree));
     let high_error = value.abs_diff(fixed_pow(high, degree));
-    if high_error < low_error || (high_error == low_error && high % 2 == 0) {
+    if high_error < low_error || (high_error == low_error && high.is_multiple_of(2)) {
         high
     } else {
         low
@@ -208,6 +208,14 @@ mod tests {
             ])
             .straight_srgba(),
             [168, 94, 169, 171],
+        );
+        assert_eq!(
+            compose_source_over([
+                (amber, UiMountedAppearanceOpacity::from_units(42_001)),
+                (blue, UiMountedAppearanceOpacity::from_units(51_337)),
+            ])
+            .straight_srgba(),
+            [120, 71, 198, 171],
         );
     }
 }

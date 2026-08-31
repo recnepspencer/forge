@@ -295,4 +295,25 @@ mod tests {
             u16::MAX
         );
     }
+
+    #[test]
+    fn radii_preserve_css_corner_order_and_negative_geometry_denies() {
+        let length = |value| UiLogicalLength::new(value);
+        let radii = UiThemeCornerRadii::new(length(1), length(2), length(3), length(4)).unwrap();
+        assert_eq!(
+            radii.corners().map(UiLogicalLength::subpixels),
+            [1, 2, 3, 4]
+        );
+        for negative_corner in 0..4 {
+            let mut corners = [length(0); 4];
+            corners[negative_corner] = length(-1);
+            assert!(
+                UiThemeCornerRadii::new(corners[0], corners[1], corners[2], corners[3]).is_none()
+            );
+        }
+        let color = UiThemeColor::from_channels([1, 2, 3, 4]);
+        assert!(UiThemeSolidStroke::new(color, length(-1)).is_none());
+        let stroke = UiThemeSolidStroke::new(color, length(1)).unwrap();
+        assert!(UiThemeOutline::new(stroke, length(-1)).is_none());
+    }
 }

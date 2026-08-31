@@ -7,7 +7,12 @@ pub enum UiOverlayParticipantIdentity {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiOverlayStackSnapshot {
+/// Inert, duplicate-checked host transport for one mounted overlay order.
+///
+/// This mechanic is not the runtime-issued semantic `UiOverlayStackSnapshot`
+/// reserved for the Gate 1 overlay-composition owner. It grants no semantic
+/// sealing or publication authority.
+pub struct UiMountedOverlayOrderMechanic {
     semantic_surface: crate::UiSemanticSurfaceIdentity,
     presentation: crate::UiMountedPresentationAttemptIdentity,
     portal_revision: u64,
@@ -16,11 +21,11 @@ pub struct UiOverlayStackSnapshot {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum UiOverlayStackSnapshotDenial {
+pub enum UiMountedOverlayOrderMechanicDenial {
     DuplicateParticipant(UiOverlayParticipantIdentity),
 }
 
-impl UiOverlayStackSnapshot {
+impl UiMountedOverlayOrderMechanic {
     #[doc(hidden)]
     pub fn complete_from_runtime_overlay_order(
         semantic_surface: crate::UiSemanticSurfaceIdentity,
@@ -28,14 +33,14 @@ impl UiOverlayStackSnapshot {
         portal_revision: u64,
         backdrop_revision: u64,
         bottom_to_top: impl IntoIterator<Item = UiOverlayParticipantIdentity>,
-    ) -> Result<Self, UiOverlayStackSnapshotDenial> {
+    ) -> Result<Self, UiMountedOverlayOrderMechanicDenial> {
         let bottom_to_top = bottom_to_top.into_iter().collect::<Vec<_>>();
         let mut seen = BTreeSet::new();
         if let Some(duplicate) = bottom_to_top
             .iter()
             .find(|participant| !seen.insert((*participant).clone()))
         {
-            return Err(UiOverlayStackSnapshotDenial::DuplicateParticipant(
+            return Err(UiMountedOverlayOrderMechanicDenial::DuplicateParticipant(
                 duplicate.clone(),
             ));
         }

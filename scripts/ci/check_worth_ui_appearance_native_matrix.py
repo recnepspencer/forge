@@ -15,7 +15,7 @@ EXPECTED_MECHANICS = [
 EXPECTED_SYMBOLS = [
     "UiMountedSurfaceAppearanceMechanic", "UiMountedPortalSurfaceAppearanceMechanic",
     "UiMountedOutlineAppearanceMechanic", "UiMountedTextForegroundAppearanceMechanic",
-    "UiMountedBackdropMechanic", "UiOverlayStackSnapshot",
+    "UiMountedBackdropMechanic", "UiMountedOverlayOrderMechanic",
     "UiMountedPointerAffordanceMechanic", "UiAppearanceDamageRegion", "UiAppearanceClip",
     "UiMountedSurfaceAppearanceCompletionInput", "UiMountedOutlineAppearanceCompletionInput",
     "UiMountedBackdropCompletionInput", "UiMountedTextForegroundAppearanceCompletionInput",

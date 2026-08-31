@@ -260,6 +260,7 @@ fn capability(
     let role = worth_ui_dsl::UiAppearanceRoleDeclaration::admit(
         role_identity.clone(),
         worth_ui_dsl::UiAppearanceRoleRevision::new(1).unwrap(),
+        worth_ui_dsl::UiAppearanceRoleApplicability::AnyComponent,
         &contract,
         [(
             worth_ui_dsl::UiAppearanceAspect::Background,
