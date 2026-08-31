@@ -47,7 +47,9 @@ pub(super) fn collection_projection_workspace(
             );
         }
     }
-    let entities = correlate_receipt_entities(&mut workspace, rows.len(), receipt_entities);
+    let row_count = rows.len();
+    drop(rows);
+    let entities = correlate_receipt_entities(&mut workspace, row_count, receipt_entities);
     (workspace, entities)
 }
 
@@ -150,6 +152,7 @@ fn correlate_receipt_entities(
             "seed correlation item keys must be unique"
         );
     }
+    drop(read);
     assert!(
         receipt_entities.is_empty(),
         "every seed receipt must correlate"
