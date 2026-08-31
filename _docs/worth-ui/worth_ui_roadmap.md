@@ -2258,7 +2258,10 @@ is created.
 
 Detailed spec: [milestone-3.16.md](./milestone-3.16.md)
 
-Status: Planned. The governing design freezes explicit role attachment,
+Status: In progress. Gate 0's contract baseline is complete; later gates have
+not started.
+
+The governing design freezes explicit role attachment,
 surface-bound theme capability, coherent owner-issued state vectors, finite
 disjoint appearance resolution without selectors or cascade, a clean mounted
 appearance protocol cutover, and bounded pointer-affordance projection. A

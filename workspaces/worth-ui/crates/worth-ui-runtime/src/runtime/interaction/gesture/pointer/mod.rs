@@ -8,18 +8,25 @@ use worth_ui_host_contract::{UiHostPointerIdentity, UiSurfaceBindingGeneration};
 
 use super::UiPointerGestureStopReason;
 use model::UiActivePointerGesture;
+#[allow(
+    unused_imports,
+    reason = "milestone 3.16 Gate 0 exposes the sealed pressed appearance contract internally"
+)]
 pub(crate) use model::{
     UiPointerGestureOutcome, UiPointerGestureRuntimeState, UiPointerGestureStateSnapshot,
+    UiPressedAppearanceClass, UiPressedAppearanceOwnerSnapshot, UiPressedAppearancePosture,
 };
 pub use model::{
     UiPointerGesturePressReceipt, UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
 
 impl UiPointerGestureRuntimeState {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(appearance_enabled: bool) -> Self {
         Self {
             active: BTreeMap::new(),
             counters: Default::default(),
+            appearance_revision: 0,
+            appearance_enabled,
         }
     }
 
@@ -37,6 +44,14 @@ impl UiPointerGestureRuntimeState {
             active_gestures: self.active.len(),
             counters: self.counters,
         }
+    }
+
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 exposes the owner snapshot only to the sealed close-turn lane"
+    )]
+    pub(crate) fn appearance_snapshot(&self) -> UiPressedAppearanceOwnerSnapshot {
+        UiPressedAppearanceOwnerSnapshot::seal(self)
     }
 
     pub(crate) fn cancel_binding(
@@ -71,6 +86,9 @@ impl UiPointerGestureRuntimeState {
         reason: UiPointerGestureStopReason,
     ) -> Vec<super::UiPointerGestureStop> {
         let selected = take_matching(&mut self.active, predicate);
+        if !selected.is_empty() {
+            self.bump_appearance_revision();
+        }
         self.counters.stop_outcomes = add(self.counters.stop_outcomes, selected.len());
         self.counters.active_gestures_settled =
             add(self.counters.active_gestures_settled, selected.len());
@@ -91,6 +109,19 @@ impl UiPointerGestureRuntimeState {
 
     pub(super) fn bump_button_reports(&mut self) {
         self.counters.button_reports = next(self.counters.button_reports);
+    }
+
+    pub(super) fn bump_appearance_revision(&mut self) {
+        if self.appearance_enabled {
+            self.appearance_revision = next(self.appearance_revision);
+        }
+    }
+
+    pub(crate) fn reconcile_appearance_enabled(&mut self, enabled: bool) {
+        self.appearance_enabled = enabled;
+        if !enabled {
+            self.appearance_revision = 0;
+        }
     }
 }
 

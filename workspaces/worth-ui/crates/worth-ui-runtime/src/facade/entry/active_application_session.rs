@@ -5,6 +5,9 @@ use super::{
     WorthUiActiveApplicationGenerationIdentity, WorthUiActiveApplicationSessionIdentity,
     WorthUiActiveFrameworkTurnCompletion, WorthUiApp,
 };
+#[cfg(test)]
+#[path = "active_application_session/appearance_observation_close_tests.rs"]
+mod appearance_observation_close_tests;
 #[path = "active_application_session/command_context.rs"]
 mod command_context;
 #[path = "active_application_session/command_observation.rs"]
@@ -76,6 +79,8 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) intent_confirmation: crate::runtime::intent::UiIntentConfirmationState,
     pub(super) intent_postures: crate::mounting::UiIntentPostureTable,
     pub(super) presentation: crate::runtime::presentation_state::UiApplicationPresentationState,
+    pub(super) appearance_owner_snapshot:
+        Option<crate::runtime::appearance::UiAppearanceOwnerSnapshot>,
     pub(super) visual_inspection:
         crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
     pub(super) next_visual_capture_identity: u64,
@@ -100,15 +105,38 @@ impl WorthUiActiveApplicationSession {
         let visual_policy = app.visual_inspection_policy();
         let rebind_profile = app.prepared_authority().change_profile().rebind();
         let presentation_async = app.take_presentation_async_owner();
-        let intent_application_facts =
-            crate::runtime::intent::UiIntentApplicationFactState::activate(
-                app.prepared_authority().intent_application_fact_plan(),
-            );
         let presentation =
             crate::runtime::presentation_state::UiApplicationPresentationState::activate(
                 app.capabilities(),
             );
         let service_policy_plan = app.service_policy_plan();
+        let appearance_axis_demand = app
+            .prepared_authority()
+            .consumed_fact_index()
+            .appearance_axis_demand();
+        let intent_application_facts =
+            crate::runtime::intent::UiIntentApplicationFactState::activate(
+                app.prepared_authority().intent_application_fact_plan(),
+                appearance_axis_demand.contains(worth_ui_dsl::UiAppearanceStateAxis::Validation),
+            );
+        if appearance_axis_demand.contains(worth_ui_dsl::UiAppearanceStateAxis::Focus)
+            && service_policy_plan.focus().is_none()
+        {
+            return Err(
+                crate::runtime::WorthUiRuntimeLaunchDenial::AppearanceOwnerUnavailable(
+                    worth_ui_dsl::UiAppearanceStateAxis::Focus,
+                ),
+            );
+        }
+        if appearance_axis_demand.contains(worth_ui_dsl::UiAppearanceStateAxis::Selection)
+            && service_policy_plan.selection().is_none()
+        {
+            return Err(
+                crate::runtime::WorthUiRuntimeLaunchDenial::AppearanceOwnerUnavailable(
+                    worth_ui_dsl::UiAppearanceStateAxis::Selection,
+                ),
+            );
+        }
         let command_routing = crate::runtime::UiRuntimeServiceInstallation::from_optional(
             service_policy_plan.command_routing().map(|policy| {
                 crate::runtime::command_routing::UiCommandRoutingRuntimeState::new(
@@ -120,6 +148,10 @@ impl WorthUiActiveApplicationSession {
         );
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
+        let pointer_presence_enabled =
+            appearance_axis_demand.contains(worth_ui_dsl::UiAppearanceStateAxis::Hover);
+        let pressed_appearance_enabled =
+            appearance_axis_demand.contains(worth_ui_dsl::UiAppearanceStateAxis::Pressed);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
             host_session.identity(),
             mounted_frame_retention_budget,
@@ -139,7 +171,10 @@ impl WorthUiActiveApplicationSession {
             host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState::new(
                 host_observation_capacity,
             ),
-            interaction: crate::runtime::interaction::UiInteractionRuntimeState::new(),
+            interaction: crate::runtime::interaction::UiInteractionRuntimeState::new(
+                pointer_presence_enabled,
+                pressed_appearance_enabled,
+            ),
             focus: crate::runtime::UiRuntimeServiceInstallation::from_optional(
                 service_policy_plan.focus().map(|policy| {
                     let restoration = service_policy_plan
@@ -186,10 +221,13 @@ impl WorthUiActiveApplicationSession {
             ),
             intent_application_facts,
             intent_execution: crate::runtime::intent_execution::UiIntentExecutionState::new(),
-            intent_admission: crate::runtime::intent::UiIntentAdmissionState::new(),
+            intent_admission: crate::runtime::intent::UiIntentAdmissionState::new(
+                appearance_axis_demand.contains(worth_ui_dsl::UiAppearanceStateAxis::Operability),
+            ),
             intent_confirmation: crate::runtime::intent::UiIntentConfirmationState::new(),
             intent_postures: crate::mounting::UiIntentPostureTable::new(),
             presentation,
+            appearance_owner_snapshot: None,
             visual_inspection,
             next_visual_capture_identity: 1,
             next_visual_overlay_identity: 1,
@@ -241,15 +279,16 @@ impl WorthUiActiveApplicationSession {
         self.application.capabilities()
     }
 
-    pub fn classify_observations(
+    #[cfg(test)]
+    pub(crate) const fn has_appearance_owner_snapshot_for_test(&self) -> bool {
+        self.appearance_owner_snapshot.is_some()
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn appearance_owner_snapshot_for_test(
         &self,
-        observations: crate::facade::observation::UiAdmittedObservationSet,
-    ) -> Result<
-        crate::facade::observation::UiChangeClassificationOutcome,
-        crate::facade::observation::UiChangeClassificationDenial,
-    > {
-        self.application
-            .classify_observations(self.identity, observations)
+    ) -> Option<&crate::runtime::appearance::UiAppearanceOwnerSnapshot> {
+        self.appearance_owner_snapshot.as_ref()
     }
 
     pub fn resolve_affected_scope(

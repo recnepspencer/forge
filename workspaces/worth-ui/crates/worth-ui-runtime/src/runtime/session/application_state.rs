@@ -93,15 +93,22 @@ impl WorthUiApplicationSessionState {
         self.runtime.source_event_ingress(provider)
     }
 
-    pub(crate) fn begin_observation_turn(
-        &mut self,
+    pub(crate) fn begin_observation_turn<'state>(
+        &'state mut self,
         session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+        appearance_close: Option<
+            crate::runtime::observation::UiAppearanceObservationCloseInput<'state>,
+        >,
     ) -> Result<
-        crate::facade::observation::UiObservationTurn<'_>,
+        crate::facade::observation::UiObservationTurn<'state>,
         crate::facade::observation::UiObservationTurnDenial,
     > {
         let source_basis = self.app.capabilities().digest().as_u64();
-        self.runtime.begin_observation_turn(session, source_basis)
+        self.runtime.begin_observation_turn_with_appearance_close(
+            session,
+            source_basis,
+            appearance_close,
+        )
     }
 
     pub(crate) fn observation_resource_snapshot(

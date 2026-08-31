@@ -21,7 +21,7 @@ Machine fences:
 - Must not depend on Query audience facade `worth-query-decl` (allowed bands: entry, cert).
 - Must not depend on Query audience facade `worth-query-host` (allowed bands: entry, cert).
 - Must not depend on Query audience facade `worth-query-replay` (allowed bands: cert).
-- Must not depend on replay surface families such as certification replay [worth-cert-replay, worthy-cert-replay; cert domains: replay, reconstruction].
+- Must not depend on replay surface families such as certification replay [worth-query-replay, worth-cert-replay, worthy-cert-replay; cert domains: replay, reconstruction].
 
 Skeleton fence:
 - Seed skeleton is machine-fenced by boundary-check; undeclared files and mixed-class modules are denied.

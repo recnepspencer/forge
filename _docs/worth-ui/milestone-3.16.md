@@ -2,7 +2,8 @@
 
 ## Status and Placement
 
-Status: governing specification for the next Worth UI implementation slice.
+Status: implementation in progress. Gate 0's contract baseline is complete;
+later gates have not started.
 
 Milestone 3.16 follows the closed Milestone 3.15 production-runtime-services
 slice and precedes Milestone 3.17 DSL expressions and semantic evaluation. It

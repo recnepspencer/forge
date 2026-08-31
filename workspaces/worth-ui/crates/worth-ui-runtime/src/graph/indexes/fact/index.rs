@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::capability::{CapabilitySnapshot, ComponentId};
 use crate::declaration::{UiAspectName, UiAspectSemanticSlice};
 use crate::fact_contract::{UiAuthoredFactSelector, UiConsumedFactContract, UiProducedFact};
-use crate::graph::{UiGraphAspectConsumerKind, UiGraphAspectPublisherKind, UiGraphSnapshot};
+use crate::graph::{UiGraphAspectPublisherKind, UiGraphSnapshot};
 
 use super::{
     UiAuthoredDeclarationLookup, UiGraphFactConsumerIdentity, UiGraphFactConsumerKey,
@@ -11,14 +11,19 @@ use super::{
     UiGraphFactLookupReceipt,
 };
 
+mod appearance_consumer_contract;
+mod consumer;
 mod subsystem;
 
 use super::intent_posture::intent_posture_consumers;
+use appearance_consumer_contract::UiGraphAppearanceConsumerContract;
+use consumer::{consumer_identity, consumer_key};
 use subsystem::{build_subsystem_index, UiGraphSubsystemFactIndex};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphConsumedFactIndex {
     basis: UiGraphFactIndexBasis,
+    appearance_consumers: UiGraphAppearanceConsumerContract,
     authored_by_declaration: BTreeMap<Box<str>, Box<[UiGraphFactIndexEntry]>>,
     query_by_projection:
         BTreeMap<worth_ui_query_binding::WorthUiQueryViewIdentity, Box<[UiGraphFactIndexEntry]>>,
@@ -47,6 +52,8 @@ impl UiGraphConsumedFactIndex {
             authored_declarations,
             &mut authored_by_declaration,
         );
+        let appearance_consumers =
+            UiGraphAppearanceConsumerContract::from_graph(snapshot, capabilities);
         let authored_by_declaration = authored_by_declaration
             .into_iter()
             .map(|(identity, entries)| (identity, canonical_entries(entries)))
@@ -54,11 +61,26 @@ impl UiGraphConsumedFactIndex {
 
         Self {
             basis: UiGraphFactIndexBasis::from_generation(snapshot, capabilities),
+            appearance_consumers,
             authored_by_declaration,
             query_by_projection: query_projection_consumers(snapshot, projection_contents),
             intent_posture_by_node: intent_posture_consumers(snapshot),
             subsystem: build_subsystem_index(snapshot),
         }
+    }
+
+    pub(crate) const fn appearance_axis_demand(
+        &self,
+    ) -> crate::runtime::appearance::UiAppearanceStateAxisDemand {
+        self.appearance_consumers.axis_demand()
+    }
+
+    pub(crate) const fn has_appearance_consumers(&self) -> bool {
+        self.appearance_consumers.has_consumers()
+    }
+
+    pub(crate) fn has_same_appearance_consumer_contract(&self, other: &Self) -> bool {
+        self.appearance_consumers == other.appearance_consumers
     }
 
     #[cfg(any(test, feature = "certification-support"))]
@@ -182,11 +204,14 @@ fn add_static_paint_token_consumers(
     }
 }
 
-fn component_capability_for_node<'capability>(
+pub(super) fn component_capability_for_node<'capability>(
     node: &crate::graph::UiGraphNode,
     capabilities: &'capability CapabilitySnapshot,
     authored_declarations: &UiAuthoredDeclarationLookup,
 ) -> Option<&'capability crate::capability::ComponentDescriptor> {
+    if let Some(identity) = node.component_reference() {
+        return capabilities.components().get(identity);
+    }
     let source_backed = authored_declarations
         .unique_component_capability_identity(node.authored_provenance_digest())
         .and_then(|identity| ComponentId::new(identity).ok())
@@ -332,49 +357,4 @@ pub(super) fn canonical_entries(
     });
     entries.dedup();
     entries.into_boxed_slice()
-}
-
-pub(super) fn consumer_key(
-    snapshot: &UiGraphSnapshot,
-    kind: UiGraphAspectConsumerKind,
-) -> UiGraphFactConsumerKey {
-    let (consumer_kind, node_identity) = match kind {
-        UiGraphAspectConsumerKind::GraphNode(identity) => {
-            (UiGraphFactConsumerKind::GraphNode, identity)
-        }
-        UiGraphAspectConsumerKind::MountEligibilitySlot(identity) => {
-            let node_identity = snapshot
-                .mount_eligibilities()
-                .slot(identity)
-                .expect("every indexed mount-eligibility consumer has a graph-owned slot")
-                .graph_node_identity();
-            (UiGraphFactConsumerKind::MountEligibilitySlot, node_identity)
-        }
-    };
-    let node = snapshot
-        .nodes()
-        .iter()
-        .find(|node| node.graph_node_identity() == node_identity)
-        .expect("every indexed fact consumer has one graph node");
-    let declaration = snapshot
-        .core_indexes()
-        .declaration_correspondence()
-        .declaration_identity_for(node_identity)
-        .expect("every indexed fact consumer has declaration correspondence");
-    UiGraphFactConsumerKey::new(
-        consumer_kind,
-        declaration.authored_semantic_name(),
-        node.repeated_instance_basis().identity_digest(),
-    )
-}
-
-pub(super) fn consumer_identity(kind: UiGraphAspectConsumerKind) -> UiGraphFactConsumerIdentity {
-    match kind {
-        UiGraphAspectConsumerKind::GraphNode(identity) => {
-            UiGraphFactConsumerIdentity::GraphNode(identity)
-        }
-        UiGraphAspectConsumerKind::MountEligibilitySlot(identity) => {
-            UiGraphFactConsumerIdentity::MountEligibilitySlot(identity)
-        }
-    }
 }

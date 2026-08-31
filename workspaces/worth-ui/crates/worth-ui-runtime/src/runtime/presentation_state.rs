@@ -16,6 +16,11 @@ pub(crate) struct UiApplicationPresentationState {
     mutable_token_revisions: BTreeMap<crate::capability::ThemeTokenId, u64>,
     theme_revision: u64,
     pending_theme_graph_nodes: std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 places the future binding owner without activating switching"
+    )]
+    appearance_theme_state: Option<crate::runtime::appearance::UiAppearanceThemeState>,
 }
 
 struct UiApplicationSemanticTextRow {
@@ -82,7 +87,66 @@ impl UiApplicationPresentationState {
             mutable_token_revisions,
             theme_revision: 0,
             pending_theme_graph_nodes: Default::default(),
+            appearance_theme_state: None,
         }
+    }
+
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 installs the future presentation CAS without activating it"
+    )]
+    pub(crate) fn prepare_appearance_theme_switch(
+        &mut self,
+        request: crate::runtime::appearance::UiThemeSwitchRequest,
+    ) -> Result<
+        crate::runtime::appearance::UiPreparedThemeSwitch,
+        crate::runtime::appearance::UiThemeSwitchDenial,
+    > {
+        self.appearance_theme_state
+            .as_mut()
+            .ok_or(crate::runtime::appearance::UiThemeSwitchDenial::MissingActiveBinding)?
+            .prepare_theme_switch(request)
+    }
+
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 installs the future presentation CAS without activating it"
+    )]
+    pub(crate) fn install_initial_appearance_theme_binding(
+        &mut self,
+        capability: crate::runtime::appearance::UiThemeCapabilityReceipt,
+    ) -> Result<(), crate::runtime::appearance::UiThemeInitialBindingDenial> {
+        self.appearance_theme_state
+            .get_or_insert_with(crate::runtime::appearance::UiAppearanceThemeState::default)
+            .install_initial(capability)
+    }
+
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 installs the future presentation CAS without activating it"
+    )]
+    pub(crate) fn commit_published_appearance_theme_switch(
+        &mut self,
+        prepared: crate::runtime::appearance::UiPreparedThemeSwitch,
+    ) -> Result<(), crate::runtime::appearance::UiThemeSwitchDenial> {
+        self.appearance_theme_state
+            .as_mut()
+            .ok_or(crate::runtime::appearance::UiThemeSwitchDenial::UnknownPreparedSwitch)?
+            .commit_published_switch(prepared)
+    }
+
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 installs affine switch cancellation without activating switching"
+    )]
+    pub(crate) fn cancel_prepared_appearance_theme_switch(
+        &mut self,
+        prepared: crate::runtime::appearance::UiPreparedThemeSwitch,
+    ) -> Result<(), crate::runtime::appearance::UiThemeSwitchDenial> {
+        self.appearance_theme_state
+            .as_mut()
+            .ok_or(crate::runtime::appearance::UiThemeSwitchDenial::UnknownPreparedSwitch)?
+            .cancel_prepared_switch(prepared)
     }
 
     pub(crate) fn register_semantic_text(

@@ -18,6 +18,7 @@ pub use allocation_catalog_successor::{
 mod allocation_receipt;
 mod application_item;
 pub(crate) use application_item::{UiApplicationItemKey, UiApplicationItemKeyFamily};
+pub(crate) mod appearance;
 mod drag_resize;
 pub(crate) mod execution;
 pub(crate) mod exports;

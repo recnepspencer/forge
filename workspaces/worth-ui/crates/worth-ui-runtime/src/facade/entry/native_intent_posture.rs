@@ -131,11 +131,7 @@ impl WorthUiActiveApplicationSession {
             None,
             None,
         );
-        let observation = match prepare_intent_consequence_observation(
-            &mut self.application,
-            self.identity,
-            batch,
-        ) {
+        let observation = match prepare_intent_consequence_observation(self, batch) {
             Ok(observation) => observation,
             Err(stop) => return stopped(stop.reason),
         };

@@ -121,11 +121,25 @@ fn fold_component_descriptor(accumulator: u64, descriptor: &ComponentDescriptor)
             .portal_child_contract()
             .map(super::ComponentPortalChildContract::digest_basis),
     );
-    fold_optional_str(
+    let with_allocation = fold_optional_str(
         with_portal_child,
         descriptor
             .allocation_measurement_contract()
             .map(|contract| contract.digest_basis()),
+    );
+    descriptor.appearance_aspect_contract().map_or_else(
+        || fold_bytes(with_allocation, b"appearance-contract:none"),
+        |contract| {
+            let with_applicability = fold_bytes(with_allocation, &[contract.applicability() as u8]);
+            let required = contract.required().iter().fold(
+                fold_bytes(with_applicability, b"appearance-contract:required"),
+                |digest, aspect| fold_bytes(digest, &[*aspect as u8]),
+            );
+            contract.optional().iter().fold(
+                fold_bytes(required, b"appearance-contract:optional"),
+                |digest, aspect| fold_bytes(digest, &[*aspect as u8]),
+            )
+        },
     )
 }
 

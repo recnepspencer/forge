@@ -1,6 +1,7 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiPortalServiceTransitionDenial {
     RevisionExhausted,
+    StackOrdinalExhausted,
     StalePlan,
     Placement(super::UiPortalPlacementDenial),
 }
@@ -19,6 +20,7 @@ pub(crate) struct UiPreparedPortalServiceTransition {
     staged_posture: super::UiPortalLifecyclePosture,
     disposition: super::UiPortalServiceDisposition,
     placement: Option<super::UiPreparedPortalPlacement>,
+    stack_ordinal: Option<super::UiPortalStackOrdinal>,
     closed_descendants: Box<[super::UiPortalIdentity]>,
 }
 
@@ -30,6 +32,7 @@ impl UiPreparedPortalServiceTransition {
         staged_posture: super::UiPortalLifecyclePosture,
         disposition: super::UiPortalServiceDisposition,
         placement: Option<super::UiPreparedPortalPlacement>,
+        stack_ordinal: Option<super::UiPortalStackOrdinal>,
         closed_descendants: Box<[super::UiPortalIdentity]>,
     ) -> Self {
         Self {
@@ -39,6 +42,7 @@ impl UiPreparedPortalServiceTransition {
             staged_posture,
             disposition,
             placement,
+            stack_ordinal,
             closed_descendants,
         }
     }
@@ -83,6 +87,10 @@ impl UiPreparedPortalServiceTransition {
 
     pub(crate) const fn placement(&self) -> Option<super::UiPreparedPortalPlacement> {
         self.placement
+    }
+
+    pub(crate) const fn stack_ordinal(&self) -> Option<super::UiPortalStackOrdinal> {
+        self.stack_ordinal
     }
 
     pub(crate) const fn successor_revision(&self) -> u64 {

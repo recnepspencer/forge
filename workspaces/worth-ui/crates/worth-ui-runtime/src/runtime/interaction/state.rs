@@ -15,6 +15,7 @@ use super::{
 
 pub(crate) struct UiInteractionRuntimeState {
     pointer: UiPointerGestureRuntimeState,
+    pointer_presence: Option<super::pointer_presence::UiPointerPresenceOwner>,
     draft: UiDraftRuntimeState,
     semantic_interactions: u64,
     application_generation: worth_ui_host_contract::UiHostApplicationGeneration,
@@ -35,9 +36,11 @@ pub(crate) enum UiInteractionLifecycleStopReason {
 }
 
 impl UiInteractionRuntimeState {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(pointer_presence_enabled: bool, pressed_appearance_enabled: bool) -> Self {
         Self {
-            pointer: UiPointerGestureRuntimeState::new(),
+            pointer: UiPointerGestureRuntimeState::new(pressed_appearance_enabled),
+            pointer_presence: pointer_presence_enabled
+                .then(super::pointer_presence::UiPointerPresenceOwner::new),
             draft: UiDraftRuntimeState::new(),
             semantic_interactions: 0,
             application_generation: worth_ui_host_contract::UiHostApplicationGeneration::new(1)
@@ -54,13 +57,19 @@ impl UiInteractionRuntimeState {
         let core = batch.canonical_core();
         let mut transitions = Vec::new();
         let mut ignored_reports = 0;
+        let mut pointer_presence_transitions = Vec::new();
         for validated in batch.reports() {
             let report = validated.report();
+            let pointer_presence = self
+                .pointer_presence
+                .as_mut()
+                .and_then(|owner| owner.process_mouse_report(core, report, mounted, generation));
             let pointer = self.pointer.process_report(core, report, mounted);
             let draft = self.draft.process_report(core, report, mounted, generation);
-            if pointer.is_empty() && draft.is_empty() {
+            if pointer_presence.is_none() && pointer.is_empty() && draft.is_empty() {
                 ignored_reports += 1;
             }
+            pointer_presence_transitions.extend(pointer_presence);
             for outcome in pointer {
                 match outcome {
                     UiPointerGestureOutcome::Pressed(press) => {
@@ -114,6 +123,7 @@ impl UiInteractionRuntimeState {
             state: self.snapshot(),
             scroll_observations: Box::new([]),
             command_routes: Box::new([]),
+            pointer_presence_transitions: pointer_presence_transitions.into_boxed_slice(),
         }
     }
 
@@ -186,11 +196,47 @@ impl UiInteractionRuntimeState {
         )
     }
 
+    pub(crate) fn reconcile_appearance_demand(&mut self, hover: bool, pressed: bool) {
+        match (hover, self.pointer_presence.is_some()) {
+            (true, false) => {
+                self.pointer_presence = Some(super::pointer_presence::UiPointerPresenceOwner::new())
+            }
+            (false, true) => self.pointer_presence = None,
+            _ => {}
+        }
+        self.pointer.reconcile_appearance_enabled(pressed);
+    }
+
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 exposes the owner snapshot only to the sealed close-turn lane"
+    )]
+    pub(crate) fn pointer_presence_appearance_snapshot(
+        &self,
+    ) -> Option<super::UiPointerPresenceAppearanceOwnerSnapshot> {
+        self.pointer_presence
+            .as_ref()
+            .map(super::pointer_presence::UiPointerPresenceOwner::appearance_snapshot)
+    }
+
+    #[allow(
+        dead_code,
+        reason = "milestone 3.16 Gate 0 exposes the owner snapshot only to the sealed close-turn lane"
+    )]
+    pub(crate) fn pressed_appearance_snapshot(
+        &self,
+    ) -> super::gesture::UiPressedAppearanceOwnerSnapshot {
+        self.pointer.appearance_snapshot()
+    }
+
     pub(crate) fn cancel_binding(
         &mut self,
         binding: UiSurfaceBindingGeneration,
         reason: UiInteractionLifecycleStopReason,
     ) -> UiInteractionLifecycleSettlementReceipt {
+        if let Some(owner) = self.pointer_presence.as_mut() {
+            owner.cancel_binding(binding);
+        }
         let pointer = self
             .pointer
             .cancel_binding(binding, reason.pointer_reason());
@@ -203,6 +249,9 @@ impl UiInteractionRuntimeState {
         instance: worth_ui_host_contract::UiMountedInstanceIdentity,
         reason: UiInteractionLifecycleStopReason,
     ) -> UiInteractionLifecycleSettlementReceipt {
+        if let Some(owner) = self.pointer_presence.as_mut() {
+            owner.cancel_instance(instance);
+        }
         let pointer = self
             .pointer
             .cancel_instance(instance, reason.pointer_reason());
@@ -218,6 +267,9 @@ impl UiInteractionRuntimeState {
         &mut self,
         reason: UiInteractionLifecycleStopReason,
     ) -> UiInteractionLifecycleSettlementReceipt {
+        if let Some(owner) = self.pointer_presence.as_mut() {
+            owner.cancel_all();
+        }
         let pointer = self.pointer.cancel_all(reason.pointer_reason());
         let draft = self.draft.cancel_all(reason.local_reason());
         if matches!(reason, UiInteractionLifecycleStopReason::ApplicationRebound) {

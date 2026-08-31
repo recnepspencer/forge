@@ -60,8 +60,16 @@ impl UiPointerGestureRuntimeState {
             UiHostObservationPayload::PointerMotion {
                 pointer,
                 capture_epoch,
+                position,
                 ..
-            } => self.capture_change(report.sequence(), *pointer, *capture_epoch),
+            } => self.motion(
+                core,
+                report.sequence(),
+                *pointer,
+                *capture_epoch,
+                *position,
+                mounted,
+            ),
             UiHostObservationPayload::WindowFocus { focused: false, .. } => {
                 self.focus_loss(report.sequence())
             }
@@ -77,6 +85,7 @@ impl UiPointerGestureRuntimeState {
             );
         }
         if let Some(active) = self.active.remove(&input.pointer) {
+            self.bump_appearance_revision();
             let reason = capture_change_reason(&active, input.capture_epoch)
                 .unwrap_or(UiPointerGestureStopReason::DuplicatePress);
             return self.active_stop(input.pointer, active, input.sequence, reason);
@@ -106,8 +115,10 @@ impl UiPointerGestureRuntimeState {
             press_sequence: input.sequence,
             press_time_basis: input.time_basis,
             target,
+            inside: true,
         };
         self.active.insert(input.pointer, active);
+        self.bump_appearance_revision();
         self.counters.gestures_started = next(self.counters.gestures_started);
         UiPointerGestureOutcome::Pressed(UiPointerGesturePressReceipt {
             pointer: input.pointer,
@@ -124,6 +135,7 @@ impl UiPointerGestureRuntimeState {
         let Some(active) = self.active.remove(&input.pointer) else {
             return self.failed_stop(input, UiPointerGestureStopReason::NoActiveGesture);
         };
+        self.bump_appearance_revision();
         if let Some(reason) = capture_change_reason(&active, input.capture_epoch) {
             return self.active_stop(input.pointer, active, input.sequence, reason);
         }
@@ -177,22 +189,43 @@ impl UiPointerGestureRuntimeState {
         })
     }
 
-    fn capture_change(
+    fn motion(
         &mut self,
+        core: UiHostObservationCanonicalCore,
         sequence: UiHostObservationSequence,
         pointer: UiHostPointerIdentity,
         observed: UiHostPointerCaptureEpoch,
+        position: worth_ui_host_contract::UiHostSurfacePosition,
+        mounted: &crate::mounting::WorthUiMountedSessionState,
     ) -> Vec<UiPointerGestureOutcome> {
         let Some(active) = self.active.get(&pointer) else {
             return Vec::new();
         };
         if active.capture_epoch == observed {
+            if !self.appearance_enabled {
+                return Vec::new();
+            }
+            let inside = resolve_presented_target(mounted, core.presentation(), position)
+                .is_ok_and(|target| {
+                    target.surface() == active.target.surface()
+                        && target.binding() == active.target.binding()
+                        && target.mounted_instance() == active.target.mounted_instance()
+                        && target.node_receipt() == active.target.node_receipt()
+                });
+            if inside != active.inside {
+                self.active
+                    .get_mut(&pointer)
+                    .expect("active gesture remains present")
+                    .inside = inside;
+                self.bump_appearance_revision();
+            }
             return Vec::new();
         }
         let active = self
             .active
             .remove(&pointer)
             .expect("the active pointer was just observed");
+        self.bump_appearance_revision();
         let reason = UiPointerGestureStopReason::CaptureChanged {
             expected: active.capture_epoch,
             observed,
@@ -202,6 +235,9 @@ impl UiPointerGestureRuntimeState {
 
     fn focus_loss(&mut self, sequence: UiHostObservationSequence) -> Vec<UiPointerGestureOutcome> {
         let active = std::mem::take(&mut self.active);
+        if !active.is_empty() {
+            self.bump_appearance_revision();
+        }
         active
             .into_iter()
             .map(|(pointer, active)| {

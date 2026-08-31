@@ -620,7 +620,7 @@ authority_packages = ["worth-query"]
 
 [[rule_contracts.replay_surfaces]]
 label = "certification replay"
-package_prefixes = ["worth-cert-replay", "worthy-cert-replay"]
+package_prefixes = ["worth-query-replay", "worth-cert-replay", "worthy-cert-replay"]
 cert_domains = ["replay", "reconstruction"]
 
 [routing_proof]
@@ -766,6 +766,11 @@ member_lane = "crates/*"
 path = "cad/workspaces/worth-certification"
 allowed_crate_prefixes = ["worth-cert-"]
 member_lane = "crates/*"
+
+[[context_workspaces]]
+path = "workspaces/worth-ui"
+package_prefix = "worth-ui"
+certification_packages = ["worth-ui-certification"]
 
 [legacy_reference_ratchet]
 governed_roots = [

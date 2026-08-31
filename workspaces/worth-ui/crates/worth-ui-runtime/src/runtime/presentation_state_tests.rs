@@ -26,6 +26,7 @@ fn complete_projection_retains_current_paint_after_incremental_projection_commit
         mutable_token_revisions: BTreeMap::from([(token.clone(), 1)]),
         theme_revision: 0,
         pending_theme_graph_nodes: Default::default(),
+        appearance_theme_state: Default::default(),
     };
 
     let incremental = state.project().expect("current row projects incrementally");
@@ -89,6 +90,7 @@ fn theme_update_is_transactional_and_fans_out_to_alias_consumers() {
         mutable_token_revisions: BTreeMap::from([(root.clone(), 0)]),
         theme_revision: 0,
         pending_theme_graph_nodes: Default::default(),
+        appearance_theme_state: Default::default(),
     };
 
     let change =

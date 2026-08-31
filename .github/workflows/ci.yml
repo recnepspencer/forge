@@ -2,7 +2,7 @@ name: WORTH CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master, main, ui ]
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
@@ -581,8 +581,15 @@ jobs:
           python3 scripts/ci/test_worth_ui_test_topology.py
           python3 scripts/ci/test_worth_ui_test_lane.py
           python3 scripts/ci/test_worth_ui_native_features.py
+          python3 scripts/ci/test_worth_ui_contract_gates.py
+          python3 scripts/ci/test_workspace_rust_line_caps.py
           python3 scripts/ci/check_worth_ui_test_topology.py
           python3 scripts/ci/check_worth_ui_native_features.py
+          python3 scripts/ci/check_worth_ui_removal_inventory.py
+          python3 scripts/ci/check_worth_ui_protocol_manifest.py
+          python3 scripts/ci/check_worth_ui_docs_links.py
+          python3 scripts/ci/check_worth_ui_appearance_native_matrix.py
+          bash scripts/ci/check_workspace_rust_line_caps.sh worth-ui-apps
 
       - name: Compile the Platform Pulse courtroom in its non-Windows posture
         run: python3 scripts/ci/run_worth_ui_test_lane.py compile-only-platform
@@ -616,6 +623,31 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: worth-ui-fast-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-ui-lane-reports
+          if-no-files-found: warn
+          retention-days: 14
+
+  worth_ui_appearance_closure_stress:
+    name: WORTH UI 3.16 Closure Stress
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/ui' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      WORTH_UI_LANE_REPORT_DIR: ${{ runner.temp }}/worth-ui-lane-reports
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-worth-ui
+
+      - name: Run the required 3.16 closure-stress world
+        run: python3 scripts/ci/run_worth_ui_test_lane.py closure-stress
+
+      - name: Upload WORTH UI closure-stress report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-ui-closure-stress-${{ github.run_attempt }}
           path: ${{ runner.temp }}/worth-ui-lane-reports
           if-no-files-found: warn
           retention-days: 14
@@ -964,6 +996,7 @@ jobs:
       - worth_ui_phase5_locality_join
       - worth_ui_phase3_mixed_carrier_closure
       - worth_ui_phase5_reconstruction_closure
+      - worth_ui_appearance_closure_stress
     env:
       QUALITY_RESULT: ${{ needs.worth_ui_quality.result }}
       FAST_RESULT: ${{ needs.worth_ui_fast.result }}
@@ -974,6 +1007,7 @@ jobs:
       LOCALITY_RESULT: ${{ needs.worth_ui_phase5_locality_join.result }}
       MIXED_CARRIER_RESULT: ${{ needs.worth_ui_phase3_mixed_carrier_closure.result }}
       RECONSTRUCTION_CLOSURE_RESULT: ${{ needs.worth_ui_phase5_reconstruction_closure.result }}
+      APPEARANCE_CLOSURE_RESULT: ${{ needs.worth_ui_appearance_closure_stress.result }}
       EVENT_NAME: ${{ github.event_name }}
 
     steps:
@@ -993,6 +1027,15 @@ jobs:
               exit 1
             fi
           done
+          if [ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ] || [ "${{ github.ref }}" = "refs/heads/ui" ] || [ "${{ github.ref }}" = "refs/heads/master" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            if [ "$APPEARANCE_CLOSURE_RESULT" != "success" ]; then
+              echo "Required 3.16 closure stress finished as: $APPEARANCE_CLOSURE_RESULT" >&2
+              exit 1
+            fi
+          elif [ "$APPEARANCE_CLOSURE_RESULT" != "skipped" ]; then
+            echo "3.16 closure stress must be skipped outside the integration and qualification cadence" >&2
+            exit 1
+          fi
           if [ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             if [ "$LOCALITY_RESULT" != "success" ] || [ "$MIXED_CARRIER_RESULT" != "success" ] || [ "$RECONSTRUCTION_CLOSURE_RESULT" != "success" ]; then
               echo "Scheduled closure failed: locality=$LOCALITY_RESULT mixed-carrier=$MIXED_CARRIER_RESULT reconstruction=$RECONSTRUCTION_CLOSURE_RESULT" >&2

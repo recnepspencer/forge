@@ -25,6 +25,16 @@ pub struct ComponentDescriptor {
     semantic_text_contract: Option<super::ComponentSemanticTextContract>,
     hit_test_contract: Option<super::ComponentHitTestContract>,
     portal_child_contract: Option<super::ComponentPortalChildContract>,
+    appearance_aspect_contract: Option<worth_ui_dsl::UiAppearanceAspectContract>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[allow(
+    dead_code,
+    reason = "Gate 0 freezes component appearance contract denials"
+)]
+pub(crate) enum ComponentAppearanceAspectContractDenial {
+    BackdropContractOnComponent,
 }
 
 impl ComponentDescriptor {
@@ -53,6 +63,7 @@ impl ComponentDescriptor {
             semantic_text_contract: None,
             hit_test_contract: None,
             portal_child_contract: None,
+            appearance_aspect_contract: None,
         }
     }
 
@@ -80,6 +91,7 @@ impl ComponentDescriptor {
             semantic_text_contract: None,
             hit_test_contract: None,
             portal_child_contract: None,
+            appearance_aspect_contract: None,
         }
     }
 
@@ -107,6 +119,7 @@ impl ComponentDescriptor {
             semantic_text_contract: None,
             hit_test_contract: None,
             portal_child_contract: None,
+            appearance_aspect_contract: None,
         }
     }
 
@@ -209,6 +222,27 @@ impl ComponentDescriptor {
 
     pub fn id(&self) -> &ComponentId {
         &self.id
+    }
+
+    #[allow(
+        dead_code,
+        reason = "Gate 0 stages component aspect support without live appearance"
+    )]
+    pub(crate) fn with_appearance_aspect_contract(
+        mut self,
+        contract: worth_ui_dsl::UiAppearanceAspectContract,
+    ) -> Result<Self, ComponentAppearanceAspectContractDenial> {
+        if contract.applicability() != worth_ui_dsl::UiAppearanceAspectApplicability::Component {
+            return Err(ComponentAppearanceAspectContractDenial::BackdropContractOnComponent);
+        }
+        self.appearance_aspect_contract = Some(contract);
+        Ok(self)
+    }
+
+    pub(crate) const fn appearance_aspect_contract(
+        &self,
+    ) -> Option<&worth_ui_dsl::UiAppearanceAspectContract> {
+        self.appearance_aspect_contract.as_ref()
     }
 
     pub fn prop_schema(&self) -> Option<&ComponentPropSchema> {

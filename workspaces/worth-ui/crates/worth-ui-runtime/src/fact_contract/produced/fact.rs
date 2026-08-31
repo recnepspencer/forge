@@ -1,13 +1,15 @@
 use super::{
     UiAuthoredChangedFact, UiCommittedPortalAnchorChangedFact, UiCommittedScrollExtentChangedFact,
     UiHostDeviceScaleChangedFact, UiHostViewportChangedFact, UiIntentPostureChangedFact,
-    UiMeasurementChangedFact, UiProducedFactFamily, UiQueryChangedFact,
+    UiMeasurementChangedFact, UiPointerPresenceTargetChangedFact, UiProducedFactFamily,
+    UiQueryChangedFact,
 };
 
 pub enum UiProducedFact {
     AuthoredSource(UiAuthoredChangedFact),
     HostViewport(UiHostViewportChangedFact),
     HostDeviceScale(UiHostDeviceScaleChangedFact),
+    PointerPresenceTarget(UiPointerPresenceTargetChangedFact),
     Measurement(UiMeasurementChangedFact),
     Query(UiQueryChangedFact),
     IntentPosture(UiIntentPostureChangedFact),
@@ -21,6 +23,7 @@ impl UiProducedFact {
             Self::AuthoredSource(_) => UiProducedFactFamily::AuthoredSource,
             Self::HostViewport(_) => UiProducedFactFamily::HostViewport,
             Self::HostDeviceScale(_) => UiProducedFactFamily::HostDeviceScale,
+            Self::PointerPresenceTarget(_) => UiProducedFactFamily::PointerPresenceTarget,
             Self::Measurement(_) => UiProducedFactFamily::Measurement,
             Self::Query(_) => UiProducedFactFamily::Query,
             Self::IntentPosture(_) => UiProducedFactFamily::IntentPosture,

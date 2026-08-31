@@ -70,6 +70,8 @@ impl WorthUiActiveApplicationSession {
             identity,
             crate::runtime::intent::UiIntentConfirmationCancellationReason::MountedInstanceRemoved,
         );
+        self.intent_application_facts
+            .retire_validation_appearance_instance(identity);
         self.intent_admission
             .cancel_instance(&mut self.intent_execution, identity);
         let previous_input = self.interaction.active_input_binding();

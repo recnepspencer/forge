@@ -44,6 +44,7 @@ pub enum WorthUiRuntimeLaunchDenial {
         released_surface_count: usize,
     },
     MountedIdentityExhausted,
+    AppearanceOwnerUnavailable(worth_ui_dsl::UiAppearanceStateAxis),
     InitialAllocationGraphAuthorityMismatch,
     InitialAllocationObligationsUnsettled {
         node_count: usize,

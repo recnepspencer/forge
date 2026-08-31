@@ -21,8 +21,9 @@ impl super::UiPortalRuntimeState {
         self.records
             .values()
             .filter(|record| record.posture != super::super::UiPortalLifecyclePosture::Closed)
-            .filter_map(|record| record.placement)
-            .max_by_key(|placement| placement.prepared().layer().depth())
+            .filter(|record| record.placement.is_some())
+            .max_by_key(|record| record.stack_ordinal)
+            .and_then(|record| record.placement)
             .map(|placement| placement.prepared().presentation())
     }
 

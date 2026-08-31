@@ -124,7 +124,10 @@ impl<ChangeProfileState, IntentWiringState>
         self,
         fixture: crate::facade::WorthUiRustAuthoredDeclarationFixture,
     ) -> Self {
-        self.with_rust_authored_input(fixture.into_input())
+        let input = fixture.into_input();
+        let mut this = self;
+        this.preparation_source = WorthUiApplicationBuilderPreparationSource::RustAuthored(input);
+        this
     }
 
     /// Prepare the exact artifact/declaration composition admitted by watched

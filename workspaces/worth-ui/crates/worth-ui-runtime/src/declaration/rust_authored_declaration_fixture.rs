@@ -92,8 +92,19 @@ fn semantic_declaration(
         declaration,
         WorthUiSemanticArtifactDeclaration::with_posture_token,
     );
-    artifact.support_tokens().iter().cloned().fold(
+    let mut declaration = artifact.support_tokens().iter().cloned().fold(
         declaration,
         WorthUiSemanticArtifactDeclaration::with_support_token,
-    )
+    );
+    if let Some(component) = artifact.component_reference() {
+        declaration = declaration
+            .with_component_reference(component.clone())
+            .expect("one semantic artifact carries at most one component reference");
+    }
+    match artifact.appearance_role_attachment() {
+        Some(attachment) => declaration
+            .with_appearance_role_attachment(attachment.clone())
+            .expect("one semantic artifact carries at most one appearance attachment"),
+        None => declaration,
+    }
 }

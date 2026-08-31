@@ -94,6 +94,16 @@ fn semantic_artifact_spec(
     for token in declaration.support_tokens() {
         spec = spec.with_support_token(token.clone());
     }
+    if let Some(component) = declaration.component_reference() {
+        spec = spec
+            .with_component_reference(component.clone())
+            .expect("one sealed semantic declaration carries at most one component reference");
+    }
+    if let Some(attachment) = declaration.appearance_role_attachment() {
+        spec = spec
+            .with_appearance_role_attachment(attachment.clone())
+            .expect("one sealed semantic declaration carries at most one appearance attachment");
+    }
     spec
 }
 
@@ -198,6 +208,17 @@ fn semantic_input_digest(artifact: &UiDslSemanticArtifact) -> u64 {
         .rotate_left(31)
         ^ digest_texts(artifact.posture_tokens().iter().map(|value| value.as_str())).rotate_left(41)
         ^ digest_texts(artifact.support_tokens().iter().map(|value| value.as_str())).rotate_left(53)
+        ^ artifact
+            .component_reference()
+            .map_or(0, |component| stable_text_digest(component.as_str()))
+            .rotate_left(47)
+        ^ artifact
+            .appearance_role_attachment()
+            .map_or(
+                0,
+                crate::UiAppearanceRoleAttachmentDeclaration::semantic_digest,
+            )
+            .rotate_left(59)
 }
 
 fn digest_texts<'a>(values: impl IntoIterator<Item = &'a str>) -> u64 {
