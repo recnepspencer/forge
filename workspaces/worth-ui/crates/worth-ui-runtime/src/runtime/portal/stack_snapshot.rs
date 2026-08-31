@@ -34,8 +34,7 @@ impl super::UiPortalRuntimeState {
                 portal: *portal,
                 parent: record
                     .placement
-                    .map(|placement| placement.prepared().layer().parent())
-                    .flatten(),
+                    .and_then(|placement| placement.prepared().layer().parent()),
                 surface: record.semantic_surface,
                 ordinal: record.stack_ordinal,
                 lifecycle: record.posture,

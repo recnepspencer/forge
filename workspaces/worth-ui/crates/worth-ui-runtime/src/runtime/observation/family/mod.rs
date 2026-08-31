@@ -3,7 +3,7 @@ pub enum UiObservationFamily {
     AuthoredSource,
     HostViewport,
     HostDeviceScale,
-    HostPointerMotion,
+    PointerPresenceTarget,
     Measurement,
     Query,
     IntentPosture,
@@ -93,7 +93,7 @@ impl UiObservationFamily {
             Self::AuthoredSource => crate::fact_contract::UiProducedFactOwner::SourceIngress,
             Self::HostViewport => crate::fact_contract::UiProducedFactOwner::HostViewport,
             Self::HostDeviceScale => crate::fact_contract::UiProducedFactOwner::HostDeviceScale,
-            Self::HostPointerMotion => {
+            Self::PointerPresenceTarget => {
                 crate::fact_contract::UiProducedFactOwner::PointerPresenceRuntimeState
             }
             Self::Measurement => crate::fact_contract::UiProducedFactOwner::MeasurementExchange,
@@ -135,11 +135,9 @@ impl UiObservationFamily {
             Self::HostDeviceScale => {
                 host_latest_value_definition(self, UiObservationOwner::HostDeviceScale, 2)
             }
-            Self::HostPointerMotion => host_latest_value_definition(
-                self,
-                UiObservationOwner::PointerPresenceRuntimeState,
-                3,
-            ),
+            Self::PointerPresenceTarget => {
+                service_fact_definition(self, UiObservationOwner::PointerPresenceRuntimeState, 3)
+            }
             Self::Measurement => definition(
                 self,
                 UiObservationOwner::MeasurementExchange,

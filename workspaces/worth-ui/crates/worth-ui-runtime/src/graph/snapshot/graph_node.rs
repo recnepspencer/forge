@@ -165,7 +165,7 @@ impl UiGraphNode {
                     crate::declaration::stable_text_digest(attachment.target().as_str())
                         ^ crate::declaration::stable_text_digest(attachment.role().as_str())
                             .rotate_left(2)
-                        ^ u64::from(attachment.revision().value()).rotate_left(3)
+                        ^ attachment.revision().value().rotate_left(3)
                 })
                 .rotate_left(10)
             ^ self.structural_digest.raw().rotate_left(9)

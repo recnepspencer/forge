@@ -42,6 +42,10 @@ pub(crate) mod allocation_planning_test_support;
 mod allocation_truth_boundary_tests;
 #[path = "source_ingress/appearance_component_session_test_support.rs"]
 pub(crate) mod appearance_component_session_test_support;
+#[path = "source_ingress/appearance_owner_availability_test_support.rs"]
+pub(crate) mod appearance_owner_availability_test_support;
+#[path = "source_ingress/appearance_owner_availability_tests.rs"]
+mod appearance_owner_availability_tests;
 #[path = "source_ingress/application_semantic_no_op_tests.rs"]
 mod application_semantic_no_op_tests;
 #[path = "replacement/artifact_equivalence_boundary_tests.rs"]
@@ -114,6 +118,8 @@ mod lifecycle_path_parity;
 mod measurement_boundary_tests;
 #[path = "source_ingress/multi_removal_activation_tests.rs"]
 mod multi_removal_activation_tests;
+#[path = "source_ingress/native_pointer_observation_test_support.rs"]
+pub(crate) mod native_pointer_observation_test_support;
 #[path = "replacement/node_replacement_classification_boundary_tests.rs"]
 mod node_replacement_classification_boundary_tests;
 #[path = "replacement/node_replacement_classification_test_support.rs"]

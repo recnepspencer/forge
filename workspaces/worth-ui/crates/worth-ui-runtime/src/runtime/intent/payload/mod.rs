@@ -7,7 +7,7 @@ mod stop;
 #[cfg(test)]
 pub(crate) use application_fact_state::{
     UiAdmittedValidationAppearanceTarget, UiValidationAppearanceClass,
-    UiValidationAppearanceFactDenial, UiValidationAppearanceTargetAdmissionDenial,
+    UiValidationAppearanceFactDenial,
 };
 pub(crate) use application_fact_state::{
     UiIntentApplicationFactState, UiIntentApplicationInputReference,

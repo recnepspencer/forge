@@ -74,6 +74,21 @@ impl UiChangeClassifier {
                 UiAdmittedObservationPayload::Host(observation) => {
                     push_bounded(&mut facts, owner::host::classify(observation)?, fact_limit)?;
                 }
+                UiAdmittedObservationPayload::PointerPresence(transition) => {
+                    let expected_generation =
+                        crate::runtime::WorthUiActiveApplicationGenerationIdentity::current(
+                            expected_session,
+                            &predecessor_generation,
+                        );
+                    if transition.generation() != &expected_generation {
+                        return Err(UiChangeClassificationDenial::ForeignApplicationGeneration);
+                    }
+                    push_bounded(
+                        &mut facts,
+                        owner::pointer_presence::classify(transition),
+                        fact_limit,
+                    )?;
+                }
                 UiAdmittedObservationPayload::Measurement(result) => {
                     push_bounded(&mut facts, owner::measurement::classify(result), fact_limit)?;
                 }

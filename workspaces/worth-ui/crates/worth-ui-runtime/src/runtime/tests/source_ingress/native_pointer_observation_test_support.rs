@@ -1,0 +1,159 @@
+use super::source_ingress_boundary_test_support::{
+    lower_file_submission, source_backed_package_component, source_backed_package_region,
+    source_backed_package_sizing,
+};
+
+const COMPONENT: &str = "workspace.component.active_session_current";
+const CANDIDATE: &str = "workspace.component.active_session_candidate";
+const HOVER_CONSUMER: &str = "workspace.pointer.hover.consumer";
+const TOKEN: &str = "theme.pointer.hover";
+
+pub(crate) fn source_backed_hover_consumer_app_with_host<Host>(
+    host: Host,
+) -> crate::facade::WorthUiApp
+where
+    Host: crate::facade::host::WorthUiHostAdapter + 'static,
+{
+    let role = hover_background_role();
+    let snapshot = hover_component_builder(&role)
+        .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
+        .expect("hover consumer capability snapshot should prepare");
+    hover_component_builder(&role)
+        .with_candidate_submission(hover_candidate_submission(snapshot.capabilities(), &role))
+        .freeze()
+        .map(|application| {
+            crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+                application,
+                host,
+            )
+        })
+        .expect("hover consumer source application should prepare")
+}
+
+fn hover_component_builder(
+    role: &worth_ui_dsl::UiAppearanceRoleDeclaration,
+) -> crate::facade::entry::WorthUiApplicationBuilder {
+    let (_, _, world_profile) =
+        crate::evidence::measurement::projection::fact_test_support::display_field_projection_context(
+            "native-pointer-observation",
+        );
+    crate::facade::WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
+        .with_graph_world_profile(world_profile)
+        .register_component(interactive_component(COMPONENT))
+        .register_component(interactive_component(CANDIDATE))
+        .register_appearance_role(role.clone())
+        .unwrap()
+        .register_theme_token(crate::capability::ThemeTokenDescriptor::define(
+            crate::capability::ThemeTokenId::new(TOKEN).unwrap(),
+            crate::capability::ThemeTokenFamily::surface(),
+            crate::capability::ThemeTokenSource::application(),
+            crate::capability::ThemeTokenValue::color(
+                crate::capability::ThemeColorValue::hex("#224466").unwrap(),
+            ),
+        ))
+        .register_mosaic_region_kind(source_backed_package_region())
+        .register_mosaic_sizing_contract(source_backed_package_sizing())
+}
+
+fn interactive_component(identity: &str) -> crate::capability::ComponentDescriptor {
+    let allocation = crate::capability::ComponentAllocationMeasurementContract::fill_viewport();
+    source_backed_package_component(identity)
+        .with_allocation_measurement_contract(allocation)
+        .with_hit_test(
+            crate::capability::ComponentHitTestContract::allocation_bounds(
+                crate::capability::ComponentHitTestOrder::front_to_back(0),
+                allocation,
+            ),
+        )
+        .with_appearance_aspect_contract(
+            worth_ui_dsl::UiAppearanceAspectContract::component(
+                [worth_ui_dsl::UiAppearanceAspect::Background],
+                [],
+            )
+            .unwrap(),
+        )
+        .unwrap()
+}
+
+fn hover_candidate_submission(
+    capabilities: &crate::capability::CapabilitySnapshot,
+    role: &worth_ui_dsl::UiAppearanceRoleDeclaration,
+) -> crate::runtime::WorthUiWatchedCandidateSubmission {
+    let attachment = worth_ui_dsl::UiAppearanceRoleAttachmentDeclaration::new(
+        role.role().clone(),
+        role.revision(),
+    );
+    let declaration = worth_ui_dsl::WorthUiSemanticArtifactDeclaration::new(
+        worth_ui_dsl::UiDslSemanticKey::new(HOVER_CONSUMER),
+        worth_ui_dsl::UiDslSemanticFamily::Control,
+    )
+    .with_structural_token(worth_ui_dsl::UiDslStructuralToken::new(
+        "control:hover-consumer",
+    ))
+    .with_component_reference(worth_ui_dsl::UiDslComponentReference::new(COMPONENT).unwrap())
+    .unwrap()
+    .with_appearance_role_attachment(attachment)
+    .unwrap();
+    let input = worth_ui_dsl::WorthUiRustAuthoredArtifactInput::from_modules([
+        worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+            .with_component_body_atoms(
+                COMPONENT,
+                vec![
+                    ident("region"),
+                    ident("workspace.region.primary"),
+                    worth_ui_dsl::WorthUiArtifactInputBodyAtom::LeftBrace,
+                    ident("sizing"),
+                    ident("workspace.sizing.mosaic_support"),
+                    worth_ui_dsl::WorthUiArtifactInputBodyAtom::Semicolon,
+                    worth_ui_dsl::WorthUiArtifactInputBodyAtom::RightBrace,
+                ],
+            )
+            .with_semantic_declaration(declaration),
+    ]);
+    let source_name = "native-pointer-observation-current";
+    let provider = crate::runtime::WorthUiSourceProvider::rust_authored(source_name)
+        .with_rust_authored_input(input);
+    lower_file_submission(
+        provider,
+        [crate::runtime::WorthUiWatcherEvent::provider_revision(
+            source_name,
+        )],
+        capabilities,
+    )
+}
+
+fn ident(text: &str) -> worth_ui_dsl::WorthUiArtifactInputBodyAtom {
+    worth_ui_dsl::WorthUiArtifactInputBodyAtom::Identifier(text.to_owned())
+}
+
+fn hover_background_role() -> worth_ui_dsl::UiAppearanceRoleDeclaration {
+    let contract = worth_ui_dsl::UiAppearanceAspectContract::component(
+        [worth_ui_dsl::UiAppearanceAspect::Background],
+        [],
+    )
+    .unwrap();
+    let partition = worth_ui_dsl::UiAppearanceDecisionPartition::compile(
+        [worth_ui_dsl::UiAppearanceAxisDomain::complete(
+            worth_ui_dsl::UiAppearanceStateAxis::Hover,
+        )],
+        [worth_ui_dsl::UiAppearanceDecisionRule::new(
+            [worth_ui_dsl::UiAppearanceAxisPredicate::any(
+                worth_ui_dsl::UiAppearanceStateAxis::Hover,
+            )],
+            worth_ui_dsl::UiAppearanceDecisionResult::theme_slot(
+                worth_ui_dsl::UiThemeSlotIdentity::new(TOKEN).unwrap(),
+                worth_ui_dsl::UiThemeValueKind::Color,
+            ),
+        )],
+    )
+    .unwrap();
+    worth_ui_dsl::UiAppearanceRoleDeclaration::admit(
+        worth_ui_dsl::UiAppearanceRoleIdentity::new("test.hover-background").unwrap(),
+        worth_ui_dsl::UiAppearanceRoleRevision::new(1).unwrap(),
+        &contract,
+        [(worth_ui_dsl::UiAppearanceAspect::Background, partition)],
+    )
+    .unwrap()
+}
