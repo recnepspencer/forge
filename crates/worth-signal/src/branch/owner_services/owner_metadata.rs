@@ -42,10 +42,10 @@ where
         }
     }
 
-    pub(super) fn reserve_snapshot(
-        &self,
-        admission: &SignalOwnerOperationAdmission,
-    ) -> Result<SignalOwnerSnapshotReservation<'_, D, I, T>, SignalBranchSnapshotCaptureDenial>
+    pub(super) fn reserve_snapshot<'a>(
+        &'a self,
+        admission: &'a SignalOwnerOperationAdmission,
+    ) -> Result<SignalOwnerSnapshotReservation<'a, D, I, T>, SignalBranchSnapshotCaptureDenial>
     {
         let _hold = self
             .authorize(admission)
@@ -59,6 +59,7 @@ where
             })?;
         Ok(SignalOwnerSnapshotReservation {
             metadata: self,
+            admission,
             installed: false,
         })
     }
@@ -227,6 +228,7 @@ where
     T: Copy + Ord,
 {
     metadata: &'a SignalOwnerMetadata<D, I, T>,
+    admission: &'a SignalOwnerOperationAdmission,
     installed: bool,
 }
 
@@ -236,7 +238,15 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(super) fn admission(&self) -> &SignalOwnerOperationAdmission {
+        self.admission
+    }
+
     pub(crate) fn install(mut self, packet: SnapshotStatePacket<D, I, T>) {
+        debug_assert!(
+            self.admission.permits_owner_lock_acquisition(),
+            "snapshot installation must run after target-cell release"
+        );
         self.metadata.lock().install_reserved_snapshot(packet);
         self.installed = true;
     }
@@ -250,6 +260,10 @@ where
 {
     fn drop(&mut self) {
         if !self.installed {
+            debug_assert!(
+                self.admission.permits_owner_lock_acquisition(),
+                "snapshot reservation cleanup must run after target-cell release"
+            );
             self.metadata.lock().release_snapshot_capacity();
         }
     }

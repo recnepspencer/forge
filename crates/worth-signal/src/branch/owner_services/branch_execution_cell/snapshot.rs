@@ -7,10 +7,7 @@ use crate::data::error::SignalError;
 use crate::state::SignalSnapshotV1;
 
 use super::super::owner_metadata::SignalOwnerSnapshotReservation;
-use super::super::{
-    SignalBranchCellState, SignalOwnerCancellationToken, SignalOwnerOperationAdmission,
-    SignalOwnerUnavailable,
-};
+use super::super::{SignalBranchCellState, SignalOwnerCancellationToken, SignalOwnerUnavailable};
 use super::{SignalBranchCellAdmissionDenial, SignalBranchCellWork, SignalBranchExecutionCell};
 
 pub(crate) struct SignalBranchSnapshotCellOutcome {
@@ -28,7 +25,6 @@ where
     /// before cell admission. Metadata installation occurs after cell release.
     pub(crate) fn capture_snapshot_exact(
         &self,
-        admission: &SignalOwnerOperationAdmission,
         expected: &AdmittedSignalBranchBasis,
         reservation: SignalOwnerSnapshotReservation<'_, D, I, T>,
         cancellation: &SignalOwnerCancellationToken,
@@ -36,6 +32,7 @@ where
         cancellation
             .preflight_cell_wait()
             .map_err(|_| SignalBranchSnapshotCaptureDenial::CancelledNoMovement)?;
+        let admission = reservation.admission();
         self.validate_admission(admission)
             .map_err(|denial| map_snapshot_cell_denial(denial, self.branch_id))?;
         let cell_hold = admission
