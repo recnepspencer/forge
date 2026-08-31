@@ -236,14 +236,8 @@ mod tests {
         let b = region("region.b");
         let contract = MosaicSeamPaintContract::admit([a.clone(), b.clone()], [], [], []).unwrap();
         let snapshot = crate::facade::entry::CapabilityRegistrationBuilder::new()
-            .register_mosaic_region_kind(admitted_region(
-                a,
-                MosaicRegionRole::primary(),
-            ))
-            .register_mosaic_region_kind(admitted_region(
-                b,
-                MosaicRegionRole::auxiliary(),
-            ))
+            .register_mosaic_region_kind(admitted_region(a, MosaicRegionRole::primary()))
+            .register_mosaic_region_kind(admitted_region(b, MosaicRegionRole::auxiliary()))
             .register_mosaic_seam_paint_contract(contract)
             .unwrap()
             .freeze_with_registration_report()

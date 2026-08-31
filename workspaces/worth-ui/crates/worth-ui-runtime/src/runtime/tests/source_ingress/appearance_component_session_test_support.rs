@@ -109,12 +109,7 @@ pub(crate) fn attached_appearance_candidate_submission(
     component: &str,
 ) -> crate::runtime::WorthUiWatchedCandidateSubmission {
     let role = validation_background_role(APPEARANCE_TOKEN);
-    appearance_submission(
-        source_name,
-        component,
-        Some(&role),
-        session.capabilities(),
-    )
+    appearance_submission(source_name, component, Some(&role), session.capabilities())
 }
 
 fn appearance_submission(
