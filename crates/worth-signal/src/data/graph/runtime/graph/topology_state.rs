@@ -39,11 +39,7 @@ impl EdgeTopology {
             dependency_edges: self.dependency_edges.operational_clone(),
             subscriber_edges: self.subscriber_edges.operational_clone(),
             reverse_subscriptions: self.reverse_subscriptions.operational_clone(),
-            pending_revalidation_waiters: self
-                .pending_revalidation_waiters
-                .iter()
-                .map(|(node, waiters)| (*node, waiters.clone()))
-                .collect(),
+            pending_revalidation_waiters: self.pending_revalidation_waiters.operational_clone(),
         }
     }
 

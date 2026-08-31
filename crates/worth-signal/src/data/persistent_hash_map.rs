@@ -3,6 +3,10 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
+#[cfg(test)]
+#[path = "persistent_hash_map/tests.rs"]
+mod tests;
+
 enum PersistentHashMapStorage<K, V> {
     Exclusive(HashMap<K, V>),
     ForkShared {
@@ -109,15 +113,18 @@ where
         PersistentHashMapEntry { map: self, key }
     }
 
-    pub(crate) fn iter(&self) -> Box<dyn Iterator<Item = (&K, &V)> + '_> {
+    pub(crate) fn iter(&self) -> PersistentHashMapIter<'_, K, V> {
         match &self.storage {
-            PersistentHashMapStorage::Exclusive(values) => Box::new(values.iter()),
+            PersistentHashMapStorage::Exclusive(values) => {
+                PersistentHashMapIter::Exclusive(values.iter())
+            }
             PersistentHashMapStorage::ForkShared { base, changes, .. } => {
-                let unchanged = base.iter().filter(|(key, _)| !changes.contains_key(*key));
-                let changed = changes
-                    .iter()
-                    .filter_map(|(key, value)| value.as_ref().map(|value| (key, value)));
-                Box::new(unchanged.chain(changed))
+                PersistentHashMapIter::ForkShared {
+                    base: base.iter(),
+                    changes: changes.iter(),
+                    changed_keys: changes,
+                    remaining: self.len(),
+                }
             }
         }
     }
@@ -141,9 +148,15 @@ where
     }
 
     pub(crate) fn operational_clone(&self) -> Self {
-        self.iter()
-            .map(|(key, value)| (key.clone(), value.clone()))
-            .collect()
+        match &self.storage {
+            PersistentHashMapStorage::Exclusive(values) => Self {
+                storage: PersistentHashMapStorage::Exclusive(values.clone()),
+            },
+            PersistentHashMapStorage::ForkShared { .. } => self
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect(),
+        }
     }
 
     pub(crate) fn fork_persistent(&mut self) -> Self {
@@ -188,6 +201,55 @@ where
     }
 }
 
+pub(crate) enum PersistentHashMapIter<'a, K, V> {
+    Exclusive(std::collections::hash_map::Iter<'a, K, V>),
+    ForkShared {
+        base: std::collections::hash_map::Iter<'a, K, V>,
+        changes: im::hashmap::Iter<'a, K, Option<V>>,
+        changed_keys: &'a im::HashMap<K, Option<V>>,
+        remaining: usize,
+    },
+}
+
+impl<'a, K, V> Iterator for PersistentHashMapIter<'a, K, V>
+where
+    K: Eq + Hash,
+{
+    type Item = (&'a K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Exclusive(iter) => iter.next(),
+            Self::ForkShared {
+                base,
+                changes,
+                changed_keys,
+                remaining,
+            } => {
+                for (key, value) in base.by_ref() {
+                    if !changed_keys.contains_key(key) {
+                        *remaining -= 1;
+                        return Some((key, value));
+                    }
+                }
+                let next =
+                    changes.find_map(|(key, value)| value.as_ref().map(|value| (key, value)));
+                if next.is_some() {
+                    *remaining -= 1;
+                }
+                next
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            Self::Exclusive(iter) => iter.size_hint(),
+            Self::ForkShared { remaining, .. } => (*remaining, Some(*remaining)),
+        }
+    }
+}
+
 pub(crate) struct PersistentHashMapEntry<'a, K, V> {
     map: &'a mut PersistentHashMap<K, V>,
     key: K,
@@ -215,7 +277,16 @@ where
     V: Clone,
 {
     fn clone(&self) -> Self {
-        self.operational_clone()
+        match &self.storage {
+            PersistentHashMapStorage::Exclusive(_) => self.operational_clone(),
+            PersistentHashMapStorage::ForkShared { base, changes, len } => Self {
+                storage: PersistentHashMapStorage::ForkShared {
+                    base: Arc::clone(base),
+                    changes: changes.clone(),
+                    len: *len,
+                },
+            },
+        }
     }
 }
 
@@ -296,34 +367,5 @@ where
         Ok(HashMap::<K, V>::deserialize(deserializer)?
             .into_iter()
             .collect())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{PersistentHashMap, PersistentHashMapStorage};
-
-    #[test]
-    fn overlay_only_insert_remove_churn_retains_no_historical_tombstones() {
-        let mut source = PersistentHashMap::<u64, u64>::new();
-        source.insert(0, 7);
-        let mut fork = source.fork_persistent();
-
-        for key in 1..=65_536 {
-            assert_eq!(fork.get_mut(&key), None);
-            assert_eq!(fork.insert(key, key), None);
-            assert_eq!(fork.remove(&key), Some(key));
-            assert_eq!(fork.get_mut(&key), None);
-        }
-
-        assert_eq!(fork.len(), 1);
-        let PersistentHashMapStorage::ForkShared { changes, .. } = &fork.storage else {
-            panic!("fork must retain shared storage");
-        };
-        assert!(
-            changes.is_empty(),
-            "overlay-only churn must erase its delta"
-        );
-        assert_eq!(source.get(&0), Some(&7));
     }
 }

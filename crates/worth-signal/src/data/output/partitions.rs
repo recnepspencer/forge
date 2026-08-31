@@ -333,16 +333,8 @@ impl PartitionInterner {
         Self {
             partitions: self.partitions.operational_clone(),
             details: self.details.operational_clone(),
-            partition_lookup: self
-                .partition_lookup
-                .iter()
-                .map(|(key, value)| (key.clone(), *value))
-                .collect(),
-            detail_lookup: self
-                .detail_lookup
-                .iter()
-                .map(|(key, value)| (key.clone(), *value))
-                .collect(),
+            partition_lookup: self.partition_lookup.operational_clone(),
+            detail_lookup: self.detail_lookup.operational_clone(),
         }
     }
 

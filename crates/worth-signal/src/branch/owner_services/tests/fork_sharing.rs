@@ -10,6 +10,7 @@ use crate::data::dirty_set::BatchedDirtySet;
 use crate::data::effect_mapping::EffectMapping;
 use crate::data::graph::SignalGraph;
 use crate::data::node::{NodeHotData, NodeState};
+use crate::data::proof::DependencyBatchEdit;
 use crate::data::resource::{ResourceNodeDeclaration, ResourceNodeId, ResourcePayloadContract};
 use crate::data::temporal::{ClockTick, TemporalCondition};
 use crate::facade::{
@@ -93,16 +94,19 @@ fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
     let mut allocation_samples = Vec::new();
     let mut first_write_samples = Vec::new();
     let mut eager_copy_bytes = None;
-    for node_count in [1, 64, 512, 4_096] {
+    for node_count in [64, 4_096, 65_536] {
         let mut graph = SignalGraph::new();
         let nodes = (0..node_count)
             .map(|_| graph.create_node())
             .collect::<Vec<_>>();
-        for pair in nodes.windows(2) {
-            graph
-                .set_dependencies(pair[1], [DependencyEdge::new(pair[0], Aspect::new(1))])
-                .expect("scale probe topology installs");
-        }
+        let topology = DependencyBatchEdit::from_pairs(
+            nodes
+                .windows(2)
+                .map(|pair| (pair[1], vec![DependencyEdge::new(pair[0], Aspect::new(1))])),
+        );
+        graph
+            .apply_dependency_batch_edit(&topology)
+            .expect("scale probe topology installs");
         let changed_node = nodes[node_count / 2];
         graph
             .set_node_state(changed_node, NodeState::Clean)
@@ -128,16 +132,13 @@ fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
                 .expect("eager-copy sensitivity probe admits");
             eager_copy_bytes = Some(deep_clone_region.change().bytes_allocated);
         }
-        let reservation = owner
-            .reserve_fork_destination(
-                &source_admission,
-                &source_basis,
-                validate_signal_branch_name(format!("scale-fork-{node_count}"))
-                    .expect("scale identity validates"),
-            )
-            .expect("destination reserves");
+        let requested_identity = validate_signal_branch_name(format!("scale-fork-{node_count}"))
+            .expect("scale identity validates");
         let before = owner.cost_snapshot();
         let region = Region::new(&INSTRUMENTED_SYSTEM);
+        let reservation = owner
+            .reserve_fork_destination(&source_admission, &source_basis, requested_identity)
+            .expect("destination reserves");
         let destination = reservation
             .install(
                 &source_cell,
@@ -196,6 +197,15 @@ fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
             first_write.allocations,
             first_write.bytes_allocated,
         ));
+        destination
+            .with_state(&destination_admission, |destination, _| {
+                assert_eq!(
+                    destination.state().graph().get_state(changed_node),
+                    Ok(NodeState::Dirty),
+                    "the measured destination first write must actually mutate"
+                );
+            })
+            .expect("destination mutation remains inspectable");
         source_cell
             .with_state(&source_admission, |source, _| {
                 assert_eq!(
@@ -206,6 +216,9 @@ fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
             })
             .expect("source isolation remains inspectable");
     }
+    eprintln!("whole owner fork allocations by node scale: {allocation_samples:?}");
+    eprintln!("destination first-write allocations by node scale: {first_write_samples:?}");
+    eprintln!("eager 4096-node graph clone bytes: {eager_copy_bytes:?}");
     let minimum_calls = allocation_samples
         .iter()
         .map(|(_, calls, _)| *calls)

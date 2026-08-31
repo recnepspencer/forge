@@ -52,7 +52,9 @@ impl<T: Clone + Ord> PersistentOrdSet<T> {
     }
 
     pub(crate) fn operational_clone(&self) -> Self {
-        self.iter().cloned().collect()
+        Self {
+            values: self.values.operational_clone(),
+        }
     }
 
     pub(crate) fn fork_persistent(&mut self) -> Self {
@@ -71,7 +73,9 @@ impl<T: Clone + Ord> PersistentOrdSet<T> {
 
 impl<T: Clone + Ord> Clone for PersistentOrdSet<T> {
     fn clone(&self) -> Self {
-        self.operational_clone()
+        Self {
+            values: self.values.clone(),
+        }
     }
 }
 
@@ -114,7 +118,7 @@ where
     where
         S: Serializer,
     {
-        self.iter().collect::<Vec<_>>().serialize(serializer)
+        serializer.collect_seq(self.iter())
     }
 }
 
@@ -130,20 +134,99 @@ where
     }
 }
 
-impl<'a, T: Clone + Ord> IntoIterator for &'a PersistentOrdSet<T> {
-    type Item = &'a T;
-    type IntoIter = Box<dyn Iterator<Item = &'a T> + 'a>;
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+    use std::collections::BTreeSet;
+    use std::env;
+    use std::hint::black_box;
+    use std::process::Command;
 
-    fn into_iter(self) -> Self::IntoIter {
-        Box::new(self.iter())
+    use serde::Serialize;
+    use stats_alloc::{Region, INSTRUMENTED_SYSTEM};
+
+    use super::PersistentOrdSet;
+
+    thread_local! {
+        static ITEM_CLONES: Cell<usize> = const { Cell::new(0) };
     }
-}
 
-impl<T: Clone + Ord> IntoIterator for PersistentOrdSet<T> {
-    type Item = T;
-    type IntoIter = std::vec::IntoIter<T>;
+    #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+    #[serde(transparent)]
+    struct Counted(u64);
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter().cloned().collect::<Vec<_>>().into_iter()
+    impl Clone for Counted {
+        fn clone(&self) -> Self {
+            ITEM_CLONES.set(ITEM_CLONES.get() + 1);
+            Self(self.0)
+        }
+    }
+
+    #[test]
+    fn fork_churn_and_readmission_follow_map_storage_without_history() {
+        for churn_count in [64_u64, 4_096, 65_536] {
+            let mut source = PersistentOrdSet::new();
+            source.insert(0);
+            let mut fork = source.fork_persistent();
+            assert!(source.ptr_eq(&fork), "scale {churn_count} must share");
+
+            for value in 1..=churn_count {
+                assert!(fork.insert(value));
+                assert!(fork.remove(&value));
+            }
+            assert_eq!(fork.iter().copied().collect::<Vec<_>>(), vec![0]);
+            assert_eq!(source.iter().copied().collect::<Vec<_>>(), vec![0]);
+
+            assert!(fork.remove(&0));
+            assert!(fork.insert(0));
+            assert_eq!(fork.iter().copied().collect::<Vec<_>>(), vec![0]);
+            assert_eq!(source.iter().copied().collect::<Vec<_>>(), vec![0]);
+        }
+    }
+
+    #[test]
+    fn ordinary_serialization_borrows_values_without_a_temporary_collection() {
+        const CHILD: &str = "WORTH_SIGNAL_SET_SERIALIZATION_COST_CHILD";
+        const TEST: &str =
+            "data::persistent_ord_set::tests::ordinary_serialization_borrows_values_without_a_temporary_collection";
+        if env::var_os(CHILD).is_none() {
+            let status = Command::new(env::current_exe().expect("test executable resolves"))
+                .arg("--exact")
+                .arg(TEST)
+                .arg("--nocapture")
+                .arg("--test-threads=1")
+                .env(CHILD, "1")
+                .status()
+                .expect("isolated set-serialization probe starts");
+            assert!(status.success(), "set-serialization probe failed");
+            return;
+        }
+
+        for value_count in [64_u64, 4_096, 65_536] {
+            let values: PersistentOrdSet<Counted> = (0..value_count).map(Counted).collect();
+            let native: BTreeSet<Counted> = (0..value_count).map(Counted).collect();
+
+            ITEM_CLONES.set(0);
+            let native_region = Region::new(&INSTRUMENTED_SYSTEM);
+            let expected = black_box(serde_json::to_vec(&native).expect("native set serializes"));
+            let native_allocation = native_region.change();
+            assert_eq!(ITEM_CLONES.get(), 0);
+
+            ITEM_CLONES.set(0);
+            let actual_region = Region::new(&INSTRUMENTED_SYSTEM);
+            let actual = black_box(serde_json::to_vec(&values).expect("persistent set serializes"));
+            let actual_allocation = actual_region.change();
+
+            assert_eq!(actual, expected, "scale {value_count} wire changed");
+            assert_eq!(ITEM_CLONES.get(), 0, "serialization must borrow values");
+            assert_eq!(
+                actual_allocation.allocations, native_allocation.allocations,
+                "scale {value_count} added serialization allocations"
+            );
+            assert_eq!(
+                actual_allocation.bytes_allocated, native_allocation.bytes_allocated,
+                "scale {value_count} added serialization bytes"
+            );
+        }
     }
 }

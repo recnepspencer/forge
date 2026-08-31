@@ -4,6 +4,8 @@ use crate::data::graph::storage::Slot;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeEntry, NodeWarmData};
 
+const NODE_ARENA_RESERVE_CHUNK: usize = 1024;
+
 impl SignalGraph {
     pub(in crate::data::graph) fn allocate_node(&mut self, entry: NodeEntry) -> NodeId {
         let (hot, warm, cold) = entry.into_storage_parts();
@@ -27,6 +29,9 @@ impl SignalGraph {
         }
 
         let index = self.arena.nodes.len() as u32;
+        if self.arena.nodes.exclusive_capacity() == Some(self.arena.nodes.len()) {
+            self.reserve_node_capacity(NODE_ARENA_RESERVE_CHUNK);
+        }
         let mut slot = Slot::vacant();
         let generation = slot.occupy();
         self.arena.nodes.push_back(slot);
@@ -104,12 +109,20 @@ impl SignalGraph {
             return;
         }
         let missing = next_node_index as usize - self.arena.nodes.len();
+        self.reserve_node_capacity(missing);
         for _ in 0..missing {
             self.arena.nodes.push_back(Slot::retired_placeholder());
             self.arena.hot.push_back(None);
             self.arena.warm.push_back(NodeWarmData::default());
             self.arena.cold.push_back(None);
         }
+    }
+
+    pub(crate) fn reserve_node_capacity(&mut self, additional: usize) {
+        self.arena.nodes.reserve_exclusive(additional);
+        self.arena.hot.reserve_exclusive(additional);
+        self.arena.warm.reserve_exclusive(additional);
+        self.arena.cold.reserve_exclusive(additional);
     }
 
     pub(in crate::data::graph) fn validate_handle(&self, id: NodeId) -> Result<(), SignalError> {

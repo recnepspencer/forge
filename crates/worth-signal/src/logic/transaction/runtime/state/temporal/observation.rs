@@ -38,8 +38,7 @@ impl TemporalRuntimeState {
     pub fn frontier_snapshot(&self) -> TemporalFrontierSnapshot {
         let next_due = self
             .scheduled_frontier
-            .iter()
-            .next()
+            .first_key_value()
             .and_then(|(tick, wakes)| {
                 wakes
                     .iter()
@@ -48,8 +47,7 @@ impl TemporalRuntimeState {
             });
         let next_ready = self
             .ready_frontier
-            .iter()
-            .next()
+            .first_key_value()
             .map(|(ordinal, wake_id)| (*ordinal, *wake_id));
 
         TemporalFrontierSnapshot::new(

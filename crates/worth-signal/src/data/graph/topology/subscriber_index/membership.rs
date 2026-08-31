@@ -33,17 +33,3 @@ impl SignalGraph {
         Ok(())
     }
 }
-
-pub(super) fn remove_member<Key: Ord + Copy>(
-    buckets: &mut im::OrdMap<Key, im::OrdSet<NodeId>>,
-    key: Key,
-    consumer: NodeId,
-) {
-    let Some(members) = buckets.get_mut(&key) else {
-        return;
-    };
-    members.remove(&consumer);
-    if members.is_empty() {
-        buckets.remove(&key);
-    }
-}

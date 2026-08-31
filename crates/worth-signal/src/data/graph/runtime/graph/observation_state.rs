@@ -90,16 +90,8 @@ impl RuntimeObservation {
             telemetry: self.telemetry,
             reconstruction_counters: self.reconstruction_counters.clone(),
             partition_interner: self.partition_interner.operational_clone(),
-            branch_mutation_view: self
-                .branch_mutation_view
-                .iter()
-                .map(|(node, record)| (*node, record.clone()))
-                .collect(),
-            branch_mutation_records: self
-                .branch_mutation_records
-                .iter()
-                .map(|(node, record)| (*node, record.clone()))
-                .collect(),
+            branch_mutation_view: self.branch_mutation_view.operational_clone(),
+            branch_mutation_records: self.branch_mutation_records.operational_clone(),
             diagnostics: self.diagnostics.clone(),
             installed_policy: self.installed_policy,
         }

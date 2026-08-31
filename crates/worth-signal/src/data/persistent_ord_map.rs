@@ -1,14 +1,29 @@
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fmt;
 use std::sync::Arc;
+
+#[path = "persistent_ord_map/fork_overlay.rs"]
+mod fork_overlay;
+#[path = "persistent_ord_map/iteration.rs"]
+mod iteration;
+#[path = "persistent_ord_map/serialization.rs"]
+mod serialization;
+#[path = "persistent_ord_map/traits.rs"]
+mod traits;
+
+use fork_overlay::{
+    base_value_if_live, next_live_key_after, record_base_readmission, record_base_retirement,
+};
+use iteration::{LiveBaseIter, PersistentOrdMapIter};
 
 enum PersistentOrdMapStorage<K, V> {
     Exclusive(BTreeMap<K, V>),
     ForkShared {
         base: Arc<BTreeMap<K, V>>,
-        changes: im::OrdMap<K, Option<V>>,
+        changes: im::OrdMap<K, V>,
+        live_change_keys: im::OrdSet<K>,
+        retired_base_intervals: im::OrdMap<K, K>,
         len: usize,
+        first_live_key: Option<K>,
     },
 }
 
@@ -42,21 +57,53 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
     {
         match &self.storage {
             PersistentOrdMapStorage::Exclusive(values) => values.get(key),
-            PersistentOrdMapStorage::ForkShared { base, changes, .. } => changes
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                retired_base_intervals,
+                ..
+            } => changes
                 .get(key)
-                .map_or_else(|| base.get(key), Option::as_ref),
+                .or_else(|| base_value_if_live(base, retired_base_intervals, key)),
         }
     }
 
     pub(crate) fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         match &mut self.storage {
             PersistentOrdMapStorage::Exclusive(values) => values.get_mut(key),
-            PersistentOrdMapStorage::ForkShared { base, changes, .. } => {
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                live_change_keys,
+                retired_base_intervals,
+                ..
+            } => {
                 if !changes.contains_key(key) {
-                    let value = base.get(key).cloned()?;
-                    changes.insert(key.clone(), Some(value));
+                    let value = base_value_if_live(base, retired_base_intervals, key)?.clone();
+                    changes.insert(key.clone(), value);
+                    live_change_keys.insert(key.clone());
                 }
-                changes.get_mut(key).and_then(Option::as_mut)
+                changes.get_mut(key)
+            }
+        }
+    }
+
+    pub(crate) fn first_key_value(&self) -> Option<(&K, &V)> {
+        match &self.storage {
+            PersistentOrdMapStorage::Exclusive(values) => values.first_key_value(),
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                first_live_key,
+                retired_base_intervals,
+                ..
+            } => {
+                let key = first_live_key.as_ref()?;
+                let value = changes
+                    .get(key)
+                    .or_else(|| base_value_if_live(base, retired_base_intervals, key))
+                    .expect("first-live key must address a live value");
+                Some((key, value))
             }
         }
     }
@@ -72,15 +119,32 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
     pub(crate) fn insert(&mut self, key: K, value: V) -> Option<V> {
         match &mut self.storage {
             PersistentOrdMapStorage::Exclusive(values) => values.insert(key, value),
-            PersistentOrdMapStorage::ForkShared { base, changes, len } => {
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                live_change_keys,
+                retired_base_intervals,
+                len,
+                first_live_key,
+            } => {
                 let previous = changes
                     .get(&key)
-                    .map_or_else(|| base.get(&key), Option::as_ref)
+                    .or_else(|| base_value_if_live(base, retired_base_intervals, &key))
                     .cloned();
                 if previous.is_none() {
                     *len += 1;
                 }
-                changes.insert(key, Some(value));
+                if first_live_key
+                    .as_ref()
+                    .is_none_or(|first_key| key < *first_key)
+                {
+                    *first_live_key = Some(key.clone());
+                }
+                if base.contains_key(&key) && previous.is_none() {
+                    record_base_readmission(base, retired_base_intervals, &key);
+                }
+                live_change_keys.insert(key.clone());
+                changes.insert(key, value);
                 previous
             }
         }
@@ -89,17 +153,33 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
     pub(crate) fn remove(&mut self, key: &K) -> Option<V> {
         match &mut self.storage {
             PersistentOrdMapStorage::Exclusive(values) => values.remove(key),
-            PersistentOrdMapStorage::ForkShared { base, changes, len } => {
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                live_change_keys,
+                retired_base_intervals,
+                len,
+                first_live_key,
+            } => {
                 let previous = changes
                     .get(key)
-                    .map_or_else(|| base.get(key), Option::as_ref)
+                    .or_else(|| base_value_if_live(base, retired_base_intervals, key))
                     .cloned();
                 if previous.is_some() {
+                    let removed_first = first_live_key.as_ref() == Some(key);
                     *len -= 1;
+                    live_change_keys.remove(key);
+                    changes.remove(key);
                     if base.contains_key(key) {
-                        changes.insert(key.clone(), None);
-                    } else {
-                        changes.remove(key);
+                        record_base_retirement(base, retired_base_intervals, key);
+                    }
+                    if removed_first {
+                        *first_live_key = next_live_key_after(
+                            base,
+                            live_change_keys,
+                            retired_base_intervals,
+                            key,
+                        );
                     }
                 }
                 previous
@@ -116,10 +196,26 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
             PersistentOrdMapStorage::Exclusive(values) => {
                 PersistentOrdMapIter::Exclusive(values.iter())
             }
-            PersistentOrdMapStorage::ForkShared { base, changes, .. } => {
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                first_live_key,
+                retired_base_intervals,
+                ..
+            } => {
+                let Some(first_live_key) = first_live_key.as_ref() else {
+                    return PersistentOrdMapIter::Empty;
+                };
                 PersistentOrdMapIter::ForkShared {
-                    base: base.iter().peekable(),
-                    changes: changes.iter().peekable(),
+                    base: LiveBaseIter::new(base, retired_base_intervals, first_live_key)
+                        .peekable(),
+                    changes: changes
+                        .range((
+                            std::ops::Bound::Included(first_live_key),
+                            std::ops::Bound::Unbounded,
+                        ))
+                        .peekable(),
+                    remaining: self.len(),
                 }
             }
         }
@@ -138,19 +234,29 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
     }
 
     pub(crate) fn operational_clone(&self) -> Self {
-        self.iter()
-            .map(|(key, value)| (key.clone(), value.clone()))
-            .collect()
+        match &self.storage {
+            PersistentOrdMapStorage::Exclusive(values) => Self {
+                storage: PersistentOrdMapStorage::Exclusive(values.clone()),
+            },
+            PersistentOrdMapStorage::ForkShared { .. } => self
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect(),
+        }
     }
 
     pub(crate) fn fork_persistent(&mut self) -> Self {
         if let PersistentOrdMapStorage::Exclusive(values) = &mut self.storage {
             let base = Arc::new(std::mem::take(values));
             let len = base.len();
+            let first_live_key = base.first_key_value().map(|(key, _)| key.clone());
             self.storage = PersistentOrdMapStorage::ForkShared {
                 base,
                 changes: im::OrdMap::new(),
+                live_change_keys: im::OrdSet::new(),
+                retired_base_intervals: im::OrdMap::new(),
                 len,
+                first_live_key,
             };
         }
         self.fork_storage_identity()
@@ -162,14 +268,23 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
                 PersistentOrdMapStorage::ForkShared {
                     base: left_base,
                     changes: left_changes,
+                    live_change_keys: left_live_change_keys,
+                    retired_base_intervals: left_retired_base_intervals,
                     ..
                 },
                 PersistentOrdMapStorage::ForkShared {
                     base: right_base,
                     changes: right_changes,
+                    live_change_keys: right_live_change_keys,
+                    retired_base_intervals: right_retired_base_intervals,
                     ..
                 },
-            ) => Arc::ptr_eq(left_base, right_base) && left_changes.ptr_eq(right_changes),
+            ) => {
+                Arc::ptr_eq(left_base, right_base)
+                    && left_changes.ptr_eq(right_changes)
+                    && left_live_change_keys.ptr_eq(right_live_change_keys)
+                    && left_retired_base_intervals.ptr_eq(right_retired_base_intervals)
+            }
             _ => false,
         }
     }
@@ -178,11 +293,21 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
     pub(crate) fn fork_storage_identity(&self) -> Self {
         match &self.storage {
             PersistentOrdMapStorage::Exclusive(_) => self.operational_clone(),
-            PersistentOrdMapStorage::ForkShared { base, changes, len } => Self {
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                live_change_keys,
+                retired_base_intervals,
+                len,
+                first_live_key,
+            } => Self {
                 storage: PersistentOrdMapStorage::ForkShared {
                     base: Arc::clone(base),
                     changes: changes.clone(),
+                    live_change_keys: live_change_keys.clone(),
+                    retired_base_intervals: retired_base_intervals.clone(),
                     len: *len,
+                    first_live_key: first_live_key.clone(),
                 },
             },
         }
@@ -192,11 +317,21 @@ impl<K: Clone + Ord, V: Clone> PersistentOrdMap<K, V> {
     fn fork_storage_identity(&self) -> Self {
         match &self.storage {
             PersistentOrdMapStorage::Exclusive(_) => unreachable!("fork converts storage"),
-            PersistentOrdMapStorage::ForkShared { base, changes, len } => Self {
+            PersistentOrdMapStorage::ForkShared {
+                base,
+                changes,
+                live_change_keys,
+                retired_base_intervals,
+                len,
+                first_live_key,
+            } => Self {
                 storage: PersistentOrdMapStorage::ForkShared {
                     base: Arc::clone(base),
                     changes: changes.clone(),
+                    live_change_keys: live_change_keys.clone(),
+                    retired_base_intervals: retired_base_intervals.clone(),
                     len: *len,
+                    first_live_key: first_live_key.clone(),
                 },
             },
         }
@@ -234,145 +369,5 @@ impl<'a, K: Clone + Ord, V: Clone + Default> PersistentOrdMapEntry<'a, K, V> {
     }
 }
 
-pub(crate) enum PersistentOrdMapIter<'a, K: Clone + Ord, V: Clone> {
-    Exclusive(std::collections::btree_map::Iter<'a, K, V>),
-    ForkShared {
-        base: std::iter::Peekable<std::collections::btree_map::Iter<'a, K, V>>,
-        changes: std::iter::Peekable<im::ordmap::Iter<'a, K, Option<V>>>,
-    },
-}
-
-impl<'a, K: Clone + Ord, V: Clone> Iterator for PersistentOrdMapIter<'a, K, V> {
-    type Item = (&'a K, &'a V);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let Self::ForkShared { base, changes } = self else {
-            return match self {
-                Self::Exclusive(values) => values.next(),
-                Self::ForkShared { .. } => unreachable!(),
-            };
-        };
-        loop {
-            match (base.peek(), changes.peek()) {
-                (Some((base_key, _)), Some((change_key, _))) if base_key < change_key => {
-                    return base.next();
-                }
-                (Some((base_key, _)), Some((change_key, _))) if base_key == change_key => {
-                    base.next();
-                    let (key, value) = changes.next().expect("peeked change exists");
-                    if let Some(value) = value.as_ref() {
-                        return Some((key, value));
-                    }
-                }
-                (_, Some(_)) => {
-                    let (key, value) = changes.next().expect("peeked change exists");
-                    if let Some(value) = value.as_ref() {
-                        return Some((key, value));
-                    }
-                }
-                (Some(_), None) => return base.next(),
-                (None, None) => return None,
-            }
-        }
-    }
-}
-
-impl<K: Clone + Ord, V: Clone> Clone for PersistentOrdMap<K, V> {
-    fn clone(&self) -> Self {
-        self.operational_clone()
-    }
-}
-
-impl<K: Clone + Ord, V: Clone> Default for PersistentOrdMap<K, V> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<K: Clone + Ord, V: Clone> FromIterator<(K, V)> for PersistentOrdMap<K, V> {
-    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
-        Self {
-            storage: PersistentOrdMapStorage::Exclusive(iter.into_iter().collect()),
-        }
-    }
-}
-
-impl<K: Clone + Ord + fmt::Debug, V: Clone + fmt::Debug> fmt::Debug for PersistentOrdMap<K, V> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.debug_map().entries(self.iter()).finish()
-    }
-}
-
-impl<K: Clone + Ord + PartialEq, V: Clone + PartialEq> PartialEq for PersistentOrdMap<K, V> {
-    fn eq(&self, other: &Self) -> bool {
-        self.len() == other.len() && self.iter().eq(other.iter())
-    }
-}
-
-impl<K: Clone + Ord + Eq, V: Clone + Eq> Eq for PersistentOrdMap<K, V> {}
-
-impl<K, V> Serialize for PersistentOrdMap<K, V>
-where
-    K: Clone + Ord + Serialize,
-    V: Clone + Serialize,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.collect_map(self.iter())
-    }
-}
-
-impl<'de, K, V> Deserialize<'de> for PersistentOrdMap<K, V>
-where
-    K: Clone + Ord + Deserialize<'de>,
-    V: Clone + Deserialize<'de>,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        Ok(Self {
-            storage: PersistentOrdMapStorage::Exclusive(BTreeMap::deserialize(deserializer)?),
-        })
-    }
-}
-
-impl<'a, K: Clone + Ord, V: Clone> IntoIterator for &'a PersistentOrdMap<K, V> {
-    type Item = (&'a K, &'a V);
-    type IntoIter = PersistentOrdMapIter<'a, K, V>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use super::{PersistentOrdMap, PersistentOrdMapStorage};
-
-    #[test]
-    fn overlay_only_insert_remove_churn_retains_no_historical_tombstones() {
-        let mut source = PersistentOrdMap::<u64, u64>::new();
-        source.insert(0, 7);
-        let mut fork = source.fork_persistent();
-
-        for key in 1..=65_536 {
-            assert_eq!(fork.get_mut(&key), None);
-            assert_eq!(fork.insert(key, key), None);
-            assert_eq!(fork.remove(&key), Some(key));
-            assert_eq!(fork.get_mut(&key), None);
-        }
-
-        assert_eq!(fork.len(), 1);
-        let PersistentOrdMapStorage::ForkShared { changes, .. } = &fork.storage else {
-            panic!("fork must retain shared storage");
-        };
-        assert!(
-            changes.is_empty(),
-            "overlay-only churn must erase its delta"
-        );
-        assert_eq!(source.get(&0), Some(&7));
-    }
-}
+mod tests;

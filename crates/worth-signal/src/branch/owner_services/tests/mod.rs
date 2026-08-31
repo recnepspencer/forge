@@ -7,6 +7,7 @@ mod cell_progress;
 mod exact_cell_contracts;
 mod fork_contracts;
 mod fork_sharing;
+mod forked_transactions;
 mod issuance_capability;
 mod lifecycle;
 mod managed_reference;

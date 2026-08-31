@@ -34,7 +34,9 @@ fn rollback_one_created_node_does_not_scan_shared_free_list() {
             .collect::<Vec<_>>();
         let anchor = nodes[free_slot_count];
         source.rollback_created_nodes(&nodes[..free_slot_count]);
-        assert_eq!(source.free_list_snapshot().len(), free_slot_count);
+        let expected_free_list = source.free_list_snapshot();
+        let expected_active_nodes = source.active_node_count();
+        assert_eq!(expected_free_list.len(), free_slot_count);
 
         let (mut fork, _) = source.fork_persistent();
         let created = fork.create_node();
@@ -49,8 +51,11 @@ fn rollback_one_created_node_does_not_scan_shared_free_list() {
 
         assert!(source.is_alive(anchor), "source anchor remains live");
         assert!(fork.is_alive(anchor), "fork anchor remains live");
-        assert_eq!(source.free_list_snapshot().len(), free_slot_count);
-        assert_eq!(fork.free_list_snapshot().len(), free_slot_count);
+        assert!(!fork.is_alive(created), "rolled-back node must be dead");
+        assert_eq!(source.active_node_count(), expected_active_nodes);
+        assert_eq!(fork.active_node_count(), expected_active_nodes);
+        assert_eq!(source.free_list_snapshot(), expected_free_list);
+        assert_eq!(fork.free_list_snapshot(), expected_free_list);
     }
 
     let minimum_calls = samples.iter().map(|(_, calls, _)| *calls).min().unwrap();
@@ -121,6 +126,56 @@ fn rollback_tail_trim_preserves_preexisting_free_entries_and_checkpoint_truth() 
     let replacement = restored.create_node();
     assert_eq!(replacement.index(), 4_095);
     assert!(restored.is_alive(replacement));
+}
+
+#[test]
+fn changed_persistent_fork_serializes_and_restores_without_mutating_live_source() {
+    let mut source = SignalGraph::new();
+    let upstream = source.create_node();
+    let downstream = source.create_node();
+    source
+        .set_dependencies(downstream, [DependencyEdge::new(upstream, Aspect::new(0))])
+        .unwrap();
+    source.set_node_state(downstream, NodeState::Clean).unwrap();
+
+    let (mut fork, _) = source.fork_persistent();
+    let fork_only = fork.create_node();
+    fork.set_node_state(downstream, NodeState::Dirty).unwrap();
+    fork.set_dependencies(fork_only, [DependencyEdge::new(downstream, Aspect::new(1))])
+        .unwrap();
+
+    let serialized = serde_json::to_vec(&fork).expect("forked graph serializes");
+    let restored: SignalGraph =
+        serde_json::from_slice(&serialized).expect("forked graph reconstitutes");
+    assert_eq!(restored.get_state(downstream).unwrap(), NodeState::Dirty);
+    assert!(restored.is_alive(fork_only));
+    assert_eq!(
+        restored.dependencies_of(fork_only).unwrap(),
+        [DependencyEdge::new(downstream, Aspect::new(1))]
+    );
+
+    let authority = fork.capture_checkpoint_authority();
+    let encoded_authority = serde_json::to_vec(&authority).expect("authority serializes");
+    let decoded_authority: crate::state::SignalCheckpointAuthority =
+        serde_json::from_slice(&encoded_authority).expect("authority reconstitutes");
+    let checkpoint_restored =
+        SignalGraph::restore_from_checkpoint_authority(&decoded_authority).unwrap();
+    assert_eq!(
+        checkpoint_restored.get_state(downstream).unwrap(),
+        NodeState::Dirty
+    );
+    assert!(checkpoint_restored.is_alive(fork_only));
+    assert_eq!(
+        checkpoint_restored.dependencies_of(fork_only).unwrap(),
+        [DependencyEdge::new(downstream, Aspect::new(1))]
+    );
+
+    assert_eq!(source.get_state(downstream).unwrap(), NodeState::Clean);
+    assert!(!source.is_alive(fork_only));
+    assert_eq!(
+        source.dependencies_of(downstream).unwrap(),
+        [DependencyEdge::new(upstream, Aspect::new(0))]
+    );
 }
 
 #[test]

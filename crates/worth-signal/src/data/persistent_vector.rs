@@ -2,9 +2,10 @@ use std::fmt;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
-
 mod iteration;
+mod serialization;
+#[cfg(test)]
+mod tests;
 
 use self::iteration::PersistentVectorIter;
 
@@ -43,6 +44,19 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
 
     pub(crate) fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub(crate) fn reserve_exclusive(&mut self, additional: usize) {
+        if let PersistentVectorStorage::Exclusive(values) = &mut self.storage {
+            values.reserve(additional);
+        }
+    }
+
+    pub(crate) fn exclusive_capacity(&self) -> Option<usize> {
+        match &self.storage {
+            PersistentVectorStorage::Exclusive(values) => Some(values.capacity()),
+            PersistentVectorStorage::ForkShared { .. } => None,
+        }
     }
 
     #[inline(always)]
@@ -225,7 +239,12 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
     }
 
     pub(crate) fn operational_clone(&self) -> Self {
-        self.iter().cloned().collect()
+        match &self.storage {
+            PersistentVectorStorage::Exclusive(values) => Self {
+                storage: PersistentVectorStorage::Exclusive(values.clone()),
+            },
+            PersistentVectorStorage::ForkShared { .. } => self.iter().cloned().collect(),
+        }
     }
 
     pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
@@ -360,26 +379,6 @@ impl<T: Clone, const PAGE_LEN: usize> IndexMut<usize> for PersistentVector<T, PA
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.get_mut(index)
             .expect("persistent vector index in bounds")
-    }
-}
-
-impl<T: Clone + Serialize, const PAGE_LEN: usize> Serialize for PersistentVector<T, PAGE_LEN> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.collect_seq(self.iter())
-    }
-}
-
-impl<'de, T: Clone + Deserialize<'de>, const PAGE_LEN: usize> Deserialize<'de>
-    for PersistentVector<T, PAGE_LEN>
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        Vec::<T>::deserialize(deserializer).map(|values| values.into_iter().collect())
     }
 }
 

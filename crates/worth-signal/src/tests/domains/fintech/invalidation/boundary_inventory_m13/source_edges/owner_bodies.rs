@@ -58,11 +58,11 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
     ),
     owner!(
         "producer-local reverse index query",
-        "data/graph/topology/subscriber_index/buckets.rs",
-        "../../../../../../data/graph/topology/subscriber_index/buckets.rs",
+        "data/graph/topology/subscriber_index/buckets/query.rs",
+        "../../../../../../data/graph/topology/subscriber_index/buckets/query.rs",
         Method,
         "query_scope",
-        "1883dd7de2a184cf563faaec8cda4d7ce227775a99a4c5f4e275ba1a0e3ca5ec"
+        "69f86d3fb7825eecf0007af03599b91440a39b0096f37d5ccebfc401876aa281"
     ),
     owner!(
         "reverse index membership replacement",
@@ -70,7 +70,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/topology/subscriber_index/buckets.rs",
         Method,
         "replace_consumer",
-        "8f2454b1f970292c96b9138378bd3cab30933d3f22c4ecd293bdff93940b65df"
+        "822b1ce50cd5c2615ac6754a3d8a515b1a1d6afc0aa8bcf7dfa0c73c8a9e7ae4"
     ),
     owner!(
         "reverse index authority rebuild",

@@ -212,17 +212,9 @@ impl CanonicalCauseSetStore {
             slot_generations: self.slot_generations.operational_clone(),
             free_indices: self.free_indices.operational_clone(),
             next_output_commit_ordinal: self.next_output_commit_ordinal,
-            published_output_commits: self
-                .published_output_commits
-                .iter()
-                .map(|(ordinal, delta)| (*ordinal, delta.clone()))
-                .collect(),
+            published_output_commits: self.published_output_commits.operational_clone(),
             occupied_set_count: self.occupied_set_count,
-            output_commit_reference_counts: self
-                .output_commit_reference_counts
-                .iter()
-                .map(|(ordinal, count)| (*ordinal, *count))
-                .collect(),
+            output_commit_reference_counts: self.output_commit_reference_counts.operational_clone(),
             deserialized_quarantine: self.deserialized_quarantine,
             #[cfg(test)]
             published_order_probe: self.published_order_probe.operational_clone(),

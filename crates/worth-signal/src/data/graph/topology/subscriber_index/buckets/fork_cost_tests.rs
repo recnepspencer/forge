@@ -59,7 +59,24 @@ fn single_membership_first_write_is_bounded_by_nested_persistent_granule() {
             source.replace_consumer(NodeId::new(index + 1, 0), vec![membership]);
         }
         let removed = NodeId::new(consumer_count, 0);
+        let removed_scope = InternedPartitionSubscription {
+            partition: PartitionTokenId(consumer_count - 1),
+            detail: Some(DetailTokenId(consumer_count - 1)),
+            match_mode: PartitionMatchMode::PartitionAndDetail,
+        };
+        let removed_membership =
+            IndexedSubscriptionMembership::from_edge(producer, aspect, Some(removed_scope))
+                .expect("removed scoped membership is indexable");
         let mut fork = source.fork_persistent();
+        assert!(
+            source.shares_storage_with(&fork),
+            "owner fork must share the exact immutable index storage"
+        );
+        let logical_clone = fork.clone();
+        assert!(
+            fork.shares_storage_with(&logical_clone),
+            "logical clone must retain fork roots at scale {consumer_count}"
+        );
 
         if consumer_count == 65_536 {
             let eager_region = Region::new(&INSTRUMENTED_SYSTEM);
@@ -86,6 +103,32 @@ fn single_membership_first_write_is_bounded_by_nested_persistent_granule() {
             consumer_count as usize - 1,
             "fork must observe only its changed membership"
         );
+        assert!(
+            !fork
+                .query_scope(producer, aspect, removed_scope)
+                .candidates
+                .contains(&removed),
+            "removed base membership must stay retired in the fork"
+        );
+        let reconstructed = fork.operational_clone();
+        assert_eq!(
+            reconstructed.query_whole_aspect(producer, aspect),
+            fork.query_whole_aspect(producer, aspect),
+            "operational reconstruction must preserve the fork overlay"
+        );
+
+        fork.replace_consumer(removed, vec![removed_membership]);
+        assert!(
+            fork.query_scope(producer, aspect, removed_scope)
+                .candidates
+                .contains(&removed),
+            "readmitting an inherited membership must cancel its retirement"
+        );
+        assert_eq!(
+            source.query_whole_aspect(producer, aspect).candidates.len(),
+            consumer_count as usize,
+            "fork readmission must not mutate the live source"
+        );
     }
 
     let minimum_calls = samples.iter().map(|(_, calls, _)| *calls).min().unwrap();
@@ -106,4 +149,89 @@ fn single_membership_first_write_is_bounded_by_nested_persistent_granule() {
             > maximum_first_write_bytes.saturating_mul(8),
         "probe must distinguish a whole-index copy from one nested persistent change"
     );
+}
+
+#[test]
+fn inherited_retirement_queries_visit_only_live_or_changed_members() {
+    let producer = NodeId::new(0, 0);
+    let aspect = Aspect::new(1);
+    let membership = IndexedSubscriptionMembership::from_edge(producer, aspect, None)
+        .expect("unscoped membership is indexable");
+
+    for consumer_count in [64_u32, 4_096, 65_536] {
+        let mut source = ReverseSubscriptionIndex::default();
+        for consumer in 1..=consumer_count {
+            source.replace_consumer(NodeId::new(consumer, 0), vec![membership.clone()]);
+        }
+        let mut fork = source.fork_persistent();
+        assert!(source.shares_storage_with(&fork));
+        for consumer in 1..consumer_count {
+            fork.replace_consumer(NodeId::new(consumer, 0), Vec::new());
+        }
+
+        let (query, first_traversal) = fork.query_whole_aspect_with_traversal(producer, aspect);
+        let (_, repeated_traversal) = fork.query_whole_aspect_with_traversal(producer, aspect);
+        assert_eq!(query.candidates, vec![NodeId::new(consumer_count, 0)]);
+        assert!(
+            first_traversal.base_members <= 2,
+            "scale {consumer_count}: {first_traversal:?}"
+        );
+        assert!(
+            first_traversal.range_seeks <= 2,
+            "scale {consumer_count}: {first_traversal:?}"
+        );
+        assert_eq!(repeated_traversal, first_traversal);
+        assert_eq!(
+            source.query_whole_aspect(producer, aspect).candidates.len(),
+            consumer_count as usize,
+            "destination retirement must preserve the live source"
+        );
+
+        fork.replace_consumer(NodeId::new(1, 0), vec![membership.clone()]);
+        let (readmitted, readmission_traversal) =
+            fork.query_whole_aspect_with_traversal(producer, aspect);
+        assert_eq!(
+            readmitted.candidates,
+            vec![NodeId::new(1, 0), NodeId::new(consumer_count, 0)]
+        );
+        assert!(
+            readmission_traversal.base_members <= 3,
+            "scale {consumer_count}: {readmission_traversal:?}"
+        );
+        assert_eq!(
+            fork.operational_clone()
+                .query_whole_aspect(producer, aspect),
+            readmitted
+        );
+    }
+}
+
+#[test]
+fn ordinary_queries_stream_unretired_base_without_range_reseeks() {
+    let producer = NodeId::new(0, 0);
+    let aspect = Aspect::new(1);
+    let membership = IndexedSubscriptionMembership::from_edge(producer, aspect, None)
+        .expect("unscoped membership is indexable");
+
+    for consumer_count in [64_u32, 4_096, 65_536] {
+        let mut source = ReverseSubscriptionIndex::default();
+        for consumer in 1..=consumer_count {
+            source.replace_consumer(NodeId::new(consumer, 0), vec![membership.clone()]);
+        }
+        let mut fork = source.fork_persistent();
+        let added = NodeId::new(consumer_count + 1, 0);
+        fork.replace_consumer(added, vec![membership.clone()]);
+
+        let (query, traversal) = fork.query_whole_aspect_with_traversal(producer, aspect);
+        assert_eq!(query.candidates.len(), consumer_count as usize + 1);
+        assert_eq!(traversal.base_members, consumer_count as usize);
+        assert_eq!(
+            traversal.range_seeks, 0,
+            "unretired base traversal must stay on the native linear iterator"
+        );
+        assert_eq!(
+            source.query_whole_aspect(producer, aspect).candidates.len(),
+            consumer_count as usize
+        );
+    }
 }

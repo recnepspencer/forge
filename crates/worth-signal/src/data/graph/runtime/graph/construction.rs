@@ -43,14 +43,10 @@ impl Clone for SignalGraph {
             aspect_lowering_owner: None,
             conditional_dependency_versions: self
                 .conditional_dependency_versions
-                .iter()
-                .map(|(node, versions)| (*node, versions.clone()))
-                .collect(),
+                .operational_clone(),
             authorization_policy_identities: self
                 .authorization_policy_identities
-                .iter()
-                .copied()
-                .collect(),
+                .operational_clone(),
             invalidation_readiness_epoch: 0,
             invalidation_performed_counters,
             invalidation_performed_work,

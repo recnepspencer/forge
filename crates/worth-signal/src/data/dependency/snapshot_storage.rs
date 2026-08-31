@@ -177,11 +177,7 @@ impl DependencySnapshotStore {
     pub(crate) fn operational_clone(&self) -> Self {
         Self {
             snapshots: self.snapshots.operational_clone(),
-            interner: self
-                .interner
-                .iter()
-                .map(|(key, value)| (key.clone(), *value))
-                .collect(),
+            interner: self.interner.operational_clone(),
             shape_handles: self.shape_handles.operational_clone(),
         }
     }

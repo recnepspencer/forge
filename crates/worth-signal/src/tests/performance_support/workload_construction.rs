@@ -13,6 +13,7 @@ pub(crate) fn with_perf_topology_asserts_disabled<T>(run: impl FnOnce() -> T) ->
 
 pub(crate) fn build_chain_graph(count: usize) -> (SignalGraph, Vec<NodeId>) {
     let mut graph = SignalGraph::new();
+    graph.reserve_node_capacity(count);
     let mut chain = Vec::with_capacity(count);
     let mut dependency_edits = Vec::with_capacity(count.saturating_sub(1));
 
