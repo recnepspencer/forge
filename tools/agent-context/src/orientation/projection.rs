@@ -69,14 +69,18 @@ fn project_context_orientation(
         domain,
         exemplar_role: "WORTH UI workspace-owned implementation surface.".to_owned(),
         deferred_routes: Vec::new(),
-        public_surface: "workspace-owned; crate lib.rs remains the explicit export owner".to_owned(),
+        public_surface: "workspace-owned; package targets remain the explicit export or composition owners".to_owned(),
         allowed_target_bands: vec!["WORTH UI manifest-declared dependencies".to_owned()],
         facade_exports: Vec::new(),
         owned_modules: collect_owned_modules(&crate_root.join("src"))?,
         machine_fences: vec![
             "Must not depend on worthy-* crates.".to_owned(),
-            "Replay and reconstruction remain certification-only.".to_owned(),
-            "Pure schema meaning must remain Query-agnostic.".to_owned(),
+            format!(
+                "Replay dependencies are admitted only for configured certification packages: {}.",
+                workspace.certification_packages.join(", ")
+            ),
+            "Production dependencies on the direct Query engine remain confined by the configured Worth UI Query edge; certification-only test dependencies are outside that production fence."
+                .to_owned(),
         ],
         skeleton_fence: "No Road 1 seed skeleton applies; WORTH UI topology is workspace-owned and mechanically discovered.".to_owned(),
         machine_constitution: contract.machine_constitution.clone(),

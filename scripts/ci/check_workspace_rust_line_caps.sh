@@ -23,11 +23,14 @@ case "$SCOPE" in
   worth-ui)
     PATHS=('workspaces/worth-ui/crates/**/*.rs' 'workspaces/worth-ui/apps/**/*.rs')
     ;;
+  worth-ui-apps)
+    PATHS=('workspaces/worth-ui/apps/**/*.rs')
+    ;;
   dirty)
     PATHS=()
     ;;
   *)
-    echo "usage: $0 [workspace|worth-ui|dirty]" >&2
+    echo "usage: $0 [workspace|worth-ui|worth-ui-apps|dirty]" >&2
     exit 2
     ;;
 esac

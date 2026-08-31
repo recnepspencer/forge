@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,14 +18,60 @@ class WorthUiContractGateTests(unittest.TestCase):
             root = Path(directory)
             source = root / "workspaces/worth-ui/sample.rs"
             source.parent.mkdir(parents=True)
-            source.write_text("ComponentStaticPaintContract ComponentStaticPaintContract", encoding="utf-8")
-            manifest = root / "inventory.json"
-            manifest.write_text(json.dumps({"cutover_target": 0, "entries": [{
-                "family": "static-paint authority", "glob": "workspaces/worth-ui/**/*.rs",
-                "literal": "ComponentStaticPaintContract", "baseline": 1,
-            }]}), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "observed 2"):
+            source.write_text(self.removal_source(extra_static_paint=True), encoding="utf-8")
+            manifest = self.write_removal_manifest(root)
+            with self.assertRaisesRegex(ValueError, "observed 51"):
                 removal_gate.validate(root, manifest)
+
+    def test_removal_inventory_keeps_original_and_gate_zero_counts_distinct(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "workspaces/worth-ui/sample.rs"
+            source.parent.mkdir(parents=True)
+            source.write_text(self.removal_source(), encoding="utf-8")
+            manifest = self.write_removal_manifest(root)
+            contract = json.loads(manifest.read_text(encoding="utf-8"))
+            color = next(
+                entry for entry in contract["entries"]
+                if entry["family"] == "string-backed ThemeColorValue"
+            )
+            color["original_baseline"] = color["gate_zero_remaining"]
+            manifest.write_text(json.dumps(contract), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "unexpected removal inventory contract"):
+                removal_gate.validate(root, manifest)
+
+    @staticmethod
+    def removal_source(*, extra_static_paint: bool = False) -> str:
+        lines = []
+        for literal, _, gate_zero_remaining, _ in removal_gate.REQUIRED_FAMILIES.values():
+            count = gate_zero_remaining + int(
+                extra_static_paint and literal == "ComponentStaticPaintContract"
+            )
+            lines.extend(literal for _ in range(count))
+        return "\n".join(lines)
+
+    @staticmethod
+    def write_removal_manifest(root: Path) -> Path:
+        entries = [
+            {
+                "family": family,
+                "glob": removal_gate.RUST_GLOB,
+                "literal": literal,
+                "original_baseline": original_baseline,
+                "gate_zero_remaining": gate_zero_remaining,
+                "gate_zero_retention": gate_zero_retention,
+            }
+            for family, (
+                literal, original_baseline, gate_zero_remaining, gate_zero_retention,
+            ) in removal_gate.REQUIRED_FAMILIES.items()
+        ]
+        manifest = root / "inventory.json"
+        manifest.write_text(
+            json.dumps({"cutover_target": 0, "entries": entries}), encoding="utf-8"
+        )
+        subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+        return manifest
 
     def test_protocol_manifest_detects_live_source_drift(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -104,6 +151,18 @@ class WorthUiContractGateTests(unittest.TestCase):
                 source, ["UiMountedPointerAffordanceMechanic", "UiMountedBackdropMechanic"]
             ),
             ["UiMountedPointerAffordanceMechanic", "UiMountedBackdropMechanic"],
+        )
+
+    def test_native_matrix_rejects_every_contract_symbol_in_live_publishers(self) -> None:
+        source = """
+            // UiOverlayStackSnapshot in a comment is inert.
+            let family = UiHostAppearanceMechanicFamily::SurfaceFill;
+            let damage = UiAppearanceDamageRegion::default();
+            let clip_suffix = UiAppearanceClipSuffix;
+        """
+        self.assertEqual(
+            matrix_gate.leaked_contract_symbols(source, matrix_gate.EXPECTED_SYMBOLS),
+            ["UiAppearanceDamageRegion", "UiHostAppearanceMechanicFamily"],
         )
 
 
