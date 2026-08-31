@@ -106,6 +106,10 @@ mod tests {
             [37_000, 47_000]
         );
         assert_eq!(geometry.radii().corners(), [5_000; 4]);
+        let offset_basis =
+            super::super::UiAppearanceAllocationBounds::new(9_000, 19_000, 32_000, 42_000).unwrap();
+        assert!(!geometry.radii().matches_allocation(allocation));
+        assert!(geometry.radii().matches_allocation(offset_basis));
     }
 
     #[test]

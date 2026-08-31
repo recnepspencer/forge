@@ -79,6 +79,18 @@ impl UiAppearanceNormalizedLogicalRadii {
         self,
         offset: super::UiAppearanceLogicalLength,
     ) -> Result<Self, super::UiAppearanceGeometryOverflow> {
+        let doubled_offset = offset
+            .subpixels()
+            .checked_mul(2)
+            .ok_or(super::UiAppearanceGeometryOverflow)?;
+        let basis_width = self
+            .basis_width
+            .checked_add(doubled_offset)
+            .ok_or(super::UiAppearanceGeometryOverflow)?;
+        let basis_height = self
+            .basis_height
+            .checked_add(doubled_offset)
+            .ok_or(super::UiAppearanceGeometryOverflow)?;
         let mut radii = [0; 4];
         for (output, radius) in radii.iter_mut().zip(self.corners) {
             *output = radius
@@ -87,8 +99,8 @@ impl UiAppearanceNormalizedLogicalRadii {
         }
         Ok(Self {
             corners: radii,
-            basis_width: self.basis_width,
-            basis_height: self.basis_height,
+            basis_width,
+            basis_height,
         })
     }
 }
@@ -141,5 +153,28 @@ mod tests {
         assert_eq!(normalized.corners(), [2, 1, 0, 0]);
         assert_eq!(round_scaled_to_nearest_even(5, 1, 2), 2);
         assert_eq!(round_scaled_to_nearest_even(7, 1, 2), 4);
+    }
+
+    #[test]
+    fn outline_offset_carries_checked_expanded_normalization_dimensions() {
+        let original = super::super::UiAppearanceAllocationBounds::new(0, 0, 100, 100).unwrap();
+        let shifted = UiAppearanceNormalizedLogicalRadii::normalize(original, [length(50); 4])
+            .with_outline_offset(length(1))
+            .unwrap();
+        let expanded = super::super::UiAppearanceAllocationBounds::new(-1, -1, 102, 102).unwrap();
+        assert_eq!(shifted.corners(), [51; 4]);
+        assert!(!shifted.matches_allocation(original));
+        assert!(shifted.matches_allocation(expanded));
+
+        let maximum =
+            super::super::UiAppearanceAllocationBounds::new(0, 0, u32::MAX, u32::MAX).unwrap();
+        let maximum_radii = UiAppearanceNormalizedLogicalRadii::normalize(
+            maximum,
+            [super::super::UiAppearanceLogicalLength::ZERO; 4],
+        );
+        assert_eq!(
+            maximum_radii.with_outline_offset(length(1)),
+            Err(super::super::UiAppearanceGeometryOverflow)
+        );
     }
 }

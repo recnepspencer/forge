@@ -187,4 +187,28 @@ mod tests {
             Err(UiMountedSurfaceAppearanceCompletionDenial::RadiiAllocationMismatch)
         );
     }
+
+    #[test]
+    fn surface_completion_denies_outline_radii_with_an_offset_expanded_basis() {
+        let mut surface = input(100, 100, 0);
+        let surface_radii = super::super::UiAppearanceNormalizedLogicalRadii::normalize(
+            surface.bounds,
+            [length(50); 4],
+        );
+        let outline = super::super::UiAppearanceOutlineGeometry::admit(
+            surface.bounds,
+            surface_radii,
+            length(1),
+            length(1),
+            super::super::UiAppearanceLogicalLength::ZERO,
+        )
+        .unwrap();
+        surface.radii = outline.radii();
+
+        assert_eq!(surface.radii.corners(), [51; 4]);
+        assert_eq!(
+            UiMountedSurfaceAppearanceMechanic::complete_from_runtime_mounting(surface),
+            Err(UiMountedSurfaceAppearanceCompletionDenial::RadiiAllocationMismatch)
+        );
+    }
 }
