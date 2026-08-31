@@ -11,17 +11,25 @@ const ROLLBACK_COST_TEST: &str =
 fn rollback_one_created_node_does_not_scan_shared_free_list() {
     const CHILD_PROCESS: &str = "WORTH_SIGNAL_ROLLBACK_COST_CHILD";
     if env::var_os(CHILD_PROCESS).is_none() {
-        let status = Command::new(env::current_exe().expect("test executable resolves"))
+        let output = Command::new(env::current_exe().expect("test executable resolves"))
             .arg("--exact")
             .arg(ROLLBACK_COST_TEST)
             .arg("--nocapture")
             .arg("--test-threads=1")
             .env(CHILD_PROCESS, "1")
-            .status()
+            .output()
             .expect("isolated rollback allocation probe starts");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        print!("{stdout}");
+        eprint!("{}", String::from_utf8_lossy(&output.stderr));
         assert!(
-            status.success(),
+            output.status.success(),
             "isolated rollback allocation probe failed"
+        );
+        assert!(
+            stdout.contains(ROLLBACK_COST_TEST)
+                && stdout.contains("test result: ok. 1 passed; 0 failed;"),
+            "isolated rollback probe must execute exactly one named test"
         );
         return;
     }

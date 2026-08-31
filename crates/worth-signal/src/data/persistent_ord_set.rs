@@ -190,15 +190,22 @@ mod tests {
         const TEST: &str =
             "data::persistent_ord_set::tests::ordinary_serialization_borrows_values_without_a_temporary_collection";
         if env::var_os(CHILD).is_none() {
-            let status = Command::new(env::current_exe().expect("test executable resolves"))
+            let output = Command::new(env::current_exe().expect("test executable resolves"))
                 .arg("--exact")
                 .arg(TEST)
                 .arg("--nocapture")
                 .arg("--test-threads=1")
                 .env(CHILD, "1")
-                .status()
+                .output()
                 .expect("isolated set-serialization probe starts");
-            assert!(status.success(), "set-serialization probe failed");
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            print!("{stdout}");
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            assert!(output.status.success(), "set-serialization probe failed");
+            assert!(
+                stdout.contains(TEST) && stdout.contains("test result: ok. 1 passed; 0 failed;"),
+                "set-serialization probe must execute exactly one named test"
+            );
             return;
         }
 

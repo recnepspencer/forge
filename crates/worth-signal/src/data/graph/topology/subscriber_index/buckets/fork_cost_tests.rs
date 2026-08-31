@@ -17,17 +17,24 @@ const TEST_NAME: &str = "data::graph::topology::subscriber_index::buckets::fork_
 fn single_membership_first_write_is_bounded_by_nested_persistent_granule() {
     const CHILD_PROCESS: &str = "WORTH_SIGNAL_SUBSCRIBER_FORK_COST_CHILD";
     if env::var_os(CHILD_PROCESS).is_none() {
-        let status = Command::new(env::current_exe().expect("test executable resolves"))
+        let output = Command::new(env::current_exe().expect("test executable resolves"))
             .arg("--exact")
             .arg(TEST_NAME)
             .arg("--nocapture")
             .arg("--test-threads=1")
             .env(CHILD_PROCESS, "1")
-            .status()
+            .output()
             .expect("isolated subscriber allocation probe starts");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        print!("{stdout}");
+        eprint!("{}", String::from_utf8_lossy(&output.stderr));
         assert!(
-            status.success(),
+            output.status.success(),
             "isolated subscriber allocation probe failed"
+        );
+        assert!(
+            stdout.contains(TEST_NAME) && stdout.contains("test result: ok. 1 passed; 0 failed;"),
+            "isolated subscriber probe must execute exactly one named test"
         );
         return;
     }

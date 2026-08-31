@@ -78,16 +78,27 @@ pub(super) fn seed_nonempty_persistent_branch_state(
 #[test]
 fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
     const CHILD_PROCESS: &str = "WORTH_SIGNAL_FORK_ALLOCATION_CHILD";
+    const TEST_NAME: &str = "branch::owner_services::tests::fork_sharing::exact_fork_and_first_write_have_no_node_count_allocation_slope";
     if env::var_os(CHILD_PROCESS).is_none() {
-        let status = Command::new(env::current_exe().expect("test executable resolves"))
+        let output = Command::new(env::current_exe().expect("test executable resolves"))
             .arg("--exact")
-            .arg("branch::owner_services::tests::fork_sharing::exact_fork_and_first_write_have_no_node_count_allocation_slope")
+            .arg(TEST_NAME)
             .arg("--nocapture")
             .arg("--test-threads=1")
             .env(CHILD_PROCESS, "1")
-            .status()
+            .output()
             .expect("isolated allocation-probe process starts");
-        assert!(status.success(), "isolated allocation-probe process failed");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        print!("{stdout}");
+        eprint!("{}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "isolated allocation-probe process failed"
+        );
+        assert!(
+            stdout.contains(TEST_NAME) && stdout.contains("test result: ok. 1 passed; 0 failed;"),
+            "isolated allocation probe must execute exactly one named test"
+        );
         return;
     }
 
