@@ -45,47 +45,65 @@ pub fn compose_source_over(
 }
 
 fn decode_srgb(channel: u8) -> u16 {
-    let linear_threshold_channel = (u64::from(SRGB_LINEAR_THRESHOLD_NUMERATOR) * 255
-        / u64::from(SRGB_LINEAR_THRESHOLD_DENOMINATOR)) as u8;
-    if channel <= linear_threshold_channel {
+    decode_srgb_fixed_ratio(u128::from(channel), 255, 65_535) as u16
+}
+
+fn decode_srgb_fixed_ratio(
+    encoded_numerator: u128,
+    encoded_denominator: u128,
+    output_one: u64,
+) -> u64 {
+    if encoded_numerator * u128::from(SRGB_LINEAR_THRESHOLD_DENOMINATOR)
+        <= encoded_denominator * u128::from(SRGB_LINEAR_THRESHOLD_NUMERATOR)
+    {
         return round_ratio_even(
-            u128::from(channel) * 65_535 * u128::from(SRGB_LINEAR_SCALE_DENOMINATOR),
-            255 * u128::from(SRGB_LINEAR_SCALE_NUMERATOR),
-        ) as u16;
+            encoded_numerator * u128::from(output_one) * u128::from(SRGB_LINEAR_SCALE_DENOMINATOR),
+            encoded_denominator * u128::from(SRGB_LINEAR_SCALE_NUMERATOR),
+        ) as u64;
     }
-    let numerator = u128::from(channel) * u128::from(SRGB_OFFSET_DENOMINATOR)
-        + 255 * u128::from(SRGB_OFFSET_NUMERATOR);
-    let denominator = 255 * u128::from(SRGB_SCALE_NUMERATOR);
+    let numerator = encoded_numerator * u128::from(SRGB_OFFSET_DENOMINATOR)
+        + encoded_denominator * u128::from(SRGB_OFFSET_NUMERATOR);
+    let denominator = encoded_denominator * u128::from(SRGB_SCALE_NUMERATOR);
     let x = round_ratio_even(
         numerator * u128::from(SRGB_SCALE_DENOMINATOR) * u128::from(FIXED_ONE),
         denominator * u128::from(SRGB_OFFSET_DENOMINATOR),
     ) as u64;
     let rooted = fixed_nth_root(x, SRGB_GAMMA_DENOMINATOR);
     let decoded = fixed_pow(rooted, SRGB_GAMMA_NUMERATOR);
-    round_ratio_even(u128::from(decoded) * 65_535, u128::from(FIXED_ONE)).min(65_535) as u16
+    round_ratio_even(
+        u128::from(decoded) * u128::from(output_one),
+        u128::from(FIXED_ONE),
+    )
+    .min(u128::from(output_one)) as u64
 }
 
 fn encode_srgb(linear: u16) -> u8 {
     let mut low = 0_u16;
     let mut high = 255_u16;
     while low < high {
-        let middle = (low + high) / 2;
-        if decode_srgb(middle as u8) < linear {
-            low = middle + 1;
+        let upper = (low + high).div_ceil(2);
+        if linear_reaches_encoded_channel(linear, upper) {
+            low = upper;
         } else {
-            high = middle;
+            high = upper - 1;
         }
     }
-    if low == 0 {
-        return 0;
+    low as u8
+}
+
+fn linear_reaches_encoded_channel(linear: u16, upper: u16) -> bool {
+    let threshold = decode_encoded_midpoint(upper);
+    match (u128::from(linear) * u128::from(FIXED_ONE)).cmp(&(u128::from(threshold) * 65_535)) {
+        std::cmp::Ordering::Less => false,
+        std::cmp::Ordering::Greater => true,
+        std::cmp::Ordering::Equal => upper.is_multiple_of(2),
     }
-    let upper = decode_srgb(low as u8).abs_diff(linear);
-    let lower = decode_srgb((low - 1) as u8).abs_diff(linear);
-    if lower < upper || (lower == upper && (low - 1).is_multiple_of(2)) {
-        (low - 1) as u8
-    } else {
-        low as u8
-    }
+}
+
+fn decode_encoded_midpoint(upper: u16) -> u64 {
+    let encoded_numerator = u128::from(upper * 2 - 1);
+    let encoded_denominator = 510_u128;
+    decode_srgb_fixed_ratio(encoded_numerator, encoded_denominator, FIXED_ONE)
 }
 
 fn fixed_pow(value: u64, exponent: u32) -> u64 {
@@ -195,6 +213,45 @@ mod tests {
             );
             prior = decoded;
         }
+    }
+
+    #[test]
+    fn low_linear_channel_rounds_in_encoded_srgb_space() {
+        let black = UiMountedAppearanceColor::from_straight_srgba([0, 0, 0, 255]);
+        let white = UiMountedAppearanceColor::from_straight_srgba([255, 255, 255, 255]);
+        let actual = compose_source_over([
+            (black, UiMountedAppearanceOpacity::ONE),
+            (white, UiMountedAppearanceOpacity::from_units(10)),
+        ])
+        .straight_srgba();
+
+        // The channel is exactly 10/65,535. Its linear-segment sRGB encoding is
+        // 10 * 1,292 * 255 / (65,535 * 100), which is strictly greater than 1/2.
+        assert_eq!(actual, [1, 1, 1, 255]);
+    }
+
+    #[test]
+    fn every_linear_channel_matches_an_independent_srgb_encode_oracle() {
+        let mut differences = Vec::new();
+        for linear in 0..=u16::MAX {
+            let value = f64::from(linear) / 65_535.0;
+            let encoded = if value <= 0.003_130_8 {
+                value * 12.92
+            } else {
+                1.055 * value.powf(1.0 / 2.4) - 0.055
+            };
+            let expected = (255.0 * encoded).round_ties_even() as u8;
+            let actual = encode_srgb(linear);
+            if expected != actual {
+                differences.push((linear, actual, expected));
+            }
+        }
+        assert!(
+            differences.is_empty(),
+            "{} mismatches; first {:?}",
+            differences.len(),
+            &differences[..differences.len().min(12)]
+        );
     }
 
     #[test]
