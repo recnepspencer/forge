@@ -1,17 +1,32 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
+
+#[path = "persistent_hash_map/entry_handle.rs"]
+mod entry_handle;
+#[path = "persistent_hash_map/iteration.rs"]
+mod iteration;
+#[path = "persistent_hash_map/serialization.rs"]
+mod serialization;
+#[path = "persistent_hash_map/traits.rs"]
+mod traits;
+
+use entry_handle::SharedKey;
+use iteration::PersistentHashMapIter;
 
 #[cfg(test)]
 #[path = "persistent_hash_map/tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "persistent_hash_map/fork_granule_tests.rs"]
+mod fork_granule_tests;
+
 enum PersistentHashMapStorage<K, V> {
     Exclusive(HashMap<K, V>),
     ForkShared {
         base: Arc<HashMap<K, V>>,
-        changes: im::HashMap<K, Option<V>>,
+        changes: im::HashMap<SharedKey<K>, Option<Arc<V>>>,
         len: usize,
     },
 }
@@ -49,7 +64,7 @@ where
             PersistentHashMapStorage::Exclusive(values) => values.get(key),
             PersistentHashMapStorage::ForkShared { base, changes, .. } => changes
                 .get(key)
-                .map_or_else(|| base.get(key), Option::as_ref),
+                .map_or_else(|| base.get(key), |value| value.as_ref().map(Arc::as_ref)),
         }
     }
 
@@ -58,10 +73,13 @@ where
             PersistentHashMapStorage::Exclusive(values) => values.get_mut(key),
             PersistentHashMapStorage::ForkShared { base, changes, .. } => {
                 if !changes.contains_key(key) {
-                    let value = base.get(key).cloned()?;
-                    changes.insert(key.clone(), Some(value));
+                    let value = Arc::new(base.get(key).cloned()?);
+                    changes.insert(SharedKey::new(key.clone()), Some(value));
                 }
-                changes.get_mut(key).and_then(Option::as_mut)
+                changes
+                    .get_mut(key)
+                    .and_then(Option::as_mut)
+                    .map(Arc::make_mut)
             }
         }
     }
@@ -73,12 +91,12 @@ where
             PersistentHashMapStorage::ForkShared { base, changes, len } => {
                 let prior = changes
                     .get(&key)
-                    .map_or_else(|| base.get(&key), Option::as_ref)
+                    .map_or_else(|| base.get(&key), |value| value.as_ref().map(Arc::as_ref))
                     .cloned();
                 if prior.is_none() {
                     *len += 1;
                 }
-                changes.insert(key, Some(value));
+                changes.insert(SharedKey::new(key), Some(Arc::new(value)));
                 prior
             }
         }
@@ -90,12 +108,16 @@ where
             PersistentHashMapStorage::ForkShared { base, changes, len } => {
                 let prior = changes
                     .get(key)
-                    .map_or_else(|| base.get(key), Option::as_ref)
+                    .map_or_else(|| base.get(key), |value| value.as_ref().map(Arc::as_ref))
                     .cloned();
                 if prior.is_some() {
                     *len -= 1;
                     if base.contains_key(key) {
-                        changes.insert(key.clone(), None);
+                        let shared_key = changes
+                            .get_key_value(key)
+                            .map(|(stored, _)| stored.clone())
+                            .unwrap_or_else(|| SharedKey::new(key.clone()));
+                        changes.insert(shared_key, None);
                     } else {
                         changes.remove(key);
                     }
@@ -201,55 +223,6 @@ where
     }
 }
 
-pub(crate) enum PersistentHashMapIter<'a, K, V> {
-    Exclusive(std::collections::hash_map::Iter<'a, K, V>),
-    ForkShared {
-        base: std::collections::hash_map::Iter<'a, K, V>,
-        changes: im::hashmap::Iter<'a, K, Option<V>>,
-        changed_keys: &'a im::HashMap<K, Option<V>>,
-        remaining: usize,
-    },
-}
-
-impl<'a, K, V> Iterator for PersistentHashMapIter<'a, K, V>
-where
-    K: Eq + Hash,
-{
-    type Item = (&'a K, &'a V);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::Exclusive(iter) => iter.next(),
-            Self::ForkShared {
-                base,
-                changes,
-                changed_keys,
-                remaining,
-            } => {
-                for (key, value) in base.by_ref() {
-                    if !changed_keys.contains_key(key) {
-                        *remaining -= 1;
-                        return Some((key, value));
-                    }
-                }
-                let next =
-                    changes.find_map(|(key, value)| value.as_ref().map(|value| (key, value)));
-                if next.is_some() {
-                    *remaining -= 1;
-                }
-                next
-            }
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        match self {
-            Self::Exclusive(iter) => iter.size_hint(),
-            Self::ForkShared { remaining, .. } => (*remaining, Some(*remaining)),
-        }
-    }
-}
-
 pub(crate) struct PersistentHashMapEntry<'a, K, V> {
     map: &'a mut PersistentHashMap<K, V>,
     key: K,
@@ -268,104 +241,5 @@ where
             self.map.insert(self.key.clone(), V::default());
         }
         self.map.get_mut(&self.key).expect("entry must exist")
-    }
-}
-
-impl<K, V> Clone for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash,
-    V: Clone,
-{
-    fn clone(&self) -> Self {
-        match &self.storage {
-            PersistentHashMapStorage::Exclusive(_) => self.operational_clone(),
-            PersistentHashMapStorage::ForkShared { base, changes, len } => Self {
-                storage: PersistentHashMapStorage::ForkShared {
-                    base: Arc::clone(base),
-                    changes: changes.clone(),
-                    len: *len,
-                },
-            },
-        }
-    }
-}
-
-impl<K, V> Default for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash,
-    V: Clone,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<K, V> FromIterator<(K, V)> for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash,
-    V: Clone,
-{
-    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
-        Self {
-            storage: PersistentHashMapStorage::Exclusive(iter.into_iter().collect()),
-        }
-    }
-}
-
-impl<K, V> PartialEq for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash,
-    V: Clone + PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.len() == other.len()
-            && self
-                .iter()
-                .all(|(key, value)| other.get(key) == Some(value))
-    }
-}
-
-impl<K, V> Eq for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash,
-    V: Clone + Eq,
-{
-}
-
-impl<K, V> std::fmt::Debug for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash + std::fmt::Debug,
-    V: Clone + std::fmt::Debug,
-{
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.debug_map().entries(self.iter()).finish()
-    }
-}
-
-impl<K, V> Serialize for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash + Serialize,
-    V: Clone + Serialize,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.collect_map(self.iter())
-    }
-}
-
-impl<'de, K, V> Deserialize<'de> for PersistentHashMap<K, V>
-where
-    K: Clone + Eq + Hash + Deserialize<'de>,
-    V: Clone + Deserialize<'de>,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(HashMap::<K, V>::deserialize(deserializer)?
-            .into_iter()
-            .collect())
     }
 }

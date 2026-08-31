@@ -171,21 +171,35 @@ fn retiring_temporary_earlier_key_preserves_inherited_frontier_index() {
     assert_eq!(source.first_key_value(), Some((&10, &10)));
 }
 
+const SHARED_LOGICAL_CLONE_CHILD: &str = "WORTH_SIGNAL_SHARED_MAP_CLONE_COST_CHILD";
+const SHARED_LOGICAL_CLONE_TEST: &str =
+    "data::persistent_ord_map::tests::shared_logical_clone_is_bounded_for_rollback_capture";
+
+fn run_isolated_shared_logical_clone_probe() {
+    let output = Command::new(env::current_exe().expect("test executable resolves"))
+        .arg("--exact")
+        .arg(SHARED_LOGICAL_CLONE_TEST)
+        .arg("--nocapture")
+        .arg("--test-threads=1")
+        .env(SHARED_LOGICAL_CLONE_CHILD, "1")
+        .output()
+        .expect("isolated logical-clone allocation probe starts");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    print!("{stdout}");
+    eprint!("{stderr}");
+    assert!(
+        output.status.success()
+            && stdout.contains(SHARED_LOGICAL_CLONE_TEST)
+            && stdout.contains("1 passed; 0 failed"),
+        "logical-clone probe did not run exactly once: stdout={stdout:?} stderr={stderr:?}"
+    );
+}
+
 #[test]
 fn shared_logical_clone_is_bounded_for_rollback_capture() {
-    const CHILD: &str = "WORTH_SIGNAL_SHARED_MAP_CLONE_COST_CHILD";
-    const TEST: &str =
-        "data::persistent_ord_map::tests::shared_logical_clone_is_bounded_for_rollback_capture";
-    if env::var_os(CHILD).is_none() {
-        let status = Command::new(env::current_exe().expect("test executable resolves"))
-            .arg("--exact")
-            .arg(TEST)
-            .arg("--nocapture")
-            .arg("--test-threads=1")
-            .env(CHILD, "1")
-            .status()
-            .expect("isolated logical-clone allocation probe starts");
-        assert!(status.success(), "logical-clone allocation probe failed");
+    if env::var_os(SHARED_LOGICAL_CLONE_CHILD).is_none() {
+        run_isolated_shared_logical_clone_probe();
         return;
     }
 

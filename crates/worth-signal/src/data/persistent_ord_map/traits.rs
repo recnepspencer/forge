@@ -9,18 +9,14 @@ impl<K: Clone + Ord, V: Clone> Clone for PersistentOrdMap<K, V> {
             PersistentOrdMapStorage::ForkShared {
                 base,
                 changes,
-                live_change_keys,
                 retired_base_intervals,
                 len,
-                first_live_key,
             } => Self {
                 storage: PersistentOrdMapStorage::ForkShared {
                     base: std::sync::Arc::clone(base),
                     changes: changes.clone(),
-                    live_change_keys: live_change_keys.clone(),
                     retired_base_intervals: retired_base_intervals.clone(),
                     len: *len,
-                    first_live_key: first_live_key.clone(),
                 },
             },
         }
