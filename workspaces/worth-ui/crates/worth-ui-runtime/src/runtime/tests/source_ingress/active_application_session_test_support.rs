@@ -172,7 +172,7 @@ pub(crate) fn scaled_component_candidate_submission(
     )
 }
 
-fn component_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
+pub(crate) fn component_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
     component_builder_with_allocation(false)
 }
 

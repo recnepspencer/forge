@@ -94,6 +94,8 @@ pub(in crate::source::tests) fn snapshot_with_support_catalog(
 ) -> CapabilitySnapshot {
     CapabilitySnapshot::from_freeze_input(CapabilitySnapshotFreezeInput {
         registered_capabilities: clone_registered_capabilities(base),
+        appearance_roles: base.appearance_roles().clone(),
+        appearance_themes: base.appearance_themes().cloned(),
         commands: base.commands().clone(),
         command_projections: base.command_projections().clone(),
         components: base.components().clone(),

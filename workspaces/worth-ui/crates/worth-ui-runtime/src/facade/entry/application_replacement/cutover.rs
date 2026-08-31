@@ -5,6 +5,10 @@ use super::service_installation_reconciliation::{
 use super::*;
 use crate::facade::WorthUiActiveApplicationSession;
 
+mod appearance;
+mod outcome;
+use outcome::seal_prepared_activation;
+
 pub(super) struct WorthUiCutoverGenerationBasis {
     pub(super) prior: WorthUiPreparedApplicationGenerationIdentity,
     pub(super) active: WorthUiPreparedApplicationGenerationIdentity,
@@ -100,6 +104,10 @@ impl WorthUiActiveApplicationSession {
             pending.next_app.prepared_authority().lowering_authority();
         let candidate_service_policy_plan =
             pending.next_app.prepared_authority().service_policy_plan();
+        appearance::validate_candidate_owner_installation(
+            &pending,
+            &candidate_service_policy_plan,
+        )?;
         if self.mounted.has_active_presentation_attempt() {
             return Err(WorthUiApplicationCutoverDenial::MountedPresentationInFlight);
         }
@@ -239,9 +247,16 @@ impl WorthUiActiveApplicationSession {
             }
         }
         reconcile_motion_installation(&mut self.motion, service_policy_plan.motion());
+        let successor_appearance_demand = self
+            .application
+            .prepared_authority()
+            .consumed_fact_index()
+            .appearance_axis_demand();
         self.intent_application_facts =
             crate::runtime::intent::UiIntentApplicationFactState::activate(
                 self.application.intent_application_fact_plan(),
+                successor_appearance_demand
+                    .contains(worth_ui_dsl::UiAppearanceStateAxis::Validation),
             );
         self.intent_confirmation.cancel_all(
             crate::runtime::intent::UiIntentConfirmationCancellationReason::ApplicationRebound,
@@ -266,6 +281,7 @@ impl WorthUiActiveApplicationSession {
                 .map(crate::runtime::selection::UiSelectionRuntimeState::shutdown);
         }
         self.selection = selection;
+        appearance::reconcile_successor_owners(self);
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
         self.cancel_all_interactions(
@@ -333,50 +349,6 @@ fn seal_semantic_no_op(
         WorthUiApplicationSemanticNoOpReceipt {
             receipt: *receipt,
             reload_cost,
-        },
-    ))
-}
-
-fn seal_prepared_activation(
-    evidence: WorthUiPreparedCutoverEvidence,
-    activation: crate::runtime::WorthUiPreparedApplicationPlanSwap,
-) -> WorthUiPreparedApplicationCutoverOutcome {
-    let successor_runtime = activation.candidate_runtime_observation();
-    let publication = WorthUiApplicationPublicationObservation::prepare_successor(
-        WorthUiApplicationPublicationPreparation {
-            application_generation: evidence.generations.active.clone(),
-            successor_runtime: successor_runtime.clone(),
-            runtime_basis: evidence.runtime_basis,
-            host_session: evidence.host_session,
-            successor_scheduler: activation.candidate_scheduler_state(),
-        },
-    );
-    let reload_cost = evidence.reload_cost_seed.finish(
-        evidence.generations.prior.clone(),
-        evidence.generations.active.clone(),
-        activation.previous_active_plan_digest(),
-        successor_runtime
-            .cross_lane_bundle()
-            .construction_counters(),
-        activation
-            .plan_decision()
-            .summary()
-            .expect("prepared activation carries comparison evidence"),
-    );
-    WorthUiPreparedApplicationCutoverOutcome::Activation(Box::new(
-        WorthUiPreparedApplicationActivation {
-            identity: Box::new(WorthUiApplicationCutoverIdentityEvidence {
-                prior_generation: evidence.generations.prior,
-                active_generation: evidence.generations.active,
-            }),
-            publication: Box::new(publication),
-            visual_trace_source: evidence.visual_trace_source,
-            font_collection: evidence.font_collection,
-            candidate_graph: evidence.candidate_graph,
-            candidate_application_authority: evidence.candidate_application_authority,
-            candidate_service_policy_plan: evidence.candidate_service_policy_plan,
-            reload_cost,
-            transition: Some(WorthUiApplicationCutoverTransition::Prepared(activation)),
         },
     ))
 }

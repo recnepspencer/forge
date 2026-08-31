@@ -173,6 +173,7 @@ pub enum WorthUiApplicationReplacementStagingDenial {
 pub enum WorthUiApplicationCutoverDenial {
     MountedPresentationInFlight,
     ForeignActiveApplicationSession,
+    AppearanceOwnerUnavailable(worth_ui_dsl::UiAppearanceStateAxis),
     PreparedApplicationGraphMismatch,
     PreparedApplicationAuthorityMismatch,
     FrameBoundaryUnavailable {

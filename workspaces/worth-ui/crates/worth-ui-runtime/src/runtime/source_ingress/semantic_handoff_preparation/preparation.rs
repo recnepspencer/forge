@@ -46,11 +46,33 @@ pub(in crate::runtime::source_ingress) fn prepare_semantic_handoff(
                 WorthUiSemanticHandoffPreparationStop::RuntimeStructuralAdmission,
             )
         })?;
-    let declaration_material =
+    let mut declaration_material =
         prepare_declaration_material(&package, &structured).map_err(|_| {
             denial(
                 evidence.clone(),
                 WorthUiSemanticHandoffPreparationStop::DeclarationProjection,
+            )
+        })?;
+    declaration_material
+        .admit_authored_component_references(snapshot)
+        .map_err(|(declaration_index, cause)| {
+            denial(
+                evidence.clone(),
+                WorthUiSemanticHandoffPreparationStop::ComponentReference {
+                    declaration_index,
+                    cause,
+                },
+            )
+        })?;
+    declaration_material
+        .admit_authored_appearance_attachments(snapshot)
+        .map_err(|(declaration_index, cause)| {
+            denial(
+                evidence.clone(),
+                WorthUiSemanticHandoffPreparationStop::AppearanceRoleAttachment {
+                    declaration_index,
+                    cause,
+                },
             )
         })?;
     let bound = WorthUiBindingSemanticsLowerer::lower(&structured, snapshot).map_err(|_| {

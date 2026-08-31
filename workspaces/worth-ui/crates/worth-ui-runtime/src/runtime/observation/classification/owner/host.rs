@@ -1,5 +1,6 @@
 use crate::fact_contract::{
-    UiHostDeviceScaleChangedFact, UiHostViewportChangedFact, UiProducedFact,
+    UiHostDeviceScaleChangedFact, UiHostPointerMotionChangedFact, UiHostViewportChangedFact,
+    UiProducedFact,
 };
 
 pub(in crate::runtime::observation::classification) fn classify(
@@ -20,6 +21,13 @@ pub(in crate::runtime::observation::classification) fn classify(
         worth_ui_host_contract::UiHostObservationPayload::DeviceScale { micros } => Ok(
             UiProducedFact::HostDeviceScale(UiHostDeviceScaleChangedFact::new(*micros)),
         ),
+        worth_ui_host_contract::UiHostObservationPayload::PointerMotion {
+            pointer,
+            position,
+            ..
+        } => Ok(UiProducedFact::HostPointerMotion(
+            UiHostPointerMotionChangedFact::new(*pointer, *position),
+        )),
         _ => unreachable!("host admission seals only supported semantic families"),
     }
 }

@@ -20,6 +20,14 @@ pub(crate) struct UiChangeClassificationRequest<F> {
 }
 
 impl UiChangeClassifier {
+    pub(crate) fn validate_basis(
+        set: &UiAdmittedObservationSet,
+        expected_session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+        expected_source_basis: u64,
+    ) -> Result<(), UiChangeClassificationDenial> {
+        require_basis(set, expected_session, expected_source_basis)
+    }
+
     pub(crate) fn classify<F>(
         request: UiChangeClassificationRequest<F>,
     ) -> Result<UiChangeClassificationOutcome, UiChangeClassificationDenial>

@@ -268,6 +268,63 @@ fn nested_portal_rejects_an_uncommitted_parent_before_truth_changes() {
     assert_eq!(state.revision(), 0);
 }
 
+#[test]
+fn stack_snapshot_uses_minted_total_order_not_identity_or_depth() {
+    let mut state = state();
+    let first = portal(301, 401);
+    let second = portal(201, 402);
+    let first_request = open_request(first, 501);
+    let open_first = state.prepare(first_request).unwrap();
+    state.commit_published(open_first).unwrap();
+    let open_second = state.prepare(open_request(second, 502)).unwrap();
+    state.commit_published(open_second).unwrap();
+
+    let snapshot = state.stack_snapshot();
+    assert_eq!(
+        snapshot
+            .rows()
+            .iter()
+            .map(|row| row.portal())
+            .collect::<Vec<_>>(),
+        [first, second]
+    );
+    assert!(snapshot.rows()[0].ordinal().value() < snapshot.rows()[1].ordinal().value());
+
+    let duplicate = state.prepare(first_request).unwrap();
+    state.commit_published(duplicate).unwrap();
+    let retained = state.stack_snapshot();
+    assert_eq!(retained.rows()[0].ordinal(), snapshot.rows()[0].ordinal());
+}
+
+#[test]
+fn replacement_mints_a_new_ordinal_and_exhaustion_denies_before_effects() {
+    let mut state = state();
+    let original = portal(601, 701);
+    let replacement = portal(601, 702);
+    let open = state.prepare(open_request(original, 801)).unwrap();
+    state.commit_published(open).unwrap();
+    let original_ordinal = state.stack_snapshot().rows()[0].ordinal();
+
+    let replace = state.prepare(open_request(replacement, 802)).unwrap();
+    state.commit_published(replace).unwrap();
+    let replacement_ordinal = state
+        .stack_snapshot()
+        .rows()
+        .iter()
+        .find(|row| row.portal() == replacement)
+        .expect("replacement remains in the total stack")
+        .ordinal();
+    assert!(replacement_ordinal > original_ordinal);
+
+    state.force_next_stack_ordinal(u64::MAX);
+    let before_revision = state.revision();
+    assert!(matches!(
+        state.prepare(open_request(portal(603, 703), 803)),
+        Err(UiPortalServiceTransitionDenial::StackOrdinalExhausted)
+    ));
+    assert_eq!(state.revision(), before_revision);
+}
+
 pub(super) fn state() -> UiPortalRuntimeState {
     UiPortalRuntimeState::new(
         crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,

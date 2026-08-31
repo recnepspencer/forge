@@ -5,9 +5,9 @@ pub use consumed::{UiConsumedFactContract, UiConsumedFactSelector, UiSubsystemCo
 pub use produced::{
     UiAuthoredChangedFact, UiAuthoredFactKind, UiAuthoredFactSelector,
     UiCommittedPortalAnchorChangedFact, UiCommittedScrollExtentChangedFact,
-    UiHostDeviceScaleChangedFact, UiHostViewportChangedFact, UiIntentPostureChangedFact,
-    UiIntentPostureKind, UiIntentPostureReference, UiMeasurementChangedFact, UiProducedFact,
-    UiProducedFactContract, UiProducedFactFamily, UiProducedFactOwner, UiProducedFactResetPosture,
-    UiQueryChangedFact, UiQueryChangedFactKind, UiQueryIncrementalChangedFact,
-    UiQueryResetChangedFact,
+    UiHostDeviceScaleChangedFact, UiHostPointerMotionChangedFact, UiHostViewportChangedFact,
+    UiIntentPostureChangedFact, UiIntentPostureKind, UiIntentPostureReference,
+    UiMeasurementChangedFact, UiProducedFact, UiProducedFactContract, UiProducedFactFamily,
+    UiProducedFactOwner, UiProducedFactResetPosture, UiQueryChangedFact, UiQueryChangedFactKind,
+    UiQueryIncrementalChangedFact, UiQueryResetChangedFact,
 };

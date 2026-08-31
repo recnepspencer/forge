@@ -4,8 +4,14 @@ mod prepared;
 mod projection;
 mod stop;
 
+#[cfg(test)]
+pub(crate) use application_fact_state::{
+    UiAdmittedValidationAppearanceTarget, UiValidationAppearanceClass,
+    UiValidationAppearanceFactDenial, UiValidationAppearanceTargetAdmissionDenial,
+};
 pub(crate) use application_fact_state::{
     UiIntentApplicationFactState, UiIntentApplicationInputReference,
+    UiValidationAppearanceFactSnapshot,
 };
 pub use application_fact_state::{
     UiIntentApplicationFactUpdateDenial, UiIntentApplicationFactUpdateReceipt,

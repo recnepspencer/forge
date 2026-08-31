@@ -767,6 +767,10 @@ path = "cad/workspaces/worth-certification"
 allowed_crate_prefixes = ["worth-cert-"]
 member_lane = "crates/*"
 
+[[context_workspaces]]
+path = "workspaces/worth-ui"
+package_prefix = "worth-ui"
+
 [legacy_reference_ratchet]
 governed_roots = [
   "cad/workspaces/",

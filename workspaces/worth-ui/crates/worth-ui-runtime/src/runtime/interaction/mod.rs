@@ -1,6 +1,7 @@
 mod batch;
 pub(crate) mod draft;
 pub(crate) mod gesture;
+mod pointer_presence;
 mod semantic;
 mod service_event;
 mod settlement;
@@ -26,6 +27,7 @@ pub use gesture::{
     UiPointerGestureContinuityKind, UiPointerGesturePressReceipt, UiPointerGestureStop,
     UiPointerGestureStopReason, UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
+pub(crate) use pointer_presence::UiPointerPresenceAppearanceOwnerSnapshot;
 pub(crate) use semantic::{
     selection_evidence_input, semantic_evidence_input, UiEditCommitInput, UiKeyboardSemanticInput,
 };

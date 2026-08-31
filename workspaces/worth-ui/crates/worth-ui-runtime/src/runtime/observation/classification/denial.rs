@@ -8,6 +8,7 @@ pub enum UiAuthoredFactDeclarationSide {
 pub enum UiChangeClassificationDenial {
     ForeignSession,
     ForeignSourceBasis,
+    ForeignApplicationGeneration,
     MissingHostReport {
         family: worth_ui_host_contract::UiHostObservationFamily,
     },

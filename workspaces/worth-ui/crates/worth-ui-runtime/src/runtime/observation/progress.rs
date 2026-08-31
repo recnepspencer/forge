@@ -3,6 +3,7 @@ pub(super) enum UiObservationProgressKey {
     AuthoredSource(Box<str>),
     HostViewport(u64),
     HostDeviceScale(u64),
+    HostPointerMotion(u64),
     Measurement(u64),
     Query(worth_ui_query_binding::WorthUiCollectionChangeSourceReference),
     QueryProjection(worth_ui_query_binding::WorthUiQueryViewIdentity),
@@ -35,6 +36,13 @@ impl UiObservationProgress {
     pub(super) const fn host_device_scale(host_session: u64, owner_order: u64) -> Self {
         Self {
             key: UiObservationProgressKey::HostDeviceScale(host_session),
+            owner_order,
+        }
+    }
+
+    pub(super) const fn host_pointer_motion(host_session: u64, owner_order: u64) -> Self {
+        Self {
+            key: UiObservationProgressKey::HostPointerMotion(host_session),
             owner_order,
         }
     }

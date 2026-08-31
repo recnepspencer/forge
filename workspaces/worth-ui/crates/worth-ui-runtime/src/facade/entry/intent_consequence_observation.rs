@@ -11,11 +11,10 @@ pub(super) struct WorthUiIntentConsequenceObservationStop {
 }
 
 pub(super) fn prepare_intent_consequence_observation(
-    application: &mut crate::runtime::session::WorthUiApplicationSessionState,
-    session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    session: &mut super::WorthUiActiveApplicationSession,
     batch: crate::runtime::observation::UiIntentConsequenceObservationBatch,
 ) -> Result<WorthUiPreparedIntentConsequenceObservation, WorthUiIntentConsequenceObservationStop> {
-    let mut turn = match application.begin_observation_turn(session) {
+    let mut turn = match session.begin_observation_turn() {
         Ok(turn) => turn,
         Err(denial) => {
             return Err(WorthUiIntentConsequenceObservationStop {

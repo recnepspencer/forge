@@ -134,7 +134,8 @@ impl WorthUiActiveApplicationSession {
                 match portal.prepare(request) {
                     Ok(transition) => Some(transition),
                     Err(
-                        crate::runtime::portal::UiPortalServiceTransitionDenial::RevisionExhausted,
+                        crate::runtime::portal::UiPortalServiceTransitionDenial::RevisionExhausted
+                        | crate::runtime::portal::UiPortalServiceTransitionDenial::StackOrdinalExhausted,
                     ) => {
                         return self.stop_intent_consequence(
                             handoff,
@@ -187,6 +188,9 @@ impl WorthUiActiveApplicationSession {
                 Some(Err(crate::runtime::portal::UiPortalServiceTransitionDenial::StalePlan)) => {
                     unreachable!("portal dismissal preparation does not mutate its revision")
                 }
+                Some(Err(
+                    crate::runtime::portal::UiPortalServiceTransitionDenial::StackOrdinalExhausted,
+                )) => unreachable!("portal dismissal does not reserve a stack ordinal"),
                 Some(Err(crate::runtime::portal::UiPortalServiceTransitionDenial::Placement(
                     denial,
                 ))) => {
@@ -246,11 +250,7 @@ impl WorthUiActiveApplicationSession {
             handoff.take_query_projection(),
         );
         debug_assert!(!batch.is_empty());
-        let observation = match prepare_intent_consequence_observation(
-            &mut self.application,
-            self.identity,
-            batch,
-        ) {
+        let observation = match prepare_intent_consequence_observation(self, batch) {
             Ok(observation) => observation,
             Err(stop) => {
                 restore_query_from_batch(&mut handoff, *stop.batch);

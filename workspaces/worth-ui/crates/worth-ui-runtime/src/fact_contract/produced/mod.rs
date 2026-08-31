@@ -12,7 +12,9 @@ pub use definition::{
     UiProducedFactContract, UiProducedFactFamily, UiProducedFactOwner, UiProducedFactResetPosture,
 };
 pub use fact::UiProducedFact;
-pub use host::{UiHostDeviceScaleChangedFact, UiHostViewportChangedFact};
+pub use host::{
+    UiHostDeviceScaleChangedFact, UiHostPointerMotionChangedFact, UiHostViewportChangedFact,
+};
 pub use intent::{UiIntentPostureChangedFact, UiIntentPostureKind, UiIntentPostureReference};
 pub use measurement::UiMeasurementChangedFact;
 pub use query::{

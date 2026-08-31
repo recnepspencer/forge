@@ -1,3 +1,8 @@
+#[allow(
+    dead_code,
+    reason = "milestone 3.16 Gate 0 seals the selection appearance export before it is consumed"
+)]
+mod appearance_export;
 mod delta;
 mod identity;
 mod inspection;
@@ -34,3 +39,11 @@ mod state_lifecycle_tests;
 mod state_test_fixture;
 #[cfg(test)]
 mod state_tests;
+#[allow(
+    unused_imports,
+    reason = "milestone 3.16 Gate 0 exposes the sealed selection appearance contract internally"
+)]
+pub(crate) use appearance_export::{
+    UiSelectionAppearanceClass, UiSelectionAppearanceOwnerSnapshot, UiSelectionAppearancePosture,
+    UiSelectionAppearancePostureDenial,
+};

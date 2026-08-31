@@ -6,6 +6,7 @@ pub struct UiAdmittedObservationSet {
     source_basis: u64,
     observations: Box<[UiAdmittedObservation]>,
     summary: UiObservationSetSummary,
+    appearance_owner_snapshot: Option<crate::runtime::appearance::UiAppearanceOwnerSnapshot>,
     _lease: super::super::resource_ledger::UiObservationSetLease,
 }
 
@@ -16,6 +17,7 @@ impl UiAdmittedObservationSet {
         source_basis: u64,
         observations: Box<[UiAdmittedObservation]>,
         retained_bytes: usize,
+        appearance_owner_snapshot: Option<crate::runtime::appearance::UiAppearanceOwnerSnapshot>,
         lease: super::super::resource_ledger::UiObservationSetLease,
     ) -> Self {
         debug_assert!(!observations.is_empty());
@@ -31,6 +33,7 @@ impl UiAdmittedObservationSet {
             source_basis,
             observations,
             summary,
+            appearance_owner_snapshot,
             _lease: lease,
         }
     }
@@ -51,13 +54,35 @@ impl UiAdmittedObservationSet {
         &self.summary
     }
 
-    pub(in crate::runtime::observation) const fn session(
+    pub(crate) fn take_appearance_owner_snapshot(
+        &mut self,
+    ) -> Option<crate::runtime::appearance::UiAppearanceOwnerSnapshot> {
+        self.appearance_owner_snapshot.take()
+    }
+
+    pub(crate) const fn appearance_owner_snapshot(
         &self,
-    ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
+    ) -> Option<&crate::runtime::appearance::UiAppearanceOwnerSnapshot> {
+        self.appearance_owner_snapshot.as_ref()
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn carries_appearance_owner_snapshot_for_test(&self) -> bool {
+        self.appearance_owner_snapshot.is_some()
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn appearance_owner_snapshot_for_test(
+        &self,
+    ) -> Option<&crate::runtime::appearance::UiAppearanceOwnerSnapshot> {
+        self.appearance_owner_snapshot.as_ref()
+    }
+
+    pub(crate) const fn session(&self) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
         self.session
     }
 
-    pub(in crate::runtime::observation) const fn source_basis(&self) -> u64 {
+    pub(crate) const fn source_basis(&self) -> u64 {
         self.source_basis
     }
 

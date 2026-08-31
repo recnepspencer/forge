@@ -1,3 +1,4 @@
+mod appearance;
 mod geometry;
 mod headless_cache;
 mod headless_observation;
@@ -15,6 +16,25 @@ mod static_paint;
 mod tables;
 mod view;
 
+pub use appearance::{
+    compose_source_over, UiAppearanceClip, UiAppearanceDamageAttribution, UiAppearanceDamageRegion,
+    UiAppearanceEmptyRegion, UiAppearancePhysicalRadii, UiAppearanceProjectionAttribution,
+    UiHostAppearanceMechanicFamily, UiHostAppearanceProfileContract, UiHostAppearanceProfileDenial,
+    UiHostPrimaryPointerKind, UiMountedAppearanceColor, UiMountedAppearanceOpacity,
+    UiMountedBackdropCompletionDenial, UiMountedBackdropCompletionInput, UiMountedBackdropIdentity,
+    UiMountedBackdropMechanic, UiMountedOutlineAppearanceCompletionDenial,
+    UiMountedOutlineAppearanceCompletionInput, UiMountedOutlineAppearanceMechanic,
+    UiMountedPointerAffordanceMechanic, UiMountedPortalSurfaceAppearanceCompletionDenial,
+    UiMountedPortalSurfaceAppearanceMechanic, UiMountedSurfaceAppearanceCompletionDenial,
+    UiMountedSurfaceAppearanceCompletionInput, UiMountedSurfaceAppearanceMechanic,
+    UiMountedSurfacePaint, UiMountedTextForegroundAppearanceCompletionDenial,
+    UiMountedTextForegroundAppearanceCompletionInput, UiMountedTextForegroundAppearanceMechanic,
+    UiOverlayParticipantIdentity, UiOverlayPlacementReceipt, UiOverlayStackSnapshot,
+    UiOverlayStackSnapshotDenial, UiPointerAffordanceFamily, SRGB_GAMMA_DENOMINATOR,
+    SRGB_GAMMA_NUMERATOR, SRGB_LINEAR_SCALE_DENOMINATOR, SRGB_LINEAR_SCALE_NUMERATOR,
+    SRGB_LINEAR_THRESHOLD_DENOMINATOR, SRGB_LINEAR_THRESHOLD_NUMERATOR, SRGB_OFFSET_DENOMINATOR,
+    SRGB_OFFSET_NUMERATOR, SRGB_SCALE_DENOMINATOR, SRGB_SCALE_NUMERATOR,
+};
 pub use geometry::{
     UiMountedAllocationBasis, UiMountedAllocationProjection, UiMountedCanonicalBox,
     UiMountedCanonicalBoxInput, UiMountedCoordinateSpace, UiMountedGeometryDenial,

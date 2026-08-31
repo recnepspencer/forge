@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 mod duplicate_request;
 #[path = "state/mounted_projection.rs"]
 mod mounted_projection;
+#[path = "state/preparation.rs"]
+mod preparation;
 #[path = "state/shutdown.rs"]
 mod shutdown;
 
@@ -26,6 +28,7 @@ pub(crate) struct UiPortalRuntimeState {
     admitted_requests: u64,
     idempotent_requests: u64,
     revision: u64,
+    next_stack_ordinal: u64,
     last_closed: Option<super::UiPortalClosedInspectionRecord>,
 }
 
@@ -35,6 +38,7 @@ pub(super) struct UiPortalRecord {
     last_request: crate::runtime::intent_execution::UiIntentExecutionIdempotencyIdentity,
     dismissal: Option<super::UiPortalDismissalCause>,
     pub(super) placement: Option<super::UiCommittedPortalPlacement>,
+    pub(super) stack_ordinal: super::UiPortalStackOrdinal,
     exit_retention: Option<super::UiPortalExitRetentionReceipt>,
 }
 
@@ -54,6 +58,7 @@ impl UiPortalRuntimeState {
             admitted_requests: 0,
             idempotent_requests: 0,
             revision: 0,
+            next_stack_ordinal: 1,
             last_closed: None,
         }
     }
@@ -79,45 +84,6 @@ impl UiPortalRuntimeState {
                 super::UiPortalLifecyclePosture::Open | super::UiPortalLifecyclePosture::Visible
             )
         })
-    }
-
-    pub(crate) fn prepare(
-        &self,
-        request: super::UiPortalServiceRequest,
-    ) -> Result<super::UiPreparedPortalServiceTransition, super::UiPortalServiceTransitionDenial>
-    {
-        let request = request.with_policy(self.policy);
-        let committed_revision = self
-            .revision
-            .checked_add(1)
-            .ok_or(super::UiPortalServiceTransitionDenial::RevisionExhausted)?;
-        let parent = request
-            .parent()
-            .and_then(|parent| self.records.get(&parent))
-            .and_then(|record| record.placement);
-        let placement = super::UiPreparedPortalPlacement::for_request(&request, parent)
-            .map_err(super::UiPortalServiceTransitionDenial::Placement)?;
-        let (staged_posture, disposition) =
-            duplicate_request::classify(self.prior_request(request.portal()), &request, placement);
-        let closed_descendants = match request.operation() {
-            super::request::UiPortalServiceOperation::Open => Box::default(),
-            super::request::UiPortalServiceOperation::Close(_) => self
-                .records
-                .keys()
-                .copied()
-                .filter(|portal| self.portal_descends_from(*portal, request.portal()))
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
-        };
-        Ok(super::UiPreparedPortalServiceTransition::new(
-            request,
-            self.revision,
-            committed_revision,
-            staged_posture,
-            disposition,
-            placement,
-            closed_descendants,
-        ))
     }
 
     pub(crate) fn commit_published(
@@ -241,17 +207,40 @@ impl UiPortalRuntimeState {
                     .then(|| self.records.get(&request.portal())?.placement)
                     .flatten()
             });
-        self.retain_committed_record(
-            request,
-            UiPortalRecord {
-                posture,
-                semantic_surface: request.semantic_surface(),
-                last_request: request.idempotency(),
-                dismissal,
-                placement,
-                exit_retention,
-            },
-        );
+        let stack_ordinal = transition.stack_ordinal().or_else(|| {
+            self.records
+                .get(&request.portal())
+                .map(|record| record.stack_ordinal)
+        });
+        if transition.opens_portal() && !transition.is_idempotent() {
+            self.next_stack_ordinal = stack_ordinal
+                .expect("an opening portal receives a prepared stack ordinal")
+                .value()
+                .checked_add(1)
+                .expect("prepared stack ordinal retained successor capacity");
+        }
+        if let Some(stack_ordinal) = stack_ordinal {
+            self.retain_committed_record(
+                request,
+                UiPortalRecord {
+                    posture,
+                    semantic_surface: request.semantic_surface(),
+                    last_request: request.idempotency(),
+                    dismissal,
+                    placement,
+                    stack_ordinal,
+                    exit_retention,
+                },
+            );
+        } else {
+            debug_assert_eq!(posture, super::UiPortalLifecyclePosture::Closed);
+            self.closed_requests.retain(
+                request.portal(),
+                request.semantic_surface(),
+                request.idempotency(),
+                dismissal.expect("a terminal close retains its dismissal cause"),
+            );
+        }
         self.admitted_requests = self.admitted_requests.saturating_add(1);
         if transition.disposition() == super::UiPortalServiceDisposition::Idempotent {
             self.idempotent_requests = self.idempotent_requests.saturating_add(1);
@@ -297,22 +286,6 @@ impl UiPortalRuntimeState {
         record: UiPortalRecord,
     ) {
         self.retain_record(request.portal(), record);
-    }
-
-    fn prior_request(
-        &self,
-        portal: super::UiPortalIdentity,
-    ) -> Option<duplicate_request::UiPortalPriorRequest> {
-        self.records
-            .get(&portal)
-            .map(|record| duplicate_request::UiPortalPriorRequest {
-                posture: record.posture,
-                semantic_surface: record.semantic_surface,
-                last_request: record.last_request,
-                dismissal: record.dismissal,
-                placement: record.placement,
-            })
-            .or_else(|| self.closed_requests.prior_request(portal))
     }
 
     fn require_current(
@@ -376,6 +349,11 @@ impl UiPortalRuntimeState {
 
     pub(crate) const fn last_closed(&self) -> Option<super::UiPortalClosedInspectionRecord> {
         self.last_closed
+    }
+
+    #[cfg(test)]
+    pub(crate) fn force_next_stack_ordinal(&mut self, next: u64) {
+        self.next_stack_ordinal = next;
     }
 
     /// Live portal records plus the bounded duplicate-request rows retained for

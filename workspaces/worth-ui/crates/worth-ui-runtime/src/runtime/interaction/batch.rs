@@ -14,6 +14,12 @@ pub struct UiInteractionBatchReceipt {
     pub(super) state: UiInteractionStateSnapshot,
     pub(super) scroll_observations: Box<[crate::runtime::scroll::UiHostScrollObservationOutcome]>,
     pub(super) command_routes: Box<[crate::runtime::UiCommandRoutingOutcome]>,
+    #[allow(
+        dead_code,
+        reason = "Gate 0 retains non-emitting pointer transition evidence"
+    )]
+    pub(super) pointer_presence_transitions:
+        Box<[super::pointer_presence::UiPointerPresenceTargetTransition]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -73,6 +79,16 @@ impl UiInteractionBatchReceipt {
         Box<[crate::runtime::UiCommandRoutingOutcome]>,
     ) {
         (self.transitions, self.command_routes)
+    }
+
+    #[allow(
+        dead_code,
+        reason = "Gate 0 exposes pointer transition evidence only inside runtime"
+    )]
+    pub(crate) fn pointer_presence_transitions(
+        &self,
+    ) -> &[super::pointer_presence::UiPointerPresenceTargetTransition] {
+        &self.pointer_presence_transitions
     }
 
     pub(crate) fn retain_service_dismissal(&mut self, dismissal: super::UiDismissInteraction) {

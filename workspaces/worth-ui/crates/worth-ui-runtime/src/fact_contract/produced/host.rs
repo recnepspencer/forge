@@ -9,6 +9,12 @@ pub struct UiHostDeviceScaleChangedFact {
     micros: u32,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub struct UiHostPointerMotionChangedFact {
+    pointer: worth_ui_host_contract::UiHostPointerIdentity,
+    position: worth_ui_host_contract::UiHostSurfacePosition,
+}
+
 impl UiHostViewportChangedFact {
     pub(crate) const fn new(width_subpixels: i64, height_subpixels: i64) -> Self {
         Self {
@@ -33,5 +39,21 @@ impl UiHostDeviceScaleChangedFact {
 
     pub const fn micros(&self) -> u32 {
         self.micros
+    }
+}
+
+impl UiHostPointerMotionChangedFact {
+    pub(crate) const fn new(
+        pointer: worth_ui_host_contract::UiHostPointerIdentity,
+        position: worth_ui_host_contract::UiHostSurfacePosition,
+    ) -> Self {
+        Self { pointer, position }
+    }
+
+    pub const fn pointer(&self) -> worth_ui_host_contract::UiHostPointerIdentity {
+        self.pointer
+    }
+    pub const fn position(&self) -> worth_ui_host_contract::UiHostSurfacePosition {
+        self.position
     }
 }

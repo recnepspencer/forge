@@ -28,12 +28,12 @@ pub(super) struct UiSelectionOwnerRecord {
 pub(crate) struct UiSelectionRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
     policy: crate::declaration::UiSelectionPolicy,
-    owners: BTreeMap<super::UiSelectionOwnerIdentity, UiSelectionOwnerRecord>,
-    revision: u64,
+    pub(super) owners: BTreeMap<super::UiSelectionOwnerIdentity, UiSelectionOwnerRecord>,
+    pub(super) revision: u64,
     requests: u64,
     candidates_visited: u64,
     catalog_keys_reconciled: u64,
-    mounted_owners: BTreeMap<
+    pub(super) mounted_owners: BTreeMap<
         (
             worth_ui_host_contract::UiSemanticSurfaceIdentity,
             crate::graph::UiGraphNodeIdentity,

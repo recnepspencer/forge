@@ -1,0 +1,23 @@
+{
+  "live_profile": "worth-ui-windows-dx12-v1",
+  "intended_profile": "worth-ui-windows-dx12-v2",
+  "mechanics": [
+    "surface-fill", "surface-border", "corner-radii", "outline",
+    "text-range-foreground", "portal-surface", "backdrop",
+    "overlay-order", "pointer-affordance", "damage", "clip"
+  ],
+  "required_host_contract_symbols": [
+    "UiMountedSurfaceAppearanceMechanic", "UiMountedPortalSurfaceAppearanceMechanic",
+    "UiMountedOutlineAppearanceMechanic", "UiMountedTextForegroundAppearanceMechanic",
+    "UiMountedBackdropMechanic", "UiOverlayStackSnapshot",
+    "UiMountedPointerAffordanceMechanic", "UiAppearanceDamageRegion", "UiAppearanceClip",
+    "UiMountedSurfaceAppearanceCompletionInput", "UiMountedOutlineAppearanceCompletionInput",
+    "UiMountedBackdropCompletionInput", "UiMountedTextForegroundAppearanceCompletionInput",
+    "UiHostAppearanceMechanicFamily"
+  ],
+  "preserved_owners": {
+    "consumed_fact_index": "workspaces/worth-ui/crates/worth-ui-runtime/src/graph/indexes/fact/index.rs",
+    "mounted_preview": "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_projection/preview.rs",
+    "live_static_paint": "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_projection/static_paint.rs"
+  }
+}

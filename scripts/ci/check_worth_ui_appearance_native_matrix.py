@@ -1,0 +1,87 @@
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+MATRIX = ROOT / "workspaces/worth-ui/contracts/milestone-3.16-native-appearance.json"
+EXPECTED_MECHANICS = [
+    "surface-fill", "surface-border", "corner-radii", "outline",
+    "text-range-foreground", "portal-surface", "backdrop", "overlay-order",
+    "pointer-affordance", "damage", "clip",
+]
+EXPECTED_SYMBOLS = [
+    "UiMountedSurfaceAppearanceMechanic", "UiMountedPortalSurfaceAppearanceMechanic",
+    "UiMountedOutlineAppearanceMechanic", "UiMountedTextForegroundAppearanceMechanic",
+    "UiMountedBackdropMechanic", "UiOverlayStackSnapshot",
+    "UiMountedPointerAffordanceMechanic", "UiAppearanceDamageRegion", "UiAppearanceClip",
+    "UiMountedSurfaceAppearanceCompletionInput", "UiMountedOutlineAppearanceCompletionInput",
+    "UiMountedBackdropCompletionInput", "UiMountedTextForegroundAppearanceCompletionInput",
+    "UiHostAppearanceMechanicFamily",
+]
+EXPECTED_OWNERS = {
+    "consumed_fact_index": "workspaces/worth-ui/crates/worth-ui-runtime/src/graph/indexes/fact/index.rs",
+    "mounted_preview": "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_projection/preview.rs",
+    "live_static_paint": "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_projection/static_paint.rs",
+}
+PUBLIC_TYPE_DECLARATION = re.compile(r"\bpub\s+(?:struct|enum)\s+([A-Za-z_][A-Za-z0-9_]*)\b")
+RUST_COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.DOTALL)
+
+
+def missing_declared_contract_symbols(source: str, symbols: list[str]) -> list[str]:
+    declarations = set(PUBLIC_TYPE_DECLARATION.findall(RUST_COMMENT.sub("", source)))
+    return [symbol for symbol in symbols if symbol not in declarations]
+
+
+def validate(root: Path, matrix_path: Path) -> None:
+    matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+    mechanics = matrix["mechanics"]
+    if mechanics != EXPECTED_MECHANICS:
+        raise ValueError("appearance mechanic family matrix must contain the exact canonical families")
+    if matrix["required_host_contract_symbols"] != EXPECTED_SYMBOLS:
+        raise ValueError("host contract symbol matrix must remain exact")
+    if matrix["preserved_owners"] != EXPECTED_OWNERS:
+        raise ValueError("preserved appearance owners must remain exact")
+    live = root / f"workspaces/worth-ui/crates/worth-ui-host-native/profiles/{matrix['live_profile']}.toml"
+    intended = root / f"workspaces/worth-ui/crates/worth-ui-host-native/profiles/{matrix['intended_profile']}.toml"
+    if not live.is_file() or intended.exists():
+        raise ValueError("Gate 0 requires live v1 and contract-only intended v2")
+    host_root = root / "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_projection/appearance"
+    source = "\n".join(path.read_text(encoding="utf-8") for path in host_root.glob("*.rs"))
+    missing = missing_declared_contract_symbols(source, matrix["required_host_contract_symbols"])
+    if missing:
+        raise ValueError(f"host contract symbols missing for matrix: {missing}")
+    for owner, relative_path in matrix["preserved_owners"].items():
+        if not (root / relative_path).is_file():
+            raise ValueError(f"preserved {owner} owner is missing: {relative_path}")
+    command = (root / "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_frame/presentation_work/command_change.rs").read_text(encoding="utf-8")
+    if "Appearance" in command:
+        raise ValueError("Gate 0 appearance mechanics must not enter the live command family")
+    live_roots = [
+        root / "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/projection",
+        root / "workspaces/worth-ui/crates/worth-ui-host-native/src",
+        root / "workspaces/worth-ui/crates/worth-ui-host-headless/src",
+        root / "workspaces/worth-ui/crates/worth-ui-native-platform/src",
+    ]
+    mechanic_symbols = [symbol for symbol in EXPECTED_SYMBOLS if symbol.startswith("UiMounted")]
+    for live_root in live_roots:
+        live_source = "\n".join(path.read_text(encoding="utf-8") for path in live_root.rglob("*.rs"))
+        leaked = [symbol for symbol in mechanic_symbols if symbol in live_source]
+        if leaked:
+            raise ValueError(f"Gate 0 appearance mechanic reached live publisher {live_root}: {leaked}")
+
+
+def main() -> int:
+    try:
+        validate(ROOT, MATRIX)
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        print(f"Worth UI appearance/native matrix gate failed: {error}", file=sys.stderr)
+        return 1
+    print("Worth UI appearance/native matrix gate passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

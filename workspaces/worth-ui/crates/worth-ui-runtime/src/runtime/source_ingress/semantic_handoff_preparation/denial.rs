@@ -20,6 +20,14 @@ pub enum WorthUiSemanticHandoffPreparationStop {
     CapabilityResolution,
     RuntimeStructuralAdmission,
     DeclarationProjection,
+    ComponentReference {
+        declaration_index: usize,
+        cause: crate::declaration::UiDeclarationComponentReferenceDenial,
+    },
+    AppearanceRoleAttachment {
+        declaration_index: usize,
+        cause: crate::declaration::UiAppearanceRoleAttachmentDenial,
+    },
     IntentDeclaration,
     ServiceDeclaration {
         declaration_index: usize,

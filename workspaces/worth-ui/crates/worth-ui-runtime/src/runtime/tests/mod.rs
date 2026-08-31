@@ -40,6 +40,8 @@ mod allocation_planning_inspection_boundary_tests;
 pub(crate) mod allocation_planning_test_support;
 #[path = "planning/allocation_truth_boundary_tests.rs"]
 mod allocation_truth_boundary_tests;
+#[path = "source_ingress/appearance_component_session_test_support.rs"]
+pub(crate) mod appearance_component_session_test_support;
 #[path = "source_ingress/application_semantic_no_op_tests.rs"]
 mod application_semantic_no_op_tests;
 #[path = "replacement/artifact_equivalence_boundary_tests.rs"]

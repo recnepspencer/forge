@@ -1,0 +1,11 @@
+{
+  "cutover_target": 0,
+  "entries": [
+    {"family": "static-paint authority", "glob": "workspaces/worth-ui/**/*.rs", "literal": "ComponentStaticPaintContract", "baseline": 50},
+    {"family": "bootstrap component token dependencies", "glob": "workspaces/worth-ui/**/*.rs", "literal": "with_theme_token_dependency", "baseline": 10},
+    {"family": "string-backed ThemeColorValue", "glob": "workspaces/worth-ui/**/*.rs", "literal": "ThemeColorValue", "baseline": 97},
+    {"family": "Pulse Unicode icon text", "glob": "workspaces/worth-ui/**/*.rs", "literal": "portal_icon_text", "baseline": 6},
+    {"family": "direct token publication", "glob": "workspaces/worth-ui/**/*.rs", "literal": "UiNativeThemeTokenValueChange", "baseline": 20},
+    {"family": "legacy changed-node selection", "glob": "workspaces/worth-ui/**/*.rs", "literal": "changed_graph_nodes", "baseline": 46}
+  ]
+}

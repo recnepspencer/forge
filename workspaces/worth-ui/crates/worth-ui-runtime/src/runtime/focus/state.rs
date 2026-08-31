@@ -14,8 +14,8 @@ pub(crate) struct UiFocusRuntimeState {
         BTreeMap<super::UiFocusParticipantIdentity, (super::UiFocusScopeIdentity, usize)>,
     pub(super) current: Option<super::UiSemanticKeyboardFocus>,
     pub(super) active_descendant: Option<super::UiActiveDescendant>,
-    window_focus: super::UiWindowFocus,
-    modality: super::UiFocusVisibleModality,
+    pub(super) window_focus: super::UiWindowFocus,
+    pub(super) modality: super::UiFocusVisibleModality,
     pub(super) pending_portal: BTreeMap<
         crate::runtime::session::service_proposal::UiServiceProposalIdentity,
         super::portal_transition::UiPreparedPortalFocusTransition,

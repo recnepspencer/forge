@@ -46,6 +46,43 @@ pub(crate) fn discover_born_crates(
     Ok(discovered)
 }
 
+pub(crate) fn discover_context_crates(
+    root: &Path,
+    workspace: &crate::authority_inputs::ContextWorkspaceSpec,
+) -> Result<Vec<DiscoveredCrate>, String> {
+    let crates_root = root.join(&workspace.path).join("crates");
+    let mut discovered = Vec::new();
+    for entry in fs::read_dir(&crates_root)
+        .map_err(|error| format!("read {}: {error}", crates_root.display()))?
+    {
+        let entry = entry.map_err(|error| format!("read context workspace entry: {error}"))?;
+        let crate_root = entry.path();
+        let manifest = crate_root.join("Cargo.toml");
+        if !crate_root.is_dir() || !manifest.is_file() {
+            continue;
+        }
+        let package = package_name_from_manifest(&manifest)?;
+        if package != workspace.package_prefix
+            && !package.starts_with(&format!("{}-", workspace.package_prefix))
+        {
+            return Err(format!(
+                "{package} is outside context workspace prefix {}",
+                workspace.package_prefix
+            ));
+        }
+        discovered.push(DiscoveredCrate {
+            package,
+            relative_path: crate_root
+                .strip_prefix(root)
+                .map_err(|error| format!("strip root prefix: {error}"))?
+                .to_string_lossy()
+                .replace('\\', "/"),
+        });
+    }
+    discovered.sort_by(|left, right| left.package.cmp(&right.package));
+    Ok(discovered)
+}
+
 pub(crate) fn parse_governed_crate_identity(
     package: &str,
 ) -> Result<GovernedCrateIdentity, String> {
