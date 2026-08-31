@@ -77,6 +77,7 @@ pub(super) fn record_case(contract: PerfCaseContract<'_>, samples: &[PerfMeasure
     let mut output = output.lock().expect("measurement output lock");
     let peak_probe = cfg!(feature = "test-peak-allocation");
     let record = serde_json::json!({
+        "measurement_protocol": super::measurement_protocol::case_protocol(contract.timing_policy),
         "contract": contract,
         "probe": if peak_probe { "peak" } else { "ordinary" },
         "sample_count": perf_sample_count(contract.timing_policy),

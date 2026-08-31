@@ -5,7 +5,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use super::measurement_capture::{PerfCaseContract, PerfCaseSummary, PerfTimingPolicy};
+use super::measurement_capture::{PerfCaseContract, PerfCaseSummary};
+use super::measurement_protocol::PerfTimingPolicy;
 use super::regression_budgets::{
     ALLOCATION, MEDIAN_ONLY, PHASE, STRICT_MAX, STRICT_MEDIAN, STRICT_P95,
 };
@@ -47,6 +48,7 @@ pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: 
         .cases
         .get(&key)
         .unwrap_or_else(|| panic!("missing perf baseline case for {key}"));
+    assert_frozen_sample_count(&key, summary.sample_count, expected.sample_count);
 
     if baseline.environment.as_ref() == Some(&current_environment_fingerprint()) {
         match contract.timing_policy {
@@ -169,6 +171,40 @@ pub(super) fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: 
             );
         }
     }
+
+    for scoped_metric in contract.scoped_allocation_metrics {
+        let observed = summary
+            .scoped_allocation_metrics
+            .get(*scoped_metric)
+            .unwrap_or_else(|| {
+                panic!("missing observed scoped allocation {scoped_metric} for {key}")
+            });
+        let expected = expected
+            .scoped_allocation_metrics
+            .get(*scoped_metric)
+            .unwrap_or_else(|| {
+                panic!("missing baseline scoped allocation {scoped_metric} for {key}")
+            });
+        assert_perf_regression_budget(
+            &format!("scoped allocation {scoped_metric} median"),
+            observed.median,
+            expected.median,
+            ALLOCATION,
+        );
+        assert_perf_regression_budget(
+            &format!("scoped allocation {scoped_metric} max"),
+            observed.max,
+            expected.max,
+            ALLOCATION,
+        );
+    }
+}
+
+fn assert_frozen_sample_count(key: &str, observed: usize, expected: usize) {
+    assert_eq!(
+        observed, expected,
+        "sample count changed for {key}; stale golden evidence cannot certify the frozen protocol"
+    );
 }
 
 fn assert_perf_regression_budget(label: &str, observed: u128, expected: u128, tolerance: f64) {
@@ -244,6 +280,14 @@ mod tests {
     use super::PerfCaseSummary;
 
     #[test]
+    fn stale_sample_count_cannot_certify_the_frozen_protocol() {
+        assert!(std::panic::catch_unwind(|| {
+            super::assert_frozen_sample_count("chain|balanced|serial", 21, 7)
+        })
+        .is_err());
+    }
+
+    #[test]
     fn old_peak_key_is_decode_only_alias_for_end_live() {
         let checked = super::load_baseline_file();
         let checked_case = checked.cases.values().next().expect("checked perf case");
@@ -287,6 +331,7 @@ mod tests {
             "allocated_bytes": numeric_summary(21),
             "access_counters": {},
             "phase_metrics": {},
+            "scoped_allocation_metrics": {},
         });
         summary[end_live_key] = numeric_summary(start);
         summary

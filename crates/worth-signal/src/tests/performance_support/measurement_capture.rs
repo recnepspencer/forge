@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
-use std::env;
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use stats_alloc::{Region, StatsAlloc, INSTRUMENTED_SYSTEM};
 
+use super::measurement_protocol::{case_resolution, PerfTimingPolicy};
 use super::regression_budgets::ACCESS_COUNTERS;
 
 static PERF_ALLOC_LOCK: Mutex<()> = Mutex::new(());
@@ -42,14 +42,6 @@ impl PerfMeasurement {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum PerfTimingPolicy {
-    StrictHeavy,
-    MedianOnly,
-    StructuralOnly,
-}
-
 #[derive(Debug, Clone, Copy, Serialize)]
 pub(crate) struct PerfCaseContract<'a> {
     pub suite: &'a str,
@@ -57,6 +49,7 @@ pub(crate) struct PerfCaseContract<'a> {
     pub executor: &'a str,
     pub timing_policy: PerfTimingPolicy,
     pub phase_metrics: &'a [&'a str],
+    pub scoped_allocation_metrics: &'a [&'a str],
     pub access_counter_maxima: &'a [(&'a str, u128)],
 }
 
@@ -67,6 +60,7 @@ impl<'a> PerfCaseContract<'a> {
         executor: &'a str,
         timing_policy: PerfTimingPolicy,
         phase_metrics: &'a [&'a str],
+        scoped_allocation_metrics: &'a [&'a str],
         access_counter_maxima: &'a [(&'a str, u128)],
     ) -> Self {
         Self {
@@ -75,6 +69,7 @@ impl<'a> PerfCaseContract<'a> {
             executor,
             timing_policy,
             phase_metrics,
+            scoped_allocation_metrics,
             access_counter_maxima,
         }
     }
@@ -120,6 +115,8 @@ pub(crate) struct PerfCaseSummary {
     pub(super) access_counters: BTreeMap<String, NumericSummary>,
     #[serde(default)]
     pub(super) phase_metrics: BTreeMap<String, NumericSummary>,
+    #[serde(default)]
+    pub(super) scoped_allocation_metrics: BTreeMap<String, NumericSummary>,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -242,6 +239,15 @@ pub(super) fn summarize_perf_samples(
         phase_metrics.insert((*key).to_string(), summarize_u128(&values));
     }
 
+    let mut scoped_allocation_metrics = BTreeMap::new();
+    for key in contract.scoped_allocation_metrics {
+        let values = samples
+            .iter()
+            .map(|sample| numeric_metric(&sample.metrics, &[key]))
+            .collect::<Vec<_>>();
+        scoped_allocation_metrics.insert((*key).to_string(), summarize_u128(&values));
+    }
+
     let summary = PerfCaseSummary {
         suite: contract.suite.to_string(),
         profile: contract.profile.to_string(),
@@ -253,6 +259,7 @@ pub(super) fn summarize_perf_samples(
         end_live_bytes: summarize_u128(&end_live_bytes),
         access_counters,
         phase_metrics,
+        scoped_allocation_metrics,
     };
 
     super::measurement_output::record_case(contract, samples);
@@ -261,33 +268,11 @@ pub(super) fn summarize_perf_samples(
 }
 
 pub(super) fn perf_sample_count(timing_policy: PerfTimingPolicy) -> usize {
-    optional_count("WORTH_SIGNAL_PERF_SAMPLES", false).unwrap_or(match timing_policy {
-        PerfTimingPolicy::StrictHeavy => 5,
-        PerfTimingPolicy::MedianOnly => 7,
-        PerfTimingPolicy::StructuralOnly => 3,
-    })
+    case_resolution(timing_policy).sample_count()
 }
 
 pub(super) fn perf_warmup_count(timing_policy: PerfTimingPolicy) -> usize {
-    optional_count("WORTH_SIGNAL_PERF_WARMUPS", true).unwrap_or(match timing_policy {
-        PerfTimingPolicy::StrictHeavy => 0,
-        PerfTimingPolicy::MedianOnly => 2,
-        PerfTimingPolicy::StructuralOnly => 0,
-    })
-}
-
-fn optional_count(name: &str, allow_zero: bool) -> Option<usize> {
-    env::var_os(name).map(|raw| {
-        let count = raw.to_str().and_then(|raw| raw.parse::<usize>().ok());
-        let requirement = if allow_zero {
-            "nonnegative "
-        } else {
-            "positive "
-        };
-        count
-            .filter(|count| allow_zero || *count > 0)
-            .unwrap_or_else(|| panic!("{name} must be a valid {requirement}integer"))
-    })
+    case_resolution(timing_policy).warmup_count()
 }
 
 fn percentile(sorted: &[u128], percentile: usize) -> u128 {

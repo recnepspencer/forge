@@ -1,4 +1,5 @@
-use super::measurement_capture::{PerfCaseContract, PerfTimingPolicy};
+use super::measurement_capture::PerfCaseContract;
+use super::measurement_protocol::PerfTimingPolicy;
 use serde_json::{json, Value};
 
 pub(super) const ACCESS_COUNTERS: &[&str] = &[
@@ -39,6 +40,9 @@ pub(super) fn relative_budgets(contract: PerfCaseContract<'_>, peak_probe: bool)
     for metric in ["allocation_calls", "allocated_bytes", "end_live_bytes"] {
         budgets[format!("metrics.allocation_metrics.{metric}")] =
             json!({"median": ALLOCATION, "max": ALLOCATION});
+    }
+    for metric in contract.scoped_allocation_metrics {
+        budgets[format!("metrics.{metric}")] = json!({"median": ALLOCATION, "max": ALLOCATION});
     }
     for counter in ACCESS_COUNTERS {
         budgets[format!("metrics.access_counters.{counter}")] = json!({"max": 1.0});
