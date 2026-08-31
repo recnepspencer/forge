@@ -3,7 +3,9 @@ use crate::fact_contract::{UiAuthoredFactKind, UiProducedFact};
 use crate::runtime::tests::active_application_session_test_support::{
     component_candidate_submission, source_backed_component_session,
 };
-use crate::runtime::tests::appearance_component_session_test_support::source_backed_static_paint_consumer_session;
+use crate::runtime::tests::appearance_component_session_test_support::{
+    attached_appearance_candidate_submission, source_backed_static_paint_consumer_session,
+};
 
 #[test]
 fn exact_repeated_authored_observation_is_terminal_no_change() {
@@ -43,7 +45,7 @@ fn exact_repeated_authored_observation_is_terminal_no_change() {
 #[test]
 fn admitted_appearance_consumers_close_one_coherent_owner_snapshot() {
     let mut session = source_backed_static_paint_consumer_session();
-    let candidate = component_candidate_submission(
+    let candidate = attached_appearance_candidate_submission(
         &session,
         "appearance-current",
         "workspace.component.active_session_current",

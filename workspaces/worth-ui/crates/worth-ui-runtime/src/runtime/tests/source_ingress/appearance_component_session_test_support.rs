@@ -95,15 +95,35 @@ pub(crate) fn appearance_candidate_submission(
     source_name: &str,
     attachment: Option<&worth_ui_dsl::UiAppearanceRoleDeclaration>,
 ) -> crate::runtime::WorthUiWatchedCandidateSubmission {
-    appearance_submission(source_name, attachment, session.capabilities())
+    appearance_submission(
+        source_name,
+        ACTIVE_COMPONENT,
+        attachment,
+        session.capabilities(),
+    )
+}
+
+pub(crate) fn attached_appearance_candidate_submission(
+    session: &crate::facade::WorthUiActiveApplicationSession,
+    source_name: &str,
+    component: &str,
+) -> crate::runtime::WorthUiWatchedCandidateSubmission {
+    let role = validation_background_role(APPEARANCE_TOKEN);
+    appearance_submission(
+        source_name,
+        component,
+        Some(&role),
+        session.capabilities(),
+    )
 }
 
 fn appearance_submission(
     source_name: &str,
+    component: &str,
     attachment: Option<&worth_ui_dsl::UiAppearanceRoleDeclaration>,
     capabilities: &crate::capability::CapabilitySnapshot,
 ) -> crate::runtime::WorthUiWatchedCandidateSubmission {
-    let declaration = appearance_semantic_declaration(ACTIVE_COMPONENT, attachment);
+    let declaration = appearance_semantic_declaration(component, attachment);
     let input = worth_ui_dsl::WorthUiRustAuthoredArtifactInput::from_modules([
         worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("appearance/consumer")
             .with_semantic_declaration(declaration),

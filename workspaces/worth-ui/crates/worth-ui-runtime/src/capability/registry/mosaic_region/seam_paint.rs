@@ -202,6 +202,21 @@ mod tests {
         MosaicRegionKindId::new(name).unwrap()
     }
 
+    fn admitted_region(
+        id: MosaicRegionKindId,
+        role: MosaicRegionRole,
+    ) -> MosaicRegionKindDescriptor {
+        MosaicRegionKindDescriptor::new(id, role)
+            .with_sizing_behavior(crate::capability::MosaicSizingBehavior::fills_available_space())
+            .with_scroll_ownership(crate::capability::MosaicScrollOwnership::region_owned())
+            .with_focus_scope(crate::capability::MosaicFocusScopeKind::active_surface_scope())
+            .with_child_rule(crate::capability::MosaicChildRule::accepts_surfaces())
+            .with_allowed_surface_class(crate::capability::SurfacePlacementClass::primary_region())
+            .with_persistence(crate::capability::MosaicRegionPersistence::restorable())
+            .with_clipping(crate::capability::MosaicClippingPosture::clip_to_region())
+            .with_hit_test(crate::capability::MosaicHitTestPosture::participates())
+    }
+
     #[test]
     fn exact_shared_edge_partition_requires_one_endpoint_owner() {
         let a = region("region.a");
@@ -221,11 +236,11 @@ mod tests {
         let b = region("region.b");
         let contract = MosaicSeamPaintContract::admit([a.clone(), b.clone()], [], [], []).unwrap();
         let snapshot = crate::facade::entry::CapabilityRegistrationBuilder::new()
-            .register_mosaic_region_kind(MosaicRegionKindDescriptor::new(
+            .register_mosaic_region_kind(admitted_region(
                 a,
                 MosaicRegionRole::primary(),
             ))
-            .register_mosaic_region_kind(MosaicRegionKindDescriptor::new(
+            .register_mosaic_region_kind(admitted_region(
                 b,
                 MosaicRegionRole::auxiliary(),
             ))

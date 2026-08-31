@@ -1,16 +1,14 @@
-use crate::runtime::tests::active_application_session_test_support::{
-    admit_candidate_catalog, component_candidate_submission,
-};
+use crate::runtime::tests::active_application_session_test_support::admit_candidate_catalog;
 use crate::runtime::tests::appearance_component_session_test_support::source_backed_static_paint_consumer_session;
 use crate::runtime::tests::appearance_component_session_test_support::{
-    appearance_candidate_submission, source_backed_static_paint_role_capable_session,
-    validation_background_role,
+    appearance_candidate_submission, attached_appearance_candidate_submission,
+    source_backed_static_paint_role_capable_session, validation_background_role,
 };
 
 #[test]
 fn sealed_turn_carries_pre_interleaving_owner_state_into_classification() {
     let mut session = source_backed_static_paint_consumer_session();
-    let first_candidate = component_candidate_submission(
+    let first_candidate = attached_appearance_candidate_submission(
         &session,
         "appearance-close-first",
         "workspace.component.active_session_current",
@@ -23,7 +21,7 @@ fn sealed_turn_carries_pre_interleaving_owner_state_into_classification() {
 
     let _ = publish_invalid_validation_fact(&mut session);
 
-    let second_candidate = component_candidate_submission(
+    let second_candidate = attached_appearance_candidate_submission(
         &session,
         "appearance-close-second",
         "workspace.component.active_session_candidate",
@@ -180,7 +178,7 @@ fn validation_fact_receipt_succession_is_current_and_unmount_removes_the_row() {
 #[test]
 fn rejected_foreign_turn_preserves_the_predecessor_owner_snapshot() {
     let mut first = source_backed_static_paint_consumer_session();
-    let foreign_candidate = component_candidate_submission(
+    let foreign_candidate = attached_appearance_candidate_submission(
         &first,
         "appearance-close-foreign",
         "workspace.component.active_session_current",
@@ -190,7 +188,7 @@ fn rejected_foreign_turn_preserves_the_predecessor_owner_snapshot() {
     let foreign = foreign_turn.seal().unwrap();
 
     let mut second = source_backed_static_paint_consumer_session();
-    let local_candidate = component_candidate_submission(
+    let local_candidate = attached_appearance_candidate_submission(
         &second,
         "appearance-close-local",
         "workspace.component.active_session_current",
@@ -220,7 +218,7 @@ fn theme_switch_origin_requires_exact_family_and_session() {
     };
 
     let mut first = source_backed_static_paint_consumer_session();
-    let candidate = component_candidate_submission(
+    let candidate = attached_appearance_candidate_submission(
         &first,
         "appearance-origin-source",
         "workspace.component.active_session_current",
@@ -254,7 +252,7 @@ fn theme_switch_origin_requires_exact_family_and_session() {
 #[test]
 fn sealed_turn_cannot_be_classified_after_application_cutover() {
     let mut session = source_backed_static_paint_consumer_session();
-    let candidate = component_candidate_submission(
+    let candidate = attached_appearance_candidate_submission(
         &session,
         "appearance-close-before-cutover",
         "workspace.component.active_session_current",
@@ -264,7 +262,7 @@ fn sealed_turn_cannot_be_classified_after_application_cutover() {
     let sealed_before_cutover = turn.seal().unwrap();
 
     let mut prepared = session
-        .prepare_replacement(component_candidate_submission(
+        .prepare_replacement(attached_appearance_candidate_submission(
             &session,
             "appearance-close-successor",
             "workspace.component.active_session_candidate",
