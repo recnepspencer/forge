@@ -145,9 +145,11 @@ cell is the terminal contained-panic posture and cannot be readmitted, moved, or
 retired. It retains its registry membership and one configured live-branch
 capacity slot until the Signal owner root is destroyed; the current kernel has
 no quarantine purge path. Unrelated cells remain available. `OwnerCellMisuse`
-is a typed owner-kernel invariant denial: a lawful public call
-creates one fresh owner admission and must not reach it. Current executable
-evidence is
+is the typed nested-cell/lock-order denial. A fresh admission does not itself
+prevent callback reentry. Before service dispatch is implemented, Phase 4 must
+reject same-thread, same-owner nested cell acquisition, including a different
+target cell; ordinary contention from another thread must still serialize.
+Current executable mapping evidence, not callback-reentry coverage, is
 `cell_posture_outcomes::every_operation_preserves_reachable_cell_posture_without_unknown_fallback`
 for every operation mapping and
 `managed_reference::transaction_panic_quarantines_managed_readmission_without_unknown_branch`
@@ -232,6 +234,11 @@ metadata/global owner locks, a Runtime World lock, or a runtime-wide mutex.
 the one target-cell exclusion that protects mutation; no registry or other-owner
 lock crosses that callback.
 
+Callbacks must not synchronously wait on work that needs their held cell or
+nest blocking calls across owners. Cross-owner wait-cycle detection is not
+provided. The Phase 4 reentry fence is owner-scoped, not a global executor or
+cross-owner lock registry.
+
 ## Small Example
 
 The Phase 3 public vocabulary can be carried and cloned, but not constructed:
@@ -278,8 +285,9 @@ close batches. Counters are descriptive; they cannot authorize an operation.
 Operational capacity denial is pre-effect. Diagnostic capacity exhaustion
 records an omission/drop count and does not deny an otherwise lawful owner
 operation. Closing rejects new admissions and gives every later weak call the
-same typed unavailable posture. An explicit owner close waits for admitted work
-to drain. Root destruction only requests close and returns without waiting, so
+same typed unavailable posture. The Phase 4 explicit close must reject calls
+from that owner's admitted execution thread before starting close; otherwise it
+waits for admitted work to drain. Root destruction requests close without waiting, so
 destruction from inside an admitted callback cannot wait on itself; the last
 admission release performs the terminal `Closing` to `Closed` transition.
 
