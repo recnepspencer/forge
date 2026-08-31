@@ -25,7 +25,7 @@ pub use appearance::{
     UiHostAppearanceProfileContract, UiHostAppearanceProfileDenial, UiHostPrimaryPointerKind,
     UiMountedAppearanceColor, UiMountedAppearanceOpacity, UiMountedBackdropAppearanceAttribution,
     UiMountedBackdropCompletionDenial, UiMountedBackdropCompletionInput, UiMountedBackdropIdentity,
-    UiMountedBackdropMechanic, UiMountedNodeAppearanceAttribution,
+    UiMountedBackdropMechanic, UiMountedBackdropScope, UiMountedNodeAppearanceAttribution,
     UiMountedOutlineAppearanceCompletionDenial, UiMountedOutlineAppearanceCompletionInput,
     UiMountedOutlineAppearanceMechanic, UiMountedOverlayOrderMechanic,
     UiMountedOverlayOrderMechanicDenial, UiMountedPointerAffordanceMechanic,
