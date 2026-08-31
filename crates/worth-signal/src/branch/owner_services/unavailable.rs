@@ -1,8 +1,8 @@
 /// Stable denial posture returned when a weak service cannot enter its owner.
 ///
-/// The owner issues this value. `non_exhaustive` keeps composition callers from
-/// constructing a counterfeit denial while preserving equality for one stable
-/// closing-or-gone posture.
+/// This is descriptive closing-or-gone vocabulary, not authority. It remains
+/// serializable with inherited denial contracts; `non_exhaustive` reserves its
+/// representation for compatible evolution.
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SignalOwnerUnavailable;

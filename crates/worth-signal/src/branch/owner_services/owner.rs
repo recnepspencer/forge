@@ -334,23 +334,6 @@ where
         self.retention.admitted_count(branch_id)
     }
 
-    #[cfg(test)]
-    pub(super) fn metadata_membership_is_drained(
-        &self,
-        admission: &SignalOwnerOperationAdmission,
-    ) -> Result<bool, SignalBranchRegistryDenial> {
-        admission
-            .authorize(
-                self.runtime_instance_id,
-                self.lifecycle.lifecycle_identity(),
-            )
-            .map_err(SignalBranchRegistryDenial::from)?;
-        let _metadata_hold = admission
-            .hold_owner_metadata()
-            .map_err(|_| SignalBranchRegistryDenial::OwnerMetadataOrdering)?;
-        Ok(self.metadata.membership_is_drained_unchecked())
-    }
-
     pub(super) fn cost_snapshot(&self) -> SignalOwnerServiceCostSnapshot {
         self.counters.snapshot()
     }

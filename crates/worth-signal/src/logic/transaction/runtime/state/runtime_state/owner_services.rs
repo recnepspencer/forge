@@ -58,6 +58,8 @@ where
     where
         D: Send + Sync + 'static,
         I: Send + Sync + 'static,
+        E: Send + Sync + 'static,
+        Ctx: Send + Sync + 'static,
         T: Send + Sync + 'static,
     {
         self.owner_service_issuance_capability()?;

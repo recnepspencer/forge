@@ -7,7 +7,8 @@ use crate::logic::transaction::BranchState;
 use crate::state::SignalBranchHandle;
 
 use super::branch_registry::{
-    SignalBranchRegistryDenial, SignalBranchReservation, SignalPreparedBranchInstallation,
+    SignalBranchRegistryDenial, SignalBranchReservation, SignalPreparedBranchCell,
+    SignalPreparedBranchInstallation,
 };
 use super::owner_metadata::SignalOwnerForkLineageReservation;
 use super::{
@@ -141,10 +142,13 @@ where
         &self.handle
     }
 
-    pub(crate) fn prepare(
-        self,
+    pub(crate) fn prepare_cell(
+        &mut self,
         state: BranchState<D, I, T>,
-    ) -> Result<SignalPreparedOwnerFork<'a, D, I, T>, SignalBranchForkOperationDenial> {
+    ) -> Result<
+        SignalPreparedBranchCell<SignalBranchCellState<D, I, T>>,
+        SignalBranchForkOperationDenial,
+    > {
         if state.branch_id() != self.handle.id {
             return Err(SignalBranchForkOperationDenial::OwnerDeniedNoMovement {
                 error: SignalError::internal(
@@ -152,21 +156,40 @@ where
                 ),
             });
         }
-        let installation = self
-            .reservation
-            .prepare_fork_destination(SignalBranchCellState::new(
-                self.handle,
+        self.reservation
+            .prepare_fork_destination_cell(SignalBranchCellState::new(
+                self.handle.clone(),
                 self.owner_runtime_instance_id,
                 self.definition_basis,
                 state,
                 0,
                 None,
             ))
-            .map_err(map_fork_registry_denial)?;
-        Ok(SignalPreparedOwnerFork {
-            installation,
+            .map_err(map_fork_registry_denial)
+    }
+
+    pub(crate) fn validate_prepared_cell(
+        &self,
+        prepared: &SignalPreparedBranchCell<SignalBranchCellState<D, I, T>>,
+    ) -> Result<(), SignalBranchForkOperationDenial> {
+        if !self.reservation.matches_prepared_fork_destination(prepared) {
+            return Err(SignalBranchForkOperationDenial::OwnerDeniedNoMovement {
+                error: SignalError::internal(
+                    "prepared fork destination does not match its exact owner reservation",
+                ),
+            });
+        }
+        Ok(())
+    }
+
+    pub(crate) fn bind_prepared_cell(
+        self,
+        prepared: SignalPreparedBranchCell<SignalBranchCellState<D, I, T>>,
+    ) -> SignalPreparedOwnerFork<'a, D, I, T> {
+        SignalPreparedOwnerFork {
+            installation: self.reservation.bind_prepared_fork_destination(prepared),
             lineage: self.lineage,
-        })
+        }
     }
 }
 

@@ -42,19 +42,6 @@ where
         }
     }
 
-    pub(super) fn membership_is_drained(
-        &self,
-        admission: &SignalOwnerOperationAdmission,
-    ) -> Result<bool, SignalOwnerUnavailable> {
-        let _hold = self.authorize(admission)?;
-        Ok(self.lock().membership_is_drained())
-    }
-
-    #[cfg(test)]
-    pub(super) fn membership_is_drained_unchecked(&self) -> bool {
-        self.lock().membership_is_drained()
-    }
-
     pub(super) fn reserve_snapshot(
         &self,
         admission: &SignalOwnerOperationAdmission,
@@ -103,17 +90,18 @@ where
             }))
     }
 
-    pub(super) fn reserve_fork_child(
-        &self,
-        admission: &SignalOwnerOperationAdmission,
+    pub(super) fn reserve_fork_child<'a>(
+        &'a self,
+        admission: &'a SignalOwnerOperationAdmission,
         parent_branch_id: SignalBranchId,
         child_branch_id: SignalBranchId,
-    ) -> Result<SignalOwnerForkLineageReservation<'_, D, I, T>, SignalOwnerUnavailable> {
+    ) -> Result<SignalOwnerForkLineageReservation<'a, D, I, T>, SignalOwnerUnavailable> {
         let _hold = self.authorize(admission)?;
         self.lock()
             .record_fork_child(parent_branch_id, child_branch_id);
         Ok(SignalOwnerForkLineageReservation {
             metadata: self,
+            admission,
             parent_branch_id,
             child_branch_id,
             committed: false,
@@ -274,6 +262,7 @@ where
     T: Copy + Ord,
 {
     metadata: &'a SignalOwnerMetadata<D, I, T>,
+    admission: &'a SignalOwnerOperationAdmission,
     parent_branch_id: SignalBranchId,
     child_branch_id: SignalBranchId,
     committed: bool,
@@ -298,6 +287,10 @@ where
 {
     fn drop(&mut self) {
         if !self.committed {
+            debug_assert!(
+                self.admission.permits_owner_lock_acquisition(),
+                "fork lineage cleanup must run after target-cell release"
+            );
             self.metadata
                 .lock()
                 .remove_fork_child(self.parent_branch_id, self.child_branch_id);

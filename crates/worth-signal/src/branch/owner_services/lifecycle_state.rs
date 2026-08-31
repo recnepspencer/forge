@@ -232,6 +232,10 @@ impl SignalOwnerOperationAdmission {
             held_posture: &self.held_branch_cell_incarnation,
         })
     }
+
+    pub(super) fn permits_owner_lock_acquisition(&self) -> bool {
+        self.held_branch_cell_incarnation.load(Ordering::Acquire) == 0
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

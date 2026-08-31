@@ -141,8 +141,11 @@ quarantined, cell-misuse, and owner-invariant postures in
 `SignalBranchBasisReadmissionDenial`.
 
 `UnknownBranch` remains reserved for absence at registry lookup. A quarantined
-cell is the terminal contained-panic posture and cannot be readmitted or moved.
-`OwnerCellMisuse` is a typed owner-kernel invariant denial: a lawful public call
+cell is the terminal contained-panic posture and cannot be readmitted, moved, or
+retired. It retains its registry membership and one configured live-branch
+capacity slot until the Signal owner root is destroyed; the current kernel has
+no quarantine purge path. Unrelated cells remain available. `OwnerCellMisuse`
+is a typed owner-kernel invariant denial: a lawful public call
 creates one fresh owner admission and must not reach it. Current executable
 evidence is
 `cell_posture_outcomes::every_operation_preserves_reachable_cell_posture_without_unknown_fallback`

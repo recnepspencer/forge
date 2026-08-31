@@ -70,10 +70,6 @@ where
         }
     }
 
-    pub(crate) fn membership_is_drained(&self) -> bool {
-        true
-    }
-
     pub(crate) fn reserve_snapshot_capacity(&mut self) -> Result<(), usize> {
         if self.snapshots.len() + self.reserved_snapshot_count >= self.maximum_stored_snapshots {
             return Err(self.maximum_stored_snapshots);

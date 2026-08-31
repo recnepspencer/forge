@@ -268,15 +268,20 @@ fn sealing_moves_complete_membership_and_retirement_serializes_real_state() {
                 Err(SignalBranchCellAdmissionDenial::SecondCellWhileHeld)
             ));
             assert!(matches!(
-                owner.metadata_membership_is_drained(&admission),
-                Err(SignalBranchRegistryDenial::OwnerMetadataOrdering)
+                owner.metadata.branch_children(&admission, branch_a.id),
+                Err(super::super::SignalOwnerUnavailable)
             ));
         })
         .expect("one admitted A-cell operation is valid");
     assert_eq!(first.cost_snapshot(), branch_b_before);
-    assert!(owner
-        .metadata_membership_is_drained(&admission)
-        .expect("metadata access is owner-admitted"));
+    assert_eq!(
+        owner
+            .metadata
+            .branch_children(&admission, branch_a.id)
+            .expect("metadata access succeeds after the cell hold releases"),
+        original_children,
+        "the denied in-cell observation cannot mutate transferred lineage metadata"
+    );
     let retirement = owner
         .begin_retirement(&admission, branch_b.id)
         .expect("B retirement reserves its one cell");
@@ -359,7 +364,7 @@ macro_rules! assert_not_impl {
 }
 
 #[test]
-fn port_auto_traits_follow_every_concrete_runtime_parameter() {
+fn port_auto_traits_do_not_substitute_for_runtime_issuance_eligibility() {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<SignalBranchBasisPort<(), (), ()>>();
     assert_send_sync::<SignalBranchMutationPort<(), (), Rc<()>, Rc<()>, ()>>();

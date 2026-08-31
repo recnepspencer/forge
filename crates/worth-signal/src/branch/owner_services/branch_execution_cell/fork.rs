@@ -21,7 +21,7 @@ where
         &self,
         admission: &SignalOwnerOperationAdmission,
         source: &AdmittedSignalBranchBasis,
-        builder: SignalOwnerForkCellBuilder<'a, D, I, T>,
+        mut builder: SignalOwnerForkCellBuilder<'a, D, I, T>,
         cancellation: &SignalOwnerCancellationToken,
     ) -> Result<SignalPreparedOwnerFork<'a, D, I, T>, SignalBranchForkOperationDenial> {
         cancellation
@@ -29,7 +29,7 @@ where
             .map_err(|_| SignalBranchForkOperationDenial::CancelledNoMovement)?;
         self.validate_admission(admission)
             .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
-        let _cell_hold = admission
+        let cell_hold = admission
             .hold_branch_cell(self.incarnation)
             .map_err(SignalBranchCellAdmissionDenial::from)
             .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
@@ -47,17 +47,41 @@ where
             });
         }
         let captured = state.fork_state(builder.destination());
-        let prepared = builder.prepare(captured.state)?;
-        let _movement = cancellation
-            .preflight_movement()
-            .map_err(|_| SignalBranchForkOperationDenial::CancelledNoMovement)?;
+        let prepared_cell = match builder.prepare_cell(captured.state) {
+            Ok(prepared) => prepared,
+            Err(denial) => {
+                drop(state);
+                drop(cell_hold);
+                drop(builder);
+                return Err(denial);
+            }
+        };
+        if let Err(denial) = builder.validate_prepared_cell(&prepared_cell) {
+            drop(state);
+            drop(cell_hold);
+            drop(prepared_cell);
+            drop(builder);
+            return Err(denial);
+        }
+        let _movement = match cancellation.preflight_movement() {
+            Ok(movement) => movement,
+            Err(_) => {
+                drop(state);
+                drop(cell_hold);
+                drop(prepared_cell);
+                drop(builder);
+                return Err(SignalBranchForkOperationDenial::CancelledNoMovement);
+            }
+        };
         state.commit_fork_source_boundary();
         SignalBranchCellWork {
             counters: &self.counters,
             movements: &self.movements,
         }
         .record_fork_source_capture(captured.work);
-        Ok(prepared)
+        drop(state);
+        drop(cell_hold);
+        Ok(builder.bind_prepared_cell(prepared_cell))
     }
 }
 

@@ -335,6 +335,55 @@ fn registry_poison_policy_preserves_canonical_membership() {
 }
 
 #[test]
+fn prepared_fork_cell_remains_bound_to_its_exact_reservation() {
+    let counters = Arc::new(SignalOwnerServiceCounters::default());
+    let lifecycle = SignalOwnerLifecycleState::new(34, counters);
+    let admission = lifecycle.admit(34).expect("owner admits work");
+    let registry = SignalBranchRegistry::new(&lifecycle, 2, 2);
+    let first_branch = SignalBranchId(1);
+    let second_branch = SignalBranchId(2);
+    let mut first = registry
+        .reserve(&admission, first_branch)
+        .expect("first identity reserves");
+    let mut second = registry
+        .reserve(&admission, second_branch)
+        .expect("second identity reserves");
+
+    let first_prepared = first
+        .prepare_fork_destination_cell(5_u64)
+        .expect("first reservation prepares its cell");
+    let second_prepared = second
+        .prepare_fork_destination_cell(8_u64)
+        .expect("second reservation prepares its cell");
+
+    assert!(first.matches_prepared_fork_destination(&first_prepared));
+    assert!(second.matches_prepared_fork_destination(&second_prepared));
+    assert!(!first.matches_prepared_fork_destination(&second_prepared));
+    assert!(!second.matches_prepared_fork_destination(&first_prepared));
+
+    let first_cell = first
+        .bind_prepared_fork_destination(first_prepared)
+        .install();
+    let second_cell = second
+        .bind_prepared_fork_destination(second_prepared)
+        .install();
+    assert!(Arc::ptr_eq(
+        &registry
+            .lookup(&admission, first_branch)
+            .expect("first registry identity resolves"),
+        &first_cell
+    ));
+    assert!(Arc::ptr_eq(
+        &registry
+            .lookup(&admission, second_branch)
+            .expect("second registry identity resolves"),
+        &second_cell
+    ));
+    assert_eq!(first_cell.with_state(&admission, |state, _| *state), Ok(5));
+    assert_eq!(second_cell.with_state(&admission, |state, _| *state), Ok(8));
+}
+
+#[test]
 fn signal_kernel_owners_are_send_and_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
 

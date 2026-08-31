@@ -204,7 +204,10 @@ fn exact_fork_shares_graph_roots_and_isolates_touched_node_state() {
 
 #[test]
 fn late_fork_cancellation_drops_preconstructed_destination_without_source_movement() {
-    let (mut runtime, _, source_branch, source_basis) = runtime_with_two_branches();
+    let (mut runtime, sibling_branch, source_branch, source_basis) = runtime_with_two_branches();
+    let sibling_basis = runtime
+        .observe_signal_branch_basis(sibling_branch.clone())
+        .expect("the unrelated branch admits before sealing");
     let (_, mutation, _) = runtime.owner_port_slots().expect("runtime seals");
     let owner = mutation.upgrade_owner().expect("owner remains live");
     let setup = owner.admit().expect("setup admits");
@@ -299,6 +302,28 @@ fn late_fork_cancellation_drops_preconstructed_destination_without_source_moveme
         source_branch.id,
         &source_ledger,
         &original_children,
+    );
+
+    let sibling_admission = owner.admit().expect("sibling progress admits");
+    let sibling_cell = owner
+        .lookup_cell(&sibling_admission, sibling_branch.id)
+        .expect("the unrelated cell remains live");
+    let sibling_observation = sibling_cell
+        .advance_exact::<(), (), _>(
+            &sibling_admission,
+            &sibling_basis,
+            &mut (),
+            &SignalOwnerCancellationSource::new().token(),
+            |_| Ok(()),
+        )
+        .expect("an unrelated canonical movement follows cancellation cleanup")
+        .into_parts()
+        .0;
+    assert_eq!(
+        sibling_cell
+            .observe_exact(&sibling_admission)
+            .expect("the unrelated performed state remains canonical"),
+        sibling_observation
     );
 
     let healthy_admission = owner.admit().expect("healthy twin admits");

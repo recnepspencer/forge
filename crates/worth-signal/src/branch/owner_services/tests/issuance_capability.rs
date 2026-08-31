@@ -1,4 +1,5 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::rc::Rc;
 
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::error::SignalError;
@@ -52,6 +53,9 @@ impl EventSubscriber for EmptySubscriber {
 }
 
 struct EmptyObservationListener;
+
+struct ThreadSafeEffect;
+struct ThreadSafeContext;
 
 impl ObservationListener<(), (), (), (), ()> for EmptyObservationListener {
     fn on_observation(
@@ -131,4 +135,35 @@ fn concrete_managed_queue_state_denies_sealing_before_partition() {
     runtime
         .enqueue_resource_managed_queue(&queue, 1)
         .expect("the denied root retains its exact queue binding");
+}
+
+#[test]
+fn private_slot_accepts_composition_types_while_local_preflight_remains_separate() {
+    fn issue_composition_slots<E, Ctx>(runtime: &mut SignalRuntime<(), (), E, Ctx, ()>)
+    where
+        E: Send + Sync + 'static,
+        Ctx: Send + Sync + 'static,
+    {
+        runtime
+            .owner_port_slots()
+            .expect("composition-capable effect and context issue the private slots");
+    }
+
+    let mut composition_runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_events::<ThreadSafeEffect>()
+        .with_context::<ThreadSafeContext>()
+        .with_kernel_defaults()
+        .build();
+    issue_composition_slots(&mut composition_runtime);
+
+    let local_runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_events::<Rc<()>>()
+        .with_context::<Rc<()>>()
+        .with_kernel_defaults()
+        .build();
+    assert_eq!(
+        local_runtime.owner_service_issuance_capability(),
+        Ok(()),
+        "local-only runtimes remain valid; their exclusion is the slot's compile-time fence"
+    );
 }
