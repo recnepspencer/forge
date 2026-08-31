@@ -166,6 +166,29 @@ impl UiThemeSlotCatalog {
     }
 }
 
+fn ensure_acyclic(
+    slots: &BTreeMap<crate::capability::ThemeTokenId, UiThemeSlotDeclaration>,
+    start: &crate::capability::ThemeTokenId,
+) -> Result<(), UiThemeSlotCatalogDenial> {
+    let mut seen = BTreeSet::new();
+    let mut cursor = start;
+    let mut depth = 0_usize;
+    while let Some(next) = slots
+        .get(cursor)
+        .and_then(UiThemeSlotDeclaration::alias_target)
+    {
+        if !seen.insert(cursor.clone()) || next == start {
+            return Err(UiThemeSlotCatalogDenial::AliasCycle(start.clone()));
+        }
+        depth += 1;
+        if depth > UiThemeSlotCatalog::MAX_ALIAS_DEPTH {
+            return Err(UiThemeSlotCatalogDenial::AliasDepthExceeded(start.clone()));
+        }
+        cursor = next;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -313,27 +336,4 @@ mod tests {
             Err(UiThemeSlotCatalogDenial::AliasDepthExceeded(_))
         ));
     }
-}
-
-fn ensure_acyclic(
-    slots: &BTreeMap<crate::capability::ThemeTokenId, UiThemeSlotDeclaration>,
-    start: &crate::capability::ThemeTokenId,
-) -> Result<(), UiThemeSlotCatalogDenial> {
-    let mut seen = BTreeSet::new();
-    let mut cursor = start;
-    let mut depth = 0_usize;
-    while let Some(next) = slots
-        .get(cursor)
-        .and_then(UiThemeSlotDeclaration::alias_target)
-    {
-        if !seen.insert(cursor.clone()) || next == start {
-            return Err(UiThemeSlotCatalogDenial::AliasCycle(start.clone()));
-        }
-        depth += 1;
-        if depth > UiThemeSlotCatalog::MAX_ALIAS_DEPTH {
-            return Err(UiThemeSlotCatalogDenial::AliasDepthExceeded(start.clone()));
-        }
-        cursor = next;
-    }
-    Ok(())
 }
