@@ -247,7 +247,7 @@ fn forked_overlay_matches_btree_model_across_mixed_state_transitions() {
                 .wrapping_mul(6_364_136_223_846_793_005)
                 .wrapping_add(1_442_695_040_888_963_407);
             let source = random as usize % siblings.len();
-            let key = (random.rotate_left(17) % 128) as u64;
+            let key = random.rotate_left(17) % 128;
             let value = random.rotate_left(31);
             match random.rotate_left(7) % 6 {
                 0 => assert_eq!(

@@ -15,6 +15,10 @@ pub(super) fn capture_requested() -> bool {
     std::env::var_os(OUTPUT_ENV).is_some()
 }
 
+#[allow(
+    clippy::assertions_on_constants,
+    reason = "runtime opt-in capture must reject incompatible compile-time features"
+)]
 pub(super) fn validate_capture_posture() {
     if !capture_requested() {
         return;

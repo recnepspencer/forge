@@ -166,7 +166,7 @@ impl ResourceRuntimeState {
             latest_denied_completion_by_node: self
                 .latest_denied_completion_by_node
                 .fork_persistent(),
-            latest_branch_restore_report: self.latest_branch_restore_report.clone(),
+            latest_branch_restore_report: self.latest_branch_restore_report,
         }
     }
 
@@ -219,7 +219,7 @@ impl ResourceRuntimeState {
             latest_denied_completion_by_node: self
                 .latest_denied_completion_by_node
                 .fork_storage_identity(),
-            latest_branch_restore_report: self.latest_branch_restore_report.clone(),
+            latest_branch_restore_report: self.latest_branch_restore_report,
         }
     }
 }
