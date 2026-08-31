@@ -117,7 +117,7 @@ where
         if self.graph.current_branch().id == branch_id {
             let mut state = self.capture_heavy_branch_state()?;
             state.clear_merge_boundary_proof();
-            self.branches.store_branch_state(state);
+            self.branches.observe_active_branch_state(&state);
             return Ok(());
         }
         let Some(()) = self

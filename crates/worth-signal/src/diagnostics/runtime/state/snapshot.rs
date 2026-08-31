@@ -17,16 +17,39 @@ impl DiagnosticsState {
         self.bootstrap_defaults();
         let snapshot_id = SignalSnapshotId(self.next_snapshot_id);
         self.next_snapshot_id += 1;
+        self.snapshot_meta(snapshot_id, policy, artifact_retention)
+    }
+
+    pub(crate) fn allocate_snapshot_meta_with_reserved_id(
+        &mut self,
+        snapshot_id: SignalSnapshotId,
+        policy: SignalRuntimePolicy,
+        artifact_retention: SnapshotArtifactRetentionPolicy,
+    ) -> SignalSnapshotMeta {
+        self.bootstrap_defaults();
+        debug_assert!(
+            snapshot_id.0 < u64::MAX,
+            "owner snapshot identity exhaustion is denied during reservation"
+        );
+        self.next_snapshot_id = self.next_snapshot_id.max(snapshot_id.0.saturating_add(1));
+        self.snapshot_meta(snapshot_id, policy, artifact_retention)
+    }
+
+    fn snapshot_meta(
+        &self,
+        snapshot_id: SignalSnapshotId,
+        policy: SignalRuntimePolicy,
+        artifact_retention: SnapshotArtifactRetentionPolicy,
+    ) -> SignalSnapshotMeta {
         let branch = self.active_branch();
         let replay_head = self.replay_events.back().map(|frame| frame.cursor);
-        let meta = SignalSnapshotMeta::new(
+        SignalSnapshotMeta::new(
             snapshot_id,
             &branch,
             replay_head,
             policy,
             artifact_retention,
-        );
-        meta
+        )
     }
 
     pub fn snapshot_payload_with_retention(

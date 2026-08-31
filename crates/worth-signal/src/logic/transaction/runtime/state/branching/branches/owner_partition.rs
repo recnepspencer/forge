@@ -18,6 +18,12 @@ pub(in crate::logic::transaction::runtime) enum SignalOwnerPartitionDenial {
     LiveBranchCapacityExhausted { maximum_live_branches: usize },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SignalOwnerSnapshotReservationDenial {
+    CapacityExhausted { maximum_stored_snapshots: usize },
+    IdentityExhausted { next_snapshot_id: SignalSnapshotId },
+}
+
 /// Metadata retained after all live per-branch truth moves into owner cells.
 pub(crate) struct SignalOwnerMetadataState<D, I, T>
 where
@@ -31,6 +37,7 @@ where
     retirement_receipts: BTreeMap<SignalBranchId, SignalBranchRetirementReceipt>,
     active_merge_participants: BTreeSet<SignalBranchId>,
     reserved_snapshot_count: usize,
+    next_snapshot_id: u64,
 }
 
 type SignalOwnerCellSeed<D, I, T> = (
@@ -67,15 +74,27 @@ where
             retirement_receipts: std::mem::take(&mut branches.retirement_receipts),
             active_merge_participants: std::mem::take(&mut branches.active_merge_participants),
             reserved_snapshot_count: 0,
+            next_snapshot_id: branches.next_snapshot_id,
         }
     }
 
-    pub(crate) fn reserve_snapshot_capacity(&mut self) -> Result<(), usize> {
+    pub(crate) fn reserve_snapshot(
+        &mut self,
+    ) -> Result<SignalSnapshotId, SignalOwnerSnapshotReservationDenial> {
         if self.snapshots.len() + self.reserved_snapshot_count >= self.maximum_stored_snapshots {
-            return Err(self.maximum_stored_snapshots);
+            return Err(SignalOwnerSnapshotReservationDenial::CapacityExhausted {
+                maximum_stored_snapshots: self.maximum_stored_snapshots,
+            });
         }
+        let snapshot_id = SignalSnapshotId(self.next_snapshot_id);
+        let next_snapshot_id = self.next_snapshot_id.checked_add(1).ok_or(
+            SignalOwnerSnapshotReservationDenial::IdentityExhausted {
+                next_snapshot_id: snapshot_id,
+            },
+        )?;
         self.reserved_snapshot_count += 1;
-        Ok(())
+        self.next_snapshot_id = next_snapshot_id;
+        Ok(snapshot_id)
     }
 
     pub(crate) fn release_snapshot_capacity(&mut self) {
@@ -85,10 +104,22 @@ where
             .expect("owner snapshot reservation releases exactly once");
     }
 
-    pub(crate) fn install_reserved_snapshot(&mut self, packet: SnapshotStatePacket<D, I, T>) {
-        self.release_snapshot_capacity();
+    pub(crate) fn install_reserved_snapshot(
+        &mut self,
+        reserved_snapshot_id: SignalSnapshotId,
+        packet: SnapshotStatePacket<D, I, T>,
+    ) {
         let (branch_id, snapshot_id, state) = packet.into_parts();
+        assert_eq!(
+            snapshot_id, reserved_snapshot_id,
+            "owner snapshot installation must consume its reserved identity"
+        );
+        assert!(
+            !self.snapshots.contains_key(&(branch_id, snapshot_id)),
+            "owner snapshot identity must never replace an installed branch snapshot"
+        );
         self.snapshots.insert((branch_id, snapshot_id), state);
+        self.release_snapshot_capacity();
     }
 
     pub(crate) fn snapshot_state(

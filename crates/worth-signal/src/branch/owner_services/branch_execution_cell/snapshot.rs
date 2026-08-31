@@ -52,7 +52,9 @@ where
                 axes: mismatch.axes().to_vec(),
             });
         }
-        let mut prepared = state.prepare_snapshot().map_err(owner_snapshot_failure)?;
+        let mut prepared = state
+            .prepare_snapshot(reservation.snapshot_id())
+            .map_err(owner_snapshot_failure)?;
         let permit = cancellation
             .preflight_movement()
             .map_err(|_| SignalBranchSnapshotCaptureDenial::CancelledNoMovement)?;

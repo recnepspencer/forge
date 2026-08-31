@@ -3,7 +3,7 @@ use std::sync::Arc;
 use worth_foundational::FoundationalBranchReferenceMismatchAxis;
 
 use crate::data::error::SignalError;
-use crate::state::{SignalBranchId, SignalSnapshotV1};
+use crate::state::{SignalBranchId, SignalSnapshotId, SignalSnapshotV1};
 
 use super::{
     AdmittedSignalBranchBasis, SignalBranchAdmissionLease, SignalBranchRetentionAcquisitionDenial,
@@ -79,6 +79,9 @@ pub enum SignalBranchSnapshotCaptureDenial {
     },
     SnapshotCapacityExhausted {
         maximum_stored_snapshots: usize,
+    },
+    SnapshotIdentityExhausted {
+        next_snapshot_id: SignalSnapshotId,
     },
     OwnerDeniedNoMovement {
         error: SignalError,

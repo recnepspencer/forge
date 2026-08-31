@@ -231,13 +231,15 @@ where
         &mut self,
         state: BranchState<D, I, T>,
     ) {
-        self.observe_allocator_state(state.graph());
-        self.record_branch_meta(
-            state.branch_id(),
-            state.ancestry().clone(),
-            state.mutation_ledger().clone(),
-        );
+        self.observe_branch_state(&state);
         self.branches.insert(state.branch_id(), state);
+    }
+
+    pub(in crate::logic::transaction::runtime::state::branching) fn observe_active_branch_state(
+        &mut self,
+        state: &BranchState<D, I, T>,
+    ) {
+        self.observe_branch_state(state);
     }
 
     pub fn branch_mutation_ledger(
@@ -305,6 +307,15 @@ where
         self.next_branch_id = self.next_branch_id.max(next_branch_id);
         self.next_lineage_artifact_id = self.next_lineage_artifact_id.max(next_lineage_artifact_id);
         self.next_lineage_sequence = self.next_lineage_sequence.max(next_lineage_sequence);
+    }
+
+    fn observe_branch_state(&mut self, state: &BranchState<D, I, T>) {
+        self.observe_allocator_state(state.graph());
+        self.record_branch_meta(
+            state.branch_id(),
+            state.ancestry().clone(),
+            state.mutation_ledger().clone(),
+        );
     }
 
     pub(super) fn record_branch_meta(

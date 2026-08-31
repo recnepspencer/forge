@@ -16,7 +16,9 @@ pub(in crate::logic::transaction::runtime) use authority::{
 pub(in crate::logic::transaction::runtime) use catalog::BranchManager;
 pub(in crate::logic::transaction::runtime::state) use catalog::DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS;
 pub(in crate::logic::transaction::runtime) use owner_partition::SignalOwnerPartitionDenial;
-pub(crate) use owner_partition::{SignalOwnerMetadataState, SignalOwnerPartition};
+pub(crate) use owner_partition::{
+    SignalOwnerMetadataState, SignalOwnerPartition, SignalOwnerSnapshotReservationDenial,
+};
 pub(in crate::logic::transaction::runtime) use snapshot_storage::SignalBranchSnapshotStorageDenial;
 
 use crate::data::graph::SignalGraph;

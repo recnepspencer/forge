@@ -36,8 +36,8 @@ pub use branching::{
     ValidatedBranchTargetedTransactionRequest, SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
 };
 pub(crate) use branching::{
-    BranchState, SignalOwnerMetadataState, SignalOwnerPartition, SnapshotBranchState,
-    SnapshotStatePacket,
+    BranchState, SignalOwnerMetadataState, SignalOwnerPartition,
+    SignalOwnerSnapshotReservationDenial, SnapshotBranchState, SnapshotStatePacket,
 };
 pub use builder::SignalRuntimeBuilder;
 pub use canonical_merge_guidance::{PlannedRuntimeMerge, RuntimeMerge};

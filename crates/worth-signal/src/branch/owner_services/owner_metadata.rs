@@ -5,7 +5,8 @@ use crate::branch::{
     SignalBranchSnapshotCaptureDenial,
 };
 use crate::logic::transaction::{
-    SignalOwnerMetadataState, SnapshotBranchState, SnapshotStatePacket,
+    SignalOwnerMetadataState, SignalOwnerSnapshotReservationDenial, SnapshotBranchState,
+    SnapshotStatePacket,
 };
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
@@ -50,16 +51,25 @@ where
         let _hold = self
             .authorize(admission)
             .map_err(SignalBranchSnapshotCaptureDenial::OwnerUnavailable)?;
-        self.lock()
-            .reserve_snapshot_capacity()
-            .map_err(|maximum_stored_snapshots| {
-                SignalBranchSnapshotCaptureDenial::SnapshotCapacityExhausted {
+        let snapshot_id = self
+            .lock()
+            .reserve_snapshot()
+            .map_err(|denial| match denial {
+                SignalOwnerSnapshotReservationDenial::CapacityExhausted {
                     maximum_stored_snapshots,
+                } => SignalBranchSnapshotCaptureDenial::SnapshotCapacityExhausted {
+                    maximum_stored_snapshots,
+                },
+                SignalOwnerSnapshotReservationDenial::IdentityExhausted { next_snapshot_id } => {
+                    SignalBranchSnapshotCaptureDenial::SnapshotIdentityExhausted {
+                        next_snapshot_id,
+                    }
                 }
             })?;
         Ok(SignalOwnerSnapshotReservation {
             metadata: self,
             admission,
+            snapshot_id,
             installed: false,
         })
     }
@@ -229,6 +239,7 @@ where
 {
     metadata: &'a SignalOwnerMetadata<D, I, T>,
     admission: &'a SignalOwnerOperationAdmission,
+    snapshot_id: SignalSnapshotId,
     installed: bool,
 }
 
@@ -242,12 +253,18 @@ where
         self.admission
     }
 
+    pub(super) const fn snapshot_id(&self) -> SignalSnapshotId {
+        self.snapshot_id
+    }
+
     pub(crate) fn install(mut self, packet: SnapshotStatePacket<D, I, T>) {
         debug_assert!(
             self.admission.permits_owner_lock_acquisition(),
             "snapshot installation must run after target-cell release"
         );
-        self.metadata.lock().install_reserved_snapshot(packet);
+        self.metadata
+            .lock()
+            .install_reserved_snapshot(self.snapshot_id, packet);
         self.installed = true;
     }
 }

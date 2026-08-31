@@ -4,7 +4,8 @@ use crate::logic::transaction::{
     CheckpointRecord, ReconstructabilityRecord, TemporalReconstructabilityArtifact,
 };
 use crate::state::{
-    SignalCheckpointImage, SignalSnapshotV1, SnapshotArtifactRetentionPolicy, SnapshotRestoreIntent,
+    SignalCheckpointImage, SignalSnapshotId, SignalSnapshotV1, SnapshotArtifactRetentionPolicy,
+    SnapshotRestoreIntent,
 };
 
 use super::{BranchState, SnapshotBranchState};
@@ -18,6 +19,7 @@ where
     /// Captures the canonical cell state without consulting runtime-global state.
     pub(crate) fn capture_for_owner_cell(
         &mut self,
+        reserved_snapshot_id: SignalSnapshotId,
     ) -> Result<(SignalSnapshotV1, SnapshotBranchState<D, I, T>), SignalError> {
         self.graph_mut().interrupt_observation_at_boundary();
         let installed = self.graph().installed_runtime_policy();
@@ -27,7 +29,11 @@ where
         let meta = self
             .graph_mut()
             .diagnostics_state_mut()
-            .allocate_snapshot_meta(request_metadata, artifact_retention);
+            .allocate_snapshot_meta_with_reserved_id(
+                reserved_snapshot_id,
+                request_metadata,
+                artifact_retention,
+            );
         crate::diagnostics::recorder::record_snapshot_event(
             self.graph_mut(),
             crate::diagnostics::replay::ReplayEventKind::SnapshotCaptured,

@@ -130,10 +130,10 @@ where
 
     pub(crate) fn prepare_snapshot(
         &self,
+        snapshot_id: SignalSnapshotId,
     ) -> Result<SignalPreparedBranchSnapshot<D, I, T>, SignalError> {
         let mut state = self.state.clone();
-        let (snapshot, snapshot_state) = state.capture_for_owner_cell()?;
-        let snapshot_id = snapshot.meta.snapshot_id;
+        let (snapshot, snapshot_state) = state.capture_for_owner_cell(snapshot_id)?;
         let generation = self.next_generation()?;
         let observation = self.observation_for(generation, Some(snapshot_id), None)?;
         Ok(SignalPreparedBranchSnapshot {

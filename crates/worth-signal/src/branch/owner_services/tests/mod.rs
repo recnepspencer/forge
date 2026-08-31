@@ -15,6 +15,7 @@ mod progress_bound;
 mod registry_capacity;
 mod root_destruction;
 pub(super) mod runtime_root;
+mod snapshot_identity;
 
 fn with_movement_permit(operation: impl FnOnce(&super::SignalOwnerMovementPermit<'_>)) {
     let source = super::SignalOwnerCancellationSource::new();
