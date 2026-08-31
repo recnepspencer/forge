@@ -9,6 +9,9 @@ use crate::data::handle::NodeId;
 
 #[path = "segmented/equality.rs"]
 mod equality;
+#[cfg(test)]
+#[path = "segmented/fork_granule_tests.rs"]
+mod fork_granule_tests;
 #[path = "segmented/serialization.rs"]
 mod serialization;
 #[cfg(test)]

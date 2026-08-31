@@ -7,6 +7,10 @@ use crate::data::error::SignalError;
 use crate::data::proof::invalidation::binding::ResolvedDependencyCause;
 use crate::data::proof::invalidation::output_commit::ProducedAspectDelta;
 
+#[cfg(test)]
+#[path = "cause_sets/fork_granule_tests.rs"]
+mod fork_granule_tests;
+
 #[derive(Debug, Clone, Serialize, Default)]
 pub(crate) struct CanonicalCauseSetStore {
     pub(super) generation: u32,

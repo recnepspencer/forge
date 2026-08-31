@@ -2,11 +2,13 @@ use std::fmt;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+mod fork_page;
 mod iteration;
 mod serialization;
 #[cfg(test)]
 mod tests;
 
+use self::fork_page::ForkPage;
 use self::iteration::PersistentVectorIter;
 
 const DEFAULT_PAGE_LEN: usize = 32;
@@ -15,7 +17,7 @@ enum PersistentVectorStorage<T> {
     Exclusive(Vec<T>),
     ForkShared {
         base: Arc<Vec<T>>,
-        changed_pages: im::OrdMap<usize, Arc<Vec<T>>>,
+        changed_pages: im::OrdMap<usize, Arc<ForkPage<T>>>,
         len: usize,
     },
 }
@@ -72,9 +74,10 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
                     return None;
                 }
                 let page_index = index / PAGE_LEN;
-                changed_pages
-                    .get(&page_index)
-                    .map_or_else(|| base.get(index), |page| page.get(index % PAGE_LEN))
+                changed_pages.get(&page_index).map_or_else(
+                    || base.get(index),
+                    |page| page.get(base, index, index % PAGE_LEN),
+                )
             }
         }
     }
@@ -92,13 +95,13 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
                     return None;
                 }
                 let page_index = index / PAGE_LEN;
-                install_changed_page::<T, PAGE_LEN>(base, changed_pages, *len, page_index);
+                install_changed_page::<T, PAGE_LEN>(base, changed_pages, page_index);
                 Arc::make_mut(
                     changed_pages
                         .get_mut(&page_index)
                         .expect("changed page must be installed"),
                 )
-                .get_mut(index % PAGE_LEN)
+                .get_mut(base, index, index % PAGE_LEN)
             }
         }
     }
@@ -117,13 +120,13 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
                 len,
             } => {
                 let page_index = *len / PAGE_LEN;
-                install_changed_page::<T, PAGE_LEN>(base, changed_pages, *len, page_index);
+                install_changed_page::<T, PAGE_LEN>(base, changed_pages, page_index);
                 Arc::make_mut(
                     changed_pages
                         .get_mut(&page_index)
                         .expect("changed page must be installed"),
                 )
-                .push(value);
+                .push(value, *len % PAGE_LEN);
                 *len += 1;
             }
         }
@@ -139,15 +142,18 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
             } => {
                 let index = len.checked_sub(1)?;
                 let page_index = index / PAGE_LEN;
-                install_changed_page::<T, PAGE_LEN>(base, changed_pages, *len, page_index);
-                let page = Arc::make_mut(
-                    changed_pages
-                        .get_mut(&page_index)
-                        .expect("changed page must be installed"),
-                );
-                let value = page.pop();
+                install_changed_page::<T, PAGE_LEN>(base, changed_pages, page_index);
+                let (value, page_is_empty) = {
+                    let page = Arc::make_mut(
+                        changed_pages
+                            .get_mut(&page_index)
+                            .expect("changed page must be installed"),
+                    );
+                    let value = page.pop(base, index, index % PAGE_LEN);
+                    (value, page.is_empty())
+                };
                 *len = index;
-                if page.is_empty() {
+                if page_is_empty {
                     changed_pages.remove(&page_index);
                 }
                 value
@@ -280,7 +286,7 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
                 .map(|page_index| {
                     changed_pages.get(&page_index).map_or_else(
                         || base.as_ptr().wrapping_add(page_index * PAGE_LEN) as usize,
-                        |page| page.as_ptr() as usize,
+                        |page| Arc::as_ptr(page) as usize,
                     )
                 })
                 .collect(),
@@ -301,21 +307,15 @@ impl<T: Clone, const PAGE_LEN: usize> PersistentVector<T, PAGE_LEN> {
 
 fn install_changed_page<T: Clone, const PAGE_LEN: usize>(
     base: &Arc<Vec<T>>,
-    changed_pages: &mut im::OrdMap<usize, Arc<Vec<T>>>,
-    len: usize,
+    changed_pages: &mut im::OrdMap<usize, Arc<ForkPage<T>>>,
     page_index: usize,
 ) {
     if changed_pages.contains_key(&page_index) {
         return;
     }
     let start = page_index * PAGE_LEN;
-    let end = len.min(start + PAGE_LEN).min(base.len());
-    let page = if start < end {
-        base[start..end].to_vec()
-    } else {
-        Vec::new()
-    };
-    changed_pages.insert(page_index, Arc::new(page));
+    let base_len = base.len().saturating_sub(start).min(PAGE_LEN);
+    changed_pages.insert(page_index, Arc::new(ForkPage::new(base_len)));
 }
 
 impl<T: Clone, const PAGE_LEN: usize> Clone for PersistentVector<T, PAGE_LEN> {
