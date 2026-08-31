@@ -6,8 +6,8 @@ use crate::data::handle::NodeId;
 use crate::data::output::PartitionTokenId;
 
 use super::{
-    DetailScopeKey, IndexedSubscriptionMembership, IndexedSubscriptionScope, ProducerAspectKey,
-    SubscriberScopeBuckets,
+    DetailScopeKey, ForkConsumerMemberships, IndexedSubscriptionMembership,
+    IndexedSubscriptionScope, ProducerAspectKey, SubscriberScopeBuckets,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -22,7 +22,7 @@ pub(super) enum ReverseSubscriptionStorage {
     ForkShared {
         base: Arc<ReverseSubscriptionFlat>,
         bucket_changes: im::OrdMap<ProducerAspectKey, BucketDelta>,
-        consumer_changes: im::OrdMap<NodeId, Option<Vec<IndexedSubscriptionMembership>>>,
+        consumer_changes: im::OrdMap<NodeId, Option<ForkConsumerMemberships>>,
     },
 }
 

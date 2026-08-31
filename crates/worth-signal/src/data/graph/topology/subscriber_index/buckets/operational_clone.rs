@@ -5,7 +5,7 @@ use crate::data::handle::NodeId;
 use super::fork_overlay::{
     extend_merged_set, BucketDelta, ReverseSubscriptionFlat, ReverseSubscriptionStorage, SetDelta,
 };
-use super::{ReverseSubscriptionIndex, SubscriberScopeBuckets};
+use super::{ForkConsumerMemberships, ReverseSubscriptionIndex, SubscriberScopeBuckets};
 
 impl ReverseSubscriptionIndex {
     pub(crate) fn operational_clone(&self) -> Self {
@@ -27,7 +27,7 @@ impl ReverseSubscriptionIndex {
 fn materialize_flat(
     base: &ReverseSubscriptionFlat,
     bucket_changes: &im::OrdMap<super::ProducerAspectKey, BucketDelta>,
-    consumer_changes: &im::OrdMap<NodeId, Option<Vec<super::IndexedSubscriptionMembership>>>,
+    consumer_changes: &im::OrdMap<NodeId, Option<ForkConsumerMemberships>>,
 ) -> ReverseSubscriptionFlat {
     let mut bucket_keys = base.buckets.keys().copied().collect::<BTreeSet<_>>();
     bucket_keys.extend(bucket_changes.keys().copied());
@@ -43,7 +43,7 @@ fn materialize_flat(
     for (consumer, memberships) in consumer_changes {
         match memberships {
             Some(memberships) => {
-                by_consumer.insert(*consumer, memberships.clone());
+                by_consumer.insert(*consumer, memberships.to_owned());
             }
             None => {
                 by_consumer.remove(consumer);

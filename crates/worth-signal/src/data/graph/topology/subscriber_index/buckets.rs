@@ -9,9 +9,12 @@ use crate::data::output::{
 };
 use crate::data::proof::invalidation::output_commit::{ProducedAspectChange, ScopePrecision};
 
+mod consumer_payload;
 mod flat_mutation;
 #[cfg(test)]
 mod fork_cost_tests;
+#[cfg(test)]
+mod fork_granule_tests;
 mod fork_overlay;
 #[cfg(test)]
 mod model_tests;
@@ -19,6 +22,7 @@ mod operational_clone;
 mod persistent_fork;
 mod query;
 
+use consumer_payload::ForkConsumerMemberships;
 use flat_mutation::{insert_flat_membership, remove_flat_consumer};
 use fork_overlay::{ReverseSubscriptionFlat, ReverseSubscriptionStorage};
 
@@ -239,7 +243,10 @@ impl ReverseSubscriptionIndex {
                 ReverseSubscriptionStorage::ForkShared {
                     consumer_changes, ..
                 } => {
-                    consumer_changes.insert(consumer, Some(memberships));
+                    consumer_changes.insert(
+                        consumer,
+                        Some(ForkConsumerMemberships::from_owned(memberships)),
+                    );
                 }
             }
         }
@@ -285,10 +292,11 @@ impl ReverseSubscriptionIndex {
                 bucket_changes,
                 consumer_changes,
             } => {
-                let memberships = consumer_changes
-                    .get(&consumer)
-                    .map_or_else(|| base.by_consumer.get(&consumer), Option::as_ref)
-                    .cloned();
+                let memberships = match consumer_changes.get(&consumer) {
+                    Some(Some(memberships)) => Some(memberships.as_slice().to_vec()),
+                    Some(None) => None,
+                    None => base.by_consumer.get(&consumer).cloned(),
+                };
                 let Some(memberships) = memberships else {
                     return;
                 };
