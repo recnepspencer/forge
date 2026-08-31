@@ -184,9 +184,11 @@ where
             let captures_telemetry = state.graph().captures_observation_surface(
                 crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
             );
-            let graph_telemetry = captures_telemetry
-                .then(|| *state.graph().telemetry())
-                .unwrap_or_default();
+            let graph_telemetry = if captures_telemetry {
+                *state.graph().telemetry()
+            } else {
+                Default::default()
+            };
             let retained_replay = state
                 .graph()
                 .observe()

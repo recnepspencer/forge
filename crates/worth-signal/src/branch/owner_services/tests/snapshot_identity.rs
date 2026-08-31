@@ -10,6 +10,7 @@ mod concurrency;
 mod high_water;
 mod recovery;
 mod reservation_lifecycle;
+mod restore_selection;
 
 #[test]
 fn distinct_sibling_snapshots_do_not_alias_exact_retention_targets() {
