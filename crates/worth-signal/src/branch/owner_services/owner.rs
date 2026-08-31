@@ -253,6 +253,11 @@ where
         source: &AdmittedSignalBranchBasis,
         requested_identity: ValidatedSignalBranchName,
     ) -> Result<SignalOwnerForkReservation<'a, D, I, T>, SignalBranchForkOperationDenial> {
+        if !admission.permits_owner_lock_acquisition() {
+            return Err(SignalBranchForkOperationDenial::OwnerUnavailable(
+                SignalOwnerUnavailable,
+            ));
+        }
         let branch_id = self
             .next_branch_id
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {

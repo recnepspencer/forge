@@ -1,11 +1,107 @@
 use std::sync::Arc;
 
+use crate::branch::{
+    validate_signal_branch_name, AdmittedSignalBranchBasis, SignalBranchForkOperationDenial,
+};
 use crate::state::SignalBranchId;
 
 use super::super::{
-    SignalBranchCellAdmissionDenial, SignalBranchRegistry, SignalBranchRegistryDenial,
-    SignalOwnerLifecycleState, SignalOwnerServiceCounters,
+    SignalBranchCellAdmissionDenial, SignalBranchRegistry, SignalBranchRegistryDenial, SignalOwner,
+    SignalOwnerLifecycleState, SignalOwnerOperationAdmission, SignalOwnerServiceCounters,
+    SignalOwnerUnavailable,
 };
+use super::runtime_root::runtime_with_two_branches;
+
+struct ForkReservationState<'a> {
+    owner: &'a SignalOwner<(), (), ()>,
+    admission: &'a SignalOwnerOperationAdmission,
+    source_id: SignalBranchId,
+    reservations: usize,
+    reservation_counter: u64,
+    children: Vec<SignalBranchId>,
+}
+
+impl<'a> ForkReservationState<'a> {
+    fn capture(
+        owner: &'a SignalOwner<(), (), ()>,
+        admission: &'a SignalOwnerOperationAdmission,
+        source_id: SignalBranchId,
+    ) -> Self {
+        Self {
+            owner,
+            admission,
+            source_id,
+            reservations: owner.reservation_count(),
+            reservation_counter: owner.cost_snapshot().branch_registry_reservations(),
+            children: owner
+                .metadata
+                .branch_children(admission, source_id)
+                .expect("source lineage is observable"),
+        }
+    }
+
+    fn assert_unchanged(&self, context: &str) {
+        assert_eq!(
+            self.owner.cost_snapshot().branch_registry_reservations(),
+            self.reservation_counter
+        );
+        self.assert_capacity_and_lineage(self.reservations, &self.children, context);
+    }
+
+    fn assert_capacity_and_lineage(
+        &self,
+        expected_reservations: usize,
+        expected_children: &[SignalBranchId],
+        context: &str,
+    ) {
+        assert_eq!(self.owner.reservation_count(), expected_reservations);
+        assert_eq!(
+            self.owner
+                .metadata
+                .branch_children(self.admission, self.source_id)
+                .expect(context),
+            expected_children
+        );
+    }
+
+    fn assert_healthy_cycle(
+        &self,
+        source_basis: &AdmittedSignalBranchBasis,
+        expected_next_id: SignalBranchId,
+    ) {
+        let healthy = self
+            .owner
+            .reserve_fork_destination(
+                self.admission,
+                source_basis,
+                validate_signal_branch_name("released-admission-healthy-fork")
+                    .expect("the healthy identity is valid"),
+            )
+            .expect("the same admission reserves after both holds release");
+        assert_eq!(healthy.branch().id, expected_next_id);
+        assert_eq!(self.owner.reservation_count(), self.reservations + 1);
+        assert_eq!(
+            self.owner.cost_snapshot().branch_registry_reservations(),
+            self.reservation_counter + 1
+        );
+        let mut expected_children = self.children.clone();
+        expected_children.push(expected_next_id);
+        expected_children.sort_unstable();
+        assert_eq!(
+            self.owner
+                .metadata
+                .branch_children(self.admission, self.source_id)
+                .expect("the healthy reservation installs lineage"),
+            expected_children
+        );
+        drop(healthy);
+        self.assert_capacity_and_lineage(
+            self.reservations,
+            &self.children,
+            "healthy reservation cleanup restores lineage",
+        );
+    }
+}
 
 #[test]
 fn registry_and_cell_reject_foreign_and_expired_admissions_before_contact() {
@@ -54,4 +150,62 @@ fn registry_and_cell_reject_foreign_and_expired_admissions_before_contact() {
     assert_eq!(snapshot.branch_registry_lookups(), 0);
     assert_eq!(snapshot.target_cell_contacts(), 0);
     assert_eq!(snapshot.target_cell_waits(), 0);
+}
+
+#[test]
+fn fork_reservation_rejects_held_admission_before_identity_or_capacity_movement() {
+    let (mut runtime, first_branch, source_branch, source_basis) = runtime_with_two_branches();
+    let (_, mutation, _) = runtime.owner_port_slots().expect("runtime seals");
+    let owner = mutation.upgrade_owner().expect("sealed owner upgrades");
+    let admission = owner.admit().expect("owner admits fork reservation work");
+    let source_cell = owner
+        .lookup_cell(&admission, source_branch.id)
+        .expect("the real source cell is live");
+    let reservation_state = ForkReservationState::capture(&owner, &admission, source_branch.id);
+
+    let held_cell_denial = source_cell
+        .with_state(&admission, |_, _| {
+            owner.reserve_fork_destination(
+                &admission,
+                &source_basis,
+                validate_signal_branch_name("held-cell-denied-fork")
+                    .expect("the denied identity is valid"),
+            )
+        })
+        .expect("the source cell hold is real");
+    assert!(matches!(
+        held_cell_denial,
+        Err(SignalBranchForkOperationDenial::OwnerUnavailable(
+            SignalOwnerUnavailable
+        ))
+    ));
+
+    let metadata_hold = admission
+        .hold_owner_metadata()
+        .expect("the admission holds the real owner-metadata slot");
+    let held_metadata_denial = owner.reserve_fork_destination(
+        &admission,
+        &source_basis,
+        validate_signal_branch_name("held-metadata-denied-fork")
+            .expect("the second denied identity is valid"),
+    );
+    drop(metadata_hold);
+    assert!(matches!(
+        held_metadata_denial,
+        Err(SignalBranchForkOperationDenial::OwnerUnavailable(
+            SignalOwnerUnavailable
+        ))
+    ));
+
+    reservation_state.assert_unchanged("denied reservations leave lineage unchanged");
+
+    let expected_next_id = SignalBranchId(
+        first_branch
+            .id
+            .0
+            .max(source_branch.id.0)
+            .checked_add(1)
+            .expect("the small real fixture has another branch identity"),
+    );
+    reservation_state.assert_healthy_cycle(&source_basis, expected_next_id);
 }
