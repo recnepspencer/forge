@@ -51,10 +51,10 @@ pub use mounted_frame::{
     UiSurfaceBindingGeneration,
 };
 pub use mounted_projection::{
-    compose_source_over, UiAppearanceAllocationBounds, UiAppearanceClip,
-    UiAppearanceDamageAttribution, UiAppearanceDamageRegion, UiAppearanceEmptyRegion,
-    UiAppearanceGeometryOverflow, UiAppearanceLogicalLength, UiAppearanceNegativeLength,
-    UiAppearanceNormalizedLogicalRadii, UiAppearanceOutlineGeometry,
+    compose_source_over, UiAppearanceAllocationBounds, UiAppearanceBackdropExtent,
+    UiAppearanceClip, UiAppearanceDamageAttribution, UiAppearanceDamageRegion,
+    UiAppearanceEmptyRegion, UiAppearanceGeometryOverflow, UiAppearanceLogicalLength,
+    UiAppearanceNegativeLength, UiAppearanceNormalizedLogicalRadii, UiAppearanceOutlineGeometry,
     UiAppearanceOutlineGeometryDenial, UiAppearanceVisualBounds,
     UiHeadlessMountedParticipationRecord, UiHeadlessMountedResourceHandle,
     UiHostAppearanceMechanicFamily, UiHostAppearanceProfileContract, UiHostAppearanceProfileDenial,

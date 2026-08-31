@@ -16,7 +16,7 @@ pub struct UiInteractionBatchReceipt {
     pub(super) command_routes: Box<[crate::runtime::UiCommandRoutingOutcome]>,
     #[allow(
         dead_code,
-        reason = "Gate 0 retains non-emitting pointer transition evidence"
+        reason = "Gate 0 exposes owner-issued transitions before Gate 1 live resolver threading"
     )]
     pub(super) pointer_presence_transitions:
         Box<[super::pointer_presence::UiPointerPresenceTargetTransition]>,
@@ -81,11 +81,7 @@ impl UiInteractionBatchReceipt {
         (self.transitions, self.command_routes)
     }
 
-    #[allow(
-        dead_code,
-        reason = "Gate 0 exposes pointer transition evidence only inside runtime"
-    )]
-    pub(crate) fn pointer_presence_transitions(
+    pub fn pointer_presence_transitions(
         &self,
     ) -> &[super::pointer_presence::UiPointerPresenceTargetTransition] {
         &self.pointer_presence_transitions

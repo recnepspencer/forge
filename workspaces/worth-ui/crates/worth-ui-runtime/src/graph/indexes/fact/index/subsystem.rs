@@ -12,7 +12,7 @@ use super::{canonical_entries, consumer_identity, consumer_key, UiGraphFactIndex
 pub(super) struct UiGraphSubsystemFactIndex {
     host_viewport: Box<[UiGraphFactIndexEntry]>,
     host_device_scale: Box<[UiGraphFactIndexEntry]>,
-    host_pointer_motion: Box<[UiGraphFactIndexEntry]>,
+    pointer_presence_target: Box<[UiGraphFactIndexEntry]>,
     measurement: Box<[UiGraphFactIndexEntry]>,
     query: Box<[UiGraphFactIndexEntry]>,
     committed_scroll_extent: Box<[UiGraphFactIndexEntry]>,
@@ -29,7 +29,7 @@ impl UiGraphSubsystemFactIndex {
             UiProducedFactFamily::AuthoredSource => &[],
             UiProducedFactFamily::HostViewport => &self.host_viewport,
             UiProducedFactFamily::HostDeviceScale => &self.host_device_scale,
-            UiProducedFactFamily::HostPointerMotion => &self.host_pointer_motion,
+            UiProducedFactFamily::PointerPresenceTarget => &self.pointer_presence_target,
             UiProducedFactFamily::Measurement => &self.measurement,
             UiProducedFactFamily::Query => &self.query,
             UiProducedFactFamily::IntentPosture => &[],
@@ -51,7 +51,10 @@ pub(super) fn build_subsystem_index(snapshot: &UiGraphSnapshot) -> UiGraphSubsys
     UiGraphSubsystemFactIndex {
         host_viewport: take_family(&mut by_family, UiProducedFactFamily::HostViewport),
         host_device_scale: take_family(&mut by_family, UiProducedFactFamily::HostDeviceScale),
-        host_pointer_motion: take_family(&mut by_family, UiProducedFactFamily::HostPointerMotion),
+        pointer_presence_target: take_family(
+            &mut by_family,
+            UiProducedFactFamily::PointerPresenceTarget,
+        ),
         measurement: take_family(&mut by_family, UiProducedFactFamily::Measurement),
         query: take_family(&mut by_family, UiProducedFactFamily::Query),
         committed_scroll_extent: take_family(

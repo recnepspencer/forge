@@ -153,12 +153,6 @@ fn seal_supported_observations(
                     batch.canonical_core().host_session(),
                     owner_order,
                 ),
-                UiObservationFamily::HostPointerMotion => {
-                    UiObservationProgress::host_pointer_motion(
-                        batch.canonical_core().host_session(),
-                        owner_order,
-                    )
-                }
                 _ => unreachable!("host admission maps only host-owned semantic families"),
             };
             UiAdmittedObservation::seal(UiAdmittedObservationSeal {
@@ -182,7 +176,7 @@ const fn map_supported(family: MechanicalFamily) -> Option<UiObservationFamily> 
     match family {
         MechanicalFamily::Viewport => Some(UiObservationFamily::HostViewport),
         MechanicalFamily::DeviceScale => Some(UiObservationFamily::HostDeviceScale),
-        MechanicalFamily::PointerMotion => Some(UiObservationFamily::HostPointerMotion),
+        MechanicalFamily::PointerMotion => None,
         MechanicalFamily::PointerButton
         | MechanicalFamily::Keyboard
         | MechanicalFamily::WindowFocus
@@ -197,7 +191,7 @@ const fn map_supported(family: MechanicalFamily) -> Option<UiObservationFamily> 
 const fn unavailable(family: MechanicalFamily) -> Option<UiHostObservationUnavailable> {
     let successor = match family {
         MechanicalFamily::Viewport | MechanicalFamily::DeviceScale => return None,
-        MechanicalFamily::PointerMotion => return None,
+        MechanicalFamily::PointerMotion => UiHostObservationSuccessorOwner::PointerPresence,
         MechanicalFamily::PointerButton
         | MechanicalFamily::Keyboard
         | MechanicalFamily::TextComposition

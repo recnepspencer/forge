@@ -279,29 +279,6 @@ impl WorthUiActiveApplicationSession {
         self.application.capabilities()
     }
 
-    pub fn classify_observations(
-        &mut self,
-        mut observations: crate::facade::observation::UiAdmittedObservationSet,
-    ) -> Result<
-        crate::facade::observation::UiChangeClassificationOutcome,
-        crate::facade::observation::UiChangeClassificationDenial,
-    > {
-        self.application
-            .validate_observation_basis(self.identity, &observations)?;
-        if observations
-            .appearance_owner_snapshot()
-            .is_some_and(|snapshot| snapshot.generation() != &self.active_generation_identity())
-        {
-            return Err(crate::facade::observation::UiChangeClassificationDenial::ForeignApplicationGeneration);
-        }
-        let owners = observations.take_appearance_owner_snapshot();
-        let outcome = self
-            .application
-            .classify_observations(self.identity, observations)?;
-        self.appearance_owner_snapshot = owners;
-        Ok(outcome)
-    }
-
     #[cfg(test)]
     pub(crate) const fn has_appearance_owner_snapshot_for_test(&self) -> bool {
         self.appearance_owner_snapshot.is_some()

@@ -1,7 +1,7 @@
 #[test]
 fn runtime_can_complete_inert_mechanics_without_publication_authority() {
     use worth_ui_host_contract::{
-        UiAppearanceAllocationBounds, UiAppearanceClip, UiAppearanceDamageRegion,
+        UiAppearanceAllocationBounds, UiAppearanceBackdropExtent, UiAppearanceClip,
         UiAppearanceLogicalLength, UiAppearanceNormalizedLogicalRadii, UiAppearanceOutlineGeometry,
         UiHostPointerIdentity, UiMountedAppearanceColor, UiMountedAppearanceOpacity,
         UiMountedBackdropAppearanceAttribution, UiMountedBackdropCompletionInput,
@@ -24,7 +24,7 @@ fn runtime_can_complete_inert_mechanics_without_publication_authority() {
     let portal = UiMountedInstanceIdentity::mint_unbound().unwrap();
     let pointer = UiHostPointerIdentity::new(9);
     let allocation = UiAppearanceAllocationBounds::new(0, 0, 8_000, 8_000).unwrap();
-    let damage = UiAppearanceDamageRegion::new(0, 0, 8_000, 8_000).unwrap();
+    let backdrop_extent = UiAppearanceBackdropExtent::new(0, 0, 8_000, 8_000).unwrap();
     let clip = UiAppearanceClip::new(0, 0, 8_000, 8_000).unwrap();
     let zero = UiAppearanceLogicalLength::ZERO;
     let radii = UiAppearanceNormalizedLogicalRadii::normalize(allocation, [zero; 4]);
@@ -90,7 +90,7 @@ fn runtime_can_complete_inert_mechanics_without_publication_authority() {
             identity: backdrop_identity.clone(),
             semantic_surface: surface,
             placement,
-            bounds: damage,
+            extent: backdrop_extent,
             clip,
             background: color,
             opacity: UiMountedAppearanceOpacity::ONE,

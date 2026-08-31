@@ -12,6 +12,10 @@ pub struct UiAppearanceAllocationBounds(pub(crate) UiAppearanceLogicalRect);
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiAppearanceVisualBounds(pub(crate) UiAppearanceLogicalRect);
 
+/// Exact presented backdrop extent, independent of repaint damage and clipping.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiAppearanceBackdropExtent(pub(crate) UiAppearanceLogicalRect);
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiAppearanceDamageRegion(pub(crate) UiAppearanceLogicalRect);
 
@@ -94,6 +98,7 @@ macro_rules! logical_rect_contract {
 }
 
 logical_rect_contract!(UiAppearanceAllocationBounds);
+logical_rect_contract!(UiAppearanceBackdropExtent);
 logical_rect_contract!(UiAppearanceDamageRegion);
 logical_rect_contract!(UiAppearanceClip);
 
@@ -124,6 +129,10 @@ mod tests {
     fn empty_regions_deny_for_each_caller_owned_region() {
         assert_eq!(
             UiAppearanceAllocationBounds::new(0, 0, 0, 1),
+            Err(UiAppearanceEmptyRegion)
+        );
+        assert_eq!(
+            UiAppearanceBackdropExtent::new(0, 0, 0, 1),
             Err(UiAppearanceEmptyRegion)
         );
         assert_eq!(

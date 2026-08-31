@@ -44,7 +44,7 @@ impl super::UiFocusRuntimeState {
             target,
             window: self.window_focus,
             modality: self.modality,
-            owner_revision: self.revision,
+            owner_revision: self.appearance_revision,
         }
     }
 }
@@ -91,5 +91,79 @@ mod tests {
             super::UiFocusAppearanceClass::Unfocused
         );
         assert_eq!(state.appearance_posture().owner_revision(), 0);
+    }
+
+    #[test]
+    fn appearance_revision_advances_only_when_observed_inputs_change() {
+        let mut state = super::super::UiFocusRuntimeState::new_session_restore_candidate();
+
+        state.observe_window_focus(false);
+        assert_eq!(state.appearance_posture().owner_revision(), 0);
+        state.observe_window_focus(true);
+        assert_eq!(state.appearance_posture().owner_revision(), 1);
+        state.observe_window_focus(true);
+        assert_eq!(state.appearance_posture().owner_revision(), 1);
+        state.observe_keyboard_modality();
+        assert_eq!(state.appearance_posture().owner_revision(), 2);
+        state.observe_keyboard_modality();
+        assert_eq!(state.appearance_posture().owner_revision(), 2);
+        state.observe_pointer_modality();
+        assert_eq!(state.appearance_posture().owner_revision(), 3);
+    }
+
+    #[test]
+    fn projection_classes_and_target_lifecycle_share_one_appearance_revision() {
+        let mut state = super::super::UiFocusRuntimeState::new_session_restore_candidate();
+        let surface = worth_ui_host_contract::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+        let mounted = worth_ui_host_contract::UiMountedInstanceIdentity::mint_unbound().unwrap();
+        let incarnation = worth_ui_host_contract::UiMountIncarnation::mint_unbound().unwrap();
+        let frame = worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap();
+        let issuer = worth_ui_host_contract::UiMountedNodeReceiptIssuer::mint_for(frame).unwrap();
+        let participant = super::super::UiFocusParticipant::from_mounted(
+            crate::mounting::UiMountedFocusParticipant::new(
+                crate::graph::UiGraphNodeIdentity::new(1),
+                surface,
+                mounted,
+                incarnation,
+                issuer.receipt_for(mounted),
+                crate::capability::ComponentFocusSupport::focusable(),
+                crate::mounting::UiMountedFocusScope::ActiveSurface,
+                0,
+            ),
+        )
+        .unwrap();
+
+        state.observe_window_focus(true);
+        state
+            .apply_immediate(
+                Some(super::super::UiSemanticKeyboardFocus::new(participant)),
+                super::super::UiFocusCause::Direct,
+                1,
+            )
+            .unwrap();
+        assert_eq!(
+            state.appearance_posture().class(),
+            super::UiFocusAppearanceClass::Focused
+        );
+        assert_eq!(state.appearance_posture().owner_revision(), 2);
+
+        state.observe_keyboard_modality();
+        assert_eq!(
+            state.appearance_posture().class(),
+            super::UiFocusAppearanceClass::FocusVisible
+        );
+        state.observe_window_focus(false);
+        assert_eq!(
+            state.appearance_posture().class(),
+            super::UiFocusAppearanceClass::FocusedWindowInactive
+        );
+        state
+            .apply_immediate(None, super::super::UiFocusCause::Direct, 1)
+            .unwrap();
+        assert_eq!(
+            state.appearance_posture().class(),
+            super::UiFocusAppearanceClass::Unfocused
+        );
+        assert_eq!(state.appearance_posture().owner_revision(), 5);
     }
 }

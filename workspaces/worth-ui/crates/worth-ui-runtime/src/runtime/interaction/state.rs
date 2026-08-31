@@ -63,7 +63,7 @@ impl UiInteractionRuntimeState {
             let pointer_presence = self
                 .pointer_presence
                 .as_mut()
-                .and_then(|owner| owner.process_mouse_report(core, report, mounted));
+                .and_then(|owner| owner.process_mouse_report(core, report, mounted, generation));
             let pointer = self.pointer.process_report(core, report, mounted);
             let draft = self.draft.process_report(core, report, mounted, generation);
             if pointer_presence.is_none() && pointer.is_empty() && draft.is_empty() {

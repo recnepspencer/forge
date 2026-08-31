@@ -25,7 +25,7 @@ pub struct UiMountedBackdropMechanic {
     identity: UiMountedBackdropIdentity,
     semantic_surface: crate::UiSemanticSurfaceIdentity,
     placement: UiOverlayPlacementReceipt,
-    bounds: super::UiAppearanceDamageRegion,
+    extent: super::UiAppearanceBackdropExtent,
     clip: super::UiAppearanceClip,
     background: super::UiMountedAppearanceColor,
     opacity: super::UiMountedAppearanceOpacity,
@@ -37,7 +37,7 @@ pub struct UiMountedBackdropCompletionInput {
     pub identity: UiMountedBackdropIdentity,
     pub semantic_surface: crate::UiSemanticSurfaceIdentity,
     pub placement: UiOverlayPlacementReceipt,
-    pub bounds: super::UiAppearanceDamageRegion,
+    pub extent: super::UiAppearanceBackdropExtent,
     pub clip: super::UiAppearanceClip,
     pub background: super::UiMountedAppearanceColor,
     pub opacity: super::UiMountedAppearanceOpacity,
@@ -65,7 +65,7 @@ impl UiMountedBackdropMechanic {
             identity: input.identity,
             semantic_surface: input.semantic_surface,
             placement: input.placement,
-            bounds: input.bounds,
+            extent: input.extent,
             clip: input.clip,
             background: input.background,
             opacity: input.opacity,
@@ -82,8 +82,8 @@ impl UiMountedBackdropMechanic {
     pub const fn placement(&self) -> UiOverlayPlacementReceipt {
         self.placement
     }
-    pub const fn bounds(&self) -> super::UiAppearanceDamageRegion {
-        self.bounds
+    pub const fn extent(&self) -> super::UiAppearanceBackdropExtent {
+        self.extent
     }
     pub const fn clip(&self) -> super::UiAppearanceClip {
         self.clip
@@ -172,7 +172,7 @@ mod tests {
             identity: UiMountedBackdropIdentity::from_runtime_mounting("dialog.backdrop").unwrap(),
             semantic_surface,
             placement,
-            bounds: super::super::UiAppearanceDamageRegion::new(0, 0, 100, 80).unwrap(),
+            extent: super::super::UiAppearanceBackdropExtent::new(0, 0, 100, 80).unwrap(),
             clip: super::super::UiAppearanceClip::new(0, 0, 100, 80).unwrap(),
             background: super::super::UiMountedAppearanceColor::from_straight_srgba([0, 0, 0, 128]),
             opacity: super::super::UiMountedAppearanceOpacity::ONE,
@@ -191,6 +191,17 @@ mod tests {
         let mechanic = UiMountedBackdropMechanic::complete_from_runtime_mounting(input()).unwrap();
         assert_eq!(mechanic.attribution().identity(), 7);
         assert!(!mechanic.participates_in_hit_testing());
+    }
+
+    #[test]
+    fn backdrop_extent_remains_independent_of_its_clip() {
+        let mut input = input();
+        input.clip = super::super::UiAppearanceClip::new(10, 20, 60, 40).unwrap();
+        let mechanic = UiMountedBackdropMechanic::complete_from_runtime_mounting(input).unwrap();
+        assert_eq!(mechanic.extent().width(), 100);
+        assert_eq!(mechanic.extent().height(), 80);
+        assert_eq!(mechanic.clip().width(), 60);
+        assert_eq!(mechanic.clip().height(), 40);
     }
 
     #[test]

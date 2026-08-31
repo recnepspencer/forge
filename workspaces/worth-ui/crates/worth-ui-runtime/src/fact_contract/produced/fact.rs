@@ -1,14 +1,15 @@
 use super::{
     UiAuthoredChangedFact, UiCommittedPortalAnchorChangedFact, UiCommittedScrollExtentChangedFact,
-    UiHostDeviceScaleChangedFact, UiHostPointerMotionChangedFact, UiHostViewportChangedFact,
-    UiIntentPostureChangedFact, UiMeasurementChangedFact, UiProducedFactFamily, UiQueryChangedFact,
+    UiHostDeviceScaleChangedFact, UiHostViewportChangedFact, UiIntentPostureChangedFact,
+    UiMeasurementChangedFact, UiPointerPresenceTargetChangedFact, UiProducedFactFamily,
+    UiQueryChangedFact,
 };
 
 pub enum UiProducedFact {
     AuthoredSource(UiAuthoredChangedFact),
     HostViewport(UiHostViewportChangedFact),
     HostDeviceScale(UiHostDeviceScaleChangedFact),
-    HostPointerMotion(UiHostPointerMotionChangedFact),
+    PointerPresenceTarget(UiPointerPresenceTargetChangedFact),
     Measurement(UiMeasurementChangedFact),
     Query(UiQueryChangedFact),
     IntentPosture(UiIntentPostureChangedFact),
@@ -22,7 +23,7 @@ impl UiProducedFact {
             Self::AuthoredSource(_) => UiProducedFactFamily::AuthoredSource,
             Self::HostViewport(_) => UiProducedFactFamily::HostViewport,
             Self::HostDeviceScale(_) => UiProducedFactFamily::HostDeviceScale,
-            Self::HostPointerMotion(_) => UiProducedFactFamily::HostPointerMotion,
+            Self::PointerPresenceTarget(_) => UiProducedFactFamily::PointerPresenceTarget,
             Self::Measurement(_) => UiProducedFactFamily::Measurement,
             Self::Query(_) => UiProducedFactFamily::Query,
             Self::IntentPosture(_) => UiProducedFactFamily::IntentPosture,

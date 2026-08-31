@@ -23,6 +23,7 @@ pub(crate) struct UiFocusRuntimeState {
     pub(super) portal_restorations:
         BTreeMap<super::UiPortalFocusBoundaryIdentity, Option<super::UiFocusRestorationToken>>,
     pub(super) revision: u64,
+    pub(super) appearance_revision: u64,
     pub(super) last_transition: Option<super::UiFocusTransitionReceipt>,
     pub(super) last_restoration_failure: Option<super::UiFocusTransitionReceipt>,
 }
@@ -60,6 +61,7 @@ impl UiFocusRuntimeState {
             pending_portal: BTreeMap::new(),
             portal_restorations: BTreeMap::new(),
             revision: 0,
+            appearance_revision: 0,
             last_transition: None,
             last_restoration_failure: None,
         }
@@ -138,6 +140,7 @@ impl UiFocusRuntimeState {
         participants_visited: u32,
     ) -> Result<super::UiFocusTransitionReceipt, super::UiFocusRoutingDenial> {
         let previous = self.current;
+        let previous_modality = self.modality;
         let outcome = super::routing::transition_outcome(previous, next);
         self.revision = self
             .revision
@@ -155,6 +158,9 @@ impl UiFocusRuntimeState {
         ) {
             self.modality = super::UiFocusVisibleModality::Keyboard;
         }
+        if previous != self.current || previous_modality != self.modality {
+            self.bump_appearance_revision();
+        }
         let receipt = super::UiFocusTransitionReceipt::new(
             previous,
             next,
@@ -170,5 +176,12 @@ impl UiFocusRuntimeState {
             self.last_restoration_failure = Some(receipt);
         }
         Ok(receipt)
+    }
+
+    pub(super) fn bump_appearance_revision(&mut self) {
+        self.appearance_revision = self
+            .appearance_revision
+            .checked_add(1)
+            .expect("bounded focus appearance revision exhausted");
     }
 }

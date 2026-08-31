@@ -1,4 +1,55 @@
 impl super::WorthUiActiveApplicationSession {
+    pub fn classify_observations(
+        &mut self,
+        mut observations: crate::facade::observation::UiAdmittedObservationSet,
+    ) -> Result<
+        crate::facade::observation::UiChangeClassificationOutcome,
+        crate::facade::observation::UiChangeClassificationDenial,
+    > {
+        self.application
+            .validate_observation_basis(self.identity, &observations)?;
+        if observations
+            .appearance_owner_snapshot()
+            .is_some_and(|snapshot| snapshot.generation() != &self.active_generation_identity())
+        {
+            return Err(crate::facade::observation::UiChangeClassificationDenial::ForeignApplicationGeneration);
+        }
+        self.validate_pointer_observation_currentness(&observations)?;
+        let owners = observations.take_appearance_owner_snapshot();
+        let outcome = self
+            .application
+            .classify_observations(self.identity, observations)?;
+        self.appearance_owner_snapshot = owners;
+        Ok(outcome)
+    }
+
+    fn validate_pointer_observation_currentness(
+        &self,
+        observations: &crate::facade::observation::UiAdmittedObservationSet,
+    ) -> Result<(), crate::facade::observation::UiChangeClassificationDenial> {
+        let active_generation = self.active_generation_identity();
+        for transition in observations.observations().iter().filter_map(
+            crate::runtime::observation::UiAdmittedObservation::pointer_presence_transition,
+        ) {
+            if transition.generation() != &active_generation {
+                return Err(
+                    crate::facade::observation::UiChangeClassificationDenial::ForeignApplicationGeneration,
+                );
+            }
+            self.mounted
+                .validate_current_frame(transition.presentation().frame())
+                .map_err(|_| stale_pointer_transition())?;
+            if let (Some(instance), Some(receipt)) =
+                (transition.current(), transition.current_node_receipt())
+            {
+                self.mounted
+                    .validate_current_receipt(instance, receipt)
+                    .map_err(|_| stale_pointer_transition())?;
+            }
+        }
+        Ok(())
+    }
+
     #[allow(
         dead_code,
         reason = "Gate 0 proves origin admission without enabling live theme switching"
@@ -40,4 +91,8 @@ impl super::WorthUiActiveApplicationSession {
         self.application
             .begin_observation_turn(session, appearance_close)
     }
+}
+
+const fn stale_pointer_transition() -> crate::facade::observation::UiChangeClassificationDenial {
+    crate::facade::observation::UiChangeClassificationDenial::StalePointerPresenceTransition
 }

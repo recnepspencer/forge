@@ -20,7 +20,7 @@ pub enum UiProducedFactFamily {
     AuthoredSource,
     HostViewport,
     HostDeviceScale,
-    HostPointerMotion,
+    PointerPresenceTarget,
     Measurement,
     Query,
     IntentPosture,
@@ -58,7 +58,7 @@ impl UiProducedFactContract {
                 Self::new(owner, UiProducedFactFamily::HostDeviceScale, false)
             }
             UiProducedFactOwner::PointerPresenceRuntimeState => {
-                Self::new(owner, UiProducedFactFamily::HostPointerMotion, false)
+                Self::new(owner, UiProducedFactFamily::PointerPresenceTarget, false)
             }
             UiProducedFactOwner::MeasurementExchange => {
                 Self::new(owner, UiProducedFactFamily::Measurement, false)

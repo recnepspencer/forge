@@ -62,7 +62,7 @@ pub(crate) use payload::{
 #[cfg(test)]
 pub(crate) use payload::{
     UiAdmittedValidationAppearanceTarget, UiValidationAppearanceClass,
-    UiValidationAppearanceFactDenial, UiValidationAppearanceTargetAdmissionDenial,
+    UiValidationAppearanceFactDenial,
 };
 pub use payload::{
     UiIntentApplicationFactRevision, UiIntentApplicationFactUpdateDenial,

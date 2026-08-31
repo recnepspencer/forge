@@ -14,7 +14,7 @@ pub(crate) use validation::UiValidationAppearanceFactSnapshot;
 #[cfg(test)]
 pub(crate) use validation::{
     UiAdmittedValidationAppearanceTarget, UiValidationAppearanceClass,
-    UiValidationAppearanceFactDenial, UiValidationAppearanceTargetAdmissionDenial,
+    UiValidationAppearanceFactDenial,
 };
 
 pub(crate) struct UiIntentApplicationFactState {

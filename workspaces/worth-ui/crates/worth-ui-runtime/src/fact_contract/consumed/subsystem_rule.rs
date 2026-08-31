@@ -92,7 +92,7 @@ impl UiSubsystemConsumedFactRule {
             UiProducedFactFamily::AuthoredSource => &[],
             UiProducedFactFamily::HostViewport => &Self::HOST_VIEWPORT,
             UiProducedFactFamily::HostDeviceScale => &Self::HOST_DEVICE_SCALE,
-            UiProducedFactFamily::HostPointerMotion => &[],
+            UiProducedFactFamily::PointerPresenceTarget => &[],
             UiProducedFactFamily::Measurement => &Self::MEASUREMENT,
             UiProducedFactFamily::Query => &Self::QUERY,
             UiProducedFactFamily::IntentPosture => &[],

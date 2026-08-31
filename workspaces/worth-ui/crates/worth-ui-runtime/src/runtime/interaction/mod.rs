@@ -28,6 +28,7 @@ pub use gesture::{
     UiPointerGestureStopReason, UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
 pub(crate) use pointer_presence::UiPointerPresenceAppearanceOwnerSnapshot;
+pub use pointer_presence::UiPointerPresenceTargetTransition;
 pub(crate) use semantic::{
     selection_evidence_input, semantic_evidence_input, UiEditCommitInput, UiKeyboardSemanticInput,
 };

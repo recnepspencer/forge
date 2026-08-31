@@ -17,10 +17,10 @@ mod tables;
 mod view;
 
 pub use appearance::{
-    compose_source_over, UiAppearanceAllocationBounds, UiAppearanceClip,
-    UiAppearanceDamageAttribution, UiAppearanceDamageRegion, UiAppearanceEmptyRegion,
-    UiAppearanceGeometryOverflow, UiAppearanceLogicalLength, UiAppearanceNegativeLength,
-    UiAppearanceNormalizedLogicalRadii, UiAppearanceOutlineGeometry,
+    compose_source_over, UiAppearanceAllocationBounds, UiAppearanceBackdropExtent,
+    UiAppearanceClip, UiAppearanceDamageAttribution, UiAppearanceDamageRegion,
+    UiAppearanceEmptyRegion, UiAppearanceGeometryOverflow, UiAppearanceLogicalLength,
+    UiAppearanceNegativeLength, UiAppearanceNormalizedLogicalRadii, UiAppearanceOutlineGeometry,
     UiAppearanceOutlineGeometryDenial, UiAppearanceVisualBounds, UiHostAppearanceMechanicFamily,
     UiHostAppearanceProfileContract, UiHostAppearanceProfileDenial, UiHostPrimaryPointerKind,
     UiMountedAppearanceColor, UiMountedAppearanceOpacity, UiMountedBackdropAppearanceAttribution,

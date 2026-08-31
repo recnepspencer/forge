@@ -4,7 +4,7 @@ pub(crate) enum WorthUiPreparedApplicationPublication {
     Replacement {
         successor: Box<crate::facade::WorthUiApp>,
         intent_contract: crate::declaration::UiIntentCatalogSemanticComparison,
-        appearance_owner_demand_unchanged: bool,
+        appearance_consumer_contract_unchanged: bool,
     },
     MountedGraph(
         Box<
@@ -23,14 +23,12 @@ impl WorthUiPreparedApplicationPublication {
             .compare_semantic_contract(successor.prepared_authority().intent_catalog());
         let predecessor_demand = predecessor.consumed_fact_index();
         let successor_demand = successor.prepared_authority().consumed_fact_index();
-        let appearance_owner_demand_unchanged = predecessor_demand.has_appearance_consumers()
-            == successor_demand.has_appearance_consumers()
-            && predecessor_demand.appearance_axis_demand()
-                == successor_demand.appearance_axis_demand();
+        let appearance_consumer_contract_unchanged =
+            predecessor_demand.has_same_appearance_consumer_contract(successor_demand);
         Self::Replacement {
             successor: Box::new(successor),
             intent_contract,
-            appearance_owner_demand_unchanged,
+            appearance_consumer_contract_unchanged,
         }
     }
 
@@ -44,12 +42,12 @@ impl WorthUiPreparedApplicationPublication {
         match self {
             Self::Replacement {
                 intent_contract,
-                appearance_owner_demand_unchanged,
+                appearance_consumer_contract_unchanged,
                 ..
             } => {
                 *intent_contract
                     == crate::declaration::UiIntentCatalogSemanticComparison::Equivalent
-                    && *appearance_owner_demand_unchanged
+                    && *appearance_consumer_contract_unchanged
             }
             Self::MountedGraph(_) => true,
         }

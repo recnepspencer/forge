@@ -9,6 +9,7 @@ pub enum UiChangeClassificationDenial {
     ForeignSession,
     ForeignSourceBasis,
     ForeignApplicationGeneration,
+    StalePointerPresenceTransition,
     MissingHostReport {
         family: worth_ui_host_contract::UiHostObservationFamily,
     },

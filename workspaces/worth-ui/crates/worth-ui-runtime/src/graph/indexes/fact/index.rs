@@ -11,20 +11,19 @@ use super::{
     UiGraphFactLookupReceipt,
 };
 
-mod appearance_demand;
+mod appearance_consumer_contract;
 mod consumer;
 mod subsystem;
 
 use super::intent_posture::intent_posture_consumers;
-use appearance_demand::appearance_axis_demand;
+use appearance_consumer_contract::UiGraphAppearanceConsumerContract;
 use consumer::{consumer_identity, consumer_key};
 use subsystem::{build_subsystem_index, UiGraphSubsystemFactIndex};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphConsumedFactIndex {
     basis: UiGraphFactIndexBasis,
-    has_appearance_consumers: bool,
-    appearance_axis_demand: crate::runtime::appearance::UiAppearanceStateAxisDemand,
+    appearance_consumers: UiGraphAppearanceConsumerContract,
     authored_by_declaration: BTreeMap<Box<str>, Box<[UiGraphFactIndexEntry]>>,
     query_by_projection:
         BTreeMap<worth_ui_query_binding::WorthUiQueryViewIdentity, Box<[UiGraphFactIndexEntry]>>,
@@ -53,8 +52,8 @@ impl UiGraphConsumedFactIndex {
             authored_declarations,
             &mut authored_by_declaration,
         );
-        let (has_appearance_consumers, appearance_axis_demand) =
-            appearance_axis_demand(snapshot, capabilities);
+        let appearance_consumers =
+            UiGraphAppearanceConsumerContract::from_graph(snapshot, capabilities);
         let authored_by_declaration = authored_by_declaration
             .into_iter()
             .map(|(identity, entries)| (identity, canonical_entries(entries)))
@@ -62,8 +61,7 @@ impl UiGraphConsumedFactIndex {
 
         Self {
             basis: UiGraphFactIndexBasis::from_generation(snapshot, capabilities),
-            has_appearance_consumers,
-            appearance_axis_demand,
+            appearance_consumers,
             authored_by_declaration,
             query_by_projection: query_projection_consumers(snapshot, projection_contents),
             intent_posture_by_node: intent_posture_consumers(snapshot),
@@ -74,11 +72,15 @@ impl UiGraphConsumedFactIndex {
     pub(crate) const fn appearance_axis_demand(
         &self,
     ) -> crate::runtime::appearance::UiAppearanceStateAxisDemand {
-        self.appearance_axis_demand
+        self.appearance_consumers.axis_demand()
     }
 
     pub(crate) const fn has_appearance_consumers(&self) -> bool {
-        self.has_appearance_consumers
+        self.appearance_consumers.has_consumers()
+    }
+
+    pub(crate) fn has_same_appearance_consumer_contract(&self, other: &Self) -> bool {
+        self.appearance_consumers == other.appearance_consumers
     }
 
     #[cfg(any(test, feature = "certification-support"))]

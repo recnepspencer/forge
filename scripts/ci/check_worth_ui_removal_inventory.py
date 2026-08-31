@@ -17,8 +17,8 @@ REQUIRED_FAMILIES = {
         "Gate 0 preserves bootstrap dependency declarations until the Gate 5 cutover.",
     ),
     "string-backed ThemeColorValue": (
-        "ThemeColorValue", 96, 98,
-        "Two Gate 0 explicit-attachment fixtures use the live ThemeTokenDescriptor input required by preserved static paint; migrate them with the Gate 5 cutover.",
+        "ThemeColorValue", 96, 99,
+        "Two Gate 0 explicit-attachment fixtures and the real native pointer-observation fixture use the live ThemeTokenDescriptor input required by preserved static paint; migrate them with the Gate 5 cutover.",
     ),
     "Pulse Unicode icon text": (
         "portal_icon_text", 6, 6,

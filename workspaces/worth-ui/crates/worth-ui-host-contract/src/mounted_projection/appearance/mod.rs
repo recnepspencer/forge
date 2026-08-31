@@ -21,9 +21,9 @@ pub use backdrop::{
     UiOverlayPlacementReceipt,
 };
 pub use bounds::{
-    UiAppearanceAllocationBounds, UiAppearanceClip, UiAppearanceDamageAttribution,
-    UiAppearanceDamageRegion, UiAppearanceEmptyRegion, UiAppearanceGeometryOverflow,
-    UiAppearanceVisualBounds,
+    UiAppearanceAllocationBounds, UiAppearanceBackdropExtent, UiAppearanceClip,
+    UiAppearanceDamageAttribution, UiAppearanceDamageRegion, UiAppearanceEmptyRegion,
+    UiAppearanceGeometryOverflow, UiAppearanceVisualBounds,
 };
 pub use color::UiMountedAppearanceColor;
 pub use compositing::{

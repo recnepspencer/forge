@@ -50,6 +50,7 @@ impl UiPointerPresenceOwner {
         core: UiHostObservationCanonicalCore,
         report: &worth_ui_host_contract::UiHostObservationReport,
         mounted: &crate::mounting::WorthUiMountedSessionState,
+        generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     ) -> Option<UiPointerPresenceTargetTransition> {
         let UiHostObservationPayload::PointerMotion {
             pointer, position, ..
@@ -77,6 +78,7 @@ impl UiPointerPresenceOwner {
             *position,
             core.presentation(),
             resolved,
+            generation,
         )
     }
 
@@ -92,6 +94,7 @@ impl UiPointerPresenceOwner {
             UiMountedInstanceIdentity,
             worth_ui_host_contract::UiMountedNodeReceiptIdentity,
         )>,
+        generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     ) -> Option<UiPointerPresenceTargetTransition> {
         let prior = self.pointers.get(&pointer);
         let prior_surface = prior.and_then(|record| record.surface);
@@ -103,6 +106,7 @@ impl UiPointerPresenceOwner {
             .map(|target| target.1)
             .or_else(|| prior.and_then(|record| record.binding));
         let previous = prior.and_then(|record| record.target);
+        let previous_node_receipt = prior.and_then(|record| record.node_receipt);
         let record_changed = prior.is_none_or(|record| {
             record.surface != surface
                 || record.target != target
@@ -135,10 +139,14 @@ impl UiPointerPresenceOwner {
             self.bump_revision();
         }
         changed.then_some(UiPointerPresenceTargetTransition {
+            generation: generation.clone(),
             pointer,
-            surface,
+            previous_surface: prior_surface,
+            current_surface: surface,
             previous,
             current: target,
+            previous_node_receipt,
+            current_node_receipt: node_receipt,
             owner_revision: self.revision,
             position,
             presentation,
@@ -254,124 +262,5 @@ impl UiPointerPresenceOwner {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn position_only_motion_does_not_change_presence_revision() {
-        let mut owner = UiPointerPresenceOwner::new();
-        let pointer = UiHostPointerIdentity::new(1);
-        let surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
-        let binding = worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap();
-        let target = UiMountedInstanceIdentity::mint_unbound().unwrap();
-        let position = UiHostSurfacePosition::viewport_logical(10, 20);
-        let presentation = UiHostObservationPresentationBasis::new(
-            worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
-            worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap(),
-            binding,
-            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
-        );
-        let first_receipt =
-            worth_ui_host_contract::UiMountedNodeReceiptIdentity::mint_unbound().unwrap();
-        let first = owner
-            .record_mouse_target(
-                pointer,
-                UiHostObservationSequence::new(1),
-                position,
-                presentation,
-                Some((surface, binding, target, first_receipt)),
-            )
-            .unwrap();
-        assert_eq!(first.owner_revision(), 1);
-        assert!(owner
-            .record_mouse_target(
-                pointer,
-                UiHostObservationSequence::new(2),
-                UiHostSurfacePosition::viewport_logical(11, 21),
-                presentation,
-                Some((surface, binding, target, first_receipt)),
-            )
-            .is_none());
-        assert_eq!(owner.appearance_snapshot().owner_revision(), 1);
-        let successor = UiMountedInstanceIdentity::mint_unbound().unwrap();
-        let changed = owner
-            .record_mouse_target(
-                pointer,
-                UiHostObservationSequence::new(3),
-                position,
-                presentation,
-                Some((
-                    surface,
-                    binding,
-                    successor,
-                    worth_ui_host_contract::UiMountedNodeReceiptIdentity::mint_unbound().unwrap(),
-                )),
-            )
-            .unwrap();
-        assert_eq!(changed.previous(), Some(target));
-        assert_eq!(changed.current(), Some(successor));
-        assert_eq!(changed.owner_revision(), 2);
-        assert_eq!(changed.position(), position);
-        assert_eq!(changed.presentation(), presentation);
-    }
-
-    #[test]
-    fn primary_pointer_reselection_changes_revision_but_primary_motion_does_not() {
-        let mut owner = UiPointerPresenceOwner::new();
-        let first = UiHostPointerIdentity::new(1);
-        let second = UiHostPointerIdentity::new(2);
-        let surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
-        let binding = worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap();
-        let presentation = UiHostObservationPresentationBasis::new(
-            worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
-            worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap(),
-            binding,
-            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
-        );
-        let first_target = UiMountedInstanceIdentity::mint_unbound().unwrap();
-        let second_target = UiMountedInstanceIdentity::mint_unbound().unwrap();
-        let first_receipt =
-            worth_ui_host_contract::UiMountedNodeReceiptIdentity::mint_unbound().unwrap();
-        let second_receipt =
-            worth_ui_host_contract::UiMountedNodeReceiptIdentity::mint_unbound().unwrap();
-        let position = UiHostSurfacePosition::viewport_logical(10, 20);
-        owner
-            .record_mouse_target(
-                first,
-                UiHostObservationSequence::new(1),
-                position,
-                presentation,
-                Some((surface, binding, first_target, first_receipt)),
-            )
-            .unwrap();
-        owner
-            .record_mouse_target(
-                second,
-                UiHostObservationSequence::new(2),
-                position,
-                presentation,
-                Some((surface, binding, second_target, second_receipt)),
-            )
-            .unwrap();
-        let reselected = owner
-            .record_mouse_target(
-                first,
-                UiHostObservationSequence::new(3),
-                UiHostSurfacePosition::viewport_logical(11, 21),
-                presentation,
-                Some((surface, binding, first_target, first_receipt)),
-            )
-            .unwrap();
-        assert_eq!(reselected.owner_revision(), 3);
-        assert!(owner
-            .record_mouse_target(
-                first,
-                UiHostObservationSequence::new(4),
-                UiHostSurfacePosition::viewport_logical(12, 22),
-                presentation,
-                Some((surface, binding, first_target, first_receipt)),
-            )
-            .is_none());
-        assert_eq!(owner.appearance_snapshot().owner_revision(), 3);
-    }
-}
+#[path = "owner_tests.rs"]
+mod tests;
