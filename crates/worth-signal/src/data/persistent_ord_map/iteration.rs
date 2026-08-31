@@ -65,19 +65,15 @@ impl<'a, K: Clone + Ord, V: Clone> Iterator for PersistentOrdMapIter<'a, K, V> {
                 Self::Empty | Self::ForkShared { .. } => unreachable!(),
             };
         };
-        let next = loop {
-            match (base.peek(), changes.peek()) {
-                (Some((base_key, _)), Some((change_key, _))) if base_key < change_key => {
-                    break base.next();
-                }
-                (Some((base_key, _)), Some((change_key, _))) if base_key == change_key => {
-                    base.next();
-                    break changes.next();
-                }
-                (_, Some(_)) => break changes.next(),
-                (Some(_), None) => break base.next(),
-                (None, None) => break None,
+        let next = match (base.peek(), changes.peek()) {
+            (Some((base_key, _)), Some((change_key, _))) if base_key < change_key => base.next(),
+            (Some((base_key, _)), Some((change_key, _))) if base_key == change_key => {
+                base.next();
+                changes.next()
             }
+            (_, Some(_)) => changes.next(),
+            (Some(_), None) => base.next(),
+            (None, None) => None,
         };
         if next.is_some() {
             *remaining -= 1;

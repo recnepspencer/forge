@@ -9,6 +9,8 @@ use crate::data::handle::NodeId;
 
 #[path = "segmented/equality.rs"]
 mod equality;
+#[path = "segmented/serialization.rs"]
+mod serialization;
 #[cfg(test)]
 #[path = "segmented/serialization_tests.rs"]
 mod serialization_tests;
@@ -225,13 +227,6 @@ where
         ) && self.interner.ptr_eq(&other.interner)
     }
 
-    fn segment_count(&self) -> usize {
-        match &self.storage {
-            SegmentedStorage::Exclusive(flat) => flat.segments.len(),
-            SegmentedStorage::ForkShared { base, appended } => base.segments.len() + appended.len(),
-        }
-    }
-
     fn segment_at(&self, index: usize) -> &[T] {
         match &self.storage {
             SegmentedStorage::Exclusive(flat) => flat_slice(flat, index),
@@ -243,78 +238,6 @@ where
                 }
             }
         }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-struct SegmentedStoreWire<T> {
-    items: Vec<T>,
-    segments: Vec<Segment>,
-}
-
-#[derive(Serialize)]
-struct BorrowedSegmentedStoreWire<'a, T> {
-    items: &'a [T],
-    segments: &'a [Segment],
-}
-
-impl<T, Id> Serialize for SegmentedStore<T, Id>
-where
-    T: Clone + Serialize,
-    Id: Clone,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        if let SegmentedStorage::Exclusive(flat) = &self.storage {
-            return BorrowedSegmentedStoreWire {
-                items: &flat.items,
-                segments: &flat.segments,
-            }
-            .serialize(serializer);
-        }
-
-        let mut items = Vec::new();
-        let mut segments = Vec::with_capacity(self.segment_count());
-        for index in 0..self.segment_count() {
-            let values = self.segment_at(index);
-            let start = checked_segment_component(items.len(), "segment start");
-            items.extend(values.iter().cloned());
-            segments.push(Segment {
-                start,
-                len: checked_segment_component(values.len(), "segment length"),
-            });
-        }
-        SegmentedStoreWire { items, segments }.serialize(serializer)
-    }
-}
-
-impl<'de, T, Id> Deserialize<'de> for SegmentedStore<T, Id>
-where
-    T: Clone + Deserialize<'de>,
-    Id: Clone,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let wire = SegmentedStoreWire::<T>::deserialize(deserializer)?;
-        for segment in &wire.segments {
-            let start = segment.start as usize;
-            let end = start.saturating_add(segment.len as usize);
-            wire.items.get(start..end).ok_or_else(|| {
-                serde::de::Error::custom("segmented store range exceeds item storage")
-            })?;
-        }
-        Ok(Self {
-            storage: SegmentedStorage::Exclusive(FlatSegments {
-                items: wire.items,
-                segments: wire.segments,
-            }),
-            interner: crate::data::persistent_hash_map::PersistentHashMap::new(),
-            id: PhantomData,
-        })
     }
 }
 

@@ -30,32 +30,44 @@ impl SignalGraph {
         &mut self,
         producer: NodeId,
     ) -> Result<Vec<NodeId>, SignalError> {
-        let candidates = self
-            .topology
-            .pending_revalidation_waiters
-            .get(&producer)
-            .cloned()
-            .unwrap_or_default();
-        let mut current = im::OrdSet::new();
-        for consumer in candidates {
+        let Some(candidates) = self.topology.pending_revalidation_waiters.get(&producer) else {
+            return Ok(Vec::new());
+        };
+        let mut current = Vec::new();
+        let mut stale = Vec::new();
+        for &consumer in candidates {
             if !self.is_alive(consumer) {
+                stale.push(consumer);
                 continue;
             }
             if self
                 .pending_dependency_revalidation(consumer)?
                 .is_some_and(|pending| pending.unresolved_producers().contains(&producer))
             {
-                current.insert(consumer);
+                if current.is_empty() {
+                    current.reserve_exact(candidates.len());
+                }
+                current.push(consumer);
+            } else {
+                stale.push(consumer);
             }
         }
-        if current.is_empty() {
-            self.topology.pending_revalidation_waiters.remove(&producer);
-        } else {
-            self.topology
-                .pending_revalidation_waiters
-                .insert(producer, current.clone());
+        if !current.is_empty() && current.len().saturating_mul(2) < current.capacity() {
+            current = current.into_boxed_slice().into_vec();
         }
-        Ok(current.into_iter().collect())
+        if stale.len() == candidates.len() {
+            self.topology.pending_revalidation_waiters.remove(&producer);
+        } else if !stale.is_empty() {
+            let waiters = self
+                .topology
+                .pending_revalidation_waiters
+                .get_mut(&producer)
+                .expect("nonempty current waiter set must remain indexed");
+            for consumer in stale {
+                waiters.remove(&consumer);
+            }
+        }
+        Ok(current)
     }
 
     pub(crate) fn rebuild_pending_revalidation_waiters(&mut self) -> Result<(), SignalError> {
@@ -73,3 +85,6 @@ impl SignalGraph {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
