@@ -18,6 +18,7 @@ pub(crate) struct OrientationContract {
 pub(crate) struct ContextWorkspaceSpec {
     pub(crate) path: String,
     pub(crate) package_prefix: String,
+    pub(crate) certification_packages: Vec<String>,
 }
 
 pub(crate) struct ExemplarRouteSpec {
@@ -129,6 +130,7 @@ pub(crate) fn load_orientation_contract(path: &Path) -> Result<OrientationContra
             .map(|workspace| ContextWorkspaceSpec {
                 path: workspace.path,
                 package_prefix: workspace.package_prefix,
+                certification_packages: workspace.certification_packages,
             })
             .collect(),
     })
@@ -211,6 +213,8 @@ struct SubworkspaceConfig {
 struct ContextWorkspaceConfig {
     path: String,
     package_prefix: String,
+    #[serde(default)]
+    certification_packages: Vec<String>,
 }
 
 #[derive(Deserialize)]

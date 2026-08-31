@@ -1,36 +1,93 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "workspaces/worth-ui/contracts/milestone-3.16-removal-inventory.json"
 REQUIRED_FAMILIES = {
-    "static-paint authority": ("workspaces/worth-ui/**/*.rs", "ComponentStaticPaintContract"),
-    "bootstrap component token dependencies": ("workspaces/worth-ui/**/*.rs", "with_theme_token_dependency"),
-    "string-backed ThemeColorValue": ("workspaces/worth-ui/**/*.rs", "ThemeColorValue"),
-    "Pulse Unicode icon text": ("workspaces/worth-ui/**/*.rs", "portal_icon_text"),
-    "direct token publication": ("workspaces/worth-ui/**/*.rs", "UiNativeThemeTokenValueChange"),
-    "legacy changed-node selection": ("workspaces/worth-ui/**/*.rs", "changed_graph_nodes"),
+    "static-paint authority": (
+        "ComponentStaticPaintContract", 51, 50,
+        "Gate 0 preserves the live static-paint prerequisite until the Gate 5 cutover.",
+    ),
+    "bootstrap component token dependencies": (
+        "with_theme_token_dependency", 10, 10,
+        "Gate 0 preserves bootstrap dependency declarations until the Gate 5 cutover.",
+    ),
+    "string-backed ThemeColorValue": (
+        "ThemeColorValue", 96, 98,
+        "Two Gate 0 explicit-attachment fixtures use the live ThemeTokenDescriptor input required by preserved static paint; migrate them with the Gate 5 cutover.",
+    ),
+    "Pulse Unicode icon text": (
+        "portal_icon_text", 6, 6,
+        "Gate 0 inventories Pulse icon text for its later typed-icon migration.",
+    ),
+    "direct token publication": (
+        "UiNativeThemeTokenValueChange", 20, 20,
+        "Gate 0 preserves the live publication path until the Gate 5 cutover.",
+    ),
+    "legacy changed-node selection": (
+        "changed_graph_nodes", 46, 46,
+        "Gate 0 preserves legacy selection until its planned query-owned replacement.",
+    ),
 }
+RUST_GLOB = "workspaces/worth-ui/**/*.rs"
+ENTRY_KEYS = {
+    "family", "glob", "literal", "original_baseline", "gate_zero_remaining",
+    "gate_zero_retention",
+}
+
+
+def rust_source_paths(root: Path) -> list[Path]:
+    result = subprocess.run(
+        [
+            "git", "ls-files", "--cached", "--others", "--exclude-standard", "-z",
+            "--", "workspaces/worth-ui",
+        ],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise ValueError(result.stderr.decode("utf-8", errors="replace").strip())
+    return [
+        root / relative.decode("utf-8")
+        for relative in result.stdout.split(b"\0")
+        if relative.endswith(b".rs") and (root / relative.decode("utf-8")).is_file()
+    ]
 
 
 def validate(root: Path, manifest: Path) -> None:
     inventory = json.loads(manifest.read_text(encoding="utf-8"))
     families: set[str] = set()
+    files = rust_source_paths(root)
     for entry in inventory["entries"]:
+        if set(entry) != ENTRY_KEYS:
+            raise ValueError("removal inventory entry keys must remain exact")
         family = entry["family"]
         if family in families:
             raise ValueError(f"duplicate inventory family: {family}")
         families.add(family)
         expected = REQUIRED_FAMILIES.get(family)
-        if expected is None or (entry["glob"], entry["literal"]) != expected:
+        if expected is None:
             raise ValueError(f"unexpected removal inventory contract for {family}")
-        files = [path for path in root.glob(entry["glob"]) if path.is_file()]
+        literal, original_baseline, gate_zero_remaining, gate_zero_retention = expected
+        if (
+            entry["glob"] != RUST_GLOB
+            or entry["literal"] != literal
+            or entry["original_baseline"] != original_baseline
+            or entry["gate_zero_remaining"] != gate_zero_remaining
+            or entry["gate_zero_retention"] != gate_zero_retention
+        ):
+            raise ValueError(f"unexpected removal inventory contract for {family}")
         observed = sum(path.read_text(encoding="utf-8").count(entry["literal"]) for path in files)
-        if observed != entry["baseline"]:
-            raise ValueError(f"{family}: observed {observed}, expected exact baseline {entry['baseline']}")
+        if observed != entry["gate_zero_remaining"]:
+            raise ValueError(
+                f"{family}: observed {observed}, expected exact Gate 0 remaining "
+                f"{entry['gate_zero_remaining']}"
+            )
     if inventory.get("cutover_target") != 0:
         raise ValueError("cutover target must be exactly zero")
     if families != set(REQUIRED_FAMILIES):

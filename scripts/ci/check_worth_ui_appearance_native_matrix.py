@@ -35,6 +35,11 @@ def missing_declared_contract_symbols(source: str, symbols: list[str]) -> list[s
     return [symbol for symbol in symbols if symbol not in declarations]
 
 
+def leaked_contract_symbols(source: str, symbols: list[str]) -> list[str]:
+    identifiers = set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", RUST_COMMENT.sub("", source)))
+    return [symbol for symbol in symbols if symbol in identifiers]
+
+
 def validate(root: Path, matrix_path: Path) -> None:
     matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
     mechanics = matrix["mechanics"]
@@ -65,12 +70,11 @@ def validate(root: Path, matrix_path: Path) -> None:
         root / "workspaces/worth-ui/crates/worth-ui-host-headless/src",
         root / "workspaces/worth-ui/crates/worth-ui-native-platform/src",
     ]
-    mechanic_symbols = [symbol for symbol in EXPECTED_SYMBOLS if symbol.startswith("UiMounted")]
     for live_root in live_roots:
         live_source = "\n".join(path.read_text(encoding="utf-8") for path in live_root.rglob("*.rs"))
-        leaked = [symbol for symbol in mechanic_symbols if symbol in live_source]
+        leaked = leaked_contract_symbols(live_source, EXPECTED_SYMBOLS)
         if leaked:
-            raise ValueError(f"Gate 0 appearance mechanic reached live publisher {live_root}: {leaked}")
+            raise ValueError(f"Gate 0 appearance contract reached live publisher {live_root}: {leaked}")
 
 
 def main() -> int:

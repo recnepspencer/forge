@@ -12,7 +12,7 @@ CHECKER = ROOT / "scripts/ci/check_workspace_rust_line_caps.sh"
 
 
 class WorkspaceRustLineCapTests(unittest.TestCase):
-    def test_worth_ui_scope_includes_application_rust(self) -> None:
+    def test_worth_ui_app_scope_includes_application_rust(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             app = root / "workspaces/worth-ui/apps/pulse/src/main.rs"
@@ -33,7 +33,7 @@ class WorkspaceRustLineCapTests(unittest.TestCase):
                 if git_bash.is_file():
                     bash = str(git_bash)
             result = subprocess.run(
-                [bash, str(CHECKER), "worth-ui"], cwd=root, env=environment,
+                [bash, str(CHECKER), "worth-ui-apps"], cwd=root, env=environment,
                 capture_output=True, text=True, check=False,
             )
             self.assertNotEqual(result.returncode, 0)

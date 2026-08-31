@@ -30,6 +30,8 @@ pub(crate) struct Road1Config {
 pub(crate) struct ContextWorkspaceConfig {
     pub(crate) path: String,
     pub(crate) package_prefix: String,
+    #[serde(default)]
+    pub(crate) certification_packages: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

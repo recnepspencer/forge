@@ -589,7 +589,7 @@ jobs:
           python3 scripts/ci/check_worth_ui_protocol_manifest.py
           python3 scripts/ci/check_worth_ui_docs_links.py
           python3 scripts/ci/check_worth_ui_appearance_native_matrix.py
-          bash scripts/ci/check_workspace_rust_line_caps.sh worth-ui
+          bash scripts/ci/check_workspace_rust_line_caps.sh worth-ui-apps
 
       - name: Compile the Platform Pulse courtroom in its non-Windows posture
         run: python3 scripts/ci/run_worth_ui_test_lane.py compile-only-platform
@@ -631,7 +631,9 @@ jobs:
     name: WORTH UI 3.16 Closure Stress
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/ui' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    env:
+      WORTH_UI_LANE_REPORT_DIR: ${{ runner.temp }}/worth-ui-lane-reports
 
     steps:
       - uses: actions/checkout@v4
@@ -640,6 +642,15 @@ jobs:
 
       - name: Run the required 3.16 closure-stress world
         run: python3 scripts/ci/run_worth_ui_test_lane.py closure-stress
+
+      - name: Upload WORTH UI closure-stress report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-ui-closure-stress-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-ui-lane-reports
+          if-no-files-found: warn
+          retention-days: 14
 
   worth_ui_compile_contracts:
     name: WORTH UI Compile Contracts

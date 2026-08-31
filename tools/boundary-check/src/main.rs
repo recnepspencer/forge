@@ -126,6 +126,7 @@ fn run(
     diagnostics.extend(validate_context_workspaces(
         &root,
         &config.context_workspaces,
+        &config.rule_contracts,
     ));
     diagnostics.extend(validate_machine_authority(
         &root,
