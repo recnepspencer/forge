@@ -64,6 +64,12 @@ data through the distinct `reconstruct_signal_branch_snapshot` construction
 lane, which validates its empty live basis and issues a new owner-bound
 snapshot.
 
+An otherwise eligible branch cannot import into a runtime with other live
+branches, stored snapshots, or prior snapshot identity use: that is
+`NonPristineRuntime`, before movement. Successful import preserves the portable
+snapshot identity and advances the receiving allocator so later captures cannot
+reuse it.
+
 An admitted snapshot carries its own bounded branch-retention obligation.
 Snapshot clones share that one obligation, and branch retirement remains
 denied until the final admitted snapshot holder is dropped. Consuming the

@@ -195,6 +195,15 @@ not clone, register, return, or keep either value. Portable snapshot
 reconstruction remains an owner-root construction compatibility operation and
 is not a mutation-port method.
 
+Snapshot reservations carry a checked, runtime-global identity as well as
+storage capacity. Forking or restoring an older snapshot cannot reset that
+identity allocator. Cancellation, denial, and unwinding return reservation
+capacity without reusing its identity; exhaustion is
+`SnapshotIdentityExhausted` before movement. Active-branch capture or
+reconstruction stores an immutable snapshot and updates metadata, never a
+second live mutable branch. These rules preserve distinct exact retention
+targets across sibling captures and the handoff into owner cells.
+
 `ValidatedSignalBranchName` names the frozen `fork_exact` input, but it is not a
 Phase 3 facade export. The facade gate that publishes `fork_exact` must publish
 the owner validator and its sealed validated value together; accepting an
