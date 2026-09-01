@@ -1,1 +1,8 @@
-//! Mutation-lane tests live here so the parallel lane does not edit shared owner assembly.
+mod baseline;
+mod capacity;
+mod context;
+mod denials;
+mod foreign_basis;
+mod operation_control;
+mod races;
+mod world;
