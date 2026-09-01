@@ -9,6 +9,10 @@ use super::{SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable};
 #[derive(Debug)]
 pub enum SignalBranchBasisObservationDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     ManagedReferenceDenied {
         denial: super::ManagedSignalBranchReferenceAdmissionDenial,
     },
@@ -41,6 +45,10 @@ pub enum SignalBranchBasisObservationDenial {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchBasisReadmissionDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     ManagedReferenceDenied {
         denial: super::ManagedSignalBranchReferenceAdmissionDenial,
     },
@@ -96,6 +104,10 @@ pub enum SignalBranchBasisReadmissionDenial {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetainedReadmissionDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     /// The obligation was issued by a different live Signal owner.
     ForeignRetention,
     /// The obligation no longer retains anything, or its owner is gone.

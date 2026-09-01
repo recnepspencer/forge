@@ -797,6 +797,7 @@ version = "0.1.0"
 name = "worth-signal"
 version = "0.1.0"
 dependencies = [
+ "arc-swap",
  "im",
  "js-sys",
  "rayon",

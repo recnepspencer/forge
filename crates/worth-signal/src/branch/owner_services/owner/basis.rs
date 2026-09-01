@@ -36,7 +36,8 @@ where
         {
             return Err(ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner);
         }
-        let admission = self.admit().map_err(|denial| match denial {
+        let admission = self.admit().map_err(|denial| {
+            match denial {
             crate::branch::owner_services::SignalOwnerAdmissionDenial::ForeignOwner => {
                 ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner
             }
@@ -45,9 +46,36 @@ where
                     SignalOwnerUnavailable,
                 )
             }
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::OperationCapacityExhausted {
+                maximum_in_flight_operations,
+            } => ManagedSignalBranchReferenceAdmissionDenial::OperationCapacityExhausted {
+                maximum_in_flight_operations,
+            },
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::OwnerReentry => {
+                ManagedSignalBranchReferenceAdmissionDenial::OwnerReentry
+            }
+        }
         })?;
+        self.issue_managed_branch_reference_with_admission(&admission, basis)
+    }
+
+    pub(in crate::branch::owner_services) fn issue_managed_branch_reference_with_admission(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        basis: &AdmittedSignalBranchBasis,
+    ) -> Result<ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial> {
+        let target = basis
+            .observation()
+            .target()
+            .as_basis()
+            .ok_or(ManagedSignalBranchReferenceAdmissionDenial::OwnerInvariantViolation)?;
+        if target.graph_instance_id() != self.runtime_instance_id().to_string()
+            || target.definition_basis() != self.definition_basis()
+        {
+            return Err(ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner);
+        }
         let cell = self
-            .lookup_cell(&admission, basis.owner_branch_id())
+            .lookup_cell(admission, basis.owner_branch_id())
             .map_err(map_managed_reference_registry_denial)?;
         Ok(ManagedSignalBranchReference::owner_issued(
             &self.lifecycle,
@@ -65,7 +93,7 @@ where
         reference: &ManagedSignalBranchReference,
     ) -> Result<
         (
-            SignalOwnerOperationAdmission,
+            SignalOwnerOperationAdmission<'_>,
             Arc<
                 crate::branch::owner_services::SignalBranchExecutionCell<
                     crate::branch::owner_services::SignalBranchCellState<D, I, T>,
@@ -77,7 +105,8 @@ where
         if !reference.is_bound_to(&self.lifecycle) {
             return Err(ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner);
         }
-        let admission = self.admit().map_err(|denial| match denial {
+        let admission = self.admit().map_err(|denial| {
+            match denial {
             crate::branch::owner_services::SignalOwnerAdmissionDenial::ForeignOwner => {
                 ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner
             }
@@ -86,14 +115,42 @@ where
                     SignalOwnerUnavailable,
                 )
             }
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::OperationCapacityExhausted {
+                maximum_in_flight_operations,
+            } => ManagedSignalBranchReferenceAdmissionDenial::OperationCapacityExhausted {
+                maximum_in_flight_operations,
+            },
+            crate::branch::owner_services::SignalOwnerAdmissionDenial::OwnerReentry => {
+                ManagedSignalBranchReferenceAdmissionDenial::OwnerReentry
+            }
+        }
         })?;
+        let cell = self.admit_managed_branch_reference_with_admission(&admission, reference)?;
+        Ok((admission, cell))
+    }
+
+    pub(in crate::branch::owner_services) fn admit_managed_branch_reference_with_admission(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        reference: &ManagedSignalBranchReference,
+    ) -> Result<
+        Arc<
+            crate::branch::owner_services::SignalBranchExecutionCell<
+                crate::branch::owner_services::SignalBranchCellState<D, I, T>,
+            >,
+        >,
+        ManagedSignalBranchReferenceAdmissionDenial,
+    > {
+        if !reference.is_bound_to(&self.lifecycle) {
+            return Err(ManagedSignalBranchReferenceAdmissionDenial::ForeignOwner);
+        }
         let cell = self
-            .lookup_cell(&admission, reference.branch_id())
+            .lookup_cell(admission, reference.branch_id())
             .map_err(map_managed_reference_registry_denial)?;
         if cell.incarnation() != reference.cell_incarnation() {
             return Err(ManagedSignalBranchReferenceAdmissionDenial::BranchIncarnationReplaced);
         }
-        Ok((admission, cell))
+        Ok(cell)
     }
 
     #[allow(
@@ -129,7 +186,7 @@ where
     #[allow(dead_code, reason = "Phase 4 basis operations consume this owner seam")]
     pub(in crate::branch::owner_services) fn observe_branch_exact(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
     ) -> Result<SignalBranchObservation, SignalBranchBasisObservationDenial> {
         self.registry
@@ -168,6 +225,14 @@ fn map_observation_readmission_denial(
     match denial {
         SignalBranchBasisObservationDenial::OwnerUnavailable(unavailable) => {
             SignalBranchBasisReadmissionDenial::OwnerUnavailable(unavailable)
+        }
+        SignalBranchBasisObservationDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        } => SignalBranchBasisReadmissionDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        },
+        SignalBranchBasisObservationDenial::OwnerReentry => {
+            SignalBranchBasisReadmissionDenial::OwnerReentry
         }
         SignalBranchBasisObservationDenial::ManagedReferenceDenied { denial } => {
             SignalBranchBasisReadmissionDenial::ManagedReferenceDenied { denial }
@@ -226,9 +291,14 @@ fn map_managed_reference_registry_denial(
         SignalBranchRegistryDenial::DuplicateBranch(_)
         | SignalBranchRegistryDenial::LiveCapacityExhausted { .. }
         | SignalBranchRegistryDenial::ReservationCapacityExhausted { .. }
-        | SignalBranchRegistryDenial::ExpiredRetirement(_)
-        | SignalBranchRegistryDenial::OwnerMetadataOrdering => {
+        | SignalBranchRegistryDenial::ExpiredRetirement(_) => {
             ManagedSignalBranchReferenceAdmissionDenial::OwnerInvariantViolation
+        }
+        SignalBranchRegistryDenial::OwnerMetadataOrdering => {
+            ManagedSignalBranchReferenceAdmissionDenial::OwnerCellMisuse
+        }
+        SignalBranchRegistryDenial::OwnerReentry => {
+            ManagedSignalBranchReferenceAdmissionDenial::OwnerReentry
         }
     }
 }
@@ -255,9 +325,14 @@ fn map_basis_registry_denial(
         SignalBranchRegistryDenial::DuplicateBranch(_)
         | SignalBranchRegistryDenial::LiveCapacityExhausted { .. }
         | SignalBranchRegistryDenial::ReservationCapacityExhausted { .. }
-        | SignalBranchRegistryDenial::ExpiredRetirement(_)
-        | SignalBranchRegistryDenial::OwnerMetadataOrdering => {
+        | SignalBranchRegistryDenial::ExpiredRetirement(_) => {
             SignalBranchBasisObservationDenial::OwnerInvariantViolation { branch_id }
+        }
+        SignalBranchRegistryDenial::OwnerMetadataOrdering => {
+            SignalBranchBasisObservationDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchRegistryDenial::OwnerReentry => {
+            SignalBranchBasisObservationDenial::OwnerReentry
         }
     }
 }

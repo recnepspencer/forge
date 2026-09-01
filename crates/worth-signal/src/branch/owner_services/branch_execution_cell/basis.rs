@@ -14,12 +14,12 @@ where
     /// Exact one-cell observation seam for basis observation and readmission.
     pub(crate) fn observe_exact(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
     ) -> Result<SignalBranchObservation, SignalBranchBasisObservationDenial> {
         self.validate_admission(admission)
             .map_err(|denial| map_basis_cell_denial(denial, self.branch_id))?;
         let _cell_hold = admission
-            .hold_branch_cell(self.incarnation)
+            .hold_branch_cell()
             .map_err(SignalBranchCellAdmissionDenial::from)
             .map_err(|denial| map_basis_cell_denial(denial, self.branch_id))?;
         self.counters.record_target_cell_contact();
@@ -48,6 +48,9 @@ pub(in crate::branch::owner_services) fn map_basis_cell_denial(
         }
         SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
             SignalBranchBasisObservationDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::ExecutingThreadReentry => {
+            SignalBranchBasisObservationDenial::OwnerReentry
         }
         SignalBranchCellAdmissionDenial::RetirementInProgress => {
             SignalBranchBasisObservationDenial::RetirementInProgress { branch_id }

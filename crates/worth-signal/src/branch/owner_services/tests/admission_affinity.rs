@@ -8,13 +8,12 @@ use crate::state::SignalBranchId;
 use super::super::{
     SignalBranchCellAdmissionDenial, SignalBranchRegistry, SignalBranchRegistryDenial, SignalOwner,
     SignalOwnerLifecycleState, SignalOwnerOperationAdmission, SignalOwnerServiceCounters,
-    SignalOwnerUnavailable,
 };
 use super::runtime_root::runtime_with_two_branches;
 
 struct ForkReservationState<'a> {
     owner: &'a SignalOwner<(), (), ()>,
-    admission: &'a SignalOwnerOperationAdmission,
+    admission: &'a SignalOwnerOperationAdmission<'a>,
     source_id: SignalBranchId,
     reservations: usize,
     reservation_counter: u64,
@@ -24,7 +23,7 @@ struct ForkReservationState<'a> {
 impl<'a> ForkReservationState<'a> {
     fn capture(
         owner: &'a SignalOwner<(), (), ()>,
-        admission: &'a SignalOwnerOperationAdmission,
+        admission: &'a SignalOwnerOperationAdmission<'a>,
         source_id: SignalBranchId,
     ) -> Self {
         Self {
@@ -146,10 +145,21 @@ fn registry_and_cell_reject_foreign_and_expired_admissions_before_contact() {
         cell.with_state(&expired_admission, |_, _| ()).unwrap_err(),
         SignalBranchCellAdmissionDenial::ExpiredLifecycle
     );
+    assert_eq!(
+        cell.acquire_fork_source_custody(&foreign_admission).err(),
+        Some(SignalBranchCellAdmissionDenial::ForeignOwner)
+    );
+    assert_eq!(
+        cell.acquire_fork_source_custody(&expired_admission).err(),
+        Some(SignalBranchCellAdmissionDenial::ExpiredLifecycle)
+    );
     let snapshot = counters.snapshot();
     assert_eq!(snapshot.branch_registry_lookups(), 0);
     assert_eq!(snapshot.target_cell_contacts(), 0);
     assert_eq!(snapshot.target_cell_waits(), 0);
+    let cell_snapshot = cell.cost_snapshot();
+    assert_eq!(cell_snapshot.contacts(), 0);
+    assert_eq!(cell_snapshot.waits(), 0);
 }
 
 #[test]
@@ -175,9 +185,8 @@ fn fork_reservation_rejects_held_admission_before_identity_or_capacity_movement(
         .expect("the source cell hold is real");
     assert!(matches!(
         held_cell_denial,
-        Err(SignalBranchForkOperationDenial::OwnerUnavailable(
-            SignalOwnerUnavailable
-        ))
+        Err(SignalBranchForkOperationDenial::OwnerCellMisuse { branch_id })
+            if branch_id == source_branch.id
     ));
 
     let metadata_hold = admission
@@ -192,9 +201,8 @@ fn fork_reservation_rejects_held_admission_before_identity_or_capacity_movement(
     drop(metadata_hold);
     assert!(matches!(
         held_metadata_denial,
-        Err(SignalBranchForkOperationDenial::OwnerUnavailable(
-            SignalOwnerUnavailable
-        ))
+        Err(SignalBranchForkOperationDenial::OwnerCellMisuse { branch_id })
+            if branch_id == source_branch.id
     ));
 
     reservation_state.assert_unchanged("denied reservations leave lineage unchanged");
@@ -208,4 +216,44 @@ fn fork_reservation_rejects_held_admission_before_identity_or_capacity_movement(
             .expect("the small real fixture has another branch identity"),
     );
     reservation_state.assert_healthy_cycle(&source_basis, expected_next_id);
+}
+
+#[test]
+fn prior_and_fresh_admissions_reject_same_thread_same_owner_cell_reentry() {
+    let (mut runtime, branch_a, branch_b, _) = runtime_with_two_branches();
+    let (basis, _, _) = runtime.owner_port_slots().expect("runtime seals");
+    let owner = basis.upgrade_owner().expect("owner remains live");
+    let first = owner.admit().expect("first admission is idle");
+    let second = owner
+        .admit()
+        .expect("second admission exists before the first acquires a cell");
+    let cell_a = owner
+        .lookup_cell(&first, branch_a.id)
+        .expect("branch A is live");
+    let cell_b = owner
+        .lookup_cell(&second, branch_b.id)
+        .expect("branch B is live");
+
+    cell_a
+        .with_state(&first, |_, _| {
+            assert_eq!(
+                cell_b.with_state(&second, |_, _| ()).unwrap_err(),
+                SignalBranchCellAdmissionDenial::ExecutingThreadReentry
+            );
+            assert_eq!(
+                cell_a.with_state(&second, |_, _| ()).unwrap_err(),
+                SignalBranchCellAdmissionDenial::ExecutingThreadReentry
+            );
+            assert_eq!(
+                owner.admit().unwrap_err(),
+                super::super::SignalOwnerAdmissionDenial::OwnerReentry
+            );
+        })
+        .expect("first admission holds branch A");
+
+    cell_b
+        .with_state(&second, |state, _| {
+            assert_eq!(state.branch_id(), branch_b.id)
+        })
+        .expect("other branch remains healthy after the rejected callback reentry");
 }

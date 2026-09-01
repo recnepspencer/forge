@@ -1,17 +1,40 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
-use super::cell_incarnation::SignalBranchCellIncarnation;
+use super::admission_table::SignalOwnerAdmissionTable;
 use super::counters::SignalOwnerServiceCounters;
+use super::operation_control::SignalOwnerOperationBoundary;
+#[cfg(any(test, feature = "test-operation-control"))]
+use super::operation_control::SignalOwnerOperationControl;
 use super::SignalOwnerLifecycleObservation;
 
+#[path = "lifecycle_state/cleanup_claim.rs"]
+mod cleanup_claim;
+#[path = "lifecycle_state/operation_admission.rs"]
+mod operation_admission;
+use cleanup_claim::SignalOwnerCleanupClaim;
+pub(crate) use operation_admission::SignalOwnerOperationAdmission;
+use operation_admission::SignalOwnerPendingAdmission;
+pub(super) use operation_admission::{
+    SignalOwnerBranchCellHoldDenial, SignalOwnerMetadataHold, SignalOwnerMetadataHoldDenial,
+};
+
 static NEXT_SIGNAL_OWNER_LIFECYCLE_IDENTITY: AtomicU64 = AtomicU64::new(1);
-const OWNER_METADATA_HOLD: u64 = u64::MAX;
+
+const OWNER_PHASE_SHIFT: u32 = 62;
+const OWNER_COUNT_MASK: u64 = (1_u64 << OWNER_PHASE_SHIFT) - 1;
+const OWNER_OPEN: u64 = 0;
+const OWNER_CLOSING: u64 = 1_u64 << OWNER_PHASE_SHIFT;
+const OWNER_CLOSED: u64 = 2_u64 << OWNER_PHASE_SHIFT;
+
+pub(crate) const MAXIMUM_IN_FLIGHT_SIGNAL_OWNER_OPERATIONS: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SignalOwnerAdmissionDenial {
     ForeignOwner,
     OwnerUnavailable,
+    OperationCapacityExhausted { maximum_in_flight_operations: usize },
+    OwnerReentry,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,7 +44,10 @@ pub(crate) enum SignalOwnerAdmissionMismatch {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct SignalOwnerCloseDenial;
+pub(crate) enum SignalOwnerCloseDenial {
+    ForeignOwner,
+    ExecutingThreadHasAdmission,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SignalOwnerLifecyclePoisonRecovery {
@@ -31,20 +57,25 @@ pub(crate) enum SignalOwnerLifecyclePoisonRecovery {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::branch) struct SignalOwnerLifecycleIdentity(u64);
 
-#[derive(Debug)]
-struct SignalOwnerLifecycleStatus {
-    observation: SignalOwnerLifecycleObservation,
-    admitted_operations: usize,
+pub(super) trait SignalOwnerCloseCoordinator {
+    fn finish_owner_close(&self);
 }
 
 #[derive(Debug)]
 pub(crate) struct SignalOwnerLifecycleState {
     owner_runtime_instance_id: u64,
     lifecycle_identity: SignalOwnerLifecycleIdentity,
-    status: Mutex<SignalOwnerLifecycleStatus>,
+    phase_and_count: AtomicU64,
+    admission_table: Arc<SignalOwnerAdmissionTable>,
+    transition_gate: Mutex<()>,
     drain: Condvar,
+    cleanup_claimed: AtomicBool,
+    #[cfg(test)]
+    cleanup_waiters: std::sync::atomic::AtomicUsize,
     counters: Arc<SignalOwnerServiceCounters>,
     recovered_poison: AtomicBool,
+    #[cfg(any(test, feature = "test-operation-control"))]
+    operation_control: SignalOwnerOperationControl,
 }
 
 impl SignalOwnerLifecycleState {
@@ -55,70 +86,149 @@ impl SignalOwnerLifecycleState {
         Arc::new(Self {
             owner_runtime_instance_id,
             lifecycle_identity: next_lifecycle_identity(),
-            status: Mutex::new(SignalOwnerLifecycleStatus {
-                observation: SignalOwnerLifecycleObservation::Open,
-                admitted_operations: 0,
-            }),
+            phase_and_count: AtomicU64::new(OWNER_OPEN),
+            admission_table: SignalOwnerAdmissionTable::new(),
+            transition_gate: Mutex::new(()),
             drain: Condvar::new(),
+            cleanup_claimed: AtomicBool::new(false),
+            #[cfg(test)]
+            cleanup_waiters: std::sync::atomic::AtomicUsize::new(0),
             counters,
             recovered_poison: AtomicBool::new(false),
+            #[cfg(any(test, feature = "test-operation-control"))]
+            operation_control: SignalOwnerOperationControl::default(),
         })
     }
 
     pub(crate) fn admit(
         self: &Arc<Self>,
         owner_runtime_instance_id: u64,
-    ) -> Result<SignalOwnerOperationAdmission, SignalOwnerAdmissionDenial> {
+    ) -> Result<SignalOwnerOperationAdmission<'static>, SignalOwnerAdmissionDenial> {
+        self.admit_with_close_coordinator_option(owner_runtime_instance_id, None)
+    }
+
+    pub(super) fn admit_with_close_coordinator<'owner>(
+        self: &Arc<Self>,
+        owner_runtime_instance_id: u64,
+        close_coordinator: Arc<dyn SignalOwnerCloseCoordinator + 'owner>,
+    ) -> Result<SignalOwnerOperationAdmission<'owner>, SignalOwnerAdmissionDenial> {
+        self.admit_with_close_coordinator_option(owner_runtime_instance_id, Some(close_coordinator))
+    }
+
+    fn admit_with_close_coordinator_option<'owner>(
+        self: &Arc<Self>,
+        owner_runtime_instance_id: u64,
+        close_coordinator: Option<Arc<dyn SignalOwnerCloseCoordinator + 'owner>>,
+    ) -> Result<SignalOwnerOperationAdmission<'owner>, SignalOwnerAdmissionDenial> {
         if owner_runtime_instance_id != self.owner_runtime_instance_id {
             return Err(SignalOwnerAdmissionDenial::ForeignOwner);
         }
-        let mut status = self.lock_status();
-        if status.observation != SignalOwnerLifecycleObservation::Open {
-            return Err(SignalOwnerAdmissionDenial::OwnerUnavailable);
+        let (reentry, scanned) = self.admission_table.executing_thread_has_owner_hold();
+        self.counters.record_admission_records_scanned(scanned);
+        if reentry {
+            return Err(SignalOwnerAdmissionDenial::OwnerReentry);
         }
-        status.admitted_operations += 1;
-        Ok(SignalOwnerOperationAdmission {
-            lifecycle: Arc::clone(self),
+        let reservation = self.reserve_admission_count(close_coordinator)?;
+        let record = self.admission_table.new_record();
+        let (published, scanned) = self.admission_table.publish(record);
+        self.counters.record_admission_records_scanned(scanned);
+        let admission = SignalOwnerOperationAdmission::new(
+            Arc::clone(self),
             owner_runtime_instance_id,
-            lifecycle_identity: self.lifecycle_identity,
-            held_branch_cell_incarnation: AtomicU64::new(0),
-        })
+            self.lifecycle_identity,
+            published,
+            reservation.commit(),
+        );
+        admission.reach_operation_boundary(SignalOwnerOperationBoundary::OwnerLifecycleAdmission);
+        Ok(admission)
     }
 
     pub(crate) fn close(
         &self,
         owner_runtime_instance_id: u64,
     ) -> Result<(), SignalOwnerCloseDenial> {
-        if owner_runtime_instance_id != self.owner_runtime_instance_id {
-            return Err(SignalOwnerCloseDenial);
+        self.begin_close(owner_runtime_instance_id, true)?;
+        loop {
+            if let Some(claim) = self.claim_cleanup() {
+                claim.complete();
+            }
+            if self.observation() == SignalOwnerLifecycleObservation::Closed {
+                return Ok(());
+            }
+            self.wait_for_cleanup_turn();
         }
-        let mut status = self.lock_status();
-        self.begin_close(&mut status);
-        while status.observation == SignalOwnerLifecycleObservation::Closing {
-            status = match self.drain.wait(status) {
-                Ok(status) => status,
-                Err(poisoned) => self.recover_poisoned_status(poisoned),
-            };
-        }
-        Ok(())
     }
 
-    /// Reject new work immediately without waiting on the caller whose
-    /// admission may be triggering owner-root destruction.
-    pub(crate) fn request_close(
+    pub(super) fn begin_explicit_close(
         &self,
         owner_runtime_instance_id: u64,
     ) -> Result<(), SignalOwnerCloseDenial> {
-        if owner_runtime_instance_id != self.owner_runtime_instance_id {
-            return Err(SignalOwnerCloseDenial);
+        self.begin_close(owner_runtime_instance_id, true)
+    }
+
+    pub(super) fn request_close(
+        &self,
+        owner_runtime_instance_id: u64,
+    ) -> Result<(), SignalOwnerCloseDenial> {
+        self.begin_close(owner_runtime_instance_id, false)
+    }
+
+    pub(super) fn wait_until_closed(&self) {
+        let mut gate = self.lock_transition_gate();
+        while self.observation() != SignalOwnerLifecycleObservation::Closed {
+            gate = match self.drain.wait(gate) {
+                Ok(gate) => gate,
+                Err(poisoned) => self.recover_poisoned_gate(poisoned),
+            };
         }
-        let mut status = self.lock_status();
-        self.begin_close(&mut status);
-        Ok(())
+    }
+
+    pub(super) fn claim_cleanup(&self) -> Option<SignalOwnerCleanupClaim<'_>> {
+        let _gate = self.lock_transition_gate();
+        let state = self.phase_and_count.load(Ordering::Acquire);
+        if state != OWNER_CLOSING
+            || self
+                .cleanup_claimed
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                .is_err()
+        {
+            return None;
+        }
+        Some(SignalOwnerCleanupClaim {
+            lifecycle: self,
+            completed: false,
+        })
+    }
+
+    pub(super) fn wait_for_cleanup_turn(&self) {
+        #[cfg(test)]
+        self.cleanup_waiters.fetch_add(1, Ordering::AcqRel);
+        let mut gate = self.lock_transition_gate();
+        while self.observation() != SignalOwnerLifecycleObservation::Closed
+            && (self.phase_and_count.load(Ordering::Acquire) != OWNER_CLOSING
+                || self.cleanup_claimed.load(Ordering::Acquire))
+        {
+            gate = match self.drain.wait(gate) {
+                Ok(gate) => gate,
+                Err(poisoned) => self.recover_poisoned_gate(poisoned),
+            };
+        }
+        #[cfg(test)]
+        self.cleanup_waiters.fetch_sub(1, Ordering::AcqRel);
+    }
+
+    #[cfg(test)]
+    pub(super) fn cleanup_waiter_count(&self) -> usize {
+        self.cleanup_waiters.load(Ordering::Acquire)
     }
 
     pub(crate) fn observation(&self) -> SignalOwnerLifecycleObservation {
-        self.lock_status().observation
+        match phase(self.phase_and_count.load(Ordering::Acquire)) {
+            OWNER_OPEN => SignalOwnerLifecycleObservation::Open,
+            OWNER_CLOSING => SignalOwnerLifecycleObservation::Closing,
+            OWNER_CLOSED => SignalOwnerLifecycleObservation::Closed,
+            _ => unreachable!("Signal owner lifecycle phase is packed by the owner"),
+        }
     }
 
     pub(crate) fn owner_runtime_instance_id(&self) -> u64 {
@@ -133,148 +243,145 @@ impl SignalOwnerLifecycleState {
         Arc::clone(&self.counters)
     }
 
+    pub(crate) fn reach_operation_boundary(&self, boundary: SignalOwnerOperationBoundary) {
+        #[cfg(any(test, feature = "test-operation-control"))]
+        self.operation_control.reach(boundary);
+        #[cfg(not(any(test, feature = "test-operation-control")))]
+        let _ = boundary;
+    }
+
+    #[cfg(any(test, feature = "test-operation-control"))]
+    pub(super) fn operation_control(&self) -> SignalOwnerOperationControl {
+        self.operation_control.clone()
+    }
+
     pub(crate) fn poison_recovery(&self) -> Option<SignalOwnerLifecyclePoisonRecovery> {
+        drop(self.lock_transition_gate());
         self.recovered_poison
             .load(Ordering::Acquire)
             .then_some(SignalOwnerLifecyclePoisonRecovery::PreservedLifecycleStatus)
     }
 
-    fn release_operation(&self) {
-        let mut status = self.lock_status();
-        debug_assert!(status.admitted_operations > 0);
-        status.admitted_operations = status.admitted_operations.saturating_sub(1);
-        if status.observation == SignalOwnerLifecycleObservation::Closing
-            && status.admitted_operations == 0
-        {
-            status.observation = SignalOwnerLifecycleObservation::Closed;
-            self.drain.notify_all();
+    fn reserve_admission_count<'owner>(
+        self: &Arc<Self>,
+        close_coordinator: Option<Arc<dyn SignalOwnerCloseCoordinator + 'owner>>,
+    ) -> Result<SignalOwnerPendingAdmission<'owner>, SignalOwnerAdmissionDenial> {
+        let mut observed = self.phase_and_count.load(Ordering::Acquire);
+        loop {
+            if phase(observed) != OWNER_OPEN {
+                return Err(SignalOwnerAdmissionDenial::OwnerUnavailable);
+            }
+            let count = admission_count(observed);
+            if count >= MAXIMUM_IN_FLIGHT_SIGNAL_OWNER_OPERATIONS {
+                return Err(SignalOwnerAdmissionDenial::OperationCapacityExhausted {
+                    maximum_in_flight_operations: MAXIMUM_IN_FLIGHT_SIGNAL_OWNER_OPERATIONS,
+                });
+            }
+            match self.phase_and_count.compare_exchange_weak(
+                observed,
+                observed + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    return Ok(SignalOwnerPendingAdmission {
+                        lifecycle: Arc::clone(self),
+                        close_coordinator,
+                        committed: false,
+                    })
+                }
+                Err(next) => observed = next,
+            }
         }
     }
 
-    fn begin_close(&self, status: &mut SignalOwnerLifecycleStatus) {
-        if status.observation == SignalOwnerLifecycleObservation::Open {
-            status.observation = SignalOwnerLifecycleObservation::Closing;
-            self.counters.record_close_batch();
-        }
-        if status.observation == SignalOwnerLifecycleObservation::Closing
-            && status.admitted_operations == 0
-        {
-            status.observation = SignalOwnerLifecycleObservation::Closed;
-            self.drain.notify_all();
+    fn release_operation(&self) -> bool {
+        let _gate = self.lock_transition_gate();
+        let mut observed = self.phase_and_count.load(Ordering::Acquire);
+        loop {
+            let count = admission_count(observed);
+            debug_assert!(count > 0);
+            let next = observed - 1;
+            match self.phase_and_count.compare_exchange_weak(
+                observed,
+                next,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    self.drain.notify_all();
+                    return next == OWNER_CLOSING;
+                }
+                Err(current) => observed = current,
+            }
         }
     }
 
-    fn lock_status(&self) -> MutexGuard<'_, SignalOwnerLifecycleStatus> {
-        match self.status.lock() {
-            Ok(status) => status,
-            Err(poisoned) => self.recover_poisoned_status(poisoned),
-        }
-    }
-
-    fn recover_poisoned_status<'a>(
+    fn begin_close(
         &self,
-        poisoned: std::sync::PoisonError<MutexGuard<'a, SignalOwnerLifecycleStatus>>,
-    ) -> MutexGuard<'a, SignalOwnerLifecycleStatus> {
+        owner_runtime_instance_id: u64,
+        reject_executing_thread_admission: bool,
+    ) -> Result<(), SignalOwnerCloseDenial> {
+        if owner_runtime_instance_id != self.owner_runtime_instance_id {
+            return Err(SignalOwnerCloseDenial::ForeignOwner);
+        }
+        if reject_executing_thread_admission {
+            let (has_admission, scanned) = self.admission_table.executing_thread_has_admission();
+            self.counters.record_admission_records_scanned(scanned);
+            if has_admission {
+                return Err(SignalOwnerCloseDenial::ExecutingThreadHasAdmission);
+            }
+        }
+        let _gate = self.lock_transition_gate();
+        let mut observed = self.phase_and_count.load(Ordering::Acquire);
+        loop {
+            if phase(observed) != OWNER_OPEN {
+                return Ok(());
+            }
+            let next = OWNER_CLOSING | admission_count(observed) as u64;
+            match self.phase_and_count.compare_exchange_weak(
+                observed,
+                next,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    self.drain.notify_all();
+                    return Ok(());
+                }
+                Err(current) => observed = current,
+            }
+        }
+    }
+
+    fn lock_transition_gate(&self) -> MutexGuard<'_, ()> {
+        match self.transition_gate.lock() {
+            Ok(gate) => gate,
+            Err(poisoned) => self.recover_poisoned_gate(poisoned),
+        }
+    }
+
+    fn recover_poisoned_gate<'a>(
+        &self,
+        poisoned: std::sync::PoisonError<MutexGuard<'a, ()>>,
+    ) -> MutexGuard<'a, ()> {
         self.recovered_poison.store(true, Ordering::Release);
         poisoned.into_inner()
     }
 
     #[cfg(test)]
     pub(super) fn poison_status_for_test(&self) {
-        let _status = self.lock_status();
+        let _gate = self.lock_transition_gate();
         panic!("inject lifecycle-status poison");
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct SignalOwnerOperationAdmission {
-    lifecycle: Arc<SignalOwnerLifecycleState>,
-    owner_runtime_instance_id: u64,
-    lifecycle_identity: SignalOwnerLifecycleIdentity,
-    held_branch_cell_incarnation: AtomicU64,
+fn phase(state: u64) -> u64 {
+    state & !OWNER_COUNT_MASK
 }
 
-impl SignalOwnerOperationAdmission {
-    pub(super) fn authorize(
-        &self,
-        owner_runtime_instance_id: u64,
-        lifecycle_identity: SignalOwnerLifecycleIdentity,
-    ) -> Result<(), SignalOwnerAdmissionMismatch> {
-        if self.owner_runtime_instance_id != owner_runtime_instance_id {
-            return Err(SignalOwnerAdmissionMismatch::ForeignOwner);
-        }
-        if self.lifecycle_identity != lifecycle_identity {
-            return Err(SignalOwnerAdmissionMismatch::ExpiredLifecycle);
-        }
-        Ok(())
-    }
-
-    pub(super) fn hold_branch_cell(
-        &self,
-        incarnation: SignalBranchCellIncarnation,
-    ) -> Result<SignalOwnerBranchCellHold<'_>, SignalOwnerBranchCellHoldDenial> {
-        self.held_branch_cell_incarnation
-            .compare_exchange(0, incarnation.get(), Ordering::Acquire, Ordering::Relaxed)
-            .map_err(|_| SignalOwnerBranchCellHoldDenial::SecondCellWhileHeld)?;
-        Ok(SignalOwnerBranchCellHold {
-            held_incarnation: &self.held_branch_cell_incarnation,
-            incarnation,
-        })
-    }
-
-    pub(super) fn hold_owner_metadata(
-        &self,
-    ) -> Result<SignalOwnerMetadataHold<'_>, SignalOwnerMetadataHoldDenial> {
-        self.held_branch_cell_incarnation
-            .compare_exchange(0, OWNER_METADATA_HOLD, Ordering::Acquire, Ordering::Relaxed)
-            .map_err(|_| SignalOwnerMetadataHoldDenial::BranchCellOrMetadataAlreadyHeld)?;
-        Ok(SignalOwnerMetadataHold {
-            held_posture: &self.held_branch_cell_incarnation,
-        })
-    }
-
-    pub(super) fn permits_owner_lock_acquisition(&self) -> bool {
-        self.held_branch_cell_incarnation.load(Ordering::Acquire) == 0
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum SignalOwnerBranchCellHoldDenial {
-    SecondCellWhileHeld,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum SignalOwnerMetadataHoldDenial {
-    BranchCellOrMetadataAlreadyHeld,
-}
-
-pub(super) struct SignalOwnerBranchCellHold<'a> {
-    held_incarnation: &'a AtomicU64,
-    incarnation: SignalBranchCellIncarnation,
-}
-
-impl Drop for SignalOwnerBranchCellHold<'_> {
-    fn drop(&mut self) {
-        let released = self.held_incarnation.swap(0, Ordering::Release);
-        debug_assert_eq!(released, self.incarnation.get());
-    }
-}
-
-pub(super) struct SignalOwnerMetadataHold<'a> {
-    held_posture: &'a AtomicU64,
-}
-
-impl Drop for SignalOwnerMetadataHold<'_> {
-    fn drop(&mut self) {
-        let released = self.held_posture.swap(0, Ordering::Release);
-        debug_assert_eq!(released, OWNER_METADATA_HOLD);
-    }
-}
-
-impl Drop for SignalOwnerOperationAdmission {
-    fn drop(&mut self) {
-        self.lifecycle.release_operation();
-    }
+fn admission_count(state: u64) -> usize {
+    (state & OWNER_COUNT_MASK) as usize
 }
 
 fn next_lifecycle_identity() -> SignalOwnerLifecycleIdentity {

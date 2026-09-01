@@ -12,6 +12,10 @@ use super::{
 #[derive(Debug)]
 pub enum SignalBranchForkOperationDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     CancelledNoMovement,
     LiveBranchCapacityExhausted {
         maximum_live_branches: usize,

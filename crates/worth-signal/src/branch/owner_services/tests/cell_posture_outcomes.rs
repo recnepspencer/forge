@@ -13,16 +13,30 @@ use super::super::SignalBranchCellAdmissionDenial;
 
 #[derive(Clone, Copy)]
 enum ExpectedCellPosture {
+    OwnerUnavailable,
     OwnerCellMisuse,
+    OwnerReentry,
     RetirementInProgress,
     RetiredBranch,
     QuarantinedBranch,
 }
 
-const REACHABLE_CELL_POSTURES: [(SignalBranchCellAdmissionDenial, ExpectedCellPosture); 4] = [
+const COMPLETE_CELL_DENIALS: [(SignalBranchCellAdmissionDenial, ExpectedCellPosture); 7] = [
+    (
+        SignalBranchCellAdmissionDenial::ForeignOwner,
+        ExpectedCellPosture::OwnerUnavailable,
+    ),
+    (
+        SignalBranchCellAdmissionDenial::ExpiredLifecycle,
+        ExpectedCellPosture::OwnerUnavailable,
+    ),
     (
         SignalBranchCellAdmissionDenial::SecondCellWhileHeld,
         ExpectedCellPosture::OwnerCellMisuse,
+    ),
+    (
+        SignalBranchCellAdmissionDenial::ExecutingThreadReentry,
+        ExpectedCellPosture::OwnerReentry,
     ),
     (
         SignalBranchCellAdmissionDenial::RetirementInProgress,
@@ -41,13 +55,21 @@ const REACHABLE_CELL_POSTURES: [(SignalBranchCellAdmissionDenial, ExpectedCellPo
 #[test]
 fn every_operation_preserves_reachable_cell_posture_without_unknown_fallback() {
     let branch_id = SignalBranchId(41);
-    for (denial, expected) in REACHABLE_CELL_POSTURES {
+    let mut completed_mappings = 0;
+    for (denial, expected) in COMPLETE_CELL_DENIALS {
         assert_advance_posture(denial, expected, branch_id);
+        completed_mappings += 1;
         assert_fork_posture(denial, expected, branch_id);
+        completed_mappings += 1;
         assert_snapshot_posture(denial, expected, branch_id);
+        completed_mappings += 1;
         assert_restore_posture(denial, expected, branch_id);
+        completed_mappings += 1;
         assert_retirement_posture(denial, expected, branch_id);
+        completed_mappings += 1;
     }
+    assert_eq!(COMPLETE_CELL_DENIALS.len(), 7);
+    assert_eq!(completed_mappings, 35);
 }
 
 fn assert_advance_posture(
@@ -57,6 +79,8 @@ fn assert_advance_posture(
 ) {
     let mapped = map_advance_cell_denial(denial, branch_id);
     assert!(match (expected, mapped) {
+        (ExpectedCellPosture::OwnerUnavailable, SignalBranchAdvanceDenial::OwnerUnavailable(_))
+        | (ExpectedCellPosture::OwnerReentry, SignalBranchAdvanceDenial::OwnerReentry) => true,
         (
             ExpectedCellPosture::OwnerCellMisuse,
             SignalBranchAdvanceDenial::OwnerCellMisuse {
@@ -93,6 +117,13 @@ fn assert_fork_posture(
     let mapped = map_fork_cell_denial(denial, branch_id);
     assert!(match (expected, mapped) {
         (
+            ExpectedCellPosture::OwnerUnavailable,
+            SignalBranchForkOperationDenial::OwnerUnavailable(_),
+        )
+        | (ExpectedCellPosture::OwnerReentry, SignalBranchForkOperationDenial::OwnerReentry) => {
+            true
+        }
+        (
             ExpectedCellPosture::OwnerCellMisuse,
             SignalBranchForkOperationDenial::OwnerCellMisuse {
                 branch_id: observed,
@@ -128,6 +159,12 @@ fn assert_snapshot_posture(
     let mapped = map_snapshot_cell_denial(denial, branch_id);
     assert!(match (expected, mapped) {
         (
+            ExpectedCellPosture::OwnerUnavailable,
+            SignalBranchSnapshotCaptureDenial::OwnerUnavailable(_),
+        )
+        | (ExpectedCellPosture::OwnerReentry, SignalBranchSnapshotCaptureDenial::OwnerReentry) =>
+            true,
+        (
             ExpectedCellPosture::OwnerCellMisuse,
             SignalBranchSnapshotCaptureDenial::OwnerCellMisuse {
                 branch_id: observed,
@@ -162,6 +199,8 @@ fn assert_restore_posture(
 ) {
     let mapped = map_restore_cell_denial(denial, branch_id);
     assert!(match (expected, mapped) {
+        (ExpectedCellPosture::OwnerUnavailable, SignalBranchRestoreDenial::OwnerUnavailable(_))
+        | (ExpectedCellPosture::OwnerReentry, SignalBranchRestoreDenial::OwnerReentry) => true,
         (
             ExpectedCellPosture::OwnerCellMisuse,
             SignalBranchRestoreDenial::OwnerCellMisuse {
@@ -197,6 +236,11 @@ fn assert_retirement_posture(
 ) {
     let mapped = map_retirement_cell_denial(denial, branch_id);
     assert!(match (expected, mapped) {
+        (
+            ExpectedCellPosture::OwnerUnavailable,
+            SignalBranchRetirementDenial::OwnerUnavailable(_),
+        )
+        | (ExpectedCellPosture::OwnerReentry, SignalBranchRetirementDenial::OwnerReentry) => true,
         (
             ExpectedCellPosture::OwnerCellMisuse,
             SignalBranchRetirementDenial::OwnerCellMisuse {

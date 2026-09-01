@@ -19,7 +19,6 @@ pub(crate) use crate::observation::session::admit as admit_signal_observation_re
 pub(crate) use crate::observation::session::{
     SignalObservationCaptureGate, SignalObservationDropCleanup, SignalObservationSessionState,
 };
-pub(in crate::logic::transaction::runtime) use branching::BranchManager;
 pub use branching::{
     bridge_signal_branch_basis_trust_boundary, BoundaryBridgedSignalBranchBasisArtifact,
     BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
@@ -36,8 +35,9 @@ pub use branching::{
     ValidatedBranchTargetedTransactionRequest, SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
 };
 pub(crate) use branching::{
-    BranchState, SignalOwnerMetadataState, SignalOwnerPartition,
-    SignalOwnerSnapshotReservationDenial, SnapshotBranchState, SnapshotStatePacket,
+    BranchState, SignalOwnerMetadataCloseBatch, SignalOwnerMetadataState, SignalOwnerPartition,
+    SignalOwnerRetirementCleanup, SignalOwnerSnapshotReservationDenial, SnapshotBranchState,
+    SnapshotStatePacket,
 };
 pub use builder::SignalRuntimeBuilder;
 pub use canonical_merge_guidance::{PlannedRuntimeMerge, RuntimeMerge};

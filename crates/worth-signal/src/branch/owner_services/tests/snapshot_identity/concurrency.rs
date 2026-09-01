@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::branch::SignalBranchBasisDescriptor;
+use crate::branch::admit_runtime_signal_branch_observation;
 use crate::data::graph::SignalGraph;
 use crate::logic::transaction::SignalRuntime;
 
@@ -39,7 +39,7 @@ fn concurrent_sibling_captures_keep_identity_and_target_lease_accounting_indepen
             let admission = first_owner.admit().expect("first capture admits");
             let reservation = first_owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &first_cell)
                 .expect("first identity reserves");
             first_park.park("first sibling snapshot reservation");
             first_cell
@@ -55,7 +55,7 @@ fn concurrent_sibling_captures_keep_identity_and_target_lease_accounting_indepen
             let admission = second_owner.admit().expect("second capture admits");
             let reservation = second_owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &second_cell)
                 .expect("second identity reserves");
             second_park.park("second sibling snapshot reservation");
             second_cell
@@ -77,21 +77,32 @@ fn concurrent_sibling_captures_keep_identity_and_target_lease_accounting_indepen
         (first_capture, second_capture)
     });
 
+    let (first_snapshot, first_observation) = first_capture.into_parts();
+    let (second_snapshot, second_observation) = second_capture.into_parts();
     assert_ne!(
-        first_capture.snapshot.meta.snapshot_id,
-        second_capture.snapshot.meta.snapshot_id
+        first_snapshot.meta.snapshot_id,
+        second_snapshot.meta.snapshot_id
+    );
+    let retention_admission = owner.admit().expect("retention acquisition admits");
+    let first_retained_basis = admit_runtime_signal_branch_observation(
+        first_observation,
+        first_branch.id,
+        owner
+            .acquire_admitted_retention(&retention_admission, first_branch.id)
+            .expect("first target receives admitted custody"),
+    );
+    let second_retained_basis = admit_runtime_signal_branch_observation(
+        second_observation,
+        second_branch.id,
+        owner
+            .acquire_admitted_retention(&retention_admission, second_branch.id)
+            .expect("second target receives admitted custody"),
     );
     let first_lease = owner
-        .acquire_external_retention(SignalBranchBasisDescriptor::owner_issued(
-            first_branch.id,
-            first_capture.observation,
-        ))
+        .acquire_external_retention(&retention_admission, &first_retained_basis)
         .expect("the first captured target retains");
     let second_lease = owner
-        .acquire_external_retention(SignalBranchBasisDescriptor::owner_issued(
-            second_branch.id,
-            second_capture.observation,
-        ))
+        .acquire_external_retention(&retention_admission, &second_retained_basis)
         .expect("the second captured target retains");
     assert_ne!(
         first_lease.retained_target(),

@@ -1,10 +1,12 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
+use std::thread;
 
 use crate::branch::SignalBranchBasisObservationDenial;
 use crate::state::SignalBranchId;
 
 use super::super::{SignalOwnerLifecycleState, SignalOwnerServiceCounters};
+use super::progress_bound::PROGRESS_BOUND;
 use super::runtime_root::runtime_with_two_branches;
 
 #[test]
@@ -101,14 +103,32 @@ fn basis_observation_distinguishes_cell_misuse_retirement_and_quarantine() {
         .observe_branch_exact(&admission, branch_b.id)
         .expect("misuse denial does not damage healthy twin");
 
-    let retirement_observation = owner.admit().expect("retiring observation admits");
+    let (observe_tx, observe_rx) = mpsc::sync_channel(1);
+    let (result_tx, result_rx) = mpsc::sync_channel(1);
+    let observing_owner = Arc::clone(&owner);
+    let observing_cell = Arc::clone(&cell_a);
+    let observation_thread = thread::spawn(move || {
+        observe_rx.recv().expect("retirement observation starts");
+        let observing_admission = observing_owner
+            .admit()
+            .expect("independent retirement observation admits");
+        result_tx
+            .send(observing_cell.observe_exact(&observing_admission))
+            .expect("retirement observation returns");
+    });
     let retirement = owner
         .begin_retirement(&admission, branch_a.id)
         .expect("branch A retirement begins");
     retirement
         .execute(|_, _| {
+            observe_tx
+                .send(())
+                .expect("release the independent observer while retirement owns the cell");
+            let observed = result_rx
+                .recv_timeout(PROGRESS_BOUND)
+                .expect("independent observation must not wait on the retiring cell");
             assert!(matches!(
-                cell_a.observe_exact(&retirement_observation),
+                observed,
                 Err(SignalBranchBasisObservationDenial::RetirementInProgress { branch_id })
                     if branch_id == branch_a.id
             ));
@@ -116,6 +136,9 @@ fn basis_observation_distinguishes_cell_misuse_retirement_and_quarantine() {
         })
         .expect("retirement reaches its cell")
         .expect("retirement completes");
+    observation_thread
+        .join()
+        .expect("independent retirement observer remains healthy");
     assert!(matches!(
         cell_a.observe_exact(&admission),
         Err(SignalBranchBasisObservationDenial::RetiredBranch { branch_id })

@@ -29,7 +29,7 @@ fn cancellation_stale_denial_and_unwind_return_capacity_without_reusing_identity
     cancellation.cancel();
     let cancelled_reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("capacity reserves before cancellation");
     let cancelled_id = cancelled_reservation.snapshot_id();
     assert!(matches!(
@@ -45,7 +45,7 @@ fn cancellation_stale_denial_and_unwind_return_capacity_without_reusing_identity
     let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let reservation = owner
             .metadata
-            .reserve_snapshot(&admission)
+            .reserve_snapshot(&admission, &cell)
             .expect("cancelled capture returned its capacity");
         unwind_id = Some(reservation.snapshot_id());
         panic!("snapshot identity reservation unwind");
@@ -67,12 +67,12 @@ fn cancellation_stale_denial_and_unwind_return_capacity_without_reusing_identity
         advanced_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("the advanced basis retains its branch"),
     );
     let stale_reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("unwind returned its capacity");
     let stale_id = stale_reservation.snapshot_id();
     assert!(matches!(
@@ -86,7 +86,7 @@ fn cancellation_stale_denial_and_unwind_return_capacity_without_reusing_identity
 
     let healthy_reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("stale denial returned its capacity");
     let healthy_id = healthy_reservation.snapshot_id();
     let capture = cell
@@ -103,7 +103,7 @@ fn cancellation_stale_denial_and_unwind_return_capacity_without_reusing_identity
             unwind_id.expect("the unwind observed its reservation"),
             stale_id,
             healthy_id,
-            capture.snapshot.meta.snapshot_id,
+            capture.snapshot().meta.snapshot_id,
         ),
         (
             SignalSnapshotId(0),
@@ -140,7 +140,7 @@ fn identity_exhaustion_is_precise_repeatable_and_pre_effect() {
 
     for _ in 0..2 {
         assert!(matches!(
-            owner.metadata.reserve_snapshot(&admission),
+            owner.metadata.reserve_snapshot(&admission, &cell),
             Err(
                 SignalBranchSnapshotCaptureDenial::SnapshotIdentityExhausted {
                     next_snapshot_id: SignalSnapshotId(u64::MAX),

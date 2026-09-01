@@ -1,4 +1,4 @@
-use crate::branch::{admit_runtime_signal_branch_observation, SignalBranchBasisDescriptor};
+use crate::branch::admit_runtime_signal_branch_observation;
 use crate::data::aspect::Aspect;
 use crate::data::dependency::DependencyEdge;
 use crate::data::graph::SignalGraph;
@@ -49,7 +49,7 @@ fn distinct_sibling_snapshots_do_not_alias_exact_retention_targets() {
         .expect("maintenance exists");
     let cancellation = SignalOwnerCancellationSource::new();
     let output_retention = owner
-        .acquire_admitted_retention(storm.id)
+        .acquire_admitted_retention(&admission, storm.id)
         .expect("movement output retention reserves before movement");
     let changed = storm_cell
         .advance_exact::<(), (), _>(
@@ -71,7 +71,7 @@ fn distinct_sibling_snapshots_do_not_alias_exact_retention_targets() {
             &changed_basis,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &storm_cell)
                 .expect("storm reserves"),
             &cancellation.token(),
         )
@@ -81,14 +81,14 @@ fn distinct_sibling_snapshots_do_not_alias_exact_retention_targets() {
             &maintenance_basis,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &maintenance_cell)
                 .expect("maintenance reserves"),
             &cancellation.token(),
         )
         .expect("maintenance snapshot captures unchanged sibling state");
     assert_eq!(
         storm_snapshot
-            .snapshot
+            .snapshot()
             .diagnostic_graph
             .dependency_sources_of(dispatch),
         Ok(vec![berth]),
@@ -96,26 +96,34 @@ fn distinct_sibling_snapshots_do_not_alias_exact_retention_targets() {
     );
     assert_eq!(
         maintenance_snapshot
-            .snapshot
+            .snapshot()
             .diagnostic_graph
             .dependency_sources_of(dispatch),
         Ok(vec![weather]),
         "maintenance capture independently preserves its original dependency"
     );
 
-    let storm_id = storm_snapshot.snapshot.meta.snapshot_id;
-    let maintenance_id = maintenance_snapshot.snapshot.meta.snapshot_id;
+    let storm_id = storm_snapshot.snapshot().meta.snapshot_id;
+    let maintenance_id = maintenance_snapshot.snapshot().meta.snapshot_id;
+    let storm_retained_basis = admit_runtime_signal_branch_observation(
+        storm_snapshot.observation().clone(),
+        storm.id,
+        owner
+            .acquire_admitted_retention(&admission, storm.id)
+            .expect("the storm snapshot target receives admitted custody"),
+    );
+    let maintenance_retained_basis = admit_runtime_signal_branch_observation(
+        maintenance_snapshot.observation().clone(),
+        maintenance.id,
+        owner
+            .acquire_admitted_retention(&admission, maintenance.id)
+            .expect("the maintenance snapshot target receives admitted custody"),
+    );
     let storm_lease = owner
-        .acquire_external_retention(SignalBranchBasisDescriptor::owner_issued(
-            storm.id,
-            storm_snapshot.observation,
-        ))
+        .acquire_external_retention(&admission, &storm_retained_basis)
         .expect("the actual storm snapshot is retained");
     let maintenance_lease = owner
-        .acquire_external_retention(SignalBranchBasisDescriptor::owner_issued(
-            maintenance.id,
-            maintenance_snapshot.observation,
-        ))
+        .acquire_external_retention(&admission, &maintenance_retained_basis)
         .expect("the actual maintenance snapshot is retained");
     let targets_distinct = storm_lease.retained_target() != maintenance_lease.retained_target();
     let receipt = storm_lease.release();

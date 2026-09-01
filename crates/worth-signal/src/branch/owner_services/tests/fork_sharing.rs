@@ -33,7 +33,7 @@ impl EffectMapping for ForkCheckpointEffect {
     }
 }
 
-pub(super) fn seed_nonempty_persistent_branch_state(
+pub(in crate::branch::owner_services) fn seed_nonempty_persistent_branch_state(
     runtime: &mut SignalRuntime<(), (), (), (), ()>,
     resource_node: crate::data::handle::NodeId,
 ) {
@@ -147,17 +147,19 @@ fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
             .expect("scale identity validates");
         let before = owner.cost_snapshot();
         let region = Region::new(&INSTRUMENTED_SYSTEM);
-        let reservation = owner
-            .reserve_fork_destination(&source_admission, &source_basis, requested_identity)
-            .expect("destination reserves");
-        let destination = reservation
-            .install(
-                &source_cell,
-                &source_admission,
+        let ready = owner
+            .reserve_fork_output(&source_admission, &source_cell)
+            .expect("fork output retention reserves")
+            .fork(
                 &source_basis,
+                requested_identity,
                 &SignalOwnerCancellationSource::new().token(),
             )
             .expect("persistent destination installs");
+        let (destination_handle, destination_basis) = ready.into_destination_parts();
+        let destination = owner
+            .lookup_cell(&source_admission, destination_handle.id)
+            .expect("the handed-off destination is installed");
         let allocation = region.change();
         allocation_samples.push((
             node_count,
@@ -226,6 +228,7 @@ fn exact_fork_and_first_write_have_no_node_count_allocation_slope() {
                 );
             })
             .expect("source isolation remains inspectable");
+        drop(destination_basis);
     }
     eprintln!("whole owner fork allocations by node scale: {allocation_samples:?}");
     eprintln!("destination first-write allocations by node scale: {first_write_samples:?}");

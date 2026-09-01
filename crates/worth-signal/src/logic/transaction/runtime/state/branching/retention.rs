@@ -31,7 +31,7 @@ where
     ) -> Result<SignalBranchRetentionLease, SignalBranchRetentionAcquisitionDenial> {
         let descriptor = basis.descriptor();
         self.validate_exact_retention_target(descriptor)?;
-        self.branches.acquire_retention(descriptor.clone())
+        self.branches.acquire_retention(basis)
     }
 
     /// Consume one external obligation issued by this runtime.

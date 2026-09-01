@@ -55,6 +55,10 @@ impl AdmittedSignalBranchSnapshot {
 #[derive(Debug)]
 pub enum SignalBranchSnapshotCaptureDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     CancelledNoMovement,
     UnknownBranch {
         branch_id: SignalBranchId,

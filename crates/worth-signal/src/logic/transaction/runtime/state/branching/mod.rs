@@ -45,8 +45,9 @@ pub(in crate::logic::transaction::runtime) use branches::{
     BranchManager, SignalOwnerPartitionDenial,
 };
 pub(crate) use branches::{
-    BranchState, SignalOwnerMetadataState, SignalOwnerPartition,
-    SignalOwnerSnapshotReservationDenial, SnapshotBranchState, SnapshotStatePacket,
+    BranchState, SignalOwnerMetadataCloseBatch, SignalOwnerMetadataState, SignalOwnerPartition,
+    SignalOwnerRetirementCleanup, SignalOwnerSnapshotReservationDenial, SnapshotBranchState,
+    SnapshotStatePacket,
 };
 pub use fork_contract::{
     SignalBranchForkDenial, SignalBranchForkReceipt, SignalBranchForkRequest,

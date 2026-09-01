@@ -1,17 +1,26 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
-use crate::branch::{
-    AdmittedSignalBranchSnapshot, SignalBranchRestoreDenial, SignalBranchRetirementReceipt,
-    SignalBranchSnapshotCaptureDenial,
-};
-use crate::logic::transaction::{
-    SignalOwnerMetadataState, SignalOwnerSnapshotReservationDenial, SnapshotBranchState,
-    SnapshotStatePacket,
-};
-use crate::state::{SignalBranchId, SignalSnapshotId};
+use crate::branch::{SignalBranchForkOperationDenial, SignalBranchRetirementReceipt};
+use crate::logic::transaction::SignalOwnerMetadataState;
+use crate::state::SignalBranchId;
 
 use super::lifecycle_state::SignalOwnerLifecycleIdentity;
 use super::{SignalOwnerOperationAdmission, SignalOwnerUnavailable};
+
+#[path = "owner_metadata/retirement.rs"]
+mod retirement;
+#[cfg(test)]
+pub(in crate::branch::owner_services) use retirement::SignalOwnerRetirementContractObservation;
+pub(super) use retirement::SignalOwnerRetirementMetadataReservation;
+#[path = "owner_metadata/retention_acquisition.rs"]
+mod retention_acquisition;
+#[path = "owner_metadata/retirement_planning.rs"]
+mod retirement_planning;
+pub(super) use retention_acquisition::SignalOwnerRetentionAcquisitionDenial;
+#[path = "owner_metadata/snapshot.rs"]
+mod snapshot;
+pub(crate) use snapshot::{SignalOwnerSnapshotReservation, SignalOwnerSnapshotStateBinding};
 
 /// Short-lived owner metadata; canonical live branch truth never enters this lock.
 pub(super) struct SignalOwnerMetadata<D, I, T>
@@ -22,6 +31,7 @@ where
 {
     runtime_instance_id: u64,
     lifecycle_identity: SignalOwnerLifecycleIdentity,
+    pending_snapshot_reservations: AtomicUsize,
     state: Mutex<SignalOwnerMetadataState<D, I, T>>,
 }
 
@@ -39,77 +49,41 @@ where
         Self {
             runtime_instance_id,
             lifecycle_identity,
+            pending_snapshot_reservations: AtomicUsize::new(0),
             state: Mutex::new(state),
         }
     }
 
-    pub(super) fn reserve_snapshot<'a>(
-        &'a self,
-        admission: &'a SignalOwnerOperationAdmission,
-    ) -> Result<SignalOwnerSnapshotReservation<'a, D, I, T>, SignalBranchSnapshotCaptureDenial>
-    {
-        let _hold = self
-            .authorize(admission)
-            .map_err(SignalBranchSnapshotCaptureDenial::OwnerUnavailable)?;
-        let snapshot_id = self
-            .lock()
-            .reserve_snapshot()
-            .map_err(|denial| match denial {
-                SignalOwnerSnapshotReservationDenial::CapacityExhausted {
-                    maximum_stored_snapshots,
-                } => SignalBranchSnapshotCaptureDenial::SnapshotCapacityExhausted {
-                    maximum_stored_snapshots,
-                },
-                SignalOwnerSnapshotReservationDenial::IdentityExhausted { next_snapshot_id } => {
-                    SignalBranchSnapshotCaptureDenial::SnapshotIdentityExhausted {
-                        next_snapshot_id,
-                    }
-                }
-            })?;
-        Ok(SignalOwnerSnapshotReservation {
-            metadata: self,
-            admission,
-            snapshot_id,
-            installed: false,
-        })
-    }
-
-    pub(super) fn snapshot_state(
-        &self,
-        admission: &SignalOwnerOperationAdmission,
-        admitted_snapshot: &AdmittedSignalBranchSnapshot,
-    ) -> Result<Option<SignalOwnerSnapshotStateBinding<D, I, T>>, SignalBranchRestoreDenial> {
-        let _hold = self
-            .authorize(admission)
-            .map_err(SignalBranchRestoreDenial::OwnerUnavailable)?;
-        if admitted_snapshot.owner_runtime_instance_id() != self.runtime_instance_id {
-            return Err(SignalBranchRestoreDenial::ForeignSnapshotOwner {
-                expected_runtime_instance_id: self.runtime_instance_id,
-                observed_runtime_instance_id: admitted_snapshot.owner_runtime_instance_id(),
-            });
-        }
-        let snapshot = admitted_snapshot.snapshot();
-        Ok(self
-            .lock()
-            .snapshot_state(snapshot.meta.branch_id, snapshot.meta.snapshot_id)
-            .map(|state| SignalOwnerSnapshotStateBinding {
-                runtime_instance_id: self.runtime_instance_id,
-                lifecycle_identity: self.lifecycle_identity,
-                branch_id: snapshot.meta.branch_id,
-                snapshot_id: snapshot.meta.snapshot_id,
-                state,
-            }))
-    }
-
     pub(super) fn reserve_fork_child<'a>(
         &'a self,
-        admission: &'a SignalOwnerOperationAdmission,
+        admission: &'a SignalOwnerOperationAdmission<'_>,
         parent_branch_id: SignalBranchId,
         child_branch_id: SignalBranchId,
-    ) -> Result<SignalOwnerForkLineageReservation<'a, D, I, T>, SignalOwnerUnavailable> {
-        let _hold = self.authorize(admission)?;
-        self.lock()
-            .record_fork_child(parent_branch_id, child_branch_id);
+    ) -> Result<SignalOwnerForkLineageReservation<'a, D, I, T>, SignalBranchForkOperationDenial>
+    {
+        admission
+            .authorize(self.runtime_instance_id, self.lifecycle_identity)
+            .map_err(|_| {
+                SignalBranchForkOperationDenial::OwnerUnavailable(SignalOwnerUnavailable)
+            })?;
+        let _hold = admission.hold_owner_metadata().map_err(|denial| match denial {
+            super::lifecycle_state::SignalOwnerMetadataHoldDenial::BranchCellOrMetadataAlreadyHeld => {
+                SignalBranchForkOperationDenial::OwnerCellMisuse {
+                    branch_id: parent_branch_id,
+                }
+            }
+            super::lifecycle_state::SignalOwnerMetadataHoldDenial::ExecutingThreadReentry => {
+                SignalBranchForkOperationDenial::OwnerReentry
+            }
+        })?;
+        let mut state = self.lock();
+        if !state.fork_parent_accepts_child(parent_branch_id) {
+            return Err(SignalBranchForkOperationDenial::RetirementInProgress {
+                branch_id: parent_branch_id,
+            });
+        }
+        state.record_fork_child(parent_branch_id, child_branch_id);
+        drop(state);
         Ok(SignalOwnerForkLineageReservation {
             metadata: self,
             admission,
@@ -121,43 +95,40 @@ where
 
     pub(super) fn branch_children(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
-    ) -> Result<Vec<SignalBranchId>, SignalOwnerUnavailable> {
+    ) -> Result<Vec<SignalBranchId>, SignalOwnerMetadataAuthorizationDenial> {
         let _hold = self.authorize(admission)?;
         Ok(self.lock().branch_children(branch_id))
     }
 
     pub(super) fn is_merge_participant(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
-    ) -> Result<bool, SignalOwnerUnavailable> {
+    ) -> Result<bool, SignalOwnerMetadataAuthorizationDenial> {
         let _hold = self.authorize(admission)?;
         Ok(self.lock().is_merge_participant(branch_id))
     }
 
-    pub(super) fn complete_retirement(
-        &self,
-        admission: &SignalOwnerOperationAdmission,
-        branch_id: SignalBranchId,
-        parent_branch_id: Option<SignalBranchId>,
-        receipt: SignalBranchRetirementReceipt,
-    ) -> Result<u32, SignalOwnerUnavailable> {
-        let _hold = self.authorize(admission)?;
-        let mut state = self.lock();
-        let reclaimed = state.remove_retired_branch(branch_id, parent_branch_id);
-        state.retain_retirement_receipt(receipt);
-        Ok(reclaimed)
-    }
-
     pub(super) fn retirement_receipt(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
-    ) -> Result<Option<SignalBranchRetirementReceipt>, SignalOwnerUnavailable> {
+    ) -> Result<Option<SignalBranchRetirementReceipt>, SignalOwnerMetadataAuthorizationDenial> {
         let _hold = self.authorize(admission)?;
         Ok(self.lock().branch_retirement_receipt(branch_id))
+    }
+
+    pub(super) fn take_close_batch(
+        &self,
+        maximum_batch_size: usize,
+    ) -> crate::logic::transaction::SignalOwnerMetadataCloseBatch<D, I, T> {
+        debug_assert_eq!(
+            self.pending_snapshot_reservations.load(Ordering::Acquire),
+            0
+        );
+        self.lock().take_close_batch(maximum_batch_size)
     }
 
     fn lock(&self) -> MutexGuard<'_, SignalOwnerMetadataState<D, I, T>> {
@@ -169,121 +140,30 @@ where
 
     fn authorize<'a>(
         &self,
-        admission: &'a SignalOwnerOperationAdmission,
-    ) -> Result<super::lifecycle_state::SignalOwnerMetadataHold<'a>, SignalOwnerUnavailable> {
+        admission: &'a SignalOwnerOperationAdmission<'_>,
+    ) -> Result<
+        super::lifecycle_state::SignalOwnerMetadataHold<'a>,
+        SignalOwnerMetadataAuthorizationDenial,
+    > {
         admission
             .authorize(self.runtime_instance_id, self.lifecycle_identity)
-            .map_err(|_| SignalOwnerUnavailable)?;
-        admission
-            .hold_owner_metadata()
-            .map_err(|_| SignalOwnerUnavailable)
+            .map_err(|_| SignalOwnerMetadataAuthorizationDenial::OwnerUnavailable)?;
+        admission.hold_owner_metadata().map_err(|denial| match denial {
+            super::lifecycle_state::SignalOwnerMetadataHoldDenial::BranchCellOrMetadataAlreadyHeld => {
+                SignalOwnerMetadataAuthorizationDenial::OwnerCellMisuse
+            }
+            super::lifecycle_state::SignalOwnerMetadataHoldDenial::ExecutingThreadReentry => {
+                SignalOwnerMetadataAuthorizationDenial::OwnerReentry
+            }
+        })
     }
 }
 
-pub(crate) struct SignalOwnerSnapshotStateBinding<D, I, T>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    runtime_instance_id: u64,
-    lifecycle_identity: SignalOwnerLifecycleIdentity,
-    branch_id: SignalBranchId,
-    snapshot_id: SignalSnapshotId,
-    state: SnapshotBranchState<D, I, T>,
-}
-
-impl<D, I, T> SignalOwnerSnapshotStateBinding<D, I, T>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    pub(in crate::branch) fn into_state_for(
-        self,
-        runtime_instance_id: u64,
-        lifecycle_identity: SignalOwnerLifecycleIdentity,
-        admitted_snapshot: &AdmittedSignalBranchSnapshot,
-    ) -> Result<SnapshotBranchState<D, I, T>, SignalBranchRestoreDenial> {
-        if self.runtime_instance_id != runtime_instance_id
-            || self.lifecycle_identity != lifecycle_identity
-        {
-            return Err(SignalBranchRestoreDenial::OwnerUnavailable(
-                SignalOwnerUnavailable,
-            ));
-        }
-        let snapshot = admitted_snapshot.snapshot();
-        if admitted_snapshot.owner_runtime_instance_id() != runtime_instance_id {
-            return Err(SignalBranchRestoreDenial::ForeignSnapshotOwner {
-                expected_runtime_instance_id: runtime_instance_id,
-                observed_runtime_instance_id: admitted_snapshot.owner_runtime_instance_id(),
-            });
-        }
-        if self.branch_id != snapshot.meta.branch_id
-            || self.snapshot_id != snapshot.meta.snapshot_id
-        {
-            return Err(SignalBranchRestoreDenial::UnavailableSnapshot {
-                branch_id: snapshot.meta.branch_id,
-                snapshot_id: snapshot.meta.snapshot_id,
-            });
-        }
-        Ok(self.state)
-    }
-}
-
-pub(crate) struct SignalOwnerSnapshotReservation<'a, D, I, T>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    metadata: &'a SignalOwnerMetadata<D, I, T>,
-    admission: &'a SignalOwnerOperationAdmission,
-    snapshot_id: SignalSnapshotId,
-    installed: bool,
-}
-
-impl<D, I, T> SignalOwnerSnapshotReservation<'_, D, I, T>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    pub(super) fn admission(&self) -> &SignalOwnerOperationAdmission {
-        self.admission
-    }
-
-    pub(super) const fn snapshot_id(&self) -> SignalSnapshotId {
-        self.snapshot_id
-    }
-
-    pub(crate) fn install(mut self, packet: SnapshotStatePacket<D, I, T>) {
-        debug_assert!(
-            self.admission.permits_owner_lock_acquisition(),
-            "snapshot installation must run after target-cell release"
-        );
-        self.metadata
-            .lock()
-            .install_reserved_snapshot(self.snapshot_id, packet);
-        self.installed = true;
-    }
-}
-
-impl<D, I, T> Drop for SignalOwnerSnapshotReservation<'_, D, I, T>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    fn drop(&mut self) {
-        if !self.installed {
-            debug_assert!(
-                self.admission.permits_owner_lock_acquisition(),
-                "snapshot reservation cleanup must run after target-cell release"
-            );
-            self.metadata.lock().release_snapshot_capacity();
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SignalOwnerMetadataAuthorizationDenial {
+    OwnerUnavailable,
+    OwnerCellMisuse,
+    OwnerReentry,
 }
 
 pub(super) struct SignalOwnerForkLineageReservation<'a, D, I, T>
@@ -293,7 +173,7 @@ where
     T: Copy + Ord,
 {
     metadata: &'a SignalOwnerMetadata<D, I, T>,
-    admission: &'a SignalOwnerOperationAdmission,
+    admission: &'a SignalOwnerOperationAdmission<'a>,
     parent_branch_id: SignalBranchId,
     child_branch_id: SignalBranchId,
     committed: bool,

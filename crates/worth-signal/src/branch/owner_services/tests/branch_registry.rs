@@ -7,9 +7,8 @@ use std::thread;
 use crate::state::SignalBranchId;
 
 use super::super::{
-    SignalBranchCellAdmissionDenial, SignalBranchExecutionCell, SignalBranchRegistry,
-    SignalBranchRegistryDenial, SignalBranchRegistryPoisonRecovery, SignalOwnerLifecycleState,
-    SignalOwnerServiceCounters,
+    SignalBranchCellAdmissionDenial, SignalBranchRegistry, SignalBranchRegistryDenial,
+    SignalBranchRegistryPoisonRecovery, SignalOwnerLifecycleState, SignalOwnerServiceCounters,
 };
 use super::progress_bound::{wait_until_progress, worker_park, PROGRESS_BOUND};
 use super::with_movement_permit;
@@ -363,10 +362,12 @@ fn prepared_fork_cell_remains_bound_to_its_exact_reservation() {
 
     let first_cell = first
         .bind_prepared_fork_destination(first_prepared)
-        .install();
+        .install()
+        .expect("first prepared cell installs");
     let second_cell = second
         .bind_prepared_fork_destination(second_prepared)
-        .install();
+        .install()
+        .expect("second prepared cell installs");
     assert!(Arc::ptr_eq(
         &registry
             .lookup(&admission, first_branch)
@@ -381,15 +382,4 @@ fn prepared_fork_cell_remains_bound_to_its_exact_reservation() {
     ));
     assert_eq!(first_cell.with_state(&admission, |state, _| *state), Ok(5));
     assert_eq!(second_cell.with_state(&admission, |state, _| *state), Ok(8));
-}
-
-#[test]
-fn signal_kernel_owners_are_send_and_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-
-    assert_send_sync::<SignalOwnerServiceCounters>();
-    assert_send_sync::<SignalOwnerLifecycleState>();
-    assert_send_sync::<super::super::SignalOwnerOperationAdmission>();
-    assert_send_sync::<SignalBranchRegistry<u64>>();
-    assert_send_sync::<SignalBranchExecutionCell<u64>>();
 }

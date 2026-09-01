@@ -45,7 +45,7 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
         changed_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("the changed basis retains its branch"),
     );
     let capture_a = cell
@@ -53,31 +53,32 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
             &changed_basis,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &cell)
                 .expect("snapshot A reserves"),
             &cancellation.token(),
         )
         .expect("snapshot A captures the berth dependency");
     assert_eq!(
         capture_a
-            .snapshot
+            .snapshot()
             .diagnostic_graph
             .dependency_sources_of(dispatch),
         Ok(vec![berth])
     );
-    let snapshot_a_id = capture_a.snapshot.meta.snapshot_id;
+    let snapshot_a_id = capture_a.snapshot().meta.snapshot_id;
+    let (capture_a_snapshot, capture_a_observation) = capture_a.into_parts();
     let basis_a = admit_runtime_signal_branch_observation(
-        capture_a.observation,
+        capture_a_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("snapshot A basis retains its branch"),
     );
     let admitted_a = AdmittedSignalBranchSnapshot::owner_issued(
         owner.runtime_instance_id(),
-        capture_a.snapshot,
+        capture_a_snapshot,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("snapshot A authority retains its branch"),
     );
 
@@ -98,7 +99,7 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
         reverted_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("the reverted basis retains its branch"),
     );
     let capture_b = cell
@@ -106,31 +107,32 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
             &reverted_basis,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &cell)
                 .expect("snapshot B reserves"),
             &cancellation.token(),
         )
         .expect("snapshot B captures the weather dependency");
     assert_eq!(
         capture_b
-            .snapshot
+            .snapshot()
             .diagnostic_graph
             .dependency_sources_of(dispatch),
         Ok(vec![weather])
     );
-    let snapshot_b_id = capture_b.snapshot.meta.snapshot_id;
+    let (capture_b_snapshot, capture_b_observation) = capture_b.into_parts();
+    let snapshot_b_id = capture_b_snapshot.meta.snapshot_id;
     let basis_b = admit_runtime_signal_branch_observation(
-        capture_b.observation,
+        capture_b_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("snapshot B basis retains its branch"),
     );
     let admitted_b = AdmittedSignalBranchSnapshot::owner_issued(
         owner.runtime_instance_id(),
-        capture_b.snapshot,
+        capture_b_snapshot,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("snapshot B authority retains its branch"),
     );
 
@@ -149,10 +151,10 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
         )
         .expect("snapshot A restores after snapshot B");
     let restored_a_basis = admit_runtime_signal_branch_observation(
-        restored_a.observation,
+        restored_a.into_observation(),
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("the restored A basis retains its branch"),
     );
     let changed_again = cell
@@ -171,7 +173,7 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
         changed_again_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("the third basis retains its branch"),
     );
     let capture_c = cell
@@ -179,15 +181,15 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
             &changed_again_basis,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &cell)
                 .expect("snapshot C reserves after restore"),
             &cancellation.token(),
         )
         .expect("snapshot C captures restored A contents");
-    let snapshot_c_id = capture_c.snapshot.meta.snapshot_id;
+    let snapshot_c_id = capture_c.snapshot().meta.snapshot_id;
     assert_eq!(
         capture_c
-            .snapshot
+            .snapshot()
             .diagnostic_graph
             .dependency_sources_of(dispatch),
         Ok(vec![depot])
@@ -195,11 +197,12 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
     assert_ne!(snapshot_c_id, snapshot_a_id);
     assert_ne!(snapshot_c_id, snapshot_b_id);
 
+    let (_, capture_c_observation) = capture_c.into_parts();
     let basis_c = admit_runtime_signal_branch_observation(
-        capture_c.observation,
+        capture_c_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("snapshot C basis retains its branch"),
     );
     let state_b = owner
@@ -240,7 +243,7 @@ fn capture_restore_capture_preserves_old_contents_and_issues_a_fresh_key() {
         current,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("the current B basis retains its branch"),
     );
     cell.restore_exact(

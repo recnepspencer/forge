@@ -311,7 +311,7 @@ fn kernel(
 
 fn install(
     registry: &SignalBranchRegistry<u64>,
-    admission: &super::super::SignalOwnerOperationAdmission,
+    admission: &super::super::SignalOwnerOperationAdmission<'_>,
     branch_id: SignalBranchId,
     state: u64,
 ) -> Arc<SignalBranchExecutionCell<u64>> {
@@ -355,7 +355,7 @@ fn admitted_cell_work(
 
 fn read(
     cell: &SignalBranchExecutionCell<u64>,
-    admission: &super::super::SignalOwnerOperationAdmission,
+    admission: &super::super::SignalOwnerOperationAdmission<'_>,
 ) -> u64 {
     cell.with_state(admission, |state, _| *state)
         .expect("cell observation completes")

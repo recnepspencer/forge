@@ -1,0 +1,318 @@
+use crate::branch::{
+    admit_runtime_signal_branch_observation, AdmittedSignalBranchBasis,
+    AdmittedSignalBranchSnapshot, SignalBranchAdvanceDenial, SignalBranchForkOperationDenial,
+    SignalBranchRestoreDenial, SignalBranchSnapshotCaptureDenial,
+    SignalBranchSnapshotCaptureOutcome, ValidatedSignalBranchName,
+};
+use crate::data::error::SignalError;
+use crate::logic::transaction::{SignalTransaction, TransactionResult};
+
+use super::{
+    SignalAdvanceOutputReservation, SignalForkOutputReservation, SignalRestoreOutputReservation,
+    SignalSnapshotOutputReservation,
+};
+use crate::branch::owner_services::branch_execution_cell::advance::SignalBranchAdvanceCellOutcome;
+use crate::branch::owner_services::branch_execution_cell::restoration::SignalBranchRestoreCellOutcome;
+use crate::branch::owner_services::branch_execution_cell::snapshot::SignalBranchSnapshotCellOutcome;
+use crate::branch::owner_services::branch_execution_cell::SignalBranchForkSourceCustody;
+use crate::branch::owner_services::operation_control::SignalOwnerOperationBoundary;
+use crate::branch::owner_services::owner::fork_reservation::SignalInstalledOwnerFork;
+use crate::branch::owner_services::{SignalBranchCellState, SignalOwnerCancellationToken};
+use crate::state::SignalBranchHandle;
+
+pub(in crate::branch::owner_services) struct SignalReadyAdvanceOutput<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    reservation: SignalAdvanceOutputReservation<'a, D, I, T>,
+    outcome: SignalBranchAdvanceCellOutcome,
+}
+
+pub(in crate::branch::owner_services) struct SignalReadySnapshotOutput<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    reservation: SignalSnapshotOutputReservation<'a, D, I, T>,
+    outcome: SignalBranchSnapshotCellOutcome,
+}
+
+pub(in crate::branch::owner_services) struct SignalReadyRestoreOutput<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    reservation: SignalRestoreOutputReservation<'a, D, I, T>,
+    outcome: SignalBranchRestoreCellOutcome,
+}
+
+pub(in crate::branch::owner_services) struct SignalReadyForkOutput<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    reservation: SignalForkOutputReservation<'a, D, I, T>,
+    installed: SignalInstalledOwnerFork<'a, D, I, T>,
+    source_custody: SignalBranchForkSourceCustody<'a, 'a, SignalBranchCellState<D, I, T>>,
+}
+
+impl<'a, D, I, T> SignalAdvanceOutputReservation<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn advance<E, Ctx, F>(
+        self,
+        expected: &AdmittedSignalBranchBasis,
+        runtime_ctx: &mut Ctx,
+        cancellation: &SignalOwnerCancellationToken,
+        apply: F,
+    ) -> Result<SignalReadyAdvanceOutput<'a, D, I, T>, SignalBranchAdvanceDenial>
+    where
+        F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>,
+    {
+        let outcome =
+            self.cell
+                .advance_exact(self.admission, expected, runtime_ctx, cancellation, apply)?;
+        Ok(SignalReadyAdvanceOutput {
+            reservation: self,
+            outcome,
+        })
+    }
+}
+
+impl<D, I, T> SignalReadyAdvanceOutput<'_, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn into_parts(
+        self,
+    ) -> (AdmittedSignalBranchBasis, TransactionResult) {
+        self.reservation
+            .admission
+            .reach_operation_boundary(SignalOwnerOperationBoundary::OutcomeConstruction);
+        let (branch_id, observation, transaction) = self.outcome.into_output_parts();
+        debug_assert_eq!(branch_id, self.reservation.branch_id);
+        let mut retention = self.reservation.retention;
+        let basis =
+            admit_runtime_signal_branch_observation(observation, branch_id, retention.take_one());
+        (basis, transaction)
+    }
+}
+
+impl<'a, D, I, T> SignalSnapshotOutputReservation<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn capture(
+        self,
+        expected: &AdmittedSignalBranchBasis,
+        cancellation: &SignalOwnerCancellationToken,
+    ) -> Result<SignalReadySnapshotOutput<'a, D, I, T>, SignalBranchSnapshotCaptureDenial> {
+        let snapshot = self
+            .owner
+            .metadata
+            .reserve_snapshot(self.admission, &self.cell)?;
+        let outcome = self
+            .cell
+            .capture_snapshot_exact(expected, snapshot, cancellation)?;
+        Ok(SignalReadySnapshotOutput {
+            reservation: self,
+            outcome,
+        })
+    }
+}
+
+impl<D, I, T> SignalReadySnapshotOutput<'_, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn into_outcome(
+        self,
+    ) -> SignalBranchSnapshotCaptureOutcome {
+        self.reservation
+            .admission
+            .reach_operation_boundary(SignalOwnerOperationBoundary::OutcomeConstruction);
+        let (branch_id, snapshot, observation) = self.outcome.into_output_parts();
+        debug_assert_eq!(branch_id, self.reservation.branch_id);
+        debug_assert_eq!(snapshot.meta.branch_id, branch_id);
+        let mut retention = self.reservation.retention;
+        let basis =
+            admit_runtime_signal_branch_observation(observation, branch_id, retention.take_one());
+        let snapshot = AdmittedSignalBranchSnapshot::owner_issued(
+            self.reservation.owner.runtime_instance_id(),
+            snapshot,
+            retention.take_one(),
+        );
+        SignalBranchSnapshotCaptureOutcome::owner_issued(snapshot, basis)
+    }
+}
+
+impl<'a, D, I, T> SignalRestoreOutputReservation<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn restore(
+        self,
+        expected: &AdmittedSignalBranchBasis,
+        snapshot: &AdmittedSignalBranchSnapshot,
+        cancellation: &SignalOwnerCancellationToken,
+    ) -> Result<SignalReadyRestoreOutput<'a, D, I, T>, SignalBranchRestoreDenial> {
+        self.restore_with_observers(expected, snapshot, cancellation, || {}, || {})
+    }
+
+    #[cfg(test)]
+    pub(in crate::branch::owner_services) fn restore_with_cancellation_observers(
+        self,
+        expected: &AdmittedSignalBranchBasis,
+        snapshot: &AdmittedSignalBranchSnapshot,
+        cancellation: &SignalOwnerCancellationToken,
+        before_movement: impl FnOnce(),
+        after_movement: impl FnOnce(),
+    ) -> Result<SignalReadyRestoreOutput<'a, D, I, T>, SignalBranchRestoreDenial> {
+        self.restore_with_observers(
+            expected,
+            snapshot,
+            cancellation,
+            before_movement,
+            after_movement,
+        )
+    }
+
+    fn restore_with_observers(
+        self,
+        expected: &AdmittedSignalBranchBasis,
+        snapshot: &AdmittedSignalBranchSnapshot,
+        cancellation: &SignalOwnerCancellationToken,
+        before_movement: impl FnOnce(),
+        after_movement: impl FnOnce(),
+    ) -> Result<SignalReadyRestoreOutput<'a, D, I, T>, SignalBranchRestoreDenial> {
+        let snapshot_state = self
+            .owner
+            .metadata
+            .snapshot_state(self.admission, snapshot)?
+            .ok_or_else(|| SignalBranchRestoreDenial::UnavailableSnapshot {
+                branch_id: snapshot.snapshot().meta.branch_id,
+                snapshot_id: snapshot.snapshot().meta.snapshot_id,
+            })?;
+        let outcome = self.cell.restore_exact_with_observers(
+            self.admission,
+            expected,
+            snapshot,
+            snapshot_state,
+            cancellation,
+            before_movement,
+            after_movement,
+        )?;
+        Ok(SignalReadyRestoreOutput {
+            reservation: self,
+            outcome,
+        })
+    }
+}
+
+impl<D, I, T> SignalReadyRestoreOutput<'_, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn into_basis(self) -> AdmittedSignalBranchBasis {
+        self.reservation
+            .admission
+            .reach_operation_boundary(SignalOwnerOperationBoundary::OutcomeConstruction);
+        let (branch_id, observation) = self.outcome.into_output_parts();
+        debug_assert_eq!(branch_id, self.reservation.branch_id);
+        let mut retention = self.reservation.retention;
+        admit_runtime_signal_branch_observation(observation, branch_id, retention.take_one())
+    }
+}
+
+impl<'a, D, I, T> SignalForkOutputReservation<'a, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn fork(
+        mut self,
+        source: &AdmittedSignalBranchBasis,
+        requested_identity: ValidatedSignalBranchName,
+        cancellation: &SignalOwnerCancellationToken,
+    ) -> Result<SignalReadyForkOutput<'a, D, I, T>, SignalBranchForkOperationDenial> {
+        let source_custody = self
+            .cell
+            .acquire_fork_source_custody(self.admission)
+            .map_err(|denial| {
+                crate::branch::owner_services::branch_execution_cell::fork::map_fork_cell_denial(
+                    denial,
+                    self.source_branch_id,
+                )
+            })?;
+        let destination =
+            self.owner
+                .reserve_fork_destination(self.admission, source, requested_identity)?;
+        self.retention.rebind_all(destination.branch().id);
+        let installed = destination.install(&source_custody, source, cancellation)?;
+        Ok(SignalReadyForkOutput {
+            reservation: self,
+            installed,
+            source_custody,
+        })
+    }
+}
+
+impl<D, I, T> SignalReadyForkOutput<'_, D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::branch::owner_services) fn installed(
+        &self,
+    ) -> &SignalInstalledOwnerFork<'_, D, I, T> {
+        &self.installed
+    }
+
+    pub(in crate::branch::owner_services) fn into_destination_parts(
+        self,
+    ) -> (SignalBranchHandle, AdmittedSignalBranchBasis) {
+        let SignalReadyForkOutput {
+            reservation,
+            installed,
+            source_custody,
+        } = self;
+        reservation
+            .admission
+            .reach_operation_boundary(SignalOwnerOperationBoundary::OutcomeConstruction);
+        let (handle, observation, installation, lineage) = installed.into_handoff_parts();
+        let destination_branch_id = handle.id;
+        debug_assert_ne!(reservation.source_branch_id, destination_branch_id);
+        let mut retention = reservation.retention;
+        let basis = admit_runtime_signal_branch_observation(
+            observation,
+            destination_branch_id,
+            retention.take_one(),
+        );
+        source_custody
+            .cell()
+            .commit_fork_source_boundary(&source_custody);
+        lineage.commit();
+        installation.commit();
+        (handle, basis)
+    }
+}

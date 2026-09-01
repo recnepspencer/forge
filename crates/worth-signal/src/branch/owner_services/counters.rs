@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct SignalOwnerServiceCostSnapshot {
     owner_upgrade_attempts: u64,
+    admission_records_scanned: u64,
     branch_registry_lookups: u64,
     branch_registry_reservations: u64,
     branch_registry_entries_scanned: u64,
@@ -26,6 +27,10 @@ pub struct SignalOwnerServiceCostSnapshot {
 impl SignalOwnerServiceCostSnapshot {
     pub const fn owner_upgrade_attempts(&self) -> u64 {
         self.owner_upgrade_attempts
+    }
+
+    pub const fn admission_records_scanned(&self) -> u64 {
+        self.admission_records_scanned
     }
 
     pub const fn branch_registry_lookups(&self) -> u64 {
@@ -88,6 +93,7 @@ impl SignalOwnerServiceCostSnapshot {
 #[derive(Debug, Default)]
 pub(crate) struct SignalOwnerServiceCounters {
     owner_upgrade_attempts: AtomicU64,
+    admission_records_scanned: AtomicU64,
     branch_registry_lookups: AtomicU64,
     branch_registry_reservations: AtomicU64,
     branch_registry_entries_scanned: AtomicU64,
@@ -108,6 +114,7 @@ impl SignalOwnerServiceCounters {
     pub(crate) fn snapshot(&self) -> SignalOwnerServiceCostSnapshot {
         SignalOwnerServiceCostSnapshot {
             owner_upgrade_attempts: self.owner_upgrade_attempts.load(Ordering::SeqCst),
+            admission_records_scanned: self.admission_records_scanned.load(Ordering::SeqCst),
             branch_registry_lookups: self.branch_registry_lookups.load(Ordering::SeqCst),
             branch_registry_reservations: self.branch_registry_reservations.load(Ordering::SeqCst),
             branch_registry_entries_scanned: self
@@ -135,6 +142,11 @@ impl SignalOwnerServiceCounters {
 
     pub(crate) fn record_owner_upgrade_attempt(&self) {
         Self::increment(&self.owner_upgrade_attempts);
+    }
+
+    pub(crate) fn record_admission_records_scanned(&self, scanned: usize) {
+        self.admission_records_scanned
+            .fetch_add(scanned as u64, Ordering::SeqCst);
     }
 
     pub(crate) fn record_branch_registry_lookup(&self) {
@@ -207,6 +219,7 @@ mod tests {
     fn snapshot_accessors_preserve_every_exact_structural_count() {
         let snapshot = SignalOwnerServiceCostSnapshot {
             owner_upgrade_attempts: 1,
+            admission_records_scanned: 16,
             branch_registry_lookups: 2,
             branch_registry_reservations: 3,
             branch_registry_entries_scanned: 4,
@@ -224,6 +237,7 @@ mod tests {
         };
 
         assert_eq!(snapshot.owner_upgrade_attempts(), 1);
+        assert_eq!(snapshot.admission_records_scanned(), 16);
         assert_eq!(snapshot.branch_registry_lookups(), 2);
         assert_eq!(snapshot.branch_registry_reservations(), 3);
         assert_eq!(snapshot.branch_registry_entries_scanned(), 4);

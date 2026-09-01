@@ -12,6 +12,12 @@ use crate::data::tier_policy_table::TierPolicyTable;
 
 use super::super::key_registry::{RuntimeKeyRegistry, RuntimeStringId};
 
+#[cfg(test)]
+#[path = "config/replacement_test_observation.rs"]
+mod replacement_test_observation;
+#[cfg(test)]
+pub(crate) use replacement_test_observation::SignalRuntimeConfigReplacementObservation;
+
 #[derive(Debug, Clone)]
 pub struct SignalRuntimeConfig<T: Copy + Ord> {
     node_meta: NodeMetaStore<T>,

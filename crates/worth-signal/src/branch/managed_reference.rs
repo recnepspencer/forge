@@ -52,6 +52,9 @@ pub struct ManagedSignalBranchReference {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ManagedSignalBranchReferenceAdmissionDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted { maximum_in_flight_operations: usize },
+    OwnerReentry,
+    OwnerCellMisuse,
     ForeignOwner,
     BranchLifecycleEnded,
     BranchRetirementInProgress,

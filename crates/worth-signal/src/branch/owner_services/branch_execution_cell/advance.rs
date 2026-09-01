@@ -9,8 +9,10 @@ use super::super::{
     SignalOwnerUnavailable,
 };
 use super::{SignalBranchCellAdmissionDenial, SignalBranchCellWork, SignalBranchExecutionCell};
+use crate::branch::owner_services::operation_control::SignalOwnerOperationBoundary;
 
 pub(crate) struct SignalBranchAdvanceCellOutcome {
+    branch_id: crate::state::SignalBranchId,
     observation: SignalBranchObservation,
     transaction: TransactionResult,
 }
@@ -18,6 +20,16 @@ pub(crate) struct SignalBranchAdvanceCellOutcome {
 impl SignalBranchAdvanceCellOutcome {
     pub(crate) fn into_parts(self) -> (SignalBranchObservation, TransactionResult) {
         (self.observation, self.transaction)
+    }
+
+    pub(in crate::branch::owner_services) fn into_output_parts(
+        self,
+    ) -> (
+        crate::state::SignalBranchId,
+        SignalBranchObservation,
+        TransactionResult,
+    ) {
+        (self.branch_id, self.observation, self.transaction)
     }
 }
 
@@ -32,7 +44,7 @@ where
     /// transaction callback can mutate branch truth.
     pub(crate) fn advance_exact<E, Ctx, F>(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         expected: &AdmittedSignalBranchBasis,
         runtime_ctx: &mut Ctx,
         cancellation: &SignalOwnerCancellationToken,
@@ -47,7 +59,7 @@ where
             .preflight_cell_wait()
             .map_err(|_| SignalBranchAdvanceDenial::CancelledNoMovement)?;
         let _cell_hold = admission
-            .hold_branch_cell(self.incarnation)
+            .hold_branch_cell()
             .map_err(SignalBranchCellAdmissionDenial::from)
             .map_err(|denial| map_advance_cell_denial(denial, self.branch_id))?;
         self.counters.record_target_cell_contact();
@@ -59,6 +71,7 @@ where
         self.require_live_posture()
             .map_err(|denial| map_advance_cell_denial(denial, self.branch_id))?;
 
+        admission.reach_operation_boundary(SignalOwnerOperationBoundary::ExactBasisPreflight);
         let live = state
             .observation()
             .map_err(|error| SignalBranchAdvanceDenial::MutationFailedNoMovement { error })?;
@@ -70,6 +83,7 @@ where
         let observation = state
             .next_advance_observation()
             .map_err(|error| SignalBranchAdvanceDenial::MutationFailedNoMovement { error })?;
+        admission.reach_operation_boundary(SignalOwnerOperationBoundary::BeforeCanonicalMovement);
         let permit = cancellation
             .preflight_movement()
             .map_err(|_| SignalBranchAdvanceDenial::CancelledNoMovement)?;
@@ -81,7 +95,9 @@ where
             movements: &self.movements,
         }
         .record_canonical_movement(&permit);
+        admission.reach_operation_boundary(SignalOwnerOperationBoundary::AfterCanonicalMovement);
         Ok(SignalBranchAdvanceCellOutcome {
+            branch_id: self.branch_id,
             observation,
             transaction,
         })
@@ -99,6 +115,9 @@ pub(in crate::branch::owner_services) fn map_advance_cell_denial(
         }
         SignalBranchCellAdmissionDenial::SecondCellWhileHeld => {
             SignalBranchAdvanceDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchCellAdmissionDenial::ExecutingThreadReentry => {
+            SignalBranchAdvanceDenial::OwnerReentry
         }
         SignalBranchCellAdmissionDenial::RetirementInProgress => {
             SignalBranchAdvanceDenial::RetirementInProgress { branch_id }

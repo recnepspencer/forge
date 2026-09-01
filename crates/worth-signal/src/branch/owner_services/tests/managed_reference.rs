@@ -6,6 +6,7 @@ use crate::branch::{
     ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial,
     SignalBranchAdvanceDenial, SignalBranchBasisObservationDenial,
     SignalBranchBasisReadmissionDenial, SignalBranchRetirementReason,
+    SignalBranchSnapshotCaptureDenial,
 };
 
 use super::runtime_root::runtime_with_two_branches;
@@ -274,4 +275,45 @@ fn transaction_panic_quarantines_managed_readmission_without_unknown_branch() {
             if branch_id == branch.id
     ));
     assert!(!callback_ran);
+}
+
+#[test]
+fn carried_managed_and_snapshot_admissions_preserve_precise_reentry_denials() {
+    let (mut runtime, _, branch, basis) = runtime_with_two_branches();
+    let (port, _, _) = runtime.owner_port_slots().expect("runtime seals");
+    let owner = port.upgrade_owner().expect("owner remains live");
+    let first = owner.admit().expect("first admission is idle");
+    let prior = owner
+        .admit()
+        .expect("the prior admission exists before the first cell hold");
+    let cell = owner
+        .lookup_cell(&first, branch.id)
+        .expect("the exact branch cell is live");
+
+    cell.with_state(&first, |_, _| {
+        assert!(matches!(
+            owner.issue_managed_branch_reference_with_admission(&prior, &basis),
+            Err(ManagedSignalBranchReferenceAdmissionDenial::OwnerReentry)
+        ));
+        assert!(matches!(
+            owner.issue_managed_branch_reference_with_admission(&first, &basis),
+            Err(ManagedSignalBranchReferenceAdmissionDenial::OwnerCellMisuse)
+        ));
+        assert!(matches!(
+            owner.metadata.reserve_snapshot(&prior, &cell),
+            Err(SignalBranchSnapshotCaptureDenial::OwnerReentry)
+        ));
+        assert!(matches!(
+            owner.metadata.reserve_snapshot(&first, &cell),
+            Err(SignalBranchSnapshotCaptureDenial::OwnerCellMisuse { branch_id })
+                if branch_id == branch.id
+        ));
+    })
+    .expect("the disputed reentry runs inside a real cell hold");
+
+    let healthy = owner
+        .metadata
+        .reserve_snapshot(&prior, &cell)
+        .expect("reentry denial neither reserves nor leaks snapshot capacity");
+    drop(healthy);
 }

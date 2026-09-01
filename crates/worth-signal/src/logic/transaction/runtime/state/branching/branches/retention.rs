@@ -1,7 +1,6 @@
 use crate::branch::{
-    SignalBranchAdmissionLease, SignalBranchBasisDescriptor,
-    SignalBranchRetentionAcquisitionDenial, SignalBranchRetentionBinding,
-    SignalBranchRetentionLease, SignalBranchRetentionTerminalCounts,
+    AdmittedSignalBranchBasis, SignalBranchAdmissionLease, SignalBranchRetentionAcquisitionDenial,
+    SignalBranchRetentionBinding, SignalBranchRetentionLease, SignalBranchRetentionTerminalCounts,
 };
 use crate::state::SignalBranchId;
 
@@ -23,9 +22,9 @@ where
     /// Open one external obligation over the exact target the descriptor names.
     pub fn acquire_retention(
         &self,
-        descriptor: SignalBranchBasisDescriptor,
+        basis: &AdmittedSignalBranchBasis,
     ) -> Result<SignalBranchRetentionLease, SignalBranchRetentionAcquisitionDenial> {
-        self.retention().acquire_external(descriptor)
+        self.retention().acquire_external(basis)
     }
 
     /// A narrow, cloneable binding used to decide how a presented obligation

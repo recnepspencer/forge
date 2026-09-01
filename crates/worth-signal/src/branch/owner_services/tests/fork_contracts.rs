@@ -62,24 +62,21 @@ fn exact_fork_shares_graph_roots_and_isolates_touched_node_state() {
         .metadata
         .branch_children(&admission, source_branch.id)
         .expect("source lineage is inspectable before fork");
-    let reservation = owner
-        .reserve_fork_destination(
-            &admission,
-            &source_basis,
-            validate_signal_branch_name("phase-3-exact-fork").expect("identity validates"),
-        )
-        .expect("destination reserves before source capture");
-    let destination = reservation.branch().clone();
     let cancellation = SignalOwnerCancellationSource::new();
     let before = owner.cost_snapshot();
-    let installed = reservation
-        .install(
-            &source_cell,
-            &admission,
+    let ready = owner
+        .reserve_fork_output(&admission, &source_cell)
+        .expect("fork output retention reserves")
+        .fork(
             &source_basis,
+            validate_signal_branch_name("phase-3-exact-fork").expect("identity validates"),
             &cancellation.token(),
         )
         .expect("destination installs after source capture releases its cell");
+    let (destination, destination_basis) = ready.into_destination_parts();
+    let installed = owner
+        .lookup_cell(&admission, destination.id)
+        .expect("the handed-off destination is canonically installed");
 
     installed
         .with_state(&admission, |state, _| {
@@ -200,6 +197,7 @@ fn exact_fork_shares_graph_roots_and_isolates_touched_node_state() {
     expected_children.push(destination.id);
     expected_children.sort_unstable();
     assert_eq!(children, expected_children);
+    drop(destination_basis);
 }
 
 #[test]
@@ -231,15 +229,6 @@ fn late_fork_cancellation_drops_preconstructed_destination_without_source_moveme
         .expect("lineage inspection is owner-admitted");
     drop(setup);
 
-    let holder_admission = owner.admit().expect("holder admits");
-    let fork_admission = owner.admit().expect("fork admits independently");
-    let reservation = owner
-        .reserve_fork_destination(
-            &fork_admission,
-            &source_basis,
-            validate_signal_branch_name("phase-3-late-cancelled-fork").expect("identity validates"),
-        )
-        .expect("destination reserves");
     let cancellation = SignalOwnerCancellationSource::new();
     let before = owner.cost_snapshot();
     let waits_before = source_cell.cost_snapshot().waits();
@@ -249,6 +238,9 @@ fn late_fork_cancellation_drops_preconstructed_destination_without_source_moveme
     thread::scope(|scope| {
         let (park, mut control) = worker_park();
         scope.spawn(|| {
+            let holder_admission = owner
+                .admit()
+                .expect("holder admits in its executing thread");
             let result = source_cell.with_state(&holder_admission, |_, _| {
                 park.park("late-cancellation source-cell holder");
             });
@@ -256,12 +248,23 @@ fn late_fork_cancellation_drops_preconstructed_destination_without_source_moveme
         });
         control.wait_until_parked("late-cancellation source-cell holder");
         scope.spawn(|| {
-            let result = reservation.install(
-                &source_cell,
-                &fork_admission,
-                &source_basis,
-                &cancellation.token(),
-            );
+            let fork_admission = owner
+                .admit()
+                .expect("fork admits independently in its executing thread");
+            let reservation = owner
+                .reserve_fork_destination(
+                    &fork_admission,
+                    &source_basis,
+                    validate_signal_branch_name("phase-3-late-cancelled-fork")
+                        .expect("identity validates"),
+                )
+                .expect("destination reserves");
+            let source_custody = source_cell
+                .acquire_fork_source_custody(&fork_admission)
+                .expect("fork admission acquires exact source custody");
+            let result = reservation
+                .install(&source_custody, &source_basis, &cancellation.token())
+                .map(|_| ());
             let _ = fork_tx.send(result);
         });
         let reached_wait = wait_until_progress("fork source-cell contention", || {
@@ -288,8 +291,13 @@ fn late_fork_cancellation_drops_preconstructed_destination_without_source_moveme
     let after = owner.cost_snapshot();
     assert_eq!(
         after.fork_destination_preparations(),
-        before.fork_destination_preparations() + 1,
-        "late cancellation must cross destination preconstruction"
+        before.fork_destination_preparations(),
+        "branch-scoped source custody observes cancellation before destination state preconstruction"
+    );
+    assert_eq!(
+        after.branch_registry_reservations(),
+        before.branch_registry_reservations() + 1,
+        "the already-created exact destination reservation is still unwound"
     );
     assert_eq!(after.fork_source_captures(), before.fork_source_captures());
     assert_eq!(
@@ -327,21 +335,17 @@ fn late_fork_cancellation_drops_preconstructed_destination_without_source_moveme
     );
 
     let healthy_admission = owner.admit().expect("healthy twin admits");
-    let healthy = owner
-        .reserve_fork_destination(
-            &healthy_admission,
+    let (healthy_handle, healthy_basis) = owner
+        .reserve_fork_output(&healthy_admission, &source_cell)
+        .expect("healthy output custody reserves")
+        .fork(
             &source_basis,
             validate_signal_branch_name("phase-3-healthy-fork").expect("identity validates"),
-        )
-        .expect("healthy destination reserves");
-    healthy
-        .install(
-            &source_cell,
-            &healthy_admission,
-            &source_basis,
             &SignalOwnerCancellationSource::new().token(),
         )
-        .expect("healthy twin installs immediately after cancellation cleanup");
+        .expect("healthy twin installs immediately after cancellation cleanup")
+        .into_destination_parts();
+    assert_eq!(healthy_basis.owner_branch_id(), healthy_handle.id);
     assert_eq!(owner.live_count(), 3);
 }
 

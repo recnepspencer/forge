@@ -77,19 +77,19 @@ fn capture_fork_then_owner_capture_advances_past_the_inherited_identity() {
             &child_basis,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &cell)
                 .expect("the transferred allocator reserves"),
             &SignalOwnerCancellationSource::new().token(),
         )
         .expect("the owner captures after the pre-seal fork");
 
     assert!(
-        capture.snapshot.meta.snapshot_id > first_id,
+        capture.snapshot().meta.snapshot_id > first_id,
         "sealing must transfer the populated pre-seal high-water mark"
     );
     assert_eq!(
         capture
-            .snapshot
+            .snapshot()
             .diagnostic_graph
             .dependency_sources_of(dispatch),
         Ok(vec![weather]),
@@ -129,19 +129,19 @@ fn preseal_restore_cannot_rewind_the_allocator_transferred_to_the_owner() {
             &restored,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &cell)
                 .expect("the historical high-water reserves"),
             &SignalOwnerCancellationSource::new().token(),
         )
         .expect("the owner captures after historical restoration");
 
     assert!(
-        capture.snapshot.meta.snapshot_id > second_id,
+        capture.snapshot().meta.snapshot_id > second_id,
         "restored diagnostic history must not rewind owner-global identity"
     );
     assert_eq!(
         capture
-            .snapshot
+            .snapshot()
             .diagnostic_graph
             .dependency_sources_of(dispatch),
         Ok(vec![weather]),
@@ -194,12 +194,12 @@ fn reconstructed_populated_snapshot_hands_off_one_active_state_and_fresh_high_wa
             &reconstructed_basis,
             owner
                 .metadata
-                .reserve_snapshot(&admission)
+                .reserve_snapshot(&admission, &cell)
                 .expect("the imported high-water reserves a fresh identity"),
             &SignalOwnerCancellationSource::new().token(),
         )
         .expect("the reconstructed cell captures");
-    assert!(capture.snapshot.meta.snapshot_id > imported_id);
+    assert!(capture.snapshot().meta.snapshot_id > imported_id);
 }
 
 #[test]

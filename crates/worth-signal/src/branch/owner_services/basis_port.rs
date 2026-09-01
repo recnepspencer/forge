@@ -2,6 +2,9 @@ use std::sync::{Arc, Weak};
 
 use super::{SignalOwner, SignalOwnerUnavailable};
 
+#[cfg(test)]
+mod tests;
+
 /// Package-private Phase 3 slot for the concrete weak basis service.
 pub struct SignalBranchBasisPort<D, I, T>
 where

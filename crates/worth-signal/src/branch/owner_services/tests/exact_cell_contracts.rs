@@ -1,10 +1,9 @@
 use crate::branch::{
     admit_runtime_signal_branch_observation, AdmittedSignalBranchSnapshot,
-    SignalBranchRetirementReason, SignalBranchSnapshotCaptureDenial,
+    SignalBranchSnapshotCaptureDenial,
 };
 use crate::data::graph::SignalGraph;
 use crate::logic::transaction::SignalRuntime;
-use worth_proof::TransitionOutcome;
 
 use super::super::SignalOwnerCancellationSource;
 use super::runtime_root::runtime_with_two_branches;
@@ -29,7 +28,7 @@ fn runtime_with_snapshot_capacity(
     (runtime, branch, basis)
 }
 
-fn caught_panic_message(panic: &(dyn std::any::Any + Send)) -> Option<&str> {
+pub(super) fn caught_panic_message(panic: &(dyn std::any::Any + Send)) -> Option<&str> {
     panic
         .downcast_ref::<&str>()
         .copied()
@@ -48,33 +47,33 @@ fn exact_snapshot_and_restore_contracts_move_one_cell_and_install_metadata_betwe
     let cancellation = SignalOwnerCancellationSource::new();
     let reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("snapshot capacity reserves before cell work");
     let capture = cell
         .capture_snapshot_exact(&starting_basis, reservation, &cancellation.token())
         .expect("exact cell snapshot performs");
-    let snapshot_a_id = capture.snapshot.meta.snapshot_id;
-    assert_eq!(capture.observation.generation().get(), 1);
+    let (capture_snapshot, capture_observation) = capture.into_parts();
+    let snapshot_a_id = capture_snapshot.meta.snapshot_id;
+    assert_eq!(capture_observation.generation().get(), 1);
     assert_eq!(
-        capture
-            .observation
+        capture_observation
             .target()
             .as_basis()
             .and_then(|target| target.snapshot_id()),
         Some(snapshot_a_id.0)
     );
     let captured_basis = admit_runtime_signal_branch_observation(
-        capture.observation,
+        capture_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("captured basis retains its branch"),
     );
     let admitted_snapshot_a = AdmittedSignalBranchSnapshot::owner_issued(
         owner.runtime_instance_id(),
-        capture.snapshot,
+        capture_snapshot,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("snapshot authority retains its branch"),
     );
     let snapshot_state = owner
@@ -84,25 +83,26 @@ fn exact_snapshot_and_restore_contracts_move_one_cell_and_install_metadata_betwe
         .expect("snapshot semantic state is installed");
     let reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("second snapshot capacity reserves");
     let capture_b = cell
         .capture_snapshot_exact(&captured_basis, reservation, &cancellation.token())
         .expect("second exact snapshot performs");
-    let snapshot_b_id = capture_b.snapshot.meta.snapshot_id;
+    let (capture_b_snapshot, capture_b_observation) = capture_b.into_parts();
+    let snapshot_b_id = capture_b_snapshot.meta.snapshot_id;
     assert_ne!(snapshot_b_id, snapshot_a_id);
     let basis_b = admit_runtime_signal_branch_observation(
-        capture_b.observation,
+        capture_b_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("second captured basis retains its branch"),
     );
     let admitted_snapshot_b = AdmittedSignalBranchSnapshot::owner_issued(
         owner.runtime_instance_id(),
-        capture_b.snapshot,
+        capture_b_snapshot,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("second snapshot authority retains its branch"),
     );
     let snapshot_state_b = owner
@@ -135,10 +135,10 @@ fn exact_snapshot_and_restore_contracts_move_one_cell_and_install_metadata_betwe
             &cancellation.token(),
         )
         .expect("exact cell restore performs");
-    assert_eq!(restore.observation.generation().get(), 3);
+    let restore_observation = restore.into_observation();
+    assert_eq!(restore_observation.generation().get(), 3);
     assert_eq!(
-        restore
-            .observation
+        restore_observation
             .target()
             .as_basis()
             .and_then(|target| target.restore_snapshot_id()),
@@ -159,10 +159,10 @@ fn snapshot_reservation_restores_capacity_after_denial_drop_and_unwind() {
 
     let reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("one snapshot slot reserves");
     assert!(matches!(
-        owner.metadata.reserve_snapshot(&admission),
+        owner.metadata.reserve_snapshot(&admission, &cell),
         Err(
             SignalBranchSnapshotCaptureDenial::SnapshotCapacityExhausted {
                 maximum_stored_snapshots: 1,
@@ -175,7 +175,7 @@ fn snapshot_reservation_restores_capacity_after_denial_drop_and_unwind() {
     let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let _reservation = owner
             .metadata
-            .reserve_snapshot(&admission)
+            .reserve_snapshot(&admission, &cell)
             .expect("the dropped reservation restored capacity");
         panic!("exercise snapshot reservation unwind cleanup");
     }));
@@ -201,12 +201,12 @@ fn snapshot_reservation_restores_capacity_after_denial_drop_and_unwind() {
         advanced_observation,
         branch.id,
         owner
-            .acquire_admitted_retention(branch.id)
+            .acquire_admitted_retention(&admission, branch.id)
             .expect("the advanced basis retains its branch"),
     );
     let denied_reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("the stale capture reserves before exact comparison");
     let before_stale_capture = cell.cost_snapshot();
     assert!(matches!(
@@ -225,14 +225,14 @@ fn snapshot_reservation_restores_capacity_after_denial_drop_and_unwind() {
 
     let reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
+        .reserve_snapshot(&admission, &cell)
         .expect("stale denial restored snapshot capacity after cell release");
     let capture = cell
         .capture_snapshot_exact(&advanced_basis, reservation, &cancellation.token())
         .expect("the reserved snapshot installs through the real owner cell");
-    assert_eq!(capture.observation.generation().get(), 2);
+    assert_eq!(capture.observation().generation().get(), 2);
     assert!(matches!(
-        owner.metadata.reserve_snapshot(&admission),
+        owner.metadata.reserve_snapshot(&admission, &cell),
         Err(
             SignalBranchSnapshotCaptureDenial::SnapshotCapacityExhausted {
                 maximum_stored_snapshots: 1,
@@ -243,7 +243,7 @@ fn snapshot_reservation_restores_capacity_after_denial_drop_and_unwind() {
 
 #[test]
 fn snapshot_reservation_rejects_a_different_owner_before_target_contact() {
-    let (mut runtime_a, _, _) = runtime_with_snapshot_capacity(1);
+    let (mut runtime_a, branch_a, _) = runtime_with_snapshot_capacity(1);
     let (mut runtime_b, branch_b, basis_b) = runtime_with_snapshot_capacity(1);
     let (_, mutation_a, _) = runtime_a.owner_port_slots().expect("owner A seals");
     let (_, mutation_b, _) = runtime_b.owner_port_slots().expect("owner B seals");
@@ -251,12 +251,15 @@ fn snapshot_reservation_rejects_a_different_owner_before_target_contact() {
     let owner_b = mutation_b.upgrade_owner().expect("owner B remains live");
     let admission_a = owner_a.admit().expect("owner A admits reservation");
     let admission_b = owner_b.admit().expect("owner B admits capture");
+    let cell_a = owner_a
+        .lookup_cell(&admission_a, branch_a.id)
+        .expect("owner A target cell is live");
     let cell_b = owner_b
         .lookup_cell(&admission_b, branch_b.id)
         .expect("owner B target cell is live");
     let reservation_a = owner_a
         .metadata
-        .reserve_snapshot(&admission_a)
+        .reserve_snapshot(&admission_a, &cell_a)
         .expect("owner A reserves its snapshot capacity");
     let before_b = cell_b.cost_snapshot();
     let cancellation = SignalOwnerCancellationSource::new();
@@ -268,70 +271,115 @@ fn snapshot_reservation_rejects_a_different_owner_before_target_contact() {
     assert_eq!(cell_b.cost_snapshot(), before_b);
     let reusable_a = owner_a
         .metadata
-        .reserve_snapshot(&admission_a)
+        .reserve_snapshot(&admission_a, &cell_a)
         .expect("cross-owner denial restores owner A capacity");
     drop(reusable_a);
     let reservation_b = owner_b
         .metadata
-        .reserve_snapshot(&admission_b)
+        .reserve_snapshot(&admission_b, &cell_b)
         .expect("owner B reserves after the foreign attempt");
     let healthy_b = cell_b
         .capture_snapshot_exact(&basis_b, reservation_b, &cancellation.token())
         .expect("owner B captures through its own originating admission");
-    assert_eq!(healthy_b.observation.generation().get(), 1);
+    assert_eq!(healthy_b.observation().generation().get(), 1);
 }
 
-#[cfg(debug_assertions)]
 #[test]
-fn snapshot_reservation_cleanup_guard_detects_out_of_order_cell_cleanup() {
-    let (mut runtime, branch, _) = runtime_with_snapshot_capacity(1);
+fn snapshot_reservation_rejects_a_sibling_cell_incarnation_before_contact() {
+    let (mut runtime, source, sibling, sibling_basis) = runtime_with_two_branches();
     let (_, mutation, _) = runtime.owner_port_slots().expect("runtime seals");
     let owner = mutation.upgrade_owner().expect("owner remains live");
     let admission = owner.admit().expect("snapshot operation admits");
-    let cell = owner
-        .lookup_cell(&admission, branch.id)
-        .expect("target cell is live");
+    let source_cell = owner
+        .lookup_cell(&admission, source.id)
+        .expect("source cell is live");
+    let sibling_cell = owner
+        .lookup_cell(&admission, sibling.id)
+        .expect("sibling cell is live");
     let reservation = owner
         .metadata
-        .reserve_snapshot(&admission)
-        .expect("snapshot capacity reserves before cell admission");
+        .reserve_snapshot(&admission, &source_cell)
+        .expect("source reserves exact snapshot custody");
+    assert_eq!(owner.metadata.pending_snapshot_reservation_count(), 1);
+    let sibling_before = sibling_cell.cost_snapshot();
+    let ledger_before = owner.retention_ledger_observation();
 
-    let out_of_order = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        cell.with_state(&admission, |_, _| drop(reservation))
-            .expect("the real owner cell admits before the sensitivity fault");
-    }));
-    let out_of_order = out_of_order
-        .expect_err("dropping snapshot capacity under a cell hold must trip the ordering guard");
-    assert_eq!(
-        caught_panic_message(out_of_order.as_ref()),
-        Some("snapshot reservation cleanup must run after target-cell release")
-    );
+    assert!(matches!(
+        sibling_cell.capture_snapshot_exact(
+            &sibling_basis,
+            reservation,
+            &SignalOwnerCancellationSource::new().token(),
+        ),
+        Err(SignalBranchSnapshotCaptureDenial::OwnerCellMisuse { branch_id })
+            if branch_id == sibling.id
+    ));
+    assert_eq!(sibling_cell.cost_snapshot(), sibling_before);
+    assert_eq!(owner.metadata.pending_snapshot_reservation_count(), 0);
+    assert_eq!(owner.retention_ledger_observation(), ledger_before);
+
+    let healthy = owner
+        .metadata
+        .reserve_snapshot(&admission, &sibling_cell)
+        .expect("the denied custody returns exact snapshot capacity");
+    let captured = sibling_cell
+        .capture_snapshot_exact(
+            &sibling_basis,
+            healthy,
+            &SignalOwnerCancellationSource::new().token(),
+        )
+        .expect("the sibling captures with its own cell incarnation");
+    assert_eq!(captured.snapshot().meta.branch_id, sibling.id);
+    assert_eq!(owner.metadata.pending_snapshot_reservation_count(), 0);
 }
 
 #[test]
-fn exact_retirement_contract_consumes_a_linear_plan_before_registry_removal() {
+fn snapshot_reservation_rejects_a_replaced_same_id_cell_incarnation() {
     let (mut runtime, _, branch, basis) = runtime_with_two_branches();
-    let plan = match runtime.plan_signal_branch_retirement(
-        branch.clone(),
-        basis,
-        SignalBranchRetirementReason::Rejected,
-    ) {
-        TransitionOutcome::Success(plan) => plan,
-        other => panic!("retirement plan should be issued before sealing: {other:?}"),
-    };
-    let (_, _, lifecycle) = runtime.owner_port_slots().expect("runtime seals");
-    let owner = lifecycle.upgrade_owner().expect("owner remains live");
-    let admission = owner.admit().expect("retirement admits");
-    let retirement = owner
-        .begin_retirement(&admission, branch.id)
-        .expect("registry reserves the exact target incarnation");
-    let cancellation = SignalOwnerCancellationSource::new();
-    let outcome = retirement
-        .execute_exact(plan, &cancellation.token())
-        .expect("registry admission remains valid")
-        .expect("exact cell retirement performs");
-    assert_eq!(outcome.retired_branch, branch);
-    assert_eq!(outcome.reason, SignalBranchRetirementReason::Rejected);
-    assert!(!outcome.terminal_basis_digest.is_empty());
-    assert_eq!(owner.live_count(), 1);
+    let (_, mutation, _) = runtime.owner_port_slots().expect("runtime seals");
+    let owner = mutation.upgrade_owner().expect("owner remains live");
+    let admission = owner.admit().expect("snapshot operation admits");
+    let original = owner
+        .lookup_cell(&admission, branch.id)
+        .expect("original cell is live");
+    let reservation = owner
+        .metadata
+        .reserve_snapshot(&admission, &original)
+        .expect("reservation binds the original incarnation");
+    owner
+        .replace_branch_incarnation_for_test(&admission, branch.id)
+        .expect("the canonical registry replaces the exact cell");
+    let replacement = owner
+        .lookup_cell(&admission, branch.id)
+        .expect("replacement cell is live");
+    assert_ne!(original.incarnation(), replacement.incarnation());
+    let before = replacement.cost_snapshot();
+
+    assert!(matches!(
+        replacement.capture_snapshot_exact(
+            &basis,
+            reservation,
+            &SignalOwnerCancellationSource::new().token(),
+        ),
+        Err(SignalBranchSnapshotCaptureDenial::OwnerCellMisuse { branch_id })
+            if branch_id == branch.id
+    ));
+    assert_eq!(replacement.cost_snapshot(), before);
+    assert_eq!(owner.metadata.pending_snapshot_reservation_count(), 0);
+    let healthy = owner
+        .metadata
+        .reserve_snapshot(&admission, &replacement)
+        .expect("replaced-custody denial returns capacity");
+    assert_eq!(
+        replacement
+            .capture_snapshot_exact(
+                &basis,
+                healthy,
+                &SignalOwnerCancellationSource::new().token(),
+            )
+            .expect("replacement cell captures with replacement custody")
+            .snapshot()
+            .meta
+            .branch_id,
+        branch.id
+    );
 }

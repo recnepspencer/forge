@@ -27,22 +27,20 @@ fn forked_owner_cell_transactions_restore_abort_and_isolate_commit() {
     let source_cell = owner
         .lookup_cell(&source_admission, source_branch.id)
         .expect("source cell is live");
-    let reservation = owner
-        .reserve_fork_destination(
-            &source_admission,
+    let ready = owner
+        .reserve_fork_output(&source_admission, &source_cell)
+        .expect("fork output retention reserves")
+        .fork(
             &source_basis,
             validate_signal_branch_name("transaction-fork")
                 .expect("destination identity validates"),
-        )
-        .expect("destination reserves");
-    let destination = reservation
-        .install(
-            &source_cell,
-            &source_admission,
-            &source_basis,
             &SignalOwnerCancellationSource::new().token(),
         )
         .expect("persistent destination installs");
+    let (destination_handle, destination_basis) = ready.into_destination_parts();
+    let destination = owner
+        .lookup_cell(&source_admission, destination_handle.id)
+        .expect("the handed-off destination is installed");
     let destination_admission = owner.admit().expect("destination inspection admits");
 
     let source_identity = source_cell
@@ -130,13 +128,14 @@ fn forked_owner_cell_transactions_restore_abort_and_isolate_commit() {
             );
         })
         .expect("source sibling remains isolated");
+    drop(destination_basis);
 }
 
 fn assert_destination_dependency(
     destination: &std::sync::Arc<
         super::super::SignalBranchExecutionCell<super::super::SignalBranchCellState<(), (), ()>>,
     >,
-    admission: &super::super::SignalOwnerOperationAdmission,
+    admission: &super::super::SignalOwnerOperationAdmission<'_>,
     derived: crate::data::handle::NodeId,
     expected: crate::data::handle::NodeId,
 ) {

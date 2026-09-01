@@ -11,13 +11,20 @@ use super::lifecycle_state::{
     SignalOwnerAdmissionMismatch, SignalOwnerLifecycleIdentity, SignalOwnerLifecycleState,
     SignalOwnerOperationAdmission,
 };
+use super::operation_control::SignalOwnerOperationBoundary;
 
 #[path = "branch_registry/retirement.rs"]
 mod retirement;
 pub(crate) use retirement::SignalBranchRetirement;
 #[path = "branch_registry/prepared_installation.rs"]
 mod prepared;
-pub(crate) use prepared::{SignalPreparedBranchCell, SignalPreparedBranchInstallation};
+pub(crate) use prepared::{
+    SignalInstalledBranchCell, SignalPreparedBranchCell, SignalPreparedBranchInstallation,
+};
+#[path = "branch_registry/capacity.rs"]
+mod capacity;
+#[path = "branch_registry/close_cleanup.rs"]
+mod close_cleanup;
 
 pub(super) struct SignalBranchCellConstruction(());
 
@@ -33,6 +40,7 @@ pub(crate) enum SignalBranchRegistryDenial {
     ExpiredRetirement(SignalBranchId),
     TargetCellDenied(SignalBranchCellAdmissionDenial),
     OwnerMetadataOrdering,
+    OwnerReentry,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,10 +96,14 @@ impl<S> SignalBranchRegistry<S> {
 
     pub(crate) fn lookup(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
     ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
+        admission.reach_operation_boundary(SignalOwnerOperationBoundary::BranchRegistryLookup);
+        let _metadata_hold = admission
+            .hold_owner_metadata()
+            .map_err(map_metadata_hold_denial)?;
         self.counters.record_branch_registry_lookup();
         match self.lock_state().entries.get(&branch_id) {
             Some(SignalBranchRegistryEntry::Reserved) => {
@@ -107,10 +119,14 @@ impl<S> SignalBranchRegistry<S> {
 
     pub(crate) fn reserve<'a>(
         &'a self,
-        admission: &'a SignalOwnerOperationAdmission,
+        admission: &'a SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
     ) -> Result<SignalBranchReservation<'a, S>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
+        admission.reach_operation_boundary(SignalOwnerOperationBoundary::BranchRegistryReservation);
+        let _metadata_hold = admission
+            .hold_owner_metadata()
+            .map_err(map_metadata_hold_denial)?;
         let mut state = self.lock_state();
         self.validate_available_identity(&state, branch_id)?;
         self.validate_capacity(&state)?;
@@ -132,27 +148,14 @@ impl<S> SignalBranchRegistry<S> {
         })
     }
 
-    pub(crate) fn live_count(&self) -> usize {
-        self.lock_state().live_count
-    }
-
-    pub(crate) fn reservation_count(&self) -> usize {
-        self.lock_state().reservation_count
-    }
-
-    pub(crate) fn maximum_live_branches(&self) -> usize {
-        self.maximum_live_branches
-    }
-
-    pub(crate) fn maximum_reservations(&self) -> usize {
-        self.maximum_reservations
-    }
-
     pub(crate) fn live_cells_in_identity_order(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
     ) -> Result<Vec<Arc<SignalBranchExecutionCell<S>>>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
+        let _metadata_hold = admission
+            .hold_owner_metadata()
+            .map_err(map_metadata_hold_denial)?;
         let state = self.lock_state();
         let mut cells = Vec::with_capacity(state.live_count);
         for entry in state.entries.values() {
@@ -166,10 +169,13 @@ impl<S> SignalBranchRegistry<S> {
 
     pub(crate) fn begin_retirement<'a>(
         &'a self,
-        admission: &'a SignalOwnerOperationAdmission,
+        admission: &'a SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
     ) -> Result<SignalBranchRetirement<'a, S>, SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
+        let _metadata_hold = admission
+            .hold_owner_metadata()
+            .map_err(map_metadata_hold_denial)?;
         let cell = {
             let mut state = self.lock_state();
             let entry = state
@@ -206,7 +212,7 @@ impl<S> SignalBranchRegistry<S> {
 
     fn validate_admission(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
     ) -> Result<(), SignalBranchRegistryDenial> {
         admission
             .authorize(
@@ -214,41 +220,6 @@ impl<S> SignalBranchRegistry<S> {
                 self.owner_lifecycle_identity,
             )
             .map_err(SignalBranchRegistryDenial::from)
-    }
-
-    fn validate_available_identity(
-        &self,
-        state: &SignalBranchRegistryState<S>,
-        branch_id: SignalBranchId,
-    ) -> Result<(), SignalBranchRegistryDenial> {
-        if let Some(entry) = state.entries.get(&branch_id) {
-            return match entry {
-                SignalBranchRegistryEntry::Reserved | SignalBranchRegistryEntry::Live(_) => {
-                    Err(SignalBranchRegistryDenial::DuplicateBranch(branch_id))
-                }
-                SignalBranchRegistryEntry::Retiring(_) => {
-                    Err(SignalBranchRegistryDenial::RetirementInProgress(branch_id))
-                }
-            };
-        }
-        Ok(())
-    }
-
-    fn validate_capacity(
-        &self,
-        state: &SignalBranchRegistryState<S>,
-    ) -> Result<(), SignalBranchRegistryDenial> {
-        if state.live_count + state.reservation_count >= self.maximum_live_branches {
-            return Err(SignalBranchRegistryDenial::LiveCapacityExhausted {
-                maximum_live_branches: self.maximum_live_branches,
-            });
-        }
-        if state.reservation_count >= self.maximum_reservations {
-            return Err(SignalBranchRegistryDenial::ReservationCapacityExhausted {
-                maximum_reservations: self.maximum_reservations,
-            });
-        }
-        Ok(())
     }
 
     fn lock_state(&self) -> MutexGuard<'_, SignalBranchRegistryState<S>> {
@@ -268,6 +239,19 @@ impl<S> SignalBranchRegistry<S> {
     }
 }
 
+fn map_metadata_hold_denial(
+    denial: super::lifecycle_state::SignalOwnerMetadataHoldDenial,
+) -> SignalBranchRegistryDenial {
+    match denial {
+        super::lifecycle_state::SignalOwnerMetadataHoldDenial::BranchCellOrMetadataAlreadyHeld => {
+            SignalBranchRegistryDenial::OwnerMetadataOrdering
+        }
+        super::lifecycle_state::SignalOwnerMetadataHoldDenial::ExecutingThreadReentry => {
+            SignalBranchRegistryDenial::OwnerReentry
+        }
+    }
+}
+
 impl From<SignalOwnerAdmissionMismatch> for SignalBranchRegistryDenial {
     fn from(mismatch: SignalOwnerAdmissionMismatch) -> Self {
         match mismatch {
@@ -280,13 +264,17 @@ impl From<SignalOwnerAdmissionMismatch> for SignalBranchRegistryDenial {
 #[derive(Debug)]
 pub(crate) struct SignalBranchReservation<'a, S> {
     registry: &'a SignalBranchRegistry<S>,
-    admission: &'a SignalOwnerOperationAdmission,
+    admission: &'a SignalOwnerOperationAdmission<'a>,
     branch_id: SignalBranchId,
     prepared_cell_incarnation: Option<SignalBranchCellIncarnation>,
     consumed: bool,
 }
 
 impl<'a, S> SignalBranchReservation<'a, S> {
+    pub(crate) fn admission(&self) -> &'a SignalOwnerOperationAdmission<'a> {
+        self.admission
+    }
+
     pub(crate) fn install(
         self,
         state: S,
@@ -336,7 +324,7 @@ impl<'a, S> SignalBranchReservation<'a, S> {
         state: S,
         is_fork_destination: bool,
     ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
-        Ok(self.prepare_cell(state, is_fork_destination)?.install())
+        self.prepare_cell(state, is_fork_destination)?.install()
     }
 
     fn prepare_cell(

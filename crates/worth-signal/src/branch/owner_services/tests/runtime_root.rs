@@ -25,7 +25,7 @@ pub(in crate::branch::owner_services) fn runtime_with_two_branches() -> (
     runtime_with_two_branches_from_graph(SignalGraph::new())
 }
 
-pub(super) fn runtime_with_two_branches_from_graph(
+pub(in crate::branch::owner_services) fn runtime_with_two_branches_from_graph(
     graph: SignalGraph,
 ) -> (
     TestRuntime,
@@ -269,7 +269,7 @@ fn sealing_moves_complete_membership_and_retirement_serializes_real_state() {
             ));
             assert!(matches!(
                 owner.metadata.branch_children(&admission, branch_a.id),
-                Err(super::super::SignalOwnerUnavailable)
+                Err(super::super::owner_metadata::SignalOwnerMetadataAuthorizationDenial::OwnerCellMisuse)
             ));
         })
         .expect("one admitted A-cell operation is valid");

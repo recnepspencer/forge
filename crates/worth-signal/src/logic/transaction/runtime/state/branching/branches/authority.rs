@@ -12,6 +12,10 @@ use super::super::super::merge::{BranchMergeKind, BranchMergeStrategy, BranchMut
 use super::super::super::reconstructability::{AuthorityState, DerivedState};
 use super::super::super::temporal::TemporalRuntimeState;
 
+#[cfg(test)]
+#[path = "authority/replacement_test_observation.rs"]
+mod replacement_test_observation;
+
 pub(crate) struct SignalForkedBranchState<D, I, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -215,6 +219,10 @@ where
 
     pub(in crate::logic::transaction::runtime) fn ancestry(&self) -> &BranchAncestryState {
         &self.ancestry
+    }
+
+    pub(crate) fn owner_retirement_forked_from_snapshot_id(&self) -> Option<SignalSnapshotId> {
+        self.ancestry.forked_from_snapshot_id()
     }
 
     pub(in crate::logic::transaction::runtime) fn ancestry_mut(

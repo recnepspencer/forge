@@ -35,6 +35,9 @@ mod reconstitution;
 #[cfg(test)]
 mod reconstitution_tests;
 mod reconstruction_counters;
+#[cfg(test)]
+#[path = "graph/replacement_test_observation.rs"]
+mod replacement_test_observation;
 mod scheduling_state;
 mod scratch_lease;
 mod topology_state;
@@ -56,6 +59,10 @@ pub(crate) use persistent_fork::SignalGraphPersistentIdentity;
 pub(crate) use persistent_fork::SignalGraphPersistentSharing;
 pub use reconstitution::{SignalGraphReconstitution, SignalGraphReconstitutionReport};
 pub(crate) use reconstruction_counters::ReconstructionCounters;
+#[cfg(test)]
+pub(crate) use replacement_test_observation::{
+    SignalGraphCloneLocalObservation, SignalGraphRetainedObservation,
+};
 pub(crate) use topology_state::EdgeTopology;
 pub(crate) use traversal_state::TraversalResources;
 

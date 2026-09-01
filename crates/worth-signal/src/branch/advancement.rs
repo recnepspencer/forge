@@ -62,6 +62,10 @@ pub enum SignalBranchAdvanceEngineDenial {
 #[derive(Debug)]
 pub enum SignalBranchAdvanceDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     CancelledNoMovement,
     UnknownBranch {
         branch_id: SignalBranchId,

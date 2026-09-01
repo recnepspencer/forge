@@ -9,6 +9,12 @@ use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::telemetry::RuntimeTelemetry;
 
+#[cfg(test)]
+#[path = "runtime/replacement_test_observation.rs"]
+mod replacement_test_observation;
+#[cfg(test)]
+pub(crate) use replacement_test_observation::CheckpointReplacementObservation;
+
 /// Runtime state for batched Tier-0 signal scheduling.
 #[derive(Debug, Clone)]
 pub struct CheckpointRuntime<D: Copy + Ord, I: Copy + Ord> {

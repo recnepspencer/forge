@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 
+use crate::branch::SignalBranchRetirementReceipt;
 use crate::state::SignalBranchId;
 
 use super::branch_registry::SignalBranchCellConstruction;
@@ -15,9 +16,14 @@ use super::lifecycle_state::{
 pub(crate) mod advance;
 pub(crate) mod basis;
 pub(crate) mod fork;
+#[path = "branch_execution_cell/fork_custody.rs"]
+mod fork_custody;
 pub(crate) mod restoration;
 pub(crate) mod retirement;
+pub(crate) mod retirement_planning;
 pub(crate) mod snapshot;
+
+pub(in crate::branch::owner_services) use fork_custody::SignalBranchForkSourceCustody;
 
 const CELL_LIVE: u8 = 0;
 const CELL_RETIRING: u8 = 1;
@@ -28,6 +34,7 @@ pub(crate) enum SignalBranchCellAdmissionDenial {
     ForeignOwner,
     ExpiredLifecycle,
     SecondCellWhileHeld,
+    ExecutingThreadReentry,
     RetirementInProgress,
     RetiredIncarnation,
     PoisonedIncarnation,
@@ -62,6 +69,7 @@ impl SignalBranchCellCostSnapshot {
 #[derive(Debug)]
 pub(crate) struct SignalBranchExecutionCell<S> {
     state: Mutex<S>,
+    fork_custody: Arc<fork_custody::SignalBranchForkCustodyGate>,
     owner_runtime_instance_id: u64,
     owner_lifecycle_identity: SignalOwnerLifecycleIdentity,
     branch_id: SignalBranchId,
@@ -72,6 +80,7 @@ pub(crate) struct SignalBranchExecutionCell<S> {
     waits: AtomicU64,
     movements: AtomicU64,
     recovered_poison: AtomicBool,
+    retirement_receipt: Mutex<Option<SignalBranchRetirementReceipt>>,
 }
 
 impl<S> SignalBranchExecutionCell<S> {
@@ -85,6 +94,7 @@ impl<S> SignalBranchExecutionCell<S> {
     ) -> Self {
         Self {
             state: Mutex::new(state),
+            fork_custody: Arc::new(fork_custody::SignalBranchForkCustodyGate::default()),
             owner_runtime_instance_id,
             owner_lifecycle_identity,
             branch_id,
@@ -95,6 +105,7 @@ impl<S> SignalBranchExecutionCell<S> {
             waits: AtomicU64::new(0),
             movements: AtomicU64::new(0),
             recovered_poison: AtomicBool::new(false),
+            retirement_receipt: Mutex::new(None),
         }
     }
 
@@ -113,12 +124,12 @@ impl<S> SignalBranchExecutionCell<S> {
     #[cfg(test)]
     pub(crate) fn with_state<R>(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         operation: impl FnOnce(&mut S, &SignalBranchCellWork<'_>) -> R,
     ) -> Result<R, SignalBranchCellAdmissionDenial> {
         self.validate_admission(admission)?;
         let _cell_hold = admission
-            .hold_branch_cell(self.incarnation)
+            .hold_branch_cell()
             .map_err(SignalBranchCellAdmissionDenial::from)?;
         self.counters.record_target_cell_contact();
         self.contacts.fetch_add(1, Ordering::SeqCst);
@@ -134,12 +145,12 @@ impl<S> SignalBranchExecutionCell<S> {
     #[cfg(test)]
     pub(super) fn with_retirement<R, D>(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         operation: impl FnOnce(&mut S, &SignalBranchCellWork<'_>) -> Result<R, D>,
     ) -> Result<Result<R, D>, SignalBranchCellAdmissionDenial> {
         self.validate_admission(admission)?;
         let _cell_hold = admission
-            .hold_branch_cell(self.incarnation)
+            .hold_branch_cell()
             .map_err(SignalBranchCellAdmissionDenial::from)?;
         self.counters.record_target_cell_contact();
         self.contacts.fetch_add(1, Ordering::SeqCst);
@@ -187,9 +198,22 @@ impl<S> SignalBranchExecutionCell<S> {
         }
     }
 
-    fn validate_admission(
+    pub(in crate::branch::owner_services) fn remains_live(&self) -> bool {
+        self.lifecycle_posture.load(Ordering::Acquire) == CELL_LIVE
+    }
+
+    pub(in crate::branch::owner_services) fn take_retirement_receipt(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+    ) -> Option<SignalBranchRetirementReceipt> {
+        self.retirement_receipt
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take()
+    }
+
+    pub(in crate::branch::owner_services) fn validate_admission(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
     ) -> Result<(), SignalBranchCellAdmissionDenial> {
         admission
             .authorize(
@@ -201,12 +225,25 @@ impl<S> SignalBranchExecutionCell<S> {
 
     fn lock_state_after_contention_observation(
         &self,
+    ) -> Result<SignalBranchStateGuard<'_, S>, SignalBranchCellAdmissionDenial> {
+        let custody =
+            fork_custody::SignalBranchForkCustodyGate::acquire_ordinary(&self.fork_custody, || {
+                self.record_cell_wait()
+            });
+        let state = self.lock_state_without_fork_custody()?;
+        Ok(SignalBranchStateGuard {
+            state,
+            _custody: custody,
+        })
+    }
+
+    fn lock_state_without_fork_custody(
+        &self,
     ) -> Result<MutexGuard<'_, S>, SignalBranchCellAdmissionDenial> {
         match self.state.try_lock() {
             Ok(state) => Ok(state),
             Err(TryLockError::WouldBlock) => {
-                self.counters.record_target_cell_wait();
-                self.waits.fetch_add(1, Ordering::SeqCst);
+                self.record_cell_wait();
                 match self.state.lock() {
                     Ok(state) => Ok(state),
                     Err(poisoned) => self.quarantine_poisoned_state(poisoned),
@@ -214,6 +251,25 @@ impl<S> SignalBranchExecutionCell<S> {
             }
             Err(TryLockError::Poisoned(poisoned)) => self.quarantine_poisoned_state(poisoned),
         }
+    }
+
+    fn record_cell_wait(&self) {
+        self.counters.record_target_cell_wait();
+        self.waits.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(in crate::branch::owner_services) fn acquire_fork_source_custody<'admission, 'owner>(
+        self: &Arc<Self>,
+        admission: &'admission SignalOwnerOperationAdmission<'owner>,
+    ) -> Result<SignalBranchForkSourceCustody<'admission, 'owner, S>, SignalBranchCellAdmissionDenial>
+    {
+        self.validate_admission(admission)?;
+        Ok(fork_custody::SignalBranchForkCustodyGate::acquire_fork(
+            &self.fork_custody,
+            self,
+            admission,
+            || self.record_cell_wait(),
+        ))
     }
 
     fn quarantine_poisoned_state<'a>(
@@ -235,6 +291,25 @@ impl<S> SignalBranchExecutionCell<S> {
     }
 }
 
+struct SignalBranchStateGuard<'a, S> {
+    state: MutexGuard<'a, S>,
+    _custody: fork_custody::SignalBranchOrdinaryCellCustody,
+}
+
+impl<S> std::ops::Deref for SignalBranchStateGuard<'_, S> {
+    type Target = S;
+
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
+}
+
+impl<S> std::ops::DerefMut for SignalBranchStateGuard<'_, S> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.state
+    }
+}
+
 impl From<SignalOwnerAdmissionMismatch> for SignalBranchCellAdmissionDenial {
     fn from(mismatch: SignalOwnerAdmissionMismatch) -> Self {
         match mismatch {
@@ -248,6 +323,7 @@ impl From<SignalOwnerBranchCellHoldDenial> for SignalBranchCellAdmissionDenial {
     fn from(denial: SignalOwnerBranchCellHoldDenial) -> Self {
         match denial {
             SignalOwnerBranchCellHoldDenial::SecondCellWhileHeld => Self::SecondCellWhileHeld,
+            SignalOwnerBranchCellHoldDenial::ExecutingThreadReentry => Self::ExecutingThreadReentry,
         }
     }
 }

@@ -8,6 +8,10 @@ use crate::state::{
 
 use super::super::branches::{BranchState, SnapshotBranchState};
 
+#[cfg(test)]
+#[path = "restore_selection/tests.rs"]
+mod tests;
+
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -100,6 +104,9 @@ where
         restored_branch_id: SignalBranchId,
         restored_state: BranchState<D, I, T>,
     ) -> Result<(), SignalError> {
+        let ready = self.prepare_branch_lifecycle_transfer(BranchLifecycleTransfer::Restore(
+            RestoreTransferPacket::new(restored_branch_id, restored_state),
+        ))?;
         let outgoing_branch_id = self.graph.current_branch().id;
         let displaced_target = if outgoing_branch_id != restored_branch_id {
             let target_branch = self
@@ -113,8 +120,6 @@ where
                     SignalError::unknown_branch(Some(restored_branch_id), target_branch.name)
                 })?;
             self.ensure_branch_state_managed_queue_transfer_allowed(target_state)?;
-            Self::ensure_managed_queue_branch_transfer_allowed(restored_state.resource())?;
-
             let outgoing_state = self.take_heavy_active_branch_state()?;
             self.branches.store_branch_state(outgoing_state);
             Some(
@@ -126,10 +131,8 @@ where
             None
         };
 
-        let result = self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Restore(
-            RestoreTransferPacket::new(restored_branch_id, restored_state),
-        ));
+        self.commit_branch_lifecycle_transfer(ready);
         drop(displaced_target);
-        result
+        Ok(())
     }
 }

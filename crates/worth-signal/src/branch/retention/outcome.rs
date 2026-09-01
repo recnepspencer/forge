@@ -13,6 +13,10 @@ use super::lease::SignalBranchRetentionLease;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetentionAcquisitionDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     ForeignBasis,
     UnknownBranch {
         branch_id: SignalBranchId,
@@ -43,6 +47,8 @@ pub enum SignalBranchRetentionAcquisitionDenial {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetentionReleaseDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted { maximum_in_flight_operations: usize },
+    OwnerReentry,
     ForeignRuntime,
 }
 

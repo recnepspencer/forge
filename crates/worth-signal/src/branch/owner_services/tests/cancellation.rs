@@ -7,20 +7,25 @@ use super::super::SignalOwnerCancellationSource;
 use super::progress_bound::{wait_until_progress, worker_park, PROGRESS_BOUND};
 use super::runtime_root::runtime_with_two_branches;
 
+pub(super) mod restore;
+mod retirement;
+
 #[test]
 fn cancellation_while_waiting_for_same_cell_denies_without_movement() {
     let (mut runtime, _, branch, expected) = runtime_with_two_branches();
     let (_, mutation, _) = runtime.owner_port_slots().expect("runtime seals");
     let owner = mutation.upgrade_owner().expect("owner remains live");
-    let holder_admission = owner.admit().expect("holder admits");
-    let waiter_admission = owner.admit().expect("waiter admits");
+    let setup_admission = owner.admit().expect("setup admits");
     let cell = owner
-        .lookup_cell(&holder_admission, branch.id)
+        .lookup_cell(&setup_admission, branch.id)
         .expect("target cell is live");
+    drop(setup_admission);
     let (holder_park, mut holder_control) = worker_park();
     let (holder_done_tx, holder_done_rx) = mpsc::sync_channel(1);
     let holder_cell = Arc::clone(&cell);
+    let holder_owner = Arc::clone(&owner);
     thread::spawn(move || {
+        let holder_admission = holder_owner.admit().expect("holder admits in its worker");
         let result = holder_cell.with_state(&holder_admission, |_, _| {
             holder_park.park("same-cell cancellation holder");
         });
@@ -32,8 +37,10 @@ fn cancellation_while_waiting_for_same_cell_denies_without_movement() {
     let token = cancellation.token();
     let waiter_cell = Arc::clone(&cell);
     let waiter_expected = expected.clone();
+    let waiter_owner = Arc::clone(&owner);
     let (waiter_done_tx, waiter_done_rx) = mpsc::sync_channel(1);
     thread::spawn(move || {
+        let waiter_admission = waiter_owner.admit().expect("waiter admits in its worker");
         let result = waiter_cell
             .advance_exact::<(), (), _>(
                 &waiter_admission,

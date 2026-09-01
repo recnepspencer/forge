@@ -65,11 +65,19 @@ fn cross_branch_snapshot_restore_preserves_outgoing_and_displaces_target_state()
         Ok(vec![weather]),
         "the selected root restores its captured content"
     );
+    runtime
+        .switch_branch(feature.clone())
+        .expect("the nonminimum feature is the actual selection at sealing");
 
     let (_, mutation, _) = runtime
         .owner_port_slots()
         .expect("one active and one stored state per live branch seal honestly");
     let owner = mutation.upgrade_owner().expect("the owner remains live");
+    assert_eq!(
+        owner.selected_branch_id(),
+        feature.id,
+        "sealing preserves the actual selected nonminimum branch identity"
+    );
     let admission = owner.admit().expect("the owner admits state inspection");
     for (branch_id, expected_source) in [
         (feature.id, depot),

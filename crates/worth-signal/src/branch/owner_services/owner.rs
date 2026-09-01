@@ -1,17 +1,10 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Weak};
 
-use crate::branch::{
-    AdmittedSignalBranchBasis, SignalBranchAdmissionLease, SignalBranchBasisDescriptor,
-    SignalBranchForkOperationDenial, SignalBranchRetentionAcquisitionDenial,
-    SignalBranchRetentionBinding, SignalBranchRetentionLease, SignalBranchRetentionRegistry,
-    SignalBranchRetentionTerminalCounts, ValidatedSignalBranchName,
-};
-use crate::logic::transaction::SignalOwnerPartition;
-use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
-
-use super::mutation_port::{map_fork_registry_denial, SignalOwnerForkReservation};
 use super::owner_metadata::SignalOwnerMetadata;
+use crate::branch::SignalBranchRetentionRegistry;
+use crate::logic::transaction::SignalOwnerPartition;
+use crate::state::SignalBranchId;
 
 use super::{
     SignalBranchCellState, SignalBranchExecutionCell, SignalBranchRegistry,
@@ -22,10 +15,22 @@ use super::{
 
 mod basis;
 #[cfg(test)]
+mod branch_incarnation_replacement;
+pub(super) mod close_cleanup;
+pub(super) mod fork_reservation;
+mod output_retention;
+mod retention;
+#[path = "owner/retention_preflight.rs"]
+mod retention_preflight;
+mod retirement_planning;
+mod retirement_reservation;
+use super::lifecycle_state::{SignalOwnerCloseCoordinator, SignalOwnerCloseDenial};
+#[cfg(test)]
 mod managed_reference_replacement_tests;
 
 pub(crate) const DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES: usize = 4_096;
 pub(crate) const DEFAULT_MAXIMUM_SIGNAL_BRANCH_RESERVATIONS: usize = 64;
+const OWNER_CLOSE_BATCH_SIZE: usize = 64;
 
 /// Why the current runtime cannot enter the independent owner-service posture.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,6 +39,7 @@ pub enum SignalOwnerServiceIssuanceDenial {
     ObservationRegistrationStateConfigured,
     ManagedQueueStateConfigured { bound_queue_count: u32 },
     LiveBranchCapacityExhausted { maximum_live_branches: usize },
+    RetirementReceiptCapacityExhausted { maximum_retained_receipts: usize },
 }
 
 /// Sole strong owner state retained by a sealed, non-cloneable runtime root.
@@ -49,6 +55,7 @@ where
     lifecycle: Arc<SignalOwnerLifecycleState>,
     registry: Arc<SignalBranchRegistry<SignalBranchCellState<D, I, T>>>,
     retention: SignalBranchRetentionRegistry,
+    selected_branch_id: SignalBranchId,
     pub(super) metadata: SignalOwnerMetadata<D, I, T>,
     counters: Arc<SignalOwnerServiceCounters>,
 }
@@ -127,7 +134,7 @@ where
 {
     fn drop(&mut self) {
         if let SignalOwnerRootState::Sealed(owner) = &self.state {
-            let _ = owner.lifecycle.request_close(owner.runtime_instance_id);
+            let _ = owner.request_close();
         }
     }
 }
@@ -143,7 +150,8 @@ where
         definition_basis: u64,
         partition: SignalOwnerPartition<D, I, T>,
     ) -> Arc<Self> {
-        let (metadata, next_branch_id, retention, cells) = partition.into_parts();
+        let (metadata, next_branch_id, retention, selected_branch_id, cells) =
+            partition.into_parts();
         let counters = Arc::new(SignalOwnerServiceCounters::default());
         let lifecycle = SignalOwnerLifecycleState::new(runtime_instance_id, Arc::clone(&counters));
         let lifecycle_identity = lifecycle.lifecycle_identity();
@@ -159,6 +167,7 @@ where
             lifecycle,
             registry,
             retention,
+            selected_branch_id,
             metadata: SignalOwnerMetadata::new(metadata, runtime_instance_id, lifecycle_identity),
             counters,
         });
@@ -210,15 +219,46 @@ where
         self.lifecycle.observation()
     }
 
+    #[cfg(test)]
+    pub(super) fn cleanup_waiter_count(&self) -> usize {
+        self.lifecycle.cleanup_waiter_count()
+    }
+
     pub(super) fn admit(
         self: &Arc<Self>,
-    ) -> Result<SignalOwnerOperationAdmission, SignalOwnerAdmissionDenial> {
-        self.lifecycle.admit(self.runtime_instance_id)
+    ) -> Result<SignalOwnerOperationAdmission<'_>, SignalOwnerAdmissionDenial> {
+        let close_coordinator: Arc<dyn SignalOwnerCloseCoordinator + '_> = self.clone();
+        self.lifecycle
+            .admit_with_close_coordinator(self.runtime_instance_id, close_coordinator)
+    }
+
+    pub(super) fn selected_branch_id(&self) -> SignalBranchId {
+        self.selected_branch_id
+    }
+
+    pub(super) fn close(&self) -> Result<(), SignalOwnerCloseDenial> {
+        self.lifecycle
+            .begin_explicit_close(self.runtime_instance_id)?;
+        self.retention.close_owner();
+        loop {
+            self.finish_owner_close_cleanup();
+            if self.lifecycle_observation() == super::SignalOwnerLifecycleObservation::Closed {
+                return Ok(());
+            }
+            self.lifecycle.wait_for_cleanup_turn();
+        }
+    }
+
+    fn request_close(&self) -> Result<(), SignalOwnerCloseDenial> {
+        self.lifecycle.request_close(self.runtime_instance_id)?;
+        self.retention.close_owner();
+        self.finish_owner_close_cleanup();
+        Ok(())
     }
 
     pub(super) fn lookup_cell(
         &self,
-        admission: &SignalOwnerOperationAdmission,
+        admission: &SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
     ) -> Result<
         Arc<SignalBranchExecutionCell<SignalBranchCellState<D, I, T>>>,
@@ -238,7 +278,7 @@ where
 
     pub(super) fn begin_retirement<'a>(
         &'a self,
-        admission: &'a SignalOwnerOperationAdmission,
+        admission: &'a SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
     ) -> Result<
         SignalBranchRetirement<'a, SignalBranchCellState<D, I, T>>,
@@ -247,99 +287,28 @@ where
         self.registry.begin_retirement(admission, branch_id)
     }
 
-    pub(super) fn reserve_fork_destination<'a>(
-        &'a self,
-        admission: &'a SignalOwnerOperationAdmission,
-        source: &AdmittedSignalBranchBasis,
-        requested_identity: ValidatedSignalBranchName,
-    ) -> Result<SignalOwnerForkReservation<'a, D, I, T>, SignalBranchForkOperationDenial> {
-        if !admission.permits_owner_lock_acquisition() {
-            return Err(SignalBranchForkOperationDenial::OwnerUnavailable(
-                SignalOwnerUnavailable,
-            ));
-        }
-        let branch_id = self
-            .next_branch_id
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
-                current.checked_add(1)
-            })
-            .map(SignalBranchId)
-            .map_err(|_| SignalBranchForkOperationDenial::BranchIdentityExhausted)?;
-        let parent_head_snapshot_id = source
-            .observation()
-            .target()
-            .as_basis()
-            .and_then(|target| target.snapshot_id())
-            .map(SignalSnapshotId);
-        let handle = SignalBranchHandle {
-            id: branch_id,
-            name: requested_identity.into_inner(),
-            parent_branch_id: Some(source.owner_branch_id()),
-            head_snapshot_id: parent_head_snapshot_id,
-        };
-        let reservation = self
-            .registry
-            .reserve(admission, branch_id)
-            .map_err(map_fork_registry_denial)?;
-        let lineage = self
-            .metadata
-            .reserve_fork_child(admission, source.owner_branch_id(), branch_id)
-            .map_err(SignalBranchForkOperationDenial::OwnerUnavailable)?;
-        Ok(SignalOwnerForkReservation::new(
-            handle,
-            self.runtime_instance_id,
-            self.definition_basis,
-            reservation,
-            lineage,
-        ))
-    }
-
-    #[allow(
-        dead_code,
-        reason = "Phase 4 basis operations consume this frozen owner seam"
-    )]
-    pub(super) fn acquire_admitted_retention(
-        &self,
-        branch_id: SignalBranchId,
-    ) -> Result<SignalBranchAdmissionLease, SignalBranchRetentionAcquisitionDenial> {
-        self.counters.record_retention_registry_contact();
-        self.retention.acquire_admitted(branch_id)
-    }
-
-    #[allow(
-        dead_code,
-        reason = "Phase 4 basis operations consume this frozen owner seam"
-    )]
-    pub(super) fn acquire_external_retention(
-        &self,
-        descriptor: SignalBranchBasisDescriptor,
-    ) -> Result<SignalBranchRetentionLease, SignalBranchRetentionAcquisitionDenial> {
-        self.counters.record_retention_registry_contact();
-        self.retention.acquire_external(descriptor)
-    }
-
-    #[allow(
-        dead_code,
-        reason = "Phase 4 basis and lifecycle operations consume this seam"
-    )]
-    pub(super) fn retention_binding(&self) -> SignalBranchRetentionBinding {
-        self.retention.binding()
-    }
-
-    #[allow(
-        dead_code,
-        reason = "Phase 4 lifecycle inspection consumes this frozen seam"
-    )]
-    pub(super) fn retention_terminal_counts(&self) -> SignalBranchRetentionTerminalCounts {
-        self.retention.terminal_counts()
-    }
-
-    #[cfg(test)]
-    pub(super) fn admitted_retention_count(&self, branch_id: SignalBranchId) -> u32 {
-        self.retention.admitted_count(branch_id)
-    }
-
     pub(super) fn cost_snapshot(&self) -> SignalOwnerServiceCostSnapshot {
         self.counters.snapshot()
+    }
+
+    #[cfg(any(test, feature = "test-operation-control"))]
+    #[cfg_attr(
+        not(test),
+        allow(
+            dead_code,
+            reason = "Phase 4 service operation tests consume this feature-only seam"
+        )
+    )]
+    pub(in crate::branch::owner_services) fn operation_control(
+        &self,
+    ) -> super::operation_control::SignalOwnerOperationControl {
+        self.lifecycle.operation_control()
+    }
+
+    pub(super) fn reach_operation_boundary(
+        &self,
+        boundary: super::operation_control::SignalOwnerOperationBoundary,
+    ) {
+        self.lifecycle.reach_operation_boundary(boundary);
     }
 }

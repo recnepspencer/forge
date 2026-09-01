@@ -1,6 +1,9 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::rc::Rc;
 
+use worth_proof::TransitionOutcome;
+
+use crate::branch::SignalBranchRetirementReason;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::error::SignalError;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
@@ -165,5 +168,54 @@ fn private_slot_accepts_composition_types_while_local_preflight_remains_separate
         local_runtime.owner_service_issuance_capability(),
         Ok(()),
         "local-only runtimes remain valid; their exclusion is the slot's compile-time fence"
+    );
+}
+
+#[test]
+fn overfull_preseal_retirement_history_denies_partition_without_consuming_runtime() {
+    const MAXIMUM_RETAINED_RECEIPTS: usize = 4_096;
+
+    let mut runtime = SignalRuntime::build_for::<()>(SignalGraph::new());
+    let selected = runtime.current_branch();
+    let selected_basis = runtime
+        .observe_signal_branch_basis(selected.clone())
+        .expect("the selected source admits once for sequential retirement history");
+    let mut final_retired_branch = None;
+    for index in 0..=MAXIMUM_RETAINED_RECEIPTS {
+        let (branch, basis) = runtime
+            .fork_signal_branch(format!("receipt-history-{index}"), &selected_basis)
+            .expect("one bounded sibling forks")
+            .into_parts();
+        let plan = match runtime.plan_signal_branch_retirement(
+            branch.clone(),
+            basis,
+            SignalBranchRetirementReason::Superseded,
+        ) {
+            TransitionOutcome::Success(plan) => plan,
+            other => panic!("the sequential sibling retirement plans: {other:?}"),
+        };
+        assert!(matches!(
+            runtime.retire_signal_branch(plan),
+            TransitionOutcome::Success(_)
+        ));
+        final_retired_branch = Some(branch);
+    }
+    let final_retired_branch = final_retired_branch.expect("the history is populated");
+
+    assert!(matches!(
+        runtime.owner_port_slots(),
+        Err(
+            SignalOwnerServiceIssuanceDenial::RetirementReceiptCapacityExhausted {
+                maximum_retained_receipts: MAXIMUM_RETAINED_RECEIPTS,
+            }
+        )
+    ));
+    assert_eq!(runtime.current_branch(), selected);
+    assert_eq!(
+        runtime
+            .branch_retirement_receipt(final_retired_branch.id)
+            .map(|receipt| receipt.retired_branch().id),
+        Some(final_retired_branch.id),
+        "typed partition denial preserves the exact unsealed retirement history"
     );
 }

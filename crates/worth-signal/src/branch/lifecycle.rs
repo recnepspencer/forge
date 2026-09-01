@@ -23,6 +23,10 @@ pub enum SignalBranchRetirementReason {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetirementDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     CancelledNoMovement,
     UnknownBranch {
         branch_id: SignalBranchId,
@@ -76,6 +80,12 @@ pub enum SignalBranchRetirementDenial {
     RetirementSnapshotBranchMismatch {
         branch_id: SignalBranchId,
         snapshot_branch_id: SignalBranchId,
+    },
+    RetirementReceiptCapacityExhausted {
+        maximum_retained_receipts: usize,
+    },
+    OwnerInvariantViolation {
+        branch_id: SignalBranchId,
     },
 }
 

@@ -17,7 +17,7 @@ use super::{
 #[derive(Debug)]
 pub(crate) struct SignalBranchRetirement<'a, S> {
     pub(super) registry: &'a SignalBranchRegistry<S>,
-    pub(super) admission: &'a SignalOwnerOperationAdmission,
+    pub(super) admission: &'a SignalOwnerOperationAdmission<'a>,
     pub(super) branch_id: SignalBranchId,
     pub(super) cell: Arc<SignalBranchExecutionCell<S>>,
     pub(super) completed: bool,
@@ -86,6 +86,69 @@ where
         self.completed = true;
         Ok(outcome)
     }
+
+    pub(in crate::branch::owner_services) fn execute_exact_reserved(
+        &mut self,
+        plan: PlannedSignalBranchRetirement,
+        cancellation: &SignalOwnerCancellationToken,
+        reclaimed_snapshot_state_count: u32,
+        before_movement: impl FnOnce(),
+        after_movement: impl FnOnce(),
+    ) -> Result<
+        Result<SignalBranchRetirementCellOutcome, SignalBranchRetirementDenial>,
+        SignalBranchRegistryDenial,
+    > {
+        self.registry.validate_admission(self.admission)?;
+        let outcome = self.cell.retire_exact_with_receipt_capacity(
+            self.admission,
+            plan,
+            cancellation,
+            reclaimed_snapshot_state_count,
+            before_movement,
+            after_movement,
+        );
+        if outcome.is_err() {
+            return Ok(outcome);
+        }
+        self.finish_retired_membership()?;
+        Ok(outcome)
+    }
+}
+
+impl<S> SignalBranchRetirement<'_, S> {
+    pub(in crate::branch::owner_services) const fn branch_id(&self) -> SignalBranchId {
+        self.branch_id
+    }
+
+    pub(in crate::branch::owner_services) fn recover_performed_receipt(
+        &mut self,
+    ) -> Option<crate::branch::SignalBranchRetirementReceipt> {
+        let receipt = self.cell.take_retirement_receipt()?;
+        if !self.completed && self.finish_retired_membership().is_err() {
+            debug_assert!(
+                false,
+                "performed retirement membership remains uniquely owned"
+            );
+            return None;
+        }
+        Some(receipt)
+    }
+
+    fn finish_retired_membership(&mut self) -> Result<(), SignalBranchRegistryDenial> {
+        let mut state = self.registry.lock_state();
+        if !entry_is_retiring_cell(state.entries.get(&self.branch_id), &self.cell) {
+            return Err(SignalBranchRegistryDenial::ExpiredRetirement(
+                self.branch_id,
+            ));
+        }
+        state.entries.remove(&self.branch_id);
+        state.live_count = state
+            .live_count
+            .checked_sub(1)
+            .expect("completed Signal branch retirement must release live capacity");
+        self.completed = true;
+        Ok(())
+    }
 }
 
 impl<S> Drop for SignalBranchRetirement<'_, S> {
@@ -95,10 +158,18 @@ impl<S> Drop for SignalBranchRetirement<'_, S> {
         }
         let mut state = self.registry.lock_state();
         if entry_is_retiring_cell(state.entries.get(&self.branch_id), &self.cell) {
-            state.entries.insert(
-                self.branch_id,
-                SignalBranchRegistryEntry::Live(Arc::clone(&self.cell)),
-            );
+            if self.cell.remains_live() {
+                state.entries.insert(
+                    self.branch_id,
+                    SignalBranchRegistryEntry::Live(Arc::clone(&self.cell)),
+                );
+            } else {
+                state.entries.remove(&self.branch_id);
+                state.live_count = state
+                    .live_count
+                    .checked_sub(1)
+                    .expect("performed retirement releases live capacity during unwind");
+            }
         }
     }
 }

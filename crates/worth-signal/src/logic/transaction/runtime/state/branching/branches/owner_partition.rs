@@ -8,6 +8,15 @@ use super::authority::BranchState;
 use super::catalog::BranchManager;
 use super::{SnapshotBranchState, SnapshotStatePacket};
 
+#[path = "owner_partition/close_cleanup.rs"]
+mod close_cleanup;
+pub(crate) use close_cleanup::SignalOwnerMetadataCloseBatch;
+#[path = "owner_partition/retirement_receipts.rs"]
+mod retirement_receipts;
+pub(crate) use retirement_receipts::SignalOwnerRetirementCleanup;
+#[path = "owner_partition/validation.rs"]
+mod validation;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::logic::transaction::runtime) enum SignalOwnerPartitionDenial {
     ActiveBranchMissing,
@@ -16,7 +25,10 @@ pub(in crate::logic::transaction::runtime) enum SignalOwnerPartitionDenial {
     MissingBranchHead(SignalBranchId),
     UnexpectedBranchHead(SignalBranchId),
     LiveBranchCapacityExhausted { maximum_live_branches: usize },
+    RetirementReceiptCapacityExhausted { maximum_retained_receipts: usize },
 }
+
+pub(crate) const MAXIMUM_RETAINED_SIGNAL_BRANCH_RETIREMENT_RECEIPTS: usize = 4_096;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SignalOwnerSnapshotReservationDenial {
@@ -34,9 +46,11 @@ where
     snapshots: BTreeMap<(SignalBranchId, SignalSnapshotId), SnapshotBranchState<D, I, T>>,
     maximum_stored_snapshots: usize,
     children_by_parent: BTreeMap<SignalBranchId, BTreeSet<SignalBranchId>>,
+    retirement_reservations: BTreeSet<SignalBranchId>,
     retirement_receipts: BTreeMap<SignalBranchId, SignalBranchRetirementReceipt>,
     active_merge_participants: BTreeSet<SignalBranchId>,
-    reserved_snapshot_count: usize,
+    maximum_retirement_receipts: usize,
+    reserved_retirement_receipt_count: usize,
     next_snapshot_id: u64,
 }
 
@@ -57,6 +71,7 @@ where
     metadata: SignalOwnerMetadataState<D, I, T>,
     next_branch_id: u64,
     retention: SignalBranchRetentionRegistry,
+    selected_branch_id: SignalBranchId,
     cells: Vec<SignalOwnerCellSeed<D, I, T>>,
 }
 
@@ -71,17 +86,20 @@ where
             snapshots: std::mem::take(&mut branches.snapshots),
             maximum_stored_snapshots: branches.maximum_stored_snapshots,
             children_by_parent: std::mem::take(&mut branches.children_by_parent),
+            retirement_reservations: BTreeSet::new(),
             retirement_receipts: std::mem::take(&mut branches.retirement_receipts),
             active_merge_participants: std::mem::take(&mut branches.active_merge_participants),
-            reserved_snapshot_count: 0,
+            maximum_retirement_receipts: MAXIMUM_RETAINED_SIGNAL_BRANCH_RETIREMENT_RECEIPTS,
+            reserved_retirement_receipt_count: 0,
             next_snapshot_id: branches.next_snapshot_id,
         }
     }
 
     pub(crate) fn reserve_snapshot(
         &mut self,
+        pending_snapshot_reservations: usize,
     ) -> Result<SignalSnapshotId, SignalOwnerSnapshotReservationDenial> {
-        if self.snapshots.len() + self.reserved_snapshot_count >= self.maximum_stored_snapshots {
+        if self.snapshots.len() + pending_snapshot_reservations >= self.maximum_stored_snapshots {
             return Err(SignalOwnerSnapshotReservationDenial::CapacityExhausted {
                 maximum_stored_snapshots: self.maximum_stored_snapshots,
             });
@@ -92,16 +110,8 @@ where
                 next_snapshot_id: snapshot_id,
             },
         )?;
-        self.reserved_snapshot_count += 1;
         self.next_snapshot_id = next_snapshot_id;
         Ok(snapshot_id)
-    }
-
-    pub(crate) fn release_snapshot_capacity(&mut self) {
-        self.reserved_snapshot_count = self
-            .reserved_snapshot_count
-            .checked_sub(1)
-            .expect("owner snapshot reservation releases exactly once");
     }
 
     pub(crate) fn install_reserved_snapshot(
@@ -119,7 +129,6 @@ where
             "owner snapshot identity must never replace an installed branch snapshot"
         );
         self.snapshots.insert((branch_id, snapshot_id), state);
-        self.release_snapshot_capacity();
     }
 
     pub(crate) fn snapshot_state(
@@ -169,36 +178,6 @@ where
         self.active_merge_participants.contains(&branch_id)
     }
 
-    pub(crate) fn remove_retired_branch(
-        &mut self,
-        branch_id: SignalBranchId,
-        parent_branch_id: Option<SignalBranchId>,
-    ) -> u32 {
-        let snapshot_keys = self
-            .snapshots
-            .range((branch_id, SignalSnapshotId(0))..=(branch_id, SignalSnapshotId(u64::MAX)))
-            .map(|(key, _)| *key)
-            .collect::<Vec<_>>();
-        for key in &snapshot_keys {
-            self.snapshots.remove(key);
-        }
-        self.children_by_parent.remove(&branch_id);
-        if let Some(parent_branch_id) = parent_branch_id {
-            let remove_parent = self
-                .children_by_parent
-                .get_mut(&parent_branch_id)
-                .is_some_and(|children| {
-                    children.remove(&branch_id);
-                    children.is_empty()
-                });
-            if remove_parent {
-                self.children_by_parent.remove(&parent_branch_id);
-            }
-        }
-        self.active_merge_participants.remove(&branch_id);
-        snapshot_keys.len() as u32
-    }
-
     pub(crate) fn retain_retirement_receipt(&mut self, receipt: SignalBranchRetirementReceipt) {
         self.retirement_receipts
             .insert(receipt.retired_branch().id, receipt);
@@ -222,12 +201,14 @@ where
         metadata: SignalOwnerMetadataState<D, I, T>,
         next_branch_id: u64,
         retention: SignalBranchRetentionRegistry,
+        selected_branch_id: SignalBranchId,
         cells: Vec<SignalOwnerCellSeed<D, I, T>>,
     ) -> Self {
         Self {
             metadata,
             next_branch_id,
             retention,
+            selected_branch_id,
             cells,
         }
     }
@@ -238,12 +219,14 @@ where
         SignalOwnerMetadataState<D, I, T>,
         u64,
         SignalBranchRetentionRegistry,
+        SignalBranchId,
         Vec<SignalOwnerCellSeed<D, I, T>>,
     ) {
         (
             self.metadata,
             self.next_branch_id,
             self.retention,
+            self.selected_branch_id,
             self.cells,
         )
     }
@@ -255,50 +238,6 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(in crate::logic::transaction::runtime) fn validate_owner_partition(
-        &self,
-        active_branch_id: SignalBranchId,
-        maximum_live_branches: usize,
-    ) -> Result<(), SignalOwnerPartitionDenial> {
-        if self.live_branch_catalog.len() > maximum_live_branches {
-            return Err(SignalOwnerPartitionDenial::LiveBranchCapacityExhausted {
-                maximum_live_branches,
-            });
-        }
-        if !self.live_branch_catalog.contains_key(&active_branch_id) {
-            return Err(SignalOwnerPartitionDenial::ActiveBranchMissing);
-        }
-        for branch_id in self.live_branch_catalog.keys().copied() {
-            if branch_id != active_branch_id && !self.branches.contains_key(&branch_id) {
-                return Err(SignalOwnerPartitionDenial::StoredBranchMissing(branch_id));
-            }
-        }
-        for branch_id in self.branches.keys().copied() {
-            if branch_id == active_branch_id || !self.live_branch_catalog.contains_key(&branch_id) {
-                return Err(SignalOwnerPartitionDenial::UnexpectedStoredBranch(
-                    branch_id,
-                ));
-            }
-        }
-        for branch_id in self.live_branch_catalog.keys().copied() {
-            if !self.branch_head_generations.contains_key(&branch_id)
-                || !self.branch_restore_snapshot_ids.contains_key(&branch_id)
-            {
-                return Err(SignalOwnerPartitionDenial::MissingBranchHead(branch_id));
-            }
-        }
-        if let Some(branch_id) = self
-            .branch_head_generations
-            .keys()
-            .chain(self.branch_restore_snapshot_ids.keys())
-            .copied()
-            .find(|branch_id| !self.live_branch_catalog.contains_key(branch_id))
-        {
-            return Err(SignalOwnerPartitionDenial::UnexpectedBranchHead(branch_id));
-        }
-        Ok(())
-    }
-
     pub(in crate::logic::transaction::runtime) fn into_owner_partition(
         mut self,
         active_state: BranchState<D, I, T>,
@@ -354,7 +293,7 @@ where
             .expect("an unsealed branch manager owns one retention registry");
         let metadata = SignalOwnerMetadataState::from_manager(&mut self);
         debug_assert!(self.owner_partition_membership_is_drained());
-        SignalOwnerPartition::new(metadata, next_branch_id, retention, cells)
+        SignalOwnerPartition::new(metadata, next_branch_id, retention, active_branch_id, cells)
     }
 
     fn owner_partition_membership_is_drained(&self) -> bool {

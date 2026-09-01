@@ -8,6 +8,10 @@ use super::{SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable};
 #[derive(Debug)]
 pub enum SignalBranchRestoreDenial {
     OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
     CancelledNoMovement,
     UnknownBranch {
         branch_id: SignalBranchId,

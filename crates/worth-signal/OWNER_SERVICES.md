@@ -4,10 +4,13 @@
 
 Signal owner services are the future shared-borrow entry points for working on
 one owner-managed branch without borrowing the whole `SignalRuntime` mutably.
-Phase 3 has installed the real owner root, registry, independent branch cells,
-and managed-reference admission described here. The public service methods in
-the contract matrix are frozen for Phase 4 and Phase 5 implementation; they are
-not available yet.
+Phase 3 installed the real owner root, registry, independent branch cells, and
+managed-reference admission described here. The Phase 4 shared-contract gate
+now supplies the bounded admission, cleanup, retention-reservation, lineage,
+retirement-recovery, and transfer seams that the three service lanes consume.
+It does not deliver the public services, bundle, facade, or legacy cutover. The
+public methods in the contract matrix remain unavailable until their later
+implementation and publication gates.
 
 ## Why You Use It
 
@@ -23,7 +26,8 @@ not available yet.
 `ManagedSignalBranchReference` vocabulary and its admission denial, along with
 the existing basis, snapshot, retention, retirement, and outcome types.
 
-The following are **not public availability claims** in Phase 3:
+The following remain **not public availability claims** after the Phase 4
+shared-contract gate:
 
 - `SignalOwnerServicePorts`
 - `SignalBranchBasisPort`
@@ -31,9 +35,134 @@ The following are **not public availability claims** in Phase 3:
 - `SignalBranchLifecyclePort`
 - `SignalRuntime::owner_component_services`
 
-Their exact contracts are frozen below so Phase 4 cannot omit an inherited
-operation or improvise a weaker input. Phase 5 will make the bundle and ports
-composition-facing after the methods delegate to the installed owner kernel.
+Their exact contracts are frozen below so the service lanes cannot omit an
+inherited operation or improvise a weaker input. Phase 5 will make the bundle
+and ports composition-facing after the methods delegate to the installed owner
+kernel.
+
+## Installed Shared-Contract Gate
+
+The owner admits at most 64 operations. Admission reserves the packed
+lifecycle phase/count before publishing one record into a fixed owner-owned
+64-slot table. Each record carries the real `ThreadId` and its atomic hold
+posture; there is no TLS semantic ledger, hashed thread identity, global thread
+registry, owner-global executor, or allocation on record release. Capacity and
+closing denial are pre-effect, and reservation unwind returns both the count
+and exact slot.
+
+An admission is thread-affine and cannot be sent or shared with another thread.
+Before any metadata, registry, or branch-cell lock, the owner scans its bounded
+record table and rejects same-thread/same-owner reentry if any admission on that
+thread already holds owner metadata or a branch cell. This includes a fresh
+admission, an earlier idle admission, and a different target branch. A hold
+borrows its published admission, so its record cannot disappear while the hold
+is live. Other-thread contention on one cell continues to serialize normally.
+Record-scan work is reported separately as `admission_records_scanned`; it is
+not branch-registry work and is never represented as zero-cost bookkeeping.
+
+`Open -> Closing` fences new admissions while already admitted synchronous
+calls retain their exact reservations and outcomes. Explicit close first
+rejects any live admission on its executing thread, before changing phase, and
+otherwise waits without missed wakeups. Root destruction requests close without
+waiting. One cleanup claimant drains registry and metadata in actual batches of
+at most 64, drops detached heavy state outside their locks, preserves the
+retention obligation ledger and bounded retirement receipts, and publishes
+`Closed` only after cleanup finishes. `close_batches` counts nonempty cleanup
+batches rather than lifecycle phase changes. The last admitted release performs
+cleanup when root destruction initiated close; no background worker owns this
+transition. Cleanup ownership is an unwind-safe claim: a panic while processing
+an actual batch releases the claim and wakes waiting closers, so one of them can
+resume the remaining batches and publish `Closed`.
+
+Direct admitted or external retention acquisition on the sealed owner borrows
+the operation's existing exact admission and an owner-admitted exact basis; a
+serializable basis descriptor is never retention authority. Acquisition neither
+creates a second admission nor consults a separate open flag. Foreign or expired
+admissions, basis-owner mismatch, and executing-thread owner reentry are rejected
+before retention-ledger contact. Consequently, an operation admitted before the
+`Open -> Closing` fence may still reserve and convert its lawful outputs while
+`Closing`, whereas fresh work cannot obtain an admission during `Closing` or
+`Closed`. The raw retention registry remains the lifecycle-agnostic obligation
+owner beneath this admitted boundary, but it has no reachable descriptor-only
+acquisition entry point.
+
+An exact branch retirement reservation is also the canonical acquisition fence
+for that branch. Retention acquisition takes the short metadata guard before the
+retention ledger: an acquisition that inserts first is counted by the later
+retirement reservation, while a reservation that installs first rejects both
+admitted-output and external acquisition before ledger contact. The guard is
+dropped before cell work, and unrelated branches remain independently
+retainable. Retirement samples admitted/reserved and external counts together
+after installing the metadata reservation, so `RetainedAdmittedBasis` and
+`RetainedComponentBasis` report their distinct exact obligations.
+
+Retirement planning on the sealed owner consumes the caller's existing
+operation admission and exact admitted basis; it never performs a second
+admission. The owner validates the basis runtime and definition before registry
+contact, observes lineage/merge metadata before the retention ledger, releases
+those short guards, and then contacts the canonical branch cell once for its
+real handle and complete current observation. Planning creates only the
+existing linear `PlannedSignalBranchRetirement`: it installs no retirement
+reservation, receipt reservation, registry posture, or retention fence.
+Snapshot-aware planning accepts exactly one baseline admitted lease plus each
+unique owner-issued snapshot retention identity; duplicate snapshot handles do
+not inflate the allowance, and runtime or branch mismatch remains a distinct
+typed denial. `reserve_retirement` and the checked target-cell execution still
+recheck lineage, retention, complete basis, and sole-holder custody at the
+canonical effect boundary; planning does not replace that fence.
+
+The canonical retention owner also exposes private lane-ready reservations:
+
+- advance reserves one admitted output;
+- capture reserves two admitted outputs from one snapshot plus a refreshed
+  basis;
+- restore reserves one admitted output;
+- fork reserves one destination admitted output and rebinds its pending
+  reservation to the owner-issued child before that child is published.
+
+These reservations consume the existing 4096 admitted-lease capacity before
+movement. Pending slots are not reported as issued authority. Conversion is
+infallible after movement even if close has begun, while cancellation, denial,
+panic, or unused drop returns exactly the remaining slots. The reservation
+methods pair the actual owner, borrowed operation admission, and checked
+canonical cell before executing that cell's corresponding operation. Their
+sealed ready conversions accept no unrelated raw outcome and cannot outlive the
+admitted synchronous call. The reservation objects live outside the retention
+mutex and require no metadata lock across cell work. They are private kernel
+seams, not descriptors, public constructors, or a second graph/head authority
+table.
+
+A snapshot reservation binds capacity to both the selected branch and its exact
+installed cell incarnation before movement. Foreign-owner validation precedes
+that custody check; a sibling or replaced same-id cell is rejected before cell
+contact. Snapshot movement installs the matching metadata packet before the
+faultable `AfterCanonicalMovement` seam, so an unwind cannot expose a cell head
+whose snapshot state is absent from owner metadata.
+
+Owner selection now carries the actual current branch from the sealed
+partition; it never infers the minimum id, and the selected pointer names the
+same canonical cell stored by the registry. A short metadata reservation
+linearizes fork lineage against retirement before cell acquisition. Retirement
+also reserves one of 4096 compact receipt slots before effect, fences and checks
+live admitted/pending plus external retention before registry removal, and
+preconstructs the exact receipt at the movement boundary. A performed receipt
+remains recoverable from cell
+custody across a caller unwind; no-effect cancellation returns capacity and
+reopens only a still-live cell. Retired inert cells are removed and never
+relabeled live.
+
+Fork destination installation is recoverable until the caller receives the
+owner-issued destination handle and admitted basis. The exact registry
+incarnation and uncommitted lineage remain under rollback guards through
+`ForkDestinationInstallation` and `OutcomeConstruction`; unwind removes only
+that incarnation and returns lineage, retention, live, and reservation capacity.
+Successful conversion commits lineage and disarms registry rollback exactly
+once, without reconstructing a handle from descriptive identity.
+
+Restore selection now validates a complete `ReadyBranchLifecycleTransfer`
+before moving outgoing state or removing the stored target. Its commit is
+infallible, preserving raw local restore and unknown-portable import behavior
+without a partial fallback lane.
 
 ## Core Mental Model
 
@@ -54,12 +183,14 @@ raw-id conversion, generic authority parameter, or adapter route. Cloning it
 copies only the same weak reference contract: no runtime, cell, snapshot, basis,
 or lease becomes strongly retained.
 
-At every use, the receiving owner first compares the reference's sealed runtime,
-lifecycle, and weak-allocation affinity with its own identity. A mismatch is
-`ForeignOwner` before either owner admits work or contacts a registry. A matching
-owner then admits its own lifecycle, looks up the target branch, and compares
-the installed cell incarnation. A closed matching owner is `OwnerUnavailable`;
-retirement and replacement are
+Existing owner-root compatibility helpers first compare the reference's sealed
+runtime, lifecycle, and weak-allocation affinity with their own identity. This
+preserves their inherited `ForeignOwner`-before-admission precedence. Future
+weak ports first upgrade their owner binding; upgrade failure is exactly
+`OwnerUnavailable` and never fabricates a branch id. After a successful upgrade,
+the same affinity checks precede registry contact. A matching owner admits once
+and carries that single admission through subordinate helpers; helpers do not
+admit a second time. Retirement and replacement are
 `BranchLifecycleEnded`/`BranchIncarnationReplaced`. Descriptive branch identity
 equality is never consulted as proof.
 
@@ -140,16 +271,16 @@ Managed exact readmission likewise preserves retirement-in-progress, retired,
 quarantined, cell-misuse, and owner-invariant postures in
 `SignalBranchBasisReadmissionDenial`.
 
-`UnknownBranch` remains reserved for absence at registry lookup. A quarantined
+`UnknownBranch` remains reserved for actual absence at registry lookup. Owner
+invariants and expired retirement custody retain their distinct typed posture;
+they are not converted to absence. A quarantined
 cell is the terminal contained-panic posture and cannot be readmitted, moved, or
 retired. It retains its registry membership and one configured live-branch
 capacity slot until the Signal owner root is destroyed; the current kernel has
 no quarantine purge path. Unrelated cells remain available. `OwnerCellMisuse`
-is the typed nested-cell/lock-order denial. A fresh admission does not itself
-prevent callback reentry. Before service dispatch is implemented, Phase 4 must
-reject same-thread, same-owner nested cell acquisition, including a different
-target cell; ordinary contention from another thread must still serialize.
-Current executable mapping evidence, not callback-reentry coverage, is
+remains the typed cell-misuse meaning. Owner-wide executing-thread reentry is
+the operation-specific additive `OwnerReentry` meaning and does not require a
+fabricated branch id. Current executable mapping evidence is
 `cell_posture_outcomes::every_operation_preserves_reachable_cell_posture_without_unknown_fallback`
 for every operation mapping and
 `managed_reference::transaction_panic_quarantines_managed_readmission_without_unknown_branch`
@@ -213,8 +344,8 @@ unvalidated `String` is not a compatible implementation of this row.
 
 | Exact method | Inputs | Output | Cancellation | Canonical owner | Named case / executable lane |
 | --- | --- | --- | --- | --- | --- |
-| `plan_retirement_exact` | `AdmittedSignalBranchBasis`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | target cell + retention/lineage metadata | future `signal_owner_services`: healthy `lifecycle::plan_retirement_exact_requires_linear_basis`, denials `lifecycle::plan_retirement_exact_denial_matrix`; current root `branch_lifecycle_retirement::retirement_reclaims_heavy_state_and_retains_compact_closeout_proof` and `retirement_denies_current_and_parent_branches_with_live_native_children` |
-| `plan_retirement_releasing_snapshots_exact` | `AdmittedSignalBranchBasis`, `&[&AdmittedSignalBranchSnapshot]`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | target cell + snapshot retention | future `signal_owner_services`: healthy `lifecycle::plan_retirement_releasing_exact_snapshots`, denials `lifecycle::snapshot_release_retirement_denial_matrix`; current root `branch_snapshot_retirement::declared_snapshot_release_permits_retirement_only_after_authority_is_dropped`, `snapshot_release_allowance_rejects_cross_branch_authority`, and `snapshot_release_allowance_rejects_foreign_runtime_authority` |
+| `plan_retirement_exact` | existing `&SignalOwnerOperationAdmission`, `AdmittedSignalBranchBasis`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | metadata then retention, followed by one target-cell contact | current kernel `retirement_planning::owner_exact_retirement_plan_preserves_pre_effect_state_and_executes_real_handle`, `owner_retirement_planning_distinguishes_current_canonical_and_live_child`, `owner_retirement_planning_checks_complete_basis_and_owner_before_registry_contact`, `owner_retirement_planning_preserves_distinct_retention_and_holder_denials`, and `owner_retirement_planning_preserves_reachable_merge_participant_denial`; future service case `lifecycle::plan_retirement_exact_requires_linear_basis` and denial matrix |
+| `plan_retirement_releasing_snapshots_exact` | existing `&SignalOwnerOperationAdmission`, `AdmittedSignalBranchBasis`, `&[&AdmittedSignalBranchSnapshot]`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | metadata then retention, followed by one target-cell contact | current kernel `retirement_planning::snapshots::owner_snapshot_release_plan_counts_unique_owner_issued_custody_exactly`, `owner_snapshot_release_plan_denies_foreign_runtime_before_registry_contact`, and `owner_snapshot_release_plan_denies_real_wrong_branch_custody`; future service case `lifecycle::plan_retirement_releasing_exact_snapshots` and denial matrix |
 | `retire_exact` | `PlannedSignalBranchRetirement`, `&SignalOwnerCancellationToken` | `TransitionOutcome<SignalBranchRetirementReceipt, SignalBranchRetirementDenial>` | before movement; performed retirement wins | target cell then short registry removal | future `signal_owner_services`: healthy `lifecycle::retire_exact_consumes_linear_plan`, denials `lifecycle::retire_exact_cancellation_and_stale_plan_matrix`; current kernel `exact_cell_contracts::exact_retirement_contract_consumes_a_linear_plan_before_registry_removal` executes performed and denied posture |
 | `owner_lifecycle_observation` | none | `SignalOwnerLifecycleObservation` | not applicable | owner lifecycle | future `signal_owner_services`: healthy/terminal `lifecycle::weak_port_observes_open_closing_closed`; current kernel `lifecycle::close_drains_admitted_work_and_monotonically_denies_late_admission` and `root_destruction::root_drop_inside_admitted_callback_requests_close_without_self_deadlock` execute blocking-close and nonblocking-destruction posture |
 | `owner_service_cost_snapshot` | none | `Result<SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable>` | not applicable | owner counters | future `signal_owner_services`: healthy `cost::lifecycle_operations_report_exact_structural_deltas`, denial `cost::closed_lifecycle_port_reports_owner_unavailable`; current kernel `exact_cell_contracts::exact_retirement_contract_consumes_a_linear_plan_before_registry_removal` and registry cost assertions execute structural deltas |
@@ -294,11 +425,14 @@ close batches. Counters are descriptive; they cannot authorize an operation.
 Operational capacity denial is pre-effect. Diagnostic capacity exhaustion
 records an omission/drop count and does not deny an otherwise lawful owner
 operation. Closing rejects new admissions and gives every later weak call the
-same typed unavailable posture. The Phase 4 explicit close must reject calls
-from that owner's admitted execution thread before starting close; otherwise it
-waits for admitted work to drain. Root destruction requests close without waiting, so
-destruction from inside an admitted callback cannot wait on itself; the last
-admission release performs the terminal `Closing` to `Closed` transition.
+same typed unavailable posture. Direct lease termination linearizes under the
+issuing retention ledger: a release that consumes its capability before close
+may return `Released`, while a call beginning after completed close cannot
+report `Live` merely because a temporary weak upgrade succeeded. Ledger entries
+are not cleared at close. Explicit close rejects calls from that owner's
+admitted execution thread before starting close; otherwise it waits for
+admitted work and real cleanup. Root destruction requests close without waiting,
+so destruction from inside an admitted callback cannot wait on itself.
 
 ## Anti-Patterns
 
@@ -313,8 +447,9 @@ admission release performs the terminal `Closing` to `Closed` transition.
 
 ## Current Limits
 
-- Phase 3 exposes managed-reference vocabulary and the private owner kernel,
-  not public port methods or the aggregate bundle.
+- The Phase 4 gate exposes no new public port methods or aggregate bundle; its
+  admission, output-reservation, lineage, recovery, and ready-transfer seams
+  remain private kernel contracts for the service lanes.
 - Existing `SignalRuntime` convenience methods have not yet been delegated to
   the owner services.
 - Signal services decide only Signal component truth. Product currentness and
