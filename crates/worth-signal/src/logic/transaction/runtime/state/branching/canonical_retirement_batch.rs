@@ -45,12 +45,12 @@ where
 
     /// Plan an atomic retirement batch while accounting for concrete admitted
     /// snapshots that will be released before execution.
-    pub fn plan_signal_branch_retirement_batch_releasing_snapshots<'a>(
+    pub fn plan_signal_branch_retirement_batch_releasing_snapshots(
         &mut self,
         requests: Vec<(
             SignalBranchHandle,
             AdmittedSignalBranchBasis,
-            Vec<&'a AdmittedSignalBranchSnapshot>,
+            Vec<&AdmittedSignalBranchSnapshot>,
             SignalBranchRetirementReason,
         )>,
     ) -> TransitionOutcome<PlannedSignalBranchRetirementBatch, SignalBranchRetirementBatchDenial>
@@ -63,12 +63,12 @@ where
         self.plan_signal_branch_retirement_batch_with_snapshot_releases(requests)
     }
 
-    fn plan_signal_branch_retirement_batch_with_snapshot_releases<'a>(
+    fn plan_signal_branch_retirement_batch_with_snapshot_releases(
         &mut self,
         requests: Vec<(
             SignalBranchHandle,
             AdmittedSignalBranchBasis,
-            Vec<&'a AdmittedSignalBranchSnapshot>,
+            Vec<&AdmittedSignalBranchSnapshot>,
             SignalBranchRetirementReason,
         )>,
     ) -> TransitionOutcome<PlannedSignalBranchRetirementBatch, SignalBranchRetirementBatchDenial>

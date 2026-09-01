@@ -5187,7 +5187,8 @@ it in the composition layer.
 
 #### Milestone 9.17.1.2: Final Owner Services And Signal Independent Progress
 
-Status: Planned corrective predecessor. The governing specification is
+Status: Implementation merged on 2026-09-01 at `3935c715a0`; final integrated
+public-tree certification remains pending. The governing specification is
 [milestone-9.17.1.2.md](./milestone-9.17.1.2.md). The closed 9.17.1 and
 9.17.1.1 meanings remain historical and unchanged.
 
@@ -5204,7 +5205,8 @@ shadow graph, or `Arc<Mutex<SignalRuntime<_>>>`.
 
 #### Milestone 9.17.2: Composite Runtime-World History And Coordinated Publication
 
-Status: Planned. Production implementation begins only after 9.17.1.2 closes.
+Status: Planned. Integration and acceptance remain blocked until 9.17.1.2
+closes; contract-preserving implementation may proceed against frozen seams.
 
 The dedicated `worth-runtime-world` composition owner consumes exact
 Relational, Signal, and installed Bridge-correspondence artifacts. It owns

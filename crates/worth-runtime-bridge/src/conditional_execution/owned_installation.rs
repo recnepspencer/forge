@@ -75,7 +75,7 @@ impl BridgeOwnedSignalRuntime {
                     std::ops::Bound::Unbounded,
                 ))
                 .next()
-                .map(|(key, _)| key.clone())
+                .map(|(key, _)| *key)
                 .filter(|(observed, _, _)| *observed == node);
             let Some(key) = next else {
                 break;

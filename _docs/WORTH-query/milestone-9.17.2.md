@@ -8,10 +8,10 @@
 > crate. It makes no persistence, restart, physical database, merge, or public
 > Query workflow claim.
 >
-> **Entry gate:** [Milestone 9.17.1.2](./milestone-9.17.1.2.md) must close
-> before production implementation begins. It completes the concrete
-> Relational bundle and independently borrowable Signal services without
-> changing the historical owner meanings.
+> **Integration gate:** [Milestone 9.17.1.2](./milestone-9.17.1.2.md) must
+> close before integration or acceptance. Contract-preserving implementation
+> may proceed against its frozen Relational bundle and independently borrowable
+> Signal services while final certification runs.
 
 ## Goal And Roadmap Placement
 

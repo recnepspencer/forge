@@ -1,20 +1,6 @@
 schema_version = 1
 
 [[facades]]
-package = "worth-cert-adoption"
-exports = []
-
-[[facades]]
-package = "worth-pack-registry"
-exports = [
-    "ContributionDescriptor",
-    "ContributionKind",
-    "InvalidPackName",
-    "PackName",
-    "PackRegistration",
-]
-
-[[facades]]
 package = "worth-query-certification"
 exports = [
     "WorthQueryCertificationCounter",

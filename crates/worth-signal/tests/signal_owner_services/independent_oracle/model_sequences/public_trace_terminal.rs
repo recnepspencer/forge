@@ -35,7 +35,7 @@ pub(super) fn finish_terminal_trace(
         }),
         ModelResult::Success(ModelSuccess::Lease)
     ));
-    let child_lease_key = model_lease(&model, "child retain");
+    let child_lease_key = model_lease(model, "child retain");
     let expected = model_denial(
         model.apply(ModelAction::Retire {
             branch: child,
@@ -79,7 +79,7 @@ pub(super) fn finish_terminal_trace(
     assert!(matches!(
         model.apply(ModelAction::Retire {
             branch: child,
-            expected: current_model(&model, child),
+            expected: current_model(model, child),
             cancelled: false,
         }),
         ModelResult::Success(ModelSuccess::Retirement)
@@ -89,7 +89,7 @@ pub(super) fn finish_terminal_trace(
         TransitionOutcome::Success(_)
     ));
     let child_denial = basis
-        .observe_current(&child_reference)
+        .observe_current(child_reference)
         .expect_err("retired child observation must be a typed denial");
     assert!(matches!(
         model.apply(ModelAction::Observe { branch: child }),
@@ -106,11 +106,11 @@ pub(super) fn finish_terminal_trace(
     assert!(matches!(
         model.apply(ModelAction::Retain {
             branch: root,
-            observation: current_model(&model, root),
+            observation: current_model(model, root),
         }),
         ModelResult::Success(ModelSuccess::Lease)
     ));
-    let close_lease_key = model_lease(&model, "close lease");
+    let close_lease_key = model_lease(model, "close lease");
     drop(runtime);
     assert_eq!(
         lifecycle.owner_lifecycle_observation(),
@@ -126,7 +126,7 @@ pub(super) fn finish_terminal_trace(
         ]
     );
     let unavailable = basis
-        .observe_current(&reference)
+        .observe_current(reference)
         .expect_err("weak owner loss must deny root observation");
     assert!(matches!(
         basis_observation_denial(&unavailable),

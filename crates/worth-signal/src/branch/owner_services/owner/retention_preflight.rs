@@ -52,15 +52,11 @@ where
             SignalBranchRetentionOwnerRelationship::SameOwner => {}
         }
         self.validate_retained_basis_descriptor(descriptor, lease)?;
-        let target = descriptor
-            .observation()
-            .target()
-            .as_basis()
-            .ok_or_else(|| {
-                SignalBranchRetainedReadmissionDenial::UnavailableExactTarget(
-                    SignalBranchRetentionAcquisitionDenial::ForeignBasis,
-                )
-            })?;
+        let target = descriptor.observation().target().as_basis().ok_or({
+            SignalBranchRetainedReadmissionDenial::UnavailableExactTarget(
+                SignalBranchRetentionAcquisitionDenial::ForeignBasis,
+            )
+        })?;
         self.preflight_exact_target_availability(
             admission,
             descriptor.branch_id(),

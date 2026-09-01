@@ -8,14 +8,14 @@ use super::super::world::{set_dependency, MutationWorld};
 use super::assert_no_pending_reservations;
 
 #[test]
-fn outcome_panics_preserve_committed_moves_and_roll_back_fork_custody() {
-    panic_after_rolled_back_fork();
+fn outcome_panics_preserve_every_performed_move_and_release_fork_custody() {
+    panic_after_performed_fork();
     panic_after_performed_advance();
     panic_after_performed_capture();
     panic_after_performed_restore();
 }
 
-fn panic_after_rolled_back_fork() {
+fn panic_after_performed_fork() {
     let world = MutationWorld::<()>::new();
     let current = world
         .port
@@ -39,6 +39,14 @@ fn panic_after_rolled_back_fork() {
         .is_empty());
     drop(admission);
     let before = world.owner.cost_snapshot();
+    let destination_id = crate::state::SignalBranchId(
+        world
+            .source_branch
+            .id
+            .0
+            .max(world.sibling_basis.owner_branch_id().0)
+            + 1,
+    );
     world
         .owner
         .operation_control()
@@ -62,10 +70,23 @@ fn panic_after_rolled_back_fork() {
         after.fork_destination_installations(),
         before.fork_destination_installations() + 1
     );
-    assert_eq!(world.owner.live_count(), 2);
+    assert_eq!(world.owner.live_count(), 3);
+    let destination = world
+        .owner
+        .lookup_cell(
+            &world.owner.admit().expect("destination observation admits"),
+            destination_id,
+        )
+        .expect("outcome panic preserves the performed destination");
+    assert_eq!(destination.branch_id(), destination_id);
+    let mut expected_source = source_before;
+    expected_source
+        .mutation_ledger
+        .clear_all(world.source_branch.head_snapshot_id);
     assert_eq!(
         source_cell.fork_source_state_truth_after_fault(),
-        source_before
+        expected_source,
+        "outcome panic cannot erase the performed source capture"
     );
     assert_no_pending_reservations(&world);
 }
@@ -171,7 +192,7 @@ fn panic_after_performed_restore() {
 }
 
 #[test]
-fn fork_installation_panic_rolls_back_destination_and_source_custody() {
+fn fork_installation_panic_preserves_performed_destination_and_releases_source_custody() {
     let world = MutationWorld::<()>::new();
     let current = world
         .port
@@ -195,6 +216,14 @@ fn fork_installation_panic_rolls_back_destination_and_source_custody() {
         .is_empty());
     drop(admission);
     let before = world.owner.cost_snapshot();
+    let destination_id = crate::state::SignalBranchId(
+        world
+            .source_branch
+            .id
+            .0
+            .max(world.sibling_basis.owner_branch_id().0)
+            + 1,
+    );
     world
         .owner
         .operation_control()
@@ -218,10 +247,23 @@ fn fork_installation_panic_rolls_back_destination_and_source_custody() {
         after.fork_destination_installations(),
         before.fork_destination_installations() + 1
     );
-    assert_eq!(world.owner.live_count(), 2);
+    assert_eq!(world.owner.live_count(), 3);
+    let destination = world
+        .owner
+        .lookup_cell(
+            &world.owner.admit().expect("destination observation admits"),
+            destination_id,
+        )
+        .expect("installation panic preserves the performed destination");
+    assert_eq!(destination.branch_id(), destination_id);
+    let mut expected_source = source_before;
+    expected_source
+        .mutation_ledger
+        .clear_all(world.source_branch.head_snapshot_id);
     assert_eq!(
         source_cell.fork_source_state_truth_after_fault(),
-        source_before
+        expected_source,
+        "installation panic cannot erase the performed source capture"
     );
     assert_no_pending_reservations(&world);
 }

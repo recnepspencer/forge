@@ -39,11 +39,29 @@ pub(in crate::domain_computation::primary_graph::application_query) fn map_basis
         | worth_relational::facade::branch::RelationalBranchBasisDenial::ArchivedBranch(_)
         | worth_relational::facade::branch::RelationalBranchBasisDenial::DeletingBranch(_)
         | worth_relational::facade::branch::RelationalBranchBasisDenial::UnavailableRetainedTarget
-        | worth_relational::facade::branch::RelationalBranchBasisDenial::OwnerFailure => {
+        | worth_relational::facade::branch::RelationalBranchBasisDenial::OwnerFailure
+        | worth_relational::facade::branch::RelationalBranchBasisDenial::OwnerUnavailable => {
             WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable
         }
     };
     admission_denial(kind, format!("{denial:?}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unavailable_relational_owner_is_an_unavailable_query_basis() {
+        let denial = map_basis_denial(
+            worth_relational::facade::branch::RelationalBranchBasisDenial::OwnerUnavailable,
+        );
+
+        assert_eq!(
+            denial.kind(),
+            WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable
+        );
+    }
 }
 
 pub(in crate::domain_computation::primary_graph::application_query) fn admission_denial(

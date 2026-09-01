@@ -59,7 +59,7 @@ identifiers, or equivalent-looking reports.
 | Foundational | Exact canonical values, keys, paths, portable bases, provenance, receipts, and shared boundary vocabulary | Proof progression, application permission, or relational truth |
 | Relational | Entities, relations, aspects, immutable branch roots, mutable branch-reference cells, exact branch observations, detached transactions, opaque prepared candidates, branch-local linearization, commit history, and durable publication settlement | Product authorization, application operation meaning, Query index publication, or external completion |
 | Runtime Bridge | Installed correspondence and lawful lowering between Query and lower runtimes | Relational facts, Signal decisions, or application policy |
-| Signal | Policy evaluation, producer-local scoped invalidation, readiness and scheduling, performed execution receipts, local evaluation slots, and condition outcomes | Application capability admission, Query maintenance authority, or relational mutation |
+| Signal | Policy evaluation, producer-local scoped invalidation, readiness and scheduling, performed execution receipts, component branch graph and bases, per-branch execution cells, weak owner services, local evaluation slots, and condition outcomes | Application capability admission, Query maintenance authority, composite product currentness, or relational mutation |
 | Query | Installed application meaning, authority composition, admission, typed progression, execution products, idempotency/outbox meaning, Query index publication, typed settlement recovery, runtime-local aftermath recovery, and consumer publication | Authentication truth, graph truth, policy truth, external completion, or Relational durability authority |
 | Store | Durable persistence, journals, restart checkpoints, and reconstructive state | Ordinary Query admission, live recovery authority, or external completion |
 | External effect owner | Whether an escaping consequence was accepted or completed | Query commit, application authorization, or recovery authority |
@@ -712,6 +712,12 @@ that same basis for reads and staged writes. Publication later compares the
 prepared candidate's expected observation with the one current branch cell;
 unrelated branches do not share that linearization point.
 
+Signal likewise retains one canonical component branch graph. Its owner-issued
+`SignalOwnerServicePorts` expose weak basis, mutation, and lifecycle ports;
+same-branch work serializes in one execution cell while unrelated branches can
+progress independently. These are lower-owner contracts, not public Query
+composite branches or product-currentness authority.
+
 Currentness checks compare retained dependencies with the owning runtime. They
 do not rebuild authority from a fresh report. Relevant drift returns a typed
 stale or denied outcome before governed work proceeds.
@@ -1130,6 +1136,7 @@ Use this table when deciding where a change belongs.
 | What transaction committed and at which version? | Relational |
 | Which immutable root and exact observation does a branch reference select? | Relational |
 | Which branch cell linearizes a prepared candidate? | Relational, independently per branch |
+| Which exact Signal branch basis and execution cell govern component work? | Signal owner services, independently per branch |
 | Did canonical branch movement occur even though durability acknowledgement failed? | Relational performed-publication evidence |
 | May an already-performed application or merge publication be repaired through this facade? | Query typed settlement recovery over the owning Relational runtime |
 | How does installed Query meaning correspond to lower-runtime structures? | Runtime Bridge |
@@ -1137,6 +1144,7 @@ Use this table when deciding where a change belongs.
 | Which scoped recomputation did the lower runtime actually perform? | Signal performed execution receipt |
 | Which projection, membership, ordering, group, or window consequence is required? | Query impact admission and maintenance |
 | What did an installed policy condition evaluate to? | Signal |
+| Which Relational and Signal bases form the current product? | Future Runtime World composition authority; not Query or either component owner |
 | What generic proof progression or readmission law applies? | `worth-proof` |
 | What exact canonical value, provenance, receipt, or portable basis represents this meaning? | Foundational |
 | What application operation or query was declared? | Application domain |

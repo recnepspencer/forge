@@ -1,7 +1,7 @@
 # Milestone 9.17.1.2: Final Owner Services And Signal Independent Progress
 
-> **Status:** Planned corrective predecessor. No production implementation
-> claim is made by this specification.
+> **Status:** Implementation merged on 2026-09-01 at `3935c715a0`; final
+> public-tree certification is pending, so no acceptance claim is made.
 >
 > **Product posture:** This is a corrective predecessor to Milestone 9.17.2.
 > It does not reopen or reinterpret the closed 9.17.1 and 9.17.1.1 meanings.
@@ -9,8 +9,8 @@
 > exclusive access with owner-issued, independently borrowable services.
 >
 > **Why this milestone exists:** Relational observation, retention, and branch
-> lifecycle remain direct runtime methods, while Signal mutation still requires
-> `&mut SignalRuntime`. Runtime World cannot consume either gap honestly.
+> lifecycle were direct runtime methods, while Signal mutation required
+> `&mut SignalRuntime`. Runtime World could not consume either gap honestly.
 
 ## Goal And Roadmap Placement
 
@@ -741,7 +741,7 @@ cargo test -p worth-signal --all-targets
 cargo test -p worth-signal --doc
 cargo run -p worth-signal --example independent_branch_services
 cargo fmt --all --check
-cargo clippy -p worth-relational -p worth-signal --all-targets -- -D warnings
+bash scripts/ci/check_owner_service_clippy.sh
 bash scripts/ci/check_workspace_rust_line_caps.sh dirty
 cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .
 cargo run --manifest-path tools/agent-context/Cargo.toml -- check

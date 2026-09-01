@@ -144,7 +144,7 @@ fn admit_request_response(
         Err(denial) => {
             rollback_owned_resource_request(
                 runtime,
-                registry.as_deref_mut(),
+                registry,
                 installed_owned,
                 lowering,
                 report.admitted_request(),
@@ -200,12 +200,7 @@ fn admit_subscription_backed(
                 declaration.node(),
             ),
             );
-            retire_owned_async_declaration(
-                runtime,
-                registry.as_deref_mut(),
-                installed_owned,
-                lowering,
-            )?;
+            retire_owned_async_declaration(runtime, registry, installed_owned, lowering)?;
             return Err(denial);
         }
     };
@@ -234,12 +229,7 @@ fn admit_subscription_backed(
                 declaration.node(),
             ),
             );
-            retire_owned_async_declaration(
-                runtime,
-                registry.as_deref_mut(),
-                installed_owned,
-                lowering,
-            )?;
+            retire_owned_async_declaration(runtime, registry, installed_owned, lowering)?;
             return Err(denial);
         }
     };
@@ -252,7 +242,7 @@ fn admit_subscription_backed(
         Err(denial) => {
             rollback_owned_async_request(
                 runtime,
-                registry.as_deref_mut(),
+                registry,
                 installed_owned,
                 lowering,
                 resource_report.admitted_request(),

@@ -43,7 +43,7 @@ impl BridgeOwnedSignalRuntime {
         let mut successor = Self::new(bridge, graph)?;
         successor
             .bridge
-            .bind_signal_graph(&mut *successor.signal_runtime.graph_mut())
+            .bind_signal_graph(&mut successor.signal_runtime.graph_mut())
             .map_err(|error| {
                 BridgeConditionalDenial::new(
                     BridgeConditionalDenialKind::CorrespondenceAdmission,

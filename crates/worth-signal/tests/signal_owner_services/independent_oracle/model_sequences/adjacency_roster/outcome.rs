@@ -32,7 +32,7 @@ pub(super) enum RealSuccess {
     Capture {
         observation: ModelObservation,
         snapshot: ModelSnapshot,
-        admitted_snapshot: AdmittedSignalBranchSnapshot,
+        admitted_snapshot: Box<AdmittedSignalBranchSnapshot>,
         basis: AdmittedSignalBranchBasis,
     },
     Restore {

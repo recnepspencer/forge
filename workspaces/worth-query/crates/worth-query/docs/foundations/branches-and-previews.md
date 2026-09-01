@@ -433,6 +433,9 @@ Look for:
 - Relational branch-local MVCC, exact-basis readmission, detached transactions,
   and typed branch-merge settlement repair are implemented owner capabilities.
   They do not make every Query branch-session effect family supported.
+- Signal owner services provide exact component bases and per-branch progress,
+  but Query does not yet coordinate composite Relational-plus-Signal product
+  publication; that remains the 9.17.2 and 9.17.3 boundary.
 - Durable preview replay and temporal/async branch-session behavior remain
   future work.
 
