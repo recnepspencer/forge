@@ -14,7 +14,7 @@ impl BridgeOwnedSignalRuntime {
             .correspondences
             .iter()
             .find(|item| item.dependency().dependency_ordinal() == dependency_ordinal)
-            .ok_or_else(|| dependency_ordinal_denial())?;
+            .ok_or_else(dependency_ordinal_denial)?;
         let record = correspondence
             .dependency()
             .source_record_identity()
@@ -45,7 +45,7 @@ impl BridgeOwnedSignalRuntime {
             .deliver_installed_correspondence_envelope_to_targets_with_counters(
                 correspondence,
                 &targets,
-                &mut *self.signal_runtime.graph_mut(),
+                &mut self.signal_runtime.graph_mut(),
                 &envelope,
                 counters,
             ))
@@ -65,7 +65,7 @@ impl BridgeOwnedSignalRuntime {
             .ok_or_else(dependency_ordinal_denial)?;
         Ok(self.bridge.deliver_installed_correspondence(
             correspondence,
-            &mut *self.signal_runtime.graph_mut(),
+            &mut self.signal_runtime.graph_mut(),
             request,
         ))
     }

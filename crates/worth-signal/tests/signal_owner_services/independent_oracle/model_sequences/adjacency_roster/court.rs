@@ -122,7 +122,7 @@ impl PairCourt {
         let setup_capture = RealResult::Success(RealSuccess::Capture {
             observation: captured_observation,
             snapshot: snapshot.clone(),
-            admitted_snapshot: admitted_snapshot.clone(),
+            admitted_snapshot: Box::new(admitted_snapshot.clone()),
             basis: captured_basis.clone(),
         });
         assert_equivalent(&expected, &setup_capture, "adjacency setup capture");

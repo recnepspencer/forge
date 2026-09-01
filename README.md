@@ -193,6 +193,7 @@ The default path does not silently fall back to the main thread.
 | Path | Contents |
 |---|---|
 | [`crates`](./crates) | Shared runtime, protocol, foundation, delivery, and research crates |
+| [`workspaces/worth-contracts`](./workspaces/worth-contracts) | Pure public schema contracts and graph-constitution meaning |
 | [`workspaces/worth-query`](./workspaces/worth-query) | Query declarations, installation, admission, execution, publication, facades, replay, and certification |
 | [`workspaces/worth-store`](./workspaces/worth-store) | Durable physical store, recovery, integrity, operations, and certification |
 | [`workspaces/worth-ui`](./workspaces/worth-ui) | UI DSL, runtime, Query binding, hosts, native platform, and product application |
@@ -216,8 +217,8 @@ The repository is governed by [AGENTS.md](./AGENTS.md) and the documents under
 - physical module structure that preserves semantic ownership.
 
 Subsystem READMEs contain their focused development and verification commands.
-Because this repository is being separated into clearer public and proprietary
-boundaries, do not assume that the root is currently a turnkey Cargo workspace.
+The root is intentionally a thin orchestrator; use each subsystem's manifest
+for focused commands rather than assuming every workspace is a root member.
 
 ## License and commercial use
 

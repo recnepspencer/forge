@@ -125,7 +125,7 @@ where
     let gate = Arc::new(Barrier::new(3));
     let (left_tx, left_rx) = mpsc::sync_channel(1);
     let (right_tx, right_rx) = mpsc::sync_channel(1);
-    let result = thread::scope(|scope| {
+    thread::scope(|scope| {
         let left_gate = Arc::clone(&gate);
         scope.spawn(move || {
             left_gate.wait();
@@ -148,7 +148,6 @@ where
     owner_root
         .owner_operation_control()
         .expect("the owner root remains live through both race contenders");
-    result
 }
 
 pub(super) fn prove_advance_is_effectful() {

@@ -1,5 +1,5 @@
 root_manifest = "Cargo.toml"
-forbidden_root_prefixes = ["cad/workspaces/"]
+forbidden_root_prefixes = ["workspaces/"]
 
 [[dependency_denials]]
 workspace_manifest = "Cargo.toml"
@@ -385,11 +385,7 @@ guidance = "Milestone 3.10.1: DSL owns authored meaning but must not define or i
 
 [machine_authority]
 canonical_config = "tools/boundary-check/config/road1.toml"
-mirrored_docs = [
-  "cad/docs/worthy-foundations/NAMING.md",
-  "cad/docs/worthy-foundations/BOUNDARIES.md",
-  "cad/docs/worthy-foundations/ARCHITECTURE.md",
-]
+mirrored_docs = []
 
 [naming]
 bands = ["schema", "dsl", "entry", "resolver", "solver", "derived", "pack", "app", "ui", "cert"]
@@ -678,23 +674,15 @@ source_band = "ui"
 allowed_target_bands = ["entry", "derived", "dsl"]
 
 [[born_crates]]
-path = "cad/workspaces/worth-contracts/crates/worth-schema-core"
+path = "workspaces/worth-contracts/crates/worth-schema-core"
 package = "worth-schema-core"
 
 [[born_crates]]
-path = "cad/workspaces/worth-contracts/crates/worth-schema-graph"
+path = "workspaces/worth-contracts/crates/worth-schema-graph"
 package = "worth-schema-graph"
 
-[[born_crates]]
-path = "cad/workspaces/worth-packs/crates/worth-pack-registry"
-package = "worth-pack-registry"
-
-[[born_crates]]
-path = "cad/workspaces/worth-certification/crates/worth-cert-adoption"
-package = "worth-cert-adoption"
-
 [[seed_skeletons]]
-path = "cad/workspaces/worth-contracts/crates/worth-schema-core"
+path = "workspaces/worth-contracts/crates/worth-schema-core"
 package = "worth-schema-core"
 lib_rs = "src/lib.rs"
 facade_rs = "src/facade.rs"
@@ -712,7 +700,7 @@ allowed_entries = [
 ]
 
 [[seed_skeletons]]
-path = "cad/workspaces/worth-contracts/crates/worth-schema-graph"
+path = "workspaces/worth-contracts/crates/worth-schema-graph"
 package = "worth-schema-graph"
 lib_rs = "src/lib.rs"
 facade_rs = "src/facade.rs"
@@ -725,51 +713,14 @@ allowed_entries = [
   "src/promotion.rs",
 ]
 
-[[seed_skeletons]]
-path = "cad/workspaces/worth-packs/crates/worth-pack-registry"
-package = "worth-pack-registry"
-lib_rs = "src/lib.rs"
-facade_rs = "src/facade.rs"
-allowed_entries = [
-  "AGENT_CONTEXT.md",
-  "Cargo.toml",
-  "src",
-  "src/contribution_descriptor.rs",
-  "src/contribution_kind.rs",
-  "src/facade.rs",
-  "src/lib.rs",
-  "src/pack_name.rs",
-  "src/registration.rs",
-]
-
 [[subworkspaces]]
-path = "cad/workspaces/worth-contracts"
+path = "workspaces/worth-contracts"
 allowed_crate_prefixes = ["worth-schema-"]
-member_lane = "crates/*"
-
-[[subworkspaces]]
-path = "cad/workspaces/worth-entry"
-allowed_crate_prefixes = ["worth-entry-"]
-member_lane = "crates/*"
-
-[[subworkspaces]]
-path = "cad/workspaces/worth-derived"
-allowed_crate_prefixes = ["worth-derived-"]
-member_lane = "crates/*"
-
-[[subworkspaces]]
-path = "cad/workspaces/worth-packs"
-allowed_crate_prefixes = ["worth-pack-"]
-member_lane = "crates/*"
-
-[[subworkspaces]]
-path = "cad/workspaces/worth-certification"
-allowed_crate_prefixes = ["worth-cert-"]
 member_lane = "crates/*"
 
 [legacy_reference_ratchet]
 governed_roots = [
-  "cad/workspaces/",
+  "workspaces/worth-contracts/",
   "tools/",
   "crates/worth-proof/",
 ]

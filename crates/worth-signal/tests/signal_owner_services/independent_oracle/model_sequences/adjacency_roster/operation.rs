@@ -72,7 +72,7 @@ pub(super) fn perform_real(
                     RealResult::Success(RealSuccess::Capture {
                         observation: neutral_basis(&basis),
                         snapshot,
-                        admitted_snapshot,
+                        admitted_snapshot: Box::new(admitted_snapshot),
                         basis,
                     })
                 }
@@ -256,7 +256,7 @@ pub(super) fn commit(
             ModelResult::Success(ModelSuccess::Capture { .. }),
         ) => {
             court.root.basis = basis;
-            court.snapshots.push((snapshot, admitted_snapshot));
+            court.snapshots.push((snapshot, *admitted_snapshot));
         }
         (
             OperationKind::Retain,

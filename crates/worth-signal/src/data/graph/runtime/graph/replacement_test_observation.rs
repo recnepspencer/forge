@@ -8,6 +8,10 @@ use crate::data::proof::invalidation::progression::{
     InvalidationOriginBinding, InvalidationReadinessEpoch, InvalidationStageOrder,
 };
 use crate::data::telemetry::SignalInvalidationRealizedCounters;
+use crate::logic::evaluation::EvaluationRequestMode;
+use crate::logic::planner::{
+    EligibleTask, EligibleTaskAdmission, StageBarrier, StageCursor, TaskReason,
+};
 use crate::logic::transaction::{SignalObservationCompletion, SignalObservationRequest};
 use crate::schema::data::SignalSchemaRegistry;
 
@@ -26,12 +30,12 @@ pub(crate) struct SignalGraphRetainedObservation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SignalTraversalReplacementObservation {
     scratch_lease: Option<ScratchLeaseKind>,
-    cycle_stack: Vec<(NodeId, bool)>,
     node_buffer_a: Vec<NodeId>,
     node_buffer_b: Vec<NodeId>,
     planner_targets: Vec<NodeId>,
+    planner_tasks: Vec<EligibleTask>,
+    planner_stages: Vec<StageCursor>,
     topology_node_buffer: Vec<NodeId>,
-    topology_dependency_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,12 +64,12 @@ impl SignalGraph {
             cause_readmission_required: self.cause_readmission_required,
             traversal: SignalTraversalReplacementObservation {
                 scratch_lease: self.traversal.scratch_lease,
-                cycle_stack: self.traversal.scratch.cycle_stack.clone(),
                 node_buffer_a: self.traversal.scratch.node_buffer_a.clone(),
                 node_buffer_b: self.traversal.scratch.node_buffer_b.clone(),
                 planner_targets: self.traversal.scratch.planner_targets.clone(),
+                planner_tasks: self.traversal.scratch.planner_tasks.clone(),
+                planner_stages: self.traversal.scratch.planner_stages.clone(),
                 topology_node_buffer: self.traversal.topology_node_buffer.clone(),
-                topology_dependency_count: self.traversal.topology_dependency_buffer.len(),
             },
             conditional_dependency_versions: self
                 .conditional_dependency_versions
@@ -109,10 +113,22 @@ impl SignalGraph {
 
     pub(crate) fn populate_replacement_clone_contract(&mut self, node: NodeId) {
         self.traversal.scratch_lease = Some(ScratchLeaseKind::Churn);
-        self.traversal.scratch.cycle_stack.push((node, true));
         self.traversal.scratch.node_buffer_a.push(node);
         self.traversal.scratch.node_buffer_b.push(node);
         self.traversal.scratch.planner_targets.push(node);
+        self.traversal.scratch.planner_tasks.push(EligibleTask {
+            node,
+            request_mode: EvaluationRequestMode::Default,
+            direct_request: true,
+            reason: TaskReason::RequestedTarget,
+            admission: EligibleTaskAdmission::default(),
+        });
+        self.traversal.scratch.planner_stages.push(StageCursor {
+            index: 0,
+            start: 0,
+            end: 1,
+            barrier: Some(StageBarrier::StageBoundary),
+        });
         self.traversal.topology_node_buffer.push(node);
         self.conditional_dependency_versions
             .insert(node, vec![3, 5, 8]);

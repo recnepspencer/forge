@@ -86,7 +86,7 @@ fn replacement_helper_preserves_complete_cell_truth_with_a_new_incarnation() {
     let mut context = ();
     runtime
         .transaction(&mut context, |transaction| {
-            transaction.set_dependencies(dependent, [DependencyEdge::new(source, Aspect::new(19))])
+            transaction.set_dependencies(dependent, [DependencyEdge::new(source, Aspect::new(6))])
         })
         .expect("replacement fixture creates a real nonempty mutation journal");
     let basis = runtime

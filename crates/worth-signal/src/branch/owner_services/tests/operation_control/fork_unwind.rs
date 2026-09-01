@@ -211,7 +211,7 @@ fn fork_source_capture_fault_quarantines_only_source_and_releases_destination_cu
             |transaction| {
                 transaction.set_dependencies(
                     dependent,
-                    [DependencyEdge::new(replacement, Aspect::new(8))],
+                    [DependencyEdge::new(replacement, Aspect::new(3))],
                 )
             },
         )

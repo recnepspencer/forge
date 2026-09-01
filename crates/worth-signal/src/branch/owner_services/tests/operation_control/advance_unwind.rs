@@ -47,7 +47,7 @@ fn advance_outcome_construction_fault_preserves_performed_truth_and_releases_out
                 |transaction| {
                     transaction.set_dependencies(
                         dependent,
-                        [DependencyEdge::new(replacement, Aspect::new(9))],
+                        [DependencyEdge::new(replacement, Aspect::new(2))],
                     )
                 },
             )

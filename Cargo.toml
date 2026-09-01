@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
-# Road 1 sub-workspaces under cad/workspaces own their own package membership.
+# Road 1 sub-workspaces under workspaces own their own package membership.
 # Keep them out of the root workspace so whole-world orchestration must route
 # through explicit --manifest-path calls rather than silent root ownership.
-exclude = ["cad/workspaces/*", "workspaces/*", "crates/worth-geom"]
+exclude = ["workspaces/*", "crates/worth-geom"]
 members = [
     "crates/worth-harness",
     "crates/worth-math",
@@ -22,14 +22,8 @@ members = [
 
 [workspace.metadata.worth_topology]
 role = "thin_orchestrator"
-road1_subworkspaces = [
-    "cad/workspaces/worth-contracts",
-    "cad/workspaces/worth-entry",
-    "cad/workspaces/worth-derived",
-    "cad/workspaces/worth-packs",
-    "cad/workspaces/worth-certification",
-]
-forbidden_member_prefixes = ["cad/workspaces/"]
+road1_subworkspaces = ["workspaces/worth-contracts"]
+forbidden_member_prefixes = ["workspaces/"]
 boundary_check_manifest = "tools/boundary-check/Cargo.toml"
 boundary_check_config = "tools/boundary-check/config/road1.toml"
 
@@ -53,7 +47,7 @@ worth-query-decl = { path = "workspaces/worth-query/crates/worth-query-decl" }
 worth-query-host = { path = "workspaces/worth-query/crates/worth-query-host" }
 worth-query-publication = { path = "workspaces/worth-query/crates/worth-query-publication" }
 worth-query-replay = { path = "workspaces/worth-query/crates/worth-query-replay" }
-worth-schema-graph = { path = "cad/workspaces/worth-contracts/crates/worth-schema-graph" }
+worth-schema-graph = { path = "workspaces/worth-contracts/crates/worth-schema-graph" }
 worth-foundational = { path = "crates/worth-foundational" }
 worth-proof = { path = "crates/worth-proof" }
 worth-signal = { path = "crates/worth-signal" }

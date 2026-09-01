@@ -138,9 +138,6 @@ jobs:
         shell: pwsh
         run: pwsh -File scripts/check-constitution.ps1 --format json
 
-      - name: Road 1 adoption certification corpus
-        run: cargo test --manifest-path cad/workspaces/worth-certification/Cargo.toml -p worth-cert-adoption --test compile_fail
-
       - name: Build workspace
         run: cargo build --workspace
 
@@ -238,6 +235,9 @@ jobs:
 
       - name: Clippy (deny warnings)
         run: cargo clippy --workspace -- -D warnings
+
+      - name: Owner-service milestone Clippy court
+        run: bash scripts/ci/check_owner_service_clippy.sh
 
       - name: Clippy WORTH Query workspace
         run: cargo clippy --manifest-path workspaces/worth-query/Cargo.toml --workspace --all-targets -- -D warnings
