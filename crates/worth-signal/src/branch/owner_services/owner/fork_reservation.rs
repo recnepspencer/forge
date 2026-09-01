@@ -11,8 +11,8 @@ use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
 use super::super::branch_execution_cell::SignalBranchForkSourceCustody;
 use super::super::branch_registry::{
-    SignalBranchRegistryDenial, SignalBranchReservation, SignalInstalledBranchCell,
-    SignalPreparedBranchCell, SignalPreparedBranchInstallation,
+    SignalBranchRegistryDenial, SignalBranchReservation, SignalPreparedBranchCell,
+    SignalPreparedBranchInstallation,
 };
 use super::super::operation_control::SignalOwnerOperationBoundary;
 use super::super::owner_metadata::SignalOwnerForkLineageReservation;
@@ -123,12 +123,12 @@ where
         &self.handle
     }
 
-    pub(in crate::branch::owner_services) fn install(
+    pub(in crate::branch::owner_services) fn capture(
         self,
-        source_custody: &SignalBranchForkSourceCustody<'_, '_, SignalBranchCellState<D, I, T>>,
+        source_custody: SignalBranchForkSourceCustody<'a, 'a, SignalBranchCellState<D, I, T>>,
         source: &AdmittedSignalBranchBasis,
         cancellation: &SignalOwnerCancellationToken,
-    ) -> Result<SignalInstalledOwnerFork<'a, D, I, T>, SignalBranchForkOperationDenial> {
+    ) -> Result<SignalPreparedOwnerFork<'a, D, I, T>, SignalBranchForkOperationDenial> {
         let Some(parent_branch_id) = self.handle.parent_branch_id else {
             return Err(owner_fork_invariant(
                 "fork destination reservation has no source branch",
@@ -141,7 +141,10 @@ where
                 "fork source does not match its owner-issued destination reservation",
             ));
         }
+        let admission = self.reservation.admission();
+        let source_cell = source_custody.cell_arc();
         let builder = SignalOwnerForkCellBuilder {
+            source_custody: Some(source_custody),
             handle: self.handle,
             owner_runtime_instance_id: self.owner_runtime_instance_id,
             definition_basis: self.definition_basis,
@@ -149,10 +152,7 @@ where
             lineage: self.lineage,
             destination_observation: None,
         };
-        source_custody
-            .cell()
-            .capture_fork_source_exact(source_custody, source, builder, cancellation)?
-            .install()
+        source_cell.capture_fork_source_exact(admission, source, builder, cancellation)
     }
 }
 
@@ -162,6 +162,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    source_custody: Option<SignalBranchForkSourceCustody<'a, 'a, SignalBranchCellState<D, I, T>>>,
     handle: SignalBranchHandle,
     owner_runtime_instance_id: u64,
     definition_basis: u64,
@@ -191,8 +192,8 @@ where
 {
     handle: SignalBranchHandle,
     observation: SignalBranchObservation,
-    installation: SignalInstalledBranchCell<'a, SignalBranchCellState<D, I, T>>,
-    lineage: SignalOwnerForkLineageReservation<'a, D, I, T>,
+    cell: Arc<SignalBranchExecutionCell<SignalBranchCellState<D, I, T>>>,
+    lifetime: std::marker::PhantomData<&'a SignalOwnerOperationAdmission<'a>>,
 }
 
 impl<'a, D, I, T> SignalInstalledOwnerFork<'a, D, I, T>
@@ -204,23 +205,11 @@ where
     pub(in crate::branch::owner_services) fn cell(
         &self,
     ) -> &Arc<SignalBranchExecutionCell<SignalBranchCellState<D, I, T>>> {
-        self.installation.cell()
+        &self.cell
     }
 
-    pub(super) fn into_handoff_parts(
-        self,
-    ) -> (
-        SignalBranchHandle,
-        SignalBranchObservation,
-        SignalInstalledBranchCell<'a, SignalBranchCellState<D, I, T>>,
-        SignalOwnerForkLineageReservation<'a, D, I, T>,
-    ) {
-        (
-            self.handle,
-            self.observation,
-            self.installation,
-            self.lineage,
-        )
+    pub(super) fn into_handoff_parts(self) -> (SignalBranchHandle, SignalBranchObservation) {
+        (self.handle, self.observation)
     }
 }
 
@@ -233,7 +222,7 @@ where
     type Target = SignalBranchExecutionCell<SignalBranchCellState<D, I, T>>;
 
     fn deref(&self) -> &Self::Target {
-        self.installation.cell()
+        &self.cell
     }
 }
 
@@ -243,6 +232,15 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(crate) fn source_matches(
+        &self,
+        cell: &SignalBranchExecutionCell<SignalBranchCellState<D, I, T>>,
+    ) -> bool {
+        self.source_custody
+            .as_ref()
+            .is_some_and(|custody| custody.matches(cell))
+    }
+
     pub(crate) fn destination(&self) -> &SignalBranchHandle {
         &self.handle
     }
@@ -294,9 +292,14 @@ where
     }
 
     pub(crate) fn bind_prepared_cell(
-        self,
+        mut self,
         prepared: SignalPreparedBranchCell<SignalBranchCellState<D, I, T>>,
     ) -> SignalPreparedOwnerFork<'a, D, I, T> {
+        drop(
+            self.source_custody
+                .take()
+                .expect("prepared fork capture retains source custody until capture completes"),
+        );
         let admission = self.reservation.admission();
         SignalPreparedOwnerFork {
             handle: self.handle,
@@ -316,7 +319,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(super) fn install(
+    pub(in crate::branch::owner_services) fn install(
         self,
     ) -> Result<SignalInstalledOwnerFork<'a, D, I, T>, SignalBranchForkOperationDenial> {
         let SignalPreparedOwnerFork {
@@ -330,13 +333,16 @@ where
         let installation = installation
             .install_recoverable()
             .map_err(|denial| map_fork_registry_denial(denial, branch_id))?;
+        let cell = Arc::clone(installation.cell());
+        lineage.commit();
+        installation.commit();
         admission
             .reach_operation_boundary(SignalOwnerOperationBoundary::ForkDestinationInstallation);
         Ok(SignalInstalledOwnerFork {
             handle,
             observation: destination_observation,
-            installation,
-            lineage,
+            cell,
+            lifetime: std::marker::PhantomData,
         })
     }
 }

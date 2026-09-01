@@ -2,15 +2,12 @@
 
 ## What This Feature Is
 
-Signal owner services are the future shared-borrow entry points for working on
-one owner-managed branch without borrowing the whole `SignalRuntime` mutably.
-Phase 3 installed the real owner root, registry, independent branch cells, and
-managed-reference admission described here. The Phase 4 shared-contract gate
-now supplies the bounded admission, cleanup, retention-reservation, lineage,
-retirement-recovery, and transfer seams that the three service lanes consume.
-It does not deliver the public services, bundle, facade, or legacy cutover. The
-public methods in the contract matrix remain unavailable until their later
-implementation and publication gates.
+Signal owner services are the shared-borrow entry points for working on one
+owner-managed branch without borrowing the whole `SignalRuntime` mutably.
+Phase 5/6 install the real owner root, registry, independent branch cells,
+managed-reference admission, concrete weak ports, and adversarial evidence
+described here. The public bundle delegates to that one canonical owner; it is
+not a second graph, head, lifecycle, or authority table.
 
 ## Why You Use It
 
@@ -22,23 +19,20 @@ implementation and publication gates.
 
 ## Stable Entry Points
 
-`worth_signal::facade::branch` currently exports the owner-issued
-`ManagedSignalBranchReference` vocabulary and its admission denial, along with
-the existing basis, snapshot, retention, retirement, and outcome types.
+`worth_signal::facade::branch` exports the owner-issued
+`ManagedSignalBranchReference`, exact basis/snapshot/retention vocabulary,
+`SignalOwnerServicePorts`, and the three concrete weak ports. Issuance is
+`SignalRuntime::owner_component_services(&mut self)`, once per canonical
+partition after construction-only configuration is complete. It is the
+one-way seal transition and requires `D`, `I`, `E`, `Ctx`, and `T` to satisfy the published
+`Send + Sync + 'static` composition bounds. Every port and the bundle is
+`Send + Sync + Clone`; none retains the runtime strongly or exposes a public
+constructor. Operation control is an additional `test-operation-control`
+facade export for deterministic tests only and is absent from normal builds.
 
-The following remain **not public availability claims** after the Phase 4
-shared-contract gate:
-
-- `SignalOwnerServicePorts`
-- `SignalBranchBasisPort`
-- `SignalBranchMutationPort`
-- `SignalBranchLifecyclePort`
-- `SignalRuntime::owner_component_services`
-
-Their exact contracts are frozen below so the service lanes cannot omit an
-inherited operation or improvise a weaker input. Phase 5 will make the bundle
-and ports composition-facing after the methods delegate to the installed owner
-kernel.
+The exact public contracts and their canonical owners are recorded below so
+service users and parallel implementation lanes cannot improvise weaker inputs
+or duplicate authority.
 
 ## Installed Shared-Contract Gate
 
@@ -151,13 +145,13 @@ custody across a caller unwind; no-effect cancellation returns capacity and
 reopens only a still-live cell. Retired inert cells are removed and never
 relabeled live.
 
-Fork destination installation is recoverable until the caller receives the
-owner-issued destination handle and admitted basis. The exact registry
-incarnation and uncommitted lineage remain under rollback guards through
-`ForkDestinationInstallation` and `OutcomeConstruction`; unwind removes only
-that incarnation and returns lineage, retention, live, and reservation capacity.
-Successful conversion commits lineage and disarms registry rollback exactly
-once, without reconstructing a handle from descriptive identity.
+Fork holds source custody only through exact capture and the source mutation-
+journal boundary. Custody is released before destination binding or install.
+Destination installation and lineage then linearize before the faultable
+`ForkDestinationInstallation` and `OutcomeConstruction` seams, so a later
+unwind preserves the performed canonical child while returning unissued output
+retention. Pre-linearization unwind still releases the reservation; a panic in
+source capture quarantines only that source incarnation.
 
 Restore selection now validates a complete `ReadyBranchLifecycleTransfer`
 before moving outgoing state or removing the stored target. Its commit is
@@ -194,9 +188,9 @@ admit a second time. Retirement and replacement are
 `BranchLifecycleEnded`/`BranchIncarnationReplaced`. Descriptive branch identity
 equality is never consulted as proof.
 
-## Frozen Bundle Contract
+## Published Bundle Contract
 
-The future issuance shape is:
+The published issuance shape is:
 
 ```rust,ignore
 pub fn owner_component_services(
@@ -213,10 +207,41 @@ issuance capability fence, not permission to retain `E`, `Ctx`, or a callback.
 Each operation borrows its caller-owned `Ctx` synchronously, and `F` itself has
 no added `Send`, `Sync`, or `'static` bound.
 
+Issuance denial is exact and pre-effect:
+
+- `EventSubscriberStateConfigured`, `ObservationRegistrationStateConfigured`,
+  and `ManagedQueueStateConfigured { bound_queue_count }` report construction
+  state incompatible with independent owner services;
+- `LiveBranchCapacityExhausted { maximum_live_branches }` and
+  `RetirementReceiptCapacityExhausted { maximum_retained_receipts }` report the
+  bounded partition that cannot be transferred.
+
+The caller may remove the reported incompatible construction state or reduce
+the relevant live/retained population and retry. A denial leaves the runtime
+unsealed; a successful call seals exactly once, and later calls only reissue
+weak ports to that same owner.
+
 The bundle accessors are exactly `basis_port()`, `mutation_port()`, and
 `lifecycle_port()`. The bundle and every returned port are cloneable weak
-bindings. They do not expose constructors, close authority, cells, registries,
-test control, or a generic service trait.
+bindings; they expose no constructors, close authority, cells, registries, or
+generic service trait. With `test-operation-control`, a sealed runtime also issues
+`owner_operation_control() -> Result<SignalOwnerOperationControl, SignalOwnerUnavailable>`;
+this handle names real progression boundaries but cannot mint authority or
+change production semantics.
+
+After sealing, old construction-state entry points intentionally panic before
+access: graph/config mutation and validation, checkpoint and telemetry reads,
+resource and temporal summaries, detached diagnostics, subscriber/listener
+configuration, and graph-backed observer/materializer access. None returns an
+empty replacement as canonical truth.
+`switch_branch` returns `SignalError::InvalidInput`; branch selection, catalog,
+ancestry, and head reads use the owner. Legacy basis, mutation, retention,
+retirement, and batch operations delegate to that owner.
+`advance_signal_branch` delegates to `advance_exact`; its synchronous callback is
+the supported post-seal transaction/view value-read path and cannot retain `Ctx`
+or block on the held cell. Reconstruction returns `NonPristineRuntime`.
+Surface coverage is `signal_owner_services::legacy_surface::sealed_non_main_selection_and_catalog_are_canonical_through_root_and_observer`,
+`signal_owner_services::legacy_surface::detached_construction_state_surfaces_panic_before_access_and_leave_owner_healthy`, and `signal_owner_services::legacy_surface::portable_reconstruction_is_non_pristine_after_owner_sealing`; delegation is exercised by `signal_owner_services::legacy_cutover::legacy_root_calls_cross_issuance_without_a_second_branch_state_lane` and `signal_owner_services::legacy_cutover::sealed_legacy_batch_fences_child_before_parent_and_retains_receipts`.
 
 ## Frozen Method Matrix
 
@@ -228,63 +253,51 @@ owner column names where the decision remains after the public method exists.
 
 | Exact method | Inputs | Output | Cancellation | Canonical owner | Named case / executable lane |
 | --- | --- | --- | --- | --- | --- |
-| `issue_managed_branch_reference` | `&AdmittedSignalBranchBasis` | `Result<ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial>` | none; bounded admission only | owner lifecycle + registry cell incarnation | future `signal_owner_services`: healthy `provenance::issues_managed_reference_from_real_basis`, denials `provenance::managed_reference_issuance_denial_matrix`; current kernel healthy `managed_reference::owner_issued_reference_reenters_one_live_cell_without_retaining_exact_state` |
-| `observe_current` | `&ManagedSignalBranchReference` | `Result<AdmittedSignalBranchBasis, SignalBranchBasisObservationDenial>` | none; read-only target-cell contact | checked target cell + admission retention registry | future `signal_owner_services`: healthy `provenance::managed_reference_observes_current_after_movement`, denials `provenance::managed_reference_observation_denial_matrix`; current kernel healthy/movement `managed_reference::canonical_movement_stales_exact_basis_without_staling_managed_reference`, denials `equal_looking_branch_numbers_from_another_owner_are_denied_by_affinity`, `retirement_invalidates_the_reference_for_the_consumed_branch_incarnation`, and owner replacement tests |
-| `readmit_exact` | `&ManagedSignalBranchReference`, `&SignalBranchBasisDescriptor` | `Result<AdmittedSignalBranchBasis, SignalBranchBasisReadmissionDenial>` | none; read-only compare | checked target cell + admission retention registry | future `signal_owner_services`: healthy `provenance::managed_reference_readmits_exact_descriptor`, denials `provenance::managed_reference_readmission_denial_matrix`; current kernel `managed_reference::owner_issued_reference_reenters_one_live_cell_without_retaining_exact_state` executes the checked-cell observation substep, while `transaction_panic_quarantines_managed_readmission_without_unknown_branch` executes its terminal quarantine mapping; descriptor comparison and new admitted-basis issuance remain unexecuted until Phase 4 |
-| `compare_current_exact` | `&AdmittedSignalBranchBasis` | `Result<(), SignalBranchBasisReadmissionDenial>` | none; read-only compare | concrete basis authority + its target cell | future `signal_owner_services`: healthy `provenance::admitted_basis_matches_current`, denials `provenance::compare_current_exact_denial_matrix`; current kernel `managed_reference::canonical_movement_stales_exact_basis_without_staling_managed_reference` executes the stale no-callback/no-movement denial |
-| `readmit_retained_exact` | `&SignalBranchBasisDescriptor`, `&SignalBranchRetentionLease` | `Result<AdmittedSignalBranchBasis, SignalBranchRetainedReadmissionDenial>` | none; read-only retained-target admission | issuing retention ledger + exact target admission | future `signal_owner_services`: healthy `lifecycle::retained_exact_readmission_after_movement`, denials `lifecycle::retained_exact_readmission_denial_matrix`; current root `branch_retention_lifecycle::a_live_obligation_readmits_its_exact_retained_target` executes healthy and foreign/descriptor denials |
-| `retain_exact` | `&AdmittedSignalBranchBasis` | `Result<SignalBranchRetentionLease, SignalBranchRetentionAcquisitionDenial>` | pre-effect, no token | retention registry | future `signal_owner_services`: healthy `lifecycle::retains_historical_exact_basis`, denials `lifecycle::exact_retention_acquisition_denial_matrix`; current root `branch_retention_lifecycle::an_exact_obligation_pins_a_real_historical_admitted_target` and `branch_retention_contract::retention_capacity_denies_before_unbounded_growth` execute both postures |
-| `release_exact` | `SignalBranchRetentionLease` | `SignalBranchRetentionReleaseOutcome` | terminal and non-cancellable | weak port admission, then issuing retention ledger | future `signal_owner_services`: healthy/denial `lifecycle::weak_port_release_and_direct_lease_terminal_matrix`; current root `branch_retention_lifecycle::explicit_release_returns_governed_exact_target_evidence`, `a_foreign_release_hands_the_live_obligation_back`, and `an_obligation_outlives_its_owner_and_records_owner_loss` execute lease terminal postures, while weak-port owner loss remains unexecuted until Phase 4 |
-| `owner_lifecycle_observation` | none | `SignalOwnerLifecycleObservation` | not applicable | owner lifecycle | future `signal_owner_services`: healthy/terminal `lifecycle::weak_port_observes_open_closing_closed`; current kernel `lifecycle::close_drains_admitted_work_and_monotonically_denies_late_admission`, `root_destruction::root_drop_inside_admitted_callback_requests_close_without_self_deadlock`, and `foreign_owner_cannot_admit_or_close_the_lifecycle` execute lifecycle posture |
-| `owner_service_cost_snapshot` | none | `Result<SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable>` | not applicable | owner counters | future `signal_owner_services`: healthy `cost::basis_operations_report_exact_structural_deltas`, denial `cost::closed_basis_port_reports_owner_unavailable`; current kernel `managed_reference::owner_issued_reference_reenters_one_live_cell_without_retaining_exact_state` proves the one-lookup/one-contact managed observation cost |
+| `issue_managed_branch_reference` | `&AdmittedSignalBranchBasis` | `Result<ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial>` | none; bounded admission only | owner lifecycle + registry cell incarnation | public healthy: `signal_owner_services::facade_smoke::public_facade_issues_weak_ports_over_the_canonical_owner`; no standalone issuance-denial case; kernel: `branch::owner_services::tests::managed_reference::owner_issued_reference_reenters_one_live_cell_without_retaining_exact_state` |
+| `observe_current` | `&ManagedSignalBranchReference` | `Result<AdmittedSignalBranchBasis, SignalBranchBasisObservationDenial>` | none; read-only target-cell contact | checked target cell + admission retention registry | public: `signal_owner_services::signal_world::baseline::cargo_routing_baseline_is_real_and_publicly_observable`, `signal_owner_services::signal_world::lifecycle::retired_child_denies_new_work_while_the_owner_and_unrelated_branch_remain_healthy`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; feature race: `signal_owner_services::adversarial::operation_control::observation_race::same_branch_observe_retire_returns_a_complete_pre_or_post_state`; kernel: `branch::owner_services::tests::managed_reference::canonical_movement_stales_exact_basis_without_staling_managed_reference`, `branch::owner_services::basis_port::tests::descriptor_denials::foreign_managed_authority_denies_before_receiving_owner_registry_contact` |
+| `readmit_exact` | `&ManagedSignalBranchReference`, `&SignalBranchBasisDescriptor` | `Result<AdmittedSignalBranchBasis, SignalBranchBasisReadmissionDenial>` | none; read-only compare | checked target cell + admission retention registry | public healthy/stale/foreign: `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`, `signal_owner_services::signal_world::baseline::cargo_routing_mutation_changes_effects_and_stales_the_consumed_basis`, `signal_owner_services::signal_world::facade::concrete_facade_ports_compile_and_cover_the_owner_method_shapes`; kernel: `branch::owner_services::basis_port::tests::method_matrix::basis_port_observation_and_readmission_method_matrix_uses_one_real_cell`, `branch::owner_services::tests::managed_reference::transaction_panic_quarantines_managed_readmission_without_unknown_branch` |
+| `compare_current_exact` | `&AdmittedSignalBranchBasis` | `Result<(), SignalBranchBasisReadmissionDenial>` | none; read-only compare | concrete basis authority + its target cell | public healthy only: `signal_owner_services::signal_world::facade::concrete_facade_ports_compile_and_cover_the_owner_method_shapes`, `signal_owner_services::signal_world::baseline::cargo_routing_baseline_is_real_and_publicly_observable`; no public denial case; kernel: `branch::owner_services::basis_port::tests::method_matrix::basis_port_observation_and_readmission_method_matrix_uses_one_real_cell` |
+| `readmit_retained_exact` | `&SignalBranchBasisDescriptor`, `&SignalBranchRetentionLease` | `Result<AdmittedSignalBranchBasis, SignalBranchRetainedReadmissionDenial>` | none; read-only retained-target admission | issuing retention ledger + exact target admission | public healthy only: `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; no public denial case; kernel: `branch::owner_services::basis_port::tests::method_matrix::retained_readmission_preserves_historical_target_and_release_custody` |
+| `retain_exact` | `&AdmittedSignalBranchBasis` | `Result<SignalBranchRetentionLease, SignalBranchRetentionAcquisitionDenial>` | pre-effect, no token | retention registry | public healthy: `signal_owner_services::signal_world::facade::concrete_facade_ports_compile_and_cover_the_owner_method_shapes`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; ignored capacity: `signal_owner_services::adversarial::capacity_cleanup::retention_capacity_denies_then_all_releases_restore_one_lease`; kernel: `branch::owner_services::tests::retention_lifecycle::prior_admission_retains_acquisition_rights_during_closing_and_closed_denies_fresh_work`, `branch::owner_services::basis_port::tests::retention_capacity::retention_capacity_denies_every_artifact_path_without_leak_then_reopens` |
+| `release_exact` | `SignalBranchRetentionLease` | `SignalBranchRetentionReleaseOutcome` | terminal and non-cancellable | weak port admission, then issuing retention ledger | public: `signal_owner_services::signal_world::facade::concrete_facade_ports_compile_and_cover_the_owner_method_shapes`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; kernel: `branch::owner_services::basis_port::tests::method_matrix::foreign_retention_custody_returns_the_live_lease_to_its_issuer`, `branch::owner_services::tests::retention_lifecycle::direct_lease_terminality_linearizes_before_or_during_owner_close` |
+| `owner_lifecycle_observation` | none | `SignalOwnerLifecycleObservation` | not applicable | owner lifecycle | public: `signal_owner_services::facade_smoke::public_facade_issues_weak_ports_over_the_canonical_owner`, `signal_owner_services::signal_world::lifecycle::retired_child_denies_new_work_while_the_owner_and_unrelated_branch_remain_healthy`; feature boundary: `signal_owner_services::adversarial::operation_control::close::close_fences_new_work_but_releases_an_already_admitted_operation`; kernel: `branch::owner_services::lifecycle_port::tests::lifecycle_observation::weak_port_observes_open_closing_closed_and_owner_loss` |
+| `owner_service_cost_snapshot` | none | `Result<SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable>` | not applicable | owner counters | public: `signal_owner_services::adversarial::cost::one_public_advance_reports_one_local_structural_delta`, `signal_owner_services::adversarial::cost::closed_basis_port_reports_owner_unavailable`; kernel: `branch::owner_services::basis_port::tests::method_matrix::lifecycle_and_cost_inspection_account_for_their_own_weak_upgrades`, `branch::owner_services::lifecycle_port::tests::lifecycle_observation::lifecycle_and_cost_inspection_account_for_their_weak_upgrades_only` |
 
-`readmit_exact` is not descriptor-only readmission: the managed reference must
-admit the exact owner and checked cell before the descriptor is compared there. The
-compatibility method `SignalRuntime::readmit_signal_branch_basis(descriptor)`
-stays owner-root-only and is not a composition input. `readmit_retained_exact`
-uses a different inherited authority route: the concrete lease already binds
-the issuing owner and exact historical target, so it takes the descriptor and
-lease without a managed reference and performs no currentness comparison.
-`compare_current_exact` first validates the admitted basis's receiving-owner,
-definition, and branch affinity, then compares its complete exact state against
-that one canonical cell. The named future denial matrix must cover same-Rust-type
-foreign authority and exact-state drift separately.
+`readmit_exact` is not descriptor-only: the managed reference admits the exact
+owner and checked cell before comparing the descriptor. The compatibility
+`SignalRuntime::readmit_signal_branch_basis(descriptor)` remains owner-root-only.
+`readmit_retained_exact` instead uses the lease's inherited owner and exact
+historical target, with no managed reference or currentness comparison.
+`compare_current_exact` validates receiving-owner, definition, and branch
+affinity before comparing complete exact state against that cell. The public
+denial matrix must separate same-Rust-type foreign authority from state drift.
 
-Managed-reference admission is mapped without flattening. Matching-owner loss
-remains the existing top-level `OwnerUnavailable`; foreign affinity, an ended or
-replaced incarnation, retirement already visible during lookup, and invariant
-failure are carried by the additive `ManagedReferenceDenied` variant on
-observation/readmission denials. After admission returns its checked cell, a
-retirement race remains the cell's existing top-level `RetirementInProgress` or
-`RetiredBranch` observation denial. A Phase 4 method must continue from that
-exact checked cell; a second raw-id lookup is not an acceptable substitute.
+Managed-reference admission is mapped without flattening: matching-owner loss
+is top-level `OwnerUnavailable`, while foreign affinity, ended/replaced
+incarnation, visible retirement, and invariant failure use the additive
+`ManagedReferenceDenied` variant. After admission returns its checked cell, a
+retirement race keeps the cell's `RetirementInProgress` or `RetiredBranch`
+denial. Public methods must continue from that cell, never a second raw-id lookup.
 
 ### Typed installed-cell posture
 
-Once a registry lookup has returned an installed target cell, its posture is
-not flattened into `UnknownBranch` or a diagnostic string. `advance_exact`,
+Once a registry lookup returns an installed target cell, its posture is never
+flattened into `UnknownBranch` or a diagnostic string. `advance_exact`,
 `fork_exact`, `capture_exact`, `restore_exact`, and retirement planning or
-execution preserve the cell result as the operation-specific
-`RetirementInProgress { branch_id }`, `RetiredBranch { branch_id }`,
-`QuarantinedBranch { branch_id }`, or `OwnerCellMisuse { branch_id }` denial.
-Managed exact readmission likewise preserves retirement-in-progress, retired,
-quarantined, cell-misuse, and owner-invariant postures in
-`SignalBranchBasisReadmissionDenial`.
+execution preserve operation-specific `RetirementInProgress { branch_id }`,
+`RetiredBranch { branch_id }`, `QuarantinedBranch { branch_id }`, or
+`OwnerCellMisuse { branch_id }`; managed exact readmission preserves those and
+owner-invariant postures in `SignalBranchBasisReadmissionDenial`.
 
-`UnknownBranch` remains reserved for actual absence at registry lookup. Owner
-invariants and expired retirement custody retain their distinct typed posture;
-they are not converted to absence. A quarantined
-cell is the terminal contained-panic posture and cannot be readmitted, moved, or
-retired. It retains its registry membership and one configured live-branch
-capacity slot until the Signal owner root is destroyed; the current kernel has
-no quarantine purge path. Unrelated cells remain available. `OwnerCellMisuse`
-remains the typed cell-misuse meaning. Owner-wide executing-thread reentry is
-the operation-specific additive `OwnerReentry` meaning and does not require a
-fabricated branch id. Current executable mapping evidence is
-`cell_posture_outcomes::every_operation_preserves_reachable_cell_posture_without_unknown_fallback`
-for every operation mapping and
-`managed_reference::transaction_panic_quarantines_managed_readmission_without_unknown_branch`
-for the real contained-panic path.
+`UnknownBranch` remains reserved for actual registry absence; owner invariants
+and expired retirement custody retain distinct typed postures. A quarantined
+cell is terminal contained-panic state: it cannot be readmitted, moved, or
+retired, retains registry membership and one live-branch capacity slot until
+owner destruction, and has no purge path. Unrelated cells remain available.
+`OwnerCellMisuse` remains typed, while executing-thread reentry is additive
+`OwnerReentry` without a fabricated branch id. Evidence is
+`branch::owner_services::tests::cell_posture_outcomes::every_operation_preserves_reachable_cell_posture_without_unknown_fallback`
+and `branch::owner_services::tests::managed_reference::transaction_panic_quarantines_managed_readmission_without_unknown_branch`.
 
 Two inherited public root methods remain explicit compatibility surfaces rather
 than disappearing into this port contract:
@@ -316,10 +329,10 @@ lease's distinct terminal route and may report terminal owner loss.
 
 | Exact method | Inputs and operation-specific generic | Output | Cancellation | Canonical owner | Named case / executable lane |
 | --- | --- | --- | --- | --- | --- |
-| `fork_exact` | `ValidatedSignalBranchName`, `&AdmittedSignalBranchBasis`, `&SignalOwnerCancellationToken` | `Result<SignalBranchForkOutcome, SignalBranchForkOperationDenial>` | before source capture/installation; performed installation wins | source cell + bounded registry reservation | future `signal_owner_services`: healthy `fork_and_sharing::fork_exact_shares_populated_state`, denials `fork_and_sharing::fork_exact_denial_and_cancellation_matrix`; current kernel `fork_contracts::exact_fork_shares_graph_roots_and_isolates_touched_node_state` and `late_fork_cancellation_drops_preconstructed_destination_without_source_movement` |
-| `advance_exact<F>` | `&AdmittedSignalBranchBasis`, `&mut Ctx`, `&SignalOwnerCancellationToken`, `F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>` | `Result<SignalBranchAdvanceOutcome, SignalBranchAdvanceDenial>` | before canonical movement; performed movement wins | one target cell + transaction engine | future `signal_owner_services`: healthy `baseline::advance_exact_changes_semantic_output`, denials `baseline::advance_exact_stale_cancelled_and_engine_denials`; current kernel `managed_reference::canonical_movement_stales_exact_basis_without_staling_managed_reference` and `cancellation::cancellation_while_waiting_for_same_cell_denies_without_movement` |
-| `capture_exact` | `&AdmittedSignalBranchBasis`, `&SignalOwnerCancellationToken` | `Result<SignalBranchSnapshotCaptureOutcome, SignalBranchSnapshotCaptureDenial>` | before capture movement; performed capture wins | target cell + snapshot registry | future `signal_owner_services`: healthy `lifecycle::capture_exact_records_snapshot_and_basis`, denials `lifecycle::capture_exact_denial_and_cancellation_matrix`; current kernel `exact_cell_contracts::exact_snapshot_and_restore_contracts_move_one_cell_and_install_metadata_between_locks` executes healthy and stale exact denial |
-| `restore_exact` | `&AdmittedSignalBranchBasis`, `&AdmittedSignalBranchSnapshot`, `&SignalOwnerCancellationToken` | `Result<AdmittedSignalBranchBasis, SignalBranchRestoreDenial>` | before restore movement; performed restore wins | target cell + snapshot registry | future `signal_owner_services`: healthy `lifecycle::restore_exact_changes_canonical_observation`, denials `lifecycle::restore_exact_denial_and_cancellation_matrix`; current kernel `exact_cell_contracts::exact_snapshot_and_restore_contracts_move_one_cell_and_install_metadata_between_locks` executes healthy and mismatch denial |
+| `fork_exact` | `ValidatedSignalBranchName`, `&AdmittedSignalBranchBasis`, `&SignalOwnerCancellationToken` | `Result<SignalBranchForkOutcome, SignalBranchForkOperationDenial>` | before source capture/installation; performed installation wins | source cell + bounded registry reservation | public healthy: `signal_owner_services::facade_smoke::public_facade_issues_weak_ports_over_the_canonical_owner`, `signal_owner_services::signal_world::facade::concrete_facade_ports_compile_and_cover_the_owner_method_shapes`; feature cancellation: `signal_owner_services::adversarial::operation_control::cancellation::pre_movement_cancellation_denies_every_cancellable_public_operation`; ignored capacity: `signal_owner_services::adversarial::capacity_cleanup::live_branch_capacity_denies_then_retirement_restores_one_slot`; kernel: `branch::owner_services::tests::fork_contracts::exact_fork_shares_graph_roots_and_isolates_touched_node_state`, `branch::owner_services::mutation_port::tests::baseline::fork_exact_returns_the_installed_owner_handle_without_reconstruction` |
+| `advance_exact<F>` | `&AdmittedSignalBranchBasis`, `&mut Ctx`, `&SignalOwnerCancellationToken`, `F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>` | `Result<SignalBranchAdvanceOutcome, SignalBranchAdvanceDenial>` | before canonical movement; performed movement wins | one target cell + transaction engine | public: `signal_owner_services::signal_world::baseline::cargo_routing_mutation_changes_effects_and_stales_the_consumed_basis`, `signal_owner_services::signal_world::lifecycle::same_branch_stale_and_retired_postures_are_exact_and_recoverable`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; feature cancellation: `signal_owner_services::adversarial::operation_control::cancellation::pre_movement_cancellation_denies_every_cancellable_public_operation`; kernel: `branch::owner_services::mutation_port::tests::denials::stale_matrix_cleans_every_reservation_and_allows_healthy_follow_up`, `branch::owner_services::mutation_port::tests::denials::advance_cancellation_requested_after_cutoff_cannot_erase_performed_truth`, `branch::owner_services::tests::cancellation::cancellation_while_waiting_for_same_cell_denies_without_movement` |
+| `capture_exact` | `&AdmittedSignalBranchBasis`, `&SignalOwnerCancellationToken` | `Result<SignalBranchSnapshotCaptureOutcome, SignalBranchSnapshotCaptureDenial>` | before capture movement; performed capture wins | target cell + snapshot registry | public: `signal_owner_services::signal_world::facade::concrete_facade_ports_compile_and_cover_the_owner_method_shapes`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; feature cancellation: `signal_owner_services::adversarial::operation_control::cancellation_progress::pre_movement_snapshot_cancellation_returns_output_custody`, `signal_owner_services::adversarial::operation_control::cancellation_progress::post_movement_snapshot_cancellation_keeps_the_performed_capture`; kernel: `branch::owner_services::tests::exact_cell_contracts::exact_snapshot_and_restore_contracts_move_one_cell_and_install_metadata_between_locks`, `branch::owner_services::mutation_port::tests::denials::pre_movement_cancellation_matrix_is_no_effect_and_releases_capacity` |
+| `restore_exact` | `&AdmittedSignalBranchBasis`, `&AdmittedSignalBranchSnapshot`, `&SignalOwnerCancellationToken` | `Result<AdmittedSignalBranchBasis, SignalBranchRestoreDenial>` | before restore movement; performed movement wins | target cell + snapshot registry | public: `signal_owner_services::signal_world::facade::concrete_facade_ports_compile_and_cover_the_owner_method_shapes`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; feature cancellation: `signal_owner_services::adversarial::operation_control::cancellation_progress::pre_movement_restore_cancellation_returns_output_custody`, `signal_owner_services::adversarial::operation_control::cancellation_progress::post_movement_restore_cancellation_keeps_the_performed_restore`; kernel: `branch::owner_services::tests::exact_cell_contracts::exact_snapshot_and_restore_contracts_move_one_cell_and_install_metadata_between_locks`, `branch::owner_services::tests::cancellation::restore::restore_cancellation_at_cutoff_denies_but_after_movement_is_performed_wins` |
 
 `F` executes synchronously while the caller retains `&mut Ctx`; the owner does
 not clone, register, return, or keep either value. Portable snapshot
@@ -335,20 +348,19 @@ reconstruction stores an immutable snapshot and updates metadata, never a
 second live mutable branch. These rules preserve distinct exact retention
 targets across sibling captures and the handoff into owner cells.
 
-`ValidatedSignalBranchName` names the frozen `fork_exact` input, but it is not a
-Phase 3 facade export. The facade gate that publishes `fork_exact` must publish
-the owner validator and its sealed validated value together; accepting an
-unvalidated `String` is not a compatible implementation of this row.
+`ValidatedSignalBranchName` names the frozen `fork_exact` input and is exported
+through the curated branch facade; accepting an unvalidated `String` is not
+compatible with this row.
 
 ### Lifecycle port
 
 | Exact method | Inputs | Output | Cancellation | Canonical owner | Named case / executable lane |
 | --- | --- | --- | --- | --- | --- |
-| `plan_retirement_exact` | existing `&SignalOwnerOperationAdmission`, `AdmittedSignalBranchBasis`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | metadata then retention, followed by one target-cell contact | current kernel `retirement_planning::owner_exact_retirement_plan_preserves_pre_effect_state_and_executes_real_handle`, `owner_retirement_planning_distinguishes_current_canonical_and_live_child`, `owner_retirement_planning_checks_complete_basis_and_owner_before_registry_contact`, `owner_retirement_planning_preserves_distinct_retention_and_holder_denials`, and `owner_retirement_planning_preserves_reachable_merge_participant_denial`; future service case `lifecycle::plan_retirement_exact_requires_linear_basis` and denial matrix |
-| `plan_retirement_releasing_snapshots_exact` | existing `&SignalOwnerOperationAdmission`, `AdmittedSignalBranchBasis`, `&[&AdmittedSignalBranchSnapshot]`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | metadata then retention, followed by one target-cell contact | current kernel `retirement_planning::snapshots::owner_snapshot_release_plan_counts_unique_owner_issued_custody_exactly`, `owner_snapshot_release_plan_denies_foreign_runtime_before_registry_contact`, and `owner_snapshot_release_plan_denies_real_wrong_branch_custody`; future service case `lifecycle::plan_retirement_releasing_exact_snapshots` and denial matrix |
-| `retire_exact` | `PlannedSignalBranchRetirement`, `&SignalOwnerCancellationToken` | `TransitionOutcome<SignalBranchRetirementReceipt, SignalBranchRetirementDenial>` | before movement; performed retirement wins | target cell then short registry removal | future `signal_owner_services`: healthy `lifecycle::retire_exact_consumes_linear_plan`, denials `lifecycle::retire_exact_cancellation_and_stale_plan_matrix`; current kernel `exact_cell_contracts::exact_retirement_contract_consumes_a_linear_plan_before_registry_removal` executes performed and denied posture |
-| `owner_lifecycle_observation` | none | `SignalOwnerLifecycleObservation` | not applicable | owner lifecycle | future `signal_owner_services`: healthy/terminal `lifecycle::weak_port_observes_open_closing_closed`; current kernel `lifecycle::close_drains_admitted_work_and_monotonically_denies_late_admission` and `root_destruction::root_drop_inside_admitted_callback_requests_close_without_self_deadlock` execute blocking-close and nonblocking-destruction posture |
-| `owner_service_cost_snapshot` | none | `Result<SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable>` | not applicable | owner counters | future `signal_owner_services`: healthy `cost::lifecycle_operations_report_exact_structural_deltas`, denial `cost::closed_lifecycle_port_reports_owner_unavailable`; current kernel `exact_cell_contracts::exact_retirement_contract_consumes_a_linear_plan_before_registry_removal` and registry cost assertions execute structural deltas |
+| `plan_retirement_exact` | `AdmittedSignalBranchBasis`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | metadata then retention, followed by one target-cell contact | public: `signal_owner_services::signal_world::lifecycle::retired_child_denies_new_work_while_the_owner_and_unrelated_branch_remain_healthy`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; kernel: `branch::owner_services::tests::retirement_planning::owner_exact_retirement_plan_preserves_pre_effect_state_and_executes_real_handle`, `branch::owner_services::tests::retirement_planning::owner_retirement_planning_distinguishes_current_canonical_and_live_child`, `branch::owner_services::lifecycle_port::tests::planning_denials::planning_preserves_component_admitted_and_shared_holder_denials` |
+| `plan_retirement_releasing_snapshots_exact` | `AdmittedSignalBranchBasis`, `&[&AdmittedSignalBranchSnapshot]`, `SignalBranchRetirementReason` | `TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial>` | pre-effect planning; no token | metadata then retention, followed by one target-cell contact | no direct public lifecycle-port case; compatibility coverage: `signal_owner_services::legacy_cutover::sealed_legacy_retirement_preserves_unknown_before_basis_mismatch`; kernel: `branch::owner_services::tests::retirement_planning::snapshots::owner_snapshot_release_plan_counts_unique_owner_issued_custody_exactly`, `branch::owner_services::tests::retirement_planning::snapshots::owner_snapshot_release_plan_denies_foreign_runtime_before_registry_contact`, `branch::owner_services::tests::retirement_planning::snapshots::owner_snapshot_release_plan_denies_real_wrong_branch_custody` |
+| `retire_exact` | `PlannedSignalBranchRetirement`, `&SignalOwnerCancellationToken` | `TransitionOutcome<SignalBranchRetirementReceipt, SignalBranchRetirementDenial>` | before movement; performed retirement wins | target cell then short registry removal | public: `signal_owner_services::signal_world::lifecycle::retired_child_denies_new_work_while_the_owner_and_unrelated_branch_remain_healthy`, `signal_owner_services::independent_oracle::model_sequences::public_trace_seeded::seeded_public_trace_matches_an_independent_oracle_and_covers_terminal_outcomes`; feature cancellation: `signal_owner_services::adversarial::operation_control::cancellation_progress::post_movement_retirement_cancellation_keeps_the_performed_receipt`; kernel: `branch::owner_services::lifecycle_port::tests::retirement::retire_exact_performs_one_real_cell_movement_and_preserves_exact_receipt`, `branch::owner_services::tests::exact_retirement_contracts::exact_retirement_contract_consumes_a_linear_plan_before_registry_removal` |
+| `owner_lifecycle_observation` | none | `SignalOwnerLifecycleObservation` | not applicable | owner lifecycle | public: `signal_owner_services::facade_smoke::public_facade_issues_weak_ports_over_the_canonical_owner`, `signal_owner_services::signal_world::lifecycle::retired_child_denies_new_work_while_the_owner_and_unrelated_branch_remain_healthy`; feature boundary: `signal_owner_services::adversarial::operation_control::close::close_fences_new_work_but_releases_an_already_admitted_operation`; kernel: `branch::owner_services::lifecycle_port::tests::lifecycle_observation::weak_port_observes_open_closing_closed_and_owner_loss` |
+| `owner_service_cost_snapshot` | none | `Result<SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable>` | not applicable | owner counters | public: `signal_owner_services::adversarial::cost::lifecycle_operations_report_exact_structural_deltas`, `signal_owner_services::adversarial::cost::closed_lifecycle_port_reports_owner_unavailable`; kernel: `branch::owner_services::basis_port::tests::method_matrix::lifecycle_and_cost_inspection_account_for_their_own_weak_upgrades`, `branch::owner_services::lifecycle_port::tests::lifecycle_observation::lifecycle_and_cost_inspection_account_for_their_weak_upgrades_only` |
 
 Batch retirement remains a bounded owner-root compatibility family in this
 handoff. It is intentionally not added to the composition port: 9.17.2 needs
@@ -391,18 +403,47 @@ fn carry(reference: &ManagedSignalBranchReference) -> ManagedSignalBranchReferen
 }
 ```
 
-Owner issuance and service calls are deliberately absent from this example
-until the bundle is public. Current runnable branch-basis and retention examples
-remain in [`BRANCH_BASES.md`](./BRANCH_BASES.md).
+Owner issuance and service calls are shown in the runnable
+[`independent_branch_services.rs`](./examples/independent_branch_services.rs)
+example. The small snippet above remains useful when a component only needs to
+carry a managed reference.
 
 ## Real Example
 
-There is no honest public owner-service workflow in Phase 3. The production
-kernel tests build a real `SignalRuntime`, fork live branches, seal its canonical
-partition into owner cells, issue a reference from a genuinely admitted basis,
-and then revalidate through the registry and exact cell incarnation. Phase 5
-will add the facade example only after that same path is public; no
-private-module or fake-compiling example stands in for it here.
+The executable example builds a real `SignalRuntime`, obtains two owner-issued
+branches, issues all required weak ports, advances both branches concurrently
+without a whole-runtime mutable borrow, retains and explicitly releases one
+exact basis, then drops the strong root and proves that the weak port reports
+`SignalOwnerUnavailable`. It is intentionally facade-only and is the developer
+workflow for the handoff into 9.17.2.
+
+### Deterministic operation control
+
+Tests compiled with `test-operation-control` may obtain
+`runtime.owner_operation_control()` after owner-service issuance. The control
+handle only names real owner boundaries: `arm_pause_once(boundary)` returns a
+drop-safe pause whose `wait_until_reached(Duration)` is bounded and whose
+`release()` resumes the owner; `inject_panic_once(boundary)` faults the next
+operation at that boundary. It exposes no constructor, evaluator, authority,
+or alternate engine. Schedules use channels/barriers, never sleeps. Unarmed
+control must leave outcomes, observations, counters, and cleanup unchanged.
+
+The boundary vocabulary is fixed to `OwnerLifecycleAdmission`,
+`BranchRegistryLookup`, `BranchRegistryReservation`, `ExactBasisPreflight`,
+`TargetCellAdmission`, `BeforeCanonicalMovement`, `AfterCanonicalMovement`,
+`ForkSourceCapture`, `ForkDestinationInstallation`, `OutcomeConstruction`, and
+`OwnerCloseBatch`. A schedule may park one boundary at a time; it must never
+replace the canonical operation or make a private cell observable.
+
+Adversarial cases park metadata work only long enough to prove that unrelated
+branch cells continue, then release the guard and assert exact winner,
+cancellation, panic, close, capacity, and structural-cost behavior. A parked
+operation retains its own synchronous context and reservation; a cancellation
+requested after canonical movement cannot erase its performed owner outcome.
+Contained cell panics quarantine only the affected cell, while a sibling must
+remain usable; a post-movement outcome-construction unwind preserves performed
+truth and releases output custody. During `Closing`, already admitted work completes and new weak
+calls deny; after cleanup, every weak port reports the same unavailable posture.
 
 ## How It Relates To Other Features
 
@@ -447,11 +488,6 @@ so destruction from inside an admitted callback cannot wait on itself.
 
 ## Current Limits
 
-- The Phase 4 gate exposes no new public port methods or aggregate bundle; its
-  admission, output-reservation, lineage, recovery, and ready-transfer seams
-  remain private kernel contracts for the service lanes.
-- Existing `SignalRuntime` convenience methods have not yet been delegated to
-  the owner services.
 - Signal services decide only Signal component truth. Product currentness and
   composite publication belong to Milestone 9.17.2.
 - Persistence, restart, replay, correction, and merge are outside this contract.

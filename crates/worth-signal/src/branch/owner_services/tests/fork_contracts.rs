@@ -263,7 +263,8 @@ fn late_fork_cancellation_drops_preconstructed_destination_without_source_moveme
                 .acquire_fork_source_custody(&fork_admission)
                 .expect("fork admission acquires exact source custody");
             let result = reservation
-                .install(&source_custody, &source_basis, &cancellation.token())
+                .capture(source_custody, &source_basis, &cancellation.token())
+                .and_then(|prepared| prepared.install())
                 .map(|_| ());
             let _ = fork_tx.send(result);
         });

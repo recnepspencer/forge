@@ -15,8 +15,8 @@ use super::{
     SignalOwnerUnavailable,
 };
 
-mod denial_mapping;
-mod descriptor_validation;
+pub(super) mod denial_mapping;
+pub(super) mod descriptor_validation;
 #[cfg(test)]
 mod tests;
 

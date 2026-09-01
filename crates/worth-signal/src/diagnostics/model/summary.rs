@@ -1,6 +1,8 @@
 mod execution;
 mod explanation;
 mod graph;
+#[cfg(test)]
+mod graph_tests;
 mod history;
 mod plan;
 mod temporal;

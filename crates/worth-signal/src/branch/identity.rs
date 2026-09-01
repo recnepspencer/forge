@@ -8,8 +8,12 @@ pub enum SignalBranchIdentityConstructionDenial {
     EmptyOwnerComponent,
 }
 
+/// Owner-validated branch name accepted by exact service forks.
+///
+/// Construction remains behind [`validate_signal_branch_name`]; descriptive
+/// strings and branch identities cannot be promoted into this value.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ValidatedSignalBranchName(String);
+pub struct ValidatedSignalBranchName(String);
 
 impl ValidatedSignalBranchName {
     pub(crate) fn into_inner(self) -> String {
@@ -17,7 +21,7 @@ impl ValidatedSignalBranchName {
     }
 }
 
-pub(crate) fn validate_signal_branch_name(
+pub fn validate_signal_branch_name(
     branch_name: impl Into<String>,
 ) -> Result<ValidatedSignalBranchName, SignalBranchIdentityConstructionDenial> {
     let branch_name = branch_name.into();

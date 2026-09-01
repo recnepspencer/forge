@@ -3,6 +3,7 @@ mod allocation;
 mod construction;
 mod contracts;
 mod diagnostic_artifacts;
+mod invalidation_authority;
 mod iteration;
 mod snapshots;
 mod transitions;

@@ -303,7 +303,7 @@ fn map_managed_reference_registry_denial(
     }
 }
 
-fn map_basis_registry_denial(
+pub(in crate::branch::owner_services) fn map_basis_registry_denial(
     denial: SignalBranchRegistryDenial,
     branch_id: SignalBranchId,
 ) -> SignalBranchBasisObservationDenial {

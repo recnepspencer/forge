@@ -28,6 +28,7 @@ where
     T: Copy + Ord,
 {
     pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, SignalError> {
+        self.runtime.assert_construction_graph_access();
         let resolver = TierPolicyResolver::new(
             self.runtime.config.node_meta(),
             self.runtime.config.tier_policies(),
@@ -58,6 +59,7 @@ where
     }
 
     pub fn checkpoint_record(&self) -> CheckpointRecord {
+        self.runtime.assert_construction_state_access();
         CheckpointRecord::from_checkpoint_telemetry(self.composed_checkpoint_telemetry())
     }
 
@@ -69,6 +71,7 @@ where
         &self,
         profile: DiagnosticsTier,
     ) -> TemporalDiagnosticsSummary {
+        self.runtime.assert_construction_state_access();
         TemporalDiagnosticsSummary::from_artifact(
             profile,
             self.runtime.temporal.frontier_snapshot(),
@@ -84,6 +87,7 @@ where
     }
 
     pub fn diagnostics(&self) -> RuntimeDiagnostics<'a> {
+        self.runtime.assert_construction_graph_access();
         crate::diagnostics::access::diagnostics_for_runtime(self.runtime)
     }
 
@@ -120,6 +124,7 @@ where
     }
 
     pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplayView {
+        self.runtime.assert_construction_graph_access();
         self.runtime
             .branches
             .replay_graph(
@@ -179,6 +184,7 @@ where
     }
 
     pub fn latest_observation_summary(&self) -> Option<&'a ObservationBoundarySummary> {
+        self.runtime.assert_construction_graph_access();
         self.runtime.graph.diagnostics_state().latest_observation()
     }
 

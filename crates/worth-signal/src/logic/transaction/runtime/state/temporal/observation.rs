@@ -69,10 +69,12 @@ where
     T: Copy + Ord,
 {
     pub fn temporal_wake_summary(&self) -> TemporalWakeSummary {
+        self.assert_construction_state_access();
         self.temporal.wake_summary()
     }
 
     pub fn temporal_frontier_snapshot(&self) -> TemporalFrontierSnapshot {
+        self.assert_construction_state_access();
         self.temporal.frontier_snapshot()
     }
 }

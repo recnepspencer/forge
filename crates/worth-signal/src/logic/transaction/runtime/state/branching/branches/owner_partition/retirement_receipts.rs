@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::branch::SignalBranchRetirementDenial;
 use crate::state::SignalBranchId;
 
@@ -39,14 +41,22 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(crate) fn reserve_retirement_contract(
+    pub(crate) fn reserve_retirement_contract_after(
         &mut self,
         branch_id: SignalBranchId,
+        retired_before: &BTreeSet<SignalBranchId>,
     ) -> Result<u32, SignalBranchRetirementDenial> {
         if !self.retirement_reservations.insert(branch_id) {
             return Err(SignalBranchRetirementDenial::RetirementInProgress { branch_id });
         }
-        let children = self.branch_children(branch_id);
+        let children = self
+            .branch_children(branch_id)
+            .into_iter()
+            .filter(|child_id| {
+                !retired_before.contains(child_id)
+                    || !self.retirement_reservations.contains(child_id)
+            })
+            .collect::<Vec<_>>();
         if !children.is_empty() {
             self.retirement_reservations.remove(&branch_id);
             return Err(SignalBranchRetirementDenial::LiveChildren {

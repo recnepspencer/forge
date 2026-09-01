@@ -1,23 +1,23 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::mpsc::{self, TryRecvError};
+use std::sync::mpsc;
 use std::thread;
 
 use crate::branch::owner_services::operation_control::SignalOwnerOperationBoundary;
 use crate::branch::owner_services::{
-    SignalBranchRegistryDenial, SignalOwnerCancellationSource, SignalOwnerServiceCostSnapshot,
+    SignalOwnerCancellationSource, SignalOwnerServiceCostSnapshot,
 };
 use crate::branch::validate_signal_branch_name;
 use crate::branch::SignalBranchBasisObservationDenial;
 use crate::data::aspect::Aspect;
 use crate::data::dependency::DependencyEdge;
 use crate::data::graph::SignalGraph;
-use crate::state::{SignalBranchHandle, SignalBranchId};
+use crate::state::SignalBranchId;
 
-use super::super::progress_bound::{wait_until_progress, PROGRESS_BOUND};
+use super::super::progress_bound::PROGRESS_BOUND;
 use super::super::runtime_root::runtime_with_two_branches_from_graph;
 
 #[test]
-fn fork_post_install_faults_roll_back_exact_incarnation_lineage_and_output_custody() {
+fn fork_post_capture_faults_preserve_performed_destination_and_release_source_custody() {
     for boundary in [
         SignalOwnerOperationBoundary::ForkDestinationInstallation,
         SignalOwnerOperationBoundary::OutcomeConstruction,
@@ -107,74 +107,58 @@ fn exercise_fork_post_install_fault(boundary: SignalOwnerOperationBoundary) {
         let result = waiting_cell.with_state(&waiting_admission, |state, _| state.branch_id());
         let _ = same_source_tx.send(result);
     });
-    assert!(wait_until_progress("fork source custody wait", || {
-        source_cell.cost_snapshot().waits() > source_waits_before
-    }));
-    assert_eq!(same_source_rx.try_recv(), Err(TryRecvError::Empty));
+    assert_eq!(
+        same_source_rx.recv_timeout(PROGRESS_BOUND),
+        Ok(Ok(source.id)),
+        "source custody must end after capture, before destination installation or outcome construction"
+    );
+    assert_eq!(
+        source_cell.cost_snapshot().waits(),
+        source_waits_before,
+        "post-capture destination work must not impose a source-cell wait"
+    );
     sibling_cell
         .observe_exact(&admission)
         .expect("unrelated sibling progresses during fork handoff");
     assert_eq!(sibling_cell.branch_id(), sibling.id);
     pause.release();
     assert_eq!(fault_rx.recv_timeout(PROGRESS_BOUND), Ok(true));
-    assert_eq!(
-        same_source_rx.recv_timeout(PROGRESS_BOUND),
-        Ok(Ok(source.id))
-    );
-
-    assert_eq!(owner.live_count(), 2);
+    assert_eq!(owner.live_count(), 3);
     assert_eq!(owner.reservation_count(), 0);
+    let mut performed_children = original_children;
+    performed_children.push(failed_destination_id);
     assert_eq!(
         owner
             .metadata
             .branch_children(&admission, source.id)
-            .expect("lineage remains observable"),
-        original_children
+            .expect("performed lineage remains observable"),
+        performed_children
     );
-    assert!(matches!(
-        owner.lookup_cell(&admission, failed_destination_id),
-        Err(SignalBranchRegistryDenial::UnknownBranch(id))
-            if id == failed_destination_id
-    ));
+    let installed = owner
+        .lookup_cell(&admission, failed_destination_id)
+        .expect("post-linearization panic preserves the installed destination");
+    let installed_handle = installed
+        .with_state(&admission, |state, _| state.handle().clone())
+        .expect("the performed destination remains readable");
+    assert_eq!(installed_handle.id, failed_destination_id);
+    assert_eq!(installed_handle.parent_branch_id, Some(source.id));
     let mut released = ledger_before.clone();
     released.next_lease_id += 1;
     assert_eq!(owner.retention_ledger_observation(), released);
     assert_fork_fault_costs(owner.cost_snapshot(), cost_before);
     assert_eq!(source_cell.poison_recovery(), None);
+    let mut expected_source = source_before;
+    expected_source
+        .mutation_ledger
+        .clear_all(source.head_snapshot_id);
     assert_eq!(
         source_cell.fork_source_state_truth_after_fault(),
-        source_before,
-        "destination or handoff unwind preserves exact source graph, head, observation, and journal"
+        expected_source,
+        "capture establishes the source journal boundary once; later destination or handoff panic cannot roll it back"
     );
-
-    let ready = owner
-        .reserve_fork_output(&admission, &source_cell)
-        .expect("fork output capacity is reusable")
-        .fork(
-            &basis,
-            validate_signal_branch_name("healthy-fork-retry").expect("retry identity validates"),
-            &SignalOwnerCancellationSource::new().token(),
-        )
-        .expect("fork retry installs");
-    let issued = ready
-        .installed()
-        .cell()
-        .with_state(&admission, |state, _| state.handle().clone())
-        .expect("retry cell carries its owner-issued handle");
-    let (handle, destination_basis) = ready.into_destination_parts();
-    assert_exact_fork_handoff(&handle, &issued, &destination_basis, source.id);
-    assert_eq!(owner.live_count(), 3);
-    assert_eq!(
-        owner
-            .metadata
-            .branch_children(&admission, source.id)
-            .expect("successful lineage is committed"),
-        vec![handle.id]
-    );
-    let source_after_success = source_cell.fork_source_state_truth_after_fault();
-    let mut expected_ledger = source_before.mutation_ledger;
-    expected_ledger.clear_all(source.head_snapshot_id);
-    assert_eq!(source_after_success.mutation_ledger, expected_ledger);
+    source_cell
+        .observe_exact(&admission)
+        .expect("the released source remains healthy after the performed fork");
 }
 
 fn assert_fork_fault_costs(
@@ -193,17 +177,6 @@ fn assert_fork_fault_costs(
         after.fork_destination_installations(),
         before.fork_destination_installations() + 1
     );
-}
-
-fn assert_exact_fork_handoff(
-    handle: &SignalBranchHandle,
-    issued: &SignalBranchHandle,
-    basis: &crate::branch::AdmittedSignalBranchBasis,
-    source_id: SignalBranchId,
-) {
-    assert_eq!(handle, issued);
-    assert_eq!(handle.id, basis.owner_branch_id());
-    assert_eq!(handle.parent_branch_id, Some(source_id));
 }
 
 #[test]

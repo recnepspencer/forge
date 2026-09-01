@@ -2,7 +2,7 @@ use crate::branch::{
     SignalBranchBasisDescriptor, SignalBranchBasisReadmissionDenial, SignalBranchObservation,
 };
 
-pub(super) fn compare_descriptor_with_observation(
+pub(in crate::branch::owner_services) fn compare_descriptor_with_observation(
     descriptor: &SignalBranchBasisDescriptor,
     observation: &SignalBranchObservation,
 ) -> Result<(), SignalBranchBasisReadmissionDenial> {

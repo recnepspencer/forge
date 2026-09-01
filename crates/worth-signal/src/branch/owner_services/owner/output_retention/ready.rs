@@ -14,10 +14,9 @@ use super::{
 use crate::branch::owner_services::branch_execution_cell::advance::SignalBranchAdvanceCellOutcome;
 use crate::branch::owner_services::branch_execution_cell::restoration::SignalBranchRestoreCellOutcome;
 use crate::branch::owner_services::branch_execution_cell::snapshot::SignalBranchSnapshotCellOutcome;
-use crate::branch::owner_services::branch_execution_cell::SignalBranchForkSourceCustody;
 use crate::branch::owner_services::operation_control::SignalOwnerOperationBoundary;
 use crate::branch::owner_services::owner::fork_reservation::SignalInstalledOwnerFork;
-use crate::branch::owner_services::{SignalBranchCellState, SignalOwnerCancellationToken};
+use crate::branch::owner_services::SignalOwnerCancellationToken;
 use crate::state::SignalBranchHandle;
 
 pub(in crate::branch::owner_services) struct SignalReadyAdvanceOutput<'a, D, I, T>
@@ -58,7 +57,6 @@ where
 {
     reservation: SignalForkOutputReservation<'a, D, I, T>,
     installed: SignalInstalledOwnerFork<'a, D, I, T>,
-    source_custody: SignalBranchForkSourceCustody<'a, 'a, SignalBranchCellState<D, I, T>>,
 }
 
 impl<'a, D, I, T> SignalAdvanceOutputReservation<'a, D, I, T>
@@ -254,6 +252,10 @@ where
         requested_identity: ValidatedSignalBranchName,
         cancellation: &SignalOwnerCancellationToken,
     ) -> Result<SignalReadyForkOutput<'a, D, I, T>, SignalBranchForkOperationDenial> {
+        let destination =
+            self.owner
+                .reserve_fork_destination(self.admission, source, requested_identity)?;
+        self.retention.rebind_all(destination.branch().id);
         let source_custody = self
             .cell
             .acquire_fork_source_custody(self.admission)
@@ -263,15 +265,11 @@ where
                     self.source_branch_id,
                 )
             })?;
-        let destination =
-            self.owner
-                .reserve_fork_destination(self.admission, source, requested_identity)?;
-        self.retention.rebind_all(destination.branch().id);
-        let installed = destination.install(&source_custody, source, cancellation)?;
+        let prepared = destination.capture(source_custody, source, cancellation)?;
+        let installed = prepared.install()?;
         Ok(SignalReadyForkOutput {
             reservation: self,
             installed,
-            source_custody,
         })
     }
 }
@@ -294,12 +292,11 @@ where
         let SignalReadyForkOutput {
             reservation,
             installed,
-            source_custody,
         } = self;
         reservation
             .admission
             .reach_operation_boundary(SignalOwnerOperationBoundary::OutcomeConstruction);
-        let (handle, observation, installation, lineage) = installed.into_handoff_parts();
+        let (handle, observation) = installed.into_handoff_parts();
         let destination_branch_id = handle.id;
         debug_assert_ne!(reservation.source_branch_id, destination_branch_id);
         let mut retention = reservation.retention;
@@ -308,11 +305,6 @@ where
             destination_branch_id,
             retention.take_one(),
         );
-        source_custody
-            .cell()
-            .commit_fork_source_boundary(&source_custody);
-        lineage.commit();
-        installation.commit();
         (handle, basis)
     }
 }

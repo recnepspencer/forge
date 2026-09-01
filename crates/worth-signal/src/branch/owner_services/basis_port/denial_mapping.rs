@@ -20,6 +20,24 @@ pub(super) fn map_managed_observation_admission_denial(
     }
 }
 
+pub(in crate::branch::owner_services) fn map_observation_admission_denial(
+    denial: SignalOwnerAdmissionDenial,
+) -> SignalBranchBasisObservationDenial {
+    match denial {
+        SignalOwnerAdmissionDenial::ForeignOwner | SignalOwnerAdmissionDenial::OwnerUnavailable => {
+            SignalBranchBasisObservationDenial::OwnerUnavailable(SignalOwnerUnavailable)
+        }
+        SignalOwnerAdmissionDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        } => SignalBranchBasisObservationDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        },
+        SignalOwnerAdmissionDenial::OwnerReentry => {
+            SignalBranchBasisObservationDenial::OwnerReentry
+        }
+    }
+}
+
 pub(super) fn map_managed_readmission_admission_denial(
     denial: ManagedSignalBranchReferenceAdmissionDenial,
 ) -> SignalBranchBasisReadmissionDenial {
@@ -31,7 +49,7 @@ pub(super) fn map_managed_readmission_admission_denial(
     }
 }
 
-pub(super) fn map_observation_retention_denial<D, I, T>(
+pub(in crate::branch::owner_services) fn map_observation_retention_denial<D, I, T>(
     owner: &SignalOwner<D, I, T>,
     admission: &SignalOwnerOperationAdmission<'_>,
     denial: SignalBranchRetentionAcquisitionDenial,
@@ -61,7 +79,7 @@ where
     }
 }
 
-pub(super) fn map_readmission_retention_denial<D, I, T>(
+pub(in crate::branch::owner_services) fn map_readmission_retention_denial<D, I, T>(
     owner: &SignalOwner<D, I, T>,
     admission: &SignalOwnerOperationAdmission<'_>,
     denial: SignalBranchRetentionAcquisitionDenial,
@@ -99,7 +117,7 @@ where
     }
 }
 
-pub(super) fn map_observation_readmission_denial<D, I, T>(
+pub(in crate::branch::owner_services) fn map_observation_readmission_denial<D, I, T>(
     owner: &SignalOwner<D, I, T>,
     admission: &SignalOwnerOperationAdmission<'_>,
     denial: SignalBranchBasisObservationDenial,
@@ -197,7 +215,7 @@ pub(super) fn map_retained_admission_denial(
     }
 }
 
-pub(super) fn map_basis_admission_denial(
+pub(in crate::branch::owner_services) fn map_basis_admission_denial(
     denial: SignalOwnerAdmissionDenial,
 ) -> SignalBranchBasisReadmissionDenial {
     match denial {

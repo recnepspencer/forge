@@ -190,7 +190,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/causality/dependency_admission.rs",
         Method,
         "publish_direct_output_causes",
-        "14ae328e86fb47b40afedb4d203517b2fb51892e182b28aba0eb31bf9e897068"
+        "0b08dfe9363963306ec3ff37f68a6bf35bc886bf66561f0f5cd0f9b994fc18f7"
     ),
     owner!(
         "edge cause reconciliation",
@@ -206,7 +206,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/application.rs",
         Method,
         "replace_pending_causes",
-        "7312a7369612cfb80222ee6f48f541a99cdff09800862a4f50fb9b7e9d76ced9"
+        "229607787712eaf6eb02dfc2b63de44f8b87e2edbed5a758b97d83a5839dd0c4"
     ),
     owner!(
         "prepared pending cause publication",
@@ -214,7 +214,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/application.rs",
         Method,
         "replace_prepared_pending_causes",
-        "ff2c89d61e17f6976bfe16d637b6088081dc3d6aa3aa6721f18f59b2c446b87c"
+        "2ee6a5b604e23485a7ae0adbb3ae6f62f80956f6a5e5cdd29f179024de9e23a9"
     ),
     owner!(
         "derived dirty cache rebuild",
@@ -222,7 +222,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/application.rs",
         Method,
         "rebuild_dirty_caches_from_pending_causes",
-        "70438cd261340fbb0c6e10304704351968a990513cdad9e854a2079bbcf592ba"
+        "bc91961b3ac65df8fdfbfd73fc85dad242cc550c6d9938b809f55d78c3aa56ab"
     ),
     owner!(
         "output ordinal publication",

@@ -273,8 +273,7 @@ impl SignalGraph {
         } = prepared;
         for replacement in replacements {
             let preserves_direct_dirty_obligation = self
-                .get_entry(replacement.consumer)?
-                .direct_invalidation_basis()
+                .node_direct_invalidation_basis(replacement.consumer)?
                 .is_some();
             if preserves_direct_dirty_obligation {
                 continue;

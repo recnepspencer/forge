@@ -1,6 +1,7 @@
 use std::sync::{Arc, Condvar, Mutex};
 
 use super::{SignalBranchExecutionCell, SignalOwnerOperationAdmission};
+use crate::branch::owner_services::lifecycle_state::SignalOwnerBranchCellHold;
 
 #[derive(Debug, Default)]
 pub(super) struct SignalBranchForkCustodyGate {
@@ -20,8 +21,9 @@ pub(super) struct SignalBranchOrdinaryCellCustody {
 
 pub(in crate::branch::owner_services) struct SignalBranchForkSourceCustody<'admission, 'owner, S> {
     cell: Arc<SignalBranchExecutionCell<S>>,
-    admission: &'admission SignalOwnerOperationAdmission<'owner>,
+    _admission: &'admission SignalOwnerOperationAdmission<'owner>,
     gate: Arc<SignalBranchForkCustodyGate>,
+    _cell_hold: SignalOwnerBranchCellHold<'admission>,
 }
 
 impl SignalBranchForkCustodyGate {
@@ -51,6 +53,7 @@ impl SignalBranchForkCustodyGate {
         gate: &Arc<Self>,
         cell: &Arc<SignalBranchExecutionCell<S>>,
         admission: &'admission SignalOwnerOperationAdmission<'owner>,
+        cell_hold: SignalOwnerBranchCellHold<'admission>,
         on_wait: impl FnOnce(),
     ) -> SignalBranchForkSourceCustody<'admission, 'owner, S> {
         let mut state = gate.lock();
@@ -68,8 +71,9 @@ impl SignalBranchForkCustodyGate {
         drop(state);
         SignalBranchForkSourceCustody {
             cell: Arc::clone(cell),
-            admission,
+            _admission: admission,
             gate: Arc::clone(gate),
+            _cell_hold: cell_hold,
         }
     }
 
@@ -85,12 +89,15 @@ impl<S> SignalBranchForkSourceCustody<'_, '_, S> {
         &self.cell
     }
 
-    pub(super) fn matches(&self, cell: &SignalBranchExecutionCell<S>) -> bool {
-        std::ptr::eq(self.cell.as_ref(), cell)
+    pub(in crate::branch::owner_services) fn cell_arc(&self) -> Arc<SignalBranchExecutionCell<S>> {
+        Arc::clone(&self.cell)
     }
 
-    pub(super) fn admission(&self) -> &SignalOwnerOperationAdmission<'_> {
-        self.admission
+    pub(in crate::branch::owner_services) fn matches(
+        &self,
+        cell: &SignalBranchExecutionCell<S>,
+    ) -> bool {
+        std::ptr::eq(self.cell.as_ref(), cell)
     }
 }
 

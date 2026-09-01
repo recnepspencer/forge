@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::branch::{SignalBranchRetirementDenial, SignalBranchRetirementReceipt};
 use crate::state::SignalBranchId;
 
@@ -27,6 +29,16 @@ where
         branch_id: SignalBranchId,
     ) -> Result<SignalOwnerRetirementMetadataReservation<'a, D, I, T>, SignalBranchRetirementDenial>
     {
+        self.reserve_retirement_after(admission, branch_id, &BTreeSet::new())
+    }
+
+    pub(in crate::branch::owner_services) fn reserve_retirement_after<'a>(
+        &'a self,
+        admission: &'a SignalOwnerOperationAdmission<'_>,
+        branch_id: SignalBranchId,
+        retired_before: &BTreeSet<SignalBranchId>,
+    ) -> Result<SignalOwnerRetirementMetadataReservation<'a, D, I, T>, SignalBranchRetirementDenial>
+    {
         admission
             .authorize(self.runtime_instance_id, self.lifecycle_identity)
             .map_err(|_| SignalBranchRetirementDenial::OwnerUnavailable(SignalOwnerUnavailable))?;
@@ -40,7 +52,9 @@ where
                     SignalBranchRetirementDenial::OwnerReentry
                 }
             })?;
-        let snapshot_count = self.lock().reserve_retirement_contract(branch_id)?;
+        let snapshot_count = self
+            .lock()
+            .reserve_retirement_contract_after(branch_id, retired_before)?;
         Ok(SignalOwnerRetirementMetadataReservation {
             metadata: self,
             admission,

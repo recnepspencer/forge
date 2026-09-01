@@ -136,6 +136,35 @@ invoke `run_branch_root_reclamation_pass`; the owner runs it on its own explicit
 cold path, and it never occurs inside observation, transaction admission, or
 ordinary publication.
 
+### Focused owner-service proof
+
+The grouped `relational_certification::owner_service_completion` court reaches
+this matrix only through the concrete public facades. Its semantic cutover cases
+compile the Court Supply Chain world, lower named storm and berth-maintenance
+deltas through the existing production compiler, and compare neutral public
+observations with the independently authored Supply Chain oracle. A performed
+port publication must therefore change domain truth, immediately stale the
+predecessor accepted by the direct runtime route, and be visible through both
+observation routes. The reverse case commits through the compatibility route
+from a port-issued basis and requires the port to observe the exact oracle state.
+These assertions deliberately fail for a success-shaped no-op or split mutable
+state even if both routes return success.
+
+The same-owner cutover case passes direct descriptors and port-issued leases
+across the opposite route, installs fork targets through both surfaces, and
+deletes each target through the other surface. The candidate-discard case uses
+a real update-only candidate, proves it invented no record reservations, leaves
+neutral branch truth unmoved, and then deletes the branch immediately. That
+terminal delete is cleanup evidence: a discarded candidate cannot leave an
+active-operation obligation hidden in the owner. Separate denial, weak-owner,
+`Open`/`Closing`/`Closed`, and parked-branch cases preserve exact typed failures
+and prove unrelated basis progress without private-state observation.
+
+The reviewed selector is
+`owner_service_completion::`; CI lists and runs that same roster through
+`scripts/ci/run_relational_named_test_selection.sh` so a renamed, ignored, or
+zero-selected focused proof is a gate failure rather than a silent pass.
+
 ## Observation and readmission
 
 The composite owner starts from an explicit `RelationalBranchIdentity` and

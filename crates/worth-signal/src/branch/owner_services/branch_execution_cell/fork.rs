@@ -5,7 +5,6 @@ use crate::data::error::SignalError;
 
 use super::super::owner::fork_reservation::{SignalOwnerForkCellBuilder, SignalPreparedOwnerFork};
 use super::super::{SignalBranchCellState, SignalOwnerCancellationToken, SignalOwnerUnavailable};
-use super::SignalBranchForkSourceCustody;
 use super::{SignalBranchCellAdmissionDenial, SignalBranchCellWork, SignalBranchExecutionCell};
 use crate::branch::owner_services::operation_control::SignalOwnerOperationBoundary;
 
@@ -48,24 +47,19 @@ where
     /// Captures and linearizes exactly one source cell for an owner reservation.
     pub(in crate::branch::owner_services) fn capture_fork_source_exact<'a>(
         &self,
-        source_custody: &SignalBranchForkSourceCustody<'_, '_, SignalBranchCellState<D, I, T>>,
+        admission: &'a super::super::SignalOwnerOperationAdmission<'a>,
         source: &AdmittedSignalBranchBasis,
         mut builder: SignalOwnerForkCellBuilder<'a, D, I, T>,
         cancellation: &SignalOwnerCancellationToken,
     ) -> Result<SignalPreparedOwnerFork<'a, D, I, T>, SignalBranchForkOperationDenial> {
         assert!(
-            source_custody.matches(self),
+            builder.source_matches(self),
             "fork capture requires custody of its exact source cell"
         );
-        let admission = source_custody.admission();
         cancellation
             .preflight_cell_wait()
             .map_err(|_| SignalBranchForkOperationDenial::CancelledNoMovement)?;
         self.validate_admission(admission)
-            .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
-        let cell_hold = admission
-            .hold_branch_cell()
-            .map_err(SignalBranchCellAdmissionDenial::from)
             .map_err(|denial| map_fork_cell_denial(denial, self.branch_id))?;
         self.counters.record_target_cell_contact();
         self.contacts.fetch_add(1, Ordering::SeqCst);
@@ -86,14 +80,12 @@ where
             Ok(prepared) => prepared,
             Err(denial) => {
                 drop(state);
-                drop(cell_hold);
                 drop(builder);
                 return Err(denial);
             }
         };
         if let Err(denial) = builder.validate_prepared_cell(&prepared_cell) {
             drop(state);
-            drop(cell_hold);
             drop(prepared_cell);
             drop(builder);
             return Err(denial);
@@ -103,7 +95,6 @@ where
             Ok(movement) => movement,
             Err(_) => {
                 drop(state);
-                drop(cell_hold);
                 drop(prepared_cell);
                 drop(builder);
                 return Err(SignalBranchForkOperationDenial::CancelledNoMovement);
@@ -116,25 +107,9 @@ where
         .record_fork_source_capture(captured.work);
         admission.reach_operation_boundary(SignalOwnerOperationBoundary::AfterCanonicalMovement);
         admission.reach_operation_boundary(SignalOwnerOperationBoundary::ForkSourceCapture);
-        drop(state);
-        drop(cell_hold);
-        Ok(builder.bind_prepared_cell(prepared_cell))
-    }
-
-    pub(in crate::branch::owner_services) fn commit_fork_source_boundary(
-        &self,
-        source_custody: &SignalBranchForkSourceCustody<'_, '_, SignalBranchCellState<D, I, T>>,
-    ) {
-        assert!(
-            source_custody.matches(self),
-            "fork source commit requires exact branch custody"
-        );
-        self.validate_admission(source_custody.admission())
-            .expect("fork source custody retains its exact owner admission through commit");
-        let mut state = self
-            .lock_state_without_fork_custody()
-            .expect("captured fork source remains healthy through infallible handoff");
         state.commit_fork_source_boundary();
+        drop(state);
+        Ok(builder.bind_prepared_cell(prepared_cell))
     }
 }
 

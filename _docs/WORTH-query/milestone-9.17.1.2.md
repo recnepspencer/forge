@@ -89,23 +89,19 @@ Runtime World may only carry, call, and correlate concrete owner-facade types.
 
 ## Owner Root And Port Lifecycle
 
-`SignalRuntime` remains the one non-cloneable owner root. Runtime construction
-places its canonical branch state behind the owner cells defined here, and the
-runtime method `owner_component_services()` issues one concrete, weak
-`SignalOwnerServicePorts`. Its `basis_port()`, `mutation_port()`, and
-`lifecycle_port()` accessors return the corresponding cloneable `Send + Sync`
-concrete ports. Lifecycle inspection returns descriptive
-`SignalOwnerLifecycleObservation::{Open, Closing, Closed}` without authority.
+`SignalRuntime` remains the one non-cloneable owner root. After construction-
+only configuration, `owner_component_services()` is the one-way seal: it moves
+canonical branch state behind the owner cells and issues one concrete, weak
+`SignalOwnerServicePorts`. Its three accessors return cloneable `Send + Sync`
+ports; Runtime World receives only those ports and never selects a pre-seal
+lane. Lifecycle inspection is descriptive and carries no authority.
 
-Generic parameters follow capability bounds; public types remain concrete
-Signal facade types.
-
-The composition-capable issuance method exists only when the Signal runtime's
-captured definition, input, effect, transaction-value, and owner-state types
-satisfy explicit `Send + Sync + 'static` bounds appropriate to their use.
-Local-only Signal configurations may keep ordinary compatibility methods but
-cannot be admitted to the 9.17.2 service bundle. No unsafe assertion or erased
-wrapper may counterfeit those bounds.
+Issuance requires the captured types to satisfy explicit `Send + Sync +
+'static` bounds. It denies, pre-effect, configured event subscribers,
+observation registrations or managed queues, and live-branch or retirement-
+receipt capacity exhaustion. Local-only configurations keep ordinary
+compatibility methods but cannot enter the 9.17.2 bundle; no erased wrapper may
+counterfeit the bounds.
 
 The bundle and ports hold only weak connectivity plus diagnostic identity.
 Every concrete port denial has `OwnerUnavailable(SignalOwnerUnavailable)`; no
@@ -468,10 +464,10 @@ behavior or independent evidence, not placeholders or merge-only work. Contract
 defects return to one serial gate, never adapters, aliases, duplicate traits,
 or compatibility lanes.
 
-Each gate closes only its stated claim after integrated review and affected
-proofs pass. Contract changes invalidate dependent approvals until integrated
-reverification. Stubs, private-cell tests, and worker summaries cannot certify
-public services; unresolved contract findings block dependents.
+Freeze exact compiler-visible signatures, types, ownership, denials, visibility,
+and module ownership before dependent source work. Lanes may implement during prerequisite verification but cannot integrate until it passes.
+Contract-preserving fixes invalidate only affected proofs; a contract break stops integration for one serial synchronization/rebase and invalidates dependent approvals.
+Stubs, private-cell tests, and worker summaries never certify public services.
 
 ### Phase 1: Serial owner-contract gate
 
@@ -537,11 +533,11 @@ denials remain pre-effect and old runtime methods remain untouched until converg
 
 ### Phase 7: Serial closure gate
 
-Assemble the intentional test roots, run the behavioral, concurrency,
-compiler, feature, scale, formatting, lint, dirty-line-cap, boundary, and
-generated-context checks, perform the structural completion review against the
-final integrated diff, then freeze the 9.17.2 handoff. No review-only or merge-
-only lane counts toward the two-to-four implementation lanes above.
+Frozen contracts gate source; shared prerequisites gate integration; the complete court gates acceptance/commit.
+Correction review covers only `last-known-good..candidate`, its owned files, touched shared seams, and affected proofs.
+Reconstruct the complete surface only at Phase 5 convergence, a contract-breaking synchronization, and here: assemble test roots; run behavioral, concurrency,
+compiler, feature, scale, format, lint, line-cap, boundary, and context checks; structurally review the final diff; then freeze the 9.17.2 handoff.
+Review-only or merge-only lanes do not count as implementation.
 
 ## Test Evidence Architecture
 
@@ -809,9 +805,9 @@ and executed cases. Worker approvals cannot substitute. Review must establish:
   topology, every touched Rust file satisfies the line cap, and no catch-all
   module absorbed the refactor.
 
-Review receives the spec, integrated diffs, fixtures, command results/timings,
-docs, and environment constraints. Fix material findings at their owner and
-rerun affected evidence; no permanent proof ledger or fingerprint system.
+Final review receives the spec, integrated diff, fixtures, commands/timings, docs, and constraints.
+Correction review receives only its last-known-good revision, owned delta, frozen-contract assumptions, shared-seam changes, and affected commands;
+fix findings at their owner and rerun only affected evidence unless contracts changed.
 
 ## Documentation Deliverables
 

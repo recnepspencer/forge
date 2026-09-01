@@ -10,6 +10,7 @@ mod branch_execution_cell;
 mod branch_registry;
 mod cancellation;
 mod cell_incarnation;
+mod compatibility;
 mod counters;
 mod lifecycle_observation;
 mod lifecycle_port;
@@ -18,12 +19,13 @@ mod mutation_port;
 mod operation_control;
 mod owner;
 mod owner_metadata;
+mod service_ports;
 mod unavailable;
 
 pub(crate) use cancellation::SignalOwnerMovementPermit;
 pub(in crate::branch) use cell_incarnation::SignalBranchCellIncarnation;
 
-pub(crate) use basis_port::SignalBranchBasisPort;
+pub use basis_port::SignalBranchBasisPort;
 pub(crate) use branch_cell_state::SignalBranchCellState;
 pub(crate) use branch_execution_cell::SignalBranchExecutionCell;
 #[cfg(test)]
@@ -36,24 +38,25 @@ pub(crate) use branch_registry::{
     SignalBranchRegistry, SignalBranchRegistryDenial, SignalBranchRetirement,
 };
 pub(crate) use counters::SignalOwnerServiceCounters;
-pub(crate) use lifecycle_port::SignalBranchLifecyclePort;
+pub use lifecycle_port::SignalBranchLifecyclePort;
 #[cfg(test)]
 pub(in crate::branch) use lifecycle_state::SignalOwnerLifecyclePoisonRecovery;
 pub(in crate::branch) use lifecycle_state::{
     SignalOwnerAdmissionDenial, SignalOwnerLifecycleIdentity, SignalOwnerLifecycleState,
     SignalOwnerOperationAdmission,
 };
-pub(crate) use mutation_port::SignalBranchMutationPort;
-pub(crate) use owner::{
-    SignalOwner, SignalOwnerRoot, SignalOwnerServiceIssuanceDenial,
-    DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES,
-};
+pub use mutation_port::SignalBranchMutationPort;
+pub(crate) use owner::{SignalOwner, SignalOwnerRoot, DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES};
 
 pub use cancellation::{SignalOwnerCancellationSource, SignalOwnerCancellationToken};
 pub use counters::SignalOwnerServiceCostSnapshot;
 pub use lifecycle_observation::SignalOwnerLifecycleObservation;
 #[cfg(feature = "test-operation-control")]
-pub use operation_control::SignalOwnerOperationBoundary;
+pub use operation_control::{
+    SignalOwnerOperationBoundary, SignalOwnerOperationControl, SignalOwnerOperationPause,
+};
+pub use owner::SignalOwnerServiceIssuanceDenial;
+pub use service_ports::SignalOwnerServicePorts;
 pub use unavailable::SignalOwnerUnavailable;
 
 #[cfg(test)]

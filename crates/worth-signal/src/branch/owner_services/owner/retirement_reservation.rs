@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::branch::{
     PlannedSignalBranchRetirement, SignalBranchRetirementDenial, SignalBranchRetirementReceipt,
 };
@@ -51,6 +53,67 @@ where
         let retirement = self
             .begin_retirement(admission, branch_id)
             .map_err(|denial| map_retirement_registry_denial(denial, branch_id))?;
+        Ok(SignalOwnerRetirementReservation {
+            metadata: Some(metadata),
+            retirement: Some(retirement),
+        })
+    }
+
+    pub(in crate::branch::owner_services) fn reserve_batch_retirement_after<'a>(
+        &'a self,
+        admission: &'a SignalOwnerOperationAdmission<'_>,
+        plan: &PlannedSignalBranchRetirement,
+        retired_before: &BTreeSet<SignalBranchId>,
+    ) -> Result<SignalOwnerRetirementReservation<'a, D, I, T>, SignalBranchRetirementDenial> {
+        if !self.basis_has_owner_affinity(plan.admitted_basis()) {
+            return Err(SignalBranchRetirementDenial::CanonicalBasisMismatch);
+        }
+        let branch_id = plan.branch().id;
+        let retirement = self
+            .begin_retirement(admission, branch_id)
+            .map_err(|denial| map_retirement_registry_denial(denial, branch_id))?;
+        let cell = retirement
+            .preflight_exact_reserved()
+            .map_err(|denial| map_retirement_registry_denial(denial, branch_id))??;
+        if cell
+            .observation
+            .compare(plan.admitted_basis().observation())
+            .is_err()
+        {
+            return Err(SignalBranchRetirementDenial::StaleBranchHead {
+                expected_generation: plan.admitted_basis().observation().generation().get(),
+                observed_generation: cell.observation.generation().get(),
+            });
+        }
+        if branch_id == self.selected_branch_id() {
+            return Err(SignalBranchRetirementDenial::CurrentBranch { branch_id });
+        }
+        if cell.branch.parent_branch_id.is_none() {
+            return Err(SignalBranchRetirementDenial::CanonicalBranch { branch_id });
+        }
+        let metadata =
+            self.metadata
+                .reserve_retirement_after(admission, branch_id, retired_before)?;
+        let retention_counts = self.retirement_retention_counts(branch_id);
+        if retention_counts.external != 0 {
+            return Err(SignalBranchRetirementDenial::RetainedComponentBasis {
+                branch_id,
+                active_leases: retention_counts.external,
+            });
+        }
+        if retention_counts.admitted_or_reserved != 1 {
+            return Err(SignalBranchRetirementDenial::RetainedAdmittedBasis {
+                branch_id,
+                active_leases: retention_counts.admitted_or_reserved,
+            });
+        }
+        let shared_holders = plan.admitted_basis().shared_holder_count();
+        if shared_holders != 1 {
+            return Err(SignalBranchRetirementDenial::SharedAdmittedBasis {
+                branch_id,
+                shared_holders,
+            });
+        }
         Ok(SignalOwnerRetirementReservation {
             metadata: Some(metadata),
             retirement: Some(retirement),
@@ -195,7 +258,7 @@ where
     }
 }
 
-pub(super) fn map_retirement_registry_denial(
+pub(in crate::branch::owner_services) fn map_retirement_registry_denial(
     denial: SignalBranchRegistryDenial,
     branch_id: SignalBranchId,
 ) -> SignalBranchRetirementDenial {

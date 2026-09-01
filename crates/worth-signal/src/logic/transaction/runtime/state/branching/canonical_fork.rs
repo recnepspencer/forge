@@ -21,8 +21,12 @@ where
         source: &AdmittedSignalBranchBasis,
     ) -> Result<SignalBranchForkOutcome, SignalBranchForkOperationDenial> {
         let name = name.into();
-        validate_signal_branch_name(name.clone())
+        let validated_name = validate_signal_branch_name(name.clone())
             .map_err(|denial| SignalBranchForkOperationDenial::InvalidIdentity { denial })?;
+        if let Some((_, mutation, _)) = self.sealed_owner_port_slots() {
+            let cancellation = crate::branch::SignalOwnerCancellationSource::new();
+            return mutation.fork_exact(validated_name, source, &cancellation.token());
+        }
         let branch_id = source.owner_branch_id();
         let branch = self
             .branches

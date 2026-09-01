@@ -4,10 +4,10 @@ use worth_proof::TransitionOutcome;
 
 use crate::branch::{
     AdmittedSignalBranchBasis, AdmittedSignalBranchSnapshot, PlannedSignalBranchRetirement,
-    SignalBranchRetirementDenial, SignalBranchRetirementReason,
+    SignalBranchObservation, SignalBranchRetirementDenial, SignalBranchRetirementReason,
 };
 use crate::logic::transaction::canonical_digest;
-use crate::state::SignalBranchId;
+use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::super::operation_control::SignalOwnerOperationBoundary;
 use super::super::SignalOwnerOperationAdmission;
@@ -26,7 +26,13 @@ where
         expected: AdmittedSignalBranchBasis,
         reason: SignalBranchRetirementReason,
     ) -> TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial> {
-        self.plan_retirement_with_admitted_allowance(admission, expected, reason, 1)
+        self.plan_retirement_with_admitted_allowance_after(
+            admission,
+            expected,
+            reason,
+            1,
+            &BTreeSet::new(),
+        )
     }
 
     pub(in crate::branch::owner_services) fn plan_retirement_releasing_snapshots_exact(
@@ -42,20 +48,22 @@ where
                 Ok(allowance) => allowance,
                 Err(denial) => return TransitionOutcome::denied(denial),
             };
-        self.plan_retirement_with_admitted_allowance(
+        self.plan_retirement_with_admitted_allowance_after(
             admission,
             expected,
             reason,
             admitted_allowance,
+            &BTreeSet::new(),
         )
     }
 
-    fn plan_retirement_with_admitted_allowance(
+    fn plan_retirement_with_admitted_allowance_after(
         &self,
         admission: &SignalOwnerOperationAdmission<'_>,
         expected: AdmittedSignalBranchBasis,
         reason: SignalBranchRetirementReason,
         admitted_allowance: u32,
+        retired_before: &BTreeSet<SignalBranchId>,
     ) -> TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial> {
         if !self.basis_has_owner_affinity(&expected) {
             return TransitionOutcome::denied(SignalBranchRetirementDenial::CanonicalBasisMismatch);
@@ -79,9 +87,89 @@ where
             Ok(cell) => cell,
             Err(denial) => return TransitionOutcome::denied(denial),
         };
-
         admission.reach_operation_boundary(SignalOwnerOperationBoundary::ExactBasisPreflight);
+        self.finish_retirement_plan(
+            expected,
+            reason,
+            admitted_allowance,
+            retired_before,
+            RetirementPlanningEvidence {
+                branch: cell.branch,
+                observation: cell.observation,
+                child_branch_ids: metadata.child_branch_ids,
+                merge_participant: metadata.merge_participant,
+                external_retentions: retention.external,
+                admitted_retentions: retention.admitted_or_reserved,
+            },
+        )
+    }
+
+    pub(in crate::branch::owner_services) fn plan_legacy_retirement_after(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        branch: SignalBranchHandle,
+        expected: AdmittedSignalBranchBasis,
+        reason: SignalBranchRetirementReason,
+        admitted_allowance: u32,
+        retired_before: &BTreeSet<SignalBranchId>,
+    ) -> TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial> {
+        let branch_id = branch.id;
+        let cell = match self.lookup_cell(admission, branch_id) {
+            Ok(cell) => cell,
+            Err(denial) => {
+                return TransitionOutcome::denied(map_retirement_registry_denial(denial, branch_id))
+            }
+        };
+        let cell = match cell.retirement_planning_facts(admission) {
+            Ok(cell) => cell,
+            Err(denial) => return TransitionOutcome::denied(denial),
+        };
         if cell.observation.compare(expected.observation()).is_err() {
+            return TransitionOutcome::denied(SignalBranchRetirementDenial::CanonicalBasisMismatch);
+        }
+        if !self.basis_has_owner_affinity(&expected) {
+            return TransitionOutcome::denied(SignalBranchRetirementDenial::CanonicalBasisMismatch);
+        }
+        let metadata = match self
+            .metadata
+            .retirement_planning_facts(admission, branch_id)
+        {
+            Ok(metadata) => metadata,
+            Err(denial) => return TransitionOutcome::denied(denial),
+        };
+        let retention = self.retirement_retention_counts(branch_id);
+        admission.reach_operation_boundary(SignalOwnerOperationBoundary::ExactBasisPreflight);
+        self.finish_retirement_plan(
+            expected,
+            reason,
+            admitted_allowance,
+            retired_before,
+            RetirementPlanningEvidence {
+                branch: cell.branch,
+                observation: cell.observation,
+                child_branch_ids: metadata.child_branch_ids,
+                merge_participant: metadata.merge_participant,
+                external_retentions: retention.external,
+                admitted_retentions: retention.admitted_or_reserved,
+            },
+        )
+    }
+
+    fn finish_retirement_plan(
+        &self,
+        expected: AdmittedSignalBranchBasis,
+        reason: SignalBranchRetirementReason,
+        admitted_allowance: u32,
+        retired_before: &BTreeSet<SignalBranchId>,
+        evidence: RetirementPlanningEvidence,
+    ) -> TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial> {
+        let branch_id = expected.branch_id();
+
+        if evidence
+            .observation
+            .compare(expected.observation())
+            .is_err()
+        {
             return TransitionOutcome::denied(SignalBranchRetirementDenial::CanonicalBasisMismatch);
         }
         if branch_id == self.selected_branch_id() {
@@ -89,35 +177,41 @@ where
                 branch_id,
             });
         }
-        if cell.branch.parent_branch_id.is_none() {
+        if evidence.branch.parent_branch_id.is_none() {
             return TransitionOutcome::denied(SignalBranchRetirementDenial::CanonicalBranch {
                 branch_id,
             });
         }
-        if !metadata.child_branch_ids.is_empty() {
+        let blocking_children = evidence
+            .child_branch_ids
+            .iter()
+            .copied()
+            .filter(|child_id| !retired_before.contains(child_id))
+            .collect::<Vec<_>>();
+        if !blocking_children.is_empty() {
             return TransitionOutcome::denied(SignalBranchRetirementDenial::LiveChildren {
                 branch_id,
-                child_branch_ids: metadata.child_branch_ids,
+                child_branch_ids: blocking_children,
             });
         }
-        if metadata.merge_participant {
+        if evidence.merge_participant {
             return TransitionOutcome::denied(SignalBranchRetirementDenial::MergeParticipant {
                 branch_id,
             });
         }
-        if retention.external != 0 {
+        if evidence.external_retentions != 0 {
             return TransitionOutcome::denied(
                 SignalBranchRetirementDenial::RetainedComponentBasis {
                     branch_id,
-                    active_leases: retention.external,
+                    active_leases: evidence.external_retentions,
                 },
             );
         }
-        if retention.admitted_or_reserved != admitted_allowance {
+        if evidence.admitted_retentions != admitted_allowance {
             return TransitionOutcome::denied(
                 SignalBranchRetirementDenial::RetainedAdmittedBasis {
                     branch_id,
-                    active_leases: retention.admitted_or_reserved,
+                    active_leases: evidence.admitted_retentions,
                 },
             );
         }
@@ -131,15 +225,15 @@ where
 
         let terminal_basis_digest = canonical_digest(&expected.observation().canonical_encoding());
         TransitionOutcome::success(PlannedSignalBranchRetirement {
-            branch: cell.branch,
+            branch: evidence.branch,
             reason,
             terminal_basis_digest,
-            planned_child_membership_count: metadata.child_branch_ids.len() as u32,
+            planned_child_membership_count: evidence.child_branch_ids.len() as u32,
             admitted_basis: expected,
         })
     }
 
-    fn retirement_snapshot_allowance(
+    pub(in crate::branch::owner_services) fn retirement_snapshot_allowance(
         &self,
         branch_id: SignalBranchId,
         releasing_snapshots: &[&AdmittedSignalBranchSnapshot],
@@ -167,4 +261,13 @@ where
         }
         Ok(1_u32.saturating_add(unique_retentions.len() as u32))
     }
+}
+
+struct RetirementPlanningEvidence {
+    branch: SignalBranchHandle,
+    observation: SignalBranchObservation,
+    child_branch_ids: Vec<SignalBranchId>,
+    merge_participant: bool,
+    external_retentions: u32,
+    admitted_retentions: u32,
 }

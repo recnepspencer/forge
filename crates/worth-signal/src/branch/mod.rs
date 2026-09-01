@@ -31,7 +31,7 @@ pub use fork::{SignalBranchForkOperationDenial, SignalBranchForkOutcome};
 pub use identity::{
     signal_branch_identity, SignalBranchIdentity, SignalBranchIdentityConstructionDenial,
 };
-pub(crate) use identity::{validate_signal_branch_name, ValidatedSignalBranchName};
+pub use identity::{validate_signal_branch_name, ValidatedSignalBranchName};
 pub use lifecycle::{
     PlannedSignalBranchRetirement, PlannedSignalBranchRetirementBatch,
     SignalBranchBasisLifecyclePosture, SignalBranchRetirementBatchDenial,
@@ -42,15 +42,19 @@ pub use managed_reference::{
     ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial,
 };
 pub use merge::{SignalBranchMergeDenial, SignalBranchMergeOutcome};
-#[cfg(feature = "test-operation-control")]
-pub use owner_services::SignalOwnerOperationBoundary;
 #[allow(
     unused_imports,
     reason = "Phase 4 port signatures consume the Phase 3 cancellation vocabulary"
 )]
 pub use owner_services::{
+    SignalBranchBasisPort, SignalBranchLifecyclePort, SignalBranchMutationPort,
     SignalOwnerCancellationSource, SignalOwnerCancellationToken, SignalOwnerLifecycleObservation,
-    SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable,
+    SignalOwnerServiceCostSnapshot, SignalOwnerServiceIssuanceDenial, SignalOwnerServicePorts,
+    SignalOwnerUnavailable,
+};
+#[cfg(feature = "test-operation-control")]
+pub use owner_services::{
+    SignalOwnerOperationBoundary, SignalOwnerOperationControl, SignalOwnerOperationPause,
 };
 pub use readmission::{
     SignalBranchBasisCompatibilityDenial, SignalBranchBasisObservationDenial,

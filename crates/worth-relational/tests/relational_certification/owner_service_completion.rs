@@ -14,5 +14,7 @@ mod owner_lifecycle_observation;
 mod owner_loss;
 #[path = "owner_service_completion/service_properties.rs"]
 mod service_properties;
+#[path = "owner_service_completion/supply_chain_cutover.rs"]
+mod supply_chain_cutover;
 #[path = "owner_service_completion/world.rs"]
 mod world;

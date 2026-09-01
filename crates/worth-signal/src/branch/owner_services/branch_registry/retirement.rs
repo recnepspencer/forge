@@ -4,6 +4,7 @@ use crate::branch::{PlannedSignalBranchRetirement, SignalBranchRetirementDenial}
 use crate::state::SignalBranchId;
 
 use super::super::branch_execution_cell::retirement::SignalBranchRetirementCellOutcome;
+use super::super::branch_execution_cell::retirement_planning::SignalBranchRetirementPlanningCellFacts;
 use super::super::{SignalBranchCellState, SignalOwnerCancellationToken};
 use super::{
     SignalBranchExecutionCell, SignalBranchRegistry, SignalBranchRegistryDenial,
@@ -59,6 +60,16 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(in crate::branch::owner_services) fn preflight_exact_reserved(
+        &self,
+    ) -> Result<
+        Result<SignalBranchRetirementPlanningCellFacts, SignalBranchRetirementDenial>,
+        SignalBranchRegistryDenial,
+    > {
+        self.registry.validate_admission(self.admission)?;
+        Ok(self.cell.retirement_planning_facts(self.admission))
+    }
+
     pub(crate) fn execute_exact(
         mut self,
         plan: PlannedSignalBranchRetirement,

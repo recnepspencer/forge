@@ -15,7 +15,7 @@ use super::{
 #[cfg(test)]
 mod tests;
 
-/// Package-private Phase 3 slot for the concrete weak lifecycle service.
+/// Public concrete weak lifecycle service issued by a sealed owner root.
 pub struct SignalBranchLifecyclePort<D, I, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -163,7 +163,9 @@ where
     }
 }
 
-fn map_admission_denial(denial: SignalOwnerAdmissionDenial) -> SignalBranchRetirementDenial {
+pub(in crate::branch::owner_services) fn map_admission_denial(
+    denial: SignalOwnerAdmissionDenial,
+) -> SignalBranchRetirementDenial {
     match denial {
         SignalOwnerAdmissionDenial::ForeignOwner | SignalOwnerAdmissionDenial::OwnerUnavailable => {
             SignalBranchRetirementDenial::OwnerUnavailable(SignalOwnerUnavailable)

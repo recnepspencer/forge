@@ -31,6 +31,35 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: workspaces/worth-store
 
+  signal-owner-service-matrix:
+    name: Signal owner services (${{ matrix.configuration }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - default
+          - profile-compact
+          - profile-compact,parallel
+          - profile-standard
+          - profile-standard,parallel
+          - profile-extended
+          - profile-extended,parallel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-signal-owner-${{ matrix.configuration }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-signal-owner-
+      - name: Run exact owner-service matrix
+        run: bash scripts/ci/check_signal_owner_service_matrix.sh "${{ matrix.configuration }}"
+
   build-and-test:
     name: Build, Test, Lint
     runs-on: ubuntu-latest

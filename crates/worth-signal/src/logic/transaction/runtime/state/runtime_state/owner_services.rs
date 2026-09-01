@@ -1,7 +1,8 @@
 use super::super::branching::{BranchManager, SignalOwnerPartitionDenial};
 use crate::branch::owner_services::{
     SignalBranchBasisPort, SignalBranchLifecyclePort, SignalBranchMutationPort,
-    SignalOwnerServiceIssuanceDenial, DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES,
+    SignalOwnerServiceIssuanceDenial, SignalOwnerServicePorts,
+    DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES,
 };
 
 use super::SignalRuntime;
@@ -18,6 +19,17 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    /// Issue deterministic control over the real owner progression in test builds.
+    #[cfg(feature = "test-operation-control")]
+    pub fn owner_operation_control(
+        &self,
+    ) -> Result<
+        crate::branch::owner_services::SignalOwnerOperationControl,
+        crate::branch::owner_services::SignalOwnerUnavailable,
+    > {
+        self.owner_services.operation_control()
+    }
+
     #[cfg(test)]
     pub(crate) fn inject_merge_participation_unwind_for_owner_contract(
         &mut self,
@@ -102,5 +114,30 @@ where
             SignalBranchMutationPort::new(weak_owner.clone(), diagnostic_owner_runtime_instance_id),
             SignalBranchLifecyclePort::new(weak_owner, diagnostic_owner_runtime_instance_id),
         ))
+    }
+
+    pub(crate) fn sealed_owner_port_slots(&self) -> Option<SignalOwnerPortSlots<D, I, E, Ctx, T>> {
+        let weak_owner = self.owner_services.downgrade_owner().ok()?;
+        let diagnostic_owner_runtime_instance_id = self.branches.owner_runtime_instance_id();
+        Some((
+            SignalBranchBasisPort::new(weak_owner.clone(), diagnostic_owner_runtime_instance_id),
+            SignalBranchMutationPort::new(weak_owner.clone(), diagnostic_owner_runtime_instance_id),
+            SignalBranchLifecyclePort::new(weak_owner, diagnostic_owner_runtime_instance_id),
+        ))
+    }
+
+    /// Seal this runtime's canonical branch partition and issue weak component services.
+    pub fn owner_component_services(
+        &mut self,
+    ) -> Result<SignalOwnerServicePorts<D, I, E, Ctx, T>, SignalOwnerServiceIssuanceDenial>
+    where
+        D: Send + Sync + 'static,
+        I: Send + Sync + 'static,
+        E: Send + Sync + 'static,
+        Ctx: Send + Sync + 'static,
+        T: Send + Sync + 'static,
+    {
+        let (basis, mutation, lifecycle) = self.owner_port_slots()?;
+        Ok(SignalOwnerServicePorts::new(basis, mutation, lifecycle))
     }
 }

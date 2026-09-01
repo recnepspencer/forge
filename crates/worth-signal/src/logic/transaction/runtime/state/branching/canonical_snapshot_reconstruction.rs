@@ -30,6 +30,9 @@ where
         snapshot: &SignalSnapshotV1,
     ) -> Result<SignalBranchSnapshotReconstructionOutcome, SignalBranchSnapshotReconstructionDenial>
     {
+        if self.owner_services.is_sealed() {
+            return Err(SignalBranchSnapshotReconstructionDenial::NonPristineRuntime);
+        }
         let preflight = self.preflight_signal_branch_snapshot_reconstruction(expected, snapshot)?;
         self.restore_branch_snapshot(preflight.branch.clone(), snapshot)
             .map_err(

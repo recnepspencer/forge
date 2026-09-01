@@ -24,7 +24,7 @@ use denials::{
     map_restore_admission_denial, map_restore_registry_denial,
 };
 
-/// Package-private Phase 4 concrete weak mutation service.
+/// Public concrete weak mutation service issued by a sealed owner root.
 pub struct SignalBranchMutationPort<D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,

@@ -18,9 +18,7 @@ mod retirement;
 pub(crate) use retirement::SignalBranchRetirement;
 #[path = "branch_registry/prepared_installation.rs"]
 mod prepared;
-pub(crate) use prepared::{
-    SignalInstalledBranchCell, SignalPreparedBranchCell, SignalPreparedBranchInstallation,
-};
+pub(crate) use prepared::{SignalPreparedBranchCell, SignalPreparedBranchInstallation};
 #[path = "branch_registry/capacity.rs"]
 mod capacity;
 #[path = "branch_registry/close_cleanup.rs"]

@@ -18,6 +18,7 @@ pub(crate) mod basis;
 pub(crate) mod fork;
 #[path = "branch_execution_cell/fork_custody.rs"]
 mod fork_custody;
+mod inspection;
 pub(crate) mod restoration;
 pub(crate) mod retirement;
 pub(crate) mod retirement_planning;
@@ -264,10 +265,14 @@ impl<S> SignalBranchExecutionCell<S> {
     ) -> Result<SignalBranchForkSourceCustody<'admission, 'owner, S>, SignalBranchCellAdmissionDenial>
     {
         self.validate_admission(admission)?;
+        let cell_hold = admission
+            .hold_branch_cell()
+            .map_err(SignalBranchCellAdmissionDenial::from)?;
         Ok(fork_custody::SignalBranchForkCustodyGate::acquire_fork(
             &self.fork_custody,
             self,
             admission,
+            cell_hold,
             || self.record_cell_wait(),
         ))
     }

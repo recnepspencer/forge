@@ -26,6 +26,8 @@ mod checkpoint;
 mod construction;
 mod counter_access;
 #[cfg(test)]
+mod deserialization_shape_tests;
+#[cfg(test)]
 mod direct_invalidation_basis_tests;
 mod observation_state;
 mod performed_counter_state;
@@ -85,6 +87,22 @@ pub(crate) struct NodeArena {
 }
 
 impl NodeArena {
+    fn validate_deserialized_lane_alignment<E>(&self) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        let nodes = self.nodes.len();
+        let hot = self.hot.len();
+        let warm = self.warm.len();
+        let cold = self.cold.len();
+        if nodes == hot && nodes == warm && nodes == cold {
+            return Ok(());
+        }
+        Err(E::custom(format!(
+            "signal graph arena lane lengths must match: nodes={nodes}, hot={hot}, warm={warm}, cold={cold}"
+        )))
+    }
+
     fn fork_persistent(&mut self) -> Self {
         Self {
             nodes: self.nodes.fork_persistent(),
@@ -184,6 +202,8 @@ impl<'de> Deserialize<'de> for SignalGraph {
         D: serde::Deserializer<'de>,
     {
         let wire = SignalGraphSerde::deserialize(deserializer)?;
+        wire.arena
+            .validate_deserialized_lane_alignment::<D::Error>()?;
         let mut graph = Self {
             lifecycle_token: Default::default(),
             instance_id: next_signal_graph_instance_id(),

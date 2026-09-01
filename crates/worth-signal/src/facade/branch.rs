@@ -5,16 +5,17 @@
 //! exports here do not make them composition-port contracts.
 
 pub use crate::branch::{
-    signal_branch_identity, signal_branch_observation, AdmittedSignalBranchBasis,
-    AdmittedSignalBranchSnapshot, ManagedSignalBranchReference,
+    signal_branch_identity, signal_branch_observation, validate_signal_branch_name,
+    AdmittedSignalBranchBasis, AdmittedSignalBranchSnapshot, ManagedSignalBranchReference,
     ManagedSignalBranchReferenceAdmissionDenial, PlannedSignalBranchRetirement,
     PlannedSignalBranchRetirementBatch, SignalBranchAdvanceDenial, SignalBranchAdvanceEngineDenial,
     SignalBranchAdvanceOutcome, SignalBranchBasisAuthority, SignalBranchBasisAuthorityMarker,
     SignalBranchBasisLifecyclePosture, SignalBranchBasisObservationDenial,
-    SignalBranchBasisOwnerProof, SignalBranchBasisProof, SignalBranchBasisReadmissionDenial,
-    SignalBranchComparisonBasis, SignalBranchForkBasis, SignalBranchForkOperationDenial,
-    SignalBranchForkOutcome, SignalBranchIdentity, SignalBranchIdentityConstructionDenial,
-    SignalBranchMergeDenial, SignalBranchMergeOutcome, SignalBranchObservation,
+    SignalBranchBasisOwnerProof, SignalBranchBasisPort, SignalBranchBasisProof,
+    SignalBranchBasisReadmissionDenial, SignalBranchComparisonBasis, SignalBranchForkBasis,
+    SignalBranchForkOperationDenial, SignalBranchForkOutcome, SignalBranchIdentity,
+    SignalBranchIdentityConstructionDenial, SignalBranchLifecyclePort, SignalBranchMergeDenial,
+    SignalBranchMergeOutcome, SignalBranchMutationPort, SignalBranchObservation,
     SignalBranchObservationConstructionDenial, SignalBranchRestoreDenial,
     SignalBranchRetainedReadmissionDenial, SignalBranchRetentionAcquisitionDenial,
     SignalBranchRetentionLease, SignalBranchRetentionOwnerPosture,
@@ -24,7 +25,9 @@ pub use crate::branch::{
     SignalBranchRetirementBatchReceipt, SignalBranchRetirementDenial, SignalBranchRetirementReason,
     SignalBranchRetirementReceipt, SignalBranchSnapshotCaptureDenial,
     SignalBranchSnapshotCaptureOutcome, SignalBranchTarget, SignalBranchTargetConstructionDenial,
-    SignalOwnerLifecycleObservation, SignalOwnerServiceCostSnapshot, SignalOwnerUnavailable,
+    SignalOwnerCancellationSource, SignalOwnerCancellationToken, SignalOwnerLifecycleObservation,
+    SignalOwnerServiceCostSnapshot, SignalOwnerServiceIssuanceDenial, SignalOwnerServicePorts,
+    SignalOwnerUnavailable, ValidatedSignalBranchName,
 };
 
 /// Owner-root compatibility exports, not composition-port inputs or operations.
@@ -35,4 +38,6 @@ pub use crate::branch::{
 };
 
 #[cfg(feature = "test-operation-control")]
-pub use crate::branch::SignalOwnerOperationBoundary;
+pub use crate::branch::{
+    SignalOwnerOperationBoundary, SignalOwnerOperationControl, SignalOwnerOperationPause,
+};

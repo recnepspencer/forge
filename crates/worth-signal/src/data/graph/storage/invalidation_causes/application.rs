@@ -21,7 +21,7 @@ impl SignalGraph {
         &self,
         node: NodeId,
     ) -> Result<DependencyRevision, SignalError> {
-        Ok(self.get_entry(node)?.dependency_revision())
+        self.node_dependency_revision(node)
     }
 
     pub(crate) fn pending_causes(
@@ -29,7 +29,7 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<&[ResolvedDependencyCause], SignalError> {
         self.ensure_cause_readmission_complete()?;
-        let id = self.get_entry(node)?.pending_cause_set_id();
+        let id = self.node_pending_cause_set_id(node)?;
         self.cause_sets.get(id)
     }
 
@@ -38,7 +38,7 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<PendingCauseSetId, SignalError> {
         self.ensure_cause_readmission_complete()?;
-        Ok(self.get_entry(node)?.pending_cause_set_id())
+        self.node_pending_cause_set_id(node)
     }
 
     pub(crate) fn replace_pending_causes(
@@ -63,14 +63,14 @@ impl SignalGraph {
                 ));
             }
         }
-        let current = self.get_entry(node)?.pending_cause_set_id();
+        let current = self.node_pending_cause_set_id(node)?;
         let id = self.cause_sets.replace_set(current, causes)?;
-        self.get_entry_mut(node)?.set_pending_cause_set_id(id);
+        self.set_node_pending_cause_set_id(node, id)?;
         self.rebuild_dirty_caches_from_pending_causes(node)?;
         if !self.cause_readmission_required {
             self.compact_cause_set_storage_if_sparse()?;
         }
-        Ok(self.get_entry(node)?.pending_cause_set_id())
+        self.node_pending_cause_set_id(node)
     }
 
     pub(crate) fn replace_prepared_pending_causes(
@@ -80,12 +80,12 @@ impl SignalGraph {
         delta: &ProducedAspectDelta,
     ) -> Result<PendingCauseSetId, SignalError> {
         self.validate_prepared_pending_causes(node, &causes, delta)?;
-        let current = self.get_entry(node)?.pending_cause_set_id();
+        let current = self.node_pending_cause_set_id(node)?;
         let id = self.cause_sets.replace_set(current, causes)?;
-        self.get_entry_mut(node)?.set_pending_cause_set_id(id);
+        self.set_node_pending_cause_set_id(node, id)?;
         self.rebuild_dirty_caches_from_pending_causes(node)?;
         self.compact_cause_set_storage_if_sparse()?;
-        Ok(self.get_entry(node)?.pending_cause_set_id())
+        self.node_pending_cause_set_id(node)
     }
 
     pub(crate) fn merge_pending_causes(
@@ -107,12 +107,12 @@ impl SignalGraph {
                 ));
             }
         }
-        let current = self.get_entry(node)?.pending_cause_set_id();
+        let current = self.node_pending_cause_set_id(node)?;
         let id = self.cause_sets.replace(current, causes)?;
-        self.get_entry_mut(node)?.set_pending_cause_set_id(id);
+        self.set_node_pending_cause_set_id(node, id)?;
         self.rebuild_dirty_caches_from_pending_causes(node)?;
         self.compact_cause_set_storage_if_sparse()?;
-        Ok(self.get_entry(node)?.pending_cause_set_id())
+        self.node_pending_cause_set_id(node)
     }
 
     pub(crate) fn rebuild_dirty_caches_from_pending_causes(
@@ -120,37 +120,43 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<(), SignalError> {
         let causes = self.pending_causes(node)?.to_vec();
-        let direct = self.get_entry(node)?.direct_invalidation_basis().cloned();
-        let mut entry = self.get_entry_mut(node)?;
-        entry.set_dirty_aspects(crate::data::aspect::AspectMask::EMPTY);
-        entry.clear_dirty_partition_scopes();
-        if let Some(direct) = direct {
-            entry.set_dirty_aspects(direct.dirty_aspects());
-            for (aspect, scope) in direct.scoped_aspects() {
-                entry.add_dirty_partition_scope(*aspect, scope.clone());
-            }
+        let direct = self.node_direct_invalidation_basis(node)?.cloned();
+        let mut dirty_aspects = crate::data::aspect::AspectMask::EMPTY;
+        if let Some(direct) = &direct {
+            dirty_aspects = direct.dirty_aspects();
         }
-        for cause in causes {
-            entry.add_dirty_aspect(cause.key.aspect);
-            for scope in cause.changed_scopes.as_slice() {
-                entry.add_dirty_partition_scope(cause.key.aspect, scope.clone());
-            }
+        for cause in &causes {
+            dirty_aspects.insert(cause.key.aspect);
         }
-        Ok(())
+        let direct_scopes = direct.iter().flat_map(|basis| {
+            basis
+                .scoped_aspects()
+                .iter()
+                .map(|(aspect, scope)| (*aspect, scope.clone()))
+        });
+        let cause_scopes = causes.iter().flat_map(|cause| {
+            cause
+                .changed_scopes
+                .as_slice()
+                .iter()
+                .cloned()
+                .map(|scope| (cause.key.aspect, scope))
+        });
+        self.replace_node_invalidation_cache(node, dirty_aspects, direct_scopes.chain(cause_scopes))
     }
 
     pub(crate) fn release_pending_causes(&mut self, node: NodeId) -> Result<(), SignalError> {
-        let current = self.get_entry(node)?.pending_cause_set_id();
+        let current = self.node_pending_cause_set_id(node)?;
         if current == PendingCauseSetId::EMPTY {
             return Ok(());
         }
         self.cause_sets.release(current)?;
-        {
-            let mut entry = self.get_entry_mut(node)?;
-            entry.set_pending_cause_set_id(PendingCauseSetId::EMPTY);
-            entry.set_dirty_aspects(crate::data::aspect::AspectMask::EMPTY);
-            entry.clear_dirty_partition_scopes();
-        }
+        self.set_node_pending_cause_set_id(node, PendingCauseSetId::EMPTY)?;
+        self.replace_node_invalidation_cache(
+            node,
+            crate::data::aspect::AspectMask::EMPTY,
+            std::iter::empty(),
+        )?;
         self.compact_cause_set_storage_if_sparse()?;
         Ok(())
     }
@@ -165,13 +171,12 @@ impl SignalGraph {
     pub(crate) fn compact_cause_set_storage(&mut self) -> Result<(), SignalError> {
         let remaps = self.cause_sets.rebuild_occupied_generation()?;
         for remap in remaps {
-            let mut entry = self.get_entry_mut(remap.consumer)?;
-            if entry.pending_cause_set_id() != remap.previous {
+            if self.node_pending_cause_set_id(remap.consumer)? != remap.previous {
                 return Err(SignalError::invalid_input(
                     "canonical cause-set handle does not match its consumer",
                 ));
             }
-            entry.set_pending_cause_set_id(remap.current);
+            self.set_node_pending_cause_set_id(remap.consumer, remap.current)?;
         }
         Ok(())
     }

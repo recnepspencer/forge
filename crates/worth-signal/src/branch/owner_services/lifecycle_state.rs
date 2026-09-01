@@ -16,7 +16,8 @@ use cleanup_claim::SignalOwnerCleanupClaim;
 pub(crate) use operation_admission::SignalOwnerOperationAdmission;
 use operation_admission::SignalOwnerPendingAdmission;
 pub(super) use operation_admission::{
-    SignalOwnerBranchCellHoldDenial, SignalOwnerMetadataHold, SignalOwnerMetadataHoldDenial,
+    SignalOwnerBranchCellHold, SignalOwnerBranchCellHoldDenial, SignalOwnerMetadataHold,
+    SignalOwnerMetadataHoldDenial,
 };
 
 static NEXT_SIGNAL_OWNER_LIFECYCLE_IDENTITY: AtomicU64 = AtomicU64::new(1);
@@ -96,7 +97,7 @@ impl SignalOwnerLifecycleState {
             counters,
             recovered_poison: AtomicBool::new(false),
             #[cfg(any(test, feature = "test-operation-control"))]
-            operation_control: SignalOwnerOperationControl::default(),
+            operation_control: SignalOwnerOperationControl::new(),
         })
     }
 

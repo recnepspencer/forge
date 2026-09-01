@@ -89,7 +89,8 @@ fn method_body<'a>(source: &'a str, signature: &str) -> &'a str {
         .unwrap_or_else(|| panic!("owner must retain {signature}"));
     let body = &source[start..];
     let end = body
-        .find("\n    }\n")
+        .find("\n    }\r\n")
+        .or_else(|| body.find("\n    }\n"))
         .expect("method body must have a closing brace");
     &body[..end]
 }

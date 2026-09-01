@@ -13,18 +13,21 @@ use super::{
     SignalOwnerServiceCounters, SignalOwnerUnavailable,
 };
 
-mod basis;
+pub(super) mod basis;
 mod basis_authority;
 #[cfg(test)]
 mod branch_incarnation_replacement;
 pub(super) mod close_cleanup;
 pub(super) mod fork_reservation;
+mod inspection;
 mod output_retention;
 mod retention;
 #[path = "owner/retention_preflight.rs"]
 mod retention_preflight;
+mod retirement_batch_execution;
+mod retirement_batch_planning;
 mod retirement_planning;
-mod retirement_reservation;
+pub(super) mod retirement_reservation;
 use super::lifecycle_state::{SignalOwnerCloseCoordinator, SignalOwnerCloseDenial};
 #[cfg(test)]
 mod managed_reference_replacement_tests;
@@ -125,6 +128,16 @@ where
             SignalOwnerRootState::Sealed(owner) => Ok(Arc::downgrade(owner)),
         }
     }
+
+    #[cfg(feature = "test-operation-control")]
+    pub(crate) fn operation_control(
+        &self,
+    ) -> Result<super::operation_control::SignalOwnerOperationControl, SignalOwnerUnavailable> {
+        match &self.state {
+            SignalOwnerRootState::Unsealed { .. } => Err(SignalOwnerUnavailable),
+            SignalOwnerRootState::Sealed(owner) => Ok(owner.operation_control()),
+        }
+    }
 }
 
 impl<D, I, T> Drop for SignalOwnerRoot<D, I, T>
@@ -153,6 +166,12 @@ where
     ) -> Arc<Self> {
         let (metadata, next_branch_id, retention, selected_branch_id, cells) =
             partition.into_parts();
+        assert!(
+            cells
+                .iter()
+                .any(|(handle, ..)| handle.id == selected_branch_id),
+            "validated owner partition contains its selected branch"
+        );
         let counters = Arc::new(SignalOwnerServiceCounters::default());
         let lifecycle = SignalOwnerLifecycleState::new(runtime_instance_id, Arc::clone(&counters));
         let lifecycle_identity = lifecycle.lifecycle_identity();

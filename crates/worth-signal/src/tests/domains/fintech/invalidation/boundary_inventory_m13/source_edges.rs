@@ -23,7 +23,7 @@ fn phase_1_inventory_freezes_complete_writer_and_publication_owners() {
 
 #[test]
 fn phase_1_inventory_freezes_complete_critical_source_files() {
-    assert_eq!(SOURCE_FILES.len(), 38);
+    assert_eq!(SOURCE_FILES.len(), 50);
     assert_eq!(
         SOURCE_FILES
             .iter()

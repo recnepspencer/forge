@@ -46,13 +46,13 @@ mod deterministic {
         changed: Condvar,
     }
 
-    #[derive(Debug, Clone, Default)]
-    pub(in crate::branch::owner_services) struct SignalOwnerOperationControl {
+    #[derive(Debug, Clone)]
+    pub struct SignalOwnerOperationControl {
         state: Arc<SignalOwnerOperationControlState>,
     }
 
     #[derive(Debug)]
-    pub(in crate::branch::owner_services) struct SignalOwnerOperationPause {
+    pub struct SignalOwnerOperationPause {
         latch: Arc<SignalOwnerPauseLatch>,
     }
 
@@ -64,7 +64,13 @@ mod deterministic {
         )
     )]
     impl SignalOwnerOperationControl {
-        pub(in crate::branch::owner_services) fn arm_pause_once(
+        pub(in crate::branch::owner_services) fn new() -> Self {
+            Self {
+                state: Arc::new(SignalOwnerOperationControlState::default()),
+            }
+        }
+
+        pub fn arm_pause_once(
             &self,
             boundary: SignalOwnerOperationBoundary,
         ) -> SignalOwnerOperationPause {
@@ -79,10 +85,7 @@ mod deterministic {
             SignalOwnerOperationPause { latch }
         }
 
-        pub(in crate::branch::owner_services) fn inject_panic_once(
-            &self,
-            boundary: SignalOwnerOperationBoundary,
-        ) {
+        pub fn inject_panic_once(&self, boundary: SignalOwnerOperationBoundary) {
             let mut armed = self
                 .state
                 .armed
@@ -157,10 +160,7 @@ mod deterministic {
         )
     )]
     impl SignalOwnerOperationPause {
-        pub(in crate::branch::owner_services) fn wait_until_reached(
-            &self,
-            timeout: Duration,
-        ) -> bool {
+        pub fn wait_until_reached(&self, timeout: Duration) -> bool {
             let deadline = Instant::now() + timeout;
             let mut state = self
                 .latch
@@ -184,7 +184,7 @@ mod deterministic {
             true
         }
 
-        pub(in crate::branch::owner_services) fn release(&self) {
+        pub fn release(&self) {
             self.latch.release();
         }
     }
@@ -201,6 +201,4 @@ mod deterministic {
     unused_imports,
     reason = "the frozen controller contract names the pause type for service-lane consumers"
 )]
-pub(in crate::branch::owner_services) use deterministic::{
-    SignalOwnerOperationControl, SignalOwnerOperationPause,
-};
+pub use deterministic::{SignalOwnerOperationControl, SignalOwnerOperationPause};

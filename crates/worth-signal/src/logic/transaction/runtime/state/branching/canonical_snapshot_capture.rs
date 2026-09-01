@@ -23,6 +23,10 @@ where
         &mut self,
         expected: &AdmittedSignalBranchBasis,
     ) -> Result<SignalBranchSnapshotCaptureOutcome, SignalBranchSnapshotCaptureDenial> {
+        if let Some((_, mutation, _)) = self.sealed_owner_port_slots() {
+            let cancellation = crate::branch::SignalOwnerCancellationSource::new();
+            return mutation.capture_exact(expected, &cancellation.token());
+        }
         let preflight = self.preflight_signal_branch_snapshot_capture(expected)?;
         let snapshot = self
             .capture_branch_snapshot(preflight.branch.clone())
