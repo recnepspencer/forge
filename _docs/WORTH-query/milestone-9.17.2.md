@@ -1,17 +1,17 @@
 # Milestone 9.17.2: Composite Runtime-World History And Coordinated Publication
 
-> **Status:** Planned. No production implementation claim is made by this
-> specification.
+> **Status:** Planned and ready for implementation. No production
+> implementation claim is made by this specification.
 >
 > **Product posture:** This milestone establishes the memory-resident Runtime
 > World composition authority in the dedicated `worth-runtime-world` owner
 > crate. It makes no persistence, restart, physical database, merge, or public
 > Query workflow claim.
 >
-> **Integration gate:** [Milestone 9.17.1.2](./milestone-9.17.1.2.md) must
-> close before integration or acceptance. Contract-preserving implementation
-> may proceed against its frozen Relational bundle and independently borrowable
-> Signal services while final certification runs.
+> **Entry gate:** [Milestone 9.17.1.2](./milestone-9.17.1.2.md) closed at
+> accepted production revision `95c9aa7455`. Its Relational bundle and
+> independently borrowable Signal services are frozen prerequisites for this
+> milestone.
 
 ## Goal And Roadmap Placement
 

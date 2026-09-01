@@ -1,7 +1,7 @@
 # Milestone 9.17.1.2: Final Owner Services And Signal Independent Progress
 
-> **Status:** Implementation merged on 2026-09-01 at `3935c715a0`; final
-> public-tree certification is pending, so no acceptance claim is made.
+> **Status:** Closed on 2026-09-01. The accepted production revision is
+> `95c9aa7455`.
 >
 > **Product posture:** This is a corrective predecessor to Milestone 9.17.2.
 > It does not reopen or reinterpret the closed 9.17.1 and 9.17.1.1 meanings.
@@ -901,6 +901,27 @@ final integrated revision, commands/configurations, terminal results, unresolved
 debt, and residual risk. Baseline failures require unchanged reproduction and
 independent out-of-scope judgment; they never count as passes. Neither test
 counts nor reviewer confidence guarantees completeness.
+
+### Closure Record
+
+Revision `95c9aa7455` passed the final integrated acceptance gate. Relational's
+exact 14-test owner-service roster passed with its full all-features/all-targets
+suite. Signal's exact 40-test operation-control roster passed in default,
+compact, standard, and extended profiles, both serial and parallel where
+available; the default and extended-parallel scheduled Scale cases also passed.
+The restored six-profile serial/parallel proof asserted real parallel dispatch
+and equal operational digests. Lifecycle, race, independent-oracle, terminal,
+documentation, example, formatting, scoped Clippy, dirty line-cap, boundary,
+generated-context, Query, Runtime Bridge, and public-contract workspace gates
+all passed on the final tree.
+
+Candidate review also repaired pre-existing but in-scope-adjacent Runtime Bridge
+Clippy findings, one stale compile-fail diagnostic, and the Bank producer
+allowlist. The public `workspaces/worth-contracts` inventory is tracked; private
+CAD paths are absent from live automation and tooling. An empty `mirrored_docs`
+set is intentional: `road1.toml` is the sole machine authority. There is no
+unresolved in-scope debt or known residual defect. Subsequent CI preserves this
+closure; it is not deferred evidence required to obtain it.
 
 ## Exact Handoff To Milestone 9.17.2
 
