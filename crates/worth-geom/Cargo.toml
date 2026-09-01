@@ -2,7 +2,7 @@
 name = "worth-geom"
 edition = "2021"
 version = "0.1.0"
-license = "UNLICENSED"
+license = "BUSL-1.1"
 description = "Analytic surfaces, NURBS, and curves for the Worth geometry kernel"
 
 [dependencies]
