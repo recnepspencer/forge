@@ -139,17 +139,6 @@ where
         })
     }
 
-    fn basis_has_owner_affinity(&self, expected: &AdmittedSignalBranchBasis) -> bool {
-        expected
-            .observation()
-            .target()
-            .as_basis()
-            .is_some_and(|target| {
-                target.graph_instance_id() == self.runtime_instance_id().to_string()
-                    && target.definition_basis() == self.definition_basis()
-            })
-    }
-
     fn retirement_snapshot_allowance(
         &self,
         branch_id: SignalBranchId,

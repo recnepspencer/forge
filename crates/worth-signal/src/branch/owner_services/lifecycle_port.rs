@@ -129,6 +129,9 @@ where
             Ok(admission) => admission,
             Err(denial) => return TransitionOutcome::denied(map_admission_denial(denial)),
         };
+        if !owner.basis_has_owner_affinity(plan.admitted_basis()) {
+            return TransitionOutcome::denied(SignalBranchRetirementDenial::CanonicalBasisMismatch);
+        }
         let branch_id = plan.branch().id;
         let reservation = match owner.reserve_retirement(&admission, branch_id) {
             Ok(reservation) => reservation,

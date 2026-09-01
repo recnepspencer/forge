@@ -14,6 +14,7 @@ use super::{
 };
 
 mod basis;
+mod basis_authority;
 #[cfg(test)]
 mod branch_incarnation_replacement;
 pub(super) mod close_cleanup;

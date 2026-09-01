@@ -5,7 +5,9 @@ use crate::branch::{
 };
 use crate::state::SignalBranchId;
 
-use super::super::{SignalOwnerAdmissionDenial, SignalOwnerUnavailable};
+use super::super::{
+    SignalOwner, SignalOwnerAdmissionDenial, SignalOwnerOperationAdmission, SignalOwnerUnavailable,
+};
 
 pub(super) fn map_managed_observation_admission_denial(
     denial: ManagedSignalBranchReferenceAdmissionDenial,
@@ -29,10 +31,17 @@ pub(super) fn map_managed_readmission_admission_denial(
     }
 }
 
-pub(super) fn map_observation_retention_denial(
+pub(super) fn map_observation_retention_denial<D, I, T>(
+    owner: &SignalOwner<D, I, T>,
+    admission: &SignalOwnerOperationAdmission<'_>,
     denial: SignalBranchRetentionAcquisitionDenial,
     branch_id: SignalBranchId,
-) -> SignalBranchBasisObservationDenial {
+) -> SignalBranchBasisObservationDenial
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     match denial {
         SignalBranchRetentionAcquisitionDenial::OwnerUnavailable(unavailable) => {
             SignalBranchBasisObservationDenial::OwnerUnavailable(unavailable)
@@ -46,16 +55,23 @@ pub(super) fn map_observation_retention_denial(
             SignalBranchBasisObservationDenial::OwnerReentry
         }
         SignalBranchRetentionAcquisitionDenial::RetiredBranch { .. } => {
-            SignalBranchBasisObservationDenial::RetirementInProgress { branch_id }
+            owner.resolve_observation_retirement_denial(admission, branch_id)
         }
         denial => SignalBranchBasisObservationDenial::RetentionUnavailable { denial },
     }
 }
 
-pub(super) fn map_readmission_retention_denial(
+pub(super) fn map_readmission_retention_denial<D, I, T>(
+    owner: &SignalOwner<D, I, T>,
+    admission: &SignalOwnerOperationAdmission<'_>,
     denial: SignalBranchRetentionAcquisitionDenial,
     branch_id: SignalBranchId,
-) -> SignalBranchBasisReadmissionDenial {
+) -> SignalBranchBasisReadmissionDenial
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     match denial {
         SignalBranchRetentionAcquisitionDenial::OwnerUnavailable(unavailable) => {
             SignalBranchBasisReadmissionDenial::OwnerUnavailable(unavailable)
@@ -69,7 +85,7 @@ pub(super) fn map_readmission_retention_denial(
             SignalBranchBasisReadmissionDenial::OwnerReentry
         }
         SignalBranchRetentionAcquisitionDenial::RetiredBranch { .. } => {
-            SignalBranchBasisReadmissionDenial::RetirementInProgress { branch_id }
+            owner.resolve_readmission_retirement_denial(admission, branch_id)
         }
         SignalBranchRetentionAcquisitionDenial::CapacityExhausted {
             maximum_active_leases,
@@ -83,10 +99,17 @@ pub(super) fn map_readmission_retention_denial(
     }
 }
 
-pub(super) fn map_observation_readmission_denial(
+pub(super) fn map_observation_readmission_denial<D, I, T>(
+    owner: &SignalOwner<D, I, T>,
+    admission: &SignalOwnerOperationAdmission<'_>,
     denial: SignalBranchBasisObservationDenial,
     branch_id: SignalBranchId,
-) -> SignalBranchBasisReadmissionDenial {
+) -> SignalBranchBasisReadmissionDenial
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     match denial {
         SignalBranchBasisObservationDenial::OwnerUnavailable(unavailable) => {
             SignalBranchBasisReadmissionDenial::OwnerUnavailable(unavailable)
@@ -124,7 +147,7 @@ pub(super) fn map_observation_readmission_denial(
             SignalBranchBasisReadmissionDenial::OwnerInvariantViolation { branch_id }
         }
         SignalBranchBasisObservationDenial::RetentionUnavailable { denial } => {
-            map_readmission_retention_denial(denial, branch_id)
+            map_readmission_retention_denial(owner, admission, denial, branch_id)
         }
     }
 }

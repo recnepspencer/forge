@@ -27,9 +27,7 @@ use denial_mapping::{
     map_release_admission_denial, map_retained_admission_denial, map_retained_retention_denial,
     map_retention_admission_denial,
 };
-use descriptor_validation::{
-    compare_descriptor_with_observation, validate_managed_descriptor, validate_retained_descriptor,
-};
+use descriptor_validation::compare_descriptor_with_observation;
 
 /// Concrete weak service for exact Signal basis observation and retention.
 pub struct SignalBranchBasisPort<D, I, T>
@@ -99,7 +97,9 @@ where
             .map_err(map_managed_observation_admission_denial)?;
         let retention = owner
             .acquire_admitted_retention(&admission, branch_id)
-            .map_err(|denial| map_observation_retention_denial(denial, branch_id))?;
+            .map_err(|denial| {
+                map_observation_retention_denial(&owner, &admission, denial, branch_id)
+            })?;
         let observation = cell.observe_exact(&admission)?;
         Ok(admit_runtime_signal_branch_observation(
             observation,
@@ -120,13 +120,15 @@ where
         let (admission, cell) = owner
             .admit_managed_branch_reference(reference)
             .map_err(map_managed_readmission_admission_denial)?;
-        validate_managed_descriptor(&owner, descriptor, branch_id)?;
+        owner.validate_managed_basis_descriptor(descriptor, branch_id)?;
         let retention = owner
             .acquire_admitted_retention(&admission, branch_id)
-            .map_err(|denial| map_readmission_retention_denial(denial, branch_id))?;
-        let observation = cell
-            .observe_exact(&admission)
-            .map_err(|denial| map_observation_readmission_denial(denial, branch_id))?;
+            .map_err(|denial| {
+                map_readmission_retention_denial(&owner, &admission, denial, branch_id)
+            })?;
+        let observation = cell.observe_exact(&admission).map_err(|denial| {
+            map_observation_readmission_denial(&owner, &admission, denial, branch_id)
+        })?;
         compare_descriptor_with_observation(descriptor, &observation)?;
         Ok(admit_runtime_signal_branch_observation(
             observation,
@@ -143,11 +145,13 @@ where
             .upgrade_owner()
             .map_err(SignalBranchBasisReadmissionDenial::OwnerUnavailable)?;
         let branch_id = basis.owner_branch_id();
-        validate_managed_descriptor(&owner, basis.descriptor(), branch_id)?;
+        owner.validate_managed_basis_descriptor(basis.descriptor(), branch_id)?;
         let admission = owner.admit().map_err(map_basis_admission_denial)?;
         let observation = owner
             .observe_branch_exact(&admission, branch_id)
-            .map_err(|denial| map_observation_readmission_denial(denial, branch_id))?;
+            .map_err(|denial| {
+                map_observation_readmission_denial(&owner, &admission, denial, branch_id)
+            })?;
         compare_descriptor_with_observation(basis.descriptor(), &observation)
     }
 
@@ -170,7 +174,7 @@ where
             SignalBranchRetentionOwnerRelationship::SameOwner => {}
         }
         let admission = owner.admit().map_err(map_retained_admission_denial)?;
-        validate_retained_descriptor(descriptor, lease)?;
+        owner.preflight_retained_readmission(&admission, descriptor, lease)?;
         let branch_id = descriptor.branch_id();
         let retention = owner
             .acquire_admitted_retention(&admission, branch_id)

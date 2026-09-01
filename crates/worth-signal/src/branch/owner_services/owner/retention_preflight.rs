@@ -1,8 +1,10 @@
-use crate::branch::retention::SignalBranchRetentionOwnerRelationship;
 use crate::branch::{
-    AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable,
+    AdmittedSignalBranchBasis, SignalBranchBasisDescriptor, SignalBranchRetainedReadmissionDenial,
+    SignalBranchRetentionAcquisitionDenial, SignalBranchRetentionLease,
+    SignalBranchRetentionOwnerRelationship, SignalOwnerUnavailable,
 };
-use crate::state::SignalSnapshotId;
+use crate::state::{SignalBranchId, SignalSnapshotId};
+use worth_foundational::FoundationalBranchId;
 
 use super::super::{SignalBranchRegistryDenial, SignalOwnerOperationAdmission};
 
@@ -22,25 +24,59 @@ where
             .map_err(|_| {
                 SignalBranchRetentionAcquisitionDenial::OwnerUnavailable(SignalOwnerUnavailable)
             })?;
-        if basis.owner_identity_relationship(&self.retention.binding())
-            != SignalBranchRetentionOwnerRelationship::SameOwner
-        {
-            return Err(SignalBranchRetentionAcquisitionDenial::ForeignBasis);
-        }
+        self.validate_external_retention_basis(basis)?;
         let Some(target) = basis.observation().target().as_basis() else {
             return Err(SignalBranchRetentionAcquisitionDenial::ForeignBasis);
         };
-        if target.graph_instance_id() != self.runtime_instance_id.to_string() {
-            return Err(SignalBranchRetentionAcquisitionDenial::ForeignBasis);
-        }
-        if target.definition_basis() != self.definition_basis {
-            return Err(SignalBranchRetentionAcquisitionDenial::DefinitionMismatch {
-                basis_definition_basis: target.definition_basis(),
-                runtime_definition_basis: self.definition_basis,
-            });
-        }
+        self.preflight_exact_target_availability(
+            admission,
+            basis.owner_branch_id(),
+            basis.observation().branch_id(),
+            target.snapshot_id().map(SignalSnapshotId),
+        )
+    }
 
-        let branch_id = basis.owner_branch_id();
+    pub(in crate::branch::owner_services) fn preflight_retained_readmission(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        descriptor: &SignalBranchBasisDescriptor,
+        lease: &SignalBranchRetentionLease,
+    ) -> Result<(), SignalBranchRetainedReadmissionDenial> {
+        match lease.owner_relationship(&self.retention.binding()) {
+            SignalBranchRetentionOwnerRelationship::DifferentOwner => {
+                return Err(SignalBranchRetainedReadmissionDenial::ForeignRetention)
+            }
+            SignalBranchRetentionOwnerRelationship::OwnerLost => {
+                return Err(SignalBranchRetainedReadmissionDenial::UnavailableRetainedTarget)
+            }
+            SignalBranchRetentionOwnerRelationship::SameOwner => {}
+        }
+        self.validate_retained_basis_descriptor(descriptor, lease)?;
+        let target = descriptor
+            .observation()
+            .target()
+            .as_basis()
+            .ok_or_else(|| {
+                SignalBranchRetainedReadmissionDenial::UnavailableExactTarget(
+                    SignalBranchRetentionAcquisitionDenial::ForeignBasis,
+                )
+            })?;
+        self.preflight_exact_target_availability(
+            admission,
+            descriptor.branch_id(),
+            descriptor.observation().branch_id(),
+            target.snapshot_id().map(SignalSnapshotId),
+        )
+        .map_err(map_retained_preflight_denial)
+    }
+
+    fn preflight_exact_target_availability(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        branch_id: SignalBranchId,
+        observation_branch_id: &FoundationalBranchId,
+        snapshot_id: Option<SignalSnapshotId>,
+    ) -> Result<(), SignalBranchRetentionAcquisitionDenial> {
         let cell = match self.registry.lookup(admission, branch_id) {
             Ok(cell) => cell,
             Err(SignalBranchRegistryDenial::UnknownBranch(_)) => {
@@ -83,10 +119,10 @@ where
                 None => SignalBranchRetentionAcquisitionDenial::ForeignBasis,
             }
         })?;
-        if current.branch_id() != basis.observation().branch_id() {
+        if current.branch_id() != observation_branch_id {
             return Err(SignalBranchRetentionAcquisitionDenial::ForeignBasis);
         }
-        let Some(snapshot_id) = target.snapshot_id().map(SignalSnapshotId) else {
+        let Some(snapshot_id) = snapshot_id else {
             return Ok(());
         };
         let current_snapshot_id = current
@@ -106,6 +142,25 @@ where
             branch_id,
             snapshot_id,
         })
+    }
+}
+
+fn map_retained_preflight_denial(
+    denial: SignalBranchRetentionAcquisitionDenial,
+) -> SignalBranchRetainedReadmissionDenial {
+    match denial {
+        SignalBranchRetentionAcquisitionDenial::OwnerUnavailable(unavailable) => {
+            SignalBranchRetainedReadmissionDenial::OwnerUnavailable(unavailable)
+        }
+        SignalBranchRetentionAcquisitionDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        } => SignalBranchRetainedReadmissionDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        },
+        SignalBranchRetentionAcquisitionDenial::OwnerReentry => {
+            SignalBranchRetainedReadmissionDenial::OwnerReentry
+        }
+        denial => SignalBranchRetainedReadmissionDenial::UnavailableExactTarget(denial),
     }
 }
 
