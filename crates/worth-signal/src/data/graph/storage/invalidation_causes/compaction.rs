@@ -35,9 +35,8 @@ impl CanonicalCauseSetStore {
         self.free_indices.clear();
         self.occupied_set_count = 0;
         self.output_commit_reference_counts.clear();
-        self.sets.reserve(occupied_set_count);
         let mut remaps = Vec::with_capacity(occupied_set_count);
-        for (index, set) in previous_sets.into_iter().enumerate() {
+        for (index, set) in previous_sets.iter().cloned().enumerate() {
             if set.is_empty() {
                 continue;
             }
@@ -65,13 +64,23 @@ impl CanonicalCauseSetStore {
     }
 
     pub(super) fn normalize_slot_metadata(&mut self) {
-        self.slot_generations
-            .resize(self.sets.len(), self.generation);
+        if self.slot_generations.len() < self.sets.len() {
+            let missing = self.sets.len() - self.slot_generations.len();
+            self.slot_generations
+                .extend(std::iter::repeat_n(self.generation, missing));
+        }
     }
 
     pub(super) fn prune_unreferenced_output_commits(&mut self) {
-        self.published_output_commits
-            .retain(|ordinal, _| self.output_commit_reference_counts.contains_key(ordinal));
+        let stale = self
+            .published_output_commits
+            .keys()
+            .filter(|ordinal| !self.output_commit_reference_counts.contains_key(ordinal))
+            .copied()
+            .collect::<Vec<_>>();
+        for ordinal in stale {
+            self.published_output_commits.remove(&ordinal);
+        }
     }
 
     pub(super) fn rebuild_derived_metadata(&mut self) {

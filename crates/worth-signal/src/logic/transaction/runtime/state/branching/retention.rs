@@ -29,9 +29,12 @@ where
         &self,
         basis: &AdmittedSignalBranchBasis,
     ) -> Result<SignalBranchRetentionLease, SignalBranchRetentionAcquisitionDenial> {
+        if let Some((basis_port, _, _)) = self.sealed_owner_port_slots() {
+            return basis_port.retain_exact(basis);
+        }
         let descriptor = basis.descriptor();
         self.validate_exact_retention_target(descriptor)?;
-        self.branches.acquire_retention(descriptor.clone())
+        self.branches.acquire_retention(basis)
     }
 
     /// Consume one external obligation issued by this runtime.
@@ -42,6 +45,9 @@ where
         &self,
         lease: SignalBranchRetentionLease,
     ) -> SignalBranchRetentionReleaseOutcome {
+        if let Some((basis_port, _, _)) = self.sealed_owner_port_slots() {
+            return basis_port.release_exact(lease);
+        }
         let binding = self.branches.retention_binding();
         match lease.owner_relationship(&binding) {
             SignalBranchRetentionOwnerRelationship::DifferentOwner => {
@@ -68,6 +74,9 @@ where
         descriptor: SignalBranchBasisDescriptor,
         lease: &SignalBranchRetentionLease,
     ) -> Result<AdmittedSignalBranchBasis, SignalBranchRetainedReadmissionDenial> {
+        if let Some((basis_port, _, _)) = self.sealed_owner_port_slots() {
+            return basis_port.readmit_retained_exact(&descriptor, lease);
+        }
         match lease.owner_relationship(&self.branches.retention_binding()) {
             SignalBranchRetentionOwnerRelationship::DifferentOwner => {
                 return Err(SignalBranchRetainedReadmissionDenial::ForeignRetention)
@@ -120,6 +129,9 @@ where
     pub fn signal_component_retention_terminal_counts(
         &self,
     ) -> SignalBranchRetentionTerminalCounts {
+        if self.owner_services.is_sealed() {
+            return self.owner_services.legacy_retention_terminal_counts();
+        }
         self.branches.retention_terminal_counts()
     }
 

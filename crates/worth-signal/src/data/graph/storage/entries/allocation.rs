@@ -9,7 +9,7 @@ const NODE_ARENA_RESERVE_CHUNK: usize = 1024;
 impl SignalGraph {
     pub(in crate::data::graph) fn allocate_node(&mut self, entry: NodeEntry) -> NodeId {
         let (hot, warm, cold) = entry.into_storage_parts();
-        while let Some(index) = self.arena.free_list.pop() {
+        while let Some(index) = self.arena.free_list.pop_back() {
             if index as usize >= self.arena.nodes.len() {
                 continue;
             }
@@ -29,18 +29,15 @@ impl SignalGraph {
         }
 
         let index = self.arena.nodes.len() as u32;
-        if self.arena.nodes.len() == self.arena.nodes.capacity() {
-            self.arena.nodes.reserve(NODE_ARENA_RESERVE_CHUNK);
-            self.arena.hot.reserve(NODE_ARENA_RESERVE_CHUNK);
-            self.arena.warm.reserve(NODE_ARENA_RESERVE_CHUNK);
-            self.arena.cold.reserve(NODE_ARENA_RESERVE_CHUNK);
+        if self.arena.nodes.exclusive_capacity() == Some(self.arena.nodes.len()) {
+            self.reserve_node_capacity(NODE_ARENA_RESERVE_CHUNK);
         }
         let mut slot = Slot::vacant();
         let generation = slot.occupy();
-        self.arena.nodes.push(slot);
-        self.arena.hot.push(Some(hot));
-        self.arena.warm.push(warm);
-        self.arena.cold.push(cold);
+        self.arena.nodes.push_back(slot);
+        self.arena.hot.push_back(Some(hot));
+        self.arena.warm.push_back(warm);
+        self.arena.cold.push_back(cold);
         self.arena.active_nodes += 1;
         let node = NodeId::new(index, generation);
         self.record_branch_mutation_introduced(node);
@@ -62,6 +59,7 @@ impl SignalGraph {
             .storage
             .rolled_back_created_node_count += indices.len() as u64;
 
+        let mut newly_freed = Vec::with_capacity(indices.len());
         for index in indices.iter().rev().copied() {
             let Some(slot) = self.arena.nodes.get_mut(index) else {
                 continue;
@@ -72,28 +70,34 @@ impl SignalGraph {
                 self.arena.warm[index] = NodeWarmData::default();
                 self.arena.cold[index] = None;
                 self.arena.active_nodes = self.arena.active_nodes.saturating_sub(1);
-            }
-            if !slot.is_retired() && !self.arena.free_slots.contains(index) {
-                self.arena.free_list.push(index as u32);
-                self.arena.free_slots.mark(index);
+                if !slot.is_retired() && !self.arena.free_slots.contains(index) {
+                    self.arena.free_slots.mark(index);
+                    newly_freed.push(index);
+                }
             }
         }
 
-        while self
-            .arena
-            .nodes
-            .last()
-            .is_some_and(|slot| !slot.is_occupied())
-        {
-            self.arena.free_slots.clear(self.arena.nodes.len() - 1);
-            self.arena.nodes.pop();
-            self.arena.hot.pop();
-            self.arena.warm.pop();
-            self.arena.cold.pop();
+        newly_freed.sort_unstable();
+        loop {
+            let Some(last_index) = self.arena.nodes.len().checked_sub(1) else {
+                break;
+            };
+            if newly_freed.binary_search(&last_index).is_err()
+                || self.arena.nodes[last_index].is_occupied()
+            {
+                break;
+            }
+            self.arena.free_slots.clear(last_index);
+            self.arena.nodes.pop_back();
+            self.arena.hot.pop_back();
+            self.arena.warm.pop_back();
+            self.arena.cold.pop_back();
         }
-        self.arena
-            .free_list
-            .retain(|index| (*index as usize) < self.arena.nodes.len());
+        for index in newly_freed {
+            if index < self.arena.nodes.len() && self.arena.free_slots.contains(index) {
+                self.arena.free_list.push_back(index as u32);
+            }
+        }
     }
 
     pub(crate) fn node_allocator_state(&self) -> u32 {
@@ -105,21 +109,20 @@ impl SignalGraph {
             return;
         }
         let missing = next_node_index as usize - self.arena.nodes.len();
-        self.arena.nodes.reserve(missing);
+        self.reserve_node_capacity(missing);
         for _ in 0..missing {
-            self.arena.nodes.push(Slot::retired_placeholder());
-            self.arena.hot.push(None);
-            self.arena.warm.push(NodeWarmData::default());
-            self.arena.cold.push(None);
+            self.arena.nodes.push_back(Slot::retired_placeholder());
+            self.arena.hot.push_back(None);
+            self.arena.warm.push_back(NodeWarmData::default());
+            self.arena.cold.push_back(None);
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn reserve_node_capacity(&mut self, additional: usize) {
-        self.arena.nodes.reserve(additional);
-        self.arena.hot.reserve(additional);
-        self.arena.warm.reserve(additional);
-        self.arena.cold.reserve(additional);
+        self.arena.nodes.reserve_exclusive(additional);
+        self.arena.hot.reserve_exclusive(additional);
+        self.arena.warm.reserve_exclusive(additional);
+        self.arena.cold.reserve_exclusive(additional);
     }
 
     pub(in crate::data::graph) fn validate_handle(&self, id: NodeId) -> Result<(), SignalError> {
@@ -136,7 +139,7 @@ impl SignalGraph {
 
     #[cfg(test)]
     pub(crate) fn free_list_snapshot(&self) -> Vec<u32> {
-        self.arena.free_list.clone()
+        self.arena.free_list.iter().copied().collect()
     }
 
     #[cfg(test)]

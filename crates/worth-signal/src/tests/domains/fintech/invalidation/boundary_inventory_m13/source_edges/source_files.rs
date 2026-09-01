@@ -38,7 +38,17 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "logic/invalidation/causality/dependency_admission.rs",
         "../../../../../../logic/invalidation/causality/dependency_admission.rs",
-        "97fda14cb53471036a5913a3cb829a0545ac964ced5101a1fa09be8b47752214"
+        "f94393a4432e27c88372caf01cf11df2ef55ff0822b1e9681c4108e30f24f2d7"
+    ),
+    source_file!(
+        "logic/invalidation/causality/revalidation.rs",
+        "../../../../../../logic/invalidation/causality/revalidation.rs",
+        "df02efb5a7ff94b9461b1f892d9a346d2b86ba396741c883ec9c9192963633d8"
+    ),
+    source_file!(
+        "logic/invalidation/scheduling/readiness.rs",
+        "../../../../../../logic/invalidation/scheduling/readiness.rs",
+        "761f5a073722051c67c9bba6fe07505cc8675f8bd4702cb3ec5638d3aa324b84"
     ),
     source_file!(
         "logic/invalidation/causality/cause_aggregation.rs",
@@ -48,12 +58,12 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "data/graph/topology/subscriber_index/buckets.rs",
         "../../../../../../data/graph/topology/subscriber_index/buckets.rs",
-        "2086424a82ee1efc01b86ad91936b68b5bc7bb4e333d3c741f234d9a5af310c4"
+        "30312b361ff7807effb967dd55c11edda13b464019e9f6247b483f5e41ad8af4"
     ),
     source_file!(
         "data/graph/topology/subscriber_index/membership.rs",
         "../../../../../../data/graph/topology/subscriber_index/membership.rs",
-        "2a7490d1022a03907927ee89e6185b157f09c8d6f0451bbe873ecb511408c707"
+        "cc2c002b929872cd8a3c12461fada1ecc52f061464e328b5d5b54ad43ae37fd7"
     ),
     source_file!(
         "data/graph/topology/subscriber_index/rebuild.rs",
@@ -86,34 +96,84 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
         "a2967169a5bcb78312ecd625fb590b48b668d13a7ec12a050dda5ee0f2b64322"
     ),
     source_file!(
+        "data/graph/runtime/graph.rs",
+        "../../../../../../data/graph/runtime/graph.rs",
+        "ea0ac5c7822e872ad9dfbea82f07032df04da874c09239b685a71b0aad44f951"
+    ),
+    source_file!(
+        "data/graph/storage/mod.rs",
+        "../../../../../../data/graph/storage/mod.rs",
+        "c18e9495795492e642677c1fb2913840f2ec13ce2198504636a79896a6026603"
+    ),
+    source_file!(
+        "data/graph/storage/diagnostic_scan.rs",
+        "../../../../../../data/graph/storage/diagnostic_scan.rs",
+        "cbd8983e28c41fc981435b67d242e8486c3e02223eda782393d3ea5a0a56c564"
+    ),
+    source_file!(
+        "data/graph/storage/entries.rs",
+        "../../../../../../data/graph/storage/entries.rs",
+        "0024877301a53553f2a12eed2bedab18ca8de0ece0d2a8b6f639a85405cf2a7b"
+    ),
+    source_file!(
+        "data/graph/storage/entries/diagnostic_artifacts.rs",
+        "../../../../../../data/graph/storage/entries/diagnostic_artifacts.rs",
+        "5a93909a3df4b6b46df1981179303143b1c40f34c594d1609359f6ff26549dee"
+    ),
+    source_file!(
+        "data/graph/storage/entries/invalidation_authority.rs",
+        "../../../../../../data/graph/storage/entries/invalidation_authority.rs",
+        "220b6ece9a5321db2fc5d361b107c81ac22d926a147ebd0f1e35af1b07d9e3c3"
+    ),
+    source_file!(
+        "diagnostics/model/summary.rs",
+        "../../../../../../diagnostics/model/summary.rs",
+        "0cd9c35947cb818b8ad9a78b97bc7524743a8e83f91cc4ca7d1e3838200813d9"
+    ),
+    source_file!(
+        "diagnostics/model/summary/graph.rs",
+        "../../../../../../diagnostics/model/summary/graph.rs",
+        "9d7304d8a1d707c51a1263d94d7d7e1e70262f6e9a0eab4a8f6628a09dc86f99"
+    ),
+    source_file!(
+        "diagnostics/model/summary/history.rs",
+        "../../../../../../diagnostics/model/summary/history.rs",
+        "642945b921aa97feada2066e37c7477a7ba1d8feaf42db2fbc2f22b80e53c4d3"
+    ),
+    source_file!(
+        "diagnostics/runtime/execution_flow.rs",
+        "../../../../../../diagnostics/runtime/execution_flow.rs",
+        "419252269d53bf653a1a18a8880dbcea0fd6a64b584e47350e9fa9362b8c4837"
+    ),
+    source_file!(
         "data/graph/storage/invalidation_causes/application.rs",
         "../../../../../../data/graph/storage/invalidation_causes/application.rs",
-        "2fd8df13e781856e815193cb9dedb9d0c70410df34237e23597465cff675059b"
+        "ac7c0281e5a47f00e573aba6292943543c65474a648b4ec607635c9c994f28d2"
     ),
     source_file!(
         "data/graph/storage/invalidation_causes/cause_sets.rs",
         "../../../../../../data/graph/storage/invalidation_causes/cause_sets.rs",
-        "4360af9b5c8f53edb1b37baeaa030bb70bbbaaece3eb9532fabd8ad2d3dac6d9"
+        "4ca7945e2a7d79eba147ac6e0b40e33fbe98b5403625c206fbd6178488062d8a"
     ),
     source_file!(
         "data/graph/storage/invalidation_causes/compaction.rs",
         "../../../../../../data/graph/storage/invalidation_causes/compaction.rs",
-        "64bb48927966546b812d1d5640c98417eabdbebdf335255e01bfd2dd80640827"
+        "de37301b2a3b3e3d40625d63d8f0c8ee7c026b587d836b81626da42a032ef87a"
     ),
     source_file!(
         "data/graph/storage/invalidation_causes/checkpoint.rs",
         "../../../../../../data/graph/storage/invalidation_causes/checkpoint.rs",
-        "18e5ac58b4e3c4fb64f76032975bc5362dbf60af51ac0765f4d7b801d244476e"
+        "98f83d1558e8501115a4a3b971929fd9720e9628ab236f7c06145565ede81fdc"
     ),
     source_file!(
         "data/graph/storage/entries/transitions.rs",
         "../../../../../../data/graph/storage/entries/transitions.rs",
-        "637dd760d45a175460474e056952d711e54dbe917bfb30a026308d129422fd2f"
+        "b2193f5b244371141e489a1e434129db0221cf534b26ea498cc6f21b3cb06a3c"
     ),
     source_file!(
         "data/graph/storage/entries/access.rs",
         "../../../../../../data/graph/storage/entries/access.rs",
-        "5978cf471260f822c7e4f80dee9ee20d7881a080ead62be9ae3d10bf3ecf44a4"
+        "c21b105cb3eaef266e5ba5cd138b0e6ed74ad70eab57bd8e892ab1263165486d"
     ),
     source_file!(
         "logic/planner/planning/mod.rs",

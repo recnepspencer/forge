@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::num::NonZeroU32;
 
 use serde::{Deserialize, Serialize};
@@ -46,9 +45,12 @@ impl SnapshotShapeHandle {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DependencySnapshotShapeStore {
-    shapes: Vec<DependencySnapshotShape>,
+    shapes: crate::data::persistent_vector::PersistentVector<DependencySnapshotShape>,
     #[serde(skip, default)]
-    interner: HashMap<DependencySnapshotShape, SnapshotShapeHandle>,
+    interner: crate::data::persistent_hash_map::PersistentHashMap<
+        DependencySnapshotShape,
+        SnapshotShapeHandle,
+    >,
 }
 
 impl DependencySnapshotShapeStore {
@@ -56,7 +58,6 @@ impl DependencySnapshotShapeStore {
         if !self.interner.is_empty() || self.shapes.is_empty() {
             return;
         }
-        self.interner.reserve(self.shapes.len());
         for (index, shape) in self.shapes.iter().cloned().enumerate() {
             self.interner
                 .insert(shape, SnapshotShapeHandle::from_index(index + 1));
@@ -71,11 +72,38 @@ impl DependencySnapshotShapeStore {
         if let Some(handle) = self.interner.get(&shape).copied() {
             return handle;
         }
-        self.shapes.push(shape);
+        self.shapes.push_back(shape);
         let handle = SnapshotShapeHandle::from_index(self.shapes.len());
         let shape = self.shapes[handle.index().expect("shape handle should index") - 1].clone();
         self.interner.insert(shape, handle);
         handle
+    }
+
+    pub(crate) fn operational_clone(&self) -> Self {
+        Self {
+            shapes: self.shapes.operational_clone(),
+            interner: self.interner.operational_clone(),
+        }
+    }
+
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            shapes: self.shapes.fork_persistent(),
+            interner: self.interner.fork_persistent(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            shapes: self.shapes.clone(),
+            interner: self.interner.fork_storage_identity(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.shapes.shares_storage_with(&other.shapes) && self.interner.ptr_eq(&other.interner)
     }
 }
 

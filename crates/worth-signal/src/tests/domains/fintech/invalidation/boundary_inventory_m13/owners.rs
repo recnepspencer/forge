@@ -27,6 +27,10 @@ const CONCURRENT_APPLY_OWNER: &str =
     include_str!("../../../../../logic/planner/apply/stage/concurrent.rs");
 const CONCURRENT_PACKET_OWNER: &str =
     include_str!("../../../../../logic/planner/apply/stage/concurrent_packets.rs");
+const GRAPH_INVALIDATION_AUTHORITY_OWNER: &str =
+    include_str!("../../../../../data/graph/storage/entries/invalidation_authority.rs");
+const GRAPH_DIAGNOSTIC_SCAN_OWNER: &str =
+    include_str!("../../../../../data/graph/storage/diagnostic_scan.rs");
 
 #[test]
 fn phase_1_inventory_rejects_unlisted_authority_and_execution_functions() {
@@ -183,6 +187,39 @@ fn phase_1_inventory_rejects_unlisted_precompute_and_parallel_functions() {
             "take_slot",
             "can_lower_true_grouped_concurrent",
             "into_concurrent_worker_input",
+        ],
+    );
+}
+
+#[test]
+fn phase_7_inventory_freezes_canonical_graph_owner_functions() {
+    assert_owner_functions(
+        GRAPH_INVALIDATION_AUTHORITY_OWNER,
+        &[
+            "node_dependency_revision",
+            "node_pending_cause_set_id",
+            "node_direct_invalidation_basis",
+            "node_direct_invalidation_generation",
+            "node_dirty_partition_scope_payload",
+            "node_pending_revalidation",
+            "set_node_pending_cause_set_id",
+            "advance_node_dependency_revision",
+            "replace_node_invalidation_cache",
+            "install_node_dependency_revalidation",
+            "resolve_node_dependency_revalidation_producer",
+        ],
+    );
+    assert_owner_functions(
+        GRAPH_DIAGNOSTIC_SCAN_OWNER,
+        &[
+            "node",
+            "state",
+            "dependencies",
+            "subscribers",
+            "node_runtime_artifact_state_present",
+            "execution_record_present",
+            "causality_present",
+            "diagnostic_nodes",
         ],
     );
 }

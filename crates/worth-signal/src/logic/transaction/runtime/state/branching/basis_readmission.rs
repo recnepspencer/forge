@@ -19,6 +19,9 @@ where
         &self,
         descriptor: SignalBranchBasisDescriptor,
     ) -> Result<AdmittedSignalBranchBasis, SignalBranchBasisReadmissionDenial> {
+        if self.owner_services.is_sealed() {
+            return self.owner_services.readmit_legacy_descriptor(descriptor);
+        }
         if descriptor.schema_version() != SIGNAL_BRANCH_BASIS_DESCRIPTOR_SCHEMA_VERSION {
             return Err(
                 SignalBranchBasisReadmissionDenial::UnsupportedDescriptorVersion {

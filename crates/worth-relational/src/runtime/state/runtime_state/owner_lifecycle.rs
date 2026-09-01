@@ -83,6 +83,14 @@ impl RelationalRuntimeOwnerBinding {
             lifecycle: Arc::clone(&self.lifecycle),
         })
     }
+
+    /// Observe whether this owner still accepts work without admitting any.
+    ///
+    /// This is descriptive state only. It carries no close authority and does
+    /// not increment or otherwise participate in the in-flight drain.
+    pub(crate) fn accepts_operations(&self) -> bool {
+        self.lifecycle.accepting_operations.load(Ordering::Acquire)
+    }
 }
 
 impl Drop for AdmittedRelationalRuntimeOperation {

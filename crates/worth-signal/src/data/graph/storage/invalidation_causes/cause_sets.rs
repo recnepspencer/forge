@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::num::NonZeroU32;
 
 use serde::Serialize;
@@ -8,27 +7,34 @@ use crate::data::error::SignalError;
 use crate::data::proof::invalidation::binding::ResolvedDependencyCause;
 use crate::data::proof::invalidation::output_commit::ProducedAspectDelta;
 
+#[cfg(test)]
+#[path = "cause_sets/fork_granule_tests.rs"]
+mod fork_granule_tests;
+
 #[derive(Debug, Clone, Serialize, Default)]
 pub(crate) struct CanonicalCauseSetStore {
     pub(super) generation: u32,
-    pub(super) sets: Vec<Vec<ResolvedDependencyCause>>,
+    pub(super) sets: crate::data::persistent_vector::PersistentVector<Vec<ResolvedDependencyCause>>,
     #[serde(default)]
-    pub(super) slot_generations: Vec<u32>,
+    pub(super) slot_generations: crate::data::persistent_vector::PersistentVector<u32>,
     #[serde(default)]
-    pub(super) free_indices: Vec<u32>,
+    pub(super) free_indices: crate::data::persistent_vector::PersistentVector<u32>,
     #[serde(default)]
     pub(super) next_output_commit_ordinal: u64,
     #[serde(default)]
-    pub(super) published_output_commits: BTreeMap<u64, ProducedAspectDelta>,
+    pub(super) published_output_commits:
+        crate::data::persistent_ord_map::PersistentOrdMap<u64, ProducedAspectDelta>,
     #[serde(skip)]
     pub(super) occupied_set_count: usize,
     #[serde(skip)]
-    pub(super) output_commit_reference_counts: BTreeMap<u64, usize>,
+    pub(super) output_commit_reference_counts:
+        crate::data::persistent_ord_map::PersistentOrdMap<u64, usize>,
     #[serde(skip)]
     pub(super) deserialized_quarantine: bool,
     #[cfg(test)]
     #[serde(skip)]
-    pub(super) published_order_probe: Vec<(u64, crate::data::handle::NodeId)>,
+    pub(super) published_order_probe:
+        crate::data::persistent_vector::PersistentVector<(u64, crate::data::handle::NodeId)>,
     #[cfg(test)]
     #[serde(skip)]
     pub(super) last_compaction_slot_visits: usize,
@@ -46,10 +52,6 @@ impl CanonicalCauseSetStore {
             .get(&ordinal)
             .copied()
             .unwrap_or_default()
-    }
-
-    pub(crate) fn reserve(&mut self, additional_sets: usize) {
-        self.sets.reserve(additional_sets);
     }
 
     pub(crate) fn reserve_output_commit_ordinal(
@@ -74,7 +76,7 @@ impl CanonicalCauseSetStore {
         self.publish_output_commit_ordinal(delta.output_commit_ordinal);
         #[cfg(test)]
         self.published_order_probe
-            .push((delta.output_commit_ordinal.0, delta.producer));
+            .push_back((delta.output_commit_ordinal.0, delta.producer));
         if self
             .output_commit_reference_counts
             .contains_key(&delta.output_commit_ordinal.0)
@@ -102,12 +104,12 @@ impl CanonicalCauseSetStore {
             return PendingCauseSetId::EMPTY;
         }
         self.normalize_slot_metadata();
-        let index = if let Some(index) = self.free_indices.pop() {
+        let index = if let Some(index) = self.free_indices.pop_back() {
             self.sets[index as usize] = causes;
             index as usize
         } else {
-            self.sets.push(causes);
-            self.slot_generations.push(self.generation);
+            self.sets.push_back(causes);
+            self.slot_generations.push_back(self.generation);
             self.sets.len() - 1
         };
         self.occupied_set_count += 1;
@@ -174,12 +176,85 @@ impl CanonicalCauseSetStore {
         self.remove_output_commit_references_from(&released);
         self.occupied_set_count = self.occupied_set_count.saturating_sub(1);
         self.slot_generations[index] = self.slot_generations[index].wrapping_add(1);
-        self.free_indices.push(index as u32);
+        self.free_indices.push_back(index as u32);
         Ok(())
     }
 
     pub(crate) fn has_occupied_sets(&self) -> bool {
         self.occupied_set_count != 0
+    }
+
+    pub(crate) fn operational_clone(&self) -> Self {
+        Self {
+            generation: self.generation,
+            sets: self.sets.operational_clone(),
+            slot_generations: self.slot_generations.operational_clone(),
+            free_indices: self.free_indices.operational_clone(),
+            next_output_commit_ordinal: self.next_output_commit_ordinal,
+            published_output_commits: self.published_output_commits.operational_clone(),
+            occupied_set_count: self.occupied_set_count,
+            output_commit_reference_counts: self.output_commit_reference_counts.operational_clone(),
+            deserialized_quarantine: self.deserialized_quarantine,
+            #[cfg(test)]
+            published_order_probe: self.published_order_probe.operational_clone(),
+            #[cfg(test)]
+            last_compaction_slot_visits: self.last_compaction_slot_visits,
+        }
+    }
+
+    pub(crate) fn fork_persistent(&mut self) -> Self {
+        Self {
+            generation: self.generation,
+            sets: self.sets.fork_persistent(),
+            slot_generations: self.slot_generations.fork_persistent(),
+            free_indices: self.free_indices.fork_persistent(),
+            next_output_commit_ordinal: self.next_output_commit_ordinal,
+            published_output_commits: self.published_output_commits.fork_persistent(),
+            occupied_set_count: self.occupied_set_count,
+            output_commit_reference_counts: self.output_commit_reference_counts.fork_persistent(),
+            deserialized_quarantine: self.deserialized_quarantine,
+            #[cfg(test)]
+            published_order_probe: self.published_order_probe.fork_persistent(),
+            #[cfg(test)]
+            last_compaction_slot_visits: self.last_compaction_slot_visits,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fork_storage_identity(&self) -> Self {
+        Self {
+            generation: self.generation,
+            sets: self.sets.clone(),
+            slot_generations: self.slot_generations.clone(),
+            free_indices: self.free_indices.clone(),
+            next_output_commit_ordinal: self.next_output_commit_ordinal,
+            published_output_commits: self.published_output_commits.fork_storage_identity(),
+            occupied_set_count: self.occupied_set_count,
+            output_commit_reference_counts: self
+                .output_commit_reference_counts
+                .fork_storage_identity(),
+            deserialized_quarantine: self.deserialized_quarantine,
+            published_order_probe: self.published_order_probe.clone(),
+            last_compaction_slot_visits: self.last_compaction_slot_visits,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_storage_with(&self, other: &Self) -> bool {
+        self.sets.shares_storage_with(&other.sets)
+            && self
+                .slot_generations
+                .shares_storage_with(&other.slot_generations)
+            && self.free_indices.shares_storage_with(&other.free_indices)
+            && self
+                .published_output_commits
+                .ptr_eq(&other.published_output_commits)
+            && self
+                .output_commit_reference_counts
+                .ptr_eq(&other.output_commit_reference_counts)
+            && self
+                .published_order_probe
+                .shares_storage_with(&other.published_order_probe)
     }
 
     #[cfg(test)]

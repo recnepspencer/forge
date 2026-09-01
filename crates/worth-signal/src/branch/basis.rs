@@ -6,6 +6,7 @@ use super::authority::{
 use super::descriptor::SignalBranchBasisDescriptor;
 use super::reference::SignalBranchObservation;
 use super::retention::SignalBranchAdmissionLease;
+use super::retention::{SignalBranchRetentionBinding, SignalBranchRetentionOwnerRelationship};
 use crate::state::SignalBranchId;
 
 /// Owner-issued Signal observation token. Construction is private to the
@@ -39,6 +40,13 @@ impl AdmittedSignalBranchBasis {
 
     pub(crate) fn shared_holder_count(&self) -> usize {
         Arc::strong_count(&self.0)
+    }
+
+    pub(crate) fn owner_identity_relationship(
+        &self,
+        owner: &SignalBranchRetentionBinding,
+    ) -> SignalBranchRetentionOwnerRelationship {
+        self.0._retention.owner_identity_relationship(owner)
     }
 }
 

@@ -4,7 +4,9 @@ use crate::data::error::SignalError;
 use crate::logic::transaction::TransactionResult;
 use crate::state::SignalBranchId;
 
-use super::{AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial};
+use super::{
+    AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable,
+};
 
 /// Owner-issued result of one canonical Signal branch mutation.
 #[derive(Debug)]
@@ -59,7 +61,25 @@ pub enum SignalBranchAdvanceEngineDenial {
 
 #[derive(Debug)]
 pub enum SignalBranchAdvanceDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
+    CancelledNoMovement,
     UnknownBranch {
+        branch_id: SignalBranchId,
+    },
+    RetirementInProgress {
+        branch_id: SignalBranchId,
+    },
+    RetiredBranch {
+        branch_id: SignalBranchId,
+    },
+    QuarantinedBranch {
+        branch_id: SignalBranchId,
+    },
+    OwnerCellMisuse {
         branch_id: SignalBranchId,
     },
     BasisMismatch {

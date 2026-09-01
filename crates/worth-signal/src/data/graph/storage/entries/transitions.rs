@@ -216,16 +216,7 @@ impl SignalGraph {
                     .then_some(edge.source())
             })
             .collect::<Vec<_>>();
-        let mut entry = self.get_entry_mut(node)?;
-        if matches!(entry.get_state(), NodeState::Clean) {
-            entry.set_state(NodeState::MaybeStale);
-        }
-        if requires_structural_recompute {
-            entry.mark_pending_structural_revalidation(producers);
-        } else {
-            entry.mark_pending_dependency_revalidation(producers);
-        }
-        drop(entry);
+        self.install_node_dependency_revalidation(node, producers, requires_structural_recompute)?;
         let current = self
             .pending_dependency_revalidation(node)?
             .map(|pending| pending.unresolved_producers().to_vec())
@@ -246,9 +237,8 @@ impl SignalGraph {
                 std::slice::from_ref(&resolved_producer),
                 &[],
             );
-            let resolved = self
-                .get_entry_mut(consumer)?
-                .resolve_pending_dependency_producer(resolved_producer);
+            let resolved =
+                self.resolve_node_dependency_revalidation_producer(consumer, resolved_producer)?;
             let requires_structural_recompute = self
                 .pending_dependency_revalidation(consumer)?
                 .is_some_and(|pending| pending.requires_structural_recompute());

@@ -111,3 +111,15 @@ pub(in crate::tests::phase1_api) const WORKSPACE_SOURCE: &str =
     include_str!("../../../logic/planner/apply/workspace.rs");
 pub(in crate::tests::phase1_api) const PATCH_BUFFER_SOURCE: &str =
     include_str!("../../../logic/transaction/patch_buffer.rs");
+pub(in crate::tests::phase1_api) const ORDINARY_INVALIDATION_ACCESS_SOURCE: &str = concat!(
+    include_str!("../../../logic/invalidation/causality/dependency_admission.rs"),
+    include_str!("../../../logic/invalidation/scheduling/readiness.rs"),
+);
+pub(in crate::tests::phase1_api) const INVALIDATION_REVALIDATION_SOURCE: &str =
+    include_str!("../../../logic/invalidation/causality/revalidation.rs");
+pub(in crate::tests::phase1_api) const ORDINARY_EXPLANATION_ACCESS_SOURCE: &str = concat!(
+    include_str!("../../../logic/explain/analysis.rs"),
+    include_str!("../../../logic/explain/resolver/assembly.rs"),
+    include_str!("../../../logic/explain/resolver/causes.rs"),
+    include_str!("../../../logic/explain/resolver/policy.rs"),
+);

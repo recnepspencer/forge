@@ -1,5 +1,9 @@
 mod measurement_capture;
+mod measurement_output;
+#[cfg(feature = "test-peak-allocation")]
+mod peak_allocation;
 mod profile_comparison;
+mod regression_budgets;
 mod workload_construction;
 
 pub(crate) use measurement_capture::{PerfCaseContract, PerfMeasurement, PerfTimingPolicy};

@@ -58,11 +58,11 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
     ),
     owner!(
         "producer-local reverse index query",
-        "data/graph/topology/subscriber_index/buckets.rs",
-        "../../../../../../data/graph/topology/subscriber_index/buckets.rs",
+        "data/graph/topology/subscriber_index/buckets/query.rs",
+        "../../../../../../data/graph/topology/subscriber_index/buckets/query.rs",
         Method,
         "query_scope",
-        "1883dd7de2a184cf563faaec8cda4d7ce227775a99a4c5f4e275ba1a0e3ca5ec"
+        "69f86d3fb7825eecf0007af03599b91440a39b0096f37d5ccebfc401876aa281"
     ),
     owner!(
         "reverse index membership replacement",
@@ -70,7 +70,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/topology/subscriber_index/buckets.rs",
         Method,
         "replace_consumer",
-        "8f2454b1f970292c96b9138378bd3cab30933d3f22c4ecd293bdff93940b65df"
+        "fe616dc3f20d08fba93429099f2fe455d44129d102658f51e2ed0065c8807e26"
     ),
     owner!(
         "reverse index authority rebuild",
@@ -166,7 +166,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/causality/dependency_admission.rs",
         Method,
         "prepare_direct_output_causes",
-        "43301d4605f3a0ae3813b11634b123e58a1e9263b22a8b53899f1859b4574238"
+        "0c62e42f5ab5bc2da463606b342bc5b468a0d96fe6cd5160bf6e318068ea3a0b"
     ),
     owner!(
         "stable predecessor resolution",
@@ -190,7 +190,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/causality/dependency_admission.rs",
         Method,
         "publish_direct_output_causes",
-        "14ae328e86fb47b40afedb4d203517b2fb51892e182b28aba0eb31bf9e897068"
+        "0b08dfe9363963306ec3ff37f68a6bf35bc886bf66561f0f5cd0f9b994fc18f7"
     ),
     owner!(
         "edge cause reconciliation",
@@ -206,7 +206,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/application.rs",
         Method,
         "replace_pending_causes",
-        "7312a7369612cfb80222ee6f48f541a99cdff09800862a4f50fb9b7e9d76ced9"
+        "229607787712eaf6eb02dfc2b63de44f8b87e2edbed5a758b97d83a5839dd0c4"
     ),
     owner!(
         "prepared pending cause publication",
@@ -214,7 +214,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/application.rs",
         Method,
         "replace_prepared_pending_causes",
-        "ff2c89d61e17f6976bfe16d637b6088081dc3d6aa3aa6721f18f59b2c446b87c"
+        "2ee6a5b604e23485a7ae0adbb3ae6f62f80956f6a5e5cdd29f179024de9e23a9"
     ),
     owner!(
         "derived dirty cache rebuild",
@@ -222,7 +222,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/application.rs",
         Method,
         "rebuild_dirty_caches_from_pending_causes",
-        "70438cd261340fbb0c6e10304704351968a990513cdad9e854a2079bbcf592ba"
+        "bc91961b3ac65df8fdfbfd73fc85dad242cc550c6d9938b809f55d78c3aa56ab"
     ),
     owner!(
         "output ordinal publication",
@@ -238,7 +238,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/cause_sets.rs",
         Method,
         "publish_output_commit",
-        "0f9d30a3a2041c595b09edd3faca6e6c44cb451d27b99646722e284d7b35f877"
+        "60338be2dd18e21668b06eab033d38ea64e8069708bfa828e209e61465216b3c"
     ),
     owner!(
         "canonical cause insertion",
@@ -246,7 +246,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/storage/invalidation_causes/cause_sets.rs",
         Method,
         "insert",
-        "633ac8956520a7fa24ad728201081d9efa7205751ac5db1c265927d4411a226b"
+        "fa6c0cc9cc34eb49ff62e862d5443dcab668ac3a7bea80823d3656a25c8e09a2"
     ),
     owner!(
         "canonical cause slot write",

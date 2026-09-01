@@ -173,6 +173,9 @@ where
         &self,
         branch: SignalBranchHandle,
     ) -> Result<AdmittedSignalBranchBasis, crate::branch::SignalBranchBasisObservationDenial> {
+        if self.owner_services.is_sealed() {
+            return self.owner_services.observe_legacy_branch(branch);
+        }
         let live_branch = self.branches.branch_handle(branch.id).ok_or(
             crate::branch::SignalBranchBasisObservationDenial::UnknownBranch {
                 branch_id: branch.id,

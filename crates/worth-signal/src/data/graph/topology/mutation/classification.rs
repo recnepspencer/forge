@@ -41,7 +41,7 @@ impl SignalGraph {
         if analysis.changed() {
             let invalidates_dependency_causes = !self.pending_causes(node)?.is_empty();
             self.release_pending_causes(node)?;
-            self.get_entry_mut(node)?.advance_dependency_revision();
+            self.advance_node_dependency_revision(node)?;
             if invalidates_dependency_causes {
                 self.set_node_state(node, crate::data::node::NodeState::MaybeStale)?;
             }
@@ -104,7 +104,7 @@ impl SignalGraph {
             }
             let invalidates_dependency_causes = !self.pending_causes(*node)?.is_empty();
             self.release_pending_causes(*node)?;
-            self.get_entry_mut(*node)?.advance_dependency_revision();
+            self.advance_node_dependency_revision(*node)?;
             if invalidates_dependency_causes {
                 self.set_node_state(*node, crate::data::node::NodeState::MaybeStale)?;
             }
@@ -140,7 +140,7 @@ impl SignalGraph {
         }
         let invalidates_dependency_causes = !self.pending_causes(node)?.is_empty();
         self.release_pending_causes(node)?;
-        self.get_entry_mut(node)?.advance_dependency_revision();
+        self.advance_node_dependency_revision(node)?;
         if invalidates_dependency_causes {
             self.set_node_state(node, crate::data::node::NodeState::MaybeStale)?;
         }

@@ -12,6 +12,7 @@ mod canonical_retirement_batch;
 mod canonical_snapshot_capture;
 mod canonical_snapshot_reconstruction;
 mod fork;
+mod fork_contract;
 mod fork_snapshot;
 mod fork_validation;
 mod lifecycle;
@@ -37,11 +38,18 @@ pub use basis::{
     SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
 };
 pub use basis_canonical::SignalBranchBasisCompactExplanation;
+pub(in crate::logic::transaction::runtime) use basis_definition::signal_definition_basis_from_registry;
+pub(in crate::logic::transaction::runtime) use branches::BranchAncestryState;
 pub(in crate::logic::transaction::runtime::state) use branches::DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS;
 pub(in crate::logic::transaction::runtime) use branches::{
-    BranchAncestryState, BranchManager, BranchState,
+    BranchManager, SignalOwnerPartitionDenial,
 };
-pub use fork::{
+pub(crate) use branches::{
+    BranchState, SignalOwnerMetadataCloseBatch, SignalOwnerMetadataState, SignalOwnerPartition,
+    SignalOwnerRetirementCleanup, SignalOwnerSnapshotReservationDenial, SnapshotBranchState,
+    SnapshotStatePacket,
+};
+pub use fork_contract::{
     SignalBranchForkDenial, SignalBranchForkReceipt, SignalBranchForkRequest,
     SignalBranchForkRequestBasis,
 };

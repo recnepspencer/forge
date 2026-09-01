@@ -5,11 +5,37 @@ use crate::data::error::SignalError;
 use crate::state::SignalBranchId;
 
 use super::SignalBranchIdentityConstructionDenial;
-use super::{AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial};
+use super::{
+    AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial, SignalOwnerUnavailable,
+};
 
 #[derive(Debug)]
 pub enum SignalBranchForkOperationDenial {
+    OwnerUnavailable(SignalOwnerUnavailable),
+    OperationCapacityExhausted {
+        maximum_in_flight_operations: usize,
+    },
+    OwnerReentry,
+    CancelledNoMovement,
+    LiveBranchCapacityExhausted {
+        maximum_live_branches: usize,
+    },
+    ReservationCapacityExhausted {
+        maximum_reservations: usize,
+    },
     UnknownBranch {
+        branch_id: SignalBranchId,
+    },
+    RetirementInProgress {
+        branch_id: SignalBranchId,
+    },
+    RetiredBranch {
+        branch_id: SignalBranchId,
+    },
+    QuarantinedBranch {
+        branch_id: SignalBranchId,
+    },
+    OwnerCellMisuse {
         branch_id: SignalBranchId,
     },
     BasisMismatch {

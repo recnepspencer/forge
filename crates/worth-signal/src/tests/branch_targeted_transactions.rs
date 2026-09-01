@@ -140,6 +140,13 @@ fn branch_targeted_dependency_rewiring_is_atomic_and_branch_local() {
         Err(SignalError::invalid_input("force rollback"))
     });
     assert!(matches!(failed, TransitionOutcome::Failed(_)));
+    runtime.switch_branch(branch.clone()).unwrap();
+    assert_eq!(
+        runtime.graph().dependency_sources_of(derived).unwrap(),
+        vec![source_a],
+        "aborted destination must restore its inherited dependency truth"
+    );
+    runtime.switch_branch(canonical.clone()).unwrap();
 
     let committed_plan = targeted_plan(&mut runtime, branch.clone());
     assert!(matches!(

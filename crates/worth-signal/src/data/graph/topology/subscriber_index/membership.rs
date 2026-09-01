@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::SignalGraph;
@@ -33,19 +31,5 @@ impl SignalGraph {
             .reverse_subscriptions
             .replace_consumer(consumer, memberships);
         Ok(())
-    }
-}
-
-pub(super) fn remove_member<Key: Ord + Copy>(
-    buckets: &mut BTreeMap<Key, BTreeSet<NodeId>>,
-    key: Key,
-    consumer: NodeId,
-) {
-    let Some(members) = buckets.get_mut(&key) else {
-        return;
-    };
-    members.remove(&consumer);
-    if members.is_empty() {
-        buckets.remove(&key);
     }
 }

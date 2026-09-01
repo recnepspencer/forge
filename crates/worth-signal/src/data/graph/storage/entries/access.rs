@@ -12,6 +12,27 @@ use crate::data::trace::{
     RuntimeArtifactReuseBoundarySnapshot, RuntimeArtifactWarm,
 };
 
+/// Persisted invalidation cache facts used to validate a checkpoint before its
+/// causes are readmitted. This view is deliberately separate from guarded
+/// operational readers: validation must inspect the quarantined bytes before
+/// it can prove that they are safe to use.
+pub(crate) struct NodeInvalidationConsistencyView {
+    dirty_aspects: crate::data::aspect::AspectMask,
+    dirty_partition_scopes: Vec<(crate::data::aspect::Aspect, PartitionSubscription)>,
+}
+
+impl NodeInvalidationConsistencyView {
+    pub(crate) const fn dirty_aspects(&self) -> crate::data::aspect::AspectMask {
+        self.dirty_aspects
+    }
+
+    pub(crate) fn dirty_partition_scopes(
+        &self,
+    ) -> &[(crate::data::aspect::Aspect, PartitionSubscription)] {
+        &self.dirty_partition_scopes
+    }
+}
+
 impl SignalGraph {
     pub fn get_state(&self, id: NodeId) -> Result<NodeState, SignalError> {
         self.validate_handle(id)?;
@@ -49,6 +70,18 @@ impl SignalGraph {
         id: NodeId,
     ) -> Result<&NodeEvaluationConfig, SignalError> {
         Ok(&self.warm_ref(id)?.eval_config)
+    }
+
+    pub(crate) fn node_invalidation_consistency_view(
+        &self,
+        id: NodeId,
+    ) -> Result<NodeInvalidationConsistencyView, SignalError> {
+        let hot = self.hot_ref(id)?;
+        let warm = self.warm_ref(id)?;
+        Ok(NodeInvalidationConsistencyView {
+            dirty_aspects: hot.dirty_aspects,
+            dirty_partition_scopes: warm.dirty_partition_scope_payload.to_vec(),
+        })
     }
 
     pub(crate) fn node_dirty_aspects(

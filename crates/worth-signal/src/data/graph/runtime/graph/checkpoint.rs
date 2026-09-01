@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::data::bitset::DenseBitset;
 use crate::data::dependency::{
@@ -70,7 +70,7 @@ impl SignalGraph {
                         retired: slot.retired,
                     })
                     .collect(),
-                free_list: graph.arena.free_list,
+                free_list: graph.arena.free_list.iter().copied().collect(),
                 active_nodes: graph.arena.active_nodes,
             },
             topology: SignalCheckpointTopology {
@@ -172,7 +172,7 @@ impl SignalGraph {
                     })
                     .map(|cold| cold.unwrap_or(None))
                     .collect(),
-                free_list: authority.arena.free_list.clone(),
+                free_list: authority.arena.free_list.iter().copied().collect(),
                 free_slots,
                 active_nodes: authority.arena.active_nodes,
                 compaction: CompactionState::default(),
@@ -192,21 +192,22 @@ impl SignalGraph {
                 telemetry: RuntimeTelemetry::default(),
                 reconstruction_counters: ReconstructionCounters::default(),
                 partition_interner: PartitionInterner::default(),
-                branch_mutation_view: BTreeMap::new(),
-                branch_mutation_records: BTreeMap::new(),
+                branch_mutation_view: Default::default(),
+                branch_mutation_records: Default::default(),
                 diagnostics: authority.diagnostics.clone(),
                 installed_policy: authority.installed_policy,
             },
-            schema_registry: SignalSchemaRegistry::default(),
+            schema_registry: std::sync::Arc::new(SignalSchemaRegistry::default()),
             aspect_lowering_owner: None,
-            conditional_dependency_versions: BTreeMap::new(),
-            authorization_policy_identities: BTreeSet::new(),
+            conditional_dependency_versions: Default::default(),
+            authorization_policy_identities: crate::data::persistent_ord_set::PersistentOrdSet::new(
+            ),
             invalidation_readiness_epoch: 0,
             invalidation_performed_counters,
             invalidation_performed_work,
             observation_sessions,
             observation_capture_cleanup: Some(observation_capture_cleanup),
-            pending_repeated_invalidation_admissions: BTreeMap::new(),
+            pending_repeated_invalidation_admissions: Default::default(),
         };
         let installed_policy = graph.observation.installed_policy;
         graph

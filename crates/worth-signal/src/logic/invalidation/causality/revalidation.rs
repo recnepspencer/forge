@@ -48,16 +48,13 @@ impl SignalGraph {
         }
         let causes = self.pending_causes(node)?.to_vec();
         let dirty_aspects = self.node_dirty_aspects(node)?;
-        if let Some(direct) = self.get_entry(node)?.direct_invalidation_basis() {
+        if let Some(direct) = self.node_direct_invalidation_basis(node)? {
             if !causes.is_empty() {
                 return Err(SignalError::invalid_input(
                     "direct invalidation basis cannot coexist with dependency causes",
                 ));
             }
-            let cached_scoped_aspects = self
-                .get_entry(node)?
-                .dirty_partition_scope_payload()
-                .to_vec();
+            let cached_scoped_aspects = self.node_dirty_partition_scope_payload(node)?.to_vec();
             if dirty_aspects != direct.dirty_aspects()
                 || cached_scoped_aspects.as_slice() != direct.scoped_aspects()
             {
@@ -99,10 +96,7 @@ impl SignalGraph {
         use crate::data::proof::invalidation::revalidation::CanonicalDependencyCauseSet;
         let resolved = CanonicalDependencyCauseSet::from_dependency_causes(causes);
         let cached_aspects = self.node_dirty_aspects(node)?;
-        let cached_scoped_aspects = self
-            .get_entry(node)?
-            .dirty_partition_scope_payload()
-            .to_vec();
+        let cached_scoped_aspects = self.node_dirty_partition_scope_payload(node)?.to_vec();
         if cached_aspects != resolved.dirty_aspects()
             || cached_scoped_aspects.as_slice() != resolved.dirty_scoped_aspects()
         {
@@ -120,10 +114,7 @@ impl SignalGraph {
         Option<crate::data::proof::invalidation::binding::PendingDependencyRevalidation>,
         SignalError,
     > {
-        Ok(self
-            .get_entry(node)?
-            .pending_dependency_revalidation()
-            .cloned())
+        Ok(self.node_pending_revalidation(node)?.cloned())
     }
 
     pub(crate) fn ensure_cause_readmission_complete(&self) -> Result<(), SignalError> {
@@ -164,24 +155,25 @@ impl SignalGraph {
     }
 
     fn validate_direct_invalidation_storage(&self, node: NodeId) -> Result<(), SignalError> {
-        let entry = self.get_entry(node)?;
-        let causes = self.cause_sets.get(entry.pending_cause_set_id())?;
-        let direct = entry.direct_invalidation_basis();
+        let causes = self.cause_sets.get(self.node_pending_cause_set_id(node)?)?;
+        let direct = self.node_direct_invalidation_basis(node)?;
+        let state = self.get_state(node)?;
         if direct.is_some() && !causes.is_empty() {
             return Err(SignalError::invalid_input(
                 "direct invalidation basis cannot coexist with dependency causes",
             ));
         }
-        if !causes.is_empty() && matches!(entry.get_state(), crate::data::node::NodeState::Clean) {
+        if !causes.is_empty() && matches!(state, crate::data::node::NodeState::Clean) {
             return Err(SignalError::invalid_input(
                 "dependency causes require an unsettled consumer",
             ));
         }
-        let dirty_aspects = entry.get_dirty_aspects();
-        let dirty_scoped_aspects = entry.dirty_partition_scope_payload();
+        let invalidation_storage = self.node_invalidation_consistency_view(node)?;
+        let dirty_aspects = invalidation_storage.dirty_aspects();
+        let dirty_scoped_aspects = invalidation_storage.dirty_partition_scopes();
         match direct {
             Some(basis) => {
-                if matches!(entry.get_state(), crate::data::node::NodeState::Clean) {
+                if matches!(state, crate::data::node::NodeState::Clean) {
                     return Err(SignalError::invalid_input(
                         "direct invalidation basis requires an unsettled node",
                     ));
@@ -206,7 +198,7 @@ impl SignalGraph {
                     }
                 }
                 if basis.generation() == 0
-                    || basis.generation() != entry.direct_invalidation_generation()
+                    || basis.generation() != self.node_direct_invalidation_generation(node)?
                 {
                     return Err(SignalError::invalid_input(
                         "direct invalidation generation drifted from node authority",
