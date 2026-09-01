@@ -1,8 +1,0 @@
-[package]
-name = "worth-schema-graph"
-edition.workspace = true
-version.workspace = true
-license.workspace = true
-
-[lints]
-workspace = true
