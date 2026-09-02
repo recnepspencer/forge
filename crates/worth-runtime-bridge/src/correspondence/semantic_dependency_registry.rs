@@ -2,9 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::error::{BridgeBuildError, BridgeBuildErrorKind};
 
+use super::runtime_world_admission::RuntimeWorldCorrespondenceInspectionLedger;
 use super::{
-    BridgeSemanticCorrespondenceRegistration, BridgeSemanticDependencyCandidate,
-    BridgeSignalAspectTargetDeclaration,
+    BridgeInstalledBindingKey, BridgeSemanticCorrespondenceRegistration,
+    BridgeSemanticDependencyCandidate, BridgeSignalAspectTargetDeclaration,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -12,6 +13,7 @@ pub(crate) struct AdmittedSemanticDependencyRegistry {
     authoritative: Vec<BridgeSemanticCorrespondenceRegistration>,
     index: BTreeMap<String, usize>,
     by_authority: BTreeMap<String, usize>,
+    current_generation_by_binding: BTreeMap<BridgeInstalledBindingKey, u64>,
     signal_graph_instance_id: Option<u64>,
 }
 
@@ -28,6 +30,7 @@ pub(crate) struct SemanticDependencyExtensionCounters {
     pub(crate) batch_key_lookups: usize,
 }
 
+#[derive(Debug)]
 pub(crate) struct SemanticDependencyExtensionDenial {
     pub(crate) error: BridgeBuildError,
     pub(crate) counters: SemanticDependencyExtensionCounters,
@@ -41,6 +44,8 @@ impl AdmittedSemanticDependencyRegistry {
         let mut index: BTreeMap<String, usize> = BTreeMap::new();
         let mut authoritative: Vec<BridgeSemanticCorrespondenceRegistration> = Vec::new();
         let mut by_authority: BTreeMap<String, usize> = BTreeMap::new();
+        let mut current_generation_by_binding: BTreeMap<BridgeInstalledBindingKey, u64> =
+            BTreeMap::new();
         let mut signal_graph_instance_id = None;
         for registration in registrations {
             let registration_graph = registration.signal_graph_instance_id();
@@ -54,6 +59,7 @@ impl AdmittedSemanticDependencyRegistry {
             }
             signal_graph_instance_id = Some(registration_graph);
             let candidate = &registration.dependency;
+            record_current_generation(&mut current_generation_by_binding, candidate);
             let key = candidate.canonical_registration_key();
             let authority_key = candidate.authority_registration_key();
             if let Some(existing) = by_authority
@@ -87,6 +93,7 @@ impl AdmittedSemanticDependencyRegistry {
             authoritative,
             index,
             by_authority,
+            current_generation_by_binding,
             signal_graph_instance_id,
         })
     }
@@ -105,22 +112,19 @@ impl AdmittedSemanticDependencyRegistry {
     pub(crate) fn current_source_installation_generation(
         &self,
         candidate: &BridgeSemanticDependencyCandidate,
+        inspection: &RuntimeWorldCorrespondenceInspectionLedger,
     ) -> Option<u64> {
-        self.authoritative
-            .iter()
-            .filter(|registration| {
-                registration
-                    .dependency
-                    .same_installation_binding_except_generation(candidate)
-            })
-            .map(|registration| registration.dependency.source_installation_generation())
-            .max()
+        inspection.record_binding_index_lookup();
+        self.current_generation_by_binding
+            .get(&candidate.installed_binding_key())
+            .copied()
     }
 
     pub(crate) fn rebuild_has_exact_parity(&self) -> bool {
         Self::freeze(self.authoritative.clone()).is_ok_and(|rebuilt| {
             rebuilt.index == self.index
                 && rebuilt.by_authority == self.by_authority
+                && rebuilt.current_generation_by_binding == self.current_generation_by_binding
                 && rebuilt.authoritative == self.authoritative
                 && rebuilt.signal_graph_instance_id == self.signal_graph_instance_id
         })
@@ -150,6 +154,7 @@ impl AdmittedSemanticDependencyRegistry {
     pub(crate) fn destroy_derived_indexes(&mut self) {
         self.index.clear();
         self.by_authority.clear();
+        self.current_generation_by_binding.clear();
         self.signal_graph_instance_id = None;
     }
 
@@ -235,19 +240,53 @@ impl AdmittedSemanticDependencyExtension {
             registry.authoritative[position]
                 .extend_targets(&registration)
                 .expect("admitted semantic extension remains compatible at commit");
+            record_current_generation(
+                &mut registry.current_generation_by_binding,
+                &registration.dependency,
+            );
         }
         for registration in self.new_registrations {
-            let key = registration.dependency.canonical_registration_key();
-            let authority_key = registration.dependency.authority_registration_key();
-            let position = registry.authoritative.len();
-            registry.index.insert(key, position);
-            registry.by_authority.insert(authority_key, position);
+            record_current_generation(
+                &mut registry.current_generation_by_binding,
+                &registration.dependency,
+            );
             registry.authoritative.push(registration);
         }
+        registry
+            .authoritative
+            .sort_by_key(BridgeSemanticCorrespondenceRegistration::canonical_key);
+        rebuild_lookup_indexes(registry);
         if let Some(first) = self.registrations.first() {
             registry.signal_graph_instance_id = Some(first.signal_graph_instance_id());
         }
         committed
+    }
+}
+
+fn record_current_generation(
+    current_generation_by_binding: &mut BTreeMap<BridgeInstalledBindingKey, u64>,
+    candidate: &BridgeSemanticDependencyCandidate,
+) {
+    let key = candidate.installed_binding_key();
+    let generation = candidate.source_installation_generation();
+    current_generation_by_binding
+        .entry(key)
+        .and_modify(|current| *current = (*current).max(generation))
+        .or_insert(generation);
+}
+
+fn rebuild_lookup_indexes(registry: &mut AdmittedSemanticDependencyRegistry) {
+    registry.index.clear();
+    registry.by_authority.clear();
+    for (position, registration) in registry.authoritative.iter().enumerate() {
+        registry.index.insert(
+            registration.dependency.canonical_registration_key(),
+            position,
+        );
+        registry.by_authority.insert(
+            registration.dependency.authority_registration_key(),
+            position,
+        );
     }
 }
 
@@ -294,3 +333,7 @@ fn extension_denial(
         counters,
     }
 }
+
+#[cfg(test)]
+#[path = "semantic_dependency_registry/tests.rs"]
+mod tests;

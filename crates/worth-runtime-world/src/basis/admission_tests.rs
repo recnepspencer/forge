@@ -25,10 +25,6 @@ use crate::lifecycle::owner::RuntimeWorldOwnerConstructionContract;
 
 #[path = "admission_tests/commit.rs"]
 mod commit;
-#[path = "admission_tests/publication.rs"]
-mod publication;
-#[path = "admission_tests/retention.rs"]
-mod retention;
 
 #[derive(Clone)]
 struct AdmissionSink;
@@ -276,6 +272,29 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
     assert_eq!(admitted, repeated_admission);
     assert!(compare_exact(&admitted, &admitted.clone()).is_ok());
     assert!(compare_exact(&admitted, &repeated_admission).is_ok());
+
+    let relational_pin = crate::retention::ExactComponentPinRequest::relational(
+        &admitted,
+        crate::retention::ComponentBasisDependencyClass::AdmittedObservation,
+    );
+    let signal_pin = crate::retention::ExactComponentPinRequest::signal(
+        &admitted,
+        crate::retention::ComponentBasisDependencyClass::AdmittedObservation,
+    );
+    assert_eq!(relational_pin.owner(), owner);
+    assert_eq!(signal_pin.owner(), owner);
+    assert_eq!(
+        relational_pin.key(),
+        crate::retention::ExactComponentBasisKey::Relational(
+            admitted.relational_basis().admission_identity().clone(),
+        )
+    );
+    assert_eq!(
+        signal_pin.key(),
+        crate::retention::ExactComponentBasisKey::Signal(
+            admitted.signal_basis().admission_identity().clone(),
+        )
+    );
 
     let current_branch = fixture._signal_runtime.current_branch();
     let distinct_signal = fixture

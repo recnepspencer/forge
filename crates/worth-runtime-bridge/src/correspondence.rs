@@ -16,6 +16,7 @@ mod registration;
 mod resolution;
 mod runtime_world_admission;
 mod semantic_delivery_match;
+mod semantic_dependency_binding;
 mod semantic_dependency_candidate;
 mod semantic_dependency_registry;
 mod signal_admission;
@@ -65,10 +66,13 @@ pub use query_delivery::{
 };
 pub use rebuild_report::BridgeCorrespondenceRebuildReport;
 pub use registration::BridgeSemanticCorrespondenceRegistration;
+pub(crate) use runtime_world_admission::RuntimeWorldCorrespondenceInspectionLedger;
 pub(crate) use runtime_world_admission::{admit_installed_basis, compare_current_basis};
 pub use runtime_world_admission::{
     AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondenceAdmissionDenial,
+    RuntimeWorldCorrespondenceInspectionCounters,
 };
+pub(crate) use semantic_dependency_binding::BridgeInstalledBindingKey;
 pub use semantic_dependency_candidate::{
     BridgeSemanticDependencyCandidate, BridgeSemanticDependencyCandidateParts,
     BridgeSemanticLocality,

@@ -3,10 +3,7 @@ use std::sync::Arc;
 use crate::branch::ProductBranchObservation;
 use crate::history::{CompositeCommitParent, CompositeRuntimeWorldCommit, OrdinaryParent};
 use crate::identity::CompositePublicationAttemptIdentity;
-use crate::retention::{
-    ComponentBasisObligationTransferDestination, PublicationRetentionObligation,
-    RetentionTransferReceipt,
-};
+use crate::retention::{PublicationRetentionObligation, RetentionTransferReceipt};
 
 use super::{
     CompositeAttemptProgress, CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
@@ -44,8 +41,8 @@ impl OwnerExecutionSettlement {
 
     /// Consume settled owner work into the final pre-CAS token. The commit is
     /// accepted only when its owner and exact predecessor basis agree with
-    /// the reserved attempt, and the reserved publication obligation names
-    /// that exact prospective basis.
+    /// the reserved attempt. Retention is represented by an opaque Phase 2
+    /// handoff; this Phase 1 seam never mints or transfers one.
     pub(crate) fn ready(
         self,
         commit: Arc<CompositeRuntimeWorldCommit>,
@@ -74,7 +71,6 @@ impl OwnerExecutionSettlement {
             || commit.identity().owner_identity() != expected.owner_identity()
             || commit.basis().owner_identity() != expected.owner_identity()
             || commit.parent() != &expected_parent
-            || !retention_obligation.matches_basis(commit.basis())
         {
             return Err(NoEffectCompositePublication::new(
                 NoEffectCause::OwnerDeniedBeforeEffect,
@@ -156,6 +152,7 @@ impl CompositePublicationReady {
         new_product_head: ProductBranchObservation,
         component_results: CompositeOwnerExecutionResults,
         late_cancellation: CompositeLateCancellationPosture,
+        retention_transfer: RetentionTransferReceipt,
         cost_counters: CompositePublicationCostCounters,
     ) -> Result<PerformedCompositePublication, NoEffectCompositePublication> {
         let CompositePublicationReady {
@@ -163,7 +160,7 @@ impl CompositePublicationReady {
             expected_head,
             commit,
             progress: _,
-            retention_obligation,
+            retention_obligation: _retention_obligation,
         } = self;
         let next_generation = expected_head.reference_generation().advance().ok();
         if new_product_head.owner_identity() != expected_head.owner_identity()
@@ -178,19 +175,9 @@ impl CompositePublicationReady {
                 Some(expected_head),
             ));
         }
-        let retention_transfer = match RetentionTransferReceipt::from_publication(
-            retention_obligation,
-            commit.basis(),
-            ComponentBasisObligationTransferDestination::ProductBranchHead,
-        ) {
-            Ok(transfer) => transfer,
-            Err(_) => {
-                return Err(NoEffectCompositePublication::new(
-                    NoEffectCause::OwnerDeniedBeforeEffect,
-                    Some(expected_head),
-                ))
-            }
-        };
+        // The retention lane issues this receipt and owns its transfer
+        // semantics. Destructuring the reserved obligation above preserves
+        // the linear handoff without creating a Phase 1 authority path.
         Ok(PerformedCompositePublication::owner_issued(
             expected_head,
             new_product_head,

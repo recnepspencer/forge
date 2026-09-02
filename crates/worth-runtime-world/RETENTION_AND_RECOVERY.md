@@ -8,18 +8,14 @@ metadata, unique exact component pins, in-flight pin reservations, and
 owner-created component custody records. Zero limits are rejected during
 installation; no `Default` can silently omit a bound.
 
-Each component is pinned by its own Runtime World owner-issued admission
-identity and binding. Relational and Signal keys are independent; a composite
-identity is never used as their registry key, and a serializable Signal
-descriptor is descriptive transport only. One exact component key has one
-external owner lease; further commits or observations add bounded dependency
-counts to that key. The opaque observation/publication/partial-retention
-obligations are bound to the issuing Runtime World owner, own release through
-RAII, and retain no component owner by themselves. A publication obligation
-names the exact prospective basis and is transferred by the ready token; it
-cannot be replaced by a caller-supplied receipt. The Phase 1 registry root
-freezes this protocol; Phase 2 supplies the complete bounded map and owner
-lease calls.
+Phase 1 does not pin a component or issue a component-owner lease. It freezes
+independent Relational and Signal exact-admission keys, the dependency classes,
+and the opaque move-only handoffs consumed by observation, publication, and
+recovery signatures. A composite identity is never a component registry key,
+and a serializable Signal descriptor is descriptive transport only. The Phase
+1 registry root contains no operational map, lease, dependency-count, transfer,
+or release behavior; Phase 2 owns those bounded semantics and may add them
+behind the sealed contracts without changing consumers.
 `ProductBranchObservation` clones share one observation obligation and never
 reread a head. Signal currentness still belongs to the Signal owner basis
 port.

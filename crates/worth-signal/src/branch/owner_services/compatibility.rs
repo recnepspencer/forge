@@ -41,18 +41,16 @@ where
             .lookup_cell(&admission, branch_id)
             .map_err(|denial| map_basis_registry_denial(denial, branch_id))?;
         let observation = cell.observe_exact(&admission)?;
-        owner.admit_canonical_basis_with_retention(
-            observation,
-            branch_id,
-            cell.incarnation().get(),
-            || {
-                owner
-                    .acquire_admitted_retention(&admission, branch_id)
-                    .map_err(|denial| {
-                        map_observation_retention_denial(&owner, &admission, denial, branch_id)
-                    })
-            },
-        )
+        owner
+            .admit_canonical_basis_with_retention(
+                observation,
+                branch_id,
+                cell.incarnation().get(),
+                || owner.acquire_admitted_retention(&admission, branch_id),
+            )
+            .map_err(|denial| {
+                map_observation_retention_denial(&owner, &admission, denial, branch_id)
+            })
     }
 
     pub(crate) fn readmit_legacy_descriptor(
@@ -107,18 +105,16 @@ where
             map_observation_readmission_denial(&owner, &admission, denial, branch_id)
         })?;
         compare_descriptor_with_observation(&descriptor, &observation)?;
-        owner.admit_canonical_basis_with_retention(
-            observation,
-            branch_id,
-            cell.incarnation().get(),
-            || {
-                owner
-                    .acquire_admitted_retention(&admission, branch_id)
-                    .map_err(|denial| {
-                        map_readmission_retention_denial(&owner, &admission, denial, branch_id)
-                    })
-            },
-        )
+        owner
+            .admit_canonical_basis_with_retention(
+                observation,
+                branch_id,
+                cell.incarnation().get(),
+                || owner.acquire_admitted_retention(&admission, branch_id),
+            )
+            .map_err(|denial| {
+                map_readmission_retention_denial(&owner, &admission, denial, branch_id)
+            })
     }
 
     pub(crate) fn plan_legacy_retirement(

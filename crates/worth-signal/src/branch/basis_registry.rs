@@ -6,48 +6,28 @@ use crate::state::SignalBranchId;
 use super::basis::{
     admit_signal_branch_observation, AdmittedSignalBranchBasis, AdmittedSignalBranchBasisInner,
 };
-use super::{SignalBranchAdmissionLease, SignalBranchObservation};
+use super::{
+    SignalBranchAdmissionLease, SignalBranchObservation, SignalBranchRetentionAcquisitionDenial,
+};
 
-/// The owner-local key includes the operational cell incarnation. The
-/// observation encoding is only a lookup component; it is never accepted as
-/// an admission or currentness proof on its own.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct SignalBranchBasisRegistryKey {
-    runtime_instance_id: u64,
-    definition_basis: u64,
-    branch_id: SignalBranchId,
-    cell_incarnation: u64,
-    observation_encoding: Vec<u8>,
-}
+#[path = "basis_registry/acquisition.rs"]
+mod acquisition;
+#[path = "basis_registry/direct.rs"]
+mod direct;
+#[path = "basis_registry/key.rs"]
+mod key;
+#[cfg(test)]
+#[path = "basis_registry/tests.rs"]
+mod tests;
 
-impl SignalBranchBasisRegistryKey {
-    fn new(
-        runtime_instance_id: u64,
-        definition_basis: u64,
-        branch_id: SignalBranchId,
-        cell_incarnation: u64,
-        observation: &SignalBranchObservation,
-    ) -> Self {
-        Self {
-            runtime_instance_id,
-            definition_basis,
-            branch_id,
-            cell_incarnation,
-            observation_encoding: observation.canonical_encoding(),
-        }
-    }
-}
+use acquisition::{AcquiringEntry, RegistryEntry, SingleFlightCompletion};
+use key::SignalBranchBasisRegistryKey;
 
 #[derive(Debug)]
 struct SignalBranchBasisRegistryState {
+    next_reservation_id: u64,
     next_registration_id: u64,
-    entries: HashMap<SignalBranchBasisRegistryKey, SignalBranchBasisRegistryEntry>,
-}
-
-#[derive(Debug)]
-struct SignalBranchBasisRegistryEntry {
-    registration_id: u64,
-    basis: Weak<AdmittedSignalBranchBasisInner>,
+    entries: HashMap<SignalBranchBasisRegistryKey, RegistryEntry>,
 }
 
 /// Weak cleanup lease installed in one admitted basis. The registry owns only
@@ -56,73 +36,43 @@ struct SignalBranchBasisRegistryEntry {
 #[derive(Debug)]
 pub(crate) struct SignalBranchBasisRegistryLease {
     state: Weak<Mutex<SignalBranchBasisRegistryState>>,
+    key: SignalBranchBasisRegistryKey,
     registration_id: u64,
 }
 
-/// Signal-owner-local weak exact-basis canonicalization.
+/// Signal-owner-local exact-basis canonicalization. Lazy admissions use a
+/// single-flight reservation so exactly one claimant contacts the retention
+/// owner for a given live basis key.
 #[derive(Debug, Clone)]
 pub(crate) struct SignalBranchBasisRegistry {
     state: Arc<Mutex<SignalBranchBasisRegistryState>>,
+}
+
+enum AdmissionDecision {
+    Ready(Arc<AdmittedSignalBranchBasisInner>),
+    Join(Arc<SingleFlightCompletion>),
+    Claim {
+        reservation_id: u64,
+        completion: Arc<SingleFlightCompletion>,
+    },
+    OwnerReentry,
 }
 
 impl SignalBranchBasisRegistry {
     pub(crate) fn new() -> Self {
         Self {
             state: Arc::new(Mutex::new(SignalBranchBasisRegistryState {
+                next_reservation_id: 0,
                 next_registration_id: 0,
                 entries: HashMap::new(),
             })),
         }
     }
 
-    pub(crate) fn admit(
-        &self,
-        runtime_instance_id: u64,
-        definition_basis: u64,
-        branch_id: SignalBranchId,
-        cell_incarnation: u64,
-        observation: SignalBranchObservation,
-        retention: SignalBranchAdmissionLease,
-    ) -> AdmittedSignalBranchBasis {
-        let key = SignalBranchBasisRegistryKey::new(
-            runtime_instance_id,
-            definition_basis,
-            branch_id,
-            cell_incarnation,
-            &observation,
-        );
-        let mut state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-
-        if let Some(existing) = existing_basis(&state, &key) {
-            // The caller already owns this operation's reservation. It is
-            // intentionally consumed here and released when the duplicate is
-            // rejected as a new identity; the canonical basis remains the
-            // sole holder for this exact live observation.
-            let admitted = AdmittedSignalBranchBasis::from_inner(existing);
-            drop(state);
-            drop(retention);
-            return admitted;
-        }
-
-        new_basis(
-            &mut state,
-            &self.state,
-            key,
-            observation,
-            branch_id,
-            retention,
-        )
-    }
-
     /// Admit lazily when the caller's owner lease can only be acquired after
-    /// the weak canonical entry has been checked. This is the observation
-    /// path's capacity boundary: an existing exact basis needs no second
-    /// admitted lease, while a genuinely new exact basis must still reserve
-    /// one before an identity is issued.
-    pub(crate) fn admit_with_retention<E, Acquire>(
+    /// the exact weak canonical entry has been checked. Only the claimant
+    /// executes `acquire_retention`; joiners await its typed result.
+    pub(crate) fn admit_with_retention<Acquire>(
         &self,
         runtime_instance_id: u64,
         definition_basis: u64,
@@ -130,9 +80,10 @@ impl SignalBranchBasisRegistry {
         cell_incarnation: u64,
         observation: SignalBranchObservation,
         acquire_retention: Acquire,
-    ) -> Result<AdmittedSignalBranchBasis, E>
+    ) -> Result<AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial>
     where
-        Acquire: FnOnce() -> Result<SignalBranchAdmissionLease, E>,
+        Acquire:
+            FnOnce() -> Result<SignalBranchAdmissionLease, SignalBranchRetentionAcquisitionDenial>,
     {
         let key = SignalBranchBasisRegistryKey::new(
             runtime_instance_id,
@@ -141,95 +92,161 @@ impl SignalBranchBasisRegistry {
             cell_incarnation,
             &observation,
         );
-        let existing = {
-            let state = self
-                .state
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            existing_basis(&state, &key)
+        let decision = {
+            let mut state = self.lock_state();
+            begin_admission(&mut state, &key)?
         };
-        if let Some(existing) = existing {
-            return Ok(AdmittedSignalBranchBasis::from_inner(existing));
+        match decision {
+            AdmissionDecision::Ready(existing) => {
+                Ok(AdmittedSignalBranchBasis::from_inner(existing))
+            }
+            AdmissionDecision::Join(completion) => completion.wait(),
+            AdmissionDecision::OwnerReentry => {
+                Err(SignalBranchRetentionAcquisitionDenial::OwnerReentry)
+            }
+            AdmissionDecision::Claim {
+                reservation_id,
+                completion,
+            } => {
+                let mut claim = AcquisitionClaimGuard::new(
+                    &self.state,
+                    key.clone(),
+                    reservation_id,
+                    Arc::clone(&completion),
+                );
+                let retention = acquire_retention();
+                let retention = match retention {
+                    Ok(retention) => retention,
+                    Err(denial) => {
+                        finish_denied(
+                            &self.state,
+                            &key,
+                            reservation_id,
+                            &completion,
+                            denial.clone(),
+                        );
+                        claim.disarm();
+                        return Err(denial);
+                    }
+                };
+                let result = {
+                    let mut state = self.lock_state();
+                    if matches!(
+                        state.entries.get(&key),
+                        Some(RegistryEntry::Acquiring(AcquiringEntry {
+                            reservation_id: current,
+                            ..
+                        })) if *current == reservation_id
+                    ) {
+                        new_basis(
+                            &mut state,
+                            &self.state,
+                            key.clone(),
+                            observation,
+                            branch_id,
+                            retention,
+                        )
+                    } else {
+                        drop(retention);
+                        Err(SignalBranchRetentionAcquisitionDenial::OwnerOperationPanicked)
+                    }
+                };
+                match result {
+                    Ok(basis) => {
+                        completion.finish(Ok(basis.clone()));
+                        claim.disarm();
+                        Ok(basis)
+                    }
+                    Err(denial) => {
+                        finish_denied(
+                            &self.state,
+                            &key,
+                            reservation_id,
+                            &completion,
+                            denial.clone(),
+                        );
+                        claim.disarm();
+                        Err(denial)
+                    }
+                }
+            }
         }
-
-        // Capacity acquisition belongs to the Signal owner and may call back
-        // into this registry. Never hold the registry mutex across that owner
-        // operation; the second lookup below closes the concurrent admission
-        // race without creating a second basis or lease.
-        let retention = acquire_retention()?;
-        let mut state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(existing) = existing_basis(&state, &key) {
-            let admitted = AdmittedSignalBranchBasis::from_inner(existing);
-            drop(state);
-            drop(retention);
-            return Ok(admitted);
-        }
-
-        Ok(new_basis(
-            &mut state,
-            &self.state,
-            key,
-            observation,
-            branch_id,
-            retention,
-        ))
     }
 
-    /// Transfer pre-seal canonical entries onto the first sealed owner cell.
-    /// The entry identity stays the same; only its owner lifecycle key gains
-    /// the real cell incarnation that will distinguish later replacement.
-    pub(crate) fn rebind_cell_incarnation(
-        &self,
-        runtime_instance_id: u64,
-        definition_basis: u64,
-        branch_id: SignalBranchId,
-        previous_cell_incarnation: u64,
-        cell_incarnation: u64,
-    ) {
-        if previous_cell_incarnation == cell_incarnation {
-            return;
-        }
-        let mut state = self
-            .state
+    fn lock_state(&self) -> std::sync::MutexGuard<'_, SignalBranchBasisRegistryState> {
+        self.state
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let keys = state
-            .entries
-            .keys()
-            .filter(|key| {
-                key.runtime_instance_id == runtime_instance_id
-                    && key.definition_basis == definition_basis
-                    && key.branch_id == branch_id
-                    && key.cell_incarnation == previous_cell_incarnation
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-        for mut key in keys {
-            let entry = state
-                .entries
-                .remove(&key)
-                .expect("a selected Signal basis registry key remains installed");
-            key.cell_incarnation = cell_incarnation;
-            let replaced = state.entries.insert(key, entry);
-            assert!(
-                replaced.is_none(),
-                "sealing cannot collide with a pre-existing owner cell incarnation"
-            );
-        }
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
-fn existing_basis(
-    state: &SignalBranchBasisRegistryState,
+fn begin_admission(
+    state: &mut SignalBranchBasisRegistryState,
+    key: &SignalBranchBasisRegistryKey,
+) -> Result<AdmissionDecision, SignalBranchRetentionAcquisitionDenial> {
+    if let Some(entry) = state.entries.get(key) {
+        match entry {
+            RegistryEntry::Ready { basis, .. } => {
+                if let Some(existing) = basis.upgrade() {
+                    return Ok(AdmissionDecision::Ready(existing));
+                }
+                state.entries.remove(key);
+            }
+            RegistryEntry::Acquiring(acquiring) => {
+                if acquiring.initiating_thread == std::thread::current().id() {
+                    return Ok(AdmissionDecision::OwnerReentry);
+                }
+                acquiring.completion.record_joiner();
+                return Ok(AdmissionDecision::Join(Arc::clone(&acquiring.completion)));
+            }
+        }
+    }
+    let reservation_id = state
+        .next_reservation_id
+        .checked_add(1)
+        .ok_or(SignalBranchRetentionAcquisitionDenial::IdentityExhausted)?;
+    state.next_reservation_id = reservation_id;
+    let completion = Arc::new(SingleFlightCompletion::new());
+    state.entries.insert(
+        key.clone(),
+        RegistryEntry::Acquiring(AcquiringEntry {
+            reservation_id,
+            initiating_thread: std::thread::current().id(),
+            completion: Arc::clone(&completion),
+        }),
+    );
+    Ok(AdmissionDecision::Claim {
+        reservation_id,
+        completion,
+    })
+}
+
+#[cfg(test)]
+fn test_completion(
+    registry: &SignalBranchBasisRegistry,
+    key: &SignalBranchBasisRegistryKey,
+) -> Option<Arc<SingleFlightCompletion>> {
+    let state = registry.lock_state();
+    match state.entries.get(key) {
+        Some(RegistryEntry::Acquiring(acquiring)) => Some(Arc::clone(&acquiring.completion)),
+        _ => None,
+    }
+}
+
+fn live_ready_basis(
+    state: &mut SignalBranchBasisRegistryState,
     key: &SignalBranchBasisRegistryKey,
 ) -> Option<Arc<AdmittedSignalBranchBasisInner>> {
-    state
-        .entries
-        .get(key)
-        .and_then(|entry| entry.basis.upgrade())
+    let Some(RegistryEntry::Ready { basis, .. }) = state.entries.get(key) else {
+        return None;
+    };
+    match basis.upgrade() {
+        Some(existing) => Some(existing),
+        None => {
+            state.entries.remove(key);
+            None
+        }
+    }
 }
 
 fn new_basis(
@@ -239,15 +256,16 @@ fn new_basis(
     observation: SignalBranchObservation,
     branch_id: SignalBranchId,
     retention: SignalBranchAdmissionLease,
-) -> AdmittedSignalBranchBasis {
+) -> Result<AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial> {
     let candidate = admit_signal_branch_observation(observation, branch_id, retention);
     let registration_id = state
         .next_registration_id
         .checked_add(1)
-        .expect("Signal basis registry registration identities are non-repeatable");
+        .ok_or(SignalBranchRetentionAcquisitionDenial::IdentityExhausted)?;
     state.next_registration_id = registration_id;
     let lease = SignalBranchBasisRegistryLease {
         state: Arc::downgrade(registry_state),
+        key: key.clone(),
         registration_id,
     };
     candidate
@@ -255,14 +273,97 @@ fn new_basis(
         .registry_lease
         .set(lease)
         .expect("a freshly issued Signal basis has one registry lease slot");
-    state.entries.insert(
+    let replaced = state.entries.insert(
         key,
-        SignalBranchBasisRegistryEntry {
+        RegistryEntry::Ready {
             registration_id,
             basis: Arc::downgrade(&candidate.0),
         },
     );
-    candidate
+    assert!(
+        replaced.is_none() || matches!(replaced, Some(RegistryEntry::Acquiring(_))),
+        "a ready Signal basis may replace only its own reservation"
+    );
+    Ok(candidate)
+}
+
+fn finish_denied(
+    registry_state: &Arc<Mutex<SignalBranchBasisRegistryState>>,
+    key: &SignalBranchBasisRegistryKey,
+    reservation_id: u64,
+    completion: &SingleFlightCompletion,
+    denial: SignalBranchRetentionAcquisitionDenial,
+) {
+    let owns_reservation = {
+        let mut state = registry_state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if matches!(
+            state.entries.get(key),
+            Some(RegistryEntry::Acquiring(AcquiringEntry {
+                reservation_id: current,
+                ..
+            })) if *current == reservation_id
+        ) {
+            state.entries.remove(key);
+            true
+        } else {
+            false
+        }
+    };
+    if owns_reservation {
+        completion.finish(Err(denial));
+    }
+}
+
+struct AcquisitionClaimGuard {
+    state: Weak<Mutex<SignalBranchBasisRegistryState>>,
+    key: SignalBranchBasisRegistryKey,
+    reservation_id: u64,
+    completion: Arc<SingleFlightCompletion>,
+    armed: bool,
+}
+
+impl AcquisitionClaimGuard {
+    fn new(
+        state: &Arc<Mutex<SignalBranchBasisRegistryState>>,
+        key: SignalBranchBasisRegistryKey,
+        reservation_id: u64,
+        completion: Arc<SingleFlightCompletion>,
+    ) -> Self {
+        Self {
+            state: Arc::downgrade(state),
+            key,
+            reservation_id,
+            completion,
+            armed: true,
+        }
+    }
+
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for AcquisitionClaimGuard {
+    fn drop(&mut self) {
+        if !self.armed {
+            return;
+        }
+        if let Some(state) = self.state.upgrade() {
+            finish_denied(
+                &state,
+                &self.key,
+                self.reservation_id,
+                &self.completion,
+                SignalBranchRetentionAcquisitionDenial::OwnerOperationPanicked,
+            );
+        } else {
+            self.completion.finish(Err(
+                SignalBranchRetentionAcquisitionDenial::OwnerOperationPanicked,
+            ));
+        }
+    }
 }
 
 impl Default for SignalBranchBasisRegistry {
@@ -279,75 +380,14 @@ impl Drop for SignalBranchBasisRegistryLease {
         let mut state = state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let key = state.entries.iter().find_map(|(key, entry)| {
-            (entry.registration_id == self.registration_id).then_some(key.clone())
-        });
-        if let Some(key) = key {
-            state.entries.remove(&key);
+        if matches!(
+            state.entries.get(&self.key),
+            Some(RegistryEntry::Ready {
+                registration_id,
+                ..
+            }) if *registration_id == self.registration_id
+        ) {
+            state.entries.remove(&self.key);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use worth_foundational::{FoundationalBranchReferenceGeneration, FoundationalBranchTarget};
-
-    use super::super::{signal_branch_observation, SignalBranchRetentionAcquisitionDenial};
-    use super::*;
-
-    fn observation(branch_id: u64) -> SignalBranchObservation {
-        signal_branch_observation(
-            "basis-registry-reentrancy",
-            branch_id,
-            format!("branch-{branch_id}"),
-            FoundationalBranchTarget::empty(),
-            FoundationalBranchReferenceGeneration::initial(),
-        )
-        .expect("test observation is valid")
-    }
-
-    #[test]
-    fn retention_acquisition_can_reenter_the_registry_without_deadlock() {
-        let registry = SignalBranchBasisRegistry::new();
-        let retention = Arc::new(super::super::retention::SignalBranchRetentionRegistry::new(
-            17,
-        ));
-        let nested_registry = registry.clone();
-        let nested_retention = Arc::clone(&retention);
-        let basis = registry
-            .admit_with_retention(
-                31,
-                7,
-                crate::state::SignalBranchId(1),
-                2,
-                observation(1),
-                move || {
-                    let nested = nested_registry.admit_with_retention(
-                        31,
-                        7,
-                        crate::state::SignalBranchId(2),
-                        2,
-                        observation(2),
-                        move || nested_retention.acquire_admitted(crate::state::SignalBranchId(2)),
-                    )?;
-                    drop(nested);
-                    retention.acquire_admitted(crate::state::SignalBranchId(1))
-                },
-            )
-            .expect("reentrant owner acquisition remains valid");
-        let repeated = registry
-            .admit_with_retention(
-                31,
-                7,
-                crate::state::SignalBranchId(1),
-                2,
-                observation(1),
-                || Err(SignalBranchRetentionAcquisitionDenial::IdentityExhausted),
-            )
-            .expect("the exact live basis is reused without reacquisition");
-
-        assert_eq!(basis.admission_identity(), repeated.admission_identity());
     }
 }

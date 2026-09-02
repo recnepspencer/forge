@@ -1,7 +1,10 @@
+pub use crate::correspondence::RuntimeWorldCorrespondenceInspectionCounters;
+use crate::correspondence::RuntimeWorldCorrespondenceInspectionLedger;
 use crate::correspondence::{
     admit_installed_basis, compare_current_basis, AdmittedRuntimeWorldCorrespondenceBasis,
     RuntimeWorldCorrespondenceAdmissionDenial,
 };
+use std::sync::Arc;
 
 use super::{BridgeInstalledSemanticCorrespondence, RuntimeBridge};
 
@@ -12,6 +15,7 @@ use super::{BridgeInstalledSemanticCorrespondence, RuntimeBridge};
 #[derive(Clone)]
 pub struct RuntimeWorldCorrespondencePort {
     runtime: RuntimeBridge,
+    inspection: Arc<RuntimeWorldCorrespondenceInspectionLedger>,
 }
 
 impl std::fmt::Debug for RuntimeWorldCorrespondencePort {
@@ -29,14 +33,18 @@ impl RuntimeWorldCorrespondencePort {
         installed: &BridgeInstalledSemanticCorrespondence,
     ) -> Result<AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondenceAdmissionDenial>
     {
-        admit_installed_basis(&self.runtime, installed)
+        admit_installed_basis(&self.runtime, installed, &self.inspection)
     }
 
     pub fn compare_current_exact(
         &self,
         admitted: &AdmittedRuntimeWorldCorrespondenceBasis,
     ) -> Result<(), RuntimeWorldCorrespondenceAdmissionDenial> {
-        compare_current_basis(&self.runtime, admitted)
+        compare_current_basis(&self.runtime, admitted, &self.inspection)
+    }
+
+    pub fn inspection_counters(&self) -> RuntimeWorldCorrespondenceInspectionCounters {
+        self.inspection.snapshot()
     }
 }
 
@@ -45,6 +53,7 @@ impl RuntimeBridge {
     pub fn runtime_world_correspondence_port(&self) -> RuntimeWorldCorrespondencePort {
         RuntimeWorldCorrespondencePort {
             runtime: self.clone(),
+            inspection: Arc::new(RuntimeWorldCorrespondenceInspectionLedger::default()),
         }
     }
 }

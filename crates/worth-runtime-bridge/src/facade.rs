@@ -96,7 +96,9 @@ pub use preview_session_liveness::{
 };
 pub use request::BridgeRouteRequest;
 pub use runtime::RuntimeBridge;
-pub use runtime_world::RuntimeWorldCorrespondencePort;
+pub use runtime_world::{
+    RuntimeWorldCorrespondenceInspectionCounters, RuntimeWorldCorrespondencePort,
+};
 pub use standard_path::{
     BridgeDiagnostics, BridgeEvaluationTarget, BridgeRoute, BridgeSpeculativeComparison,
     BridgeSpeculativeDiscardOutcome, BridgeSpeculativePromotionOutcome,

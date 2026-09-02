@@ -11,7 +11,7 @@ use super::reference_cell::ProductBranchReferenceSnapshot;
 
 /// Complete product-head observation used by every compare-and-publish
 /// operation. A single reference snapshot supplies the commit and basis;
-/// retention is an owner-issued operational obligation, not a caller tuple.
+/// retention is an opaque handoff owned operationally by Phase 2.
 #[derive(Debug)]
 pub struct ProductBranchObservation {
     snapshot: Arc<ProductBranchReferenceSnapshot>,
@@ -40,30 +40,18 @@ impl PartialEq for ProductBranchObservation {
 
 impl Eq for ProductBranchObservation {}
 
-/// Cloned observations share this retention-issued binding. Its two
-/// independent component obligations release through RAII when the final
-/// observation clone disappears.
+/// Cloned observations share this opaque Phase 2 retention handoff. Phase 1
+/// does not issue, release, or otherwise interpret the component obligations.
 #[derive(Debug)]
 pub(crate) struct ProductBranchObservationObligation {
-    retention: ObservationRetentionObligation,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProductBranchObservationConstructionDenial {
-    RetentionBasisMismatch,
+    _retention: ObservationRetentionObligation,
 }
 
 impl ProductBranchObservationObligation {
     pub(crate) fn owner_issued(retention: ObservationRetentionObligation) -> Self {
-        Self { retention }
-    }
-
-    pub(crate) const fn dependency_class(&self) -> crate::retention::ComponentBasisDependencyClass {
-        crate::retention::ComponentBasisDependencyClass::AdmittedObservation
-    }
-
-    pub(crate) fn retention(&self) -> &ObservationRetentionObligation {
-        &self.retention
+        Self {
+            _retention: retention,
+        }
     }
 }
 
@@ -101,14 +89,11 @@ impl ProductBranchObservation {
     pub(crate) fn owner_issued(
         snapshot: ProductBranchReferenceSnapshot,
         retention: ObservationRetentionObligation,
-    ) -> Result<Self, ProductBranchObservationConstructionDenial> {
-        if !retention.matches_basis(snapshot.commit().basis()) {
-            return Err(ProductBranchObservationConstructionDenial::RetentionBasisMismatch);
-        }
-        Ok(Self {
+    ) -> Self {
+        Self {
             snapshot: Arc::new(snapshot),
             obligation: Arc::new(ProductBranchObservationObligation::owner_issued(retention)),
-        })
+        }
     }
 
     pub fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {

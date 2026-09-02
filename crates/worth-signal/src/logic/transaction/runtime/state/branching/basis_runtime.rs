@@ -186,13 +186,10 @@ where
                 crate::branch::SignalBranchBasisObservationDenial::InvalidOwnerObservation { error }
             })?;
         self.admit_unsealed_canonical_basis_with_retention(observation, live_branch.id, || {
-            self.branches
-                .acquire_admitted_retention(live_branch.id)
-                .map_err(|denial| {
-                    crate::branch::SignalBranchBasisObservationDenial::RetentionUnavailable {
-                        denial,
-                    }
-                })
+            self.branches.acquire_admitted_retention(live_branch.id)
+        })
+        .map_err(|denial| {
+            crate::branch::SignalBranchBasisObservationDenial::RetentionUnavailable { denial }
         })
     }
 
@@ -228,14 +225,17 @@ where
         )
     }
 
-    pub(super) fn admit_unsealed_canonical_basis_with_retention<Error, Acquire>(
+    pub(super) fn admit_unsealed_canonical_basis_with_retention<Acquire>(
         &self,
         observation: SignalBranchObservation,
         branch_id: crate::state::SignalBranchId,
         acquire_retention: Acquire,
-    ) -> Result<AdmittedSignalBranchBasis, Error>
+    ) -> Result<AdmittedSignalBranchBasis, crate::branch::SignalBranchRetentionAcquisitionDenial>
     where
-        Acquire: FnOnce() -> Result<SignalBranchAdmissionLease, Error>,
+        Acquire: FnOnce() -> Result<
+            SignalBranchAdmissionLease,
+            crate::branch::SignalBranchRetentionAcquisitionDenial,
+        >,
     {
         self.basis_registry.admit_with_retention(
             self.branches.owner_runtime_instance_id(),

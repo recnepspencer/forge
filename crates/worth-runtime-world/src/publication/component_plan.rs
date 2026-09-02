@@ -205,8 +205,8 @@ impl LoweredOwnerComponentPlan {
     /// The only preparation-to-reservation transition. The plan supplies the
     /// expected head and predecessor basis; callers cannot replace either
     /// value while reserving bounded Runtime World capacity. The supplied
-    /// publication obligation is for the prospective successor and is checked
-    /// against the owner-issued commit before the ready token is issued.
+    /// opaque Phase 2 obligation is for the prospective successor and remains
+    /// sealed until the retention owner installs its semantics.
     pub(crate) fn reserve(
         self,
         attempt_identity: CompositePublicationAttemptIdentity,

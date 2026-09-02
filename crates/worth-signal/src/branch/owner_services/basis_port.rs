@@ -95,18 +95,16 @@ where
             .admit_managed_branch_reference(reference)
             .map_err(map_managed_observation_admission_denial)?;
         let observation = cell.observe_exact(&admission)?;
-        owner.admit_canonical_basis_with_retention(
-            observation,
-            branch_id,
-            cell.incarnation().get(),
-            || {
-                owner
-                    .acquire_admitted_retention(&admission, branch_id)
-                    .map_err(|denial| {
-                        map_observation_retention_denial(&owner, &admission, denial, branch_id)
-                    })
-            },
-        )
+        owner
+            .admit_canonical_basis_with_retention(
+                observation,
+                branch_id,
+                cell.incarnation().get(),
+                || owner.acquire_admitted_retention(&admission, branch_id),
+            )
+            .map_err(|denial| {
+                map_observation_retention_denial(&owner, &admission, denial, branch_id)
+            })
     }
 
     pub fn readmit_exact(
@@ -126,18 +124,16 @@ where
             map_observation_readmission_denial(&owner, &admission, denial, branch_id)
         })?;
         compare_descriptor_with_observation(descriptor, &observation)?;
-        owner.admit_canonical_basis_with_retention(
-            observation,
-            branch_id,
-            cell.incarnation().get(),
-            || {
-                owner
-                    .acquire_admitted_retention(&admission, branch_id)
-                    .map_err(|denial| {
-                        map_readmission_retention_denial(&owner, &admission, denial, branch_id)
-                    })
-            },
-        )
+        owner
+            .admit_canonical_basis_with_retention(
+                observation,
+                branch_id,
+                cell.incarnation().get(),
+                || owner.acquire_admitted_retention(&admission, branch_id),
+            )
+            .map_err(|denial| {
+                map_readmission_retention_denial(&owner, &admission, denial, branch_id)
+            })
     }
 
     pub fn compare_current_exact(
@@ -205,16 +201,14 @@ where
         let cell = owner
             .lookup_cell(&admission, branch_id)
             .map_err(|_| SignalBranchRetainedReadmissionDenial::UnavailableRetainedTarget)?;
-        owner.admit_canonical_basis_with_retention(
-            descriptor.observation().clone(),
-            branch_id,
-            cell.incarnation().get(),
-            || {
-                owner
-                    .acquire_admitted_retention(&admission, branch_id)
-                    .map_err(map_retained_retention_denial)
-            },
-        )
+        owner
+            .admit_canonical_basis_with_retention(
+                descriptor.observation().clone(),
+                branch_id,
+                cell.incarnation().get(),
+                || owner.acquire_admitted_retention(&admission, branch_id),
+            )
+            .map_err(map_retained_retention_denial)
     }
 
     pub fn retain_exact(

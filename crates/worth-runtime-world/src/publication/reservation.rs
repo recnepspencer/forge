@@ -53,8 +53,8 @@ pub struct ReservedCompositePublicationAttempt {
     reserved_history_slot: ReservedHistorySlot,
     reserved_recovery_slot: ReservedRecoverySlot,
     reserved_pin_acquisition_slots: ReservedPinAcquisitionSlots,
-    /// Owner-issued pins for the prospective successor basis. The expected
-    /// predecessor remains pinned by `expected_head`'s observation.
+    /// Opaque Phase 2 retention handoff for the prospective successor basis.
+    /// Phase 1 does not claim a component lease for either basis.
     retention_obligation: PublicationRetentionObligation,
     cancellation: CompositeAttemptCancellationPosture,
     deadline: Option<RuntimeWorldInstant>,

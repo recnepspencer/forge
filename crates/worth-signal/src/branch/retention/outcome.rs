@@ -17,6 +17,9 @@ pub enum SignalBranchRetentionAcquisitionDenial {
         maximum_in_flight_operations: usize,
     },
     OwnerReentry,
+    /// A claimant unwound while contacting the owner; waiters were released
+    /// with this typed denial and a later claimant may retry the key.
+    OwnerOperationPanicked,
     ForeignBasis,
     UnknownBranch {
         branch_id: SignalBranchId,

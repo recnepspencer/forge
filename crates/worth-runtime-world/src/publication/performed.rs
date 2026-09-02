@@ -295,10 +295,6 @@ impl std::fmt::Debug for PerformedCompositePublication {
             .field("attempt_identity", &self.attempt_identity)
             .field("component_results", &self.component_results)
             .field("late_cancellation", &self.late_cancellation)
-            .field(
-                "retention_destination",
-                &self.retention_transfer.destination(),
-            )
             .field("cost_counters", &self.cost_counters)
             .finish_non_exhaustive()
     }

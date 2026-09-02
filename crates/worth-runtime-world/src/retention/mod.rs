@@ -4,60 +4,31 @@ mod obligation_transfer;
 mod registry;
 mod unique_component_pin;
 
-pub(crate) use dependency_counts::{ComponentBasisDependencyClass, ComponentBasisDependencyCounts};
-#[allow(
-    unused_imports,
-    reason = "Phase 1 freezes transfer vocabulary for the later retention lane"
-)]
-pub(crate) use obligation_transfer::{
-    ComponentBasisObligationTransfer, ComponentBasisObligationTransferDestination,
-};
-#[allow(
-    unused_imports,
-    reason = "Phase 1 freezes opaque retention obligations for later owner consumers"
-)]
-pub(crate) use registry::{
+pub(crate) use component_obligation::{
     ObservationRetentionObligation, PublicationRetentionObligation,
-    RetainedPartialRetentionObligation, RetentionObligationDenial, RetentionTransferDenial,
-    RetentionTransferReceipt, RuntimeWorldRetentionOwner,
+    RetainedPartialRetentionObligation,
 };
-#[allow(
-    unused_imports,
-    reason = "Phase 1 freezes independent exact component keys for the later registry"
-)]
-pub(crate) use unique_component_pin::{
-    ExactComponentBasis, ExactComponentBasisKey, ExactComponentPinRequest,
-};
+pub(crate) use dependency_counts::ComponentBasisDependencyClass;
+#[allow(unused_imports)]
+pub(crate) use obligation_transfer::ComponentBasisObligationTransferDestination;
+pub(crate) use registry::RetentionTransferReceipt;
+#[allow(unused_imports)]
+pub(crate) use unique_component_pin::{ExactComponentBasisKey, ExactComponentPinRequest};
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn dependency_accounting_and_transfer_destinations_are_closed() {
-        let mut counts = ComponentBasisDependencyCounts::zero();
-        for class in ComponentBasisDependencyClass::ALL {
-            assert_eq!(counts.get(class), 0);
-            assert_eq!(counts.increment(class), Some(1));
-        }
-        assert_eq!(counts.total(), ComponentBasisDependencyClass::ALL.len());
-
-        let transfer = ComponentBasisObligationTransfer::new(
-            ComponentBasisDependencyClass::AdmittedObservation,
+    fn phase_one_freezes_independent_keys_and_closed_vocabulary() {
+        assert_eq!(ComponentBasisDependencyClass::ALL.len(), 6);
+        assert!(matches!(
             ComponentBasisObligationTransferDestination::Release,
-        );
-        assert_eq!(
-            transfer.from(),
-            ComponentBasisDependencyClass::AdmittedObservation
-        );
-        assert_eq!(
-            transfer.to(),
             ComponentBasisObligationTransferDestination::Release
-        );
-
-        for class in ComponentBasisDependencyClass::ALL {
-            assert_eq!(counts.decrement(class), Some(0));
-        }
-        assert_eq!(counts.total(), 0);
+        ));
+        let _ = std::mem::size_of::<ObservationRetentionObligation>();
+        let _ = std::mem::size_of::<PublicationRetentionObligation>();
+        let _ = std::mem::size_of::<RetainedPartialRetentionObligation>();
+        let _ = std::mem::size_of::<RetentionTransferReceipt>();
     }
 }

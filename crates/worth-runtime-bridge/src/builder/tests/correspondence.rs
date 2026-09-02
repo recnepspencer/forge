@@ -359,6 +359,7 @@ mod graph_cohesion;
 mod outcome_topology;
 mod partition_and_precision;
 mod registration_drift;
+mod runtime_world;
 mod semantic_dependencies;
 mod semantic_fixture;
 mod semantic_invalidation;

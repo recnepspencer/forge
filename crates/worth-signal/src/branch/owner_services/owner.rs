@@ -1,18 +1,15 @@
-use std::sync::atomic::AtomicU64;
-use std::sync::{Arc, Weak};
-
 use super::owner_metadata::SignalOwnerMetadata;
-use crate::branch::{SignalBranchBasisRegistry, SignalBranchRetentionRegistry};
-use crate::logic::transaction::SignalOwnerPartition;
-use crate::state::SignalBranchId;
-
 use super::{
     SignalBranchCellState, SignalBranchExecutionCell, SignalBranchRegistry,
     SignalBranchRegistryDenial, SignalBranchRetirement, SignalOwnerAdmissionDenial,
     SignalOwnerLifecycleState, SignalOwnerOperationAdmission, SignalOwnerServiceCostSnapshot,
     SignalOwnerServiceCounters, SignalOwnerUnavailable,
 };
-
+use crate::branch::{SignalBranchBasisRegistry, SignalBranchRetentionRegistry};
+use crate::logic::transaction::SignalOwnerPartition;
+use crate::state::SignalBranchId;
+use std::sync::atomic::AtomicU64;
+use std::sync::{Arc, Weak};
 pub(super) mod basis;
 mod basis_authority;
 #[cfg(test)]
@@ -31,11 +28,9 @@ pub(super) mod retirement_reservation;
 use super::lifecycle_state::{SignalOwnerCloseCoordinator, SignalOwnerCloseDenial};
 #[cfg(test)]
 mod managed_reference_replacement_tests;
-
 pub(crate) const DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES: usize = 4_096;
 pub(crate) const DEFAULT_MAXIMUM_SIGNAL_BRANCH_RESERVATIONS: usize = 64;
 const OWNER_CLOSE_BATCH_SIZE: usize = 64;
-
 /// Why the current runtime cannot enter the independent owner-service posture.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SignalOwnerServiceIssuanceDenial {
@@ -299,15 +294,21 @@ where
         )
     }
 
-    pub(super) fn admit_canonical_basis_with_retention<E, Acquire>(
+    pub(super) fn admit_canonical_basis_with_retention<Acquire>(
         &self,
         observation: crate::branch::SignalBranchObservation,
         branch_id: SignalBranchId,
         cell_incarnation: u64,
         acquire_retention: Acquire,
-    ) -> Result<crate::branch::AdmittedSignalBranchBasis, E>
+    ) -> Result<
+        crate::branch::AdmittedSignalBranchBasis,
+        crate::branch::SignalBranchRetentionAcquisitionDenial,
+    >
     where
-        Acquire: FnOnce() -> Result<crate::branch::SignalBranchAdmissionLease, E>,
+        Acquire: FnOnce() -> Result<
+            crate::branch::SignalBranchAdmissionLease,
+            crate::branch::SignalBranchRetentionAcquisitionDenial,
+        >,
     {
         self.basis_registry.admit_with_retention(
             self.runtime_instance_id,
