@@ -18,13 +18,10 @@ fn basis_artifact_reservation_wins_before_retirement_or_cleans_up_on_denial() {
         .observe_current(&reference)
         .expect("the port reserves retention before entering the checked cell");
     let admission = owner.admit().expect("retirement planning admits");
-    assert!(matches!(
-        owner.reserve_retirement(&admission, world.branch_b.id),
-        Err(SignalBranchRetirementDenial::RetainedAdmittedBasis {
-            branch_id,
-            active_leases: 2,
-        }) if branch_id == world.branch_b.id
-    ));
+    let retirement = owner
+        .reserve_retirement(&admission, world.branch_b.id)
+        .expect("one canonical admitted lease is the retirement allowance");
+    drop(retirement);
     drop(observed);
 
     let external = world
@@ -79,11 +76,14 @@ fn installed_retirement_fence_denies_observation_and_readmission_before_cell_con
         Err(SignalBranchBasisReadmissionDenial::RetirementInProgress { branch_id })
             if branch_id == world.branch_b.id
     ));
+    let cell_after = cell.cost_snapshot();
     assert_eq!(
-        cell.cost_snapshot(),
-        cell_before,
-        "retirement-fenced retention denial occurs before checked-cell contact"
+        cell_after.contacts(),
+        cell_before.contacts() + 2,
+        "the exact Ready key requires one cell observation per denied call"
     );
+    assert_eq!(cell_after.waits(), cell_before.waits());
+    assert_eq!(cell_after.movements(), cell_before.movements());
     assert_eq!(
         owner.retention_ledger_observation(),
         retention_before,

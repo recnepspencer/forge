@@ -18,6 +18,48 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(in crate::branch::owner_services) fn admit_canonical_basis(
+        &self,
+        observation: SignalBranchObservation,
+        branch_id: SignalBranchId,
+        cell_incarnation: u64,
+        retention: crate::branch::SignalBranchAdmissionLease,
+    ) -> AdmittedSignalBranchBasis {
+        self.basis_registry.admit(
+            self.runtime_instance_id,
+            self.definition_basis,
+            branch_id,
+            cell_incarnation,
+            observation,
+            retention,
+        )
+    }
+
+    pub(in crate::branch::owner_services) fn admit_canonical_basis_with_retention<Acquire>(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        observation: SignalBranchObservation,
+        branch_id: SignalBranchId,
+        cell_incarnation: u64,
+        acquire_retention: Acquire,
+    ) -> Result<AdmittedSignalBranchBasis, crate::branch::SignalBranchRetentionAcquisitionDenial>
+    where
+        Acquire: FnOnce() -> Result<
+            crate::branch::SignalBranchAdmissionLease,
+            crate::branch::SignalBranchRetentionAcquisitionDenial,
+        >,
+    {
+        self.basis_registry.admit_with_retention(
+            self.runtime_instance_id,
+            self.definition_basis,
+            branch_id,
+            cell_incarnation,
+            observation,
+            |_| self.validate_canonical_basis_reuse(admission, branch_id),
+            acquire_retention,
+        )
+    }
+
     #[allow(
         dead_code,
         reason = "Phase 4 basis port publishes this private owner seam"

@@ -10,7 +10,9 @@ use crate::branch::{
 use crate::state::SignalBranchId;
 
 use super::super::owner_metadata::SignalOwnerMetadataAuthorizationDenial;
-use super::super::{SignalOwnerOperationAdmission, SignalOwnerUnavailable};
+use super::super::{
+    SignalOwnerLifecycleObservation, SignalOwnerOperationAdmission, SignalOwnerUnavailable,
+};
 use super::SignalOwner;
 
 impl<D, I, T> SignalOwner<D, I, T>
@@ -42,6 +44,32 @@ where
         }
         self.validate_basis_descriptor_affinity(descriptor)
             .map_err(map_managed_basis_affinity_denial)
+    }
+
+    pub(in crate::branch::owner_services) fn validate_canonical_basis_reuse(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        branch_id: SignalBranchId,
+    ) -> Result<(), SignalBranchRetentionAcquisitionDenial> {
+        if self.lifecycle_observation() != SignalOwnerLifecycleObservation::Open {
+            return Err(SignalBranchRetentionAcquisitionDenial::OwnerUnavailable(
+                SignalOwnerUnavailable,
+            ));
+        }
+        match self
+            .metadata
+            .branch_accepts_retention_acquisition(admission, branch_id)
+        {
+            Ok(true) => Ok(()),
+            Ok(false) => Err(SignalBranchRetentionAcquisitionDenial::RetiredBranch { branch_id }),
+            Err(SignalOwnerMetadataAuthorizationDenial::OwnerUnavailable) => Err(
+                SignalBranchRetentionAcquisitionDenial::OwnerUnavailable(SignalOwnerUnavailable),
+            ),
+            Err(
+                SignalOwnerMetadataAuthorizationDenial::OwnerCellMisuse
+                | SignalOwnerMetadataAuthorizationDenial::OwnerReentry,
+            ) => Err(SignalBranchRetentionAcquisitionDenial::OwnerReentry),
+        }
     }
 
     pub(in crate::branch::owner_services) fn validate_retained_basis_descriptor(

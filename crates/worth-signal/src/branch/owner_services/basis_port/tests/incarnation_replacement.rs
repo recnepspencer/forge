@@ -11,6 +11,7 @@ use super::world::{
 fn same_id_incarnation_replacement_denies_stale_authority_and_admits_fresh_authority() {
     let world = basis_port_world();
     let stale_reference = issue_reference(&world.port, &world.basis_b);
+    let old_basis = world.basis_b.clone();
     let expected = world.basis_b.observation().clone();
     let owner = world
         .port
@@ -38,19 +39,23 @@ fn same_id_incarnation_replacement_denies_stale_authority_and_admits_fresh_autho
             denial: ManagedSignalBranchReferenceAdmissionDenial::BranchIncarnationReplaced,
         })
     ));
+    assert!(matches!(
+        world.port.compare_current_exact(&old_basis),
+        Err(SignalBranchBasisReadmissionDenial::LifecycleMismatch)
+    ));
     let stale_cost_after = owner.cost_snapshot();
     assert_eq!(
         stale_cost_after.owner_upgrade_attempts(),
-        stale_cost_before.owner_upgrade_attempts() + 2
+        stale_cost_before.owner_upgrade_attempts() + 3
     );
     assert_eq!(
         stale_cost_after.branch_registry_lookups(),
-        stale_cost_before.branch_registry_lookups() + 2
+        stale_cost_before.branch_registry_lookups() + 3
     );
     assert_eq!(
         stale_cost_after.target_cell_contacts(),
-        stale_cost_before.target_cell_contacts(),
-        "stale authority is rejected before reaching the replacement cell"
+        stale_cost_before.target_cell_contacts() + 1,
+        "stale managed authority is rejected before reaching the replacement cell"
     );
     assert_eq!(
         stale_cost_after.retention_registry_contacts(),
@@ -87,13 +92,14 @@ fn same_id_incarnation_replacement_denies_stale_authority_and_admits_fresh_autho
     );
     assert_eq!(
         fresh_cost_after.retention_registry_contacts(),
-        stale_cost_after.retention_registry_contacts() + 2
+        stale_cost_after.retention_registry_contacts() + 1,
+        "the second fresh call reuses the canonical owner lease"
     );
     drop(observed);
     drop(readmitted);
     assert_retention_cleanup_with_identity_advance(
         &retention_before,
         &owner.retention_ledger_observation(),
-        2,
+        1,
     );
 }

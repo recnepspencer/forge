@@ -54,6 +54,7 @@ fn equal_callers_share_one_claimant_basis_and_owner_lease() {
             crate::state::SignalBranchId(1),
             2,
             observation(1),
+            |_| Ok(()),
             move || {
                 claimant_count.fetch_add(1, Ordering::SeqCst);
                 claimed_tx.send(()).expect("claimant announces its contact");
@@ -76,6 +77,7 @@ fn equal_callers_share_one_claimant_basis_and_owner_lease() {
                 crate::state::SignalBranchId(1),
                 2,
                 observation(1),
+                |_| Ok(()),
                 || panic!("a single-flight waiter must not contact retention"),
             )
         }));
@@ -131,6 +133,78 @@ fn equal_callers_share_one_claimant_basis_and_owner_lease() {
 }
 
 #[test]
+fn ready_reuse_validates_outside_lock_without_contacting_retention() {
+    let registry = SignalBranchBasisRegistry::new();
+    let retention = Arc::new(SignalBranchRetentionRegistry::new(29));
+    let canonical = registry
+        .admit_with_retention(
+            71,
+            15,
+            crate::state::SignalBranchId(6),
+            7,
+            observation(6),
+            |_| Ok(()),
+            || retention.acquire_admitted(crate::state::SignalBranchId(6)),
+        )
+        .expect("the first exact basis installs the canonical owner lease");
+    let callback_registry = registry.clone();
+    let reused = registry
+        .admit_with_retention(
+            71,
+            15,
+            crate::state::SignalBranchId(6),
+            7,
+            observation(6),
+            |existing| {
+                let nested = callback_registry
+                    .admit_with_retention(
+                        71,
+                        15,
+                        crate::state::SignalBranchId(6),
+                        7,
+                        observation(6),
+                        |_| Ok(()),
+                        || panic!("ready reuse must not contact retention"),
+                    )
+                    .expect("ready validation runs after the registry lock is released");
+                assert_eq!(nested.admission_identity(), existing.admission_identity());
+                Ok(())
+            },
+            || panic!("ready reuse must not acquire a second owner lease"),
+        )
+        .expect("the owner validation permits the live canonical basis");
+    assert_eq!(reused.admission_identity(), canonical.admission_identity());
+    assert_eq!(retention.admitted_count(crate::state::SignalBranchId(6)), 1);
+
+    let denial = SignalBranchRetentionAcquisitionDenial::RetiredBranch {
+        branch_id: crate::state::SignalBranchId(6),
+    };
+    let ready_denial = registry.admit_with_retention(
+        71,
+        15,
+        crate::state::SignalBranchId(6),
+        7,
+        observation(6),
+        |_| Err(denial.clone()),
+        || panic!("a denied ready reuse must not contact retention"),
+    );
+    assert!(matches!(ready_denial, Err(actual) if actual == denial));
+    assert_eq!(retention.admitted_count(crate::state::SignalBranchId(6)), 1);
+    let retry = registry
+        .admit_with_retention(
+            71,
+            15,
+            crate::state::SignalBranchId(6),
+            7,
+            observation(6),
+            |_| Ok(()),
+            || panic!("a healthy retry still reuses the canonical basis"),
+        )
+        .expect("a denied validation does not evict the live canonical basis");
+    assert_eq!(retry.admission_identity(), canonical.admission_identity());
+}
+
+#[test]
 fn claimant_denial_is_shared_and_reservation_allows_a_later_retry() {
     let registry = SignalBranchBasisRegistry::new();
     let retention = Arc::new(SignalBranchRetentionRegistry::new(19));
@@ -152,6 +226,7 @@ fn claimant_denial_is_shared_and_reservation_allows_a_later_retry() {
             crate::state::SignalBranchId(2),
             3,
             observation(2),
+            |_| Ok(()),
             move || {
                 claimant_count.fetch_add(1, Ordering::SeqCst);
                 claimed_tx.send(()).expect("claimant announces its contact");
@@ -174,6 +249,7 @@ fn claimant_denial_is_shared_and_reservation_allows_a_later_retry() {
                 crate::state::SignalBranchId(2),
                 3,
                 observation(2),
+                |_| Ok(()),
                 || panic!("a denial waiter must not make a second owner contact"),
             )
         }));
@@ -211,6 +287,7 @@ fn claimant_denial_is_shared_and_reservation_allows_a_later_retry() {
             crate::state::SignalBranchId(2),
             3,
             observation(2),
+            |_| Ok(()),
             || retention.acquire_admitted(crate::state::SignalBranchId(2)),
         )
         .expect("a denied reservation is removed for a healthy retry");
@@ -231,6 +308,7 @@ fn same_key_reentry_denies_immediately_but_different_key_reentry_is_valid() {
             crate::state::SignalBranchId(3),
             4,
             observation(3),
+            |_| Ok(()),
             move || {
                 let same_key = nested_registry.admit_with_retention(
                     51,
@@ -238,6 +316,7 @@ fn same_key_reentry_denies_immediately_but_different_key_reentry_is_valid() {
                     crate::state::SignalBranchId(3),
                     4,
                     observation(3),
+                    |_| Ok(()),
                     || panic!("same-key reentry must not invoke retention"),
                 );
                 assert!(matches!(
@@ -250,6 +329,7 @@ fn same_key_reentry_denies_immediately_but_different_key_reentry_is_valid() {
                     crate::state::SignalBranchId(4),
                     4,
                     observation(4),
+                    |_| Ok(()),
                     move || nested_retention.acquire_admitted(crate::state::SignalBranchId(4)),
                 )?;
                 drop(different_key);
@@ -274,6 +354,7 @@ fn panicking_claimant_unwinds_reservation_and_releases_waiters() {
             crate::state::SignalBranchId(5),
             6,
             observation(5),
+            |_| Ok(()),
             move || {
                 claimed_tx.send(()).expect("claimant announces its contact");
                 wait_for_release(&claimant_gate);
@@ -292,6 +373,7 @@ fn panicking_claimant_unwinds_reservation_and_releases_waiters() {
             crate::state::SignalBranchId(5),
             6,
             observation(5),
+            |_| Ok(()),
             || panic!("panic cleanup waiter must not contact retention"),
         )
     });

@@ -43,6 +43,7 @@ where
         let observation = cell.observe_exact(&admission)?;
         owner
             .admit_canonical_basis_with_retention(
+                &admission,
                 observation,
                 branch_id,
                 cell.incarnation().get(),
@@ -107,6 +108,7 @@ where
         compare_descriptor_with_observation(&descriptor, &observation)?;
         owner
             .admit_canonical_basis_with_retention(
+                &admission,
                 observation,
                 branch_id,
                 cell.incarnation().get(),

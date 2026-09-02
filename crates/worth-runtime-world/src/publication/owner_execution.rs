@@ -143,9 +143,9 @@ impl CompositePublicationReady {
 
     /// Consume the final pre-CAS token into the sole performed-publication
     /// authority after the owner has supplied one coherent new observation.
-    /// The attempt's own retention obligation is transferred here; accepting
-    /// a separately supplied receipt would allow an equal-looking obligation
-    /// to replace the one reserved for this attempt.
+    /// Phase 1 consumes the reserved opaque obligation and the separately
+    /// supplied opaque transfer receipt without proving their affinity. Phase
+    /// 2 may bind them privately; Phase 3 must validate that relationship.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn publish(
         self,

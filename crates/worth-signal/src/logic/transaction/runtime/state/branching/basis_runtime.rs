@@ -243,8 +243,23 @@ where
             branch_id,
             0,
             observation,
+            |_| self.validate_unsealed_canonical_basis_reuse(branch_id),
             acquire_retention,
         )
+    }
+
+    fn validate_unsealed_canonical_basis_reuse(
+        &self,
+        branch_id: crate::state::SignalBranchId,
+    ) -> Result<(), crate::branch::SignalBranchRetentionAcquisitionDenial> {
+        if self.branches.branch_handle(branch_id).is_some() {
+            return Ok(());
+        }
+        if self.branches.branch_retirement_receipt(branch_id).is_some() {
+            Err(crate::branch::SignalBranchRetentionAcquisitionDenial::RetiredBranch { branch_id })
+        } else {
+            Err(crate::branch::SignalBranchRetentionAcquisitionDenial::UnknownBranch { branch_id })
+        }
     }
 
     pub(super) fn signal_branch_observation(

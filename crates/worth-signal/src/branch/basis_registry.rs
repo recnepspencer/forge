@@ -12,10 +12,14 @@ use super::{
 
 #[path = "basis_registry/acquisition.rs"]
 mod acquisition;
+#[path = "basis_registry/currentness.rs"]
+mod currentness;
 #[path = "basis_registry/direct.rs"]
 mod direct;
 #[path = "basis_registry/key.rs"]
 mod key;
+#[path = "basis_registry/lazy.rs"]
+mod lazy;
 #[cfg(test)]
 #[path = "basis_registry/tests.rs"]
 mod tests;
@@ -66,110 +70,6 @@ impl SignalBranchBasisRegistry {
                 next_registration_id: 0,
                 entries: HashMap::new(),
             })),
-        }
-    }
-
-    /// Admit lazily when the caller's owner lease can only be acquired after
-    /// the exact weak canonical entry has been checked. Only the claimant
-    /// executes `acquire_retention`; joiners await its typed result.
-    pub(crate) fn admit_with_retention<Acquire>(
-        &self,
-        runtime_instance_id: u64,
-        definition_basis: u64,
-        branch_id: SignalBranchId,
-        cell_incarnation: u64,
-        observation: SignalBranchObservation,
-        acquire_retention: Acquire,
-    ) -> Result<AdmittedSignalBranchBasis, SignalBranchRetentionAcquisitionDenial>
-    where
-        Acquire:
-            FnOnce() -> Result<SignalBranchAdmissionLease, SignalBranchRetentionAcquisitionDenial>,
-    {
-        let key = SignalBranchBasisRegistryKey::new(
-            runtime_instance_id,
-            definition_basis,
-            branch_id,
-            cell_incarnation,
-            &observation,
-        );
-        let decision = {
-            let mut state = self.lock_state();
-            begin_admission(&mut state, &key)?
-        };
-        match decision {
-            AdmissionDecision::Ready(existing) => {
-                Ok(AdmittedSignalBranchBasis::from_inner(existing))
-            }
-            AdmissionDecision::Join(completion) => completion.wait(),
-            AdmissionDecision::OwnerReentry => {
-                Err(SignalBranchRetentionAcquisitionDenial::OwnerReentry)
-            }
-            AdmissionDecision::Claim {
-                reservation_id,
-                completion,
-            } => {
-                let mut claim = AcquisitionClaimGuard::new(
-                    &self.state,
-                    key.clone(),
-                    reservation_id,
-                    Arc::clone(&completion),
-                );
-                let retention = acquire_retention();
-                let retention = match retention {
-                    Ok(retention) => retention,
-                    Err(denial) => {
-                        finish_denied(
-                            &self.state,
-                            &key,
-                            reservation_id,
-                            &completion,
-                            denial.clone(),
-                        );
-                        claim.disarm();
-                        return Err(denial);
-                    }
-                };
-                let result = {
-                    let mut state = self.lock_state();
-                    if matches!(
-                        state.entries.get(&key),
-                        Some(RegistryEntry::Acquiring(AcquiringEntry {
-                            reservation_id: current,
-                            ..
-                        })) if *current == reservation_id
-                    ) {
-                        new_basis(
-                            &mut state,
-                            &self.state,
-                            key.clone(),
-                            observation,
-                            branch_id,
-                            retention,
-                        )
-                    } else {
-                        drop(retention);
-                        Err(SignalBranchRetentionAcquisitionDenial::OwnerOperationPanicked)
-                    }
-                };
-                match result {
-                    Ok(basis) => {
-                        completion.finish(Ok(basis.clone()));
-                        claim.disarm();
-                        Ok(basis)
-                    }
-                    Err(denial) => {
-                        finish_denied(
-                            &self.state,
-                            &key,
-                            reservation_id,
-                            &completion,
-                            denial.clone(),
-                        );
-                        claim.disarm();
-                        Err(denial)
-                    }
-                }
-            }
         }
     }
 

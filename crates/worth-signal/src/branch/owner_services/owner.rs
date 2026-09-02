@@ -277,49 +277,6 @@ where
         self.selected_branch_id
     }
 
-    pub(super) fn admit_canonical_basis(
-        &self,
-        observation: crate::branch::SignalBranchObservation,
-        branch_id: SignalBranchId,
-        cell_incarnation: u64,
-        retention: crate::branch::SignalBranchAdmissionLease,
-    ) -> crate::branch::AdmittedSignalBranchBasis {
-        self.basis_registry.admit(
-            self.runtime_instance_id,
-            self.definition_basis,
-            branch_id,
-            cell_incarnation,
-            observation,
-            retention,
-        )
-    }
-
-    pub(super) fn admit_canonical_basis_with_retention<Acquire>(
-        &self,
-        observation: crate::branch::SignalBranchObservation,
-        branch_id: SignalBranchId,
-        cell_incarnation: u64,
-        acquire_retention: Acquire,
-    ) -> Result<
-        crate::branch::AdmittedSignalBranchBasis,
-        crate::branch::SignalBranchRetentionAcquisitionDenial,
-    >
-    where
-        Acquire: FnOnce() -> Result<
-            crate::branch::SignalBranchAdmissionLease,
-            crate::branch::SignalBranchRetentionAcquisitionDenial,
-        >,
-    {
-        self.basis_registry.admit_with_retention(
-            self.runtime_instance_id,
-            self.definition_basis,
-            branch_id,
-            cell_incarnation,
-            observation,
-            acquire_retention,
-        )
-    }
-
     pub(super) fn close(&self) -> Result<(), SignalOwnerCloseDenial> {
         self.lifecycle
             .begin_explicit_close(self.runtime_instance_id)?;
@@ -349,6 +306,23 @@ where
         SignalBranchRegistryDenial,
     > {
         self.registry.lookup(admission, branch_id)
+    }
+
+    pub(in crate::branch::owner_services) fn is_current_canonical_basis(
+        &self,
+        basis: &crate::branch::AdmittedSignalBranchBasis,
+        branch_id: SignalBranchId,
+        cell_incarnation: u64,
+        observation: &crate::branch::SignalBranchObservation,
+    ) -> bool {
+        self.basis_registry.is_current_canonical_basis(
+            self.runtime_instance_id,
+            self.definition_basis,
+            branch_id,
+            cell_incarnation,
+            observation,
+            basis,
+        )
     }
 
     pub(super) fn live_count(&self) -> usize {

@@ -9,6 +9,7 @@ use crate::branch::{
     SignalBranchRetentionReleaseDenial, SignalBranchRetentionReleaseOutcome,
 };
 
+use super::owner::basis::map_basis_registry_denial;
 use super::{
     SignalOwner, SignalOwnerLifecycleObservation, SignalOwnerServiceCostSnapshot,
     SignalOwnerUnavailable,
@@ -97,6 +98,7 @@ where
         let observation = cell.observe_exact(&admission)?;
         owner
             .admit_canonical_basis_with_retention(
+                &admission,
                 observation,
                 branch_id,
                 cell.incarnation().get(),
@@ -126,6 +128,7 @@ where
         compare_descriptor_with_observation(descriptor, &observation)?;
         owner
             .admit_canonical_basis_with_retention(
+                &admission,
                 observation,
                 branch_id,
                 cell.incarnation().get(),
@@ -169,12 +172,23 @@ where
         let branch_id = basis.owner_branch_id();
         owner.validate_managed_basis_descriptor(basis.descriptor(), branch_id)?;
         let admission = owner.admit().map_err(map_basis_admission_denial)?;
-        let observation = owner
-            .observe_branch_exact(&admission, branch_id)
-            .map_err(|denial| {
-                map_observation_readmission_denial(&owner, &admission, denial, branch_id)
-            })?;
-        compare_descriptor_with_observation(basis.descriptor(), &observation)
+        let cell = owner.lookup_cell(&admission, branch_id).map_err(|denial| {
+            map_observation_readmission_denial(
+                &owner,
+                &admission,
+                map_basis_registry_denial(denial, branch_id),
+                branch_id,
+            )
+        })?;
+        let cell_incarnation = cell.incarnation().get();
+        let observation = cell.observe_exact(&admission).map_err(|denial| {
+            map_observation_readmission_denial(&owner, &admission, denial, branch_id)
+        })?;
+        compare_descriptor_with_observation(basis.descriptor(), &observation)?;
+        if !owner.is_current_canonical_basis(basis, branch_id, cell_incarnation, &observation) {
+            return Err(SignalBranchBasisReadmissionDenial::LifecycleMismatch);
+        }
+        Ok(())
     }
 
     pub fn readmit_retained_exact(
@@ -203,6 +217,7 @@ where
             .map_err(|_| SignalBranchRetainedReadmissionDenial::UnavailableRetainedTarget)?;
         owner
             .admit_canonical_basis_with_retention(
+                &admission,
                 descriptor.observation().clone(),
                 branch_id,
                 cell.incarnation().get(),

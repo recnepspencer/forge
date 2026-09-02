@@ -55,7 +55,8 @@ fn basis_port_observation_and_readmission_method_matrix_uses_one_real_cell() {
     assert_eq!(after.canonical_movements(), before.canonical_movements());
     assert_eq!(
         after.retention_registry_contacts(),
-        before.retention_registry_contacts() + 2
+        before.retention_registry_contacts(),
+        "canonical Ready reuse validates without a retention-owner contact"
     );
     assert_eq!(
         after.branch_registry_entries_scanned(),

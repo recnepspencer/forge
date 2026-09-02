@@ -94,7 +94,7 @@ fn quarantined_cell_is_not_flattened_to_unknown() {
     assert_retention_cleanup_with_identity_advance(
         &before,
         &owner.retention_ledger_observation(),
-        1,
+        0,
     );
 }
 

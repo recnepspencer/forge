@@ -120,6 +120,15 @@ where
         Ok(self.lock().branch_retirement_receipt(branch_id))
     }
 
+    pub(super) fn branch_accepts_retention_acquisition(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        branch_id: SignalBranchId,
+    ) -> Result<bool, SignalOwnerMetadataAuthorizationDenial> {
+        let _hold = self.authorize(admission)?;
+        Ok(self.lock().branch_accepts_retention_acquisition(branch_id))
+    }
+
     pub(super) fn take_close_batch(
         &self,
         maximum_batch_size: usize,
