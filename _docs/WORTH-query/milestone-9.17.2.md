@@ -776,6 +776,13 @@ affected lanes pause while a serial correction gate revises the canonical type
 once and reruns its consumers; no lane may add an adapter, alias, duplicate
 trait, or provisional compatibility surface.
 
+Incremental review is bounded to the last approved commit through the proposed
+commit, plus only authority seams directly invalidated by that delta. Reviewers
+reuse unchanged conclusions and focused evidence; they do not reread the whole
+milestone, crate, kernel, manifest set, or dirty surface. Any required scope
+expansion is named before inspection. Holistic review occurs only at an
+explicit phase or closure gate.
+
 ### Phase 1: Serial composition-contract gate
 
 Create `worth-runtime-world`, install dependency fences and assembly, and add
