@@ -4,9 +4,23 @@ forbidden_root_prefixes = ["workspaces/"]
 [[dependency_denials]]
 workspace_manifest = "Cargo.toml"
 sources = ["worth-runtime-bridge"]
-forbidden_targets = []
+forbidden_targets = ["worth-runtime-world"]
 forbidden_target_prefixes = ["worth-query"]
 guidance = "Runtime Bridge owns neutral crossing contracts and must not import Query declaration, installation, execution, replay, or monolith authority"
+
+[[dependency_denials]]
+workspace_manifest = "Cargo.toml"
+sources = ["worth-relational", "worth-signal"]
+forbidden_targets = ["worth-runtime-world"]
+forbidden_target_prefixes = []
+guidance = "Runtime World is the composition owner above the component runtimes; lower owners cannot acquire a reverse dependency"
+
+[[dependency_denials]]
+workspace_manifest = "Cargo.toml"
+sources = ["worth-runtime-world"]
+forbidden_targets = []
+forbidden_target_prefixes = ["worth-query", "worth-store", "worth-cert", "worthy"]
+guidance = "Runtime World is memory-resident composition authority and cannot depend on Query, Store, certification, UI, or application lanes"
 
 [[dependency_denials]]
 workspace_manifest = "workspaces/worth-store/Cargo.toml"

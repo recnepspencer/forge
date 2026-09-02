@@ -1,0 +1,10 @@
+error[E0624]: associated function `issued` is private
+ --> tests/ui/private_identity_issue.rs:4:29
+  |
+4 |     CompositeBasisIdentity::issued(owner, 0)
+  |                             ^^^^^^ private associated function
+  |
+ ::: src/identity/basis.rs
+  |
+  |     pub(crate) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
+  |     ---------------------------------------------------------------------------------- private associated function defined here
