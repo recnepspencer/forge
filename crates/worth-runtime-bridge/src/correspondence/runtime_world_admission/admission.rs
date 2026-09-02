@@ -13,16 +13,9 @@ pub(crate) fn admit_installed_basis(
     inspection: &RuntimeWorldCorrespondenceInspectionLedger,
 ) -> Result<AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondenceAdmissionDenial> {
     let actual_runtime_key = installed.basis().bridge_runtime_key;
-    if actual_runtime_key != runtime.signal_runtime_key {
-        return Err(
-            RuntimeWorldCorrespondenceAdmissionDenial::ForeignBridgeRuntime {
-                expected_runtime_key: runtime.signal_runtime_key,
-                actual_runtime_key,
-            },
-        );
-    }
+    require_bridge_runtime_affinity(runtime, actual_runtime_key)?;
 
-    ensure_current_installation(
+    require_current_source_installation(
         runtime,
         installed.dependency(),
         installed.basis().source_installation_generation(),
@@ -40,6 +33,19 @@ pub(crate) fn compare_current_basis(
     inspection: &RuntimeWorldCorrespondenceInspectionLedger,
 ) -> Result<(), RuntimeWorldCorrespondenceAdmissionDenial> {
     let actual_runtime_key = admitted.basis().bridge_runtime_key;
+    require_bridge_runtime_affinity(runtime, actual_runtime_key)?;
+    require_current_source_installation(
+        runtime,
+        admitted.dependency(),
+        admitted.source_installation_generation(),
+        inspection,
+    )
+}
+
+fn require_bridge_runtime_affinity(
+    runtime: &RuntimeBridge,
+    actual_runtime_key: u64,
+) -> Result<(), RuntimeWorldCorrespondenceAdmissionDenial> {
     if actual_runtime_key != runtime.signal_runtime_key {
         return Err(
             RuntimeWorldCorrespondenceAdmissionDenial::ForeignBridgeRuntime {
@@ -48,15 +54,15 @@ pub(crate) fn compare_current_basis(
             },
         );
     }
-    ensure_current_installation(
-        runtime,
-        admitted.dependency(),
-        admitted.source_installation_generation(),
-        inspection,
-    )
+    Ok(())
 }
 
-fn ensure_current_installation(
+/// Revalidate one installed source binding through the registry's maintained
+/// currentness index. This is O(1) in the number of registered
+/// correspondences and deliberately does not inspect the authoritative
+/// registration vector; registry construction owns the derived-index
+/// invariant.
+fn require_current_source_installation(
     runtime: &RuntimeBridge,
     dependency: &super::super::BridgeSemanticDependencyCandidate,
     actual_generation: u64,
