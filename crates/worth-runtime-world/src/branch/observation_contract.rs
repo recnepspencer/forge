@@ -5,6 +5,7 @@ use crate::identity::{
     CompositeCommitIdentity, ProductBranchIdentity, ProductBranchLifecycleIncarnation,
     ProductBranchReferenceGeneration, RuntimeWorldOwnerIdentity,
 };
+use crate::retention::ComponentBasisDependencyClass;
 
 /// Complete product-head observation used by every compare-and-publish
 /// operation. A partial tuple is not an observation.
@@ -50,8 +51,14 @@ impl Eq for ProductBranchObservation {}
 /// retention lane will attach its bounded registry accounting to this token;
 /// a value clone never becomes a fresh observation admission.
 #[derive(Debug)]
-struct ProductBranchObservationObligation {
-    _private: (),
+pub(crate) struct ProductBranchObservationObligation {
+    dependency_class: ComponentBasisDependencyClass,
+}
+
+impl ProductBranchObservationObligation {
+    pub(crate) const fn dependency_class(&self) -> ComponentBasisDependencyClass {
+        self.dependency_class
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,7 +100,9 @@ impl ProductBranchObservation {
             generation: parts.generation,
             selected_commit: parts.selected_commit,
             basis: parts.basis,
-            obligation: Arc::new(ProductBranchObservationObligation { _private: () }),
+            obligation: Arc::new(ProductBranchObservationObligation {
+                dependency_class: ComponentBasisDependencyClass::AdmittedObservation,
+            }),
         }
     }
 
@@ -121,6 +130,10 @@ impl ProductBranchObservation {
         &self.basis
     }
 
+    pub(crate) fn retention_obligation(&self) -> &ProductBranchObservationObligation {
+        &self.obligation
+    }
+
     pub fn compare(&self, observed: &Self) -> Result<(), ProductBranchObservationMismatch> {
         let mut axes = Vec::new();
         if self.owner != observed.owner {
@@ -138,7 +151,7 @@ impl ProductBranchObservation {
         if self.selected_commit != observed.selected_commit {
             axes.push(ProductBranchObservationMismatchAxis::SelectedCompositeCommit);
         }
-        if self.basis != observed.basis {
+        if crate::basis::compare_exact(&self.basis, &observed.basis).is_err() {
             axes.push(ProductBranchObservationMismatchAxis::CompositeBasis);
         }
         if axes.is_empty() {

@@ -2,7 +2,9 @@
 
 Runtime World history has two separate meanings:
 
-- `CompositeBasisIdentity` names one exact owner/correspondence tuple.
+- `CompositeBasisIdentity` names one exact Runtime World owner admission and
+  its component/correspondence tuple. It is the composite equivalence key;
+  Signal descriptors are never used for this decision.
 - `CompositeCommitIdentity` names one immutable commit occurrence.
 
 Equal bases may therefore appear in distinct commits. A commit carries its
@@ -14,8 +16,10 @@ does not authorize a commit.
 
 `ProductBranchIdentity`, lifecycle incarnation, reference generation, and
 selected commit remain separate meanings. `ProductBranchObservation` compares
-all of them together with the exact composite basis. A branch name, commit id,
-generation, digest, or descriptor alone is not a product-head observation.
+all of them together with the exact owner-issued composite admission. A branch
+name, commit id, generation, digest, or descriptor alone is not a product-head
+observation. Signal currentness is admitted only through the Signal owner basis
+port's exact current comparison.
 
 Root bootstrap is the only operation that can establish the initial product
 reference. Later history is single-parent in this milestone. The mutable

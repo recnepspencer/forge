@@ -15,5 +15,6 @@ mod identity;
 mod lifecycle;
 mod publication;
 mod recovery;
+mod retention;
 
 pub mod facade;

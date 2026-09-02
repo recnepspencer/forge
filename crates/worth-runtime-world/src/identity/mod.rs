@@ -13,6 +13,7 @@ pub use branch::{
     ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
 };
 pub use commit::CompositeCommitIdentity;
+pub(crate) use owner::RuntimeWorldIdentityIssuer;
 pub use owner::{
     RuntimeWorldIdentityExhaustion, RuntimeWorldIdentityFamily, RuntimeWorldOwnerIdentity,
 };

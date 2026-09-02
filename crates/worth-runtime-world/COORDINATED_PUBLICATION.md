@@ -35,7 +35,9 @@ and do not imply a latest lookup or owner contact.
 
 The Phase 1 service traits are internal seams for the later managed owner. They
 do not implement bootstrap or publication and do not create an adapter around
-either component owner.
+either component owner. The Phase 1 retention root likewise freezes its
+dependency classes, exact-pin request, and obligation-transfer destinations;
+the later retention lane owns their registry and owner-call bodies.
 
 ## Exclusive Phase 2 ownership
 

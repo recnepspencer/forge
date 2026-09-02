@@ -4,7 +4,8 @@ This crate is the memory-resident composition owner for the 9.17.2 Runtime
 World. Phase 1 freezes the contracts that later implementation lanes consume:
 owner-issued identities, complete product-head observations, exact composite
 bases, installed budgets, owner service bundles, publication progression,
-linear terminal artifacts, and retained owner-effect records.
+linear terminal artifacts, retained owner-effect records, and the retention
+lane's dependency vocabulary.
 
 The only supported public import surface is:
 

@@ -3,10 +3,7 @@
 //! This module contains exports only. Runtime behavior remains in the private
 //! owner modules so callers cannot reach around the composition boundary.
 
-pub use crate::basis::{
-    AdmittedCompositeRuntimeWorldBasis, CompositeBasisAxis, CompositeBasisMismatch,
-    CompositeRuntimeWorldBasis,
-};
+pub use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 pub use crate::branch::{
     NoEffectRuntimeWorldBootstrap, PerformedRuntimeWorldBootstrap, ProductBranchComponentPosture,
     ProductBranchComponentPostures, ProductBranchCreationIntent, ProductBranchName,

@@ -3,5 +3,4 @@ mod composite;
 mod equivalence;
 
 pub use admission::AdmittedCompositeRuntimeWorldBasis;
-pub use composite::CompositeRuntimeWorldBasis;
-pub use equivalence::{CompositeBasisAxis, CompositeBasisMismatch};
+pub(crate) use equivalence::compare_exact;
