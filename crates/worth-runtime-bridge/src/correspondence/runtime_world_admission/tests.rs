@@ -39,14 +39,3 @@ fn admission_denials_keep_foreign_missing_and_stale_facts_distinct() {
     assert!(missing.to_string().contains("not current"));
     assert!(drift.to_string().contains("generation 7"));
 }
-
-#[test]
-fn inspection_ledger_counts_index_work_without_claiming_authoritative_scans() {
-    let inspection = super::RuntimeWorldCorrespondenceInspectionLedger::default();
-    inspection.record_binding_index_lookup();
-    inspection.record_binding_index_lookup();
-
-    let counters = inspection.snapshot();
-    assert_eq!(counters.binding_index_lookups(), 2);
-    assert_eq!(counters.authoritative_registration_inspections(), 0);
-}

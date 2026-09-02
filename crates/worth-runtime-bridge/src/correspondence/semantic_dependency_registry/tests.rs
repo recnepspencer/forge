@@ -79,7 +79,7 @@ fn registration(
 }
 
 #[test]
-fn direct_index_has_one_lookup_and_zero_authoritative_inspections() {
+fn currentness_index_records_one_direct_lookup() {
     let mut graph = SignalGraph::new();
     let target = target(&mut graph);
     for population in [1, 4096] {
@@ -92,12 +92,11 @@ fn direct_index_has_one_lookup_and_zero_authoritative_inspections() {
         let probe = candidate(population - 1, 1);
 
         assert_eq!(
-            registry.current_source_installation_generation(&probe, &inspection),
+            registry.currentness_index().lookup(&probe, &inspection),
             Some(1)
         );
         let snapshot = inspection.snapshot();
         assert_eq!(snapshot.binding_index_lookups(), 1);
-        assert_eq!(snapshot.authoritative_registration_inspections(), 0);
     }
 }
 
@@ -118,15 +117,15 @@ fn generation_maximum_missing_rebuild_and_graph_rebind_are_coherent() {
     let inspection = RuntimeWorldCorrespondenceInspectionLedger::default();
 
     assert_eq!(
-        registry.current_source_installation_generation(&old, &inspection),
+        registry.currentness_index().lookup(&old, &inspection),
         Some(3)
     );
     assert_eq!(
-        registry.current_source_installation_generation(&latest, &inspection),
+        registry.currentness_index().lookup(&latest, &inspection),
         Some(3)
     );
     assert_eq!(
-        registry.current_source_installation_generation(&missing, &inspection),
+        registry.currentness_index().lookup(&missing, &inspection),
         None
     );
     assert_eq!(inspection.snapshot().binding_index_lookups(), 3);
@@ -137,7 +136,7 @@ fn generation_maximum_missing_rebuild_and_graph_rebind_are_coherent() {
         .expect("a lower generation remains an admitted registration");
     assert_eq!(lower.commit(&mut registry), 1);
     assert_eq!(
-        registry.current_source_installation_generation(&latest, &inspection),
+        registry.currentness_index().lookup(&latest, &inspection),
         Some(3)
     );
 
@@ -146,7 +145,7 @@ fn generation_maximum_missing_rebuild_and_graph_rebind_are_coherent() {
         .expect("a newer generation extends the registration");
     assert_eq!(higher.commit(&mut registry), 1);
     assert_eq!(
-        registry.current_source_installation_generation(&latest, &inspection),
+        registry.currentness_index().lookup(&latest, &inspection),
         Some(4)
     );
     assert!(registry.rebuild_has_exact_parity());
@@ -163,7 +162,7 @@ fn generation_maximum_missing_rebuild_and_graph_rebind_are_coherent() {
         .expect("destroyed derived indexes rebuild from authority");
     assert!(rebuilt.rebuild_has_exact_parity());
     assert_eq!(
-        rebuilt.current_source_installation_generation(&latest, &inspection),
+        rebuilt.currentness_index().lookup(&latest, &inspection),
         Some(4)
     );
 }

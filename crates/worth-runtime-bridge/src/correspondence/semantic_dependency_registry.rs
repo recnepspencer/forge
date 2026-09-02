@@ -13,8 +13,61 @@ pub(crate) struct AdmittedSemanticDependencyRegistry {
     authoritative: Vec<BridgeSemanticCorrespondenceRegistration>,
     index: BTreeMap<String, usize>,
     by_authority: BTreeMap<String, usize>,
-    current_generation_by_binding: HashMap<BridgeInstalledBindingKey, u64>,
+    currentness_index: InstalledBindingCurrentnessIndex,
     signal_graph_instance_id: Option<u64>,
+}
+
+/// Derived currentness authority for installed source bindings.
+///
+/// This index intentionally owns no reference to the authoritative
+/// registration storage. Its direct lookup is the only Runtime World
+/// currentness operation and records that operation immediately before the
+/// `HashMap::get`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct InstalledBindingCurrentnessIndex {
+    generations: HashMap<BridgeInstalledBindingKey, u64>,
+}
+
+impl InstalledBindingCurrentnessIndex {
+    fn insert_or_max(&mut self, candidate: &BridgeSemanticDependencyCandidate) {
+        let key = candidate.installed_binding_key();
+        let generation = candidate.source_installation_generation();
+        self.generations
+            .entry(key)
+            .and_modify(|current| *current = (*current).max(generation))
+            .or_insert(generation);
+    }
+
+    fn rebuilt_from(registrations: &[BridgeSemanticCorrespondenceRegistration]) -> Self {
+        let mut index = Self::default();
+        for registration in registrations {
+            index.insert_or_max(&registration.dependency);
+        }
+        index
+    }
+
+    fn rebuild_has_exact_parity(
+        &self,
+        registrations: &[BridgeSemanticCorrespondenceRegistration],
+    ) -> bool {
+        self == &Self::rebuilt_from(registrations)
+    }
+
+    #[cfg(test)]
+    fn clear(&mut self) {
+        self.generations.clear();
+    }
+
+    pub(crate) fn lookup(
+        &self,
+        candidate: &BridgeSemanticDependencyCandidate,
+        inspection: &RuntimeWorldCorrespondenceInspectionLedger,
+    ) -> Option<u64> {
+        inspection.record_binding_index_lookup();
+        self.generations
+            .get(&candidate.installed_binding_key())
+            .copied()
+    }
 }
 
 pub(crate) struct AdmittedSemanticDependencyExtension {
@@ -44,8 +97,7 @@ impl AdmittedSemanticDependencyRegistry {
         let mut index: BTreeMap<String, usize> = BTreeMap::new();
         let mut authoritative: Vec<BridgeSemanticCorrespondenceRegistration> = Vec::new();
         let mut by_authority: BTreeMap<String, usize> = BTreeMap::new();
-        let mut current_generation_by_binding: HashMap<BridgeInstalledBindingKey, u64> =
-            HashMap::new();
+        let mut currentness_index = InstalledBindingCurrentnessIndex::default();
         let mut signal_graph_instance_id = None;
         for registration in registrations {
             let registration_graph = registration.signal_graph_instance_id();
@@ -59,7 +111,7 @@ impl AdmittedSemanticDependencyRegistry {
             }
             signal_graph_instance_id = Some(registration_graph);
             let candidate = &registration.dependency;
-            record_current_generation(&mut current_generation_by_binding, candidate);
+            currentness_index.insert_or_max(candidate);
             let key = candidate.canonical_registration_key();
             let authority_key = candidate.authority_registration_key();
             if let Some(existing) = by_authority
@@ -93,7 +145,7 @@ impl AdmittedSemanticDependencyRegistry {
             authoritative,
             index,
             by_authority,
-            current_generation_by_binding,
+            currentness_index,
             signal_graph_instance_id,
         })
     }
@@ -109,22 +161,18 @@ impl AdmittedSemanticDependencyRegistry {
             .map(|installed| installed.targets.clone())
     }
 
-    pub(crate) fn current_source_installation_generation(
-        &self,
-        candidate: &BridgeSemanticDependencyCandidate,
-        inspection: &RuntimeWorldCorrespondenceInspectionLedger,
-    ) -> Option<u64> {
-        inspection.record_binding_index_lookup();
-        self.current_generation_by_binding
-            .get(&candidate.installed_binding_key())
-            .copied()
+    pub(crate) fn currentness_index(&self) -> &InstalledBindingCurrentnessIndex {
+        &self.currentness_index
     }
 
     pub(crate) fn rebuild_has_exact_parity(&self) -> bool {
+        let currentness_parity = self
+            .currentness_index
+            .rebuild_has_exact_parity(&self.authoritative);
         Self::freeze(self.authoritative.clone()).is_ok_and(|rebuilt| {
-            rebuilt.index == self.index
+            currentness_parity
+                && rebuilt.index == self.index
                 && rebuilt.by_authority == self.by_authority
-                && rebuilt.current_generation_by_binding == self.current_generation_by_binding
                 && rebuilt.authoritative == self.authoritative
                 && rebuilt.signal_graph_instance_id == self.signal_graph_instance_id
         })
@@ -154,7 +202,7 @@ impl AdmittedSemanticDependencyRegistry {
     pub(crate) fn destroy_derived_indexes(&mut self) {
         self.index.clear();
         self.by_authority.clear();
-        self.current_generation_by_binding.clear();
+        self.currentness_index.clear();
         self.signal_graph_instance_id = None;
     }
 
@@ -240,16 +288,14 @@ impl AdmittedSemanticDependencyExtension {
             registry.authoritative[position]
                 .extend_targets(&registration)
                 .expect("admitted semantic extension remains compatible at commit");
-            record_current_generation(
-                &mut registry.current_generation_by_binding,
-                &registration.dependency,
-            );
+            registry
+                .currentness_index
+                .insert_or_max(&registration.dependency);
         }
         for registration in self.new_registrations {
-            record_current_generation(
-                &mut registry.current_generation_by_binding,
-                &registration.dependency,
-            );
+            registry
+                .currentness_index
+                .insert_or_max(&registration.dependency);
             registry.authoritative.push(registration);
         }
         registry
@@ -261,18 +307,6 @@ impl AdmittedSemanticDependencyExtension {
         }
         committed
     }
-}
-
-fn record_current_generation(
-    current_generation_by_binding: &mut HashMap<BridgeInstalledBindingKey, u64>,
-    candidate: &BridgeSemanticDependencyCandidate,
-) {
-    let key = candidate.installed_binding_key();
-    let generation = candidate.source_installation_generation();
-    current_generation_by_binding
-        .entry(key)
-        .and_modify(|current| *current = (*current).max(generation))
-        .or_insert(generation);
 }
 
 fn rebuild_lookup_indexes(registry: &mut AdmittedSemanticDependencyRegistry) {

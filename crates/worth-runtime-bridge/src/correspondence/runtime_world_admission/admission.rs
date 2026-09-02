@@ -70,7 +70,8 @@ fn require_current_source_installation(
 ) -> Result<(), RuntimeWorldCorrespondenceAdmissionDenial> {
     let Some(expected_generation) = runtime
         .semantic_dependency_registry
-        .current_source_installation_generation(dependency, inspection)
+        .currentness_index()
+        .lookup(dependency, inspection)
     else {
         return Err(RuntimeWorldCorrespondenceAdmissionDenial::InstalledCorrespondenceNotCurrent);
     };

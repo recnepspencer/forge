@@ -25,11 +25,6 @@ fn runtime_world_admission_port_counts_direct_currentness_lookups_and_shares_its
         .admit_installed_basis(&correspondence)
         .expect("the issuing Bridge runtime admits its current basis");
     assert_eq!(port.inspection_counters().binding_index_lookups(), 1);
-    assert_eq!(
-        port.inspection_counters()
-            .authoritative_registration_inspections(),
-        0
-    );
 
     let clone = port.clone();
     clone
@@ -54,12 +49,6 @@ fn runtime_world_admission_port_counts_direct_currentness_lookups_and_shares_its
         foreign_port.inspection_counters().binding_index_lookups(),
         0,
         "foreign runtime denial precedes the direct binding lookup"
-    );
-    assert_eq!(
-        foreign_port
-            .inspection_counters()
-            .authoritative_registration_inspections(),
-        0
     );
 }
 
@@ -109,11 +98,6 @@ fn runtime_world_admission_preserves_exact_basis_and_admission_identity() {
     port.compare_current_exact(&admitted)
         .expect("the admitted basis is current");
     assert_eq!(port.inspection_counters().binding_index_lookups(), 3);
-    assert_eq!(
-        port.inspection_counters()
-            .authoritative_registration_inspections(),
-        0
-    );
 }
 
 #[test]
@@ -160,11 +144,6 @@ fn runtime_world_admission_denies_generation_drift_before_component_effects() {
     ));
     assert_eq!(port.inspection_counters().binding_index_lookups(), 1);
     assert_eq!(
-        port.inspection_counters()
-            .authoritative_registration_inspections(),
-        0
-    );
-    assert_eq!(
         graph.node_aspect_version(node).unwrap().get(aspect),
         version_before_admission,
         "denial does not mutate the Signal graph"
@@ -207,12 +186,6 @@ fn runtime_world_admission_currentness_is_constant_in_registration_population() 
             .admit_installed_basis(&correspondence)
             .expect("the current scale correspondence is admitted");
         assert_eq!(port.inspection_counters().binding_index_lookups(), 1);
-        assert_eq!(
-            port.inspection_counters()
-                .authoritative_registration_inspections(),
-            0,
-            "admission does not scan {population} authoritative registrations"
-        );
         port.compare_current_exact(&admitted)
             .expect("the scale correspondence remains current");
         assert_eq!(port.inspection_counters().binding_index_lookups(), 2);

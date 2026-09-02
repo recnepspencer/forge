@@ -4,6 +4,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub struct RuntimeWorldCorrespondenceInspectionCounters {
     binding_index_lookups: u64,
+    /// Frozen compatibility observation. Runtime World currentness uses the
+    /// direct index and does not inspect authoritative registrations.
     authoritative_registration_inspections: u64,
 }
 
@@ -20,26 +22,18 @@ impl RuntimeWorldCorrespondenceInspectionCounters {
 #[derive(Debug, Default)]
 pub(crate) struct RuntimeWorldCorrespondenceInspectionLedger {
     binding_index_lookups: AtomicU64,
-    authoritative_registration_inspections: AtomicU64,
 }
 
 impl RuntimeWorldCorrespondenceInspectionLedger {
+    /// Internal recorder used only by the direct currentness index lookup.
     pub(crate) fn record_binding_index_lookup(&self) {
         self.binding_index_lookups.fetch_add(1, Ordering::Relaxed);
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn record_authoritative_registration_inspection(&self) {
-        self.authoritative_registration_inspections
-            .fetch_add(1, Ordering::Relaxed);
     }
 
     pub(crate) fn snapshot(&self) -> RuntimeWorldCorrespondenceInspectionCounters {
         RuntimeWorldCorrespondenceInspectionCounters {
             binding_index_lookups: self.binding_index_lookups.load(Ordering::Relaxed),
-            authoritative_registration_inspections: self
-                .authoritative_registration_inspections
-                .load(Ordering::Relaxed),
+            authoritative_registration_inspections: 0,
         }
     }
 }
