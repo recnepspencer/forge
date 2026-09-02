@@ -10,7 +10,7 @@ use crate::history::CompositeRuntimeWorldCommit;
 use crate::lifecycle::owner::RuntimeWorldOwnerConstructionContract;
 use crate::publication::CompositeOwnerExecutionResults;
 
-use super::RuntimeWorldHistoryCatalogContract;
+use super::super::RuntimeWorldHistoryCatalogContract;
 
 pub(super) fn history_contract(
     maximum_commits: u64,
@@ -49,22 +49,13 @@ pub(super) fn history_contract(
     )
 }
 
-pub(super) fn metadata_limit(commit: &CompositeRuntimeWorldCommit, multiplier: usize) -> u64 {
-    u64::try_from(
-        commit
-            .metadata_bytes()
-            .checked_mul(multiplier)
-            .expect("test metadata limit fits usize"),
-    )
-    .expect("test metadata limit fits u64")
-}
-
-pub(super) fn commit_chain() -> (
+pub(super) fn linear_history(
+    length: usize,
+) -> (
     RuntimeWorldOwnerConstructionContract,
-    Arc<CompositeRuntimeWorldCommit>,
-    Arc<CompositeRuntimeWorldCommit>,
-    Arc<CompositeRuntimeWorldCommit>,
+    Vec<Arc<CompositeRuntimeWorldCommit>>,
 ) {
+    assert!(length > 0);
     let mut owner = RuntimeWorldOwnerConstructionContract::new().expect("World owner");
     let basis =
         crate::basis::AdmittedCompositeRuntimeWorldBasis::admit_test_fixture(owner.issuer())
@@ -79,44 +70,32 @@ pub(super) fn commit_chain() -> (
             owner
                 .issuer_mut()
                 .bootstrap_attempt()
-                .expect("bootstrap identity"),
+                .expect("root attempt"),
             None,
         )
         .expect("root commit"),
     );
-    let ordinary = Arc::new(
-        CompositeRuntimeWorldCommit::from_ordinary_publication(
-            owner
-                .issuer_mut()
-                .composite_commit()
-                .expect("ordinary identity"),
-            root.as_ref(),
-            basis.clone(),
-            owner
-                .issuer_mut()
-                .publication_attempt()
-                .expect("ordinary provenance"),
-            CompositeOwnerExecutionResults::retained(),
-            None,
-        )
-        .expect("ordinary commit"),
-    );
-    let leaf = Arc::new(
-        CompositeRuntimeWorldCommit::from_ordinary_publication(
-            owner
-                .issuer_mut()
-                .composite_commit()
-                .expect("leaf identity"),
-            ordinary.as_ref(),
-            basis,
-            owner
-                .issuer_mut()
-                .publication_attempt()
-                .expect("leaf provenance"),
-            CompositeOwnerExecutionResults::retained(),
-            None,
-        )
-        .expect("leaf commit"),
-    );
-    (owner, root, ordinary, leaf)
+    let mut commits = vec![root];
+    for _ in 1..length {
+        let predecessor = commits.last().expect("linear predecessor");
+        let commit = Arc::new(
+            CompositeRuntimeWorldCommit::from_ordinary_publication(
+                owner
+                    .issuer_mut()
+                    .composite_commit()
+                    .expect("ordinary identity"),
+                predecessor.as_ref(),
+                basis.clone(),
+                owner
+                    .issuer_mut()
+                    .publication_attempt()
+                    .expect("ordinary attempt"),
+                CompositeOwnerExecutionResults::retained(),
+                None,
+            )
+            .expect("ordinary commit"),
+        );
+        commits.push(commit);
+    }
+    (owner, commits)
 }

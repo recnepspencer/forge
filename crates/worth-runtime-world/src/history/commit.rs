@@ -340,12 +340,6 @@ impl CompositeRuntimeWorldCommit {
         self.component_evidence.signal_publication_identity()
     }
 
-    /// Declared in-memory metadata size used by the bounded history catalog.
-    /// Component-owner resident bytes are intentionally outside this metric.
-    pub const fn metadata_bytes(&self) -> usize {
-        std::mem::size_of::<Self>()
-    }
-
     pub(crate) fn component_evidence(&self) -> &CompositeComponentEvidence {
         &self.component_evidence
     }

@@ -6,25 +6,27 @@ pub(crate) enum CompositeHistoryCatalogDenial {
         expected: RuntimeWorldOwnerIdentity,
         actual: RuntimeWorldOwnerIdentity,
     },
+    ForeignParent {
+        expected: RuntimeWorldOwnerIdentity,
+        actual: RuntimeWorldOwnerIdentity,
+    },
     DuplicateCommit,
     RootAlreadyInstalled,
     MissingParent(CompositeCommitIdentity),
     CommitCapacityExhausted {
         maximum: usize,
     },
+    ArithmeticOverflow,
     MetadataCapacityExhausted {
         maximum: usize,
         used: usize,
         requested: usize,
     },
-    MetadataSizeOverflow {
-        requested: usize,
-    },
+    DependencyCountOverflow(CompositeCommitIdentity),
+    ProtectionCountOverflow(CompositeCommitIdentity),
+    UnknownProtectionTarget(CompositeCommitIdentity),
     ReservationMissing,
     ReservationCommitMismatch,
     ReservationParentMismatch,
-    ReservationMetadataTooSmall {
-        reserved: usize,
-        actual: usize,
-    },
+    ReservationChargeMismatch,
 }

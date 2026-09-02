@@ -1,11 +1,12 @@
-use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::identity::{CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
 
 use super::super::reclamation::HistoryReclamationDenial;
+use super::counters::lock_counters;
 use super::denial::CompositeHistoryCatalogDenial;
 use super::entry::CompositeHistoryCatalogEntry;
+use super::reachability::lock_index;
 use super::{CompositeCommitParent, CompositeHistoryCatalogState};
 
 pub(super) fn lock_state(
@@ -20,6 +21,7 @@ pub(super) fn validate_owner(
     state: &CompositeHistoryCatalogState,
     actual: RuntimeWorldOwnerIdentity,
 ) -> Result<(), CompositeHistoryCatalogDenial> {
+    lock_counters(&state.counters).record_owner_validation();
     if actual == state.owner {
         Ok(())
     } else {
@@ -31,16 +33,23 @@ pub(super) fn validate_owner(
 }
 
 pub(super) fn validate_parent_for_reservation(
-    state: &CompositeHistoryCatalogState,
+    state: &mut CompositeHistoryCatalogState,
     parent: &CompositeCommitParent,
 ) -> Result<(), CompositeHistoryCatalogDenial> {
-    if let CompositeCommitParent::Ordinary(parent) = parent {
-        validate_owner(state, parent.commit().owner_identity())?;
-        if !state.entries.contains_key(parent.commit()) {
-            return Err(CompositeHistoryCatalogDenial::MissingParent(
-                parent.commit().clone(),
-            ));
-        }
+    lock_counters(&state.counters).record_parent_validation();
+    let CompositeCommitParent::Ordinary(parent) = parent else {
+        return Ok(());
+    };
+    if parent.commit().owner_identity() != state.owner {
+        return Err(CompositeHistoryCatalogDenial::ForeignParent {
+            expected: state.owner,
+            actual: parent.commit().owner_identity(),
+        });
+    }
+    if !state.entries.contains_key(parent.commit()) {
+        return Err(CompositeHistoryCatalogDenial::MissingParent(
+            parent.commit().clone(),
+        ));
     }
     Ok(())
 }
@@ -51,30 +60,32 @@ pub(super) fn install_entry(
 ) {
     let identity = entry.identity().clone();
     let parent = entry.commit().parent().clone();
-    if matches!(parent, CompositeCommitParent::Root) {
-        state.root = Some(identity.clone());
-        state.root_ever_installed = true;
-    } else if let CompositeCommitParent::Ordinary(parent) = parent {
-        state
-            .children
-            .entry(parent.commit().clone())
-            .or_default()
-            .insert(identity.clone());
+    {
+        let mut reachability = lock_index(&state.reachability);
+        reachability.install(identity.clone());
     }
-    state.entries.insert(identity, entry);
+    assert!(state.entries.insert(identity.clone(), entry).is_none());
+    if matches!(parent, CompositeCommitParent::Root) {
+        state.root = Some(identity);
+        state.root_ever_installed = true;
+    }
 }
 
 pub(super) fn release_reservation(
     state: &mut CompositeHistoryCatalogState,
     identity: &CompositeCommitIdentity,
-    metadata_bytes: usize,
 ) {
-    if let Some(reservation) = state.reservations.remove(identity) {
-        debug_assert_eq!(reservation.metadata_bytes, metadata_bytes);
-        state.reserved_metadata_bytes -= reservation.metadata_bytes;
-        if matches!(reservation.parent, CompositeCommitParent::Root) {
-            state.root_reserved = false;
-        }
+    let Some(reservation) = state.reservations.remove(identity) else {
+        return;
+    };
+    state.metadata.release_reservation(&reservation);
+    lock_counters(&state.counters).record_metadata_release();
+    if let CompositeCommitParent::Ordinary(parent) = &reservation.parent {
+        let mut reachability = lock_index(&state.reachability);
+        reachability.decrement_descendant_dependency(parent.commit());
+    }
+    if matches!(reservation.parent, CompositeCommitParent::Root) {
+        state.root_reserved = false;
     }
 }
 
@@ -87,67 +98,56 @@ pub(super) fn ordinary_parent_identity(
     }
 }
 
-pub(super) fn validate_candidate(
-    state: &CompositeHistoryCatalogState,
-    candidate: &CompositeCommitIdentity,
+pub(super) fn prevalidate_candidate_prefix(
+    state: &mut CompositeHistoryCatalogState,
+    candidates: &[CompositeCommitIdentity],
 ) -> Result<(), HistoryReclamationDenial> {
-    if candidate.owner_identity() != state.owner {
-        return Err(HistoryReclamationDenial::ForeignCandidate {
-            expected: state.owner,
-            actual: candidate.owner_identity(),
-        });
+    for candidate in candidates {
+        lock_counters(&state.counters).record_candidate_validation();
+        if candidate.owner_identity() != state.owner {
+            return Err(HistoryReclamationDenial::ForeignCandidate {
+                expected: state.owner,
+                actual: candidate.owner_identity(),
+            });
+        }
     }
-    if !state.entries.contains_key(candidate) {
-        return Err(HistoryReclamationDenial::UnknownCandidate(
-            candidate.clone(),
-        ));
+    for (index, candidate) in candidates.iter().enumerate() {
+        if candidates[..index].iter().any(|prior| prior == candidate) {
+            return Err(HistoryReclamationDenial::DuplicateCandidate(
+                candidate.clone(),
+            ));
+        }
+    }
+    for candidate in candidates {
+        if !state.entries.contains_key(candidate) {
+            return Err(HistoryReclamationDenial::UnknownCandidate(
+                candidate.clone(),
+            ));
+        }
     }
     Ok(())
 }
 
-pub(super) fn remove_child_index(
+pub(super) fn remove_installed(
     state: &mut CompositeHistoryCatalogState,
-    parent: &CompositeCommitParent,
-    child: &CompositeCommitIdentity,
-) {
-    let CompositeCommitParent::Ordinary(parent) = parent else {
-        return;
-    };
-    let remove_index = state
-        .children
-        .get_mut(parent.commit())
-        .map(|children| {
-            children.remove(child);
-            children.is_empty()
-        })
-        .unwrap_or(false);
-    if remove_index {
-        state.children.remove(parent.commit());
-    }
-}
-
-pub(super) fn protected_ancestry(
-    state: &CompositeHistoryCatalogState,
-    protected_commits: &[CompositeCommitIdentity],
-) -> Result<BTreeSet<CompositeCommitIdentity>, HistoryReclamationDenial> {
-    let mut protected = BTreeSet::new();
-    for protected_commit in protected_commits {
-        validate_owner(state, protected_commit.owner_identity())
-            .map_err(HistoryReclamationDenial::Catalog)?;
-        let mut current = protected_commit.clone();
-        loop {
-            if !protected.insert(current.clone()) {
-                break;
-            }
-            let entry = state
-                .entries
-                .get(&current)
-                .ok_or_else(|| HistoryReclamationDenial::UnknownProtected(current.clone()))?;
-            let Some(parent) = ordinary_parent_identity(entry.commit().parent()) else {
-                break;
-            };
-            current = parent;
+    identity: &CompositeCommitIdentity,
+) -> CompositeHistoryCatalogEntry {
+    let entry = state
+        .entries
+        .remove(identity)
+        .expect("prevalidated candidate remains installed during reclamation");
+    let parent = entry.commit().parent().clone();
+    {
+        let mut reachability = lock_index(&state.reachability);
+        reachability.remove_installed(identity);
+        if let CompositeCommitParent::Ordinary(parent) = &parent {
+            reachability.decrement_descendant_dependency(parent.commit());
         }
     }
-    Ok(protected)
+    state.metadata.release_installed(entry.metadata_charge());
+    lock_counters(&state.counters).record_metadata_release();
+    if matches!(parent, CompositeCommitParent::Root) && state.root.as_ref() == Some(identity) {
+        state.root = None;
+    }
+    entry
 }

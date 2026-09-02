@@ -2,34 +2,12 @@ use crate::identity::{CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
 
 use super::catalog::CompositeHistoryCatalogDenial;
 
-/// Read-only eligibility input for bounded history reclamation. It carries no
-/// authority to remove a commit; the future catalog owner decides execution.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct HistoryReclamationEligibility {
-    age_ticks: u64,
-    reachable: bool,
-}
-
-impl HistoryReclamationEligibility {
-    pub(crate) const fn new(age_ticks: u64, reachable: bool) -> Self {
-        Self {
-            age_ticks,
-            reachable,
-        }
-    }
-
-    pub(crate) const fn is_eligible(self) -> bool {
-        !self.reachable && self.age_ticks > 0
-    }
-}
-
 /// Explicit maintenance input. Product heads and retained obligations are
-/// supplied by their owners; this request does not infer reachability by
-/// scanning unrelated Runtime World state.
+/// represented by live catalog-owned protection obligations, not copied
+/// ancestry supplied with this request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CompositeHistoryReclamationRequest {
     owner: RuntimeWorldOwnerIdentity,
-    protected_commits: Vec<CompositeCommitIdentity>,
     candidate_commits: Vec<CompositeCommitIdentity>,
     maximum_reclaims: usize,
     age_ticks: u64,
@@ -38,14 +16,12 @@ pub(crate) struct CompositeHistoryReclamationRequest {
 impl CompositeHistoryReclamationRequest {
     pub(crate) fn new(
         owner: RuntimeWorldOwnerIdentity,
-        protected_commits: Vec<CompositeCommitIdentity>,
         candidate_commits: Vec<CompositeCommitIdentity>,
         maximum_reclaims: usize,
         age_ticks: u64,
     ) -> Self {
         Self {
             owner,
-            protected_commits,
             candidate_commits,
             maximum_reclaims,
             age_ticks,
@@ -54,10 +30,6 @@ impl CompositeHistoryReclamationRequest {
 
     pub(crate) const fn owner(&self) -> RuntimeWorldOwnerIdentity {
         self.owner
-    }
-
-    pub(crate) fn protected_commits(&self) -> &[CompositeCommitIdentity] {
-        &self.protected_commits
     }
 
     pub(crate) fn candidate_commits(&self) -> &[CompositeCommitIdentity] {
@@ -81,7 +53,7 @@ pub(crate) struct HistoryReclamationOutcome {
     examined: usize,
     skipped_protected: usize,
     skipped_too_young: usize,
-    skipped_with_children: usize,
+    skipped_with_descendant_dependencies: usize,
     reclaimed: Vec<CompositeCommitIdentity>,
     metadata_bytes_reclaimed: usize,
 }
@@ -93,7 +65,7 @@ impl HistoryReclamationOutcome {
             examined: 0,
             skipped_protected: 0,
             skipped_too_young: 0,
-            skipped_with_children: 0,
+            skipped_with_descendant_dependencies: 0,
             reclaimed: Vec::new(),
             metadata_bytes_reclaimed: 0,
         }
@@ -111,8 +83,8 @@ impl HistoryReclamationOutcome {
         self.skipped_too_young += 1;
     }
 
-    pub(crate) fn record_skipped_with_children(&mut self) {
-        self.skipped_with_children += 1;
+    pub(crate) fn record_skipped_with_descendant_dependencies(&mut self) {
+        self.skipped_with_descendant_dependencies += 1;
     }
 
     pub(crate) fn reclaimed_one(
@@ -121,7 +93,10 @@ impl HistoryReclamationOutcome {
         metadata_bytes: usize,
     ) {
         debug_assert!(self.reclaimed.len() < self.maximum_reclaims);
-        self.metadata_bytes_reclaimed += metadata_bytes;
+        self.metadata_bytes_reclaimed = self
+            .metadata_bytes_reclaimed
+            .checked_add(metadata_bytes)
+            .expect("a bounded reclamation outcome fits addressable memory");
         self.reclaimed.push(identity);
     }
 
@@ -141,8 +116,8 @@ impl HistoryReclamationOutcome {
         self.skipped_too_young
     }
 
-    pub(crate) const fn skipped_with_children(&self) -> usize {
-        self.skipped_with_children
+    pub(crate) const fn skipped_with_descendant_dependencies(&self) -> usize {
+        self.skipped_with_descendant_dependencies
     }
 
     pub(crate) fn reclaimed_commits(&self) -> &[CompositeCommitIdentity] {
@@ -163,5 +138,4 @@ pub(crate) enum HistoryReclamationDenial {
     },
     DuplicateCandidate(CompositeCommitIdentity),
     UnknownCandidate(CompositeCommitIdentity),
-    UnknownProtected(CompositeCommitIdentity),
 }

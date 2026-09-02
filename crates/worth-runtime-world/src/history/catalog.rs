@@ -1,10 +1,13 @@
+mod counters;
 mod denial;
 mod entry;
+mod metadata;
+mod reachability;
 mod reservation;
 mod support;
 mod traversal;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
@@ -14,14 +17,21 @@ use crate::identity::{CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
 use super::reclamation::{
     CompositeHistoryReclamationRequest, HistoryReclamationDenial, HistoryReclamationOutcome,
 };
+use super::retention::{CompositeHistoryProtectionObligation, HistoryProtectionClass};
 use super::{CompositeCommitParent, CompositeRuntimeWorldCommit};
 
+pub(crate) use counters::HistoryCatalogCounters;
 pub(crate) use denial::CompositeHistoryCatalogDenial;
 pub(crate) use entry::CompositeHistoryCatalogEntry;
+pub(crate) use metadata::HistoryMetadataLedger;
+pub(super) use metadata::HistoryReservationMetadata;
+pub(in crate::history) use reachability::{
+    lock_index, HistoryReachabilityHandle, HistoryReachabilityIndex,
+};
 pub(crate) use reservation::ReservedCompositeHistorySlot;
 use support::{
-    install_entry, lock_state, ordinary_parent_identity, protected_ancestry, release_reservation,
-    remove_child_index, validate_candidate, validate_owner, validate_parent_for_reservation,
+    lock_state, prevalidate_candidate_prefix, remove_installed, validate_owner,
+    validate_parent_for_reservation,
 };
 pub(crate) use traversal::CompositeHistoryTraversal;
 
@@ -67,14 +77,13 @@ pub(super) struct CompositeHistoryCatalogState {
     owner: RuntimeWorldOwnerIdentity,
     limits: RuntimeWorldHistoryCatalogContract,
     entries: BTreeMap<CompositeCommitIdentity, CompositeHistoryCatalogEntry>,
-    children: BTreeMap<CompositeCommitIdentity, BTreeSet<CompositeCommitIdentity>>,
-    reservations: BTreeMap<CompositeCommitIdentity, reservation::ReservedHistoryMetadata>,
-    metadata_bytes: usize,
-    reserved_metadata_bytes: usize,
+    reservations: BTreeMap<CompositeCommitIdentity, HistoryReservationMetadata>,
+    metadata: HistoryMetadataLedger,
+    reachability: HistoryReachabilityHandle,
+    counters: counters::HistoryCatalogCountersHandle,
     root: Option<CompositeCommitIdentity>,
     root_reserved: bool,
     root_ever_installed: bool,
-    lookup_count: u64,
 }
 
 impl CompositeHistoryCatalog {
@@ -82,32 +91,34 @@ impl CompositeHistoryCatalog {
         owner: RuntimeWorldOwnerIdentity,
         contract: RuntimeWorldHistoryCatalogContract,
     ) -> Self {
+        let counters = counters::new_handle();
+        let reachability = Arc::new(Mutex::new(HistoryReachabilityIndex::new(Arc::clone(
+            &counters,
+        ))));
         Self {
             state: Arc::new(Mutex::new(CompositeHistoryCatalogState {
                 owner,
                 limits: contract,
                 entries: BTreeMap::new(),
-                children: BTreeMap::new(),
                 reservations: BTreeMap::new(),
-                metadata_bytes: 0,
-                reserved_metadata_bytes: 0,
+                metadata: HistoryMetadataLedger::default(),
+                reachability,
+                counters,
                 root: None,
                 root_reserved: false,
                 root_ever_installed: false,
-                lookup_count: 0,
             })),
         }
     }
 
     pub(crate) fn reserve(
         &self,
-        identity: CompositeCommitIdentity,
-        parent: CompositeCommitParent,
-        metadata_bytes: usize,
+        commit: &CompositeRuntimeWorldCommit,
     ) -> Result<ReservedCompositeHistorySlot, CompositeHistoryCatalogDenial> {
+        let identity = commit.identity().clone();
+        let parent = commit.parent().clone();
         let mut state = lock_state(&self.state);
         validate_owner(&state, identity.owner_identity())?;
-        validate_parent_for_reservation(&state, &parent)?;
         if state.entries.contains_key(&identity) || state.reservations.contains_key(&identity) {
             return Err(CompositeHistoryCatalogDenial::DuplicateCommit);
         }
@@ -116,56 +127,69 @@ impl CompositeHistoryCatalog {
         {
             return Err(CompositeHistoryCatalogDenial::RootAlreadyInstalled);
         }
-        let population = state
-            .entries
-            .len()
-            .checked_add(state.reservations.len())
-            .expect("catalog population cannot exceed addressable memory");
-        if population >= state.limits.maximum_commits().get() {
+        validate_parent_for_reservation(&mut state, &parent)?;
+        let maximum_commits = state.limits.maximum_commits().get();
+        let installed_commits = state.entries.len();
+        let reserved_commits = state.reservations.len();
+        if installed_commits >= maximum_commits
+            || reserved_commits >= maximum_commits.saturating_sub(installed_commits)
+        {
             return Err(CompositeHistoryCatalogDenial::CommitCapacityExhausted {
-                maximum: state.limits.maximum_commits().get(),
+                maximum: maximum_commits,
             });
         }
-        let used_metadata = state
-            .metadata_bytes
-            .checked_add(state.reserved_metadata_bytes)
-            .ok_or(CompositeHistoryCatalogDenial::MetadataSizeOverflow {
-                requested: metadata_bytes,
-            })?;
-        let combined_metadata = used_metadata.checked_add(metadata_bytes).ok_or(
-            CompositeHistoryCatalogDenial::MetadataSizeOverflow {
-                requested: metadata_bytes,
-            },
-        )?;
-        if combined_metadata > state.limits.maximum_metadata_bytes().get() {
-            return Err(CompositeHistoryCatalogDenial::MetadataCapacityExhausted {
-                maximum: state.limits.maximum_metadata_bytes().get(),
-                used: used_metadata,
-                requested: metadata_bytes,
-            });
-        }
-        state.reserved_metadata_bytes =
+
+        let commit_charge = metadata::HistoryMetadataCharge::for_commit(commit)
+            .map_err(|_| CompositeHistoryCatalogDenial::ArithmeticOverflow)?;
+        let reservation_charge = metadata::HistoryReservationCharge::for_commit(commit)
+            .map_err(|_| CompositeHistoryCatalogDenial::ArithmeticOverflow)?;
+        let preview = {
+            counters::lock_counters(&state.counters).record_metadata_reservation_check();
             state
-                .reserved_metadata_bytes
-                .checked_add(metadata_bytes)
-                .ok_or(CompositeHistoryCatalogDenial::MetadataSizeOverflow {
-                    requested: metadata_bytes,
-                })?;
+                .metadata
+                .preview_reservation(
+                    reservation_charge,
+                    commit_charge,
+                    state.limits.maximum_metadata_bytes().get(),
+                )
+                .map_err(|denial| match denial {
+                    metadata::HistoryMetadataLedgerDenial::ArithmeticOverflow => {
+                        CompositeHistoryCatalogDenial::ArithmeticOverflow
+                    }
+                    metadata::HistoryMetadataLedgerDenial::Capacity {
+                        maximum,
+                        used,
+                        requested,
+                    } => CompositeHistoryCatalogDenial::MetadataCapacityExhausted {
+                        maximum,
+                        used,
+                        requested,
+                    },
+                })?
+        };
+
+        if let CompositeCommitParent::Ordinary(parent) = &parent {
+            let mut reachability = lock_index(&state.reachability);
+            reachability.increment_descendant_dependency(parent.commit())?;
+        }
+        state.metadata.reserve_confirmed(preview);
+        counters::lock_counters(&state.counters).record_metadata_reservation();
+        let reservation = HistoryReservationMetadata {
+            parent: parent.clone(),
+            commit_charge,
+            reservation_charge,
+        };
+        assert!(state
+            .reservations
+            .insert(identity.clone(), reservation.clone())
+            .is_none());
         if matches!(parent, CompositeCommitParent::Root) {
             state.root_reserved = true;
         }
-        state.reservations.insert(
-            identity.clone(),
-            reservation::ReservedHistoryMetadata {
-                parent: parent.clone(),
-                metadata_bytes,
-            },
-        );
         Ok(ReservedCompositeHistorySlot::new(
             Arc::clone(&self.state),
             identity,
-            parent,
-            metadata_bytes,
+            reservation,
         ))
     }
 
@@ -173,11 +197,7 @@ impl CompositeHistoryCatalog {
         &self,
         commit: Arc<CompositeRuntimeWorldCommit>,
     ) -> Result<CompositeHistoryCatalogEntry, CompositeHistoryCatalogDenial> {
-        let reservation = self.reserve(
-            commit.identity().clone(),
-            commit.parent().clone(),
-            commit.metadata_bytes(),
-        )?;
+        let reservation = self.reserve(commit.as_ref())?;
         reservation.install(commit)
     }
 
@@ -185,8 +205,8 @@ impl CompositeHistoryCatalog {
         &self,
         identity: &CompositeCommitIdentity,
     ) -> Option<Arc<CompositeRuntimeWorldCommit>> {
-        let mut state = lock_state(&self.state);
-        state.lookup_count = state.lookup_count.saturating_add(1);
+        let state = lock_state(&self.state);
+        counters::lock_counters(&state.counters).record_entry_lookup();
         state
             .entries
             .get(identity)
@@ -205,19 +225,45 @@ impl CompositeHistoryCatalog {
         lock_state(&self.state).reservations.len()
     }
 
-    pub(crate) fn metadata_bytes(&self) -> usize {
-        lock_state(&self.state).metadata_bytes
-    }
-
-    pub(crate) fn reserved_metadata_bytes(&self) -> usize {
-        lock_state(&self.state).reserved_metadata_bytes
+    pub(crate) fn metadata_ledger(&self) -> HistoryMetadataLedger {
+        lock_state(&self.state).metadata
     }
 
     pub(crate) fn lookup_count(&self) -> u64 {
-        lock_state(&self.state).lookup_count
+        self.counters().entry_lookups()
     }
 
-    /// Walk one parent chain up to an explicit caller bound.
+    pub(crate) fn counters(&self) -> HistoryCatalogCounters {
+        let state = lock_state(&self.state);
+        let counters = *counters::lock_counters(&state.counters);
+        counters
+    }
+
+    pub(super) fn protect_exact(
+        &self,
+        identity: CompositeCommitIdentity,
+        class: HistoryProtectionClass,
+    ) -> Result<CompositeHistoryProtectionObligation, CompositeHistoryCatalogDenial> {
+        let state = lock_state(&self.state);
+        validate_owner(&state, identity.owner_identity())?;
+        if !state.entries.contains_key(&identity) {
+            return Err(CompositeHistoryCatalogDenial::UnknownProtectionTarget(
+                identity,
+            ));
+        }
+        {
+            let mut reachability = lock_index(&state.reachability);
+            reachability.increment_direct_protection(&identity)?;
+        }
+        Ok(CompositeHistoryProtectionObligation::new(
+            Arc::clone(&state.reachability),
+            identity,
+            class,
+        ))
+    }
+
+    /// Walk one parent chain up to an explicit caller bound. Reclamation does
+    /// not call this method; its reachability decision is index-local.
     pub(crate) fn trace_ancestry(
         &self,
         start: CompositeCommitIdentity,
@@ -233,7 +279,7 @@ impl CompositeHistoryCatalog {
                 .get(&current)
                 .ok_or_else(|| CompositeHistoryCatalogDenial::MissingParent(current.clone()))?;
             commits.push(Arc::clone(&entry.commit));
-            let Some(parent) = ordinary_parent_identity(entry.commit.parent()) else {
+            let Some(parent) = support::ordinary_parent_identity(entry.commit().parent()) else {
                 return Ok(CompositeHistoryTraversal {
                     commits,
                     next_parent: None,
@@ -253,63 +299,37 @@ impl CompositeHistoryCatalog {
     ) -> Result<HistoryReclamationOutcome, HistoryReclamationDenial> {
         let mut state = lock_state(&self.state);
         validate_owner(&state, request.owner()).map_err(HistoryReclamationDenial::Catalog)?;
-        let protected = protected_ancestry(&state, request.protected_commits())?;
-        let candidates = request
-            .candidate_commits()
-            .iter()
-            .take(request.maximum_reclaims());
-        let mut distinct_candidates = BTreeSet::new();
-        for candidate in candidates.clone() {
-            validate_candidate(&state, candidate)?;
-            if !distinct_candidates.insert(candidate.clone()) {
-                return Err(HistoryReclamationDenial::DuplicateCandidate(
-                    candidate.clone(),
-                ));
-            }
+        let maximum_reclaims = request.maximum_reclaims();
+        if maximum_reclaims == 0 {
+            return Ok(HistoryReclamationOutcome::new(0));
         }
+        let candidate_count = request.candidate_commits().len().min(maximum_reclaims);
+        let candidates = &request.candidate_commits()[..candidate_count];
+        prevalidate_candidate_prefix(&mut state, candidates)?;
 
-        let mut outcome = HistoryReclamationOutcome::new(request.maximum_reclaims());
+        let mut outcome = HistoryReclamationOutcome::new(maximum_reclaims);
         for candidate in candidates {
             outcome.examined_one();
-            let reachable = protected.contains(candidate);
-            if !super::reclamation::HistoryReclamationEligibility::new(
-                request.age_ticks(),
-                reachable,
-            )
-            .is_eligible()
-            {
-                if reachable {
-                    outcome.record_skipped_protected();
-                } else {
-                    outcome.record_skipped_too_young();
-                }
-                continue;
-            }
-            if state
-                .children
-                .get(candidate)
-                .is_some_and(|children| !children.is_empty())
-            {
-                outcome.record_skipped_with_children();
-                continue;
-            }
-            let (metadata_bytes, parent) = {
-                let entry = state
-                    .entries
-                    .get(candidate)
-                    .expect("candidate was validated before reclamation");
-                (entry.metadata_bytes(), entry.commit.parent().clone())
+            let reachability = {
+                let mut index = lock_index(&state.reachability);
+                index
+                    .lookup(candidate)
+                    .expect("prevalidated candidate has a reachability row")
             };
-            state.entries.remove(candidate);
-            state.children.remove(candidate);
-            remove_child_index(&mut state, &parent, candidate);
-            if matches!(parent, CompositeCommitParent::Root)
-                && state.root.as_ref() == Some(candidate)
-            {
-                state.root = None;
+            if reachability.direct_protections() > 0 {
+                outcome.record_skipped_protected();
+                continue;
             }
-            state.metadata_bytes -= metadata_bytes;
-            outcome.reclaimed_one(candidate.clone(), metadata_bytes);
+            if reachability.descendant_dependencies() > 0 {
+                outcome.record_skipped_with_descendant_dependencies();
+                continue;
+            }
+            if request.age_ticks() == 0 {
+                outcome.record_skipped_too_young();
+                continue;
+            }
+            let entry = remove_installed(&mut state, candidate);
+            outcome.reclaimed_one(candidate.clone(), entry.metadata_charge().total());
         }
         Ok(outcome)
     }

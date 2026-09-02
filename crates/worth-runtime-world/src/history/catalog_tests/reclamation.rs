@@ -1,0 +1,222 @@
+use crate::history::reclamation::{CompositeHistoryReclamationRequest, HistoryReclamationDenial};
+use crate::history::retention::HistoryProtectionClass;
+
+use super::super::{CompositeHistoryCatalog, CompositeHistoryCatalogDenial};
+use super::fixtures::{history_contract, linear_history};
+
+#[test]
+fn descendant_dependencies_and_direct_protections_block_exact_targets() {
+    let (_owner, commits) = linear_history(3);
+    let root = commits[0].clone();
+    let ordinary = commits[1].clone();
+    let leaf = commits[2].clone();
+    let owner_identity = root.identity().owner_identity();
+    let catalog = CompositeHistoryCatalog::new(owner_identity, history_contract(3, u64::MAX));
+    for commit in [&root, &ordinary, &leaf] {
+        catalog.append(commit.clone()).expect("chain install");
+    }
+
+    let blocked_root = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            owner_identity,
+            vec![root.identity().clone()],
+            1,
+            1,
+        ))
+        .expect("installed child blocks parent");
+    assert_eq!(blocked_root.skipped_with_descendant_dependencies(), 1);
+
+    let before_protection = catalog.counters();
+    let protection = catalog
+        .protect_exact(
+            leaf.identity().clone(),
+            HistoryProtectionClass::ExplicitObligation,
+        )
+        .expect("exact protection");
+    let after_protection = catalog.counters();
+    assert_eq!(
+        after_protection.direct_protection_acquisitions()
+            - before_protection.direct_protection_acquisitions(),
+        1
+    );
+    let blocked_leaf = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            owner_identity,
+            vec![leaf.identity().clone()],
+            1,
+            1,
+        ))
+        .expect("direct protection blocks leaf");
+    assert_eq!(blocked_leaf.skipped_protected(), 1);
+    drop(protection);
+    let after_protection_drop = catalog.counters();
+    assert_eq!(
+        after_protection_drop.direct_protection_releases()
+            - after_protection.direct_protection_releases(),
+        1
+    );
+
+    let reclaimed_leaf = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            owner_identity,
+            vec![leaf.identity().clone()],
+            1,
+            1,
+        ))
+        .expect("released protection permits leaf reclaim");
+    assert_eq!(
+        reclaimed_leaf.reclaimed_commits(),
+        &[leaf.identity().clone()]
+    );
+    catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            owner_identity,
+            vec![ordinary.identity().clone()],
+            1,
+            1,
+        ))
+        .expect("reclaimed leaf releases ordinary dependency");
+    let reclaimed_root = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            owner_identity,
+            vec![root.identity().clone()],
+            1,
+            1,
+        ))
+        .expect("reclaimed ordinary releases root dependency");
+    assert_eq!(
+        reclaimed_root.reclaimed_commits(),
+        &[root.identity().clone()]
+    );
+}
+
+#[test]
+fn malformed_bounded_prefix_is_rejected_before_reachability_or_mutation() {
+    let (mut owner, commits) = linear_history(2);
+    let root = commits[0].clone();
+    let child = commits[1].clone();
+    let catalog = CompositeHistoryCatalog::new(
+        root.identity().owner_identity(),
+        history_contract(2, u64::MAX),
+    );
+    catalog.append(root.clone()).expect("root install");
+    catalog.append(child.clone()).expect("child install");
+    let unknown = owner
+        .issuer_mut()
+        .composite_commit()
+        .expect("unknown identity");
+    let before = catalog.counters();
+    let denial = catalog.reclaim_batch(CompositeHistoryReclamationRequest::new(
+        root.identity().owner_identity(),
+        vec![unknown.clone(), child.identity().clone()],
+        1,
+        1,
+    ));
+    assert_eq!(
+        denial,
+        Err(HistoryReclamationDenial::UnknownCandidate(unknown.clone()))
+    );
+    assert_eq!(catalog.len(), 2);
+    let after = catalog.counters();
+    assert_eq!(after.reachability_lookups(), before.reachability_lookups());
+    assert_eq!(after.metadata_releases(), before.metadata_releases());
+    assert_eq!(
+        after.dependency_decrements(),
+        before.dependency_decrements()
+    );
+    assert!(catalog.lookup(child.identity()).is_some());
+
+    let duplicate = catalog.reclaim_batch(CompositeHistoryReclamationRequest::new(
+        root.identity().owner_identity(),
+        vec![child.identity().clone(), child.identity().clone()],
+        2,
+        1,
+    ));
+    assert_eq!(
+        duplicate,
+        Err(HistoryReclamationDenial::DuplicateCandidate(
+            child.identity().clone()
+        ))
+    );
+    assert_eq!(catalog.len(), 2);
+
+    let bounded = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            root.identity().owner_identity(),
+            vec![child.identity().clone(), unknown],
+            1,
+            1,
+        ))
+        .expect("candidate suffix beyond the bound is not inspected");
+    assert_eq!(bounded.reclaimed_commits(), &[child.identity().clone()]);
+    assert_eq!(catalog.len(), 1);
+}
+
+#[test]
+fn zero_batch_does_no_candidate_index_allocation_or_mutation_work() {
+    let (mut owner, commits) = linear_history(2);
+    let root = commits[0].clone();
+    let child = commits[1].clone();
+    let catalog = CompositeHistoryCatalog::new(
+        root.identity().owner_identity(),
+        history_contract(2, u64::MAX),
+    );
+    catalog.append(root.clone()).expect("root install");
+    catalog.append(child.clone()).expect("child install");
+    let unknown = owner
+        .issuer_mut()
+        .composite_commit()
+        .expect("unknown identity");
+    let before = catalog.counters();
+    let ledger_before = catalog.metadata_ledger();
+    let outcome = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            root.identity().owner_identity(),
+            vec![unknown],
+            0,
+            1,
+        ))
+        .expect("zero batch is a valid no-op");
+    let after = catalog.counters();
+    assert_eq!(outcome.examined(), 0);
+    assert_eq!(outcome.reclaimed_commits(), &[]);
+    assert_eq!(
+        after.candidate_validations(),
+        before.candidate_validations()
+    );
+    assert_eq!(after.reachability_lookups(), before.reachability_lookups());
+    assert_eq!(after.metadata_releases(), before.metadata_releases());
+    assert_eq!(
+        after.dependency_decrements(),
+        before.dependency_decrements()
+    );
+    assert_eq!(catalog.metadata_ledger(), ledger_before);
+    assert_eq!(catalog.len(), 2);
+}
+
+#[test]
+fn exact_protection_validation_rejects_foreign_and_unknown_occurrences() {
+    let (_foreign_owner, foreign_commits) = linear_history(1);
+    let (mut owner, commits) = linear_history(1);
+    let root = commits[0].clone();
+    let catalog = CompositeHistoryCatalog::new(
+        root.identity().owner_identity(),
+        history_contract(1, u64::MAX),
+    );
+    catalog.append(root.clone()).expect("root install");
+    assert!(matches!(
+        catalog.protect_exact(
+            foreign_commits[0].identity().clone(),
+            HistoryProtectionClass::ProductHead,
+        ),
+        Err(CompositeHistoryCatalogDenial::ForeignOwner { .. })
+    ));
+    let unknown = owner
+        .issuer_mut()
+        .composite_commit()
+        .expect("unknown identity");
+    assert!(matches!(
+        catalog.protect_exact(unknown.clone(), HistoryProtectionClass::ProductHead),
+        Err(CompositeHistoryCatalogDenial::UnknownProtectionTarget(target)) if target == unknown
+    ));
+}
