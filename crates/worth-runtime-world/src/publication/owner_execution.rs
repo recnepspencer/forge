@@ -175,9 +175,8 @@ impl CompositePublicationReady {
                 Some(expected_head),
             ));
         }
-        // The retention lane issues this receipt and owns its transfer
-        // semantics. Destructuring the reserved obligation above preserves
-        // the linear handoff without creating a Phase 1 authority path.
+        // The opaque reserved obligation is consumed separately from the opaque
+        // transfer receipt; affinity is not yet proven, and Phase 3 must validate it.
         Ok(PerformedCompositePublication::owner_issued(
             expected_head,
             new_product_head,
