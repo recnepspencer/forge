@@ -7,6 +7,8 @@ use worth_signal::facade::branch::SignalOwnerOperationBoundary;
 use crate::history::CompositeRuntimeWorldCommit;
 use crate::retention::component_obligation::ObservationRetentionObligation;
 use crate::retention::registry::{RetentionObligationDenial, RuntimeWorldRetentionOwner};
+use crate::retention::unique_component_pin::ExactComponentPinRequest;
+use crate::retention::ComponentBasisDependencyClass;
 
 use super::fixture::{real_fixture, root_commit};
 
@@ -215,4 +217,49 @@ fn parked_real_batch_shares_denial_rolls_back_and_retries_cleanly() {
         signal.retention_registry_contacts(),
         before_signal.retention_registry_contacts() + 1
     );
+}
+
+#[test]
+fn reclaim_skips_husk_while_batch_reacquisition_flight_is_active() {
+    let mut fixture = real_fixture(2, 2);
+    let root = Arc::new(root_commit(&mut fixture));
+    let owner = Arc::new(fixture.owner.clone());
+    let dependency = ComponentBasisDependencyClass::AdmittedObservation;
+    let seed = owner
+        .issue_component(ExactComponentPinRequest::relational(
+            &fixture.basis,
+            dependency,
+        ))
+        .expect("real Relational seed claim succeeds");
+    let signal = owner
+        .issue_component(ExactComponentPinRequest::signal(&fixture.basis, dependency))
+        .expect("real Signal seed claim succeeds");
+    drop(signal);
+
+    let control = fixture
+        .signal_runtime
+        .owner_operation_control()
+        .expect("real Signal owner exposes operation control");
+    let pause = control.arm_pause_once(SignalOwnerOperationBoundary::BranchRegistryLookup);
+    let batch = start_claimant(Arc::clone(&owner), Arc::clone(&root));
+    assert!(pause.wait_until_reached(Duration::from_secs(5)));
+
+    assert_eq!(owner.unique_pin_count(), 2);
+    assert_eq!(owner.in_flight_acquisition_count(), 1);
+    assert_eq!(owner.active_component_obligation_count(), 3);
+    let report = owner.reclaim(2);
+    assert_eq!(report.examined(), 2);
+    assert_eq!(report.reclaimed(), 0);
+    assert_eq!(report.remaining_unique_pins(), 2);
+
+    pause.release();
+    let batch = batch
+        .join()
+        .expect("batch retention claimant completes")
+        .expect("batch retention claimant settles successfully");
+    drop(batch);
+    drop(seed);
+    assert_eq!(owner.active_component_obligation_count(), 0);
+    assert_eq!(owner.in_flight_acquisition_count(), 0);
+    assert_eq!(owner.reclaim(2).reclaimed(), 2);
 }

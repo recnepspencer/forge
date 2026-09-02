@@ -243,10 +243,11 @@ where
         let keys: Vec<_> = state.entries.keys().take(requested).cloned().collect();
         let mut reclaimed = 0;
         for key in &keys {
-            let eligible = state
-                .entries
-                .get(key)
-                .is_some_and(|entry| entry.owner_lease.is_none() && entry.counts.is_zero());
+            let eligible = state.entries.get(key).is_some_and(|entry| {
+                entry.owner_lease.is_none()
+                    && entry.counts.is_zero()
+                    && !state.flights.contains_key(key)
+            });
             state.costs.reclamation_entries_examined =
                 state.costs.reclamation_entries_examined.saturating_add(1);
             if eligible && state.entries.remove(key).is_some() {
