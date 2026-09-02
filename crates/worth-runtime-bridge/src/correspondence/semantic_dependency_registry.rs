@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::error::{BridgeBuildError, BridgeBuildErrorKind};
 
@@ -13,7 +13,7 @@ pub(crate) struct AdmittedSemanticDependencyRegistry {
     authoritative: Vec<BridgeSemanticCorrespondenceRegistration>,
     index: BTreeMap<String, usize>,
     by_authority: BTreeMap<String, usize>,
-    current_generation_by_binding: BTreeMap<BridgeInstalledBindingKey, u64>,
+    current_generation_by_binding: HashMap<BridgeInstalledBindingKey, u64>,
     signal_graph_instance_id: Option<u64>,
 }
 
@@ -44,8 +44,8 @@ impl AdmittedSemanticDependencyRegistry {
         let mut index: BTreeMap<String, usize> = BTreeMap::new();
         let mut authoritative: Vec<BridgeSemanticCorrespondenceRegistration> = Vec::new();
         let mut by_authority: BTreeMap<String, usize> = BTreeMap::new();
-        let mut current_generation_by_binding: BTreeMap<BridgeInstalledBindingKey, u64> =
-            BTreeMap::new();
+        let mut current_generation_by_binding: HashMap<BridgeInstalledBindingKey, u64> =
+            HashMap::new();
         let mut signal_graph_instance_id = None;
         for registration in registrations {
             let registration_graph = registration.signal_graph_instance_id();
@@ -264,7 +264,7 @@ impl AdmittedSemanticDependencyExtension {
 }
 
 fn record_current_generation(
-    current_generation_by_binding: &mut BTreeMap<BridgeInstalledBindingKey, u64>,
+    current_generation_by_binding: &mut HashMap<BridgeInstalledBindingKey, u64>,
     candidate: &BridgeSemanticDependencyCandidate,
 ) {
     let key = candidate.installed_binding_key();
