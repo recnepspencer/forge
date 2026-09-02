@@ -2,6 +2,8 @@ mod bootstrap;
 mod creation;
 mod observation;
 mod reference_cell;
+#[cfg(test)]
+mod reference_test_fixture;
 mod retirement;
 
 pub use bootstrap::{

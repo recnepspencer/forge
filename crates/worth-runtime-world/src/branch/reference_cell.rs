@@ -389,9 +389,5 @@ fn validate_successor(
 }
 
 #[cfg(test)]
-#[path = "reference_test_fixture.rs"]
-mod reference_test_fixture;
-
-#[cfg(test)]
 #[path = "reference_cell_tests.rs"]
 mod tests;

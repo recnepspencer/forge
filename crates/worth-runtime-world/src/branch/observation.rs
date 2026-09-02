@@ -228,9 +228,5 @@ impl ProductBranchObservation {
 }
 
 #[cfg(test)]
-#[path = "reference_test_fixture.rs"]
-mod reference_test_fixture;
-
-#[cfg(test)]
 #[path = "observation_tests.rs"]
 mod tests;

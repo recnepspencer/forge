@@ -2,12 +2,12 @@ use std::sync::{mpsc, Arc, Barrier};
 use std::thread;
 use std::time::Duration;
 
-use super::reference_test_fixture as fixture;
 use super::{
     ProductBranchReferenceCell, ProductBranchReferenceCellAdmissionDenial,
     ProductBranchReferenceCellDenial, ProductBranchReferenceSnapshot,
 };
 use crate::branch::observation::ProductBranchObservation;
+use crate::branch::reference_test_fixture as fixture;
 use crate::history::CompositeHistoryCatalog;
 use crate::identity::ProductBranchReferenceGeneration;
 
