@@ -78,6 +78,22 @@ impl AdmittedCompositeRuntimeWorldBasis {
     pub fn correspondence_basis(&self) -> &AdmittedRuntimeWorldCorrespondenceBasis {
         self.inner.basis.correspondence_basis()
     }
+
+    #[cfg(test)]
+    pub(crate) fn admit_test_fixture(
+        identities: &RuntimeWorldIdentityIssuer,
+    ) -> Result<Self, CompositeBasisAdmissionDenial> {
+        let fixture = tests::component_fixture();
+        admit_current(
+            identities,
+            &fixture.relational_port,
+            &fixture.signal_port,
+            &fixture.correspondence_port,
+            fixture.relational,
+            fixture.signal,
+            fixture.correspondence,
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

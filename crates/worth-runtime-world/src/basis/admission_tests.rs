@@ -41,18 +41,18 @@ impl InvalidationSink for AdmissionSink {
     }
 }
 
-struct ComponentFixture {
-    relational: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
-    relational_port: worth_relational::facade::branch::RelationalBranchBasisPort,
-    signal: worth_signal::facade::branch::AdmittedSignalBranchBasis,
-    signal_port: worth_signal::facade::branch::SignalBranchBasisPort<(), (), ()>,
-    correspondence: AdmittedRuntimeWorldCorrespondenceBasis,
-    correspondence_port: worth_runtime_bridge::facade::RuntimeWorldCorrespondencePort,
-    _relational_runtime: Arc<worth_relational::facade::runtime::RelationalRuntime>,
-    _signal_runtime: SignalRuntime<(), (), (), (), ()>,
+pub(super) struct ComponentFixture {
+    pub(super) relational: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+    pub(super) relational_port: worth_relational::facade::branch::RelationalBranchBasisPort,
+    pub(super) signal: worth_signal::facade::branch::AdmittedSignalBranchBasis,
+    pub(super) signal_port: worth_signal::facade::branch::SignalBranchBasisPort<(), (), ()>,
+    pub(super) correspondence: AdmittedRuntimeWorldCorrespondenceBasis,
+    pub(super) correspondence_port: worth_runtime_bridge::facade::RuntimeWorldCorrespondencePort,
+    pub(super) _relational_runtime: Arc<worth_relational::facade::runtime::RelationalRuntime>,
+    pub(super) _signal_runtime: SignalRuntime<(), (), (), (), ()>,
 }
 
-fn component_fixture() -> ComponentFixture {
+pub(super) fn component_fixture() -> ComponentFixture {
     let relational_runtime = Arc::new(RelationalRuntimeApi::builder().build());
     let relational_port = relational_runtime.owner_component_services().basis_port();
     let relational_identity = relational_runtime.main_branch_identity();
