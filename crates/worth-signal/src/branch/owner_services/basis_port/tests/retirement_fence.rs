@@ -6,7 +6,7 @@ use crate::branch::{
 use super::world::{basis_port_world, issue_reference};
 
 #[test]
-fn basis_artifact_reservation_wins_before_retirement_or_cleans_up_on_denial() {
+fn ready_reuse_allows_retirement_with_one_canonical_lease_and_external_retention_blocks_it() {
     let world = basis_port_world();
     let reference = issue_reference(&world.port, &world.basis_b);
     let owner = world
@@ -16,7 +16,7 @@ fn basis_artifact_reservation_wins_before_retirement_or_cleans_up_on_denial() {
     let observed = world
         .port
         .observe_current(&reference)
-        .expect("the port reserves retention before entering the checked cell");
+        .expect("Ready reuse follows checked-cell observation without retention reacquisition");
     let admission = owner.admit().expect("retirement planning admits");
     let retirement = owner
         .reserve_retirement(&admission, world.branch_b.id)
@@ -46,7 +46,7 @@ fn basis_artifact_reservation_wins_before_retirement_or_cleans_up_on_denial() {
 }
 
 #[test]
-fn installed_retirement_fence_denies_observation_and_readmission_before_cell_contact() {
+fn installed_retirement_fence_denies_observation_and_readmission_after_each_checked_cell_contact() {
     let world = basis_port_world();
     let reference = issue_reference(&world.port, &world.basis_b);
     let owner = world
@@ -80,7 +80,7 @@ fn installed_retirement_fence_denies_observation_and_readmission_before_cell_con
     assert_eq!(
         cell_after.contacts(),
         cell_before.contacts() + 2,
-        "the exact Ready key requires one cell observation per denied call"
+        "the retirement fence denies after one checked-cell contact per call"
     );
     assert_eq!(cell_after.waits(), cell_before.waits());
     assert_eq!(cell_after.movements(), cell_before.movements());
