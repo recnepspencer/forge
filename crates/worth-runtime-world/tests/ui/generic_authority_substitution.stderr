@@ -1,15 +1,15 @@
 error[E0308]: mismatched types
-  --> tests/ui/generic_authority_substitution.rs:13:62
+  --> tests/ui/generic_authority_substitution.rs:13:76
    |
-13 |     let _ = RuntimeWorldOwnerRoot::<(), (), (), (), ()>::new(forged_witness());
-   |             ------------------------------------------------ ^^^^^^^^^^^^^^^^ expected `RuntimeWorldOwnerInputs<(), (), (), (), ()>`, found `AuthorityWitness<ForgedAuthority>`
+13 |     let _ = RuntimeWorldBootstrapIntent::new(creation, relational, signal, authority);
+   |             --------------------------------                               ^^^^^^^^^ expected `AdmittedRuntimeWorldCorrespondenceBasis`, found `AuthorityWitness<Auth>`
    |             |
    |             arguments to this function are incorrect
    |
-   = note: expected struct `RuntimeWorldOwnerInputs<(), (), (), (), ()>`
-              found struct `AuthorityWitness<ForgedAuthority>`
+   = note: expected struct `AdmittedRuntimeWorldCorrespondenceBasis`
+              found struct `AuthorityWitness<Auth>`
 note: associated function defined here
-  --> src/lifecycle/owner.rs
+  --> src/branch/bootstrap.rs
    |
    |     pub fn new(
    |            ^^^
