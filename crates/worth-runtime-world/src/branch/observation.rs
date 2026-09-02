@@ -110,6 +110,34 @@ impl ProductBranchObservationMismatch {
     pub fn axes(&self) -> &[ProductBranchObservationMismatchAxis] {
         &self.axes
     }
+
+    fn between(
+        expected: &ProductBranchReferenceSnapshot,
+        observed: &ProductBranchReferenceSnapshot,
+    ) -> Option<Self> {
+        let mut axes = Vec::new();
+        if expected.owner() != observed.owner() {
+            axes.push(ProductBranchObservationMismatchAxis::OwnerIdentity);
+        }
+        if expected.branch() != observed.branch() {
+            axes.push(ProductBranchObservationMismatchAxis::BranchIdentity);
+        }
+        if expected.lifecycle() != observed.lifecycle() {
+            axes.push(ProductBranchObservationMismatchAxis::LifecycleIncarnation);
+        }
+        if expected.generation() != observed.generation() {
+            axes.push(ProductBranchObservationMismatchAxis::ReferenceGeneration);
+        }
+        if expected.commit().identity() != observed.commit().identity() {
+            axes.push(ProductBranchObservationMismatchAxis::SelectedCompositeCommit);
+        }
+        if crate::basis::compare_exact(expected.commit().basis(), observed.commit().basis())
+            .is_err()
+        {
+            axes.push(ProductBranchObservationMismatchAxis::CompositeBasis);
+        }
+        (!axes.is_empty()).then_some(Self { axes })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -181,30 +209,19 @@ impl ProductBranchObservation {
         &self.obligation
     }
 
+    pub(crate) fn snapshot(&self) -> &ProductBranchReferenceSnapshot {
+        &self.snapshot
+    }
+
+    pub(crate) fn mismatch_against_snapshot(
+        &self,
+        observed: &ProductBranchReferenceSnapshot,
+    ) -> Option<ProductBranchObservationMismatch> {
+        ProductBranchObservationMismatch::between(self.snapshot(), observed)
+    }
+
     pub fn compare(&self, observed: &Self) -> Result<(), ProductBranchObservationMismatch> {
-        let mut axes = Vec::new();
-        if self.owner_identity() != observed.owner_identity() {
-            axes.push(ProductBranchObservationMismatchAxis::OwnerIdentity);
-        }
-        if self.branch_identity() != observed.branch_identity() {
-            axes.push(ProductBranchObservationMismatchAxis::BranchIdentity);
-        }
-        if self.lifecycle_incarnation() != observed.lifecycle_incarnation() {
-            axes.push(ProductBranchObservationMismatchAxis::LifecycleIncarnation);
-        }
-        if self.reference_generation() != observed.reference_generation() {
-            axes.push(ProductBranchObservationMismatchAxis::ReferenceGeneration);
-        }
-        if self.selected_commit() != observed.selected_commit() {
-            axes.push(ProductBranchObservationMismatchAxis::SelectedCompositeCommit);
-        }
-        if crate::basis::compare_exact(self.basis(), observed.basis()).is_err() {
-            axes.push(ProductBranchObservationMismatchAxis::CompositeBasis);
-        }
-        if axes.is_empty() {
-            Ok(())
-        } else {
-            Err(ProductBranchObservationMismatch { axes })
-        }
+        self.mismatch_against_snapshot(observed.snapshot())
+            .map_or(Ok(()), Err)
     }
 }

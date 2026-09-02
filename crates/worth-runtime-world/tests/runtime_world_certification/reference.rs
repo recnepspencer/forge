@@ -1,4 +1,15 @@
-use worth_runtime_world::facade::ProductBranchObservationMismatchAxis;
+use worth_runtime_world::facade::{ProductBranchObservation, ProductBranchObservationMismatchAxis};
+
+fn assert_observation_contract<T>()
+where
+    T: Clone + Send + Sync + std::fmt::Debug,
+{
+}
+
+#[test]
+fn managed_observation_is_cloneable_and_sendable() {
+    assert_observation_contract::<ProductBranchObservation>();
+}
 
 #[test]
 fn reference_comparison_vocabulary_keeps_each_dynamic_axis_distinct() {
