@@ -17,11 +17,20 @@ pub struct AdmittedSignalBranchBasis(Arc<AdmittedSignalBranchBasisInner>);
 #[derive(Debug)]
 struct AdmittedSignalBranchBasisInner {
     descriptor: SignalBranchBasisDescriptor,
+    admission_identity: super::SignalBranchBasisAdmissionIdentity,
     _proof: SignalBranchBasisProof,
     _retention: SignalBranchAdmissionLease,
 }
 
 impl AdmittedSignalBranchBasis {
+    /// Identity issued by the Signal owner for this exact admission.
+    ///
+    /// The identity is descriptive binding for later composition. It is not
+    /// a serializable descriptor or proof of currentness.
+    pub fn admission_identity(&self) -> &super::SignalBranchBasisAdmissionIdentity {
+        &self.0.admission_identity
+    }
+
     pub fn observation(&self) -> &SignalBranchObservation {
         self.0.descriptor.observation()
     }
@@ -59,6 +68,7 @@ pub(crate) fn admit_signal_branch_observation(
     let proof = signal_branch_basis_proof(&authority);
     AdmittedSignalBranchBasis(Arc::new(AdmittedSignalBranchBasisInner {
         descriptor: SignalBranchBasisDescriptor::owner_issued(branch_id, observation),
+        admission_identity: super::SignalBranchBasisAdmissionIdentity::issue(),
         _proof: proof,
         _retention: retention,
     }))

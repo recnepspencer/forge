@@ -1,5 +1,6 @@
 mod authority;
 mod basis;
+mod basis_admission_identity;
 mod basis_axis_validation;
 mod basis_counters;
 mod basis_denial;
@@ -44,6 +45,7 @@ pub use basis::{
     AdmittedRelationalBranchBasis, RelationalBranchBasisDescriptor, RelationalBranchBasisPosture,
     ResolvedRelationalBasisDescriptor, RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
 };
+pub use basis_admission_identity::RelationalBranchBasisAdmissionIdentity;
 pub use basis_counters::RelationalBranchBasisCostCounters;
 pub use basis_denial::{RelationalBranchBasisDenial, RelationalBranchBasisMismatchAxis};
 pub(crate) use basis_observation::{

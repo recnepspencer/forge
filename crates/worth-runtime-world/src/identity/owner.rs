@@ -17,7 +17,6 @@ pub enum RuntimeWorldIdentityFamily {
     ProductBranch,
     ProductBranchReferenceGeneration,
     BranchLifecycle,
-    CompositeBasis,
     CompositeCommit,
     BootstrapAttempt,
     PublicationAttempt,
@@ -47,13 +46,13 @@ static NEXT_OWNER_IDENTITY: AtomicU64 = AtomicU64::new(0);
 ///
 /// The owner sequence itself is process-unique. All other sequences are
 /// intentionally local to one owner, and every emitted value carries that
-/// owner identity in its type's value.
+/// owner identity in its type's value. Composite basis identities are bound
+/// from owner-issued component admission identities rather than a cursor.
 #[derive(Debug)]
 pub(crate) struct RuntimeWorldIdentityIssuer {
     owner: RuntimeWorldOwnerIdentity,
     next_product_branch: u64,
     next_branch_lifecycle: u64,
-    next_composite_basis: u64,
     next_composite_commit: u64,
     next_bootstrap_attempt: u64,
     next_publication_attempt: u64,
@@ -72,7 +71,6 @@ impl RuntimeWorldIdentityIssuer {
             owner,
             next_product_branch: 0,
             next_branch_lifecycle: 0,
-            next_composite_basis: 0,
             next_composite_commit: 0,
             next_bootstrap_attempt: 0,
             next_publication_attempt: 0,
@@ -120,15 +118,12 @@ impl RuntimeWorldIdentityIssuer {
     }
 
     pub(crate) fn composite_basis(
-        &mut self,
-    ) -> Result<super::CompositeBasisIdentity, RuntimeWorldIdentityExhaustion> {
-        Ok(super::CompositeBasisIdentity::issued(
-            self.owner,
-            Self::next(
-                &mut self.next_composite_basis,
-                RuntimeWorldIdentityFamily::CompositeBasis,
-            )?,
-        ))
+        &self,
+        relational: worth_relational::facade::branch::RelationalBranchBasisAdmissionIdentity,
+        signal: worth_signal::facade::branch::SignalBranchBasisAdmissionIdentity,
+        correspondence: worth_runtime_bridge::facade::BridgeCorrespondenceAdmissionIdentity,
+    ) -> super::CompositeBasisIdentity {
+        super::CompositeBasisIdentity::issued(self.owner, relational, signal, correspondence)
     }
 
     pub(crate) fn composite_commit(
@@ -211,7 +206,6 @@ mod tests {
 
         assert_eq!(issuer.product_branch().unwrap().owner_identity(), owner);
         assert_eq!(issuer.branch_lifecycle().unwrap().owner_identity(), owner);
-        assert_eq!(issuer.composite_basis().unwrap().owner_identity(), owner);
         assert_eq!(issuer.composite_commit().unwrap().owner_identity(), owner);
         assert_eq!(issuer.bootstrap_attempt().unwrap().owner_identity(), owner);
         assert_eq!(

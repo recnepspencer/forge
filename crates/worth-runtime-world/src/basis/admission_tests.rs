@@ -182,13 +182,13 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
         "the transported artifact has an exactly equal serializable descriptor"
     );
 
-    let (mut identities, owner) = RuntimeWorldIdentityIssuer::new().expect("World owner");
-    let (mut foreign_identities, foreign_owner) =
+    let (identities, owner) = RuntimeWorldIdentityIssuer::new().expect("World owner");
+    let (foreign_identities, foreign_owner) =
         RuntimeWorldIdentityIssuer::new().expect("foreign World owner");
     assert_ne!(owner, foreign_owner);
 
     let denial = admit_current(
-        &mut identities,
+        &identities,
         &foreign_signal_port,
         fixture.relational.clone(),
         transported_signal,
@@ -203,7 +203,7 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
     ));
 
     let admitted = admit_current(
-        &mut identities,
+        &identities,
         &fixture.signal_port,
         fixture.relational.clone(),
         fixture.signal.clone(),
@@ -211,7 +211,7 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
     )
     .expect("the Signal owner port admits the live basis");
     let foreign_world_admission = admit_current(
-        &mut foreign_identities,
+        &foreign_identities,
         &fixture.signal_port,
         fixture.relational.clone(),
         fixture.signal.clone(),
@@ -219,11 +219,11 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
     )
     .expect("the second World owner admits through the real Signal owner port");
     let repeated_admission = admit_current(
-        &mut identities,
+        &identities,
         &fixture.signal_port,
-        fixture.relational,
-        fixture.signal,
-        fixture.correspondence,
+        fixture.relational.clone(),
+        fixture.signal.clone(),
+        fixture.correspondence.clone(),
     )
     .expect("a second owner admission remains a valid World operation");
 
@@ -234,15 +234,44 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
         foreign_world_admission.signal_basis().descriptor(),
         "foreign World admissions carry equal Signal descriptors"
     );
+    assert_eq!(
+        admitted.relational_basis(),
+        foreign_world_admission.relational_basis()
+    );
+    assert_eq!(
+        admitted.correspondence_basis(),
+        foreign_world_admission.correspondence_basis()
+    );
     assert_ne!(
         admitted, foreign_world_admission,
         "World owner identity, not a Signal descriptor, defines composite equivalence"
     );
+    assert_ne!(admitted.identity(), foreign_world_admission.identity());
     assert!(compare_exact(&admitted, &foreign_world_admission).is_err());
-    assert_ne!(
-        admitted, repeated_admission,
-        "distinct World owner-issued admissions do not collapse by descriptor"
-    );
+    assert_eq!(admitted.identity(), repeated_admission.identity());
+    assert_eq!(admitted, repeated_admission);
     assert!(compare_exact(&admitted, &admitted.clone()).is_ok());
-    assert!(compare_exact(&admitted, &repeated_admission).is_err());
+    assert!(compare_exact(&admitted, &repeated_admission).is_ok());
+
+    let current_branch = fixture._signal_runtime.current_branch();
+    let distinct_signal = fixture
+        ._signal_runtime
+        .observe_signal_branch_basis(current_branch)
+        .expect("the real Signal owner admits a second current basis");
+    assert_eq!(fixture.signal.descriptor(), distinct_signal.descriptor());
+    assert_ne!(
+        fixture.signal.admission_identity(),
+        distinct_signal.admission_identity(),
+        "equal Signal descriptors do not identify the same owner admission"
+    );
+    let distinct_signal_admission = admit_current(
+        &identities,
+        &fixture.signal_port,
+        fixture.relational.clone(),
+        distinct_signal,
+        fixture.correspondence.clone(),
+    )
+    .expect("the real Signal port admits the distinct current basis");
+    assert_ne!(admitted.identity(), distinct_signal_admission.identity());
+    assert_ne!(admitted, distinct_signal_admission);
 }

@@ -3,9 +3,9 @@ use worth_runtime_bridge::facade::AdmittedRuntimeWorldCorrespondenceBasis;
 use worth_signal::facade::branch::AdmittedSignalBranchBasis;
 
 /// The exact ordered component tuple that constitutes one Runtime World
-/// basis. It is descriptive storage behind the admitted wrapper; it has no
-/// public equality or constructor because component values cannot prove the
-/// Runtime World admission identity.
+/// basis. It is descriptive storage behind the admitted wrapper; its
+/// owner-issued component admission identities are bound separately by the
+/// Runtime World identity issuer. It has no public equality or constructor.
 #[derive(Debug, Clone)]
 pub(crate) struct CompositeRuntimeWorldBasis {
     relational: AdmittedRelationalBranchBasis,

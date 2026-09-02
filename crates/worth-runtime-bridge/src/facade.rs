@@ -85,7 +85,8 @@ pub use crate::authorization::{
     BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
 pub use crate::correspondence::{
-    AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondenceAdmissionDenial,
+    AdmittedRuntimeWorldCorrespondenceBasis, BridgeCorrespondenceAdmissionIdentity,
+    RuntimeWorldCorrespondenceAdmissionDenial,
 };
 pub use crate::identity_authority::*;
 pub use exports_core::*;

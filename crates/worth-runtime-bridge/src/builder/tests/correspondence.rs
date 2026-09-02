@@ -336,6 +336,12 @@ fn runtime_world_admission_is_bound_to_the_issuing_bridge_runtime() {
         admitted.source_installation_generation(),
         correspondence.basis().source_installation_generation()
     );
+    let repeated = runtime
+        .runtime_world_correspondence_port()
+        .admit_installed_basis(&correspondence)
+        .expect("the same installed correspondence reuses its admission identity");
+    assert_eq!(admitted.admission_identity(), repeated.admission_identity());
+    assert_eq!(admitted, repeated);
 
     let foreign_runtime = runtime.fork_managed_request_lane();
     assert!(matches!(

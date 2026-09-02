@@ -1,4 +1,5 @@
 pub(crate) mod admission;
+mod admission_identity;
 mod admission_outcome;
 mod admitted_truth_identity;
 mod batch_admission;
@@ -37,6 +38,7 @@ pub(crate) use slot_allocation::{
 };
 
 pub use admission::CorrespondenceAdmissionOutcome;
+pub use admission_identity::BridgeCorrespondenceAdmissionIdentity;
 pub use admission_outcome::{
     BridgeCorrespondenceAdmissionFailure, BridgeCorrespondenceDeferred, BridgeCorrespondenceDenial,
     BridgeCorrespondenceDenialKind, BridgeCorrespondenceRebindRequired, BridgeCorrespondenceStale,

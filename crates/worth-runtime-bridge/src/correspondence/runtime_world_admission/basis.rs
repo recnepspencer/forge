@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use super::super::{BridgeCorrespondenceBasis, BridgeInstalledSemanticCorrespondence};
+use super::super::{
+    BridgeCorrespondenceAdmissionIdentity, BridgeCorrespondenceBasis,
+    BridgeInstalledSemanticCorrespondence,
+};
 use worth_proof::AuthorityWitness;
 
 use super::admission::BridgeRuntimeWorldAdmissionAuthorityMarker;
@@ -13,12 +16,13 @@ use super::admission::BridgeRuntimeWorldAdmissionAuthorityMarker;
 #[derive(Debug, Clone)]
 pub struct AdmittedRuntimeWorldCorrespondenceBasis {
     basis: BridgeCorrespondenceBasis,
+    admission_identity: BridgeCorrespondenceAdmissionIdentity,
     _authority: Arc<AuthorityWitness<BridgeRuntimeWorldAdmissionAuthorityMarker>>,
 }
 
 impl PartialEq for AdmittedRuntimeWorldCorrespondenceBasis {
     fn eq(&self, other: &Self) -> bool {
-        self.basis == other.basis
+        self.admission_identity == other.admission_identity
     }
 }
 
@@ -31,12 +35,21 @@ impl AdmittedRuntimeWorldCorrespondenceBasis {
     ) -> Self {
         Self {
             basis: installed.basis().clone(),
+            admission_identity: installed.admission_identity().clone(),
             _authority: Arc::new(authority),
         }
     }
 
     pub fn basis(&self) -> &BridgeCorrespondenceBasis {
         &self.basis
+    }
+
+    /// Identity issued by Bridge for the installed correspondence admission.
+    ///
+    /// The identity binds the installed owner path for Runtime World
+    /// composition; the descriptive correspondence basis is not the key.
+    pub fn admission_identity(&self) -> &BridgeCorrespondenceAdmissionIdentity {
+        &self.admission_identity
     }
 
     pub fn source_installation_generation(&self) -> u64 {

@@ -1,7 +1,8 @@
 pub use crate::branch::{
     relational_branch_observation, AdmittedRelationalBranchBasis,
     AdmittedRelationalForkSourceBasis, ArchivedRelationalBranch, DeletedRelationalBranch,
-    RelationalBranchArchiveDenial, RelationalBranchBasisCostCounters, RelationalBranchBasisDenial,
+    RelationalBranchArchiveDenial, RelationalBranchBasisAdmissionIdentity,
+    RelationalBranchBasisCostCounters, RelationalBranchBasisDenial,
     RelationalBranchBasisDescriptor, RelationalBranchBasisMismatchAxis, RelationalBranchBasisPort,
     RelationalBranchBasisPosture, RelationalBranchCellDenial, RelationalBranchComparisonBasis,
     RelationalBranchDeleteDenial, RelationalBranchDeletionOutcome, RelationalBranchDeletionPending,

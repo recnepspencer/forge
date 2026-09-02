@@ -9,10 +9,12 @@ owner-created component custody records. Zero limits are rejected during
 installation; no `Default` can silently omit a bound.
 
 An exact component basis is pinned by its full Runtime World owner-issued
-composite admission identity and binding. Repeated reuse of a basis is a
-dependency-count change, not a new lease per commit. A serializable Signal
-descriptor is descriptive transport only and cannot authorize a pin or prove
-owner affinity; currentness belongs to the Signal owner basis port.
+composite admission identity and binding. That identity contains only the
+World owner and owner-issued component admission tokens; it retains no
+component owner or lease. Repeated reuse of a basis is a dependency-count
+change, not a new lease per commit. A serializable Signal descriptor is
+descriptive transport only and cannot authorize a pin or prove owner affinity;
+currentness belongs to the Signal owner basis port.
 `ProductBranchObservation` clones share one internal observation admission
 obligation and never reread a head. The retention registry and owner lease
 behavior are implemented in the Phase 2 retention lane.

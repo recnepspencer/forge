@@ -8,9 +8,7 @@ use worth_signal::facade::branch::{
 };
 
 use super::composite::CompositeRuntimeWorldBasis;
-use crate::identity::{
-    CompositeBasisIdentity, RuntimeWorldIdentityExhaustion, RuntimeWorldIdentityIssuer,
-};
+use crate::identity::{CompositeBasisIdentity, RuntimeWorldIdentityIssuer};
 
 worth_proof::authority_marker!(pub(crate) CompositeBasisAdmissionAuthorityMarker);
 
@@ -80,14 +78,13 @@ impl AdmittedCompositeRuntimeWorldBasis {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum CompositeBasisAdmissionDenial {
     Signal(SignalBranchBasisReadmissionDenial),
-    IdentityExhausted(RuntimeWorldIdentityExhaustion),
 }
 
 /// Admit a live component tuple only after the Signal owner has checked the
 /// exact basis against its current owner cell. The World identity is issued
 /// only after that owner-side admission succeeds.
 pub(crate) fn admit_current<D, I, T>(
-    identities: &mut RuntimeWorldIdentityIssuer,
+    identities: &RuntimeWorldIdentityIssuer,
     signal_port: &SignalBranchBasisPort<D, I, T>,
     relational: AdmittedRelationalBranchBasis,
     signal: AdmittedSignalBranchBasis,
@@ -101,9 +98,11 @@ where
     signal_port
         .compare_current_exact(&signal)
         .map_err(CompositeBasisAdmissionDenial::Signal)?;
-    let identity = identities
-        .composite_basis()
-        .map_err(CompositeBasisAdmissionDenial::IdentityExhausted)?;
+    let identity = identities.composite_basis(
+        relational.admission_identity().clone(),
+        signal.admission_identity().clone(),
+        correspondence.admission_identity().clone(),
+    );
     let basis = CompositeRuntimeWorldBasis::admit(relational, signal, correspondence);
     Ok(AdmittedCompositeRuntimeWorldBasis::new(basis, identity))
 }
