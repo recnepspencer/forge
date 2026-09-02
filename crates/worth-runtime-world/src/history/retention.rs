@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::identity::RuntimeWorldOwnerIdentity;
+use crate::history::CompositeRuntimeWorldCommit;
+use crate::identity::{CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
 use crate::retention::ComponentBasisDependencyClass;
 
 use super::catalog::{lock_index, HistoryReachabilityHandle};
@@ -16,9 +17,9 @@ pub(in crate::history) enum HistoryProtectionClass {
 /// One exact installed commit protection. It is move-only and releases its
 /// direct protection at most once when the owner of the obligation drops it.
 #[must_use = "an exact history protection must remain live while needed"]
-pub(crate) struct CompositeHistoryProtectionObligation {
+pub(in crate::history) struct CompositeHistoryProtectionObligation {
     reachability: HistoryReachabilityHandle,
-    identity: crate::identity::CompositeCommitIdentity,
+    identity: CompositeCommitIdentity,
     class: HistoryProtectionClass,
 }
 
@@ -42,7 +43,7 @@ impl Drop for CompositeHistoryProtectionObligation {
 impl CompositeHistoryProtectionObligation {
     pub(in crate::history) fn new(
         reachability: Arc<std::sync::Mutex<super::catalog::HistoryReachabilityIndex>>,
-        identity: crate::identity::CompositeCommitIdentity,
+        identity: CompositeCommitIdentity,
         class: HistoryProtectionClass,
     ) -> Self {
         Self {
@@ -50,6 +51,41 @@ impl CompositeHistoryProtectionObligation {
             identity,
             class,
         }
+    }
+}
+
+/// History-issued proof that one product head keeps its exact installed commit
+/// reachable. The generic protection class remains private to History.
+#[must_use = "a product head must retain its exact installed commit"]
+pub(crate) struct ProductHeadHistoryProtectionObligation {
+    protection: CompositeHistoryProtectionObligation,
+}
+
+impl std::fmt::Debug for ProductHeadHistoryProtectionObligation {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ProductHeadHistoryProtectionObligation")
+            .field("identity", self.commit_identity())
+            .finish_non_exhaustive()
+    }
+}
+
+impl ProductHeadHistoryProtectionObligation {
+    pub(in crate::history) fn issued(protection: CompositeHistoryProtectionObligation) -> Self {
+        debug_assert_eq!(protection.class, HistoryProtectionClass::ProductHead);
+        Self { protection }
+    }
+
+    pub(crate) fn commit_identity(&self) -> &CompositeCommitIdentity {
+        &self.protection.identity
+    }
+
+    pub(crate) fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
+        self.commit_identity().owner_identity()
+    }
+
+    pub(crate) fn matches_commit(&self, commit: &CompositeRuntimeWorldCommit) -> bool {
+        self.commit_identity() == commit.identity()
     }
 }
 

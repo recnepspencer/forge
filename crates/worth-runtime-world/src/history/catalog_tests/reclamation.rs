@@ -204,11 +204,9 @@ fn exact_protection_validation_rejects_foreign_and_unknown_occurrences() {
         history_contract(1, u64::MAX),
     );
     catalog.append(root.clone()).expect("root install");
+    let before_denials = catalog.counters();
     assert!(matches!(
-        catalog.protect_exact(
-            foreign_commits[0].identity().clone(),
-            HistoryProtectionClass::ProductHead,
-        ),
+        catalog.protect_product_head(&foreign_commits[0]),
         Err(CompositeHistoryCatalogDenial::ForeignOwner { .. })
     ));
     let unknown = owner
@@ -216,7 +214,75 @@ fn exact_protection_validation_rejects_foreign_and_unknown_occurrences() {
         .composite_commit()
         .expect("unknown identity");
     assert!(matches!(
-        catalog.protect_exact(unknown.clone(), HistoryProtectionClass::ProductHead),
+        catalog.protect_product_head(&crate::history::CompositeRuntimeWorldCommit::from_root_bootstrap(
+            unknown.clone(),
+            root.basis().clone(),
+            owner.issuer_mut().bootstrap_attempt().expect("unknown attempt"),
+            None,
+        ).expect("same-owner unknown commit")),
         Err(CompositeHistoryCatalogDenial::UnknownProtectionTarget(target)) if target == unknown
     ));
+    let after_denials = catalog.counters();
+    assert_eq!(
+        after_denials.direct_protection_acquisitions(),
+        before_denials.direct_protection_acquisitions()
+    );
+    assert_eq!(
+        after_denials.direct_protection_releases(),
+        before_denials.direct_protection_releases()
+    );
+}
+
+#[test]
+fn product_head_protection_proves_one_exact_installed_occurrence() {
+    let (_owner, commits) = linear_history(2);
+    let root = commits[0].clone();
+    let successor = commits[1].clone();
+    let owner_identity = root.identity().owner_identity();
+    let catalog = CompositeHistoryCatalog::new(owner_identity, history_contract(2, u64::MAX));
+    catalog.append(root.clone()).expect("root install");
+    catalog
+        .append(successor.clone())
+        .expect("successor install");
+
+    let before = catalog.counters();
+    let protection = catalog
+        .protect_product_head(&successor)
+        .expect("installed product head is protectable");
+    assert_eq!(protection.commit_identity(), successor.identity());
+    assert_eq!(protection.owner_identity(), owner_identity);
+    assert!(protection.matches_commit(&successor));
+    assert!(!protection.matches_commit(&root));
+    assert_eq!(
+        catalog.counters().direct_protection_acquisitions(),
+        before.direct_protection_acquisitions() + 1
+    );
+
+    let moved = protection;
+    let blocked = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            owner_identity,
+            vec![successor.identity().clone()],
+            1,
+            1,
+        ))
+        .expect("live product head blocks reclamation");
+    assert_eq!(blocked.skipped_protected(), 1);
+    drop(moved);
+    assert_eq!(
+        catalog.counters().direct_protection_releases(),
+        before.direct_protection_releases() + 1
+    );
+    let reclaimed = catalog
+        .reclaim_batch(CompositeHistoryReclamationRequest::new(
+            owner_identity,
+            vec![successor.identity().clone()],
+            1,
+            1,
+        ))
+        .expect("final drop permits reclamation");
+    assert_eq!(
+        reclaimed.reclaimed_commits(),
+        &[successor.identity().clone()]
+    );
 }

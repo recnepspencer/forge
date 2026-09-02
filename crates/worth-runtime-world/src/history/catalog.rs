@@ -17,7 +17,10 @@ use crate::identity::{CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
 use super::reclamation::{
     CompositeHistoryReclamationRequest, HistoryReclamationDenial, HistoryReclamationOutcome,
 };
-use super::retention::{CompositeHistoryProtectionObligation, HistoryProtectionClass};
+use super::retention::{
+    CompositeHistoryProtectionObligation, HistoryProtectionClass,
+    ProductHeadHistoryProtectionObligation,
+};
 use super::{CompositeCommitParent, CompositeRuntimeWorldCommit};
 
 pub(crate) use counters::HistoryCatalogCounters;
@@ -239,7 +242,7 @@ impl CompositeHistoryCatalog {
         counters
     }
 
-    pub(super) fn protect_exact(
+    fn protect_exact(
         &self,
         identity: CompositeCommitIdentity,
         class: HistoryProtectionClass,
@@ -260,6 +263,19 @@ impl CompositeHistoryCatalog {
             identity,
             class,
         ))
+    }
+
+    /// Issue the only cross-module history protection capability used by a
+    /// product reference. Callers cannot choose another protection class.
+    pub(crate) fn protect_product_head(
+        &self,
+        commit: &CompositeRuntimeWorldCommit,
+    ) -> Result<ProductHeadHistoryProtectionObligation, CompositeHistoryCatalogDenial> {
+        self.protect_exact(
+            commit.identity().clone(),
+            HistoryProtectionClass::ProductHead,
+        )
+        .map(ProductHeadHistoryProtectionObligation::issued)
     }
 
     /// Walk one parent chain up to an explicit caller bound. Reclamation does
