@@ -1,61 +1,48 @@
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::history::CompositeRuntimeWorldCommit;
+use crate::history::{
+    CompositeHistoryCatalog, CompositeHistoryCatalogDenial, CompositeRuntimeWorldCommit,
+    ProductHeadHistoryProtectionObligation,
+};
 use crate::identity::{
     ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
     RuntimeWorldOwnerIdentity,
 };
-use crate::retention::ObservationRetentionObligation;
+use crate::retention::{RetentionObligationDenial, RuntimeWorldRetentionOwner};
 
-use super::observation::{ProductBranchObservation, ProductBranchObservationMismatch};
+use super::observation::{
+    ProductBranchObservation, ProductBranchObservationAdmissionFailure,
+    ProductBranchObservationMismatch,
+};
 
-/// Branch-local synchronization protects only one immutable snapshot pointer;
-/// no owner call can occur while the lock is held.
 #[derive(Debug)]
-struct ReferenceCellState<T> {
-    current: Arc<RwLock<Arc<T>>>,
+struct ProductBranchReferenceImage {
+    snapshot: ProductBranchReferenceSnapshot,
+    product_head_history: ProductHeadHistoryProtectionObligation,
 }
 
-impl<T> Clone for ReferenceCellState<T> {
-    fn clone(&self) -> Self {
-        Self {
-            current: Arc::clone(&self.current),
-        }
-    }
+#[derive(Debug, Clone)]
+struct ReferenceCellState {
+    current: Arc<RwLock<ProductBranchReferenceImage>>,
 }
 
-impl<T> ReferenceCellState<T> {
-    fn new(initial: T) -> Self {
+impl ReferenceCellState {
+    fn new(initial: ProductBranchReferenceImage) -> Self {
         Self {
-            current: Arc::new(RwLock::new(Arc::new(initial))),
+            current: Arc::new(RwLock::new(initial)),
         }
     }
 
-    fn snapshot(&self) -> Arc<T> {
+    fn read(&self) -> RwLockReadGuard<'_, ProductBranchReferenceImage> {
         self.current
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
     }
 
-    fn write(&self) -> RwLockWriteGuard<'_, Arc<T>> {
+    fn write(&self) -> RwLockWriteGuard<'_, ProductBranchReferenceImage> {
         self.current
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
-    fn compare_and_replace(&self, expected: &T, successor: T) -> Result<(T, T), T>
-    where
-        T: Clone + PartialEq,
-    {
-        let mut current = self.write();
-        if current.as_ref() != expected {
-            return Err(current.as_ref().clone());
-        }
-        let before = current.as_ref().clone();
-        let after = successor.clone();
-        *current = Arc::new(successor);
-        Ok((before, after))
     }
 }
 
@@ -142,11 +129,33 @@ impl ProductBranchReferenceSnapshot {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProductBranchReferenceCellAdmissionDenial {
+    ProductHeadOwnerMismatch,
+    ProductHeadCommitMismatch,
+}
+
+#[derive(Debug)]
+pub(crate) struct ProductBranchReferenceCellAdmissionFailure {
+    denial: ProductBranchReferenceCellAdmissionDenial,
+    product_head_history: ProductHeadHistoryProtectionObligation,
+}
+
+impl ProductBranchReferenceCellAdmissionFailure {
+    pub(crate) const fn denial(&self) -> ProductBranchReferenceCellAdmissionDenial {
+        self.denial
+    }
+
+    pub(crate) fn into_product_head_history(self) -> ProductHeadHistoryProtectionObligation {
+        self.product_head_history
+    }
+}
+
 /// Independently borrowable product-reference cell; clones share only this
 /// branch's synchronization domain.
 #[derive(Debug, Clone)]
 pub(crate) struct ProductBranchReferenceCell {
-    state: ReferenceCellState<ProductBranchReferenceSnapshot>,
+    state: ReferenceCellState,
 }
 
 /// Why a reference movement could not replace the selected product head.
@@ -160,7 +169,32 @@ pub(crate) enum ProductBranchReferenceCellDenial {
         expected: ProductBranchReferenceGeneration,
         actual: ProductBranchReferenceGeneration,
     },
+    SuccessorHistoryOwnerMismatch,
+    SuccessorHistoryCommitMismatch,
     GenerationExhausted,
+}
+
+#[derive(Debug)]
+pub(crate) struct ProductBranchReferencePublishFailure {
+    denial: ProductBranchReferenceCellDenial,
+    successor_history: ProductHeadHistoryProtectionObligation,
+}
+
+impl ProductBranchReferencePublishFailure {
+    pub(crate) fn denial(&self) -> &ProductBranchReferenceCellDenial {
+        &self.denial
+    }
+
+    pub(crate) fn into_successor_history(self) -> ProductHeadHistoryProtectionObligation {
+        self.successor_history
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum ProductBranchReferenceObservationFailure {
+    HistoryProtection(CompositeHistoryCatalogDenial),
+    Retention(RetentionObligationDenial),
+    ObservationBinding(ProductBranchObservationAdmissionFailure),
 }
 
 /// Exact old/new images installed by one movement; it mints no owner artifact.
@@ -181,49 +215,148 @@ impl ProductBranchReferenceMovement {
 }
 
 impl ProductBranchReferenceCell {
-    pub(crate) fn new(initial: ProductBranchReferenceSnapshot) -> Self {
-        Self {
-            state: ReferenceCellState::new(initial),
+    pub(crate) fn new(
+        initial: ProductBranchReferenceSnapshot,
+        product_head_history: ProductHeadHistoryProtectionObligation,
+    ) -> Result<Self, ProductBranchReferenceCellAdmissionFailure> {
+        match validate_product_head(&initial, &product_head_history) {
+            Ok(()) => Ok(Self {
+                state: ReferenceCellState::new(ProductBranchReferenceImage {
+                    snapshot: initial,
+                    product_head_history,
+                }),
+            }),
+            Err(denial) => Err(ProductBranchReferenceCellAdmissionFailure {
+                denial,
+                product_head_history,
+            }),
         }
     }
 
     /// Capture an immutable image whose commit stays alive across movement.
     pub(crate) fn atomic_snapshot(&self) -> ProductBranchReferenceSnapshot {
-        self.state.snapshot().as_ref().clone()
+        self.state.read().snapshot.clone()
     }
 
-    /// Admit a managed observation from one exact image and opaque,
-    /// owner-issued retention handoff.
-    pub(crate) fn observe(
+    /// Protect and recheck one candidate before asking the component owner for
+    /// its exact observation claims. The equal recheck is the head
+    /// linearization point; all owner calls happen after its read guard drops.
+    pub(crate) fn observe<D, I, T>(
         &self,
-        retention: ObservationRetentionObligation,
-    ) -> ProductBranchObservation {
-        ProductBranchObservation::owner_issued(self.atomic_snapshot(), retention)
+        history: &CompositeHistoryCatalog,
+        retention_owner: &RuntimeWorldRetentionOwner<D, I, T>,
+    ) -> Result<ProductBranchObservation, ProductBranchReferenceObservationFailure>
+    where
+        D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+        I: Copy + Ord + Send + Sync + 'static,
+        T: Copy + Ord + Send + Sync + 'static,
+    {
+        loop {
+            let candidate = self.atomic_snapshot();
+            let history_protection = match history.protect_explicit_commit(candidate.commit()) {
+                Ok(protection) => protection,
+                Err(denial) => {
+                    let current = self.state.read();
+                    if current.snapshot != candidate {
+                        drop(current);
+                        continue;
+                    }
+                    return Err(ProductBranchReferenceObservationFailure::HistoryProtection(
+                        denial,
+                    ));
+                }
+            };
+            let current = self.state.read();
+            let still_selected = current.snapshot == candidate;
+            drop(current);
+            if !still_selected {
+                drop(history_protection);
+                continue;
+            }
+
+            let components = match retention_owner.issue_observation(candidate.commit()) {
+                Ok(components) => components,
+                Err(denial) => {
+                    drop(history_protection);
+                    return Err(ProductBranchReferenceObservationFailure::Retention(denial));
+                }
+            };
+            return ProductBranchObservation::owner_issued(
+                candidate,
+                components,
+                history_protection,
+            )
+            .map_err(ProductBranchReferenceObservationFailure::ObservationBinding);
+        }
     }
 
     /// Replace only if the complete expected observation is still selected.
-    /// Validation and the swap use this branch's short lock; no external work.
+    /// Expected-currentness, successor validation, and pair replacement use
+    /// one short branch-local lock; no owner call occurs while it is held.
     pub(crate) fn compare_and_publish(
         &self,
         expected: &ProductBranchObservation,
         successor: ProductBranchReferenceSnapshot,
-    ) -> Result<ProductBranchReferenceMovement, ProductBranchReferenceCellDenial> {
+        successor_history: ProductHeadHistoryProtectionObligation,
+    ) -> Result<ProductBranchReferenceMovement, ProductBranchReferencePublishFailure> {
         let expected_snapshot = expected.snapshot();
-        validate_successor(expected_snapshot, &successor)?;
-        match self.state.compare_and_replace(expected_snapshot, successor) {
-            Ok((before, after)) => Ok(ProductBranchReferenceMovement { before, after }),
-            Err(observed) => Err(ProductBranchReferenceCellDenial::ExpectedHeadMismatch(
-                expected
-                    .mismatch_against_snapshot(&observed)
-                    .expect("snapshot equality and observation comparison must agree"),
-            )),
+        let mut current = self.state.write();
+        if &current.snapshot != expected_snapshot {
+            return Err(ProductBranchReferencePublishFailure {
+                denial: ProductBranchReferenceCellDenial::ExpectedHeadMismatch(
+                    expected
+                        .mismatch_against_snapshot(&current.snapshot)
+                        .expect("snapshot equality and observation comparison must agree"),
+                ),
+                successor_history,
+            });
         }
+        if let Err(denial) = validate_successor(&current.snapshot, &successor, &successor_history) {
+            return Err(ProductBranchReferencePublishFailure {
+                denial,
+                successor_history,
+            });
+        }
+
+        let movement = ProductBranchReferenceMovement {
+            before: current.snapshot.clone(),
+            after: successor.clone(),
+        };
+        let old_image = std::mem::replace(
+            &mut *current,
+            ProductBranchReferenceImage {
+                snapshot: successor,
+                product_head_history: successor_history,
+            },
+        );
+        drop(current);
+        drop(old_image);
+        Ok(movement)
     }
+
+    #[cfg(test)]
+    fn hold_for_test(&self) -> impl Drop + '_ {
+        self.state.write()
+    }
+}
+
+fn validate_product_head(
+    snapshot: &ProductBranchReferenceSnapshot,
+    product_head_history: &ProductHeadHistoryProtectionObligation,
+) -> Result<(), ProductBranchReferenceCellAdmissionDenial> {
+    if product_head_history.owner_identity() != snapshot.owner() {
+        return Err(ProductBranchReferenceCellAdmissionDenial::ProductHeadOwnerMismatch);
+    }
+    if !product_head_history.matches_commit(snapshot.commit()) {
+        return Err(ProductBranchReferenceCellAdmissionDenial::ProductHeadCommitMismatch);
+    }
+    Ok(())
 }
 
 fn validate_successor(
     current: &ProductBranchReferenceSnapshot,
     successor: &ProductBranchReferenceSnapshot,
+    history: &ProductHeadHistoryProtectionObligation,
 ) -> Result<(), ProductBranchReferenceCellDenial> {
     if successor.owner() != current.owner() {
         return Err(ProductBranchReferenceCellDenial::SuccessorOwnerMismatch);
@@ -246,151 +379,19 @@ fn validate_successor(
             },
         );
     }
+    if history.owner_identity() != successor.owner() {
+        return Err(ProductBranchReferenceCellDenial::SuccessorHistoryOwnerMismatch);
+    }
+    if !history.matches_commit(successor.commit()) {
+        return Err(ProductBranchReferenceCellDenial::SuccessorHistoryCommitMismatch);
+    }
     Ok(())
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::{mpsc, Arc, Barrier};
-    use std::thread;
-    use std::time::Duration;
+#[path = "reference_test_fixture.rs"]
+mod reference_test_fixture;
 
-    use super::ReferenceCellState;
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    struct TestReferenceImage {
-        generation: u64,
-        commit: u64,
-    }
-
-    fn replace_if_current(
-        state: &ReferenceCellState<TestReferenceImage>,
-        expected: &TestReferenceImage,
-        successor: TestReferenceImage,
-    ) -> bool {
-        state.compare_and_replace(expected, successor).is_ok()
-    }
-
-    #[test]
-    fn cloned_reference_handles_share_one_immutable_image() {
-        let state = ReferenceCellState::new(TestReferenceImage {
-            generation: 0,
-            commit: 7,
-        });
-        let clone = state.clone();
-        let old = state.snapshot();
-
-        assert!(replace_if_current(
-            &clone,
-            old.as_ref(),
-            TestReferenceImage {
-                generation: 1,
-                commit: 8,
-            },
-        ));
-
-        assert_eq!(old.generation, 0);
-        assert_eq!(old.commit, 7);
-        assert_eq!(state.snapshot().generation, 1);
-        assert_eq!(state.snapshot().commit, 8);
-    }
-
-    #[test]
-    fn same_head_contention_wins_one_compare_and_replace() {
-        let state = ReferenceCellState::new(TestReferenceImage {
-            generation: 0,
-            commit: 7,
-        });
-        let expected = state.snapshot();
-        let start = Arc::new(Barrier::new(3));
-        let (results, receive) = mpsc::channel();
-
-        let first = state.clone();
-        let first_start = Arc::clone(&start);
-        let first_expected = Arc::clone(&expected);
-        let first_results = results.clone();
-        let first_worker = thread::spawn(move || {
-            first_start.wait();
-            first_results
-                .send(replace_if_current(
-                    &first,
-                    first_expected.as_ref(),
-                    TestReferenceImage {
-                        generation: 1,
-                        commit: 8,
-                    },
-                ))
-                .expect("first contention result receiver remains live");
-        });
-
-        let second = state.clone();
-        let second_start = Arc::clone(&start);
-        let second_expected = Arc::clone(&expected);
-        let second_worker = thread::spawn(move || {
-            second_start.wait();
-            results
-                .send(replace_if_current(
-                    &second,
-                    second_expected.as_ref(),
-                    TestReferenceImage {
-                        generation: 1,
-                        commit: 9,
-                    },
-                ))
-                .expect("second contention result receiver remains live");
-        });
-
-        start.wait();
-        let first_won = receive
-            .recv_timeout(Duration::from_secs(1))
-            .expect("first contention worker completes");
-        let second_won = receive
-            .recv_timeout(Duration::from_secs(1))
-            .expect("second contention worker completes");
-        first_worker.join().expect("first worker does not panic");
-        second_worker.join().expect("second worker does not panic");
-
-        assert_ne!(first_won, second_won);
-        assert_eq!(state.snapshot().generation, 1);
-        assert!(matches!(state.snapshot().commit, 8 | 9));
-    }
-
-    #[test]
-    fn unrelated_reference_progress_does_not_wait_on_another_cell() {
-        let held = ReferenceCellState::new(TestReferenceImage {
-            generation: 0,
-            commit: 7,
-        });
-        let unrelated = ReferenceCellState::new(TestReferenceImage {
-            generation: 0,
-            commit: 11,
-        });
-        let held_guard = held.write();
-        let (completed, receive) = mpsc::channel();
-        let unrelated_worker_state = unrelated.clone();
-        let worker = thread::spawn(move || {
-            let expected = unrelated_worker_state.snapshot();
-            let did_replace = replace_if_current(
-                &unrelated_worker_state,
-                expected.as_ref(),
-                TestReferenceImage {
-                    generation: 1,
-                    commit: 12,
-                },
-            );
-            completed
-                .send(did_replace)
-                .expect("unrelated completion receiver remains live");
-        });
-
-        let did_replace = receive
-            .recv_timeout(Duration::from_secs(1))
-            .expect("an unrelated reference completes while this cell is held");
-        drop(held_guard);
-        worker.join().expect("unrelated worker does not panic");
-
-        assert!(did_replace);
-        assert_eq!(held.snapshot().generation, 0);
-        assert_eq!(unrelated.snapshot().generation, 1);
-    }
-}
+#[cfg(test)]
+#[path = "reference_cell_tests.rs"]
+mod tests;

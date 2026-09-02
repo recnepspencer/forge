@@ -12,7 +12,8 @@ use super::reference_cell::ProductBranchReferenceSnapshot;
 
 /// Complete product-head observation used by every compare-and-publish
 /// operation. A single reference snapshot supplies the commit and basis;
-/// retention is an opaque handoff owned operationally by Phase 2.
+/// its obligation owns both exact component claims and explicit history
+/// protection for that same commit occurrence.
 #[derive(Debug)]
 pub struct ProductBranchObservation {
     snapshot: Arc<ProductBranchReferenceSnapshot>,
@@ -225,3 +226,11 @@ impl ProductBranchObservation {
             .map_or(Ok(()), Err)
     }
 }
+
+#[cfg(test)]
+#[path = "reference_test_fixture.rs"]
+mod reference_test_fixture;
+
+#[cfg(test)]
+#[path = "observation_tests.rs"]
+mod tests;
