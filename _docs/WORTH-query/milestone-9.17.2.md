@@ -776,12 +776,12 @@ affected lanes pause while a serial correction gate revises the canonical type
 once and reruns its consumers; no lane may add an adapter, alias, duplicate
 trait, or provisional compatibility surface.
 
-Incremental review is bounded to the last approved commit through the proposed
-commit, plus only authority seams directly invalidated by that delta. Reviewers
-reuse unchanged conclusions and focused evidence; they do not reread the whole
-milestone, crate, kernel, manifest set, or dirty surface. Any required scope
-expansion is named before inspection. Holistic review occurs only at an
-explicit phase or closure gate.
+Every incremental-review prompt begins by limiting review to the exact last
+approved-to-candidate diff and directly invalidated seams. Reviewers read that
+patch once, reuse prior conclusions and evidence, and revisit only named hunks
+or line ranges; they do not reopen the whole diff or reread the milestone,
+crate, kernel, manifests, or dirty surface. Any expansion is announced before
+inspection. Holistic review occurs only at an explicit phase or closure gate.
 
 ### Phase 1: Serial composition-contract gate
 
