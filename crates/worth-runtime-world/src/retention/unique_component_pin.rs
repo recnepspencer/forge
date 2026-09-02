@@ -1,3 +1,6 @@
+use std::fmt;
+use std::sync::Arc;
+
 use worth_relational::facade::branch::{
     AdmittedRelationalBranchBasis, RelationalBranchBasisAdmissionIdentity,
 };
@@ -6,21 +9,20 @@ use worth_signal::facade::branch::{AdmittedSignalBranchBasis, SignalBranchBasisA
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::identity::RuntimeWorldOwnerIdentity;
 
+use super::component_obligation::RetentionControlSurface;
 use super::ComponentBasisDependencyClass;
 
-/// Exact component value selected by the future Runtime World retention
-/// owner. The composite basis is only the source of the component value;
-/// retention never keys a lease by the composite identity.
-#[allow(dead_code)]
+/// Exact component value selected by the Runtime World retention owner. The
+/// composite basis is only the source of the component value; retention never
+/// keys a lease by the composite identity.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum ExactComponentBasis<'a> {
     Relational(&'a AdmittedRelationalBranchBasis),
     Signal(&'a AdmittedSignalBranchBasis),
 }
 
-/// Independent key used by the future unique-pin registry.
-/// Descriptors and composite identities are intentionally absent.
-#[allow(dead_code)]
+/// Independent key used by the unique-pin registry. Descriptors and
+/// composite identities are intentionally absent.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum ExactComponentBasisKey {
     Relational(RelationalBranchBasisAdmissionIdentity),
@@ -28,9 +30,8 @@ pub(crate) enum ExactComponentBasisKey {
 }
 
 /// Request to retain one exact component basis under one Runtime World
-/// dependency class. A pair of these requests represents one composite
-/// observation or publication, but each key is counted independently.
-#[allow(dead_code)]
+/// dependency class. A pair of requests represents one composite obligation,
+/// but each key is counted independently.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ExactComponentPinRequest<'a> {
     owner: RuntimeWorldOwnerIdentity,
@@ -38,7 +39,6 @@ pub(crate) struct ExactComponentPinRequest<'a> {
     dependency: ComponentBasisDependencyClass,
 }
 
-#[allow(dead_code)]
 impl<'a> ExactComponentPinRequest<'a> {
     pub(crate) fn relational(
         basis: &'a AdmittedCompositeRuntimeWorldBasis,
@@ -70,6 +70,10 @@ impl<'a> ExactComponentPinRequest<'a> {
         self.dependency
     }
 
+    pub(crate) const fn component(self) -> ExactComponentBasis<'a> {
+        self.component
+    }
+
     pub(crate) fn key(self) -> ExactComponentBasisKey {
         match self.component {
             ExactComponentBasis::Relational(basis) => {
@@ -81,3 +85,86 @@ impl<'a> ExactComponentPinRequest<'a> {
         }
     }
 }
+
+/// Runtime World-local identity for one live owner lease generation. It is
+/// evidence for stale-token detection, not an authority that can mint a lease.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct ComponentBasisLeaseIdentity {
+    owner: RuntimeWorldOwnerIdentity,
+    ordinal: u64,
+}
+
+impl ComponentBasisLeaseIdentity {
+    pub(super) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
+        Self { owner, ordinal }
+    }
+
+    pub(crate) const fn owner(self) -> RuntimeWorldOwnerIdentity {
+        self.owner
+    }
+
+    pub(crate) const fn ordinal(self) -> u64 {
+        self.ordinal
+    }
+}
+
+/// One move-only claim on one dependency count. The component-owner lease is
+/// deliberately held by the registry entry, so repeated exact uses share one
+/// external owner lease without making the claim cloneable.
+pub(crate) struct ComponentBasisPinClaim {
+    pub(super) owner: RuntimeWorldOwnerIdentity,
+    pub(super) key: ExactComponentBasisKey,
+    pub(super) dependency: ComponentBasisDependencyClass,
+    pub(super) lease_identity: ComponentBasisLeaseIdentity,
+    pub(super) control: Arc<dyn RetentionControlSurface>,
+}
+
+impl fmt::Debug for ComponentBasisPinClaim {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ComponentBasisPinClaim")
+            .field("owner", &self.owner)
+            .field("key", &self.key)
+            .field("dependency", &self.dependency)
+            .field("lease_identity", &self.lease_identity)
+            .finish_non_exhaustive()
+    }
+}
+
+impl ComponentBasisPinClaim {
+    pub(super) fn new(
+        owner: RuntimeWorldOwnerIdentity,
+        key: ExactComponentBasisKey,
+        dependency: ComponentBasisDependencyClass,
+        lease_identity: ComponentBasisLeaseIdentity,
+        control: Arc<dyn RetentionControlSurface>,
+    ) -> Self {
+        Self {
+            owner,
+            key,
+            dependency,
+            lease_identity,
+            control,
+        }
+    }
+
+    pub(crate) const fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
+        self.owner
+    }
+
+    pub(crate) fn key(&self) -> &ExactComponentBasisKey {
+        &self.key
+    }
+
+    pub(crate) const fn dependency(&self) -> ComponentBasisDependencyClass {
+        self.dependency
+    }
+
+    pub(crate) const fn lease_identity(&self) -> ComponentBasisLeaseIdentity {
+        self.lease_identity
+    }
+}
+
+#[cfg(test)]
+#[path = "unique_component_pin/tests.rs"]
+mod tests;
