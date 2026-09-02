@@ -20,8 +20,8 @@ pub(super) struct HistoryMetadataCharge {
 }
 
 impl HistoryMetadataCharge {
-    pub(super) fn for_commit(
-        _commit: &CompositeRuntimeWorldCommit,
+    pub(super) fn for_parent(
+        _parent: &CompositeCommitParent,
     ) -> Result<Self, HistoryMetadataArithmeticOverflow> {
         let commit_record = size_of::<CompositeRuntimeWorldCommit>();
         let arc_history = size_of::<Arc<CompositeRuntimeWorldCommit>>();
@@ -54,6 +54,12 @@ impl HistoryMetadataCharge {
         })
     }
 
+    pub(super) fn for_commit(
+        commit: &CompositeRuntimeWorldCommit,
+    ) -> Result<Self, HistoryMetadataArithmeticOverflow> {
+        Self::for_parent(commit.parent())
+    }
+
     pub(super) const fn total(self) -> usize {
         self.total
     }
@@ -69,12 +75,12 @@ pub(super) struct HistoryReservationCharge {
 }
 
 impl HistoryReservationCharge {
-    pub(super) fn for_commit(
-        commit: &CompositeRuntimeWorldCommit,
+    pub(super) fn for_parent(
+        parent: &CompositeCommitParent,
     ) -> Result<Self, HistoryMetadataArithmeticOverflow> {
         let reservation_key = size_of::<CompositeCommitIdentity>();
         let reservation_value = size_of::<HistoryReservationMetadata>();
-        let parent_identity = match commit.parent() {
+        let parent_identity = match parent {
             CompositeCommitParent::Root => 0,
             CompositeCommitParent::Ordinary(_) => size_of::<CompositeCommitIdentity>(),
         };
@@ -93,6 +99,12 @@ impl HistoryReservationCharge {
             owner_controlled_boxes,
             total,
         })
+    }
+
+    pub(super) fn for_commit(
+        commit: &CompositeRuntimeWorldCommit,
+    ) -> Result<Self, HistoryMetadataArithmeticOverflow> {
+        Self::for_parent(commit.parent())
     }
 
     pub(super) const fn total(self) -> usize {

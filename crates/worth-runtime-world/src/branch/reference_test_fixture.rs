@@ -19,15 +19,16 @@ use worth_runtime_bridge::facade::{
 use worth_signal::facade::{SignalGraph, SignalRuntime};
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
-use crate::history::{
-    CompositeHistoryCatalog, CompositeRuntimeWorldCommit, RuntimeWorldHistoryCatalogContract,
-};
-use crate::identity::{ProductBranchReferenceGeneration, RuntimeWorldOwnerIdentity};
+use crate::identity::RuntimeWorldOwnerIdentity;
 use crate::lifecycle::owner::RuntimeWorldOwnerConstructionContract;
-use crate::publication::CompositeOwnerExecutionResults;
 use crate::retention::RuntimeWorldRetentionOwner;
 
-use crate::branch::reference_cell::ProductBranchReferenceSnapshot;
+mod artifacts;
+mod owner_inputs;
+pub(crate) use artifacts::{
+    bootstrap_product_head_protection, initial_snapshot, install_ordinary, installed_root,
+    product_head_protection, successor_snapshot,
+};
 
 #[derive(Clone)]
 struct AdmissionSink;
@@ -44,7 +45,7 @@ impl InvalidationSink for AdmissionSink {
     }
 }
 
-pub(super) struct RealReferenceFixture {
+pub(crate) struct RealReferenceFixture {
     pub(super) owner: RuntimeWorldRetentionOwner<(), (), ()>,
     pub(super) owner_identity: RuntimeWorldOwnerIdentity,
     pub(super) basis: AdmittedCompositeRuntimeWorldBasis,
@@ -52,9 +53,10 @@ pub(super) struct RealReferenceFixture {
     _signal_port: worth_signal::facade::branch::SignalBranchBasisPort<(), (), ()>,
     _relational_runtime: Arc<worth_relational::facade::runtime::RelationalRuntime>,
     _signal_runtime: SignalRuntime<(), (), (), (), ()>,
+    _correspondence_port: worth_runtime_bridge::facade::RuntimeWorldCorrespondencePort,
 }
 
-pub(super) fn real_fixture(unique_pin_limit: u64, reservation_limit: u64) -> RealReferenceFixture {
+pub(crate) fn real_fixture(unique_pin_limit: u64, reservation_limit: u64) -> RealReferenceFixture {
     let relational_runtime = Arc::new(RelationalRuntimeApi::builder().build());
     let relational_port = relational_runtime.owner_component_services().basis_port();
     let relational_identity = relational_runtime.main_branch_identity();
@@ -219,147 +221,6 @@ pub(super) fn real_fixture(unique_pin_limit: u64, reservation_limit: u64) -> Rea
         _signal_port: signal_port,
         _relational_runtime: relational_runtime,
         _signal_runtime: signal_runtime,
+        _correspondence_port: correspondence_port,
     }
-}
-
-pub(super) fn history_catalog(owner: RuntimeWorldOwnerIdentity) -> CompositeHistoryCatalog {
-    let budgets = crate::budget::RuntimeWorldBudgets::install(
-        crate::budget::RuntimeWorldBudgetInstallation {
-            branches: crate::budget::RuntimeWorldBranchBudgetInstallation {
-                live_product_branches: 1,
-            },
-            history: crate::budget::RuntimeWorldHistoryBudgetInstallation {
-                retained_composite_commits: 16,
-                history_metadata_bytes: 4096,
-            },
-            observations: crate::budget::RuntimeWorldObservationBudgetInstallation {
-                active_observations: 8,
-            },
-            publication: crate::budget::RuntimeWorldPublicationBudgetInstallation {
-                active_publication_attempts: 8,
-            },
-            recovery: crate::budget::RuntimeWorldRecoveryBudgetInstallation {
-                retained_product_unpublished_records: 1,
-                retained_partial_metadata_bytes: 1,
-            },
-            retention: crate::budget::RuntimeWorldRetentionBudgetInstallation {
-                unique_exact_component_pins: 8,
-                in_flight_pin_acquisition_reservations: 8,
-            },
-            custody: crate::budget::RuntimeWorldCustodyBudgetInstallation {
-                owner_created_component_custody_records: 1,
-            },
-        },
-    )
-    .expect("positive history test budgets");
-    CompositeHistoryCatalog::new(
-        owner,
-        RuntimeWorldHistoryCatalogContract::installed(
-            budgets.retained_composite_commits(),
-            budgets.history_metadata_bytes(),
-        ),
-    )
-}
-
-pub(super) fn root_commit(fixture: &mut RealReferenceFixture) -> CompositeRuntimeWorldCommit {
-    CompositeRuntimeWorldCommit::from_root_bootstrap(
-        fixture
-            .identities
-            .issuer_mut()
-            .composite_commit()
-            .expect("root commit identity"),
-        fixture.basis.clone(),
-        fixture
-            .identities
-            .issuer_mut()
-            .bootstrap_attempt()
-            .expect("root bootstrap identity"),
-        None,
-    )
-    .expect("explicit root commit from admitted basis")
-}
-
-pub(super) fn ordinary_commit(
-    fixture: &mut RealReferenceFixture,
-    predecessor: &CompositeRuntimeWorldCommit,
-) -> CompositeRuntimeWorldCommit {
-    CompositeRuntimeWorldCommit::from_ordinary_publication(
-        fixture
-            .identities
-            .issuer_mut()
-            .composite_commit()
-            .expect("ordinary commit identity"),
-        predecessor,
-        fixture.basis.clone(),
-        fixture
-            .identities
-            .issuer_mut()
-            .publication_attempt()
-            .expect("publication attempt identity"),
-        CompositeOwnerExecutionResults::retained(),
-        None,
-    )
-    .expect("explicit ordinary commit from same admitted basis")
-}
-
-pub(super) fn installed_root() -> (
-    RealReferenceFixture,
-    CompositeHistoryCatalog,
-    Arc<CompositeRuntimeWorldCommit>,
-) {
-    let mut fixture = real_fixture(16, 16);
-    let root = Arc::new(root_commit(&mut fixture));
-    let catalog = history_catalog(fixture.owner_identity);
-    catalog.append(Arc::clone(&root)).expect("root install");
-    (fixture, catalog, root)
-}
-
-pub(super) fn install_ordinary(
-    fixture: &mut RealReferenceFixture,
-    catalog: &CompositeHistoryCatalog,
-    predecessor: &CompositeRuntimeWorldCommit,
-) -> Arc<CompositeRuntimeWorldCommit> {
-    let commit = Arc::new(ordinary_commit(fixture, predecessor));
-    catalog
-        .append(Arc::clone(&commit))
-        .expect("ordinary commit install");
-    commit
-}
-
-pub(super) fn initial_snapshot(
-    fixture: &mut RealReferenceFixture,
-    commit: Arc<CompositeRuntimeWorldCommit>,
-) -> ProductBranchReferenceSnapshot {
-    let branch = fixture
-        .identities
-        .issuer_mut()
-        .product_branch()
-        .expect("product branch identity");
-    let lifecycle = fixture
-        .identities
-        .issuer_mut()
-        .branch_lifecycle()
-        .expect("lifecycle identity");
-    ProductBranchReferenceSnapshot::owner_issued(
-        fixture.owner_identity,
-        branch,
-        lifecycle,
-        ProductBranchReferenceGeneration::initial(),
-        commit,
-    )
-    .expect("coherent initial reference snapshot")
-}
-
-pub(super) fn successor_snapshot(
-    current: &ProductBranchReferenceSnapshot,
-    commit: Arc<CompositeRuntimeWorldCommit>,
-) -> ProductBranchReferenceSnapshot {
-    ProductBranchReferenceSnapshot::owner_issued(
-        current.owner(),
-        current.branch().clone(),
-        current.lifecycle(),
-        current.generation().advance().expect("generation advance"),
-        commit,
-    )
-    .expect("coherent successor reference snapshot")
 }

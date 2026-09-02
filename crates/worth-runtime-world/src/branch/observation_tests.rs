@@ -12,11 +12,10 @@ use crate::history::{CompositeHistoryCatalog, CompositeHistoryReclamationRequest
 fn product_cell(
     snapshot: ProductBranchReferenceSnapshot,
     catalog: &CompositeHistoryCatalog,
+    fixture: &fixture::RealReferenceFixture,
 ) -> ProductBranchReferenceCell {
-    let protection = catalog
-        .protect_product_head(snapshot.commit())
-        .expect("installed product-head protection");
-    ProductBranchReferenceCell::new(snapshot, protection).expect("protected cell admission")
+    let protection = fixture::product_head_protection(fixture, catalog, snapshot);
+    ProductBranchReferenceCell::new(protection).expect("protected cell admission")
 }
 
 #[test]
@@ -81,7 +80,7 @@ fn observation_binding_returns_both_exact_tokens_on_each_mismatch() {
 fn observation_denials_issue_no_managed_authority_or_stranded_token() {
     let (mut fixture, catalog, root) = fixture::installed_root();
     let snapshot = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
-    let cell = product_cell(snapshot, &catalog);
+    let cell = product_cell(snapshot, &catalog, &fixture);
     let (foreign_fixture, foreign_catalog, _) = fixture::installed_root();
 
     let before_owner = fixture.owner.cost_snapshot();
@@ -93,7 +92,7 @@ fn observation_denials_issue_no_managed_authority_or_stranded_token() {
         ))
     ));
     assert_eq!(fixture.owner.cost_snapshot(), before_owner);
-    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
     assert_eq!(catalog.counters(), before_history);
 
     let before_foreign_owner = foreign_fixture.owner.cost_snapshot();
@@ -129,7 +128,7 @@ fn cloned_observations_share_authority_and_release_final_sibling_head() {
     let selected = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let successor = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let initial = fixture::initial_snapshot(&mut fixture, Arc::clone(&selected));
-    let cell = product_cell(initial.clone(), &catalog);
+    let cell = product_cell(initial.clone(), &catalog, &fixture);
     let observation = cell
         .observe(&catalog, &fixture.owner)
         .expect("real selected-head observation");
@@ -149,15 +148,12 @@ fn cloned_observations_share_authority_and_release_final_sibling_head() {
         fixture.owner.cost_snapshot().signal_contacts(),
         retention_after_observe.signal_contacts()
     );
-    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 4);
 
     let successor_snapshot = fixture::successor_snapshot(&initial, Arc::clone(&successor));
     cell.compare_and_publish(
         &observation,
-        successor_snapshot,
-        catalog
-            .protect_product_head(successor.as_ref())
-            .expect("successor product-head protection"),
+        fixture::product_head_protection(&fixture, &catalog, successor_snapshot),
     )
     .expect("move to sibling successor");
     let history_after_move = catalog.counters();
@@ -195,7 +191,7 @@ fn cloned_observations_share_authority_and_release_final_sibling_head() {
         fixture.owner.cost_snapshot().dependency_releases(),
         dependency_releases_before_final + 2
     );
-    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
     let reclaimed = catalog
         .reclaim_batch(reclaim_request())
         .expect("final exact releases permit selected sibling reclamation");
@@ -211,14 +207,13 @@ fn concurrent_observations_are_each_old_or_new_and_basis_coherent() {
     let selected = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let successor = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let initial = fixture::initial_snapshot(&mut fixture, Arc::clone(&selected));
-    let cell = product_cell(initial.clone(), &catalog);
+    let cell = product_cell(initial.clone(), &catalog, &fixture);
     let expected = cell
         .observe(&catalog, &fixture.owner)
         .expect("real expected observation");
     let successor_snapshot = fixture::successor_snapshot(&initial, Arc::clone(&successor));
-    let successor_protection = catalog
-        .protect_product_head(successor.as_ref())
-        .expect("successor protection");
+    let successor_protection =
+        fixture::product_head_protection(&fixture, &catalog, successor_snapshot.clone());
     let gate = Arc::new(Barrier::new(2));
     let reader_cell = cell.clone();
     let reader_catalog = catalog.clone();
@@ -257,7 +252,7 @@ fn concurrent_observations_are_each_old_or_new_and_basis_coherent() {
         }
     });
     gate.wait();
-    cell.compare_and_publish(&expected, successor_snapshot, successor_protection)
+    cell.compare_and_publish(&expected, successor_protection)
         .expect("concurrent reader movement");
     reader.join().expect("reader does not observe a torn image");
     assert_eq!(

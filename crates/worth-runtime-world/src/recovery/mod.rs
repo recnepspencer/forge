@@ -1,3 +1,4 @@
+mod catalog;
 mod cleanup;
 mod continuation;
 mod product_unpublished;
@@ -7,5 +8,7 @@ pub use continuation::{ProductUnpublishedNextAction, RecoveryContinuationContrac
 pub use product_unpublished::{
     ProductUnpublishedCause, ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle,
 };
+
+pub(crate) use catalog::{RecoveryCatalog, RecoveryCatalogDenial, ReservedProductUnpublishedSlot};
 
 pub(crate) use progress::ProductUnpublishedOwnerEffectSummary;

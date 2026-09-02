@@ -98,8 +98,44 @@ fn pair_reservation_capacity_is_checked_for_both_flights_before_contact() {
 }
 
 #[test]
+fn reserved_pair_capacity_drops_without_contact_or_leak() {
+    let fixture = real_fixture(2, 2);
+    let before = fixture.owner.cost_snapshot();
+    let reservation = fixture
+        .owner
+        .reserve_product_publication_pair()
+        .expect("the owner reserves the worst-case pair first");
+    assert_eq!(fixture.owner.reserved_unique_pin_capacity(), 2);
+    assert_eq!(fixture.owner.reserved_in_flight_acquisition_capacity(), 2);
+    assert_eq!(fixture.owner.cost_snapshot(), before);
+    drop(reservation);
+    assert_eq!(fixture.owner.reserved_unique_pin_capacity(), 0);
+    assert_eq!(fixture.owner.reserved_in_flight_acquisition_capacity(), 0);
+    assert_eq!(fixture.owner.cost_snapshot(), before);
+}
+
+#[test]
+fn reserved_pair_binds_to_owner_issued_publication_and_releases_once() {
+    let fixture = real_fixture(4, 4);
+    let reservation = fixture
+        .owner
+        .reserve_product_publication_pair()
+        .expect("pair capacity reservation");
+    let publication = reservation
+        .bind_publication(&fixture.basis)
+        .expect("reserved pair binds its exact basis");
+    assert_eq!(fixture.owner.reserved_unique_pin_capacity(), 0);
+    assert_eq!(fixture.owner.reserved_in_flight_acquisition_capacity(), 0);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
+    drop(publication);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.unique_pin_count(), 2);
+    assert_eq!(fixture.owner.reclaim(2).reclaimed(), 2);
+}
+
+#[test]
 fn foreign_batch_owner_is_rejected_before_pair_reservation() {
-    let mut fixture = real_fixture(2, 2);
+    let fixture = real_fixture(2, 2);
     let mut foreign_fixture = real_fixture(2, 2);
     let foreign_root = root_commit(&mut foreign_fixture);
     let denial = fixture
@@ -120,7 +156,7 @@ fn foreign_batch_owner_is_rejected_before_pair_reservation() {
 
 #[test]
 fn ready_plus_vacant_pair_counts_only_the_one_new_exact_slot() {
-    let mut fixture = real_fixture(2, 4);
+    let fixture = real_fixture(2, 4);
     let before_relational = fixture.relational_runtime.branch_basis_cost_counters();
     let before_signal = fixture
         .signal_port

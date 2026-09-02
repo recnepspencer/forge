@@ -29,6 +29,23 @@ where
         basis: &'a AdmittedCompositeRuntimeWorldBasis,
         dependency: ComponentBasisDependencyClass,
     ) -> Result<PairReservationSet<'a>, RetentionObligationDenial> {
+        self.reserve_pair_inner(basis, dependency, None)
+    }
+
+    pub(super) fn reserve_pair_with_capacity<'a>(
+        &self,
+        basis: &'a AdmittedCompositeRuntimeWorldBasis,
+        dependency: ComponentBasisDependencyClass,
+    ) -> Result<PairReservationSet<'a>, RetentionObligationDenial> {
+        self.reserve_pair_inner(basis, dependency, Some((2, 2)))
+    }
+
+    fn reserve_pair_inner<'a>(
+        &self,
+        basis: &'a AdmittedCompositeRuntimeWorldBasis,
+        dependency: ComponentBasisDependencyClass,
+        capacity_credit: Option<(usize, usize)>,
+    ) -> Result<PairReservationSet<'a>, RetentionObligationDenial> {
         let expected = self.lock().owner_identity;
         let actual = basis.owner_identity();
         if actual != expected {
@@ -61,9 +78,31 @@ where
             .checked_add(additional_flights)
             .expect("fixed pair cardinality cannot overflow a usize");
 
+        let reserved_unique =
+            capacity_credit.map_or(Ok(state.reserved_unique_slots), |(unique, _)| {
+                state.reserved_unique_slots.checked_sub(unique).ok_or(
+                    RetentionObligationDenial::UniquePinCapacityExhausted {
+                        maximum_unique_component_pins: state.maximum_unique_pins,
+                    },
+                )
+            })?;
+        let reserved_in_flight = capacity_credit.map_or(
+            Ok(state.reserved_in_flight_reservations),
+            |(_, in_flight)| {
+                state
+                    .reserved_in_flight_reservations
+                    .checked_sub(in_flight)
+                    .ok_or(
+                        RetentionObligationDenial::InFlightAcquisitionCapacityExhausted {
+                            maximum_in_flight_reservations: state.maximum_in_flight_reservations,
+                        },
+                    )
+            },
+        )?;
         let unique_after = state
             .unique_slots
-            .checked_add(additional_unique_entries)
+            .checked_add(reserved_unique)
+            .and_then(|value| value.checked_add(additional_unique_entries))
             .ok_or(RetentionObligationDenial::UniquePinCapacityExhausted {
                 maximum_unique_component_pins: state.maximum_unique_pins,
             })?;
@@ -75,7 +114,8 @@ where
 
         let reservations_after = state
             .active_reservations
-            .checked_add(additional_flights)
+            .checked_add(reserved_in_flight)
+            .and_then(|value| value.checked_add(additional_flights))
             .ok_or(
                 RetentionObligationDenial::InFlightAcquisitionCapacityExhausted {
                     maximum_in_flight_reservations: state.maximum_in_flight_reservations,
@@ -114,6 +154,10 @@ where
         );
         let signal =
             install_reservation(&mut state, signal, signal_slot, dependency, control.clone());
+        if let Some((unique, in_flight)) = capacity_credit {
+            state.reserved_unique_slots -= unique;
+            state.reserved_in_flight_reservations -= in_flight;
+        }
         drop(state);
         Ok(PairReservationSet {
             basis,

@@ -64,4 +64,22 @@ where
     pub fn clock(&self) -> &RuntimeWorldClock {
         &self.clock
     }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        RelationalOwnerServicePorts,
+        SignalOwnerServicePorts<D, I, E, Ctx, T>,
+        RuntimeWorldCorrespondencePort,
+        RuntimeWorldBudgets,
+        RuntimeWorldClock,
+    ) {
+        (
+            self.relational,
+            self.signal,
+            self.bridge,
+            self.budgets,
+            self.clock,
+        )
+    }
 }

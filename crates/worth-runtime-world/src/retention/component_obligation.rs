@@ -15,11 +15,14 @@ use super::unique_component_pin::{
 use super::ComponentBasisDependencyClass;
 
 mod composite;
+mod product_head;
+mod retained_partial;
 
 pub(crate) use composite::{
     IssuedComponentPinPair, ObservationRetentionObligation, PublicationRetentionObligation,
-    RetainedPartialRetentionObligation,
 };
+pub(crate) use product_head::ProductHeadRetentionObligation;
+pub(crate) use retained_partial::RetainedPartialRetentionObligation;
 
 /// Typed refusal from the Runtime World retention owner when a live claim
 /// cannot be terminated. The component owner lease remains bound to the

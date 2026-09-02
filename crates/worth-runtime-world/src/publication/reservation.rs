@@ -1,13 +1,19 @@
-use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::branch::ProductBranchObservation;
-use crate::budget::RuntimeWorldBudgetLimit;
-use crate::identity::{CompositeCommitIdentity, CompositePublicationAttemptIdentity};
+use crate::history::{CompositeHistoryCatalog, ReservedCompositeCommitCapacity};
+use crate::identity::{
+    CompositeCommitIdentity, CompositePublicationAttemptIdentity,
+    ProductUnpublishedOwnerEffectsIdentity,
+};
+use crate::lifecycle::owner::{
+    ReservedPublicationAttemptCapacity, RuntimeWorldOperationReservation,
+};
 use crate::lifecycle::RuntimeWorldInstant;
-use crate::retention::PublicationRetentionObligation;
+use crate::recovery::ReservedProductUnpublishedSlot;
+use crate::retention::ReservedComponentPinPairCapacity;
 
 use super::{
-    CompositeAttemptProgress, LoweredOwnerComponentPlan, NoEffectCause,
-    NoEffectCompositePublication, OwnerExecutionSettlement,
+    CompositeAttemptProgress, LoweredOwnerComponentPlan, NoEffectCompositePublication,
+    OwnerExecutionSettlement,
 };
 
 /// Component calls have one fixed order. There is no cross-owner lock held
@@ -23,39 +29,23 @@ pub enum CompositeAttemptCancellationPosture {
     CancellationObserved,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ReservedHistorySlot {
-    pub(crate) limit: RuntimeWorldBudgetLimit,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ReservedRecoverySlot {
-    pub(crate) limit: RuntimeWorldBudgetLimit,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ReservedPinAcquisitionSlots {
-    pub(crate) limit: RuntimeWorldBudgetLimit,
-}
-
-/// Reserved, attempt-affine state between lowering and owner execution.
-///
-/// This type deliberately has no public constructor, `Clone`, `Copy`, or
-/// serialization implementation. Its fields name every bounded resource and
-/// the exact expected head carried through execution.
+/// Reserved, attempt-affine state between lowering and owner execution. All
+/// capacity fields are live owner-issued reservations; no copied limit can
+/// authorize the later phases.
 #[must_use = "a reserved publication attempt must be executed or cleaned up"]
 pub struct ReservedCompositePublicationAttempt {
     identity: CompositePublicationAttemptIdentity,
     expected_head: ProductBranchObservation,
-    predecessor_basis: AdmittedCompositeRuntimeWorldBasis,
+    predecessor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
     plan: LoweredOwnerComponentPlan,
     reserved_commit_identity: CompositeCommitIdentity,
-    reserved_history_slot: ReservedHistorySlot,
-    reserved_recovery_slot: ReservedRecoverySlot,
-    reserved_pin_acquisition_slots: ReservedPinAcquisitionSlots,
-    /// Opaque Phase 2 retention handoff for the prospective successor basis.
-    /// Phase 1 does not claim a component lease for either basis.
-    retention_obligation: PublicationRetentionObligation,
+    product_unpublished_identity: ProductUnpublishedOwnerEffectsIdentity,
+    reserved_commit_capacity: ReservedCompositeCommitCapacity,
+    reserved_recovery_slot: ReservedProductUnpublishedSlot,
+    reserved_component_pin_pair: ReservedComponentPinPairCapacity,
+    reserved_publication_capacity: ReservedPublicationAttemptCapacity,
+    history: CompositeHistoryCatalog,
+    operation: RuntimeWorldOperationReservation,
     cancellation: CompositeAttemptCancellationPosture,
     deadline: Option<RuntimeWorldInstant>,
     order: CompositePublicationOrder,
@@ -69,6 +59,10 @@ impl std::fmt::Debug for ReservedCompositePublicationAttempt {
             .field("identity", &self.identity)
             .field("expected_head", &self.expected_head)
             .field("reserved_commit_identity", &self.reserved_commit_identity)
+            .field(
+                "product_unpublished_identity",
+                &self.product_unpublished_identity,
+            )
             .field("cancellation", &self.cancellation)
             .field("deadline", &self.deadline)
             .field("order", &self.order)
@@ -82,14 +76,17 @@ impl ReservedCompositePublicationAttempt {
     pub(crate) fn new(
         identity: CompositePublicationAttemptIdentity,
         expected_head: ProductBranchObservation,
-        predecessor_basis: AdmittedCompositeRuntimeWorldBasis,
+        predecessor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
         plan: LoweredOwnerComponentPlan,
         reserved_commit_identity: CompositeCommitIdentity,
-        reserved_history_slot: ReservedHistorySlot,
-        reserved_recovery_slot: ReservedRecoverySlot,
-        reserved_pin_acquisition_slots: ReservedPinAcquisitionSlots,
-        retention_obligation: PublicationRetentionObligation,
+        product_unpublished_identity: ProductUnpublishedOwnerEffectsIdentity,
+        reserved_commit_capacity: ReservedCompositeCommitCapacity,
+        reserved_recovery_slot: ReservedProductUnpublishedSlot,
+        reserved_component_pin_pair: ReservedComponentPinPairCapacity,
+        reserved_publication_capacity: ReservedPublicationAttemptCapacity,
+        history: CompositeHistoryCatalog,
         deadline: Option<RuntimeWorldInstant>,
+        operation: RuntimeWorldOperationReservation,
     ) -> Self {
         Self {
             identity,
@@ -97,10 +94,13 @@ impl ReservedCompositePublicationAttempt {
             predecessor_basis,
             plan,
             reserved_commit_identity,
-            reserved_history_slot,
+            product_unpublished_identity,
+            reserved_commit_capacity,
             reserved_recovery_slot,
-            reserved_pin_acquisition_slots,
-            retention_obligation,
+            reserved_component_pin_pair,
+            reserved_publication_capacity,
+            history,
+            operation,
             cancellation: CompositeAttemptCancellationPosture::Open,
             deadline,
             order: CompositePublicationOrder::RelationalThenSignal,
@@ -116,7 +116,7 @@ impl ReservedCompositePublicationAttempt {
         &self.expected_head
     }
 
-    pub fn predecessor_basis(&self) -> &AdmittedCompositeRuntimeWorldBasis {
+    pub fn predecessor_basis(&self) -> &crate::basis::AdmittedCompositeRuntimeWorldBasis {
         &self.predecessor_basis
     }
 
@@ -132,21 +132,17 @@ impl ReservedCompositePublicationAttempt {
         self.cancellation
     }
 
-    pub(crate) fn retention_obligation(&self) -> &PublicationRetentionObligation {
-        &self.retention_obligation
+    pub(crate) fn observe_cancellation(&mut self) {
+        self.cancellation = CompositeAttemptCancellationPosture::CancellationObserved;
     }
 
     /// Consume a still-pre-effect reservation into the only no-effect
-    /// cancellation terminal. Owner execution cannot be reached afterward.
+    /// cancellation terminal. Dropping the attempt releases every capacity.
     pub fn cancel(self) -> NoEffectCompositePublication {
         NoEffectCompositePublication::new(
-            NoEffectCause::CancelledBeforeEffect,
+            super::NoEffectCause::CancelledBeforeEffect,
             Some(self.expected_head),
         )
-    }
-
-    pub(crate) fn observe_cancellation(&mut self) {
-        self.cancellation = CompositeAttemptCancellationPosture::CancellationObserved;
     }
 
     pub(crate) fn settle(self, progress: CompositeAttemptProgress) -> OwnerExecutionSettlement {
@@ -158,13 +154,16 @@ impl ReservedCompositePublicationAttempt {
     ) -> (
         CompositePublicationAttemptIdentity,
         ProductBranchObservation,
-        AdmittedCompositeRuntimeWorldBasis,
+        crate::basis::AdmittedCompositeRuntimeWorldBasis,
         LoweredOwnerComponentPlan,
         CompositeCommitIdentity,
-        ReservedHistorySlot,
-        ReservedRecoverySlot,
-        ReservedPinAcquisitionSlots,
-        PublicationRetentionObligation,
+        ProductUnpublishedOwnerEffectsIdentity,
+        ReservedCompositeCommitCapacity,
+        ReservedProductUnpublishedSlot,
+        ReservedComponentPinPairCapacity,
+        ReservedPublicationAttemptCapacity,
+        CompositeHistoryCatalog,
+        RuntimeWorldOperationReservation,
         CompositeAttemptCancellationPosture,
         Option<RuntimeWorldInstant>,
         CompositePublicationOrder,
@@ -176,10 +175,13 @@ impl ReservedCompositePublicationAttempt {
             self.predecessor_basis,
             self.plan,
             self.reserved_commit_identity,
-            self.reserved_history_slot,
+            self.product_unpublished_identity,
+            self.reserved_commit_capacity,
             self.reserved_recovery_slot,
-            self.reserved_pin_acquisition_slots,
-            self.retention_obligation,
+            self.reserved_component_pin_pair,
+            self.reserved_publication_capacity,
+            self.history,
+            self.operation,
             self.cancellation,
             self.deadline,
             self.order,

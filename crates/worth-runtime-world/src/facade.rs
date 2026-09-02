@@ -49,8 +49,8 @@ pub use crate::identity::{
 };
 pub use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldCancellationToken, RuntimeWorldClock,
-    RuntimeWorldClockSource, RuntimeWorldInstant, RuntimeWorldOwnerInputs,
-    RuntimeWorldOwnerLifecycleObservation, RuntimeWorldOwnerUnavailable,
+    RuntimeWorldClockSource, RuntimeWorldCloseDenial, RuntimeWorldInstant, RuntimeWorldOwnerInputs,
+    RuntimeWorldOwnerLifecycleObservation, RuntimeWorldOwnerRoot, RuntimeWorldOwnerUnavailable,
 };
 pub use crate::publication::{
     CompositeAttemptCancellationPosture, CompositeAttemptProgress, CompositeComponentIntent,

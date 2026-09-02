@@ -4,14 +4,6 @@ use worth_relational::facade::branch::{
 use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
 use worth_signal::facade::branch::{AdmittedSignalBranchBasis, ValidatedSignalBranchName};
 
-use crate::budget::RuntimeWorldBudgets;
-use crate::identity::{CompositeCommitIdentity, CompositePublicationAttemptIdentity};
-use crate::lifecycle::{
-    RuntimeWorldCancellationBoundary, RuntimeWorldCancellationToken, RuntimeWorldInstant,
-};
-use crate::retention::PublicationRetentionObligation;
-
-use super::reservation::{ReservedHistorySlot, ReservedPinAcquisitionSlots, ReservedRecoverySlot};
 use crate::publication::{CompositeComponentIntent, ResolvedExpectedProductHead};
 
 /// Relational owner posture. It is separate from Signal posture so a sibling
@@ -200,63 +192,6 @@ impl LoweredOwnerComponentPlan {
         SignalComponentPlan,
     ) {
         (self.expected, self.intent, self.relational, self.signal)
-    }
-
-    /// The only preparation-to-reservation transition. The plan supplies the
-    /// expected head and predecessor basis; callers cannot replace either
-    /// value while reserving bounded Runtime World capacity. The supplied
-    /// opaque Phase 2 obligation is for the prospective successor and remains
-    /// sealed until the retention owner installs its semantics.
-    pub(crate) fn reserve(
-        self,
-        attempt_identity: CompositePublicationAttemptIdentity,
-        commit_identity: CompositeCommitIdentity,
-        budgets: &RuntimeWorldBudgets,
-        cancellation: &RuntimeWorldCancellationToken,
-        retention_obligation: PublicationRetentionObligation,
-        deadline: Option<RuntimeWorldInstant>,
-    ) -> Result<super::ReservedCompositePublicationAttempt, super::NoEffectCompositePublication>
-    {
-        if cancellation
-            .check(RuntimeWorldCancellationBoundary::BeforeReservation)
-            .is_err()
-        {
-            return Err(super::NoEffectCompositePublication::new(
-                super::NoEffectCause::CancelledBeforeEffect,
-                None,
-            ));
-        }
-
-        let expected_head = self.expected.expected().clone();
-        let owner = expected_head.owner_identity();
-        if attempt_identity.owner_identity() != owner
-            || commit_identity.owner_identity() != owner
-            || expected_head.basis().owner_identity() != owner
-        {
-            return Err(super::NoEffectCompositePublication::new(
-                super::NoEffectCause::OwnerDeniedBeforeEffect,
-                Some(expected_head),
-            ));
-        }
-        let predecessor_basis = expected_head.basis().clone();
-        Ok(super::ReservedCompositePublicationAttempt::new(
-            attempt_identity,
-            expected_head,
-            predecessor_basis,
-            self,
-            commit_identity,
-            ReservedHistorySlot {
-                limit: budgets.retained_composite_commits(),
-            },
-            ReservedRecoverySlot {
-                limit: budgets.retained_product_unpublished_records(),
-            },
-            ReservedPinAcquisitionSlots {
-                limit: budgets.in_flight_pin_acquisition_reservations(),
-            },
-            retention_obligation,
-            deadline,
-        ))
     }
 }
 

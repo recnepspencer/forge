@@ -2,23 +2,29 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::history::{
     CompositeHistoryCatalog, CompositeHistoryCatalogDenial, CompositeRuntimeWorldCommit,
-    ProductHeadHistoryProtectionObligation,
 };
 use crate::identity::{
     ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
     RuntimeWorldOwnerIdentity,
 };
+use crate::retention::RetentionTransferReceipt;
 use crate::retention::{RetentionObligationDenial, RuntimeWorldRetentionOwner};
 
 use super::observation::{
     ProductBranchObservation, ProductBranchObservationAdmissionFailure,
     ProductBranchObservationMismatch,
 };
+pub(crate) use protection::ProductBranchHeadProtectionDenial;
+pub(crate) use protection::{
+    ProductBranchHeadProtection, ProductBranchHeadProtectionAdmissionFailure,
+};
+
+mod protection;
 
 #[derive(Debug)]
 struct ProductBranchReferenceImage {
     snapshot: ProductBranchReferenceSnapshot,
-    product_head_history: ProductHeadHistoryProtectionObligation,
+    protection: ProductBranchHeadProtection,
 }
 
 #[derive(Debug, Clone)]
@@ -129,28 +135,6 @@ impl ProductBranchReferenceSnapshot {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProductBranchReferenceCellAdmissionDenial {
-    ProductHeadOwnerMismatch,
-    ProductHeadCommitMismatch,
-}
-
-#[derive(Debug)]
-pub(crate) struct ProductBranchReferenceCellAdmissionFailure {
-    denial: ProductBranchReferenceCellAdmissionDenial,
-    product_head_history: ProductHeadHistoryProtectionObligation,
-}
-
-impl ProductBranchReferenceCellAdmissionFailure {
-    pub(crate) const fn denial(&self) -> ProductBranchReferenceCellAdmissionDenial {
-        self.denial
-    }
-
-    pub(crate) fn into_product_head_history(self) -> ProductHeadHistoryProtectionObligation {
-        self.product_head_history
-    }
-}
-
 /// Independently borrowable product-reference cell; clones share only this
 /// branch's synchronization domain.
 #[derive(Debug, Clone)]
@@ -169,15 +153,14 @@ pub(crate) enum ProductBranchReferenceCellDenial {
         expected: ProductBranchReferenceGeneration,
         actual: ProductBranchReferenceGeneration,
     },
-    SuccessorHistoryOwnerMismatch,
-    SuccessorHistoryCommitMismatch,
+    SuccessorProtectionMismatch,
     GenerationExhausted,
 }
 
 #[derive(Debug)]
 pub(crate) struct ProductBranchReferencePublishFailure {
     denial: ProductBranchReferenceCellDenial,
-    successor_history: ProductHeadHistoryProtectionObligation,
+    successor_protection: ProductBranchHeadProtection,
 }
 
 impl ProductBranchReferencePublishFailure {
@@ -185,8 +168,8 @@ impl ProductBranchReferencePublishFailure {
         &self.denial
     }
 
-    pub(crate) fn into_successor_history(self) -> ProductHeadHistoryProtectionObligation {
-        self.successor_history
+    pub(crate) fn into_successor_protection(self) -> ProductBranchHeadProtection {
+        self.successor_protection
     }
 }
 
@@ -202,6 +185,7 @@ pub(crate) enum ProductBranchReferenceObservationFailure {
 pub(crate) struct ProductBranchReferenceMovement {
     before: ProductBranchReferenceSnapshot,
     after: ProductBranchReferenceSnapshot,
+    retention_transfer: RetentionTransferReceipt,
 }
 
 impl ProductBranchReferenceMovement {
@@ -212,24 +196,25 @@ impl ProductBranchReferenceMovement {
     pub(crate) fn after(&self) -> &ProductBranchReferenceSnapshot {
         &self.after
     }
+
+    pub(crate) fn retention_transfer(&self) -> &RetentionTransferReceipt {
+        &self.retention_transfer
+    }
 }
 
 impl ProductBranchReferenceCell {
     pub(crate) fn new(
-        initial: ProductBranchReferenceSnapshot,
-        product_head_history: ProductHeadHistoryProtectionObligation,
-    ) -> Result<Self, ProductBranchReferenceCellAdmissionFailure> {
-        match validate_product_head(&initial, &product_head_history) {
+        protection: ProductBranchHeadProtection,
+    ) -> Result<Self, ProductBranchHeadProtectionAdmissionFailure> {
+        let initial = protection.snapshot().clone();
+        match protection.validate() {
             Ok(()) => Ok(Self {
                 state: ReferenceCellState::new(ProductBranchReferenceImage {
                     snapshot: initial,
-                    product_head_history,
+                    protection,
                 }),
             }),
-            Err(denial) => Err(ProductBranchReferenceCellAdmissionFailure {
-                denial,
-                product_head_history,
-            }),
+            Err(denial) => Err(protection.into_admission_failure(denial)),
         }
     }
 
@@ -296,8 +281,7 @@ impl ProductBranchReferenceCell {
     pub(crate) fn compare_and_publish(
         &self,
         expected: &ProductBranchObservation,
-        successor: ProductBranchReferenceSnapshot,
-        successor_history: ProductHeadHistoryProtectionObligation,
+        successor: ProductBranchHeadProtection,
     ) -> Result<ProductBranchReferenceMovement, ProductBranchReferencePublishFailure> {
         let expected_snapshot = expected.snapshot();
         let mut current = self.state.write();
@@ -308,25 +292,33 @@ impl ProductBranchReferenceCell {
                         .mismatch_against_snapshot(&current.snapshot)
                         .expect("snapshot equality and observation comparison must agree"),
                 ),
-                successor_history,
+                successor_protection: successor,
             });
         }
-        if let Err(denial) = validate_successor(&current.snapshot, &successor, &successor_history) {
+        if let Err(denial) = validate_successor(&current.snapshot, &successor) {
             return Err(ProductBranchReferencePublishFailure {
                 denial,
-                successor_history,
+                successor_protection: successor,
             });
         }
 
+        let successor_snapshot = successor.snapshot().clone();
+        let Some(successor_receipt) = successor.transfer_receipt().cloned() else {
+            return Err(ProductBranchReferencePublishFailure {
+                denial: ProductBranchReferenceCellDenial::SuccessorProtectionMismatch,
+                successor_protection: successor,
+            });
+        };
         let movement = ProductBranchReferenceMovement {
             before: current.snapshot.clone(),
-            after: successor.clone(),
+            after: successor_snapshot.clone(),
+            retention_transfer: successor_receipt,
         };
         let old_image = std::mem::replace(
             &mut *current,
             ProductBranchReferenceImage {
-                snapshot: successor,
-                product_head_history: successor_history,
+                snapshot: successor_snapshot,
+                protection: successor,
             },
         );
         drop(current);
@@ -340,50 +332,43 @@ impl ProductBranchReferenceCell {
     }
 }
 
-fn validate_product_head(
-    snapshot: &ProductBranchReferenceSnapshot,
-    product_head_history: &ProductHeadHistoryProtectionObligation,
-) -> Result<(), ProductBranchReferenceCellAdmissionDenial> {
-    if product_head_history.owner_identity() != snapshot.owner() {
-        return Err(ProductBranchReferenceCellAdmissionDenial::ProductHeadOwnerMismatch);
-    }
-    if !product_head_history.matches_commit(snapshot.commit()) {
-        return Err(ProductBranchReferenceCellAdmissionDenial::ProductHeadCommitMismatch);
-    }
-    Ok(())
-}
-
 fn validate_successor(
     current: &ProductBranchReferenceSnapshot,
-    successor: &ProductBranchReferenceSnapshot,
-    history: &ProductHeadHistoryProtectionObligation,
+    successor: &ProductBranchHeadProtection,
 ) -> Result<(), ProductBranchReferenceCellDenial> {
-    if successor.owner() != current.owner() {
+    let successor_snapshot = successor.snapshot();
+    if successor_snapshot.owner() != current.owner() {
         return Err(ProductBranchReferenceCellDenial::SuccessorOwnerMismatch);
     }
-    if successor.branch() != current.branch() {
+    if successor_snapshot.branch() != current.branch() {
         return Err(ProductBranchReferenceCellDenial::SuccessorBranchMismatch);
     }
-    if successor.lifecycle() != current.lifecycle() {
+    if successor_snapshot.lifecycle() != current.lifecycle() {
         return Err(ProductBranchReferenceCellDenial::SuccessorLifecycleMismatch);
     }
     let expected_generation = current
         .generation()
         .advance()
         .map_err(|_| ProductBranchReferenceCellDenial::GenerationExhausted)?;
-    if successor.generation() != expected_generation {
+    if successor_snapshot.generation() != expected_generation {
         return Err(
             ProductBranchReferenceCellDenial::SuccessorGenerationMismatch {
                 expected: expected_generation,
-                actual: successor.generation(),
+                actual: successor_snapshot.generation(),
             },
         );
     }
-    if history.owner_identity() != successor.owner() {
-        return Err(ProductBranchReferenceCellDenial::SuccessorHistoryOwnerMismatch);
-    }
-    if !history.matches_commit(successor.commit()) {
-        return Err(ProductBranchReferenceCellDenial::SuccessorHistoryCommitMismatch);
+    if successor.product_head().owner_identity() != successor_snapshot.owner()
+        || !successor
+            .product_head()
+            .matches_basis(successor_snapshot.commit().basis())
+        || successor.product_head_history().owner_identity() != successor_snapshot.owner()
+        || !successor
+            .product_head_history()
+            .matches_commit(successor_snapshot.commit())
+        || successor.transfer_receipt().is_none()
+    {
+        return Err(ProductBranchReferenceCellDenial::SuccessorProtectionMismatch);
     }
     Ok(())
 }

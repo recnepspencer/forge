@@ -7,7 +7,10 @@ use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::CompositeAttemptProgress;
 use crate::retention::RetainedPartialRetentionObligation;
 
-use super::{ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary};
+use super::{
+    ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
+    ReservedProductUnpublishedSlot,
+};
 
 /// Why at least one owner effect survived without a product-reference move.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +52,7 @@ pub struct ProductUnpublishedOwnerEffects {
     progress: CompositeAttemptProgress,
     successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
     retention_obligation: RetainedPartialRetentionObligation,
+    recovery_slot: ReservedProductUnpublishedSlot,
     live_obligations: usize,
     cause: ProductUnpublishedCause,
     next_actions: Vec<ProductUnpublishedNextAction>,
@@ -83,6 +87,7 @@ impl ProductUnpublishedOwnerEffects {
         progress: CompositeAttemptProgress,
         successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
         retention_obligation: RetainedPartialRetentionObligation,
+        recovery_slot: ReservedProductUnpublishedSlot,
         summary: ProductUnpublishedOwnerEffectSummary,
         cause: ProductUnpublishedCause,
         next_actions: Vec<ProductUnpublishedNextAction>,
@@ -97,6 +102,7 @@ impl ProductUnpublishedOwnerEffects {
             progress,
             successor_basis,
             retention_obligation,
+            recovery_slot,
             live_obligations: summary.live_obligation_count,
             cause,
             next_actions,

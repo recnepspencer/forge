@@ -9,9 +9,79 @@ pub(crate) enum RuntimeWorldCloseState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RuntimeWorldCloseDenial {
+pub enum RuntimeWorldCloseDenial {
     AlreadyClosing,
     AlreadyClosed,
+}
+
+use super::owner::RuntimeWorldOwnerRoot;
+
+impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    pub fn close(&self) -> Result<(), RuntimeWorldCloseDenial> {
+        let bootstrap = self
+            .state
+            .bootstrap
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        if *bootstrap == super::owner::RuntimeWorldBootstrapState::InProgress {
+            return Err(RuntimeWorldCloseDenial::AlreadyClosing);
+        }
+        let operation = self
+            .state
+            .operation
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        if *operation != super::owner::RuntimeWorldOperationState::Idle {
+            return Err(RuntimeWorldCloseDenial::AlreadyClosing);
+        }
+        let mut close = self
+            .state
+            .close
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        close.begin()?;
+        close.finish()
+    }
+
+    pub fn lifecycle_observation(&self) -> super::RuntimeWorldOwnerLifecycleObservation {
+        match self
+            .state
+            .close
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .state()
+        {
+            RuntimeWorldCloseState::Open => super::RuntimeWorldOwnerLifecycleObservation::Open,
+            RuntimeWorldCloseState::Closing => {
+                super::RuntimeWorldOwnerLifecycleObservation::Closing
+            }
+            RuntimeWorldCloseState::Closed => super::RuntimeWorldOwnerLifecycleObservation::Closed,
+        }
+    }
+}
+
+impl<D, I, E, Ctx, T> super::ports::RuntimeWorldLifecycleService
+    for RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    fn bootstrap_root(
+        &self,
+        intent: crate::branch::RuntimeWorldBootstrapIntent,
+    ) -> crate::branch::RuntimeWorldBootstrapOutcome {
+        RuntimeWorldOwnerRoot::bootstrap_root(self, intent)
+    }
+
+    fn close(&self) -> Result<(), RuntimeWorldCloseDenial> {
+        RuntimeWorldOwnerRoot::close(self)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

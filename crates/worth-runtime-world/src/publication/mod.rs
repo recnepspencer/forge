@@ -4,12 +4,12 @@ mod no_effect;
 mod outcome;
 mod owner_execution;
 mod performed;
+mod product_cas;
 mod product_comparison;
 mod progress;
 mod progression;
 mod reservation;
 
-#[cfg(test)]
 pub(crate) use component_plan::lower_component_plans;
 pub use component_plan::{
     LoweredOwnerComponentPlan, RelationalComponentPlan, RelationalComponentPlanPosture,
@@ -20,13 +20,15 @@ pub use intent::{
     SignalTransactionMutation,
 };
 pub use no_effect::{NoEffectCause, NoEffectCompositePublication};
+pub(crate) use outcome::OwnerExecutionOutcome;
 pub use outcome::RuntimeWorldPublicationOutcome;
-pub use owner_execution::{CompositePublicationReady, OwnerExecutionSettlement};
+pub use owner_execution::OwnerExecutionSettlement;
 pub use performed::{
     CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
     CompositePublicationCostCounters, CompositeRelationalOwnerResult, CompositeSignalOwnerResult,
     PerformedCompositePublication,
 };
+pub use product_cas::CompositePublicationReady;
 pub use product_comparison::ResolvedExpectedProductHead;
 pub use progress::{
     CompositeAttemptProgress, RelationalAttemptProgress, RelationalAttemptProgressPosture,

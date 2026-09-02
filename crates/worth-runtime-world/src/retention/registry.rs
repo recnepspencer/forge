@@ -1,17 +1,12 @@
 //! Exact component-pin registry vocabulary and transferred publication proof.
 
-use crate::basis::AdmittedCompositeRuntimeWorldBasis;
+use super::unique_component_pin::ExactComponentBasis;
 use crate::identity::RuntimeWorldOwnerIdentity;
-
-use super::component_obligation::PublicationRetentionObligation;
-use super::obligation_transfer::ComponentBasisObligationTransferDestination;
-use super::unique_component_pin::{ExactComponentBasis, ExactComponentBasisKey};
 
 mod owner;
 
-pub(crate) use super::obligation_transfer::RetentionTransferDenial;
 #[allow(unused_imports)]
-pub(crate) use owner::RuntimeWorldRetentionOwner;
+pub(crate) use owner::{ReservedComponentPinPairCapacity, RuntimeWorldRetentionOwner};
 
 /// Why the Runtime World could not issue an exact component dependency claim.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -171,80 +166,5 @@ impl RetentionReclamationReport {
     }
     pub(crate) const fn remaining_unique_pins(self) -> usize {
         self.remaining_unique_pins
-    }
-}
-
-/// Receipt carrying the one transferred publication obligation. The keys are
-/// copied as evidence only; the obligation remains the sole release authority.
-#[derive(Debug)]
-pub(crate) struct RetentionTransferReceipt {
-    relational: ExactComponentBasisKey,
-    signal: ExactComponentBasisKey,
-    destination: ComponentBasisObligationTransferDestination,
-    obligation: PublicationRetentionObligation,
-}
-
-#[derive(Debug)]
-pub(crate) struct RetentionTransferFailure {
-    obligation: PublicationRetentionObligation,
-    denial: RetentionTransferDenial,
-}
-
-impl RetentionTransferFailure {
-    pub(crate) fn denial(&self) -> RetentionTransferDenial {
-        self.denial
-    }
-    pub(crate) fn obligation(&self) -> &PublicationRetentionObligation {
-        &self.obligation
-    }
-}
-
-impl RetentionTransferReceipt {
-    pub(crate) fn from_publication(
-        obligation: PublicationRetentionObligation,
-        basis: &AdmittedCompositeRuntimeWorldBasis,
-        destination: ComponentBasisObligationTransferDestination,
-    ) -> Result<Self, RetentionTransferFailure> {
-        if !obligation.matches_basis(basis) {
-            return Err(RetentionTransferFailure {
-                obligation,
-                denial: RetentionTransferDenial::BasisMismatch,
-            });
-        }
-        let relational = obligation.relational().key().clone();
-        let signal = obligation.signal().key().clone();
-        match obligation.try_transfer_to(destination) {
-            Ok(obligation) => Ok(Self {
-                relational,
-                signal,
-                destination,
-                obligation,
-            }),
-            Err((obligation, denial)) => Err(RetentionTransferFailure { obligation, denial }),
-        }
-    }
-
-    pub(crate) const fn destination(&self) -> ComponentBasisObligationTransferDestination {
-        self.destination
-    }
-
-    pub(crate) fn obligation(&self) -> &PublicationRetentionObligation {
-        &self.obligation
-    }
-
-    pub(crate) fn matches_basis(&self, basis: &AdmittedCompositeRuntimeWorldBasis) -> bool {
-        self.obligation.matches_basis(basis)
-            && self.relational
-                == super::unique_component_pin::ExactComponentPinRequest::relational(
-                    basis,
-                    super::ComponentBasisDependencyClass::ActivePublicationAttempt,
-                )
-                .key()
-            && self.signal
-                == super::unique_component_pin::ExactComponentPinRequest::signal(
-                    basis,
-                    super::ComponentBasisDependencyClass::ActivePublicationAttempt,
-                )
-                .key()
     }
 }

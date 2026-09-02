@@ -5,7 +5,8 @@ mod reclamation;
 mod retention;
 
 pub(crate) use catalog::{
-    CompositeHistoryCatalog, CompositeHistoryCatalogDenial, RuntimeWorldHistoryCatalogContract,
+    CompositeHistoryCatalog, CompositeHistoryCatalogDenial, ReservedCompositeCommitCapacity,
+    RuntimeWorldHistoryCatalogContract,
 };
 #[allow(
     unused_imports,
@@ -18,6 +19,7 @@ pub use commit::{
     CompositeSignalPublicationIdentity,
 };
 pub use parentage::OrdinaryParent;
+#[cfg(test)]
 pub(crate) use reclamation::CompositeHistoryReclamationRequest;
 pub(crate) use retention::{
     ExplicitCommitHistoryProtectionObligation, ProductHeadHistoryProtectionObligation,

@@ -159,3 +159,61 @@ fn observation_is_affine_to_exact_commit_and_basis() {
     assert_eq!(fixture.owner.unique_pin_count(), 2);
     assert_eq!(fixture.owner.reclaim(2).reclaimed(), 2);
 }
+
+#[test]
+fn product_head_is_owner_issued_and_independent_of_observation() {
+    let fixture = real_fixture(4, 4);
+    let product_head = fixture
+        .owner
+        .issue_product_head(&fixture.basis)
+        .expect("the owner issues the product-head pair directly");
+
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
+    assert_eq!(fixture.owner.unique_pin_count(), 2);
+    assert_eq!(
+        product_head.relational().dependency(),
+        ComponentBasisDependencyClass::ProductBranchHead
+    );
+    assert_eq!(
+        product_head.signal().dependency(),
+        ComponentBasisDependencyClass::ProductBranchHead
+    );
+    assert!(product_head.matches_basis(&fixture.basis));
+
+    drop(product_head);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.unique_pin_count(), 2);
+    assert_eq!(fixture.owner.reclaim(2).reclaimed(), 2);
+}
+
+#[test]
+fn product_head_transfer_and_recovery_change_both_exact_classes_once() {
+    let fixture = real_fixture(4, 4);
+    let publication = fixture
+        .owner
+        .issue_publication(&fixture.basis)
+        .expect("publication pair");
+    let transfer = publication
+        .into_product_head_transfer(&fixture.basis)
+        .expect("exact successor transfer");
+    let (product_head, receipt) = transfer.into_parts();
+    assert_eq!(
+        receipt.destination(),
+        ComponentBasisDependencyClass::ProductBranchHead
+    );
+    assert_eq!(
+        product_head.relational().dependency(),
+        ComponentBasisDependencyClass::ProductBranchHead
+    );
+
+    let retained = product_head
+        .try_transition_to_retained_partial()
+        .expect("product-head authority moves as one pair");
+    assert_eq!(
+        retained.signal().dependency(),
+        ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects
+    );
+    drop(retained);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.reclaim(2).reclaimed(), 2);
+}

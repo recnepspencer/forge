@@ -15,7 +15,7 @@ use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::RuntimeWorldOwnerIdentity;
 
 use super::super::component_obligation::{
-    ObservationRetentionObligation, PublicationRetentionObligation,
+    ObservationRetentionObligation, ProductHeadRetentionObligation, PublicationRetentionObligation,
     RetainedPartialRetentionObligation, RetentionReleaseDenial,
 };
 use super::super::dependency_counts::ComponentBasisDependencyCounts;
@@ -25,7 +25,10 @@ use super::{RetentionCostSnapshot, RetentionObligationDenial, RetentionReclamati
 
 mod acquisition;
 mod batch_acquisition;
+mod capacity_reservation;
 mod claim_lifecycle;
+
+pub(crate) use capacity_reservation::ReservedComponentPinPairCapacity;
 
 #[cfg(test)]
 mod tests;
@@ -88,6 +91,8 @@ where
     maximum_in_flight_reservations: usize,
     unique_slots: usize,
     active_reservations: usize,
+    reserved_unique_slots: usize,
+    reserved_in_flight_reservations: usize,
     active_obligations: usize,
     next_lease_ordinal: u64,
     entries: HashMap<ExactComponentBasisKey, PinEntry>,
@@ -158,6 +163,8 @@ where
             maximum_in_flight_reservations: reservation_limit.get(),
             unique_slots: 0,
             active_reservations: 0,
+            reserved_unique_slots: 0,
+            reserved_in_flight_reservations: 0,
             active_obligations: 0,
             next_lease_ordinal: 0,
             entries: HashMap::new(),
@@ -211,6 +218,14 @@ where
         .map(PublicationRetentionObligation::owner_issued)
     }
 
+    pub(crate) fn issue_product_head(
+        &self,
+        basis: &AdmittedCompositeRuntimeWorldBasis,
+    ) -> Result<ProductHeadRetentionObligation, RetentionObligationDenial> {
+        self.issue_pair(basis, ComponentBasisDependencyClass::ProductBranchHead)
+            .map(ProductHeadRetentionObligation::owner_issued)
+    }
+
     pub(crate) fn issue_retained_partial(
         &self,
         basis: &AdmittedCompositeRuntimeWorldBasis,
@@ -232,6 +247,14 @@ where
 
     pub(crate) fn in_flight_acquisition_count(&self) -> usize {
         self.lock().active_reservations
+    }
+
+    pub(crate) fn reserved_unique_pin_capacity(&self) -> usize {
+        self.lock().reserved_unique_slots
+    }
+
+    pub(crate) fn reserved_in_flight_acquisition_capacity(&self) -> usize {
+        self.lock().reserved_in_flight_reservations
     }
 
     pub(crate) fn cost_snapshot(&self) -> RetentionCostSnapshot {

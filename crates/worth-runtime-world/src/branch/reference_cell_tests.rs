@@ -3,7 +3,7 @@ use std::thread;
 use std::time::Duration;
 
 use super::{
-    ProductBranchReferenceCell, ProductBranchReferenceCellAdmissionDenial,
+    ProductBranchHeadProtection, ProductBranchHeadProtectionDenial, ProductBranchReferenceCell,
     ProductBranchReferenceCellDenial, ProductBranchReferenceSnapshot,
 };
 use crate::branch::observation::ProductBranchObservation;
@@ -14,11 +14,10 @@ use crate::identity::ProductBranchReferenceGeneration;
 fn product_cell(
     snapshot: ProductBranchReferenceSnapshot,
     catalog: &CompositeHistoryCatalog,
+    fixture: &fixture::RealReferenceFixture,
 ) -> ProductBranchReferenceCell {
-    let protection = catalog
-        .protect_product_head(snapshot.commit())
-        .expect("installed product-head protection");
-    ProductBranchReferenceCell::new(snapshot, protection).expect("protected cell admission")
+    let protection = fixture::product_head_protection(fixture, catalog, snapshot);
+    ProductBranchReferenceCell::new(protection).expect("protected cell admission")
 }
 
 fn observation(
@@ -36,16 +35,27 @@ fn construction_requires_exact_product_head_proof_and_returns_it_on_denial() {
     let snapshot = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
     let other = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let before = catalog.counters();
-    let wrong_protection = catalog
+    let wrong_publication = fixture
+        .owner
+        .issue_publication(other.basis())
+        .expect("other publication retention");
+    let wrong_transfer = wrong_publication
+        .into_product_head_transfer(other.basis())
+        .expect("other product-head transfer");
+    let wrong_history = catalog
         .protect_product_head(other.as_ref())
         .expect("other commit is installed");
-    let wrong = ProductBranchReferenceCell::new(snapshot.clone(), wrong_protection)
+    let wrong_protection =
+        ProductBranchHeadProtection::owner_issued(snapshot.clone(), wrong_transfer, wrong_history)
+            .expect_err("the mismatched protection is returned intact")
+            .into_protection();
+    let wrong = ProductBranchReferenceCell::new(wrong_protection)
         .expect_err("a proof for another commit cannot admit the cell");
     assert_eq!(
         wrong.denial(),
-        ProductBranchReferenceCellAdmissionDenial::ProductHeadCommitMismatch
+        ProductBranchHeadProtectionDenial::HistoryCommitMismatch
     );
-    drop(wrong.into_product_head_history());
+    drop(wrong.into_protection());
     assert_eq!(
         catalog.counters().direct_protection_releases(),
         before.direct_protection_releases() + 1
@@ -54,18 +64,32 @@ fn construction_requires_exact_product_head_proof_and_returns_it_on_denial() {
     let (mut foreign_fixture, foreign_catalog, foreign_root) = fixture::installed_root();
     let foreign_snapshot =
         fixture::initial_snapshot(&mut foreign_fixture, Arc::clone(&foreign_root));
-    let foreign_protection = foreign_catalog
+    let foreign_publication = foreign_fixture
+        .owner
+        .issue_publication(foreign_snapshot.commit().basis())
+        .expect("foreign publication retention");
+    let foreign_transfer = foreign_publication
+        .into_product_head_transfer(foreign_snapshot.commit().basis())
+        .expect("foreign product-head transfer");
+    let foreign_history = foreign_catalog
         .protect_product_head(foreign_snapshot.commit())
         .expect("foreign commit is installed in its catalog");
-    let foreign = ProductBranchReferenceCell::new(snapshot.clone(), foreign_protection)
+    let foreign_protection = ProductBranchHeadProtection::owner_issued(
+        snapshot.clone(),
+        foreign_transfer,
+        foreign_history,
+    )
+    .expect_err("the foreign protection is returned intact")
+    .into_protection();
+    let foreign = ProductBranchReferenceCell::new(foreign_protection)
         .expect_err("a foreign proof cannot admit the cell");
     assert_eq!(
         foreign.denial(),
-        ProductBranchReferenceCellAdmissionDenial::ProductHeadOwnerMismatch
+        ProductBranchHeadProtectionDenial::SnapshotOwnerMismatch
     );
-    drop(foreign.into_product_head_history());
+    drop(foreign.into_protection());
 
-    let cell = product_cell(snapshot, &catalog);
+    let cell = product_cell(snapshot, &catalog, &fixture);
     assert_eq!(cell.atomic_snapshot().commit().identity(), root.identity());
 }
 
@@ -73,16 +97,13 @@ fn construction_requires_exact_product_head_proof_and_returns_it_on_denial() {
 fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
     let (mut fixture, catalog, root) = fixture::installed_root();
     let initial = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
-    let cell = product_cell(initial.clone(), &catalog);
+    let cell = product_cell(initial.clone(), &catalog, &fixture);
     let expected = observation(&cell, &fixture, &catalog);
     let first = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let first_snapshot = fixture::successor_snapshot(&initial, Arc::clone(&first));
     cell.compare_and_publish(
         &expected,
-        first_snapshot.clone(),
-        catalog
-            .protect_product_head(first.as_ref())
-            .expect("first product-head protection"),
+        fixture::product_head_protection(&fixture, &catalog, first_snapshot.clone()),
     )
     .expect("first movement");
 
@@ -92,10 +113,7 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
     let stale = cell
         .compare_and_publish(
             &expected,
-            malformed,
-            catalog
-                .protect_product_head(malformed_commit.as_ref())
-                .expect("malformed candidate is installed"),
+            fixture::product_head_protection(&fixture, &catalog, malformed),
         )
         .expect_err("stale expected head wins before malformed successor");
     assert!(matches!(
@@ -105,7 +123,23 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
                 .axes()
                 .contains(&crate::branch::observation::ProductBranchObservationMismatchAxis::SelectedCompositeCommit)
     ));
-    drop(stale.into_successor_history());
+    let stale_protection = stale.into_successor_protection();
+    let (_stale_snapshot, stale_product_head, stale_history, stale_receipt) =
+        stale_protection.into_parts();
+    assert!(stale_receipt.is_some());
+    assert_eq!(
+        stale_product_head.relational().dependency(),
+        crate::retention::ComponentBasisDependencyClass::ProductBranchHead
+    );
+    let active_before_recovery_drop = fixture.owner.active_component_obligation_count();
+    drop(stale_receipt);
+    drop(stale_history);
+    drop(stale_product_head);
+    assert_eq!(
+        fixture.owner.active_component_obligation_count(),
+        active_before_recovery_drop - 2,
+        "CAS loss custody releases the returned pair only after the caller drops it"
+    );
     assert_eq!(
         catalog.counters().direct_protection_releases(),
         before_stale_failure.direct_protection_releases() + 1
@@ -119,17 +153,14 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
     let invalid = cell
         .compare_and_publish(
             &current,
-            malformed,
-            catalog
-                .protect_product_head(malformed_commit.as_ref())
-                .expect("invalid candidate is installed"),
+            fixture::product_head_protection(&fixture, &catalog, malformed),
         )
         .expect_err("successor branch mismatch is denied");
     assert!(matches!(
         invalid.denial(),
         ProductBranchReferenceCellDenial::SuccessorBranchMismatch
     ));
-    drop(invalid.into_successor_history());
+    drop(invalid.into_successor_protection());
     assert_eq!(
         catalog.counters().direct_protection_releases(),
         before_successor_failure.direct_protection_releases() + 1
@@ -137,21 +168,39 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
 }
 
 #[test]
+fn bootstrap_product_head_protection_survives_without_an_observation() {
+    let (mut fixture, catalog, root) = fixture::installed_root();
+    let snapshot = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
+    let protection = fixture::bootstrap_product_head_protection(&fixture, &catalog, snapshot);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
+
+    let cell = ProductBranchReferenceCell::new(protection).expect("direct bootstrap protection");
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
+    let observation = cell
+        .observe(&catalog, &fixture.owner)
+        .expect("observation owns an independent pair");
+    assert_eq!(fixture.owner.active_component_obligation_count(), 4);
+    drop(observation);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
+    drop(cell);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.reclaim(2).reclaimed(), 2);
+}
+
+#[test]
 fn real_same_head_contention_has_one_winner_and_no_torn_image() {
     let (mut fixture, catalog, root) = fixture::installed_root();
     let initial = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
-    let cell = product_cell(initial.clone(), &catalog);
+    let cell = product_cell(initial.clone(), &catalog, &fixture);
     let expected = Arc::new(observation(&cell, &fixture, &catalog));
     let first = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let second = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let first_snapshot = fixture::successor_snapshot(&initial, Arc::clone(&first));
     let second_snapshot = fixture::successor_snapshot(&initial, Arc::clone(&second));
-    let first_protection = catalog
-        .protect_product_head(first.as_ref())
-        .expect("first contention protection");
-    let second_protection = catalog
-        .protect_product_head(second.as_ref())
-        .expect("second contention protection");
+    let first_protection =
+        fixture::product_head_protection(&fixture, &catalog, first_snapshot.clone());
+    let second_protection =
+        fixture::product_head_protection(&fixture, &catalog, second_snapshot.clone());
     let start = Arc::new(Barrier::new(3));
     let (results, receive) = mpsc::channel();
 
@@ -164,7 +213,7 @@ fn real_same_head_contention_has_one_winner_and_no_torn_image() {
         first_results
             .send(
                 first_cell
-                    .compare_and_publish(first_expected.as_ref(), first_snapshot, first_protection)
+                    .compare_and_publish(first_expected.as_ref(), first_protection)
                     .is_ok(),
             )
             .expect("first contention result");
@@ -177,11 +226,7 @@ fn real_same_head_contention_has_one_winner_and_no_torn_image() {
         results
             .send(
                 second_cell
-                    .compare_and_publish(
-                        second_expected.as_ref(),
-                        second_snapshot,
-                        second_protection,
-                    )
+                    .compare_and_publish(second_expected.as_ref(), second_protection)
                     .is_ok(),
             )
             .expect("second contention result");
@@ -217,21 +262,20 @@ fn unrelated_product_reference_progress_does_not_wait() {
     let (mut fixture, catalog, root) = fixture::installed_root();
     let first_snapshot = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
     let second_snapshot = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
-    let first = product_cell(first_snapshot, &catalog);
-    let second = product_cell(second_snapshot.clone(), &catalog);
+    let first = product_cell(first_snapshot, &catalog, &fixture);
+    let second = product_cell(second_snapshot.clone(), &catalog, &fixture);
     let expected = observation(&second, &fixture, &catalog);
     let successor = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
     let successor_snapshot = fixture::successor_snapshot(&second_snapshot, Arc::clone(&successor));
-    let successor_protection = catalog
-        .protect_product_head(successor.as_ref())
-        .expect("unrelated successor protection");
+    let successor_protection =
+        fixture::product_head_protection(&fixture, &catalog, successor_snapshot.clone());
     let held = first.hold_for_test();
     let (completed, receive) = mpsc::channel();
     let worker = thread::spawn(move || {
         completed
             .send(
                 second
-                    .compare_and_publish(&expected, successor_snapshot, successor_protection)
+                    .compare_and_publish(&expected, successor_protection)
                     .is_ok(),
             )
             .expect("unrelated completion result");

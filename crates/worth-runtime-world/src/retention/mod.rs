@@ -5,15 +5,19 @@ mod registry;
 mod unique_component_pin;
 
 pub(crate) use component_obligation::{
-    ObservationRetentionObligation, PublicationRetentionObligation,
+    ObservationRetentionObligation, ProductHeadRetentionObligation, PublicationRetentionObligation,
     RetainedPartialRetentionObligation,
 };
 pub(crate) use dependency_counts::ComponentBasisDependencyClass;
-#[allow(unused_imports)]
+#[cfg(test)]
 pub(crate) use obligation_transfer::ComponentBasisObligationTransferDestination;
+pub(crate) use obligation_transfer::{
+    ProductHeadRetentionTransfer, RetentionTransferDenial, RetentionTransferReceipt,
+};
+#[allow(unused_imports)]
 pub(crate) use registry::{
-    RetentionCostSnapshot, RetentionObligationDenial, RetentionReclamationReport,
-    RetentionTransferReceipt, RuntimeWorldRetentionOwner,
+    ReservedComponentPinPairCapacity, RetentionCostSnapshot, RetentionObligationDenial,
+    RetentionReclamationReport, RuntimeWorldRetentionOwner,
 };
 #[allow(unused_imports)]
 pub(crate) use unique_component_pin::{ExactComponentBasisKey, ExactComponentPinRequest};

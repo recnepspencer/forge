@@ -74,6 +74,31 @@ where
         }
     }
 
+    pub(super) fn issue_pair_with_reserved_capacity<'a>(
+        &self,
+        basis: &'a AdmittedCompositeRuntimeWorldBasis,
+        dependency: ComponentBasisDependencyClass,
+    ) -> Result<IssuedComponentPinPair, RetentionObligationDenial> {
+        let reservation = match self.reserve_pair_with_capacity(basis, dependency) {
+            Ok(reservation) => reservation,
+            Err(denial) => {
+                self.record_batch_denial();
+                return Err(denial);
+            }
+        };
+        match self.resolve_pair(reservation) {
+            Ok(pair) => {
+                self.record_batch_admission();
+                Ok(pair)
+            }
+            Err(denial) => {
+                self.restore_reserved_pair_capacity();
+                self.record_batch_denial();
+                Err(denial)
+            }
+        }
+    }
+
     fn record_batch_admission(&self) {
         let mut state = self.lock();
         state.costs.batch_admitted = state.costs.batch_admitted.saturating_add(1);

@@ -1,16 +1,21 @@
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
+use crate::branch::ProductBranchReferenceCell;
 use crate::branch::{
     ProductBranchObservation, RuntimeWorldBootstrapIntent, RuntimeWorldBootstrapOutcome,
     RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
 };
 use crate::identity::ProductBranchIdentity;
 use crate::lifecycle::RuntimeWorldCancellationToken;
+use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::{
-    CompositeComponentIntent, CompositeExecutionBorrow, LoweredOwnerComponentPlan,
-    NoEffectCompositePublication, ProductBranchIntent, ReservedCompositePublicationAttempt,
+    CompositeExecutionBorrow, CompositeLateCancellationPosture, CompositePublicationCostCounters,
+    CompositePublicationReady, LoweredOwnerComponentPlan, NoEffectCompositePublication,
+    OwnerExecutionOutcome, ProductBranchIntent, ReservedCompositePublicationAttempt,
     RuntimeWorldPublicationOutcome,
 };
 use crate::recovery::{ProductUnpublishedOwnerEffects, RecoveryContinuationContract};
+
+use super::close::RuntimeWorldCloseDenial;
 
 /// Lifecycle state of the managed Runtime World owner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,18 +62,27 @@ pub(crate) trait RuntimeWorldBranchService {
 }
 
 /// Shared internal seam for the serial owner execution pipeline.
-pub(crate) trait RuntimeWorldPublicationService {
+pub(crate) trait RuntimeWorldPreparationService {
+    fn prepare(
+        &self,
+        expected: ProductBranchObservation,
+        intent: ProductBranchIntent,
+    ) -> Result<LoweredOwnerComponentPlan, NoEffectCompositePublication>;
+
+    fn reserve(
+        &self,
+        plan: LoweredOwnerComponentPlan,
+        cancellation: &RuntimeWorldCancellationToken,
+        deadline: Option<RuntimeWorldInstant>,
+    ) -> Result<ReservedCompositePublicationAttempt, NoEffectCompositePublication>;
+}
+
+pub(crate) trait RuntimeWorldOwnerExecutionService {
     type SignalDefinition: Copy + Ord + std::fmt::Debug + 'static;
     type SignalIdentity: Copy + Ord;
     type SignalEvent;
     type SignalContext;
     type SignalTransactionKey: Copy + Ord;
-
-    fn prepare(
-        &self,
-        expected: ProductBranchObservation,
-        intent: CompositeComponentIntent,
-    ) -> Result<LoweredOwnerComponentPlan, NoEffectCompositePublication>;
 
     fn execute(
         &self,
@@ -82,6 +96,17 @@ pub(crate) trait RuntimeWorldPublicationService {
             Self::SignalTransactionKey,
         >,
         cancellation: &RuntimeWorldCancellationToken,
+    ) -> OwnerExecutionOutcome;
+}
+
+pub(crate) trait RuntimeWorldProductPublicationService {
+    fn publish(
+        &self,
+        ready: CompositePublicationReady,
+        cell: &ProductBranchReferenceCell,
+        successor: ProductBranchObservation,
+        late_cancellation: CompositeLateCancellationPosture,
+        cost_counters: CompositePublicationCostCounters,
     ) -> RuntimeWorldPublicationOutcome;
 }
 
@@ -98,5 +123,5 @@ pub(crate) trait RuntimeWorldRecoveryService {
 pub(crate) trait RuntimeWorldLifecycleService {
     fn bootstrap_root(&self, intent: RuntimeWorldBootstrapIntent) -> RuntimeWorldBootstrapOutcome;
 
-    fn lifecycle_observation(&self) -> RuntimeWorldOwnerLifecycleObservation;
+    fn close(&self) -> Result<(), RuntimeWorldCloseDenial>;
 }

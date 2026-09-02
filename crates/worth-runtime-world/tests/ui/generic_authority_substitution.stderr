@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/generic_authority_substitution.rs:13:62
+   |
+13 |     let _ = RuntimeWorldOwnerRoot::<(), (), (), (), ()>::new(forged_witness());
+   |             ------------------------------------------------ ^^^^^^^^^^^^^^^^ expected `RuntimeWorldOwnerInputs<(), (), (), (), ()>`, found `AuthorityWitness<ForgedAuthority>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `RuntimeWorldOwnerInputs<(), (), (), (), ()>`
+              found struct `AuthorityWitness<ForgedAuthority>`
+note: associated function defined here
+  --> src/lifecycle/owner.rs
+   |
+   |     pub fn new(
+   |            ^^^

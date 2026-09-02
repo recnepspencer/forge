@@ -5,10 +5,11 @@ use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::{CompositeBasisIdentity, CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
 
 use super::super::obligation_transfer::{
-    ComponentBasisObligationTransferDestination, RetentionTransferDenial,
+    ProductHeadRetentionTransfer, RetentionTransferDenial, RetentionTransferReceipt,
 };
 use super::super::unique_component_pin::ExactComponentPinRequest;
 use super::super::ComponentBasisDependencyClass;
+use super::product_head::ProductHeadRetentionObligation;
 use super::ComponentBasisPinObligation;
 
 /// The fixed two-component proof issued by the Runtime World retention owner.
@@ -171,13 +172,15 @@ impl PublicationRetentionObligation {
             && self.signal.dependency() == ComponentBasisDependencyClass::ActivePublicationAttempt
     }
 
-    pub(crate) fn try_transfer_to(
+    /// Transfer publication custody into the sole product-head authority.
+    /// The exact successor basis is checked before either claim changes class.
+    pub(crate) fn into_product_head_transfer(
         self,
-        destination: ComponentBasisObligationTransferDestination,
-    ) -> Result<Self, (Self, RetentionTransferDenial)> {
-        let Some(target) = destination.dependency_class() else {
-            return Err((self, RetentionTransferDenial::ReleaseDestination));
-        };
+        successor_basis: &AdmittedCompositeRuntimeWorldBasis,
+    ) -> Result<ProductHeadRetentionTransfer, (Self, RetentionTransferDenial)> {
+        if !self.matches_basis(successor_basis) {
+            return Err((self, RetentionTransferDenial::BasisMismatch));
+        }
         let Self {
             owner,
             basis,
@@ -187,13 +190,22 @@ impl PublicationRetentionObligation {
         let relational_claim = relational.into_claim();
         let signal_claim = signal.into_claim();
         let control = Arc::clone(&relational_claim.control);
-        match control.transfer_pair(relational_claim, signal_claim, target) {
-            Ok((relational, signal)) => Ok(Self {
-                owner,
-                basis,
-                relational: ComponentBasisPinObligation::new(relational),
-                signal: ComponentBasisPinObligation::new(signal),
-            }),
+        match control.transfer_pair(
+            relational_claim,
+            signal_claim,
+            ComponentBasisDependencyClass::ProductBranchHead,
+        ) {
+            Ok((relational, signal)) => {
+                let receipt = RetentionTransferReceipt::product_head(
+                    owner,
+                    basis.clone(),
+                    relational.key().clone(),
+                    signal.key().clone(),
+                );
+                let obligation =
+                    ProductHeadRetentionObligation::transferred(owner, basis, relational, signal);
+                Ok(ProductHeadRetentionTransfer::new(obligation, receipt))
+            }
             Err((relational, signal, denial)) => Err((
                 Self {
                     owner,
@@ -204,59 +216,5 @@ impl PublicationRetentionObligation {
                 denial,
             )),
         }
-    }
-}
-
-/// Two exact component claims retained with product-unpublished owner effects.
-#[derive(Debug)]
-pub(crate) struct RetainedPartialRetentionObligation {
-    owner: RuntimeWorldOwnerIdentity,
-    basis: CompositeBasisIdentity,
-    relational: ComponentBasisPinObligation,
-    signal: ComponentBasisPinObligation,
-}
-
-impl RetainedPartialRetentionObligation {
-    pub(crate) fn owner_issued(pair: IssuedComponentPinPair) -> Self {
-        let (owner, basis, dependency, relational, signal) = pair.into_parts();
-        assert_eq!(
-            dependency,
-            ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects
-        );
-        Self {
-            owner,
-            basis,
-            relational,
-            signal,
-        }
-    }
-
-    pub(crate) fn relational(&self) -> &ComponentBasisPinObligation {
-        &self.relational
-    }
-
-    pub(crate) fn signal(&self) -> &ComponentBasisPinObligation {
-        &self.signal
-    }
-
-    pub(crate) fn matches_basis(&self, basis: &AdmittedCompositeRuntimeWorldBasis) -> bool {
-        self.owner == basis.owner_identity()
-            && self.basis == *basis.identity()
-            && self.relational.key()
-                == &ExactComponentPinRequest::relational(
-                    basis,
-                    ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
-                )
-                .key()
-            && self.signal.key()
-                == &ExactComponentPinRequest::signal(
-                    basis,
-                    ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
-                )
-                .key()
-            && self.relational.dependency()
-                == ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects
-            && self.signal.dependency()
-                == ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects
     }
 }

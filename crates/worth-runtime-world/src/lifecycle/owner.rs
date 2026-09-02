@@ -1,95 +1,149 @@
+use std::sync::{Arc, Mutex};
+
+use worth_relational::facade::branch::RelationalOwnerServicePorts;
+use worth_runtime_bridge::facade::RuntimeWorldCorrespondencePort;
+use worth_signal::facade::branch::SignalOwnerServicePorts;
+
+use crate::branch::registry::ProductBranchRegistry;
+use crate::budget::RuntimeWorldBudgets;
+use crate::history::CompositeHistoryCatalog;
 use crate::identity::{
     RuntimeWorldIdentityExhaustion, RuntimeWorldIdentityIssuer, RuntimeWorldOwnerIdentity,
 };
+use crate::recovery::RecoveryCatalog;
+use crate::retention::RuntimeWorldRetentionOwner;
 
-/// Unforgeable capability held only during the canonical owner construction
-/// call. It prevents any other crate module from resetting the identity issuer.
-#[derive(Debug)]
-pub(crate) struct RuntimeWorldOwnerConstructionCapability {
-    _private: (),
+use super::clock::RuntimeWorldClock;
+use super::close::RuntimeWorldCloseContract;
+use super::owner_inputs::RuntimeWorldOwnerInputs;
+
+mod bootstrap;
+mod construction;
+mod operation;
+
+pub(crate) use construction::{
+    RuntimeWorldOwnerConstructionCapability, RuntimeWorldOwnerConstructionContract,
+};
+pub(crate) use operation::{
+    ReservedPublicationAttemptCapacity, RuntimeWorldOperationReservation,
+    RuntimeWorldOperationState, RuntimeWorldPublicationCapacityLedger,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RuntimeWorldBootstrapState {
+    Unperformed,
+    InProgress,
+    Performed,
 }
 
-impl RuntimeWorldOwnerConstructionCapability {
-    fn new() -> Self {
-        Self { _private: () }
+/// The sole managed Runtime World owner. All identity, budget, component,
+/// history, retention, branch, recovery, and lifecycle state is rooted here.
+pub struct RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    pub(super) state: Arc<RuntimeWorldOwnerState<D, I, E, Ctx, T>>,
+}
+
+impl<D, I, E, Ctx, T> std::fmt::Debug for RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RuntimeWorldOwnerRoot")
+            .field("owner_identity", &self.owner_identity())
+            .finish_non_exhaustive()
     }
 }
 
-/// The serial owner-construction seam. It creates the sole issuer once and
-/// does not expose a reset or an owner-identity substitution path.
-#[derive(Debug)]
-pub(crate) struct RuntimeWorldOwnerConstructionContract {
-    issuer: RuntimeWorldIdentityIssuer,
+pub(super) struct RuntimeWorldOwnerState<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    pub(super) owner_identity: RuntimeWorldOwnerIdentity,
+    pub(super) identities: Mutex<RuntimeWorldIdentityIssuer>,
+    pub(super) relational: RelationalOwnerServicePorts,
+    pub(super) signal: SignalOwnerServicePorts<D, I, E, Ctx, T>,
+    pub(super) bridge: RuntimeWorldCorrespondencePort,
+    pub(super) budgets: RuntimeWorldBudgets,
+    pub(super) clock: RuntimeWorldClock,
+    pub(super) history: CompositeHistoryCatalog,
+    pub(super) retention: RuntimeWorldRetentionOwner<D, I, T>,
+    pub(super) branches: ProductBranchRegistry,
+    pub(super) recovery: RecoveryCatalog,
+    pub(super) bootstrap: Mutex<RuntimeWorldBootstrapState>,
+    pub(super) close: Mutex<RuntimeWorldCloseContract>,
+    pub(super) operation: Arc<Mutex<RuntimeWorldOperationState>>,
+    pub(super) publication_capacity: RuntimeWorldPublicationCapacityLedger,
 }
 
-impl RuntimeWorldOwnerConstructionContract {
-    pub(crate) fn new() -> Result<Self, RuntimeWorldIdentityExhaustion> {
-        let capability = RuntimeWorldOwnerConstructionCapability::new();
-        let (issuer, _) = crate::identity::issuer_for_owner_construction(&capability)?;
-        Ok(Self { issuer })
+impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    pub fn new(
+        inputs: RuntimeWorldOwnerInputs<D, I, E, Ctx, T>,
+    ) -> Result<Self, RuntimeWorldIdentityExhaustion> {
+        let (relational, signal, bridge, budgets, clock) = inputs.into_parts();
+        let construction = RuntimeWorldOwnerConstructionContract::new()?;
+        let owner_identity = construction.owner_identity();
+        let identities = construction.into_issuer();
+        let history = CompositeHistoryCatalog::new(
+            owner_identity,
+            crate::history::RuntimeWorldHistoryCatalogContract::installed(
+                budgets.retained_composite_commits(),
+                budgets.history_metadata_bytes(),
+            ),
+        );
+        let retention = RuntimeWorldRetentionOwner::from_component_services(
+            owner_identity,
+            &relational,
+            &signal,
+            budgets.unique_exact_component_pins(),
+            budgets.in_flight_pin_acquisition_reservations(),
+        );
+        let branches = ProductBranchRegistry::new(owner_identity, budgets.live_product_branches());
+        let recovery = RecoveryCatalog::new(
+            owner_identity,
+            budgets.retained_product_unpublished_records(),
+        );
+        let publication_capacity =
+            RuntimeWorldPublicationCapacityLedger::new(budgets.active_publication_attempts());
+        Ok(Self {
+            state: Arc::new(RuntimeWorldOwnerState {
+                owner_identity,
+                identities: Mutex::new(identities),
+                relational,
+                signal,
+                bridge,
+                budgets,
+                clock,
+                history,
+                retention,
+                branches,
+                recovery,
+                bootstrap: Mutex::new(RuntimeWorldBootstrapState::Unperformed),
+                close: Mutex::new(RuntimeWorldCloseContract::open()),
+                operation: Arc::new(Mutex::new(RuntimeWorldOperationState::Idle)),
+                publication_capacity,
+            }),
+        })
     }
 
-    pub(crate) const fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
-        self.issuer.owner()
-    }
-
-    pub(crate) const fn issuer(&self) -> &RuntimeWorldIdentityIssuer {
-        &self.issuer
-    }
-
-    #[cfg(test)]
-    pub(crate) fn issuer_mut(&mut self) -> &mut RuntimeWorldIdentityIssuer {
-        &mut self.issuer
+    pub fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
+        self.state.owner_identity
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::identity::RuntimeWorldIdentityFamily;
-
-    use super::RuntimeWorldOwnerConstructionContract;
-
-    #[test]
-    fn owner_construction_owns_one_non_resettable_issuer() {
-        let first =
-            RuntimeWorldOwnerConstructionContract::new().expect("first managed owner identity");
-        let second =
-            RuntimeWorldOwnerConstructionContract::new().expect("second managed owner identity");
-        assert_ne!(first.owner_identity(), second.owner_identity());
-    }
-
-    #[test]
-    fn owner_issuer_keeps_families_scoped_and_checked() {
-        let mut construction =
-            RuntimeWorldOwnerConstructionContract::new().expect("owner identity");
-        let owner = construction.owner_identity();
-        let issuer = construction.issuer_mut();
-        assert_eq!(issuer.owner(), owner);
-        assert_eq!(issuer.product_branch().unwrap().owner_identity(), owner);
-        assert_eq!(issuer.branch_lifecycle().unwrap().owner_identity(), owner);
-        assert_eq!(issuer.composite_commit().unwrap().owner_identity(), owner);
-        assert_eq!(issuer.bootstrap_attempt().unwrap().owner_identity(), owner);
-        assert_eq!(
-            issuer.publication_attempt().unwrap().owner_identity(),
-            owner
-        );
-        assert_eq!(
-            issuer.product_unpublished().unwrap().owner_identity(),
-            owner
-        );
-        assert_ne!(
-            issuer.composite_commit().unwrap(),
-            issuer.composite_commit().unwrap()
-        );
-
-        issuer.set_next_publication_attempt_for_test(u64::MAX);
-        let denial = issuer
-            .publication_attempt()
-            .expect_err("the checked sequence must not wrap");
-        assert_eq!(
-            denial.family(),
-            RuntimeWorldIdentityFamily::PublicationAttempt
-        );
-        assert!(issuer.publication_attempt().is_err());
-    }
-}
+#[path = "owner_tests.rs"]
+mod tests;
