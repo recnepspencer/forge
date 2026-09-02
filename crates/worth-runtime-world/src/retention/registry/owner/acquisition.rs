@@ -1,10 +1,7 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
-use worth_relational::facade::branch::{RelationalBranchBasisPort, RelationalBranchRetentionLease};
-use worth_signal::facade::branch::{
-    SignalBranchBasisPort, SignalBranchRetentionLease, SignalBranchRetentionReleaseOutcome,
-};
+use worth_signal::facade::branch::SignalBranchRetentionReleaseOutcome;
 
 use super::super::super::component_obligation::{
     ComponentBasisPinObligation, RetentionControlSurface, RetentionReleaseDenial,
@@ -92,7 +89,7 @@ where
             .map(ComponentBasisPinObligation::new)
     }
 
-    fn acquire(
+    pub(super) fn acquire(
         &self,
         request: ExactComponentPinRequest<'_>,
         key: ExactComponentBasisKey,
@@ -177,11 +174,16 @@ where
             }
             state.active_reservations += 1;
             state.active_obligations += 1;
-            state.costs.owner_acquisition_contacts =
-                state.costs.owner_acquisition_contacts.saturating_add(1);
+            state.costs.flights_started = state.costs.flights_started.saturating_add(1);
             state.flights.insert(key.clone(), Arc::clone(&flight));
             break (flight, identity, new_slot);
         };
+        {
+            let mut state = self.lock();
+            state.costs.owner_acquisition_contacts =
+                state.costs.owner_acquisition_contacts.saturating_add(1);
+            state.costs.record_component_contact(request.component());
+        }
         let result = catch_unwind(AssertUnwindSafe(|| {
             self.retain_component(request.component())
         }))
@@ -189,6 +191,9 @@ where
         let mut state = self.lock();
         state.flights.remove(&key);
         state.active_reservations -= 1;
+        state
+            .costs
+            .record_component_outcome(request.component(), result.is_ok());
         match result {
             Ok(lease) => {
                 let mut counts = ComponentBasisDependencyCounts::zero();

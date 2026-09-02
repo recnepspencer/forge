@@ -4,7 +4,6 @@ use std::sync::Arc;
 use worth_relational::facade::branch::RelationalBranchBasisDenial;
 use worth_signal::facade::branch::SignalBranchRetentionReleaseDenial;
 
-use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::identity::RuntimeWorldOwnerIdentity;
 
 use super::obligation_transfer::{
@@ -12,9 +11,15 @@ use super::obligation_transfer::{
 };
 use super::unique_component_pin::{
     ComponentBasisLeaseIdentity, ComponentBasisPinClaim, ExactComponentBasisKey,
-    ExactComponentPinRequest,
 };
 use super::ComponentBasisDependencyClass;
+
+mod composite;
+
+pub(crate) use composite::{
+    IssuedComponentPinPair, ObservationRetentionObligation, PublicationRetentionObligation,
+    RetainedPartialRetentionObligation,
+};
 
 /// Typed refusal from the Runtime World retention owner when a live claim
 /// cannot be terminated. The component owner lease remains bound to the
@@ -218,156 +223,5 @@ impl Drop for ComponentBasisPinObligation {
         };
         let control = Arc::clone(&claim.control);
         control.abandon_claim(claim);
-    }
-}
-
-/// Two independent exact component claims carried by one observation.
-#[derive(Debug)]
-pub(crate) struct ObservationRetentionObligation {
-    relational: ComponentBasisPinObligation,
-    signal: ComponentBasisPinObligation,
-}
-
-impl ObservationRetentionObligation {
-    pub(super) fn new(
-        relational: ComponentBasisPinObligation,
-        signal: ComponentBasisPinObligation,
-    ) -> Self {
-        Self { relational, signal }
-    }
-
-    pub(crate) fn relational(&self) -> &ComponentBasisPinObligation {
-        &self.relational
-    }
-
-    pub(crate) fn signal(&self) -> &ComponentBasisPinObligation {
-        &self.signal
-    }
-
-    pub(crate) fn matches_basis(&self, basis: &AdmittedCompositeRuntimeWorldBasis) -> bool {
-        self.relational.owner_identity() == basis.owner_identity()
-            && self.signal.owner_identity() == basis.owner_identity()
-            && self.relational.key()
-                == &ExactComponentPinRequest::relational(
-                    basis,
-                    ComponentBasisDependencyClass::AdmittedObservation,
-                )
-                .key()
-            && self.signal.key()
-                == &ExactComponentPinRequest::signal(
-                    basis,
-                    ComponentBasisDependencyClass::AdmittedObservation,
-                )
-                .key()
-    }
-}
-
-/// Two independent exact component claims reserved for one publication
-/// attempt. The prospective successor basis is checked before transfer.
-#[derive(Debug)]
-pub(crate) struct PublicationRetentionObligation {
-    relational: ComponentBasisPinObligation,
-    signal: ComponentBasisPinObligation,
-}
-
-impl PublicationRetentionObligation {
-    pub(super) fn new(
-        relational: ComponentBasisPinObligation,
-        signal: ComponentBasisPinObligation,
-    ) -> Self {
-        Self { relational, signal }
-    }
-
-    pub(crate) fn relational(&self) -> &ComponentBasisPinObligation {
-        &self.relational
-    }
-
-    pub(crate) fn signal(&self) -> &ComponentBasisPinObligation {
-        &self.signal
-    }
-
-    pub(crate) fn matches_basis(&self, basis: &AdmittedCompositeRuntimeWorldBasis) -> bool {
-        self.relational.owner_identity() == basis.owner_identity()
-            && self.signal.owner_identity() == basis.owner_identity()
-            && self.relational.key()
-                == &ExactComponentPinRequest::relational(
-                    basis,
-                    ComponentBasisDependencyClass::ActivePublicationAttempt,
-                )
-                .key()
-            && self.signal.key()
-                == &ExactComponentPinRequest::signal(
-                    basis,
-                    ComponentBasisDependencyClass::ActivePublicationAttempt,
-                )
-                .key()
-    }
-
-    pub(crate) fn try_transfer_to(
-        self,
-        destination: ComponentBasisObligationTransferDestination,
-    ) -> Result<Self, (Self, RetentionTransferDenial)> {
-        let Some(target) = destination.dependency_class() else {
-            return Err((self, RetentionTransferDenial::ReleaseDestination));
-        };
-        let Self { relational, signal } = self;
-        let relational_claim = relational.into_claim();
-        let signal_claim = signal.into_claim();
-        let control = Arc::clone(&relational_claim.control);
-        match control.transfer_pair(relational_claim, signal_claim, target) {
-            Ok((relational, signal)) => Ok(Self::new(
-                ComponentBasisPinObligation::new(relational),
-                ComponentBasisPinObligation::new(signal),
-            )),
-            Err((relational, signal, denial)) => Err((
-                Self::new(
-                    ComponentBasisPinObligation::new(relational),
-                    ComponentBasisPinObligation::new(signal),
-                ),
-                denial,
-            )),
-        }
-    }
-}
-
-/// Two independent exact component claims retained with product-unpublished
-/// owner effects.
-#[derive(Debug)]
-pub(crate) struct RetainedPartialRetentionObligation {
-    relational: ComponentBasisPinObligation,
-    signal: ComponentBasisPinObligation,
-}
-
-impl RetainedPartialRetentionObligation {
-    pub(super) fn new(
-        relational: ComponentBasisPinObligation,
-        signal: ComponentBasisPinObligation,
-    ) -> Self {
-        Self { relational, signal }
-    }
-
-    pub(crate) fn relational(&self) -> &ComponentBasisPinObligation {
-        &self.relational
-    }
-
-    pub(crate) fn signal(&self) -> &ComponentBasisPinObligation {
-        &self.signal
-    }
-
-    pub(crate) fn matches_basis(&self, basis: &AdmittedCompositeRuntimeWorldBasis) -> bool {
-        self.relational.owner_identity() == basis.owner_identity()
-            && self.signal.owner_identity() == basis.owner_identity()
-            && self.relational.key()
-                == &ExactComponentPinRequest::relational(
-                    basis,
-                    ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
-                )
-                .key()
-            && self.signal.key()
-                == &ExactComponentPinRequest::signal(
-                    basis,
-                    ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
-                )
-                .key()
     }
 }

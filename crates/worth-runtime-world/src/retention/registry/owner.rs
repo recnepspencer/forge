@@ -11,21 +11,24 @@ use worth_signal::facade::branch::{
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::budget::RuntimeWorldBudgetLimit;
+use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::RuntimeWorldOwnerIdentity;
 
 use super::super::component_obligation::{
-    ComponentBasisPinObligation, ObservationRetentionObligation, PublicationRetentionObligation,
+    ObservationRetentionObligation, PublicationRetentionObligation,
     RetainedPartialRetentionObligation, RetentionReleaseDenial,
 };
 use super::super::dependency_counts::ComponentBasisDependencyCounts;
-use super::super::unique_component_pin::{
-    ComponentBasisLeaseIdentity, ExactComponentBasisKey, ExactComponentPinRequest,
-};
+use super::super::unique_component_pin::{ComponentBasisLeaseIdentity, ExactComponentBasisKey};
 use super::super::ComponentBasisDependencyClass;
 use super::{RetentionCostSnapshot, RetentionObligationDenial, RetentionReclamationReport};
 
 mod acquisition;
+mod batch_acquisition;
 mod claim_lifecycle;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug)]
 enum ComponentOwnerLease {
@@ -188,10 +191,13 @@ where
 
     pub(crate) fn issue_observation(
         &self,
-        basis: &AdmittedCompositeRuntimeWorldBasis,
+        commit: &CompositeRuntimeWorldCommit,
     ) -> Result<ObservationRetentionObligation, RetentionObligationDenial> {
-        self.issue_pair(basis, ComponentBasisDependencyClass::AdmittedObservation)
-            .map(|(relational, signal)| ObservationRetentionObligation::new(relational, signal))
+        self.issue_pair(
+            commit.basis(),
+            ComponentBasisDependencyClass::AdmittedObservation,
+        )
+        .map(|pair| ObservationRetentionObligation::owner_issued(commit, pair))
     }
 
     pub(crate) fn issue_publication(
@@ -202,7 +208,7 @@ where
             basis,
             ComponentBasisDependencyClass::ActivePublicationAttempt,
         )
-        .map(|(relational, signal)| PublicationRetentionObligation::new(relational, signal))
+        .map(PublicationRetentionObligation::owner_issued)
     }
 
     pub(crate) fn issue_retained_partial(
@@ -213,31 +219,7 @@ where
             basis,
             ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
         )
-        .map(|(relational, signal)| RetainedPartialRetentionObligation::new(relational, signal))
-    }
-
-    fn issue_pair(
-        &self,
-        basis: &AdmittedCompositeRuntimeWorldBasis,
-        dependency: ComponentBasisDependencyClass,
-    ) -> Result<(ComponentBasisPinObligation, ComponentBasisPinObligation), RetentionObligationDenial>
-    {
-        let expected = self.lock().owner_identity;
-        let actual = basis.owner_identity();
-        if actual != expected {
-            return Err(RetentionObligationDenial::ForeignOwner { expected, actual });
-        }
-        let relational =
-            self.issue_component(ExactComponentPinRequest::relational(basis, dependency))?;
-        let signal = match self.issue_component(ExactComponentPinRequest::signal(basis, dependency))
-        {
-            Ok(signal) => signal,
-            Err(denial) => {
-                drop(relational);
-                return Err(denial);
-            }
-        };
-        Ok((relational, signal))
+        .map(RetainedPartialRetentionObligation::owner_issued)
     }
 
     pub(crate) fn active_component_obligation_count(&self) -> usize {
