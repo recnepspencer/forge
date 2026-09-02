@@ -2,4 +2,7 @@ error[E0432]: unresolved import `worth_runtime_world::facade::ProductBranchRefer
  --> tests/ui/direct_product_cas.rs:1:5
   |
 1 | use worth_runtime_world::facade::ProductBranchReferenceCell;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProductBranchReferenceCell` in `facade`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------------
+  |     |                            |
+  |     |                            help: a similar name exists in the module: `ProductBranchReferenceSnapshot`
+  |     no `ProductBranchReferenceCell` in `facade`
