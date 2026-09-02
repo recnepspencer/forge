@@ -6,7 +6,7 @@ error[E0624]: associated function `issued` is private
   |
  ::: src/identity/basis.rs
   |
-  | /     pub(crate) fn issued(
+  | /     pub(super) fn issued(
   | |         owner: RuntimeWorldOwnerIdentity,
   | |         relational: RelationalBranchBasisAdmissionIdentity,
   | |         signal: SignalBranchBasisAdmissionIdentity,

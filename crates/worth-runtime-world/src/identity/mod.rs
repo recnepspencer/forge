@@ -18,3 +18,10 @@ pub use owner::{
     RuntimeWorldIdentityExhaustion, RuntimeWorldIdentityFamily, RuntimeWorldOwnerIdentity,
 };
 pub use retained_partial::ProductUnpublishedOwnerEffectsIdentity;
+
+pub(crate) fn issuer_for_owner_construction(
+    capability: &crate::lifecycle::owner::RuntimeWorldOwnerConstructionCapability,
+) -> Result<(RuntimeWorldIdentityIssuer, RuntimeWorldOwnerIdentity), RuntimeWorldIdentityExhaustion>
+{
+    owner::RuntimeWorldIdentityIssuer::from_owner_construction(capability)
+}

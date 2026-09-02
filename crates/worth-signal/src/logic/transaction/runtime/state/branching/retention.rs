@@ -1,6 +1,5 @@
 use crate::branch::{
-    admit_runtime_signal_branch_observation, AdmittedSignalBranchBasis,
-    SignalBranchBasisDescriptor, SignalBranchBasisLifecyclePosture,
+    AdmittedSignalBranchBasis, SignalBranchBasisDescriptor, SignalBranchBasisLifecyclePosture,
     SignalBranchRetainedReadmissionDenial, SignalBranchRetentionAcquisitionDenial,
     SignalBranchRetentionLease, SignalBranchRetentionOwnerRelationship,
     SignalBranchRetentionReleaseDenial, SignalBranchRetentionReleaseOutcome,
@@ -106,22 +105,22 @@ where
         self.validate_exact_retention_target(&descriptor)
             .map_err(SignalBranchRetainedReadmissionDenial::UnavailableExactTarget)?;
         let branch_id = descriptor.branch_id();
-        let retention = self
-            .branches
-            .acquire_admitted_retention(branch_id)
-            .map_err(|denial| match denial {
-                SignalBranchRetentionAcquisitionDenial::CapacityExhausted {
-                    maximum_active_leases,
-                } => SignalBranchRetainedReadmissionDenial::UnavailableRetention {
-                    maximum_active_leases,
-                },
-                _ => SignalBranchRetainedReadmissionDenial::RetentionIdentityExhausted,
-            })?;
-        Ok(admit_runtime_signal_branch_observation(
+        self.admit_unsealed_canonical_basis_with_retention(
             descriptor.observation().clone(),
             branch_id,
-            retention,
-        ))
+            || {
+                self.branches
+                    .acquire_admitted_retention(branch_id)
+                    .map_err(|denial| match denial {
+                        SignalBranchRetentionAcquisitionDenial::CapacityExhausted {
+                            maximum_active_leases,
+                        } => SignalBranchRetainedReadmissionDenial::UnavailableRetention {
+                            maximum_active_leases,
+                        },
+                        _ => SignalBranchRetainedReadmissionDenial::RetentionIdentityExhausted,
+                    })
+            },
+        )
     }
 
     /// Terminality this runtime's narrow retention owner has recorded for

@@ -23,6 +23,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    owner: &'a SignalOwner<D, I, T>,
     admission: &'a SignalOwnerOperationAdmission<'a>,
     cell: Arc<SignalBranchExecutionCell<SignalBranchCellState<D, I, T>>>,
     branch_id: SignalBranchId,
@@ -87,6 +88,7 @@ where
             .reserve_output_retention(admission, branch_id, 1)
             .map_err(|denial| map_advance_output_denial(denial, branch_id))?;
         Ok(SignalAdvanceOutputReservation {
+            owner: self,
             admission,
             cell: Arc::clone(cell),
             branch_id,

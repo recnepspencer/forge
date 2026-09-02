@@ -1,6 +1,7 @@
 mod bootstrap;
 mod creation;
-mod observation_contract;
+mod observation;
+mod reference_cell;
 mod retirement;
 
 pub use bootstrap::{
@@ -11,8 +12,10 @@ pub use creation::{
     ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
     ProductBranchName, ProductBranchNameDenial,
 };
-pub use observation_contract::{
+pub use observation::{
     ProductBranchObservation, ProductBranchObservationMismatch,
     ProductBranchObservationMismatchAxis, RuntimeWorldBranchAdmissionDenial,
 };
+#[cfg(test)]
+pub(crate) use reference_cell::ProductBranchReferenceSnapshot;
 pub use retirement::RuntimeWorldBranchRetirementDenial;

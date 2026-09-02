@@ -65,7 +65,7 @@ pub use query_delivery::{
 };
 pub use rebuild_report::BridgeCorrespondenceRebuildReport;
 pub use registration::BridgeSemanticCorrespondenceRegistration;
-pub(crate) use runtime_world_admission::admit_installed_basis;
+pub(crate) use runtime_world_admission::{admit_installed_basis, compare_current_basis};
 pub use runtime_world_admission::{
     AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondenceAdmissionDenial,
 };

@@ -1,6 +1,5 @@
 use crate::branch::{
-    admit_runtime_signal_branch_observation, AdmittedSignalBranchBasis,
-    SignalBranchBasisCompatibilityDenial, SignalBranchBasisDescriptor,
+    AdmittedSignalBranchBasis, SignalBranchBasisCompatibilityDenial, SignalBranchBasisDescriptor,
     SignalBranchBasisLifecyclePosture, SignalBranchBasisReadmissionDenial,
     SIGNAL_BRANCH_BASIS_DESCRIPTOR_SCHEMA_VERSION,
 };
@@ -84,25 +83,27 @@ where
                 axes: mismatch.axes().to_vec(),
             });
         }
-        let retention = self
-            .branches
-            .acquire_admitted_retention(branch_id)
-            .map_err(|denial| match denial {
-                crate::branch::SignalBranchRetentionAcquisitionDenial::CapacityExhausted {
-                    maximum_active_leases,
-                } => SignalBranchBasisReadmissionDenial::UnavailableRetention {
-                    maximum_active_leases,
-                },
-                crate::branch::SignalBranchRetentionAcquisitionDenial::IdentityExhausted => {
-                    SignalBranchBasisReadmissionDenial::RetentionIdentityExhausted
-                }
-                _ => unreachable!("admitted retention acquisition has no basis validation path"),
-            })?;
-        Ok(admit_runtime_signal_branch_observation(
+        self.admit_unsealed_canonical_basis_with_retention(
             descriptor.observation().clone(),
             branch_id,
-            retention,
-        ))
+            || {
+                self.branches
+                    .acquire_admitted_retention(branch_id)
+                    .map_err(|denial| match denial {
+                        crate::branch::SignalBranchRetentionAcquisitionDenial::CapacityExhausted {
+                            maximum_active_leases,
+                        } => SignalBranchBasisReadmissionDenial::UnavailableRetention {
+                            maximum_active_leases,
+                        },
+                        crate::branch::SignalBranchRetentionAcquisitionDenial::IdentityExhausted => {
+                            SignalBranchBasisReadmissionDenial::RetentionIdentityExhausted
+                        }
+                        _ => unreachable!(
+                            "admitted retention acquisition has no basis validation path"
+                        ),
+                    })
+            },
+        )
     }
 
     pub fn validate_signal_basis_compatibility(

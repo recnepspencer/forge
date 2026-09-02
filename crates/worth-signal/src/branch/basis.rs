@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use super::authority::{
     mint_signal_branch_authority, signal_branch_basis_proof, SignalBranchBasisProof,
@@ -12,14 +12,15 @@ use crate::state::SignalBranchId;
 /// Owner-issued Signal observation token. Construction is private to the
 /// Signal branch owner; callers cannot mint one from a descriptor.
 #[derive(Debug, Clone)]
-pub struct AdmittedSignalBranchBasis(Arc<AdmittedSignalBranchBasisInner>);
+pub struct AdmittedSignalBranchBasis(pub(crate) Arc<AdmittedSignalBranchBasisInner>);
 
 #[derive(Debug)]
-struct AdmittedSignalBranchBasisInner {
-    descriptor: SignalBranchBasisDescriptor,
-    admission_identity: super::SignalBranchBasisAdmissionIdentity,
-    _proof: SignalBranchBasisProof,
-    _retention: SignalBranchAdmissionLease,
+pub(crate) struct AdmittedSignalBranchBasisInner {
+    pub(crate) descriptor: SignalBranchBasisDescriptor,
+    pub(crate) admission_identity: super::SignalBranchBasisAdmissionIdentity,
+    pub(crate) _proof: SignalBranchBasisProof,
+    pub(crate) _retention: SignalBranchAdmissionLease,
+    pub(crate) registry_lease: OnceLock<super::basis_registry::SignalBranchBasisRegistryLease>,
 }
 
 impl AdmittedSignalBranchBasis {
@@ -57,6 +58,10 @@ impl AdmittedSignalBranchBasis {
     ) -> SignalBranchRetentionOwnerRelationship {
         self.0._retention.owner_identity_relationship(owner)
     }
+
+    pub(crate) fn from_inner(inner: Arc<AdmittedSignalBranchBasisInner>) -> Self {
+        Self(inner)
+    }
 }
 
 pub(crate) fn admit_signal_branch_observation(
@@ -71,9 +76,11 @@ pub(crate) fn admit_signal_branch_observation(
         admission_identity: super::SignalBranchBasisAdmissionIdentity::issue(),
         _proof: proof,
         _retention: retention,
+        registry_lease: OnceLock::new(),
     }))
 }
 
+#[cfg(test)]
 pub(crate) fn admit_runtime_signal_branch_observation(
     observation: SignalBranchObservation,
     branch_id: SignalBranchId,

@@ -5,30 +5,23 @@ use crate::identity::{
     CompositeCommitIdentity, ProductBranchIdentity, ProductBranchLifecycleIncarnation,
     ProductBranchReferenceGeneration, RuntimeWorldOwnerIdentity,
 };
-use crate::retention::ComponentBasisDependencyClass;
+use crate::retention::ObservationRetentionObligation;
+
+use super::reference_cell::ProductBranchReferenceSnapshot;
 
 /// Complete product-head observation used by every compare-and-publish
-/// operation. A partial tuple is not an observation.
+/// operation. A single reference snapshot supplies the commit and basis;
+/// retention is an owner-issued operational obligation, not a caller tuple.
 #[derive(Debug)]
 pub struct ProductBranchObservation {
-    owner: RuntimeWorldOwnerIdentity,
-    branch: ProductBranchIdentity,
-    lifecycle: ProductBranchLifecycleIncarnation,
-    generation: ProductBranchReferenceGeneration,
-    selected_commit: CompositeCommitIdentity,
-    basis: AdmittedCompositeRuntimeWorldBasis,
+    snapshot: Arc<ProductBranchReferenceSnapshot>,
     obligation: Arc<ProductBranchObservationObligation>,
 }
 
 impl Clone for ProductBranchObservation {
     fn clone(&self) -> Self {
         Self {
-            owner: self.owner,
-            branch: self.branch.clone(),
-            lifecycle: self.lifecycle,
-            generation: self.generation,
-            selected_commit: self.selected_commit.clone(),
-            basis: self.basis.clone(),
+            snapshot: Arc::clone(&self.snapshot),
             obligation: Arc::clone(&self.obligation),
         }
     }
@@ -36,28 +29,41 @@ impl Clone for ProductBranchObservation {
 
 impl PartialEq for ProductBranchObservation {
     fn eq(&self, other: &Self) -> bool {
-        self.owner == other.owner
-            && self.branch == other.branch
-            && self.lifecycle == other.lifecycle
-            && self.generation == other.generation
-            && self.selected_commit == other.selected_commit
-            && self.basis == other.basis
+        self.owner_identity() == other.owner_identity()
+            && self.branch_identity() == other.branch_identity()
+            && self.lifecycle_incarnation() == other.lifecycle_incarnation()
+            && self.reference_generation() == other.reference_generation()
+            && self.selected_commit() == other.selected_commit()
+            && self.basis() == other.basis()
     }
 }
 
 impl Eq for ProductBranchObservation {}
 
-/// Cloned observations share this one operational admission obligation. The
-/// retention lane will attach its bounded registry accounting to this token;
-/// a value clone never becomes a fresh observation admission.
+/// Cloned observations share this retention-issued binding. Its two
+/// independent component obligations release through RAII when the final
+/// observation clone disappears.
 #[derive(Debug)]
 pub(crate) struct ProductBranchObservationObligation {
-    dependency_class: ComponentBasisDependencyClass,
+    retention: ObservationRetentionObligation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProductBranchObservationConstructionDenial {
+    RetentionBasisMismatch,
 }
 
 impl ProductBranchObservationObligation {
-    pub(crate) const fn dependency_class(&self) -> ComponentBasisDependencyClass {
-        self.dependency_class
+    pub(crate) fn owner_issued(retention: ObservationRetentionObligation) -> Self {
+        Self { retention }
+    }
+
+    pub(crate) const fn dependency_class(&self) -> crate::retention::ComponentBasisDependencyClass {
+        crate::retention::ComponentBasisDependencyClass::AdmittedObservation
+    }
+
+    pub(crate) fn retention(&self) -> &ObservationRetentionObligation {
+        &self.retention
     }
 }
 
@@ -92,42 +98,41 @@ pub enum RuntimeWorldBranchAdmissionDenial {
 }
 
 impl ProductBranchObservation {
-    pub(crate) fn issued(parts: ProductBranchObservationParts) -> Self {
-        Self {
-            owner: parts.owner,
-            branch: parts.branch,
-            lifecycle: parts.lifecycle,
-            generation: parts.generation,
-            selected_commit: parts.selected_commit,
-            basis: parts.basis,
-            obligation: Arc::new(ProductBranchObservationObligation {
-                dependency_class: ComponentBasisDependencyClass::AdmittedObservation,
-            }),
+    pub(crate) fn owner_issued(
+        snapshot: ProductBranchReferenceSnapshot,
+        retention: ObservationRetentionObligation,
+    ) -> Result<Self, ProductBranchObservationConstructionDenial> {
+        if !retention.matches_basis(snapshot.commit().basis()) {
+            return Err(ProductBranchObservationConstructionDenial::RetentionBasisMismatch);
         }
+        Ok(Self {
+            snapshot: Arc::new(snapshot),
+            obligation: Arc::new(ProductBranchObservationObligation::owner_issued(retention)),
+        })
     }
 
     pub fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
-        self.owner
+        self.snapshot.owner()
     }
 
     pub fn branch_identity(&self) -> &ProductBranchIdentity {
-        &self.branch
+        self.snapshot.branch()
     }
 
     pub fn lifecycle_incarnation(&self) -> ProductBranchLifecycleIncarnation {
-        self.lifecycle
+        self.snapshot.lifecycle()
     }
 
     pub fn reference_generation(&self) -> ProductBranchReferenceGeneration {
-        self.generation
+        self.snapshot.generation()
     }
 
     pub fn selected_commit(&self) -> &CompositeCommitIdentity {
-        &self.selected_commit
+        self.snapshot.commit().identity()
     }
 
     pub fn basis(&self) -> &AdmittedCompositeRuntimeWorldBasis {
-        &self.basis
+        self.snapshot.commit().basis()
     }
 
     pub(crate) fn retention_obligation(&self) -> &ProductBranchObservationObligation {
@@ -136,22 +141,22 @@ impl ProductBranchObservation {
 
     pub fn compare(&self, observed: &Self) -> Result<(), ProductBranchObservationMismatch> {
         let mut axes = Vec::new();
-        if self.owner != observed.owner {
+        if self.owner_identity() != observed.owner_identity() {
             axes.push(ProductBranchObservationMismatchAxis::OwnerIdentity);
         }
-        if self.branch != observed.branch {
+        if self.branch_identity() != observed.branch_identity() {
             axes.push(ProductBranchObservationMismatchAxis::BranchIdentity);
         }
-        if self.lifecycle != observed.lifecycle {
+        if self.lifecycle_incarnation() != observed.lifecycle_incarnation() {
             axes.push(ProductBranchObservationMismatchAxis::LifecycleIncarnation);
         }
-        if self.generation != observed.generation {
+        if self.reference_generation() != observed.reference_generation() {
             axes.push(ProductBranchObservationMismatchAxis::ReferenceGeneration);
         }
-        if self.selected_commit != observed.selected_commit {
+        if self.selected_commit() != observed.selected_commit() {
             axes.push(ProductBranchObservationMismatchAxis::SelectedCompositeCommit);
         }
-        if crate::basis::compare_exact(&self.basis, &observed.basis).is_err() {
+        if crate::basis::compare_exact(self.basis(), observed.basis()).is_err() {
             axes.push(ProductBranchObservationMismatchAxis::CompositeBasis);
         }
         if axes.is_empty() {
@@ -160,13 +165,4 @@ impl ProductBranchObservation {
             Err(ProductBranchObservationMismatch { axes })
         }
     }
-}
-
-pub(crate) struct ProductBranchObservationParts {
-    pub(crate) owner: RuntimeWorldOwnerIdentity,
-    pub(crate) branch: ProductBranchIdentity,
-    pub(crate) lifecycle: ProductBranchLifecycleIncarnation,
-    pub(crate) generation: ProductBranchReferenceGeneration,
-    pub(crate) selected_commit: CompositeCommitIdentity,
-    pub(crate) basis: AdmittedCompositeRuntimeWorldBasis,
 }

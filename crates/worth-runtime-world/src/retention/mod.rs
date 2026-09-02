@@ -1,12 +1,33 @@
+mod component_obligation;
 mod dependency_counts;
 mod obligation_transfer;
+mod registry;
 mod unique_component_pin;
 
 pub(crate) use dependency_counts::{ComponentBasisDependencyClass, ComponentBasisDependencyCounts};
+#[allow(
+    unused_imports,
+    reason = "Phase 1 freezes transfer vocabulary for the later retention lane"
+)]
 pub(crate) use obligation_transfer::{
     ComponentBasisObligationTransfer, ComponentBasisObligationTransferDestination,
 };
-pub(crate) use unique_component_pin::ExactComponentPinRequest;
+#[allow(
+    unused_imports,
+    reason = "Phase 1 freezes opaque retention obligations for later owner consumers"
+)]
+pub(crate) use registry::{
+    ObservationRetentionObligation, PublicationRetentionObligation,
+    RetainedPartialRetentionObligation, RetentionObligationDenial, RetentionTransferDenial,
+    RetentionTransferReceipt, RuntimeWorldRetentionOwner,
+};
+#[allow(
+    unused_imports,
+    reason = "Phase 1 freezes independent exact component keys for the later registry"
+)]
+pub(crate) use unique_component_pin::{
+    ExactComponentBasis, ExactComponentBasisKey, ExactComponentPinRequest,
+};
 
 #[cfg(test)]
 mod tests {

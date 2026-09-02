@@ -1,15 +1,53 @@
+#[path = "runtime_world_certification/basis_history.rs"]
+mod basis_history;
+#[path = "runtime_world_certification/bridge.rs"]
+mod bridge;
+#[path = "runtime_world_certification/reference.rs"]
+mod reference;
+#[path = "runtime_world_certification/retention.rs"]
+mod retention;
+
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
 use worth_runtime_world::facade::{
     CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchComponentPosture,
-    ProductBranchComponentPostures, ProductBranchName, RuntimeWorldBudgetDenial,
-    RuntimeWorldBudgets, RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant,
-    RuntimeWorldPublicationPhase,
+    ProductBranchComponentPostures, ProductBranchName, RuntimeWorldBranchBudgetInstallation,
+    RuntimeWorldBudgetDenial, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
+    RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
+    RuntimeWorldCustodyBudgetInstallation, RuntimeWorldHistoryBudgetInstallation,
+    RuntimeWorldInstant, RuntimeWorldObservationBudgetInstallation,
+    RuntimeWorldPublicationBudgetInstallation, RuntimeWorldRecoveryBudgetInstallation,
+    RuntimeWorldRetentionBudgetInstallation,
 };
 
 #[test]
 fn installed_budgets_are_nonzero_and_cover_every_runtime_world_population() {
-    let budgets = RuntimeWorldBudgets::try_new(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-        .expect("all installed limits are nonzero");
+    let budgets = RuntimeWorldBudgets::install(RuntimeWorldBudgetInstallation {
+        branches: RuntimeWorldBranchBudgetInstallation {
+            live_product_branches: 1,
+        },
+        history: RuntimeWorldHistoryBudgetInstallation {
+            retained_composite_commits: 2,
+            history_metadata_bytes: 3,
+        },
+        observations: RuntimeWorldObservationBudgetInstallation {
+            active_observations: 4,
+        },
+        publication: RuntimeWorldPublicationBudgetInstallation {
+            active_publication_attempts: 5,
+        },
+        recovery: RuntimeWorldRecoveryBudgetInstallation {
+            retained_product_unpublished_records: 6,
+            retained_partial_metadata_bytes: 7,
+        },
+        retention: RuntimeWorldRetentionBudgetInstallation {
+            unique_exact_component_pins: 8,
+            in_flight_pin_acquisition_reservations: 9,
+        },
+        custody: RuntimeWorldCustodyBudgetInstallation {
+            owner_created_component_custody_records: 10,
+        },
+    })
+    .expect("all installed limits are nonzero");
 
     assert_eq!(budgets.live_product_branches().get(), 1);
     assert_eq!(budgets.retained_composite_commits().get(), 2);
@@ -22,8 +60,33 @@ fn installed_budgets_are_nonzero_and_cover_every_runtime_world_population() {
     assert_eq!(budgets.in_flight_pin_acquisition_reservations().get(), 9);
     assert_eq!(budgets.owner_created_component_custody_records().get(), 10);
 
-    let denial = RuntimeWorldBudgets::try_new(0, 1, 1, 1, 1, 1, 1, 1, 1, 1)
-        .expect_err("zero capacity is not an installed bound");
+    let denial = RuntimeWorldBudgets::install(RuntimeWorldBudgetInstallation {
+        branches: RuntimeWorldBranchBudgetInstallation {
+            live_product_branches: 0,
+        },
+        history: RuntimeWorldHistoryBudgetInstallation {
+            retained_composite_commits: 1,
+            history_metadata_bytes: 1,
+        },
+        observations: RuntimeWorldObservationBudgetInstallation {
+            active_observations: 1,
+        },
+        publication: RuntimeWorldPublicationBudgetInstallation {
+            active_publication_attempts: 1,
+        },
+        recovery: RuntimeWorldRecoveryBudgetInstallation {
+            retained_product_unpublished_records: 1,
+            retained_partial_metadata_bytes: 1,
+        },
+        retention: RuntimeWorldRetentionBudgetInstallation {
+            unique_exact_component_pins: 1,
+            in_flight_pin_acquisition_reservations: 1,
+        },
+        custody: RuntimeWorldCustodyBudgetInstallation {
+            owner_created_component_custody_records: 1,
+        },
+    })
+    .expect_err("zero capacity is not an installed bound");
     assert!(matches!(denial, RuntimeWorldBudgetDenial::ZeroLimit { .. }));
 }
 
@@ -58,34 +121,39 @@ fn component_intent_carries_owner_meaning_without_ambient_currentness() {
 }
 
 #[test]
-fn publication_progression_has_no_untyped_skip_or_boolean_outcome() {
-    let phases = [
-        RuntimeWorldPublicationPhase::ProductBranchIntent,
-        RuntimeWorldPublicationPhase::ResolvedExpectedProductHead,
-        RuntimeWorldPublicationPhase::AdmittedCompositeRuntimeWorldBasis,
-        RuntimeWorldPublicationPhase::LoweredOwnerComponentPlan,
-        RuntimeWorldPublicationPhase::ReservedCompositePublicationAttempt,
-        RuntimeWorldPublicationPhase::OwnerExecutionSettlement,
-        RuntimeWorldPublicationPhase::CompositePublicationReady,
-        RuntimeWorldPublicationPhase::RuntimeWorldPublicationOutcome,
-    ];
-    assert_eq!(phases.len(), 8);
-}
-
-#[test]
 fn signal_execution_borrow_is_scoped_to_the_owner_call() {
     let mut context = 7_u32;
+    let cancellation = worth_signal::facade::branch::SignalOwnerCancellationSource::new();
+    let signal_token = cancellation.token();
     {
-        let borrow = CompositeExecutionBorrow::signal(&mut context, ());
+        let borrow = CompositeExecutionBorrow::<(), (), (), u32, ()>::signal(
+            &mut context,
+            &signal_token,
+            |_transaction| Ok(()),
+        );
         match borrow {
             CompositeExecutionBorrow::Signal {
                 context: borrowed,
-                mutation: (),
-            } => *borrowed += 1,
+                cancellation: borrowed_cancellation,
+                ..
+            } => {
+                assert!(!borrowed_cancellation.is_cancelled());
+                *borrowed += 1;
+            }
             CompositeExecutionBorrow::WithoutSignal => panic!("signal borrow was required"),
         }
+        assert!(!signal_token.is_cancelled());
     }
     assert_eq!(context, 8);
+}
+
+#[test]
+fn cancellation_has_a_named_pre_effect_source_and_token() {
+    let source = RuntimeWorldCancellationSource::new();
+    let token = source.token();
+    assert!(!token.is_cancelled());
+    source.cancel();
+    assert!(token.is_cancelled());
 }
 
 struct FixedClock;
@@ -106,4 +174,5 @@ fn clock_is_explicit_and_only_reports_deadline_time() {
 fn compile_failures_protect_the_public_contract() {
     let tests = trybuild::TestCases::new();
     tests.compile_fail("tests/ui/*.rs");
+    tests.pass("tests/pass/*.rs");
 }

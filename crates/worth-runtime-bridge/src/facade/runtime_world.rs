@@ -1,5 +1,5 @@
 use crate::correspondence::{
-    admit_installed_basis, AdmittedRuntimeWorldCorrespondenceBasis,
+    admit_installed_basis, compare_current_basis, AdmittedRuntimeWorldCorrespondenceBasis,
     RuntimeWorldCorrespondenceAdmissionDenial,
 };
 
@@ -30,6 +30,13 @@ impl RuntimeWorldCorrespondencePort {
     ) -> Result<AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondenceAdmissionDenial>
     {
         admit_installed_basis(&self.runtime, installed)
+    }
+
+    pub fn compare_current_exact(
+        &self,
+        admitted: &AdmittedRuntimeWorldCorrespondenceBasis,
+    ) -> Result<(), RuntimeWorldCorrespondenceAdmissionDenial> {
+        compare_current_basis(&self.runtime, admitted)
     }
 }
 

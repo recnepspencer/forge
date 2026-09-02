@@ -4,6 +4,7 @@ use crate::branch::{
     RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
 };
 use crate::identity::ProductBranchIdentity;
+use crate::lifecycle::RuntimeWorldCancellationToken;
 use crate::publication::{
     CompositeComponentIntent, CompositeExecutionBorrow, LoweredOwnerComponentPlan,
     NoEffectCompositePublication, ProductBranchIntent, ReservedCompositePublicationAttempt,
@@ -23,6 +24,12 @@ pub enum RuntimeWorldOwnerLifecycleObservation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RuntimeWorldOwnerUnavailable {
     _private: (),
+}
+
+impl RuntimeWorldOwnerUnavailable {
+    pub(crate) const fn new() -> Self {
+        Self { _private: () }
+    }
 }
 
 /// Shared internal seam for exact product-head observation.
@@ -51,16 +58,30 @@ pub(crate) trait RuntimeWorldBranchService {
 
 /// Shared internal seam for the serial owner execution pipeline.
 pub(crate) trait RuntimeWorldPublicationService {
+    type SignalDefinition: Copy + Ord + std::fmt::Debug + 'static;
+    type SignalIdentity: Copy + Ord;
+    type SignalEvent;
+    type SignalContext;
+    type SignalTransactionKey: Copy + Ord;
+
     fn prepare(
         &self,
         expected: ProductBranchObservation,
         intent: CompositeComponentIntent,
     ) -> Result<LoweredOwnerComponentPlan, NoEffectCompositePublication>;
 
-    fn execute<Ctx, F>(
+    fn execute(
         &self,
         attempt: ReservedCompositePublicationAttempt,
-        borrow: CompositeExecutionBorrow<'_, Ctx, F>,
+        borrow: CompositeExecutionBorrow<
+            '_,
+            Self::SignalDefinition,
+            Self::SignalIdentity,
+            Self::SignalEvent,
+            Self::SignalContext,
+            Self::SignalTransactionKey,
+        >,
+        cancellation: &RuntimeWorldCancellationToken,
     ) -> RuntimeWorldPublicationOutcome;
 }
 

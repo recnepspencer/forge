@@ -14,7 +14,7 @@ pub struct CompositeBasisIdentity {
 }
 
 impl CompositeBasisIdentity {
-    pub(crate) fn issued(
+    pub(super) fn issued(
         owner: RuntimeWorldOwnerIdentity,
         relational: RelationalBranchBasisAdmissionIdentity,
         signal: SignalBranchBasisAdmissionIdentity,

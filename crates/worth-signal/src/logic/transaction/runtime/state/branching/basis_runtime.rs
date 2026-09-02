@@ -3,8 +3,7 @@ use worth_proof::TransitionOutcome;
 use worth_foundational::FoundationalBranchReferenceGeneration;
 
 use crate::branch::{
-    admit_runtime_signal_branch_observation, AdmittedSignalBranchBasis, SignalBranchAdmissionLease,
-    SignalBranchObservation,
+    AdmittedSignalBranchBasis, SignalBranchAdmissionLease, SignalBranchObservation,
 };
 use crate::data::error::SignalError;
 use crate::state::{SignalBranchHandle, SignalSnapshotV1, SnapshotRestoreIntent};
@@ -186,17 +185,15 @@ where
             .map_err(|error| {
                 crate::branch::SignalBranchBasisObservationDenial::InvalidOwnerObservation { error }
             })?;
-        let retention = self
-            .branches
-            .acquire_admitted_retention(live_branch.id)
-            .map_err(|denial| {
-                crate::branch::SignalBranchBasisObservationDenial::RetentionUnavailable { denial }
-            })?;
-        Ok(admit_runtime_signal_branch_observation(
-            observation,
-            live_branch.id,
-            retention,
-        ))
+        self.admit_unsealed_canonical_basis_with_retention(observation, live_branch.id, || {
+            self.branches
+                .acquire_admitted_retention(live_branch.id)
+                .map_err(|denial| {
+                    crate::branch::SignalBranchBasisObservationDenial::RetentionUnavailable {
+                        denial,
+                    }
+                })
+        })
     }
 
     pub(super) fn admit_signal_branch_with_retention(
@@ -209,11 +206,45 @@ where
             .branch_handle(branch.id)
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name))?;
         let observation = self.signal_branch_observation(&live_branch)?;
-        Ok(admit_runtime_signal_branch_observation(
+        Ok(self.admit_unsealed_canonical_basis(observation, live_branch.id, retention))
+    }
+
+    pub(super) fn admit_unsealed_canonical_basis(
+        &self,
+        observation: SignalBranchObservation,
+        branch_id: crate::state::SignalBranchId,
+        retention: SignalBranchAdmissionLease,
+    ) -> AdmittedSignalBranchBasis {
+        self.basis_registry.admit(
+            self.branches.owner_runtime_instance_id(),
+            signal_definition_basis(self),
+            branch_id,
+            // The unsealed runtime has one manager-cell lifetime. Its actual
+            // head generation already participates in the exact observation;
+            // the sealed owner supplies the stronger cell incarnation axis.
+            0,
             observation,
-            live_branch.id,
             retention,
-        ))
+        )
+    }
+
+    pub(super) fn admit_unsealed_canonical_basis_with_retention<Error, Acquire>(
+        &self,
+        observation: SignalBranchObservation,
+        branch_id: crate::state::SignalBranchId,
+        acquire_retention: Acquire,
+    ) -> Result<AdmittedSignalBranchBasis, Error>
+    where
+        Acquire: FnOnce() -> Result<SignalBranchAdmissionLease, Error>,
+    {
+        self.basis_registry.admit_with_retention(
+            self.branches.owner_runtime_instance_id(),
+            signal_definition_basis(self),
+            branch_id,
+            0,
+            observation,
+            acquire_retention,
+        )
     }
 
     pub(super) fn signal_branch_observation(

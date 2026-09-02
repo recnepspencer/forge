@@ -7,7 +7,10 @@ use super::ComponentBasisDependencyClass;
 pub(crate) enum ComponentBasisObligationTransferDestination {
     ProductBranchHead,
     RetainedCompositeHistory,
+    AdmittedObservation,
+    ActivePublicationAttempt,
     ProductUnpublishedOwnerEffects,
+    HistoricalInspection,
     Release,
 }
 
@@ -31,5 +34,25 @@ impl ComponentBasisObligationTransfer {
 
     pub(crate) const fn to(self) -> ComponentBasisObligationTransferDestination {
         self.to
+    }
+}
+
+impl ComponentBasisObligationTransferDestination {
+    pub(crate) const fn dependency_class(self) -> Option<ComponentBasisDependencyClass> {
+        match self {
+            Self::ProductBranchHead => Some(ComponentBasisDependencyClass::ProductBranchHead),
+            Self::RetainedCompositeHistory => {
+                Some(ComponentBasisDependencyClass::RetainedCompositeHistory)
+            }
+            Self::AdmittedObservation => Some(ComponentBasisDependencyClass::AdmittedObservation),
+            Self::ActivePublicationAttempt => {
+                Some(ComponentBasisDependencyClass::ActivePublicationAttempt)
+            }
+            Self::ProductUnpublishedOwnerEffects => {
+                Some(ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects)
+            }
+            Self::HistoricalInspection => Some(ComponentBasisDependencyClass::HistoricalInspection),
+            Self::Release => None,
+        }
     }
 }

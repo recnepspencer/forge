@@ -8,7 +8,7 @@ pub struct RuntimeWorldBootstrapAttemptIdentity {
 }
 
 impl RuntimeWorldBootstrapAttemptIdentity {
-    pub(crate) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
+    pub(super) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
         Self { owner, ordinal }
     }
 

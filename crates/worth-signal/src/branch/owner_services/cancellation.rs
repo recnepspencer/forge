@@ -42,6 +42,10 @@ impl SignalOwnerCancellationSource {
 }
 
 impl SignalOwnerCancellationToken {
+    pub fn is_cancelled(&self) -> bool {
+        self.cancellation_requested()
+    }
+
     pub(crate) fn preflight_cell_wait(&self) -> Result<(), SignalOwnerCancellationRequested> {
         if self.cancellation_requested() {
             return Err(SignalOwnerCancellationRequested);

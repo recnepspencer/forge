@@ -1,7 +1,6 @@
 use crate::branch::{
-    admit_runtime_signal_branch_observation, AdmittedSignalBranchBasis,
-    AdmittedSignalBranchSnapshot, SignalBranchAdvanceDenial, SignalBranchForkOperationDenial,
-    SignalBranchRestoreDenial, SignalBranchSnapshotCaptureDenial,
+    AdmittedSignalBranchBasis, AdmittedSignalBranchSnapshot, SignalBranchAdvanceDenial,
+    SignalBranchForkOperationDenial, SignalBranchRestoreDenial, SignalBranchSnapshotCaptureDenial,
     SignalBranchSnapshotCaptureOutcome, ValidatedSignalBranchName,
 };
 use crate::data::error::SignalError;
@@ -100,8 +99,12 @@ where
         let (branch_id, observation, transaction) = self.outcome.into_output_parts();
         debug_assert_eq!(branch_id, self.reservation.branch_id);
         let mut retention = self.reservation.retention;
-        let basis =
-            admit_runtime_signal_branch_observation(observation, branch_id, retention.take_one());
+        let basis = self.reservation.owner.admit_canonical_basis(
+            observation,
+            branch_id,
+            self.reservation.cell.incarnation().get(),
+            retention.take_one(),
+        );
         (basis, transaction)
     }
 }
@@ -147,8 +150,12 @@ where
         debug_assert_eq!(branch_id, self.reservation.branch_id);
         debug_assert_eq!(snapshot.meta.branch_id, branch_id);
         let mut retention = self.reservation.retention;
-        let basis =
-            admit_runtime_signal_branch_observation(observation, branch_id, retention.take_one());
+        let basis = self.reservation.owner.admit_canonical_basis(
+            observation,
+            branch_id,
+            self.reservation.cell.incarnation().get(),
+            retention.take_one(),
+        );
         let snapshot = AdmittedSignalBranchSnapshot::owner_issued(
             self.reservation.owner.runtime_instance_id(),
             snapshot,
@@ -236,7 +243,12 @@ where
         let (branch_id, observation) = self.outcome.into_output_parts();
         debug_assert_eq!(branch_id, self.reservation.branch_id);
         let mut retention = self.reservation.retention;
-        admit_runtime_signal_branch_observation(observation, branch_id, retention.take_one())
+        self.reservation.owner.admit_canonical_basis(
+            observation,
+            branch_id,
+            self.reservation.cell.incarnation().get(),
+            retention.take_one(),
+        )
     }
 }
 
@@ -296,13 +308,15 @@ where
         reservation
             .admission
             .reach_operation_boundary(SignalOwnerOperationBoundary::OutcomeConstruction);
+        let destination_cell_incarnation = installed.cell().incarnation().get();
         let (handle, observation) = installed.into_handoff_parts();
         let destination_branch_id = handle.id;
         debug_assert_ne!(reservation.source_branch_id, destination_branch_id);
         let mut retention = reservation.retention;
-        let basis = admit_runtime_signal_branch_observation(
+        let basis = reservation.owner.admit_canonical_basis(
             observation,
             destination_branch_id,
+            destination_cell_incarnation,
             retention.take_one(),
         );
         (handle, basis)

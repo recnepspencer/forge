@@ -36,8 +36,14 @@ and do not imply a latest lookup or owner contact.
 The Phase 1 service traits are internal seams for the later managed owner. They
 do not implement bootstrap or publication and do not create an adapter around
 either component owner. The Phase 1 retention root likewise freezes its
-dependency classes, exact-pin request, and obligation-transfer destinations;
-the later retention lane owns their registry and owner-call bodies.
+dependency classes, independent exact-component keys, opaque RAII obligations,
+and obligation-transfer destinations. The later retention lane owns the full
+unique-pin registry and component-owner lease calls.
+
+All module declarations and integration-test submodules needed by the next
+wave are installed here. A lane adds implementation and focused tests only
+under its listed subtree; it does not edit workspace assembly, `lib.rs`, a
+module root, the sole facade, or shared phase/outcome definitions.
 
 ## Exclusive Phase 2 ownership
 
@@ -47,10 +53,10 @@ sole facade, or shared phase/outcome definitions.
 
 | Lane | Exclusive implementation/evidence paths |
 | --- | --- |
-| Bridge admission | `crates/worth-runtime-bridge/src/correspondence/runtime_world_admission/admission.rs` and its nested focused tests |
-| Basis/history | `crates/worth-runtime-world/src/identity/`, `src/basis/`, and `src/history/` implementation bodies, with the Phase 1 signatures and facade exports frozen |
-| Retention | `crates/worth-runtime-world/src/retention/` |
-| Reference | `crates/worth-runtime-world/src/branch/` reference-cell and observation-service siblings; `observation_contract.rs` signatures remain frozen |
+| Bridge admission | `crates/worth-runtime-bridge/src/correspondence/runtime_world_admission/{admission.rs,denial.rs,tests.rs}` and `crates/worth-runtime-world/tests/runtime_world_certification/bridge.rs` |
+| Basis/history | `crates/worth-runtime-world/src/identity/`, `src/basis/`, and `src/history/{catalog.rs,retention.rs,reclamation.rs}`, plus `tests/runtime_world_certification/basis_history.rs` |
+| Retention | `crates/worth-runtime-world/src/retention/{component_obligation.rs,registry.rs,unique_component_pin.rs,obligation_transfer.rs}`, plus `tests/runtime_world_certification/retention.rs` |
+| Reference | `crates/worth-runtime-world/src/branch/{reference_cell.rs,observation.rs}`, plus `tests/runtime_world_certification/reference.rs` |
 
 Focused commands for those lanes are respectively:
 
@@ -62,4 +68,5 @@ cargo test -p worth-runtime-world --test runtime_world_certification reference
 ```
 
 The named filters are the expected focused test families; a lane adds its
-tests under its exclusive path before using the command.
+tests under its exclusive path before using the command. The preinstalled
+contract tests ensure each filter already selects evidence in Phase 1.

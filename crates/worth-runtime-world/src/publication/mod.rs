@@ -9,15 +9,24 @@ mod progress;
 mod progression;
 mod reservation;
 
+#[cfg(test)]
+pub(crate) use component_plan::lower_component_plans;
 pub use component_plan::{
     LoweredOwnerComponentPlan, RelationalComponentPlan, RelationalComponentPlanPosture,
     SignalComponentPlan, SignalComponentPlanPosture,
 };
-pub use intent::{CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent};
+pub use intent::{
+    CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent,
+    SignalTransactionMutation,
+};
 pub use no_effect::{NoEffectCause, NoEffectCompositePublication};
 pub use outcome::RuntimeWorldPublicationOutcome;
 pub use owner_execution::{CompositePublicationReady, OwnerExecutionSettlement};
-pub use performed::PerformedCompositePublication;
+pub use performed::{
+    CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
+    CompositePublicationCostCounters, CompositeRelationalOwnerResult, CompositeSignalOwnerResult,
+    PerformedCompositePublication,
+};
 pub use product_comparison::ResolvedExpectedProductHead;
 pub use progress::{
     CompositeAttemptProgress, RelationalAttemptProgress, RelationalAttemptProgressPosture,

@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Weak};
 
 use super::owner_metadata::SignalOwnerMetadata;
-use crate::branch::SignalBranchRetentionRegistry;
+use crate::branch::{SignalBranchBasisRegistry, SignalBranchRetentionRegistry};
 use crate::logic::transaction::SignalOwnerPartition;
 use crate::state::SignalBranchId;
 
@@ -58,6 +58,7 @@ where
     next_branch_id: AtomicU64,
     lifecycle: Arc<SignalOwnerLifecycleState>,
     registry: Arc<SignalBranchRegistry<SignalBranchCellState<D, I, T>>>,
+    basis_registry: SignalBranchBasisRegistry,
     retention: SignalBranchRetentionRegistry,
     selected_branch_id: SignalBranchId,
     pub(super) metadata: SignalOwnerMetadata<D, I, T>,
@@ -83,6 +84,7 @@ where
     Unsealed {
         runtime_instance_id: u64,
         definition_basis: u64,
+        basis_registry: SignalBranchBasisRegistry,
     },
     Sealed(Arc<SignalOwner<D, I, T>>),
 }
@@ -93,11 +95,16 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(crate) fn new(runtime_instance_id: u64, definition_basis: u64) -> Self {
+    pub(crate) fn new(
+        runtime_instance_id: u64,
+        definition_basis: u64,
+        basis_registry: SignalBranchBasisRegistry,
+    ) -> Self {
         Self {
             state: SignalOwnerRootState::Unsealed {
                 runtime_instance_id,
                 definition_basis,
+                basis_registry,
             },
         }
     }
@@ -107,16 +114,26 @@ where
     }
 
     pub(crate) fn seal(&mut self, partition: SignalOwnerPartition<D, I, T>) {
-        let (runtime_instance_id, definition_basis) = match self.state {
+        let (runtime_instance_id, definition_basis, basis_registry) = match &self.state {
             SignalOwnerRootState::Unsealed {
                 runtime_instance_id,
                 definition_basis,
-            } => (runtime_instance_id, definition_basis),
+                basis_registry,
+            } => (
+                *runtime_instance_id,
+                *definition_basis,
+                basis_registry.clone(),
+            ),
             SignalOwnerRootState::Sealed(_) => {
                 panic!("Signal owner root cannot consume a second canonical partition")
             }
         };
-        let owner = SignalOwner::from_partition(runtime_instance_id, definition_basis, partition);
+        let owner = SignalOwner::from_partition(
+            runtime_instance_id,
+            definition_basis,
+            partition,
+            basis_registry,
+        );
         self.state = SignalOwnerRootState::Sealed(owner);
     }
 
@@ -163,6 +180,7 @@ where
         runtime_instance_id: u64,
         definition_basis: u64,
         partition: SignalOwnerPartition<D, I, T>,
+        basis_registry: SignalBranchBasisRegistry,
     ) -> Arc<Self> {
         let (metadata, next_branch_id, retention, selected_branch_id, cells) =
             partition.into_parts();
@@ -186,6 +204,7 @@ where
             next_branch_id: AtomicU64::new(next_branch_id),
             lifecycle,
             registry,
+            basis_registry,
             retention,
             selected_branch_id,
             metadata: SignalOwnerMetadata::new(metadata, runtime_instance_id, lifecycle_identity),
@@ -196,7 +215,7 @@ where
             .expect("a newly sealed Signal owner admits its canonical cells");
         for (handle, state, head_generation, restore_snapshot_id) in cells {
             let branch_id = handle.id;
-            owner
+            let cell = owner
                 .registry
                 .reserve(&admission, branch_id)
                 .and_then(|reservation| {
@@ -210,6 +229,13 @@ where
                     ))
                 })
                 .expect("validated owner partition installs each live branch exactly once");
+            owner.basis_registry.rebind_cell_incarnation(
+                runtime_instance_id,
+                definition_basis,
+                branch_id,
+                0,
+                cell.incarnation().get(),
+            );
         }
         drop(admission);
         owner
@@ -254,6 +280,43 @@ where
 
     pub(super) fn selected_branch_id(&self) -> SignalBranchId {
         self.selected_branch_id
+    }
+
+    pub(super) fn admit_canonical_basis(
+        &self,
+        observation: crate::branch::SignalBranchObservation,
+        branch_id: SignalBranchId,
+        cell_incarnation: u64,
+        retention: crate::branch::SignalBranchAdmissionLease,
+    ) -> crate::branch::AdmittedSignalBranchBasis {
+        self.basis_registry.admit(
+            self.runtime_instance_id,
+            self.definition_basis,
+            branch_id,
+            cell_incarnation,
+            observation,
+            retention,
+        )
+    }
+
+    pub(super) fn admit_canonical_basis_with_retention<E, Acquire>(
+        &self,
+        observation: crate::branch::SignalBranchObservation,
+        branch_id: SignalBranchId,
+        cell_incarnation: u64,
+        acquire_retention: Acquire,
+    ) -> Result<crate::branch::AdmittedSignalBranchBasis, E>
+    where
+        Acquire: FnOnce() -> Result<crate::branch::SignalBranchAdmissionLease, E>,
+    {
+        self.basis_registry.admit_with_retention(
+            self.runtime_instance_id,
+            self.definition_basis,
+            branch_id,
+            cell_incarnation,
+            observation,
+            acquire_retention,
+        )
     }
 
     pub(super) fn close(&self) -> Result<(), SignalOwnerCloseDenial> {

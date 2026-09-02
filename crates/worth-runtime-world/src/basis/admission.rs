@@ -1,8 +1,13 @@
 use std::sync::Arc;
 
 use worth_proof::AuthorityWitness;
-use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
-use worth_runtime_bridge::facade::AdmittedRuntimeWorldCorrespondenceBasis;
+use worth_relational::facade::branch::{
+    AdmittedRelationalBranchBasis, RelationalBranchBasisDenial, RelationalBranchBasisPort,
+};
+use worth_runtime_bridge::facade::{
+    AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondenceAdmissionDenial,
+    RuntimeWorldCorrespondencePort,
+};
 use worth_signal::facade::branch::{
     AdmittedSignalBranchBasis, SignalBranchBasisPort, SignalBranchBasisReadmissionDenial,
 };
@@ -77,7 +82,9 @@ impl AdmittedCompositeRuntimeWorldBasis {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum CompositeBasisAdmissionDenial {
+    Relational(RelationalBranchBasisDenial),
     Signal(SignalBranchBasisReadmissionDenial),
+    Correspondence(RuntimeWorldCorrespondenceAdmissionDenial),
 }
 
 /// Admit a live component tuple only after the Signal owner has checked the
@@ -85,7 +92,9 @@ pub(crate) enum CompositeBasisAdmissionDenial {
 /// only after that owner-side admission succeeds.
 pub(crate) fn admit_current<D, I, T>(
     identities: &RuntimeWorldIdentityIssuer,
+    relational_port: &RelationalBranchBasisPort,
     signal_port: &SignalBranchBasisPort<D, I, T>,
+    correspondence_port: &RuntimeWorldCorrespondencePort,
     relational: AdmittedRelationalBranchBasis,
     signal: AdmittedSignalBranchBasis,
     correspondence: AdmittedRuntimeWorldCorrespondenceBasis,
@@ -95,9 +104,15 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    relational_port
+        .compare_current_exact(&relational)
+        .map_err(CompositeBasisAdmissionDenial::Relational)?;
     signal_port
         .compare_current_exact(&signal)
         .map_err(CompositeBasisAdmissionDenial::Signal)?;
+    correspondence_port
+        .compare_current_exact(&correspondence)
+        .map_err(CompositeBasisAdmissionDenial::Correspondence)?;
     let identity = identities.composite_basis(
         relational.admission_identity().clone(),
         signal.admission_identity().clone(),

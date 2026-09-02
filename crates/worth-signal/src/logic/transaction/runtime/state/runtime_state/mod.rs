@@ -57,6 +57,8 @@ where
     pub(in crate::logic::transaction::runtime) temporal: TemporalRuntimeState,
     pub(in crate::logic::transaction::runtime) telemetry: RuntimeTelemetry,
     pub(in crate::logic::transaction::runtime) branches: BranchManager<D, I, T>,
+    pub(in crate::logic::transaction::runtime) basis_registry:
+        crate::branch::SignalBranchBasisRegistry,
     pub(in crate::logic::transaction::runtime) owner_services:
         crate::branch::owner_services::SignalOwnerRoot<D, I, T>,
 }

@@ -1,8 +1,9 @@
-mod continuation_contract;
+mod cleanup;
+mod continuation;
 mod product_unpublished;
 mod progress;
 
-pub use continuation_contract::{ProductUnpublishedNextAction, RecoveryContinuationContract};
+pub use continuation::{ProductUnpublishedNextAction, RecoveryContinuationContract};
 pub use product_unpublished::{
     ProductUnpublishedCause, ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle,
 };

@@ -102,6 +102,21 @@ impl AdmittedSemanticDependencyRegistry {
             .map(|installed| installed.targets.clone())
     }
 
+    pub(crate) fn current_source_installation_generation(
+        &self,
+        candidate: &BridgeSemanticDependencyCandidate,
+    ) -> Option<u64> {
+        self.authoritative
+            .iter()
+            .filter(|registration| {
+                registration
+                    .dependency
+                    .same_installation_binding_except_generation(candidate)
+            })
+            .map(|registration| registration.dependency.source_installation_generation())
+            .max()
+    }
+
     pub(crate) fn rebuild_has_exact_parity(&self) -> bool {
         Self::freeze(self.authoritative.clone()).is_ok_and(|rebuilt| {
             rebuilt.index == self.index

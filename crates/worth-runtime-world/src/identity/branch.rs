@@ -8,7 +8,7 @@ pub struct ProductBranchIdentity {
 }
 
 impl ProductBranchIdentity {
-    pub(crate) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
+    pub(super) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
         Self { owner, ordinal }
     }
 
@@ -26,7 +26,7 @@ pub struct ProductBranchLifecycleIncarnation {
 }
 
 impl ProductBranchLifecycleIncarnation {
-    pub(crate) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
+    pub(super) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
         Self { owner, ordinal }
     }
 

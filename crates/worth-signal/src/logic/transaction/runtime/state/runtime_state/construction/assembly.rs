@@ -26,6 +26,7 @@ use super::super::super::temporal::TemporalRuntimeState;
 
 use super::super::SignalRuntime;
 use crate::branch::owner_services::SignalOwnerRoot;
+use crate::branch::SignalBranchBasisRegistry;
 use crate::logic::transaction::runtime::state::branching::signal_definition_basis_from_registry;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
@@ -49,9 +50,11 @@ where
             graph.diagnostics_state().branch_catalog().clone(),
             graph.runtime_instance_id(),
         );
+        let basis_registry = SignalBranchBasisRegistry::new();
         let owner_services = SignalOwnerRoot::new(
             graph.runtime_instance_id(),
             signal_definition_basis_from_registry(&schema_registry),
+            basis_registry.clone(),
         );
         Self {
             config,
@@ -72,6 +75,7 @@ where
             temporal: TemporalRuntimeState::default(),
             telemetry: RuntimeTelemetry::default(),
             branches,
+            basis_registry,
             owner_services,
         }
     }

@@ -180,6 +180,30 @@ impl BridgeSemanticDependencyCandidate {
         self.dependency_ordinal
     }
 
+    pub(crate) fn same_installation_binding_except_generation(&self, other: &Self) -> bool {
+        self.source_installation_identity == other.source_installation_identity
+            && self.source_basis == other.source_basis
+            && self.source_runtime_authority == other.source_runtime_authority
+            && self.source_authority_binding_identity == other.source_authority_binding_identity
+            && self.source_stage_identity == other.source_stage_identity
+            && self.source_node_identity == other.source_node_identity
+            && self.dependency_ordinal == other.dependency_ordinal
+            && self.declared_graph_role == other.declared_graph_role
+            && self.graph_participation_identity == other.graph_participation_identity
+            && self.graph_adapter_identity == other.graph_adapter_identity
+            && self.source_record_identity == other.source_record_identity
+            && self.observation_record_identity == other.observation_record_identity
+            && self.contract == other.contract
+            && self.projection_mask == other.projection_mask
+            && self.binding == other.binding
+            && self.locality == other.locality
+            && self.relevant_changes == other.relevant_changes
+    }
+
+    pub const fn source_installation_generation(&self) -> u64 {
+        self.source_installation_generation
+    }
+
     pub const fn observation_record_identity(
         &self,
     ) -> Option<crate::relational_identity::RelationalBridgeRecordIdentityParts> {

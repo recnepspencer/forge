@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::super::{
     BridgeCorrespondenceAdmissionIdentity, BridgeCorrespondenceBasis,
-    BridgeInstalledSemanticCorrespondence,
+    BridgeInstalledSemanticCorrespondence, BridgeSemanticDependencyCandidate,
 };
 use worth_proof::AuthorityWitness;
 
@@ -16,6 +16,7 @@ use super::admission::BridgeRuntimeWorldAdmissionAuthorityMarker;
 #[derive(Debug, Clone)]
 pub struct AdmittedRuntimeWorldCorrespondenceBasis {
     basis: BridgeCorrespondenceBasis,
+    dependency: BridgeSemanticDependencyCandidate,
     admission_identity: BridgeCorrespondenceAdmissionIdentity,
     _authority: Arc<AuthorityWitness<BridgeRuntimeWorldAdmissionAuthorityMarker>>,
 }
@@ -35,6 +36,7 @@ impl AdmittedRuntimeWorldCorrespondenceBasis {
     ) -> Self {
         Self {
             basis: installed.basis().clone(),
+            dependency: installed.dependency().clone(),
             admission_identity: installed.admission_identity().clone(),
             _authority: Arc::new(authority),
         }
@@ -58,5 +60,9 @@ impl AdmittedRuntimeWorldCorrespondenceBasis {
 
     pub fn signal_graph_instance_id(&self) -> u64 {
         self.basis.signal_graph_instance_id
+    }
+
+    pub(crate) fn dependency(&self) -> &BridgeSemanticDependencyCandidate {
+        &self.dependency
     }
 }

@@ -5,6 +5,7 @@ use crate::identity::{
 };
 use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::CompositeAttemptProgress;
+use crate::retention::RetainedPartialRetentionObligation;
 
 use super::{ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary};
 
@@ -47,6 +48,7 @@ pub struct ProductUnpublishedOwnerEffects {
     last_observed_head: Option<ProductBranchObservation>,
     progress: CompositeAttemptProgress,
     successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
+    retention_obligation: RetainedPartialRetentionObligation,
     live_obligations: usize,
     cause: ProductUnpublishedCause,
     next_actions: Vec<ProductUnpublishedNextAction>,
@@ -80,6 +82,7 @@ impl ProductUnpublishedOwnerEffects {
         last_observed_head: Option<ProductBranchObservation>,
         progress: CompositeAttemptProgress,
         successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
+        retention_obligation: RetainedPartialRetentionObligation,
         summary: ProductUnpublishedOwnerEffectSummary,
         cause: ProductUnpublishedCause,
         next_actions: Vec<ProductUnpublishedNextAction>,
@@ -93,6 +96,7 @@ impl ProductUnpublishedOwnerEffects {
             last_observed_head,
             progress,
             successor_basis,
+            retention_obligation,
             live_obligations: summary.live_obligation_count,
             cause,
             next_actions,
@@ -125,6 +129,10 @@ impl ProductUnpublishedOwnerEffects {
 
     pub fn successor_basis(&self) -> Option<&AdmittedCompositeRuntimeWorldBasis> {
         self.successor_basis.as_ref()
+    }
+
+    pub(crate) fn retention_obligation(&self) -> &RetainedPartialRetentionObligation {
+        &self.retention_obligation
     }
 
     pub fn live_obligation_count(&self) -> usize {

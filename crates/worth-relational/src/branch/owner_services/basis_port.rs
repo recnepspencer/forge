@@ -61,6 +61,13 @@ impl RelationalBranchBasisPort {
         self.admitted_runtime()?.readmit_branch_basis(descriptor)
     }
 
+    pub fn compare_current_exact(
+        &self,
+        basis: &AdmittedRelationalBranchBasis,
+    ) -> Result<(), RelationalBranchBasisDenial> {
+        self.admitted_runtime()?.compare_current_exact(basis)
+    }
+
     pub fn readmit_retained_branch_basis(
         &self,
         descriptor: &RelationalBranchBasisDescriptor,

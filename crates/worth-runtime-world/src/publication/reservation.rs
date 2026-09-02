@@ -3,8 +3,12 @@ use crate::branch::ProductBranchObservation;
 use crate::budget::RuntimeWorldBudgetLimit;
 use crate::identity::{CompositeCommitIdentity, CompositePublicationAttemptIdentity};
 use crate::lifecycle::RuntimeWorldInstant;
+use crate::retention::PublicationRetentionObligation;
 
-use super::{CompositeAttemptProgress, LoweredOwnerComponentPlan};
+use super::{
+    CompositeAttemptProgress, LoweredOwnerComponentPlan, NoEffectCause,
+    NoEffectCompositePublication, OwnerExecutionSettlement,
+};
 
 /// Component calls have one fixed order. There is no cross-owner lock held
 /// across those calls.
@@ -49,6 +53,9 @@ pub struct ReservedCompositePublicationAttempt {
     reserved_history_slot: ReservedHistorySlot,
     reserved_recovery_slot: ReservedRecoverySlot,
     reserved_pin_acquisition_slots: ReservedPinAcquisitionSlots,
+    /// Owner-issued pins for the prospective successor basis. The expected
+    /// predecessor remains pinned by `expected_head`'s observation.
+    retention_obligation: PublicationRetentionObligation,
     cancellation: CompositeAttemptCancellationPosture,
     deadline: Option<RuntimeWorldInstant>,
     order: CompositePublicationOrder,
@@ -81,6 +88,7 @@ impl ReservedCompositePublicationAttempt {
         reserved_history_slot: ReservedHistorySlot,
         reserved_recovery_slot: ReservedRecoverySlot,
         reserved_pin_acquisition_slots: ReservedPinAcquisitionSlots,
+        retention_obligation: PublicationRetentionObligation,
         deadline: Option<RuntimeWorldInstant>,
     ) -> Self {
         Self {
@@ -92,6 +100,7 @@ impl ReservedCompositePublicationAttempt {
             reserved_history_slot,
             reserved_recovery_slot,
             reserved_pin_acquisition_slots,
+            retention_obligation,
             cancellation: CompositeAttemptCancellationPosture::Open,
             deadline,
             order: CompositePublicationOrder::RelationalThenSignal,
@@ -119,6 +128,31 @@ impl ReservedCompositePublicationAttempt {
         &self.progress
     }
 
+    pub fn cancellation_posture(&self) -> CompositeAttemptCancellationPosture {
+        self.cancellation
+    }
+
+    pub(crate) fn retention_obligation(&self) -> &PublicationRetentionObligation {
+        &self.retention_obligation
+    }
+
+    /// Consume a still-pre-effect reservation into the only no-effect
+    /// cancellation terminal. Owner execution cannot be reached afterward.
+    pub fn cancel(self) -> NoEffectCompositePublication {
+        NoEffectCompositePublication::new(
+            NoEffectCause::CancelledBeforeEffect,
+            Some(self.expected_head),
+        )
+    }
+
+    pub(crate) fn observe_cancellation(&mut self) {
+        self.cancellation = CompositeAttemptCancellationPosture::CancellationObserved;
+    }
+
+    pub(crate) fn settle(self, progress: CompositeAttemptProgress) -> OwnerExecutionSettlement {
+        OwnerExecutionSettlement::new(self, progress)
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -130,6 +164,7 @@ impl ReservedCompositePublicationAttempt {
         ReservedHistorySlot,
         ReservedRecoverySlot,
         ReservedPinAcquisitionSlots,
+        PublicationRetentionObligation,
         CompositeAttemptCancellationPosture,
         Option<RuntimeWorldInstant>,
         CompositePublicationOrder,
@@ -144,6 +179,7 @@ impl ReservedCompositePublicationAttempt {
             self.reserved_history_slot,
             self.reserved_recovery_slot,
             self.reserved_pin_acquisition_slots,
+            self.retention_obligation,
             self.cancellation,
             self.deadline,
             self.order,

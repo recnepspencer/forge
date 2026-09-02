@@ -69,6 +69,7 @@ pub enum RuntimeWorldBootstrapNoEffectCause {
 /// Linear proof that the root commit and first product reference were
 /// installed together by the Runtime World owner.
 #[must_use = "a performed bootstrap must be retained by its owner"]
+#[derive(Debug)]
 pub struct PerformedRuntimeWorldBootstrap {
     attempt: RuntimeWorldBootstrapAttemptIdentity,
     basis: AdmittedCompositeRuntimeWorldBasis,
@@ -117,6 +118,7 @@ impl NoEffectRuntimeWorldBootstrap {
 }
 
 #[must_use = "bootstrap outcomes carry the only root-installation decision"]
+#[derive(Debug)]
 pub enum RuntimeWorldBootstrapOutcome {
     Performed(PerformedRuntimeWorldBootstrap),
     NoEffect(NoEffectRuntimeWorldBootstrap),

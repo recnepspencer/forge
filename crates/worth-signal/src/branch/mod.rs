@@ -2,6 +2,7 @@ mod advancement;
 mod authority;
 mod basis;
 mod basis_admission_identity;
+mod basis_registry;
 mod descriptor;
 mod fork;
 mod identity;
@@ -25,9 +26,11 @@ pub use authority::{
     SignalBranchBasisAuthority, SignalBranchBasisAuthorityMarker, SignalBranchBasisOwnerProof,
     SignalBranchBasisProof,
 };
+#[cfg(test)]
 pub(crate) use basis::admit_runtime_signal_branch_observation;
 pub use basis::AdmittedSignalBranchBasis;
 pub use basis_admission_identity::SignalBranchBasisAdmissionIdentity;
+pub(crate) use basis_registry::SignalBranchBasisRegistry;
 pub use descriptor::{SignalBranchBasisDescriptor, SIGNAL_BRANCH_BASIS_DESCRIPTOR_SCHEMA_VERSION};
 pub use fork::{SignalBranchForkOperationDenial, SignalBranchForkOutcome};
 pub use identity::{

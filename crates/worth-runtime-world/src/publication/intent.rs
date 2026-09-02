@@ -1,5 +1,7 @@
 use crate::branch::ProductBranchCreationIntent;
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
+use worth_signal::facade::branch::SignalOwnerCancellationToken;
+use worth_signal::facade::{SignalError, SignalTransaction};
 
 /// Which owner components a future operation is allowed to change. Omission
 /// is not interpreted as an implicit refresh or a latest-head lookup.
@@ -39,20 +41,55 @@ impl CompositeComponentIntent {
     }
 }
 
-/// The only synchronous Signal execution borrow accepted by the future
-/// publication port. It cannot be cloned or stored as a `'static` callback.
-pub enum CompositeExecutionBorrow<'a, Ctx, F> {
+/// The only mutation callback accepted by the Runtime World Signal seam. The
+/// callback is bound to the actual Signal transaction type and can live only
+/// for the synchronous owner call.
+pub type SignalTransactionMutation<'a, D, I, E, Ctx, T> = Box<
+    dyn for<'tx> FnOnce(&mut SignalTransaction<'tx, D, I, E, Ctx, T>) -> Result<(), SignalError>
+        + 'a,
+>;
+
+/// The only synchronous Signal execution borrow accepted by the publication
+/// port. It cannot be cloned, erased to `()`, or stored as a `'static`
+/// callback.
+pub enum CompositeExecutionBorrow<'a, D, I, E, Ctx, T = ()>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     WithoutSignal,
-    Signal { context: &'a mut Ctx, mutation: F },
+    Signal {
+        context: &'a mut Ctx,
+        mutation: SignalTransactionMutation<'a, D, I, E, Ctx, T>,
+        cancellation: &'a SignalOwnerCancellationToken,
+    },
 }
 
-impl<'a, Ctx, F> CompositeExecutionBorrow<'a, Ctx, F> {
+impl<'a, D, I, E, Ctx, T> CompositeExecutionBorrow<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     pub fn without_signal() -> Self {
         Self::WithoutSignal
     }
 
-    pub fn signal(context: &'a mut Ctx, mutation: F) -> Self {
-        Self::Signal { context, mutation }
+    pub fn signal<F>(
+        context: &'a mut Ctx,
+        cancellation: &'a SignalOwnerCancellationToken,
+        mutation: F,
+    ) -> Self
+    where
+        F: for<'tx> FnOnce(&mut SignalTransaction<'tx, D, I, E, Ctx, T>) -> Result<(), SignalError>
+            + 'a,
+    {
+        Self::Signal {
+            context,
+            mutation: Box::new(mutation),
+            cancellation,
+        }
     }
 }
 

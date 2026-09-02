@@ -6,4 +6,9 @@ pub enum RuntimeWorldCorrespondenceAdmissionDenial {
         expected_runtime_key: u64,
         actual_runtime_key: u64,
     },
+    InstalledCorrespondenceNotCurrent,
+    InstalledGenerationDrift {
+        expected_generation: u64,
+        actual_generation: u64,
+    },
 }

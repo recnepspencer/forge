@@ -60,22 +60,23 @@ pub(crate) struct RuntimeWorldIdentityIssuer {
 }
 
 impl RuntimeWorldIdentityIssuer {
-    pub(crate) fn new() -> Result<(Self, RuntimeWorldOwnerIdentity), RuntimeWorldIdentityExhaustion>
-    {
+    pub(super) fn from_owner_construction(
+        capability: &crate::lifecycle::owner::RuntimeWorldOwnerConstructionCapability,
+    ) -> Result<(Self, RuntimeWorldOwnerIdentity), RuntimeWorldIdentityExhaustion> {
+        let _ = capability;
         let owner = issue_owner_identity()?;
-        Ok((Self::for_owner(owner), owner))
-    }
-
-    pub(crate) fn for_owner(owner: RuntimeWorldOwnerIdentity) -> Self {
-        Self {
+        Ok((
+            Self {
+                owner,
+                next_product_branch: 0,
+                next_branch_lifecycle: 0,
+                next_composite_commit: 0,
+                next_bootstrap_attempt: 0,
+                next_publication_attempt: 0,
+                next_product_unpublished: 0,
+            },
             owner,
-            next_product_branch: 0,
-            next_branch_lifecycle: 0,
-            next_composite_commit: 0,
-            next_bootstrap_attempt: 0,
-            next_publication_attempt: 0,
-            next_product_unpublished: 0,
-        }
+        ))
     }
 
     pub(crate) const fn owner(&self) -> RuntimeWorldOwnerIdentity {
@@ -173,6 +174,11 @@ impl RuntimeWorldIdentityIssuer {
             )?,
         ))
     }
+
+    #[cfg(test)]
+    pub(crate) fn set_next_publication_attempt_for_test(&mut self, next: u64) {
+        self.next_publication_attempt = next;
+    }
 }
 
 fn issue_owner_identity() -> Result<RuntimeWorldOwnerIdentity, RuntimeWorldIdentityExhaustion> {
@@ -192,48 +198,5 @@ fn issue_owner_identity() -> Result<RuntimeWorldOwnerIdentity, RuntimeWorldIdent
             Ok(_) => return Ok(RuntimeWorldOwnerIdentity::from_ordinal(current)),
             Err(observed) => current = observed,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{RuntimeWorldIdentityFamily, RuntimeWorldIdentityIssuer};
-
-    #[test]
-    fn issuer_keeps_identity_families_owner_scoped_and_distinct() {
-        let (mut issuer, owner) = RuntimeWorldIdentityIssuer::new().expect("owner identity");
-        assert_eq!(issuer.owner(), owner);
-
-        assert_eq!(issuer.product_branch().unwrap().owner_identity(), owner);
-        assert_eq!(issuer.branch_lifecycle().unwrap().owner_identity(), owner);
-        assert_eq!(issuer.composite_commit().unwrap().owner_identity(), owner);
-        assert_eq!(issuer.bootstrap_attempt().unwrap().owner_identity(), owner);
-        assert_eq!(
-            issuer.publication_attempt().unwrap().owner_identity(),
-            owner
-        );
-        assert_eq!(
-            issuer.product_unpublished().unwrap().owner_identity(),
-            owner
-        );
-
-        let first = issuer.composite_commit().unwrap();
-        let second = issuer.composite_commit().unwrap();
-        assert_ne!(first, second);
-    }
-
-    #[test]
-    fn identity_exhaustion_is_pre_effect_and_family_specific() {
-        let (mut issuer, _) = RuntimeWorldIdentityIssuer::new().expect("owner identity");
-        issuer.next_publication_attempt = u64::MAX;
-
-        let denial = issuer
-            .publication_attempt()
-            .expect_err("the checked sequence must not wrap");
-        assert_eq!(
-            denial.family(),
-            RuntimeWorldIdentityFamily::PublicationAttempt
-        );
-        assert!(issuer.publication_attempt().is_err());
     }
 }

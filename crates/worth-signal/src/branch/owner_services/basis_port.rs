@@ -1,13 +1,12 @@
 use std::sync::{Arc, Weak};
 
 use crate::branch::{
-    admit_runtime_signal_branch_observation, AdmittedSignalBranchBasis,
-    ManagedSignalBranchReference, ManagedSignalBranchReferenceAdmissionDenial,
-    SignalBranchBasisDescriptor, SignalBranchBasisObservationDenial,
-    SignalBranchBasisReadmissionDenial, SignalBranchRetainedReadmissionDenial,
-    SignalBranchRetentionAcquisitionDenial, SignalBranchRetentionLease,
-    SignalBranchRetentionOwnerRelationship, SignalBranchRetentionReleaseDenial,
-    SignalBranchRetentionReleaseOutcome,
+    AdmittedSignalBranchBasis, ManagedSignalBranchReference,
+    ManagedSignalBranchReferenceAdmissionDenial, SignalBranchBasisDescriptor,
+    SignalBranchBasisObservationDenial, SignalBranchBasisReadmissionDenial,
+    SignalBranchRetainedReadmissionDenial, SignalBranchRetentionAcquisitionDenial,
+    SignalBranchRetentionLease, SignalBranchRetentionOwnerRelationship,
+    SignalBranchRetentionReleaseDenial, SignalBranchRetentionReleaseOutcome,
 };
 
 use super::{
@@ -95,17 +94,19 @@ where
         let (admission, cell) = owner
             .admit_managed_branch_reference(reference)
             .map_err(map_managed_observation_admission_denial)?;
-        let retention = owner
-            .acquire_admitted_retention(&admission, branch_id)
-            .map_err(|denial| {
-                map_observation_retention_denial(&owner, &admission, denial, branch_id)
-            })?;
         let observation = cell.observe_exact(&admission)?;
-        Ok(admit_runtime_signal_branch_observation(
+        owner.admit_canonical_basis_with_retention(
             observation,
             branch_id,
-            retention,
-        ))
+            cell.incarnation().get(),
+            || {
+                owner
+                    .acquire_admitted_retention(&admission, branch_id)
+                    .map_err(|denial| {
+                        map_observation_retention_denial(&owner, &admission, denial, branch_id)
+                    })
+            },
+        )
     }
 
     pub fn readmit_exact(
@@ -121,20 +122,22 @@ where
             .admit_managed_branch_reference(reference)
             .map_err(map_managed_readmission_admission_denial)?;
         owner.validate_managed_basis_descriptor(descriptor, branch_id)?;
-        let retention = owner
-            .acquire_admitted_retention(&admission, branch_id)
-            .map_err(|denial| {
-                map_readmission_retention_denial(&owner, &admission, denial, branch_id)
-            })?;
         let observation = cell.observe_exact(&admission).map_err(|denial| {
             map_observation_readmission_denial(&owner, &admission, denial, branch_id)
         })?;
         compare_descriptor_with_observation(descriptor, &observation)?;
-        Ok(admit_runtime_signal_branch_observation(
+        owner.admit_canonical_basis_with_retention(
             observation,
             branch_id,
-            retention,
-        ))
+            cell.incarnation().get(),
+            || {
+                owner
+                    .acquire_admitted_retention(&admission, branch_id)
+                    .map_err(|denial| {
+                        map_readmission_retention_denial(&owner, &admission, denial, branch_id)
+                    })
+            },
+        )
     }
 
     pub fn compare_current_exact(
@@ -144,6 +147,29 @@ where
         let owner = self
             .upgrade_owner()
             .map_err(SignalBranchBasisReadmissionDenial::OwnerUnavailable)?;
+        match basis.owner_identity_relationship(&owner.retention_binding()) {
+            crate::branch::SignalBranchRetentionOwnerRelationship::SameOwner => {}
+            crate::branch::SignalBranchRetentionOwnerRelationship::DifferentOwner => {
+                let descriptor_graph_instance_id = basis
+                    .descriptor()
+                    .observation()
+                    .target()
+                    .as_basis()
+                    .map_or_else(
+                        || "<non-basis>".to_owned(),
+                        |target| target.graph_instance_id().to_owned(),
+                    );
+                return Err(SignalBranchBasisReadmissionDenial::OwnerMismatch {
+                    descriptor_graph_instance_id,
+                    runtime_graph_instance_id: owner.runtime_instance_id().to_string(),
+                });
+            }
+            crate::branch::SignalBranchRetentionOwnerRelationship::OwnerLost => {
+                return Err(SignalBranchBasisReadmissionDenial::OwnerUnavailable(
+                    SignalOwnerUnavailable,
+                ));
+            }
+        }
         let branch_id = basis.owner_branch_id();
         owner.validate_managed_basis_descriptor(basis.descriptor(), branch_id)?;
         let admission = owner.admit().map_err(map_basis_admission_denial)?;
@@ -176,14 +202,19 @@ where
         let admission = owner.admit().map_err(map_retained_admission_denial)?;
         owner.preflight_retained_readmission(&admission, descriptor, lease)?;
         let branch_id = descriptor.branch_id();
-        let retention = owner
-            .acquire_admitted_retention(&admission, branch_id)
-            .map_err(map_retained_retention_denial)?;
-        Ok(admit_runtime_signal_branch_observation(
+        let cell = owner
+            .lookup_cell(&admission, branch_id)
+            .map_err(|_| SignalBranchRetainedReadmissionDenial::UnavailableRetainedTarget)?;
+        owner.admit_canonical_basis_with_retention(
             descriptor.observation().clone(),
             branch_id,
-            retention,
-        ))
+            cell.incarnation().get(),
+            || {
+                owner
+                    .acquire_admitted_retention(&admission, branch_id)
+                    .map_err(map_retained_retention_denial)
+            },
+        )
     }
 
     pub fn retain_exact(

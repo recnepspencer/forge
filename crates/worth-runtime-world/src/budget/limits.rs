@@ -31,60 +31,111 @@ pub struct RuntimeWorldBudgets {
     owner_created_component_custody_records: RuntimeWorldBudgetLimit,
 }
 
+/// Named installation inputs for branch capacity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldBranchBudgetInstallation {
+    pub live_product_branches: u64,
+}
+
+/// Named installation inputs for history capacity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldHistoryBudgetInstallation {
+    pub retained_composite_commits: u64,
+    pub history_metadata_bytes: u64,
+}
+
+/// Named installation inputs for observation capacity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldObservationBudgetInstallation {
+    pub active_observations: u64,
+}
+
+/// Named installation inputs for publication capacity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldPublicationBudgetInstallation {
+    pub active_publication_attempts: u64,
+}
+
+/// Named installation inputs for recovery capacity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldRecoveryBudgetInstallation {
+    pub retained_product_unpublished_records: u64,
+    pub retained_partial_metadata_bytes: u64,
+}
+
+/// Named installation inputs for independent exact-component retention.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldRetentionBudgetInstallation {
+    pub unique_exact_component_pins: u64,
+    pub in_flight_pin_acquisition_reservations: u64,
+}
+
+/// Named installation inputs for owner-created custody records.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldCustodyBudgetInstallation {
+    pub owner_created_component_custody_records: u64,
+}
+
+/// Complete named Runtime World capacity installation. Each responsibility is
+/// a separate field so adding a bound cannot silently shift a positional
+/// argument into another population.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RuntimeWorldBudgetInstallation {
+    pub branches: RuntimeWorldBranchBudgetInstallation,
+    pub history: RuntimeWorldHistoryBudgetInstallation,
+    pub observations: RuntimeWorldObservationBudgetInstallation,
+    pub publication: RuntimeWorldPublicationBudgetInstallation,
+    pub recovery: RuntimeWorldRecoveryBudgetInstallation,
+    pub retention: RuntimeWorldRetentionBudgetInstallation,
+    pub custody: RuntimeWorldCustodyBudgetInstallation,
+}
+
 impl RuntimeWorldBudgets {
-    #[allow(clippy::too_many_arguments)]
-    pub fn try_new(
-        live_product_branches: u64,
-        retained_composite_commits: u64,
-        history_metadata_bytes: u64,
-        active_observations: u64,
-        active_publication_attempts: u64,
-        retained_product_unpublished_records: u64,
-        retained_partial_metadata_bytes: u64,
-        unique_exact_component_pins: u64,
-        in_flight_pin_acquisition_reservations: u64,
-        owner_created_component_custody_records: u64,
+    pub fn install(
+        installation: RuntimeWorldBudgetInstallation,
     ) -> Result<Self, RuntimeWorldBudgetDenial> {
         Ok(Self {
             live_product_branches: limit(
                 RuntimeWorldBudgetResource::LiveProductBranches,
-                live_product_branches,
+                installation.branches.live_product_branches,
             )?,
             retained_composite_commits: limit(
                 RuntimeWorldBudgetResource::RetainedCompositeCommits,
-                retained_composite_commits,
+                installation.history.retained_composite_commits,
             )?,
             history_metadata_bytes: limit(
                 RuntimeWorldBudgetResource::HistoryMetadataBytes,
-                history_metadata_bytes,
+                installation.history.history_metadata_bytes,
             )?,
             active_observations: limit(
                 RuntimeWorldBudgetResource::ActiveObservations,
-                active_observations,
+                installation.observations.active_observations,
             )?,
             active_publication_attempts: limit(
                 RuntimeWorldBudgetResource::ActivePublicationAttempts,
-                active_publication_attempts,
+                installation.publication.active_publication_attempts,
             )?,
             retained_product_unpublished_records: limit(
                 RuntimeWorldBudgetResource::RetainedProductUnpublishedRecords,
-                retained_product_unpublished_records,
+                installation.recovery.retained_product_unpublished_records,
             )?,
             retained_partial_metadata_bytes: limit(
                 RuntimeWorldBudgetResource::RetainedPartialMetadataBytes,
-                retained_partial_metadata_bytes,
+                installation.recovery.retained_partial_metadata_bytes,
             )?,
             unique_exact_component_pins: limit(
                 RuntimeWorldBudgetResource::UniqueExactComponentPins,
-                unique_exact_component_pins,
+                installation.retention.unique_exact_component_pins,
             )?,
             in_flight_pin_acquisition_reservations: limit(
                 RuntimeWorldBudgetResource::InFlightPinAcquisitionReservations,
-                in_flight_pin_acquisition_reservations,
+                installation
+                    .retention
+                    .in_flight_pin_acquisition_reservations,
             )?,
             owner_created_component_custody_records: limit(
                 RuntimeWorldBudgetResource::OwnerCreatedComponentCustodyRecords,
-                owner_created_component_custody_records,
+                installation.custody.owner_created_component_custody_records,
             )?,
         })
     }

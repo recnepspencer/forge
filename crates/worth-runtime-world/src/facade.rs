@@ -3,6 +3,23 @@
 //! This module contains exports only. Runtime behavior remains in the private
 //! owner modules so callers cannot reach around the composition boundary.
 
+// Public signatures below name the already-issued component owner bundles and
+// tokens. Re-exporting those exact types here keeps the World facade complete
+// without exposing a constructor or a second authority path.
+pub use worth_relational::facade::branch::{
+    AdmittedRelationalBranchBasis, RelationalBranchBasisPort, RelationalOwnerServicePorts,
+};
+pub use worth_relational::facade::history::RelationalCommitIdentity;
+pub use worth_relational::facade::mvcc::RelationalTransactionIntent;
+pub use worth_runtime_bridge::facade::{
+    AdmittedRuntimeWorldCorrespondenceBasis, RuntimeWorldCorrespondencePort,
+};
+pub use worth_signal::facade::branch::{
+    AdmittedSignalBranchBasis, SignalBranchBasisAdmissionIdentity, SignalOwnerCancellationToken,
+    SignalOwnerServicePorts,
+};
+pub use worth_signal::facade::{SignalError, SignalTransaction};
+
 pub use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 pub use crate::branch::{
     NoEffectRuntimeWorldBootstrap, PerformedRuntimeWorldBootstrap, ProductBranchComponentPosture,
@@ -13,12 +30,16 @@ pub use crate::branch::{
     RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
 };
 pub use crate::budget::{
-    RuntimeWorldBudgetDenial, RuntimeWorldBudgetLimit, RuntimeWorldBudgetResource,
-    RuntimeWorldBudgets,
+    RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetDenial, RuntimeWorldBudgetInstallation,
+    RuntimeWorldBudgetLimit, RuntimeWorldBudgetResource, RuntimeWorldBudgets,
+    RuntimeWorldCustodyBudgetInstallation, RuntimeWorldHistoryBudgetInstallation,
+    RuntimeWorldObservationBudgetInstallation, RuntimeWorldPublicationBudgetInstallation,
+    RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
 pub use crate::history::{
     CompositeCallerCorrelation, CompositeCommitParent, CompositeCommitProvenance,
-    CompositeComponentChangePosture, CompositeRuntimeWorldCommit, OrdinaryParent,
+    CompositeComponentChangePosture, CompositeRuntimeWorldCommit,
+    CompositeSignalPublicationIdentity, OrdinaryParent,
 };
 pub use crate::identity::{
     CompositeBasisIdentity, CompositeCommitIdentity, CompositePublicationAttemptIdentity,
@@ -27,17 +48,22 @@ pub use crate::identity::{
     RuntimeWorldIdentityExhaustion, RuntimeWorldIdentityFamily, RuntimeWorldOwnerIdentity,
 };
 pub use crate::lifecycle::{
-    RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant, RuntimeWorldOwnerInputs,
+    RuntimeWorldCancellationSource, RuntimeWorldCancellationToken, RuntimeWorldClock,
+    RuntimeWorldClockSource, RuntimeWorldInstant, RuntimeWorldOwnerInputs,
     RuntimeWorldOwnerLifecycleObservation, RuntimeWorldOwnerUnavailable,
 };
 pub use crate::publication::{
-    CompositeAttemptCancellationPosture, CompositeComponentIntent, CompositeExecutionBorrow,
-    CompositePublicationOrder, CompositePublicationReady, LoweredOwnerComponentPlan, NoEffectCause,
-    NoEffectCompositePublication, OwnerExecutionSettlement, PerformedCompositePublication,
-    ProductBranchIntent, RelationalAttemptProgress, RelationalAttemptProgressPosture,
-    RelationalComponentPlan, RelationalComponentPlanPosture, ReservedCompositePublicationAttempt,
+    CompositeAttemptCancellationPosture, CompositeAttemptProgress, CompositeComponentIntent,
+    CompositeExecutionBorrow, CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
+    CompositePublicationCostCounters, CompositePublicationOrder, CompositePublicationReady,
+    CompositeRelationalOwnerResult, CompositeSignalOwnerResult, LoweredOwnerComponentPlan,
+    NoEffectCause, NoEffectCompositePublication, OwnerExecutionSettlement,
+    PerformedCompositePublication, ProductBranchIntent, RelationalAttemptProgress,
+    RelationalAttemptProgressPosture, RelationalComponentPlan, RelationalComponentPlanPosture,
+    ReservedCompositePublicationAttempt, ResolvedExpectedProductHead,
     RuntimeWorldPublicationOutcome, RuntimeWorldPublicationPhase, SignalAttemptProgress,
     SignalAttemptProgressPosture, SignalComponentPlan, SignalComponentPlanPosture,
+    SignalTransactionMutation,
 };
 pub use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffects,

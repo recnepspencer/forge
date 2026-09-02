@@ -5,8 +5,7 @@ use worth_foundational::facade::{
     ScalarAspectType,
 };
 use worth_relational::facade::{
-    bridge::RuntimeBridgeRelationalSource,
-    runtime::{RelationalRuntime, RelationalRuntimeApi},
+    bridge::RuntimeBridgeRelationalSource, runtime::RelationalRuntimeApi,
 };
 use worth_runtime_bridge::facade::{
     AdmittedRuntimeWorldCorrespondenceBasis, BridgeAspectRegistration, BridgeAspectRegistrationId,
@@ -22,7 +21,14 @@ use worth_signal::facade::{SignalGraph, SignalRuntime};
 
 use super::{admit_current, CompositeBasisAdmissionDenial};
 use crate::basis::compare_exact;
-use crate::identity::RuntimeWorldIdentityIssuer;
+use crate::lifecycle::owner::RuntimeWorldOwnerConstructionContract;
+
+#[path = "admission_tests/commit.rs"]
+mod commit;
+#[path = "admission_tests/publication.rs"]
+mod publication;
+#[path = "admission_tests/retention.rs"]
+mod retention;
 
 #[derive(Clone)]
 struct AdmissionSink;
@@ -41,14 +47,18 @@ impl InvalidationSink for AdmissionSink {
 
 struct ComponentFixture {
     relational: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+    relational_port: worth_relational::facade::branch::RelationalBranchBasisPort,
     signal: worth_signal::facade::branch::AdmittedSignalBranchBasis,
     signal_port: worth_signal::facade::branch::SignalBranchBasisPort<(), (), ()>,
     correspondence: AdmittedRuntimeWorldCorrespondenceBasis,
+    correspondence_port: worth_runtime_bridge::facade::RuntimeWorldCorrespondencePort,
+    _relational_runtime: Arc<worth_relational::facade::runtime::RelationalRuntime>,
     _signal_runtime: SignalRuntime<(), (), (), (), ()>,
 }
 
 fn component_fixture() -> ComponentFixture {
     let relational_runtime = Arc::new(RelationalRuntimeApi::builder().build());
+    let relational_port = relational_runtime.owner_component_services().basis_port();
     let relational_identity = relational_runtime.main_branch_identity();
     let (_, relational) = relational_runtime
         .observe_branch(&relational_identity)
@@ -142,8 +152,8 @@ fn component_fixture() -> ComponentFixture {
             }
         }
     };
-    let correspondence = bridge
-        .runtime_world_correspondence_port()
+    let correspondence_port = bridge.runtime_world_correspondence_port();
+    let correspondence = correspondence_port
         .admit_installed_basis(&installed)
         .expect("Bridge Runtime World port admits its installed basis");
 
@@ -158,9 +168,12 @@ fn component_fixture() -> ComponentFixture {
 
     ComponentFixture {
         relational,
+        relational_port,
         signal,
         signal_port,
         correspondence,
+        correspondence_port,
+        _relational_runtime: relational_runtime,
         _signal_runtime: signal_runtime,
     }
 }
@@ -182,14 +195,19 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
         "the transported artifact has an exactly equal serializable descriptor"
     );
 
-    let (identities, owner) = RuntimeWorldIdentityIssuer::new().expect("World owner");
-    let (foreign_identities, foreign_owner) =
-        RuntimeWorldIdentityIssuer::new().expect("foreign World owner");
+    let identities =
+        RuntimeWorldOwnerConstructionContract::new().expect("World owner construction");
+    let owner = identities.owner_identity();
+    let foreign_identities =
+        RuntimeWorldOwnerConstructionContract::new().expect("foreign World owner construction");
+    let foreign_owner = foreign_identities.owner_identity();
     assert_ne!(owner, foreign_owner);
 
     let denial = admit_current(
-        &identities,
+        identities.issuer(),
+        &fixture.relational_port,
         &foreign_signal_port,
+        &fixture.correspondence_port,
         fixture.relational.clone(),
         transported_signal,
         fixture.correspondence.clone(),
@@ -203,24 +221,30 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
     ));
 
     let admitted = admit_current(
-        &identities,
+        identities.issuer(),
+        &fixture.relational_port,
         &fixture.signal_port,
+        &fixture.correspondence_port,
         fixture.relational.clone(),
         fixture.signal.clone(),
         fixture.correspondence.clone(),
     )
     .expect("the Signal owner port admits the live basis");
     let foreign_world_admission = admit_current(
-        &foreign_identities,
+        foreign_identities.issuer(),
+        &fixture.relational_port,
         &fixture.signal_port,
+        &fixture.correspondence_port,
         fixture.relational.clone(),
         fixture.signal.clone(),
         fixture.correspondence.clone(),
     )
     .expect("the second World owner admits through the real Signal owner port");
     let repeated_admission = admit_current(
-        &identities,
+        identities.issuer(),
+        &fixture.relational_port,
         &fixture.signal_port,
+        &fixture.correspondence_port,
         fixture.relational.clone(),
         fixture.signal.clone(),
         fixture.correspondence.clone(),
@@ -259,19 +283,50 @@ fn foreign_owner_equal_descriptor_cannot_substitute_during_composite_admission()
         .observe_signal_branch_basis(current_branch)
         .expect("the real Signal owner admits a second current basis");
     assert_eq!(fixture.signal.descriptor(), distinct_signal.descriptor());
-    assert_ne!(
+    assert_eq!(
         fixture.signal.admission_identity(),
         distinct_signal.admission_identity(),
-        "equal Signal descriptors do not identify the same owner admission"
+        "the exact live Signal basis is canonical within its owner"
     );
     let distinct_signal_admission = admit_current(
-        &identities,
+        identities.issuer(),
+        &fixture.relational_port,
         &fixture.signal_port,
+        &fixture.correspondence_port,
         fixture.relational.clone(),
         distinct_signal,
         fixture.correspondence.clone(),
     )
     .expect("the real Signal port admits the distinct current basis");
-    assert_ne!(admitted.identity(), distinct_signal_admission.identity());
-    assert_ne!(admitted, distinct_signal_admission);
+    assert_eq!(admitted.identity(), distinct_signal_admission.identity());
+    assert_eq!(admitted, distinct_signal_admission);
+}
+
+#[test]
+fn foreign_relational_owner_cannot_substitute_an_equal_looking_basis() {
+    let fixture = component_fixture();
+    let foreign_runtime = RelationalRuntimeApi::builder().build();
+    let foreign_identity = foreign_runtime.main_branch_identity();
+    let (_, foreign_relational) = foreign_runtime
+        .observe_branch(&foreign_identity)
+        .expect("the foreign real Relational owner admits its main basis");
+    let identities =
+        RuntimeWorldOwnerConstructionContract::new().expect("World owner construction");
+
+    let denial = admit_current(
+        identities.issuer(),
+        &fixture.relational_port,
+        &fixture.signal_port,
+        &fixture.correspondence_port,
+        foreign_relational,
+        fixture.signal,
+        fixture.correspondence,
+    )
+    .expect_err("a foreign Relational owner must be rejected before composition");
+    assert!(matches!(
+        denial,
+        CompositeBasisAdmissionDenial::Relational(
+            worth_relational::facade::branch::RelationalBranchBasisDenial::ForeignRuntime { .. }
+        )
+    ));
 }

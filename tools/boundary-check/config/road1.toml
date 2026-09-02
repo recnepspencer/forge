@@ -23,6 +23,26 @@ forbidden_target_prefixes = ["worth-query", "worth-store", "worth-cert", "worthy
 guidance = "Runtime World is memory-resident composition authority and cannot depend on Query, Store, certification, UI, or application lanes"
 
 [[dependency_denials]]
+workspace_manifest = "Cargo.toml"
+sources = ["worth-runtime-bridge"]
+forbidden_targets = ["worth-relational"]
+forbidden_target_prefixes = []
+guidance = "Runtime Bridge is the neutral crossing owner and cannot acquire a direct Relational runtime dependency"
+
+[[source_dependency_allowlists]]
+workspace_manifest = "Cargo.toml"
+sources = ["worth-runtime-world"]
+allowed_targets = [
+  "worth-foundational",
+  "worth-proof",
+  "worth-relational",
+  "worth-runtime-bridge",
+  "worth-signal",
+  "trybuild",
+]
+guidance = "Runtime World may depend only on the approved foundational, proof, component-owner, and bridge facades; trybuild is test-only contract evidence"
+
+[[dependency_denials]]
 workspace_manifest = "workspaces/worth-store/Cargo.toml"
 sources = [
   "worth-store-authority",
