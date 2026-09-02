@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
+use crate::history::ExplicitCommitHistoryProtectionObligation;
 use crate::identity::{
     CompositeCommitIdentity, ProductBranchIdentity, ProductBranchLifecycleIncarnation,
     ProductBranchReferenceGeneration, RuntimeWorldOwnerIdentity,
@@ -40,18 +41,53 @@ impl PartialEq for ProductBranchObservation {
 
 impl Eq for ProductBranchObservation {}
 
-/// Cloned observations share this opaque Phase 2 retention handoff. Phase 1
-/// does not issue, release, or otherwise interpret the component obligations.
+/// Cloned observations share one coherent pair of exact component and History
+/// obligations. Cloning this wrapper acquires neither authority again.
 #[derive(Debug)]
 pub(crate) struct ProductBranchObservationObligation {
-    _retention: ObservationRetentionObligation,
+    _components: ObservationRetentionObligation,
+    _history: ExplicitCommitHistoryProtectionObligation,
 }
 
 impl ProductBranchObservationObligation {
-    pub(crate) fn owner_issued(retention: ObservationRetentionObligation) -> Self {
+    fn owner_issued(
+        components: ObservationRetentionObligation,
+        history: ExplicitCommitHistoryProtectionObligation,
+    ) -> Self {
         Self {
-            _retention: retention,
+            _components: components,
+            _history: history,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProductBranchObservationAuthorityDenial {
+    ComponentCommitOrBasisMismatch,
+    HistoryCommitOrOwnerMismatch,
+}
+
+#[derive(Debug)]
+pub(crate) struct ProductBranchObservationAdmissionFailure {
+    denial: ProductBranchObservationAuthorityDenial,
+    snapshot: ProductBranchReferenceSnapshot,
+    components: ObservationRetentionObligation,
+    history: ExplicitCommitHistoryProtectionObligation,
+}
+
+impl ProductBranchObservationAdmissionFailure {
+    pub(crate) const fn denial(&self) -> ProductBranchObservationAuthorityDenial {
+        self.denial
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        ProductBranchReferenceSnapshot,
+        ObservationRetentionObligation,
+        ExplicitCommitHistoryProtectionObligation,
+    ) {
+        (self.snapshot, self.components, self.history)
     }
 }
 
@@ -88,12 +124,33 @@ pub enum RuntimeWorldBranchAdmissionDenial {
 impl ProductBranchObservation {
     pub(crate) fn owner_issued(
         snapshot: ProductBranchReferenceSnapshot,
-        retention: ObservationRetentionObligation,
-    ) -> Self {
-        Self {
-            snapshot: Arc::new(snapshot),
-            obligation: Arc::new(ProductBranchObservationObligation::owner_issued(retention)),
+        components: ObservationRetentionObligation,
+        history: ExplicitCommitHistoryProtectionObligation,
+    ) -> Result<Self, ProductBranchObservationAdmissionFailure> {
+        if !components.matches_captured_head(snapshot.commit()) {
+            return Err(ProductBranchObservationAdmissionFailure {
+                denial: ProductBranchObservationAuthorityDenial::ComponentCommitOrBasisMismatch,
+                snapshot,
+                components,
+                history,
+            });
         }
+        if !history.matches_commit(snapshot.commit())
+            || history.owner_identity() != snapshot.owner()
+        {
+            return Err(ProductBranchObservationAdmissionFailure {
+                denial: ProductBranchObservationAuthorityDenial::HistoryCommitOrOwnerMismatch,
+                snapshot,
+                components,
+                history,
+            });
+        }
+        Ok(Self {
+            snapshot: Arc::new(snapshot),
+            obligation: Arc::new(ProductBranchObservationObligation::owner_issued(
+                components, history,
+            )),
+        })
     }
 
     pub fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {

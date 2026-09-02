@@ -11,7 +11,10 @@ pub(crate) use component_obligation::{
 pub(crate) use dependency_counts::ComponentBasisDependencyClass;
 #[allow(unused_imports)]
 pub(crate) use obligation_transfer::ComponentBasisObligationTransferDestination;
-pub(crate) use registry::RetentionTransferReceipt;
+pub(crate) use registry::{
+    RetentionCostSnapshot, RetentionObligationDenial, RetentionReclamationReport,
+    RetentionTransferReceipt, RuntimeWorldRetentionOwner,
+};
 #[allow(unused_imports)]
 pub(crate) use unique_component_pin::{ExactComponentBasisKey, ExactComponentPinRequest};
 

@@ -1,5 +1,7 @@
 #[path = "catalog_tests/allocation_oracle.rs"]
 mod allocation_oracle;
+#[path = "catalog_tests/explicit_protection.rs"]
+mod explicit_protection;
 #[path = "catalog_tests/fixtures.rs"]
 mod fixtures;
 #[path = "catalog_tests/metadata.rs"]

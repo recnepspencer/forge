@@ -89,6 +89,42 @@ impl ProductHeadHistoryProtectionObligation {
     }
 }
 
+/// History-issued proof that one live commit-bound consumer keeps its exact
+/// installed commit reachable. Product-head authority remains a separate
+/// capability so callers cannot exchange the two lifecycle roles.
+#[must_use = "an explicit commit consumer must retain its exact installed commit"]
+pub(crate) struct ExplicitCommitHistoryProtectionObligation {
+    protection: CompositeHistoryProtectionObligation,
+}
+
+impl std::fmt::Debug for ExplicitCommitHistoryProtectionObligation {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ExplicitCommitHistoryProtectionObligation")
+            .field("identity", self.commit_identity())
+            .finish_non_exhaustive()
+    }
+}
+
+impl ExplicitCommitHistoryProtectionObligation {
+    pub(in crate::history) fn issued(protection: CompositeHistoryProtectionObligation) -> Self {
+        debug_assert_eq!(protection.class, HistoryProtectionClass::ExplicitObligation);
+        Self { protection }
+    }
+
+    pub(crate) fn commit_identity(&self) -> &CompositeCommitIdentity {
+        &self.protection.identity
+    }
+
+    pub(crate) fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
+        self.commit_identity().owner_identity()
+    }
+
+    pub(crate) fn matches_commit(&self, commit: &CompositeRuntimeWorldCommit) -> bool {
+        self.commit_identity() == commit.identity()
+    }
+}
+
 /// History's future retention lane consumes an exact component dependency
 /// class; it never becomes a second owner-lease authority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -18,8 +18,8 @@ use super::reclamation::{
     CompositeHistoryReclamationRequest, HistoryReclamationDenial, HistoryReclamationOutcome,
 };
 use super::retention::{
-    CompositeHistoryProtectionObligation, HistoryProtectionClass,
-    ProductHeadHistoryProtectionObligation,
+    CompositeHistoryProtectionObligation, ExplicitCommitHistoryProtectionObligation,
+    HistoryProtectionClass, ProductHeadHistoryProtectionObligation,
 };
 use super::{CompositeCommitParent, CompositeRuntimeWorldCommit};
 
@@ -276,6 +276,19 @@ impl CompositeHistoryCatalog {
             HistoryProtectionClass::ProductHead,
         )
         .map(ProductHeadHistoryProtectionObligation::issued)
+    }
+
+    /// Issue the exact history protection carried by a live commit-bound
+    /// consumer such as a managed product-branch observation.
+    pub(crate) fn protect_explicit_commit(
+        &self,
+        commit: &CompositeRuntimeWorldCommit,
+    ) -> Result<ExplicitCommitHistoryProtectionObligation, CompositeHistoryCatalogDenial> {
+        self.protect_exact(
+            commit.identity().clone(),
+            HistoryProtectionClass::ExplicitObligation,
+        )
+        .map(ExplicitCommitHistoryProtectionObligation::issued)
     }
 
     /// Walk one parent chain up to an explicit caller bound. Reclamation does
