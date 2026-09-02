@@ -2,6 +2,7 @@ mod bootstrap;
 mod creation;
 mod observation;
 mod reference_cell;
+mod reference_snapshot;
 #[cfg(test)]
 pub(crate) mod reference_test_fixture;
 pub(crate) mod registry;
@@ -21,6 +22,7 @@ pub use observation::{
 };
 pub(crate) use reference_cell::{
     ProductBranchHeadProtection, ProductBranchHeadProtectionDenial, ProductBranchReferenceCell,
-    ProductBranchReferencePublishFailure, ProductBranchReferenceSnapshot,
+    ProductBranchReferencePublishFailure,
 };
+pub use reference_snapshot::ProductBranchReferenceSnapshot;
 pub use retirement::RuntimeWorldBranchRetirementDenial;

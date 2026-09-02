@@ -8,7 +8,7 @@ use crate::identity::{
 };
 use crate::retention::ObservationRetentionObligation;
 
-use super::reference_cell::ProductBranchReferenceSnapshot;
+use super::reference_snapshot::ProductBranchReferenceSnapshot;
 
 /// Complete product-head observation used by every compare-and-publish
 /// operation. A single reference snapshot supplies the commit and basis;

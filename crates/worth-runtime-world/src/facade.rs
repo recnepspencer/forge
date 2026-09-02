@@ -25,8 +25,8 @@ pub use crate::branch::{
     NoEffectRuntimeWorldBootstrap, PerformedRuntimeWorldBootstrap, ProductBranchComponentPosture,
     ProductBranchComponentPostures, ProductBranchCreationIntent, ProductBranchName,
     ProductBranchNameDenial, ProductBranchObservation, ProductBranchObservationMismatch,
-    ProductBranchObservationMismatchAxis, RuntimeWorldBootstrapIntent,
-    RuntimeWorldBootstrapNoEffectCause, RuntimeWorldBootstrapOutcome,
+    ProductBranchObservationMismatchAxis, ProductBranchReferenceSnapshot,
+    RuntimeWorldBootstrapIntent, RuntimeWorldBootstrapNoEffectCause, RuntimeWorldBootstrapOutcome,
     RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
 };
 pub use crate::budget::{

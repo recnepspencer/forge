@@ -23,4 +23,5 @@ pub use parentage::OrdinaryParent;
 pub(crate) use reclamation::CompositeHistoryReclamationRequest;
 pub(crate) use retention::{
     ExplicitCommitHistoryProtectionObligation, ProductHeadHistoryProtectionObligation,
+    ProductUnpublishedHistoryProtectionObligation,
 };

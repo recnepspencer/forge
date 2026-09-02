@@ -182,7 +182,65 @@ impl CompositeAttemptProgress {
         &self.signal
     }
 
+    pub(crate) const fn owner_effect_count(&self) -> usize {
+        owner_effect_count_from_postures(self.relational.posture(), self.signal.posture())
+    }
+
     pub(crate) fn into_parts(self) -> (RelationalAttemptProgress, SignalAttemptProgress) {
         (self.relational, self.signal)
+    }
+}
+
+const fn owner_effect_count_from_postures(
+    relational: RelationalAttemptProgressPosture,
+    signal: SignalAttemptProgressPosture,
+) -> usize {
+    let relational = match relational {
+        RelationalAttemptProgressPosture::Untouched
+        | RelationalAttemptProgressPosture::Prepared => 0,
+        RelationalAttemptProgressPosture::Performed
+        | RelationalAttemptProgressPosture::SettlementPending
+        | RelationalAttemptProgressPosture::Settled => 1,
+    };
+    let signal = match signal {
+        SignalAttemptProgressPosture::Untouched
+        | SignalAttemptProgressPosture::PreparedForExecution => 0,
+        SignalAttemptProgressPosture::Performed => 1,
+    };
+    relational + signal
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        owner_effect_count_from_postures, RelationalAttemptProgressPosture,
+        SignalAttemptProgressPosture,
+    };
+
+    #[test]
+    fn owner_effect_projection_covers_zero_one_and_two_performed_owners() {
+        let cases = [
+            (
+                RelationalAttemptProgressPosture::Prepared,
+                SignalAttemptProgressPosture::PreparedForExecution,
+                0,
+            ),
+            (
+                RelationalAttemptProgressPosture::Performed,
+                SignalAttemptProgressPosture::PreparedForExecution,
+                1,
+            ),
+            (
+                RelationalAttemptProgressPosture::Settled,
+                SignalAttemptProgressPosture::Performed,
+                2,
+            ),
+        ];
+        for (relational, signal, expected) in cases {
+            assert_eq!(
+                owner_effect_count_from_postures(relational, signal),
+                expected
+            );
+        }
     }
 }

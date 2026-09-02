@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::branch::reference_cell::{ProductBranchHeadProtection, ProductBranchReferenceSnapshot};
+use crate::branch::reference_cell::ProductBranchHeadProtection;
+use crate::branch::ProductBranchReferenceSnapshot;
 use crate::history::{
     CompositeHistoryCatalog, CompositeRuntimeWorldCommit, RuntimeWorldHistoryCatalogContract,
 };
@@ -48,6 +49,41 @@ pub(crate) fn history_catalog(
             budgets.history_metadata_bytes(),
         ),
     )
+}
+
+pub(crate) fn recovery_catalog(
+    owner: crate::identity::RuntimeWorldOwnerIdentity,
+) -> crate::recovery::RecoveryCatalog {
+    let budgets = crate::budget::RuntimeWorldBudgets::install(
+        crate::budget::RuntimeWorldBudgetInstallation {
+            branches: crate::budget::RuntimeWorldBranchBudgetInstallation {
+                live_product_branches: 1,
+            },
+            history: crate::budget::RuntimeWorldHistoryBudgetInstallation {
+                retained_composite_commits: 1,
+                history_metadata_bytes: 1,
+            },
+            observations: crate::budget::RuntimeWorldObservationBudgetInstallation {
+                active_observations: 1,
+            },
+            publication: crate::budget::RuntimeWorldPublicationBudgetInstallation {
+                active_publication_attempts: 1,
+            },
+            recovery: crate::budget::RuntimeWorldRecoveryBudgetInstallation {
+                retained_product_unpublished_records: 1,
+                retained_partial_metadata_bytes: 1,
+            },
+            retention: crate::budget::RuntimeWorldRetentionBudgetInstallation {
+                unique_exact_component_pins: 1,
+                in_flight_pin_acquisition_reservations: 1,
+            },
+            custody: crate::budget::RuntimeWorldCustodyBudgetInstallation {
+                owner_created_component_custody_records: 1,
+            },
+        },
+    )
+    .expect("positive recovery test budgets");
+    crate::recovery::RecoveryCatalog::new(owner, budgets.retained_product_unpublished_records())
 }
 
 pub(crate) fn root_commit(fixture: &mut RealReferenceFixture) -> CompositeRuntimeWorldCommit {

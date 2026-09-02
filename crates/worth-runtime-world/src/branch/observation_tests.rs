@@ -4,9 +4,9 @@ use std::thread;
 use super::{ProductBranchObservation, ProductBranchObservationAuthorityDenial};
 use crate::branch::reference_cell::{
     ProductBranchReferenceCell, ProductBranchReferenceObservationFailure,
-    ProductBranchReferenceSnapshot,
 };
 use crate::branch::reference_test_fixture as fixture;
+use crate::branch::ProductBranchReferenceSnapshot;
 use crate::history::{CompositeHistoryCatalog, CompositeHistoryReclamationRequest};
 
 fn product_cell(

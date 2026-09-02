@@ -1,12 +1,7 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::history::{
-    CompositeHistoryCatalog, CompositeHistoryCatalogDenial, CompositeRuntimeWorldCommit,
-};
-use crate::identity::{
-    ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
-    RuntimeWorldOwnerIdentity,
-};
+use crate::history::{CompositeHistoryCatalog, CompositeHistoryCatalogDenial};
+use crate::identity::ProductBranchReferenceGeneration;
 use crate::retention::RetentionTransferReceipt;
 use crate::retention::{RetentionObligationDenial, RuntimeWorldRetentionOwner};
 
@@ -14,6 +9,7 @@ use super::observation::{
     ProductBranchObservation, ProductBranchObservationAdmissionFailure,
     ProductBranchObservationMismatch,
 };
+use super::reference_snapshot::ProductBranchReferenceSnapshot;
 pub(crate) use protection::ProductBranchHeadProtectionDenial;
 pub(crate) use protection::{
     ProductBranchHeadProtection, ProductBranchHeadProtectionAdmissionFailure,
@@ -52,89 +48,6 @@ impl ReferenceCellState {
     }
 }
 
-/// One owner-issued immutable product-reference image. Its commit supplies
-/// both selected identity and basis, preventing mixed observations.
-#[derive(Debug, Clone)]
-pub(crate) struct ProductBranchReferenceSnapshot {
-    owner: RuntimeWorldOwnerIdentity,
-    branch: ProductBranchIdentity,
-    lifecycle: ProductBranchLifecycleIncarnation,
-    generation: ProductBranchReferenceGeneration,
-    commit: Arc<CompositeRuntimeWorldCommit>,
-}
-
-impl PartialEq for ProductBranchReferenceSnapshot {
-    fn eq(&self, other: &Self) -> bool {
-        self.owner == other.owner
-            && self.branch == other.branch
-            && self.lifecycle == other.lifecycle
-            && self.generation == other.generation
-            && self.commit.identity() == other.commit.identity()
-            && crate::basis::compare_exact(self.commit.basis(), other.commit.basis()).is_ok()
-    }
-}
-
-impl Eq for ProductBranchReferenceSnapshot {}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ProductBranchReferenceSnapshotDenial {
-    OwnerMismatch,
-    BranchOwnerMismatch,
-    LifecycleOwnerMismatch,
-    CommitOwnerMismatch,
-    BasisOwnerMismatch,
-}
-
-impl ProductBranchReferenceSnapshot {
-    pub(crate) fn owner_issued(
-        owner: RuntimeWorldOwnerIdentity,
-        branch: ProductBranchIdentity,
-        lifecycle: ProductBranchLifecycleIncarnation,
-        generation: ProductBranchReferenceGeneration,
-        commit: Arc<CompositeRuntimeWorldCommit>,
-    ) -> Result<Self, ProductBranchReferenceSnapshotDenial> {
-        if branch.owner_identity() != owner {
-            return Err(ProductBranchReferenceSnapshotDenial::BranchOwnerMismatch);
-        }
-        if lifecycle.owner_identity() != owner {
-            return Err(ProductBranchReferenceSnapshotDenial::LifecycleOwnerMismatch);
-        }
-        if commit.identity().owner_identity() != owner {
-            return Err(ProductBranchReferenceSnapshotDenial::CommitOwnerMismatch);
-        }
-        if commit.basis().owner_identity() != owner {
-            return Err(ProductBranchReferenceSnapshotDenial::BasisOwnerMismatch);
-        }
-        Ok(Self {
-            owner,
-            branch,
-            lifecycle,
-            generation,
-            commit,
-        })
-    }
-
-    pub(crate) const fn owner(&self) -> RuntimeWorldOwnerIdentity {
-        self.owner
-    }
-
-    pub(crate) fn branch(&self) -> &ProductBranchIdentity {
-        &self.branch
-    }
-
-    pub(crate) const fn lifecycle(&self) -> ProductBranchLifecycleIncarnation {
-        self.lifecycle
-    }
-
-    pub(crate) const fn generation(&self) -> ProductBranchReferenceGeneration {
-        self.generation
-    }
-
-    pub(crate) fn commit(&self) -> &CompositeRuntimeWorldCommit {
-        &self.commit
-    }
-}
-
 /// Independently borrowable product-reference cell; clones share only this
 /// branch's synchronization domain.
 #[derive(Debug, Clone)]
@@ -160,6 +73,7 @@ pub(crate) enum ProductBranchReferenceCellDenial {
 #[derive(Debug)]
 pub(crate) struct ProductBranchReferencePublishFailure {
     denial: ProductBranchReferenceCellDenial,
+    observed_head: ProductBranchReferenceSnapshot,
     successor_protection: ProductBranchHeadProtection,
 }
 
@@ -168,8 +82,18 @@ impl ProductBranchReferencePublishFailure {
         &self.denial
     }
 
+    pub(crate) fn observed_head(&self) -> &ProductBranchReferenceSnapshot {
+        &self.observed_head
+    }
+
     pub(crate) fn into_successor_protection(self) -> ProductBranchHeadProtection {
         self.successor_protection
+    }
+
+    pub(crate) fn into_recovery_parts(
+        self,
+    ) -> (ProductBranchReferenceSnapshot, ProductBranchHeadProtection) {
+        (self.observed_head, self.successor_protection)
     }
 }
 
@@ -292,12 +216,14 @@ impl ProductBranchReferenceCell {
                         .mismatch_against_snapshot(&current.snapshot)
                         .expect("snapshot equality and observation comparison must agree"),
                 ),
+                observed_head: current.snapshot.clone(),
                 successor_protection: successor,
             });
         }
         if let Err(denial) = validate_successor(&current.snapshot, &successor) {
             return Err(ProductBranchReferencePublishFailure {
                 denial,
+                observed_head: current.snapshot.clone(),
                 successor_protection: successor,
             });
         }
@@ -306,6 +232,7 @@ impl ProductBranchReferenceCell {
         let Some(successor_receipt) = successor.transfer_receipt().cloned() else {
             return Err(ProductBranchReferencePublishFailure {
                 denial: ProductBranchReferenceCellDenial::SuccessorProtectionMismatch,
+                observed_head: current.snapshot.clone(),
                 successor_protection: successor,
             });
         };

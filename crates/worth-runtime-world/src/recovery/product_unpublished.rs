@@ -1,5 +1,6 @@
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
-use crate::branch::ProductBranchObservation;
+use crate::branch::{ProductBranchObservation, ProductBranchReferenceSnapshot};
+use crate::history::ProductUnpublishedHistoryProtectionObligation;
 use crate::identity::{
     CompositePublicationAttemptIdentity, ProductUnpublishedOwnerEffectsIdentity,
 };
@@ -48,10 +49,11 @@ pub struct ProductUnpublishedOwnerEffects {
     identity: ProductUnpublishedOwnerEffectsIdentity,
     attempt_identity: CompositePublicationAttemptIdentity,
     expected_head: ProductBranchObservation,
-    last_observed_head: Option<ProductBranchObservation>,
+    last_observed_head: Option<ProductBranchReferenceSnapshot>,
     progress: CompositeAttemptProgress,
     successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
     retention_obligation: RetainedPartialRetentionObligation,
+    successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
     recovery_slot: ReservedProductUnpublishedSlot,
     live_obligations: usize,
     cause: ProductUnpublishedCause,
@@ -83,10 +85,11 @@ impl ProductUnpublishedOwnerEffects {
         identity: ProductUnpublishedOwnerEffectsIdentity,
         attempt_identity: CompositePublicationAttemptIdentity,
         expected_head: ProductBranchObservation,
-        last_observed_head: Option<ProductBranchObservation>,
+        last_observed_head: Option<ProductBranchReferenceSnapshot>,
         progress: CompositeAttemptProgress,
         successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
         retention_obligation: RetainedPartialRetentionObligation,
+        successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
         recovery_slot: ReservedProductUnpublishedSlot,
         summary: ProductUnpublishedOwnerEffectSummary,
         cause: ProductUnpublishedCause,
@@ -102,6 +105,7 @@ impl ProductUnpublishedOwnerEffects {
             progress,
             successor_basis,
             retention_obligation,
+            successor_history_protection,
             recovery_slot,
             live_obligations: summary.live_obligation_count,
             cause,
@@ -125,7 +129,7 @@ impl ProductUnpublishedOwnerEffects {
         &self.expected_head
     }
 
-    pub fn last_observed_head(&self) -> Option<&ProductBranchObservation> {
+    pub fn last_observed_head(&self) -> Option<&ProductBranchReferenceSnapshot> {
         self.last_observed_head.as_ref()
     }
 
@@ -137,8 +141,20 @@ impl ProductUnpublishedOwnerEffects {
         self.successor_basis.as_ref()
     }
 
+    /// Exact installed successor occurrence retained by this recovery record.
+    /// The identity is evidence only; it grants no History or publication authority.
+    pub fn successor_commit(&self) -> &crate::identity::CompositeCommitIdentity {
+        self.successor_history_protection.commit_identity()
+    }
+
     pub(crate) fn retention_obligation(&self) -> &RetainedPartialRetentionObligation {
         &self.retention_obligation
+    }
+
+    pub(crate) fn successor_history_protection(
+        &self,
+    ) -> &ProductUnpublishedHistoryProtectionObligation {
+        &self.successor_history_protection
     }
 
     pub fn live_obligation_count(&self) -> usize {

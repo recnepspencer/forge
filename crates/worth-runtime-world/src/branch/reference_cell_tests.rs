@@ -123,6 +123,34 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
                 .axes()
                 .contains(&crate::branch::observation::ProductBranchObservationMismatchAxis::SelectedCompositeCommit)
     ));
+    assert_eq!(stale.observed_head(), &first_snapshot);
+    assert_eq!(
+        stale.observed_head().reference_generation(),
+        first_snapshot.generation()
+    );
+    assert_eq!(
+        stale.observed_head().selected_commit(),
+        first_snapshot.commit().identity()
+    );
+    assert!(crate::basis::compare_exact(
+        stale.observed_head().basis(),
+        first_snapshot.commit().basis()
+    )
+    .is_ok());
+
+    let first_observation = observation(&cell, &fixture, &catalog);
+    let second = fixture::install_ordinary(&mut fixture, &catalog, first.as_ref());
+    let second_snapshot = fixture::successor_snapshot(&first_snapshot, Arc::clone(&second));
+    cell.compare_and_publish(
+        &first_observation,
+        fixture::product_head_protection(&fixture, &catalog, second_snapshot.clone()),
+    )
+    .expect("a later movement succeeds while the failure retains its exact CAS winner");
+    assert_eq!(
+        stale.observed_head(),
+        &first_snapshot,
+        "the failure must not follow the cell to a later head"
+    );
     let stale_protection = stale.into_successor_protection();
     let (_stale_snapshot, stale_product_head, stale_history, stale_receipt) =
         stale_protection.into_parts();
@@ -142,9 +170,10 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
     );
     assert_eq!(
         catalog.counters().direct_protection_releases(),
-        before_stale_failure.direct_protection_releases() + 1
+        before_stale_failure.direct_protection_releases() + 2,
+        "one release belongs to the later winning movement and one to the rejected successor"
     );
-    assert_eq!(cell.atomic_snapshot(), first_snapshot);
+    assert_eq!(cell.atomic_snapshot(), second_snapshot);
 
     let current = observation(&cell, &fixture, &catalog);
     let malformed_commit = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());

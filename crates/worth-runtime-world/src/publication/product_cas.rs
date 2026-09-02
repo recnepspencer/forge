@@ -4,7 +4,7 @@ use crate::branch::{
     ProductBranchHeadProtection, ProductBranchHeadProtectionDenial, ProductBranchObservation,
     ProductBranchReferenceCell, ProductBranchReferencePublishFailure,
 };
-use crate::history::CompositeRuntimeWorldCommit;
+use crate::history::{CompositeRuntimeWorldCommit, ProductHeadHistoryProtectionObligation};
 use crate::identity::CompositePublicationAttemptIdentity;
 use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
@@ -21,6 +21,8 @@ use super::{
     PerformedCompositePublication, RuntimeWorldPublicationOutcome,
 };
 
+const PRODUCT_CAS_LOSS_LIVE_OBLIGATION_COUNT: usize = 3;
+
 #[derive(Debug)]
 pub(crate) enum CompositePublicationReadyFailure {
     NoEffect(NoEffectCompositePublication),
@@ -30,6 +32,7 @@ pub(crate) enum CompositePublicationReadyFailure {
     },
     ProductHeadTransition {
         obligation: ProductHeadRetentionObligation,
+        history: ProductHeadHistoryProtectionObligation,
         denial: RetentionTransferDenial,
     },
     ProductHeadProtection {
@@ -269,32 +272,36 @@ fn unpublished_from_cas_loss(
     recovery_slot: crate::recovery::ReservedProductUnpublishedSlot,
     deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
 ) -> Result<ProductUnpublishedOwnerEffects, CompositePublicationReadyFailure> {
-    let protection = failure.into_successor_protection();
-    let (_snapshot, product_head, _history, _receipt) = protection.into_parts();
+    let (observed_head, protection) = failure.into_recovery_parts();
+    let (_snapshot, product_head, product_history, _receipt) = protection.into_parts();
     let retained = match product_head.try_transition_to_retained_partial() {
         Ok(retained) => retained,
         Err((obligation, denial)) => {
             return Err(CompositePublicationReadyFailure::ProductHeadTransition {
                 obligation,
+                history: product_history,
                 denial,
             })
         }
     };
+    let successor_history = product_history.transition_to_product_unpublished();
+    let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
+        &progress,
+        PRODUCT_CAS_LOSS_LIVE_OBLIGATION_COUNT,
+        0,
+    );
     Ok(ProductUnpublishedOwnerEffects::new(
         identity,
         attempt_identity,
         expected_head,
-        None,
+        Some(observed_head),
         progress,
         Some(commit.basis().clone()),
         retained,
+        successor_history,
         recovery_slot,
-        ProductUnpublishedOwnerEffectSummary {
-            owner_effect_count: 0,
-            live_obligation_count: 2,
-            metadata_bytes: 0,
-        },
-        ProductUnpublishedCause::StaleProductHead,
+        summary,
+        ProductUnpublishedCause::ProductPublicationLost,
         vec![
             ProductUnpublishedNextAction::Inspect,
             ProductUnpublishedNextAction::ReleaseObligations,
@@ -303,3 +310,7 @@ fn unpublished_from_cas_loss(
         0,
     ))
 }
+
+#[cfg(test)]
+#[path = "product_cas_tests.rs"]
+mod tests;
