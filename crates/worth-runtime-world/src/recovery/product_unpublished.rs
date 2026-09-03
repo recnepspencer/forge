@@ -30,7 +30,6 @@ pub(crate) use actions::RetainedNextActions;
 pub enum ProductUnpublishedCause {
     SiblingOwnerDenied,
     SettlementPending,
-    OwnerSettlementComplete,
     CancellationAfterEffect,
     DeadlineAfterEffect,
     StaleProductHead,

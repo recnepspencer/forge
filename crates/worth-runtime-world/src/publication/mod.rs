@@ -20,7 +20,7 @@ pub use component_plan::{
 pub use cost_counters::CompositePublicationCostCounters;
 pub use intent::{
     CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent,
-    SignalTransactionMutation,
+    RelationalForkPlanInput, SignalTransactionMutation,
 };
 pub use no_effect::{NoEffectCause, NoEffectCompositePublication};
 pub(crate) use outcome::OwnerExecutionOutcome;

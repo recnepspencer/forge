@@ -79,12 +79,7 @@ where
         if self.state.recovery.lookup_record(&handle).is_none() {
             return Err(super::super::ports::RuntimeWorldOwnerUnavailable::new());
         }
-        let settlement_required = matches!(
-            effects.progress().relational_posture(),
-            RelationalAttemptProgressPosture::Performed
-                | RelationalAttemptProgressPosture::SettlementRequired
-                | RelationalAttemptProgressPosture::SettlementPending
-        );
+        let settlement_required = effects.progress().relational_requires_settlement();
         if !settlement_required {
             let actions = effects.next_actions().to_vec();
             drop(effects);

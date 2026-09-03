@@ -238,6 +238,11 @@ fn continuation_settles_relational_effects_without_signal_or_product_publication
         .inspect_recovery(&handle)
         .expect("settled recovery remains inspectable until explicit cleanup");
     assert_eq!(
+        inspected.cause(),
+        ProductUnpublishedCause::SettlementPending,
+        "settlement completion updates progress/actions without rewriting provenance"
+    );
+    assert_eq!(
         inspected.progress().relational_posture(),
         crate::publication::RelationalAttemptProgressPosture::Settled
     );
@@ -304,7 +309,10 @@ fn metadata_ceiling_rejects_second_charge_and_cleanup_releases_the_first() {
         .next_actions()
         .contains(&ProductUnpublishedNextAction::SettleOwnerEffects));
     let first_charge = retained.metadata_bytes();
-    assert!(first_charge > 0);
+    assert_eq!(
+        first_charge,
+        crate::recovery::ProductUnpublishedOwnerEffects::metadata_charge_hint()
+    );
     owner
         .state
         .recovery

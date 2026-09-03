@@ -90,6 +90,10 @@ impl RelationalForkOwnerBinding {
         reservation.install(cell);
     }
 
+    pub(crate) fn owns_reservation(&self, reservation: &RelationalForkTargetReservation) -> bool {
+        self.branches.owns_reservation(reservation)
+    }
+
     pub(crate) fn install_head(
         &self,
         cell: &RelationalBranchReferenceCell,

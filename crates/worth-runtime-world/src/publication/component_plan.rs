@@ -1,11 +1,11 @@
-use worth_relational::facade::branch::{
-    AdmittedRelationalBranchBasis, AdmittedRelationalForkSourceBasis,
-};
+use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
 use worth_signal::facade::branch::{AdmittedSignalBranchBasis, ValidatedSignalBranchName};
 
 use crate::branch::ProductBranchObservation;
-use crate::publication::{CompositeComponentIntent, ResolvedExpectedProductHead};
+use crate::publication::{
+    CompositeComponentIntent, RelationalForkPlanInput, ResolvedExpectedProductHead,
+};
 
 mod compatibility;
 mod lowering;
@@ -17,7 +17,8 @@ pub(crate) use lowering::lower_component_plans;
 pub enum RelationalComponentPlanPosture {
     RetainExact,
     PublishPrepared,
-    ForkThenPublish,
+    ForkExact,
+    ForkAndAdvance,
 }
 
 /// Signal owner posture. Mutation input is borrowed later at execution time;
@@ -35,7 +36,7 @@ pub struct RelationalComponentPlan {
     posture: RelationalComponentPlanPosture,
     expected: AdmittedRelationalBranchBasis,
     prepared_candidate: Option<PreparedRelationalCommitCandidate>,
-    fork_source: Option<AdmittedRelationalForkSourceBasis>,
+    fork_input: Option<RelationalForkPlanInput>,
 }
 
 impl RelationalComponentPlan {
@@ -54,10 +55,9 @@ impl RelationalComponentPlan {
         self.prepared_candidate.as_ref()
     }
 
-    /// The owner-issued source authority, when this plan carries a
-    /// Relational fork route. A descriptive branch id is never substituted.
-    pub fn fork_source(&self) -> Option<&AdmittedRelationalForkSourceBasis> {
-        self.fork_source.as_ref()
+    /// The complete owner-issued fork route, when this plan carries one.
+    pub fn fork_input(&self) -> Option<&RelationalForkPlanInput> {
+        self.fork_input.as_ref()
     }
 
     pub(crate) fn retain_exact(expected: AdmittedRelationalBranchBasis) -> Self {
@@ -65,7 +65,7 @@ impl RelationalComponentPlan {
             posture: RelationalComponentPlanPosture::RetainExact,
             expected,
             prepared_candidate: None,
-            fork_source: None,
+            fork_input: None,
         }
     }
 
@@ -77,19 +77,31 @@ impl RelationalComponentPlan {
             posture: RelationalComponentPlanPosture::PublishPrepared,
             expected,
             prepared_candidate: Some(prepared_candidate),
-            fork_source: None,
+            fork_input: None,
         }
     }
 
-    pub(crate) fn fork_then_publish(
+    pub(crate) fn fork_exact(
         expected: AdmittedRelationalBranchBasis,
-        fork_source: AdmittedRelationalForkSourceBasis,
+        fork_input: RelationalForkPlanInput,
     ) -> Self {
         Self {
-            posture: RelationalComponentPlanPosture::ForkThenPublish,
+            posture: RelationalComponentPlanPosture::ForkExact,
             expected,
             prepared_candidate: None,
-            fork_source: Some(fork_source),
+            fork_input: Some(fork_input),
+        }
+    }
+
+    pub(crate) fn fork_and_advance(
+        expected: AdmittedRelationalBranchBasis,
+        fork_input: RelationalForkPlanInput,
+    ) -> Self {
+        Self {
+            posture: RelationalComponentPlanPosture::ForkAndAdvance,
+            expected,
+            prepared_candidate: None,
+            fork_input: Some(fork_input),
         }
     }
 
@@ -101,7 +113,7 @@ impl RelationalComponentPlan {
             posture,
             expected,
             prepared_candidate: None,
-            fork_source: None,
+            fork_input: None,
         }
     }
 
@@ -111,18 +123,22 @@ impl RelationalComponentPlan {
         RelationalComponentPlanPosture,
         AdmittedRelationalBranchBasis,
         Option<PreparedRelationalCommitCandidate>,
-        Option<AdmittedRelationalForkSourceBasis>,
+        Option<RelationalForkPlanInput>,
     ) {
         (
             self.posture,
             self.expected,
             self.prepared_candidate,
-            self.fork_source,
+            self.fork_input,
         )
     }
 
     pub(crate) fn take_prepared_candidate(&mut self) -> Option<PreparedRelationalCommitCandidate> {
         self.prepared_candidate.take()
+    }
+
+    pub(crate) fn take_fork_input(&mut self) -> Option<RelationalForkPlanInput> {
+        self.fork_input.take()
     }
 }
 
@@ -271,5 +287,9 @@ impl LoweredOwnerComponentPlan {
         &mut self,
     ) -> Option<PreparedRelationalCommitCandidate> {
         self.relational.take_prepared_candidate()
+    }
+
+    pub(crate) fn take_relational_fork_input(&mut self) -> Option<RelationalForkPlanInput> {
+        self.relational.take_fork_input()
     }
 }

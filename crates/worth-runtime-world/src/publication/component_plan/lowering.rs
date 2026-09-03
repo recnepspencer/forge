@@ -7,7 +7,7 @@ use worth_signal::facade::branch::{AdmittedSignalBranchBasis, ValidatedSignalBra
 use super::{LoweredOwnerComponentPlan, RelationalComponentPlan, SignalComponentPlan};
 use crate::branch::{ProductBranchComponentPosture, ProductBranchObservation};
 use crate::publication::{
-    CompositeComponentIntent, NoEffectCause, NoEffectCompositePublication,
+    CompositeComponentIntent, NoEffectCause, NoEffectCompositePublication, RelationalForkPlanInput,
     ResolvedExpectedProductHead,
 };
 
@@ -19,7 +19,7 @@ pub(crate) fn lower_component_plans(
         return Err(lowering_denied(expected.expected()));
     }
 
-    let (prepared_candidate, fork_source, signal_fork_name) = expected.take_plan_inputs();
+    let (prepared_candidate, fork_input, signal_fork_name) = expected.take_plan_inputs();
     let expected_head = expected.expected().clone();
     let basis = expected_head.basis();
     let postures = expected.intent().component_postures();
@@ -29,7 +29,7 @@ pub(crate) fn lower_component_plans(
             posture: postures.relational(),
             changes: intent.changes_relational(),
             prepared_candidate,
-            fork_source,
+            fork_input,
         },
         &expected_head,
     )?;
@@ -51,7 +51,7 @@ struct RelationalPlanInput {
     posture: ProductBranchComponentPosture,
     changes: bool,
     prepared_candidate: Option<PreparedRelationalCommitCandidate>,
-    fork_source: Option<AdmittedRelationalForkSourceBasis>,
+    fork_input: Option<RelationalForkPlanInput>,
 }
 
 fn lower_relational_plan(
@@ -65,7 +65,7 @@ fn lower_relational_plan(
         }
         ProductBranchComponentPosture::ForkExact
         | ProductBranchComponentPosture::ForkAndAdvance => {
-            lower_unsupported_relational_fork_plan(expected, input, expected_head)
+            lower_relational_fork_plan(expected, input, expected_head)
         }
     }
 }
@@ -76,12 +76,12 @@ fn lower_reuse_relational_plan(
     expected_head: &ProductBranchObservation,
 ) -> Result<RelationalComponentPlan, NoEffectCompositePublication> {
     if !input.changes {
-        return match (input.prepared_candidate, input.fork_source) {
+        return match (input.prepared_candidate, input.fork_input) {
             (None, None) => Ok(RelationalComponentPlan::retain_exact(expected)),
             _ => Err(lowering_denied(expected_head)),
         };
     }
-    if input.fork_source.is_some() {
+    if input.fork_input.is_some() {
         return Err(lowering_denied(expected_head));
     }
     match input.prepared_candidate {
@@ -96,7 +96,7 @@ fn lower_reuse_relational_plan(
     }
 }
 
-fn lower_unsupported_relational_fork_plan(
+fn lower_relational_fork_plan(
     expected: AdmittedRelationalBranchBasis,
     input: RelationalPlanInput,
     expected_head: &ProductBranchObservation,
@@ -104,17 +104,27 @@ fn lower_unsupported_relational_fork_plan(
     if input.prepared_candidate.is_some() {
         return Err(lowering_denied(expected_head));
     }
-    let Some(source) = input.fork_source else {
-        return Err(lowering_denied(expected_head));
-    };
-    if !fork_source_matches(&source, &expected) {
+    if !input.changes {
         return Err(lowering_denied(expected_head));
     }
-    // The frozen Runtime World plan has no distinct ForkExact or post-fork
-    // mutation-evidence phase. Do not relabel either posture as a publishable
-    // Relational plan until that owner contract exists.
-    let _ = (expected, source);
-    Err(lowering_denied(expected_head))
+    let Some(fork_input) = input.fork_input else {
+        return Err(lowering_denied(expected_head));
+    };
+    if !fork_source_matches(fork_input.source(), &expected) {
+        return Err(lowering_denied(expected_head));
+    }
+    match (input.posture, &fork_input) {
+        (ProductBranchComponentPosture::ForkExact, RelationalForkPlanInput::ForkExact { .. }) => {
+            Ok(RelationalComponentPlan::fork_exact(expected, fork_input))
+        }
+        (
+            ProductBranchComponentPosture::ForkAndAdvance,
+            RelationalForkPlanInput::ForkAndAdvance { .. },
+        ) => Ok(RelationalComponentPlan::fork_and_advance(
+            expected, fork_input,
+        )),
+        _ => Err(lowering_denied(expected_head)),
+    }
 }
 
 struct SignalPlanInput {

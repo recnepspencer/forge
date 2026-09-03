@@ -1,78 +1,25 @@
 use super::*;
 
-use crate::branch::{
-    ProductBranchHeadProtection, ProductBranchReferenceCell, ProductBranchReferenceSnapshot,
-};
-use crate::history::CompositeRuntimeWorldCommit;
 use crate::publication::{
-    CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
-    CompositePublicationCostCounters, RuntimeWorldPublicationOutcome,
+    CompositeLateCancellationPosture, CompositePublicationCostCounters,
+    RuntimeWorldPublicationOutcome,
 };
 
-pub(super) fn install_competing_head(
-    owner: &TestOwner,
-    cell: &ProductBranchReferenceCell,
-    expected: &ProductBranchObservation,
-) -> Arc<CompositeRuntimeWorldCommit> {
-    let (commit_identity, attempt_identity) = {
-        let mut identities = owner
-            .state
-            .identities
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        (
-            identities
-                .composite_commit()
-                .expect("competitor commit identity"),
-            identities
-                .publication_attempt()
-                .expect("competitor attempt identity"),
-        )
-    };
-    let commit = Arc::new(
-        CompositeRuntimeWorldCommit::from_ordinary_publication(
-            commit_identity,
-            expected.snapshot().commit(),
-            expected.basis().clone(),
-            attempt_identity,
-            &CompositeOwnerExecutionResults::retained(),
-            None,
-        )
-        .expect("same-basis competitor commit"),
-    );
-    owner
-        .state
-        .history
-        .append(Arc::clone(&commit))
-        .expect("competitor commit installs");
-    let snapshot = ProductBranchReferenceSnapshot::owner_issued(
-        expected.owner_identity(),
-        expected.branch_identity().clone(),
-        expected.lifecycle_incarnation(),
-        expected
-            .reference_generation()
-            .advance()
-            .expect("one competitor generation"),
-        Arc::clone(&commit),
-    )
-    .expect("competitor snapshot belongs to the selected branch");
-    let transfer = owner
-        .state
-        .retention
-        .issue_publication(commit.basis())
-        .expect("competitor acquires existing component pins")
-        .into_product_head_transfer(commit.basis())
-        .expect("competitor transfer matches its basis");
-    let history = owner
-        .state
-        .history
-        .protect_product_head(commit.as_ref())
-        .expect("competitor history protection");
-    let protection = ProductBranchHeadProtection::owner_issued(snapshot, transfer, history)
-        .expect("competitor protection is coherent");
-    cell.compare_and_publish(expected, protection)
-        .expect("competitor wins the exact branch-cell CAS");
-    commit
+#[test]
+fn relational_fork_destination_reservation_conflicts_and_releases_on_drop() {
+    let (fixture, _owner, _expected) = setup();
+    let held = fixture
+        .reserve_relational_fork_target("relational-held-destination")
+        .expect("the first Relational reservation is owner-issued");
+    assert!(matches!(
+        fixture.reserve_relational_fork_target("relational-held-destination"),
+        Err(worth_relational::facade::branch::RelationalForkDenial::DuplicateTarget)
+    ));
+    drop(held);
+    let released = fixture
+        .reserve_relational_fork_target("relational-held-destination")
+        .expect("dropping the owner reservation releases the exact target");
+    drop(released);
 }
 
 #[test]
@@ -237,7 +184,13 @@ fn missing_signal_sibling_after_relational_movement_retains_exact_progress() {
 
 #[test]
 fn stale_product_head_is_denied_before_the_first_owner_effect() {
-    let (fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup_with_relational_source();
+    let competing_ready = ready_relational_fork_competitor(
+        &fixture,
+        owner.as_ref(),
+        &expected,
+        "stale-before-effect-competitor",
+    );
     let plan = plan(
         &fixture,
         &owner,
@@ -251,8 +204,7 @@ fn stale_product_head_is_denied_before_the_first_owner_effect() {
         None,
     );
     let attempt = reserve(&owner, plan);
-    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let winner = install_competing_head(&owner, &cell, &expected);
+    let winner = publish_ready_competing_head(owner.as_ref(), competing_ready, &expected);
     let outcome = execute_without_signal(&owner, attempt);
     let no_effect = match outcome {
         OwnerExecutionOutcome::NoEffect(no_effect) => no_effect,
@@ -264,14 +216,20 @@ fn stale_product_head_is_denied_before_the_first_owner_effect() {
     );
     assert_eq!(
         no_effect.observed_head().unwrap().selected_commit(),
-        winner.identity()
+        winner.selected_commit()
     );
     assert_eq!(owner.recovery_record_count(), 0);
 }
 
 #[test]
 fn lost_product_cas_retains_the_settled_owner_occurrence_and_observed_winner() {
-    let (fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup_with_relational_source();
+    let competing_ready = ready_relational_fork_competitor(
+        &fixture,
+        owner.as_ref(),
+        &expected,
+        "lost-product-cas-competitor",
+    );
     let plan = plan(
         &fixture,
         &owner,
@@ -290,7 +248,7 @@ fn lost_product_cas_retains_the_settled_owner_occurrence_and_observed_winner() {
         .ready(successor.clone())
         .expect("settled owner work is ready for product publication");
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let winner = install_competing_head(&owner, &cell, &expected);
+    let winner = publish_ready_competing_head(owner.as_ref(), competing_ready, &expected);
     let outcome = ready.publish(
         &cell,
         CompositeLateCancellationPosture::NotRequested,
@@ -306,11 +264,14 @@ fn lost_product_cas_retains_the_settled_owner_occurrence_and_observed_winner() {
     );
     assert_eq!(
         retained.last_observed_head().unwrap().selected_commit(),
-        winner.identity()
+        winner.selected_commit()
     );
     assert_eq!(retained.successor_basis(), Some(&successor));
     assert_eq!(retained.owner_effect_count(), 1);
-    assert_eq!(cell.atomic_snapshot().selected_commit(), winner.identity());
+    assert_eq!(
+        cell.atomic_snapshot().selected_commit(),
+        winner.selected_commit()
+    );
     assert_eq!(owner.recovery_record_count(), 1);
     drop(retained);
 }

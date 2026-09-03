@@ -23,6 +23,7 @@ mod successor;
 #[path = "execution_service/tests.rs"]
 mod tests;
 
+use relational::RelationalExecutionFailure;
 use signal::{map_fork_no_effect, SignalExecutionFailure};
 
 impl<D, I, E, Ctx, T> super::super::ports::RuntimeWorldOwnerExecutionService
@@ -81,17 +82,21 @@ where
 
         let relational = match self.execute_relational(&mut attempt) {
             Ok(progress) => progress,
-            Err(cause) => return self.no_effect(attempt, cause),
+            Err(RelationalExecutionFailure {
+                cause,
+                no_effect,
+                partial,
+            }) => {
+                let progress =
+                    CompositeAttemptProgress::new(partial, SignalAttemptProgress::untouched());
+                return self.retain_or_no_effect(attempt, progress, cause, no_effect);
+            }
         };
         let relational_successor = relational.successor_basis().cloned();
         let progress =
             CompositeAttemptProgress::new(relational, SignalAttemptProgress::untouched());
 
-        if matches!(
-            progress.relational_posture(),
-            RelationalAttemptProgressPosture::SettlementPending
-                | RelationalAttemptProgressPosture::SettlementRequired
-        ) {
+        if progress.relational_requires_settlement() {
             let successor = self.issue_successor_basis(
                 relational_successor.expect("pending Relational progress carries its basis"),
                 signal_expected,
@@ -144,7 +149,7 @@ where
         }
 
         if cancellation
-            .check(RuntimeWorldCancellationBoundary::AfterProductMovement)
+            .check(RuntimeWorldCancellationBoundary::BeforeProductMovement)
             .is_err()
         {
             attempt.observe_cancellation();

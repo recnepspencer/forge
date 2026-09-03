@@ -1,4 +1,5 @@
 use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
+use worth_relational::facade::branch::RelationalForkOutcome;
 use worth_relational::facade::history::RelationalCommitIdentity;
 use worth_relational::facade::mvcc::PerformedRelationalCommit;
 use worth_relational::facade::publication::DeferredPublicationSettlement;
@@ -24,7 +25,12 @@ impl CompositeAttemptProgress {
             return Err(self);
         }
         let Self { relational, signal } = self;
-        let RelationalAttemptProgress { posture, evidence } = relational;
+        let RelationalAttemptProgress {
+            posture,
+            evidence,
+            fork,
+            fork_successor_basis,
+        } = relational;
         let route = match evidence {
             Some(RelationalProgressEvidence::Performed(performed))
                 if posture == RelationalAttemptProgressPosture::Performed =>
@@ -32,7 +38,7 @@ impl CompositeAttemptProgress {
                 (
                     performed.commit_identity(),
                     performed.next_basis().clone(),
-                    RelationalRecoveryRoute::Performed(performed),
+                    RelationalRecoveryRoute::Performed { performed, fork },
                     signal.posture,
                 )
             }
@@ -43,7 +49,7 @@ impl CompositeAttemptProgress {
             }) if posture == RelationalAttemptProgressPosture::SettlementPending => (
                 commit_identity,
                 successor_basis,
-                RelationalRecoveryRoute::SettlementPending(settlement),
+                RelationalRecoveryRoute::SettlementPending { settlement, fork },
                 signal.posture,
             ),
             Some(RelationalProgressEvidence::SettlementRequired {
@@ -52,12 +58,17 @@ impl CompositeAttemptProgress {
             }) if posture == RelationalAttemptProgressPosture::SettlementRequired => (
                 commit_identity,
                 successor_basis,
-                RelationalRecoveryRoute::IdentityRequired,
+                RelationalRecoveryRoute::IdentityRequired { fork },
                 signal.posture,
             ),
             evidence => {
                 return Err(Self {
-                    relational: RelationalAttemptProgress { posture, evidence },
+                    relational: RelationalAttemptProgress {
+                        posture,
+                        evidence,
+                        fork,
+                        fork_successor_basis,
+                    },
                     signal,
                 })
             }
@@ -98,53 +109,122 @@ impl CompositeAttemptProgress {
 fn recovery_result(
     progress: &RelationalAttemptProgress,
 ) -> Option<crate::publication::CompositeRelationalOwnerResult> {
+    if progress.is_fork_only() {
+        return Some(crate::publication::CompositeRelationalOwnerResult::forked(
+            progress
+                .fork
+                .clone()
+                .expect("fork-only progress carries fork evidence"),
+            progress
+                .fork_successor_basis
+                .clone()
+                .expect("fork-only progress carries its successor basis"),
+        ));
+    }
     match progress.evidence.as_ref() {
         None if progress.posture() == RelationalAttemptProgressPosture::Untouched => {
             Some(crate::publication::CompositeRelationalOwnerResult::retained())
         }
-        Some(RelationalProgressEvidence::Performed(performed)) => Some(
-            crate::publication::CompositeRelationalOwnerResult::settlement_required(
-                performed.commit_identity(),
-                performed.next_basis().clone(),
+        Some(RelationalProgressEvidence::Performed(performed)) => progress
+            .fork
+            .clone()
+            .map_or_else(
+                || {
+                    Some(crate::publication::CompositeRelationalOwnerResult::settlement_required(
+                        performed.commit_identity(),
+                        performed.next_basis().clone(),
+                    ))
+                },
+                |fork| {
+                    Some(
+                        crate::publication::CompositeRelationalOwnerResult::settlement_required_after_fork(
+                            fork,
+                            performed.commit_identity(),
+                            performed.next_basis().clone(),
+                        ),
+                    )
+                },
             ),
-        ),
         Some(RelationalProgressEvidence::SettlementPending {
             commit_identity,
             successor_basis,
             settlement,
-        }) => Some(
-            crate::publication::CompositeRelationalOwnerResult::settlement_pending(
-                commit_identity.clone(),
-                successor_basis.clone(),
-                settlement.clone(),
-            ),
+        }) => progress.fork.clone().map_or_else(
+            || {
+                Some(crate::publication::CompositeRelationalOwnerResult::settlement_pending(
+                    commit_identity.clone(),
+                    successor_basis.clone(),
+                    settlement.clone(),
+                ))
+            },
+            |fork| {
+                Some(
+                    crate::publication::CompositeRelationalOwnerResult::settlement_pending_after_fork(
+                        fork,
+                        commit_identity.clone(),
+                        successor_basis.clone(),
+                        settlement.clone(),
+                    ),
+                )
+            },
         ),
         Some(RelationalProgressEvidence::SettlementRequired {
             commit_identity,
             successor_basis,
-        }) => Some(
-            crate::publication::CompositeRelationalOwnerResult::settlement_required(
-                commit_identity.clone(),
-                successor_basis.clone(),
-            ),
+        }) => progress.fork.clone().map_or_else(
+            || {
+                Some(crate::publication::CompositeRelationalOwnerResult::settlement_required(
+                    commit_identity.clone(),
+                    successor_basis.clone(),
+                ))
+            },
+            |fork| {
+                Some(
+                    crate::publication::CompositeRelationalOwnerResult::settlement_required_after_fork(
+                        fork,
+                        commit_identity.clone(),
+                        successor_basis.clone(),
+                    ),
+                )
+            },
         ),
         Some(RelationalProgressEvidence::Settled {
             commit_identity,
             successor_basis,
             result,
-        }) => Some(crate::publication::CompositeRelationalOwnerResult::settled(
-            commit_identity.clone(),
-            successor_basis.clone(),
-            result.clone(),
-        )),
+        }) => progress.fork.clone().map_or_else(
+            || {
+                Some(crate::publication::CompositeRelationalOwnerResult::settled(
+                    commit_identity.clone(),
+                    successor_basis.clone(),
+                    result.clone(),
+                ))
+            },
+            |fork| {
+                Some(crate::publication::CompositeRelationalOwnerResult::settled_after_fork(
+                    fork,
+                    commit_identity.clone(),
+                    successor_basis.clone(),
+                    result.clone(),
+                ))
+            },
+        ),
         _ => None,
     }
 }
 
 pub(crate) enum RelationalRecoveryRoute {
-    Performed(PerformedRelationalCommit),
-    SettlementPending(DeferredPublicationSettlement),
-    IdentityRequired,
+    Performed {
+        performed: PerformedRelationalCommit,
+        fork: Option<RelationalForkOutcome>,
+    },
+    SettlementPending {
+        settlement: DeferredPublicationSettlement,
+        fork: Option<RelationalForkOutcome>,
+    },
+    IdentityRequired {
+        fork: Option<RelationalForkOutcome>,
+    },
 }
 
 impl SignalAttemptProgress {

@@ -43,7 +43,7 @@ impl ResolvedExpectedProductHead {
         &mut self,
     ) -> (
         Option<worth_relational::facade::mvcc::PreparedRelationalCommitCandidate>,
-        Option<worth_relational::facade::branch::AdmittedRelationalForkSourceBasis>,
+        Option<super::RelationalForkPlanInput>,
         Option<worth_signal::facade::branch::ValidatedSignalBranchName>,
     ) {
         self.intent.take_plan_inputs()

@@ -11,6 +11,9 @@ use crate::publication::CompositeOwnerExecutionResults;
 
 use super::OrdinaryParent;
 
+#[path = "commit/component_evidence.rs"]
+mod component_evidence;
+
 /// Explicit change posture derived from owner-issued component evidence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompositeComponentChangePosture {
@@ -59,6 +62,15 @@ enum RelationalComponentEvidence {
         commit: RelationalCommitIdentity,
         basis: worth_relational::facade::branch::RelationalBranchBasisAdmissionIdentity,
     },
+    Forked {
+        target: worth_relational::facade::branch::RelationalBranchIdentity,
+        basis: worth_relational::facade::branch::RelationalBranchBasisAdmissionIdentity,
+    },
+    ForkedAndPublished {
+        target: worth_relational::facade::branch::RelationalBranchIdentity,
+        commit: RelationalCommitIdentity,
+        basis: worth_relational::facade::branch::RelationalBranchBasisAdmissionIdentity,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -97,111 +109,6 @@ impl CompositeSignalPublicationIdentity {
 pub(crate) struct CompositeComponentEvidence {
     relational: RelationalComponentEvidence,
     signal: SignalComponentEvidence,
-}
-
-impl CompositeComponentEvidence {
-    pub(crate) fn retained(basis: &AdmittedCompositeRuntimeWorldBasis) -> Self {
-        Self {
-            relational: RelationalComponentEvidence::RetainedExact {
-                basis: basis.relational_basis().admission_identity().clone(),
-            },
-            signal: SignalComponentEvidence::RetainedExact {
-                basis: basis.signal_basis().admission_identity().clone(),
-            },
-        }
-    }
-
-    fn from_owner_results(
-        results: &CompositeOwnerExecutionResults,
-        predecessor: &AdmittedCompositeRuntimeWorldBasis,
-        successor: &AdmittedCompositeRuntimeWorldBasis,
-    ) -> Result<Self, CompositeCommitConstructionDenial> {
-        let relational = if let Some(commit) = results.relational_publication_identity() {
-            let basis = results
-                .relational_publication_basis_identity()
-                .expect("a published Relational result carries its resulting basis");
-            if basis != successor.relational_basis().admission_identity() {
-                return Err(CompositeCommitConstructionDenial::BasisMismatch);
-            }
-            RelationalComponentEvidence::Published {
-                commit,
-                basis: basis.clone(),
-            }
-        } else {
-            if predecessor.relational_basis().admission_identity()
-                != successor.relational_basis().admission_identity()
-            {
-                return Err(CompositeCommitConstructionDenial::BasisMismatch);
-            }
-            RelationalComponentEvidence::RetainedExact {
-                basis: successor.relational_basis().admission_identity().clone(),
-            }
-        };
-
-        let signal = if let Some(publication) = results.signal_publication_identity() {
-            if publication.basis_identity() != successor.signal_basis().admission_identity() {
-                return Err(CompositeCommitConstructionDenial::BasisMismatch);
-            }
-            SignalComponentEvidence::Published(publication)
-        } else {
-            if predecessor.signal_basis().admission_identity()
-                != successor.signal_basis().admission_identity()
-            {
-                return Err(CompositeCommitConstructionDenial::BasisMismatch);
-            }
-            SignalComponentEvidence::RetainedExact {
-                basis: successor.signal_basis().admission_identity().clone(),
-            }
-        };
-
-        Ok(Self { relational, signal })
-    }
-
-    fn matches_owner_results(
-        &self,
-        results: &CompositeOwnerExecutionResults,
-        predecessor: &AdmittedCompositeRuntimeWorldBasis,
-        successor: &AdmittedCompositeRuntimeWorldBasis,
-    ) -> bool {
-        Self::from_owner_results(results, predecessor, successor)
-            .is_ok_and(|evidence| evidence == *self)
-    }
-
-    pub(crate) fn relational_posture(&self) -> CompositeComponentChangePosture {
-        match self.relational {
-            RelationalComponentEvidence::RetainedExact { .. } => {
-                CompositeComponentChangePosture::RetainExact
-            }
-            RelationalComponentEvidence::Published { .. } => {
-                CompositeComponentChangePosture::Published
-            }
-        }
-    }
-
-    pub(crate) fn signal_posture(&self) -> CompositeComponentChangePosture {
-        match self.signal {
-            SignalComponentEvidence::RetainedExact { .. } => {
-                CompositeComponentChangePosture::RetainExact
-            }
-            SignalComponentEvidence::Published(_) => CompositeComponentChangePosture::Published,
-        }
-    }
-
-    pub(crate) fn relational_publication_identity(&self) -> Option<&RelationalCommitIdentity> {
-        match &self.relational {
-            RelationalComponentEvidence::RetainedExact { .. } => None,
-            RelationalComponentEvidence::Published { commit, .. } => Some(commit),
-        }
-    }
-
-    pub(crate) fn signal_publication_identity(
-        &self,
-    ) -> Option<&CompositeSignalPublicationIdentity> {
-        match &self.signal {
-            SignalComponentEvidence::RetainedExact { .. } => None,
-            SignalComponentEvidence::Published(identity) => Some(identity),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -337,6 +244,12 @@ impl CompositeRuntimeWorldCommit {
 
     pub fn relational_publication_identity(&self) -> Option<&RelationalCommitIdentity> {
         self.component_evidence.relational_publication_identity()
+    }
+
+    pub fn relational_fork_target_identity(
+        &self,
+    ) -> Option<&worth_relational::facade::branch::RelationalBranchIdentity> {
+        self.component_evidence.relational_fork_target_identity()
     }
 
     pub fn signal_publication_identity(&self) -> Option<&CompositeSignalPublicationIdentity> {

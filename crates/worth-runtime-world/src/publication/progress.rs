@@ -1,4 +1,5 @@
 use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
+use worth_relational::facade::branch::RelationalForkOutcome;
 use worth_relational::facade::history::RelationalCommitIdentity;
 use worth_relational::facade::mvcc::PerformedRelationalCommit;
 use worth_relational::facade::publication::DeferredPublicationSettlement;
@@ -15,6 +16,12 @@ mod preparation;
 #[path = "progress/effect_count.rs"]
 mod effect_count;
 pub(crate) use effect_count::owner_effect_count_from_postures;
+
+#[path = "progress/relational.rs"]
+mod relational;
+
+#[path = "progress/ready.rs"]
+mod ready;
 
 /// Exact Relational owner progress. A generic ordinal cannot say which owner
 /// evidence or settlement obligation is alive.
@@ -56,6 +63,8 @@ pub(super) enum RelationalProgressEvidence {
 pub struct RelationalAttemptProgress {
     posture: RelationalAttemptProgressPosture,
     evidence: Option<RelationalProgressEvidence>,
+    fork: Option<RelationalForkOutcome>,
+    fork_successor_basis: Option<AdmittedRelationalBranchBasis>,
 }
 
 impl RelationalAttemptProgress {
@@ -63,6 +72,8 @@ impl RelationalAttemptProgress {
         Self {
             posture: RelationalAttemptProgressPosture::Untouched,
             evidence: None,
+            fork: None,
+            fork_successor_basis: None,
         }
     }
 
@@ -82,6 +93,8 @@ impl RelationalAttemptProgress {
                 successor_basis,
                 settlement,
             }),
+            fork: None,
+            fork_successor_basis: None,
         }
     }
 
@@ -89,6 +102,8 @@ impl RelationalAttemptProgress {
         Self {
             posture: RelationalAttemptProgressPosture::Performed,
             evidence: Some(RelationalProgressEvidence::Performed(performed)),
+            fork: None,
+            fork_successor_basis: None,
         }
     }
 
@@ -107,6 +122,8 @@ impl RelationalAttemptProgress {
                 successor_basis,
                 result,
             }),
+            fork: None,
+            fork_successor_basis: None,
         }
     }
 
@@ -129,22 +146,7 @@ impl RelationalAttemptProgress {
             Some(RelationalProgressEvidence::SettledReceipt {
                 successor_basis, ..
             }) => Some(successor_basis),
-            None => None,
-        }
-    }
-
-    pub(crate) fn settled_receipt(
-        commit_identity: RelationalCommitIdentity,
-        successor_basis: AdmittedRelationalBranchBasis,
-        receipt: worth_relational::facade::history::RelationalCommitReceipt,
-    ) -> Self {
-        Self {
-            posture: RelationalAttemptProgressPosture::Settled,
-            evidence: Some(RelationalProgressEvidence::SettledReceipt {
-                commit_identity,
-                successor_basis,
-                receipt,
-            }),
+            None => self.fork_successor_basis.as_ref(),
         }
     }
 
@@ -252,21 +254,6 @@ pub struct CompositeAttemptProgress {
     signal: SignalAttemptProgress,
 }
 
-impl RelationalAttemptProgress {
-    pub(crate) fn settlement_required(
-        commit_identity: RelationalCommitIdentity,
-        successor_basis: AdmittedRelationalBranchBasis,
-    ) -> Self {
-        Self {
-            posture: RelationalAttemptProgressPosture::SettlementRequired,
-            evidence: Some(RelationalProgressEvidence::SettlementRequired {
-                commit_identity,
-                successor_basis,
-            }),
-        }
-    }
-}
-
 impl CompositeAttemptProgress {
     pub(crate) fn untouched() -> Self {
         Self {
@@ -294,6 +281,10 @@ impl CompositeAttemptProgress {
         &self.relational
     }
 
+    pub(crate) fn relational_requires_settlement(&self) -> bool {
+        self.relational.requires_settlement()
+    }
+
     pub fn signal(&self) -> &SignalAttemptProgress {
         &self.signal
     }
@@ -304,82 +295,6 @@ impl CompositeAttemptProgress {
 
     pub(crate) fn into_parts(self) -> (RelationalAttemptProgress, SignalAttemptProgress) {
         (self.relational, self.signal)
-    }
-
-    pub(super) fn into_ready_results(
-        self,
-    ) -> Result<(Self, super::CompositeOwnerExecutionResults), Self> {
-        let relational_ready = matches!(
-            self.relational.posture,
-            RelationalAttemptProgressPosture::Untouched | RelationalAttemptProgressPosture::Settled
-        );
-        let signal_ready = matches!(
-            self.signal.posture,
-            SignalAttemptProgressPosture::Untouched | SignalAttemptProgressPosture::Performed
-        );
-        if !relational_ready || !signal_ready || self.owner_effect_count() == 0 {
-            return Err(self);
-        }
-
-        let Self { relational, signal } = self;
-        let relational_posture = relational.posture;
-        let signal_posture = signal.posture;
-        let relational_result = match relational.evidence {
-            None if relational_posture == RelationalAttemptProgressPosture::Untouched => {
-                super::CompositeRelationalOwnerResult::retained()
-            }
-            Some(RelationalProgressEvidence::Settled {
-                commit_identity,
-                successor_basis,
-                result,
-            }) => super::CompositeRelationalOwnerResult::settled(
-                commit_identity,
-                successor_basis,
-                result,
-            ),
-            Some(RelationalProgressEvidence::SettlementPending { .. }) => {
-                unreachable!("pending Relational progress is rejected above")
-            }
-            Some(RelationalProgressEvidence::SettlementRequired { .. }) => {
-                unreachable!("required Relational settlement is rejected above")
-            }
-            Some(RelationalProgressEvidence::SettledReceipt { .. }) => {
-                unreachable!("receipt-only settlement is recovery evidence")
-            }
-            _ => unreachable!("ready Relational progress carries matching evidence"),
-        };
-        let signal_result = match signal.evidence {
-            None if signal_posture == SignalAttemptProgressPosture::Untouched => {
-                super::CompositeSignalOwnerResult::retained()
-            }
-            Some(SignalProgressEvidence::Advanced(advanced)) => {
-                super::CompositeSignalOwnerResult::advanced(advanced)
-            }
-            Some(SignalProgressEvidence::Forked(forked)) => {
-                super::CompositeSignalOwnerResult::forked(forked)
-            }
-            Some(SignalProgressEvidence::ForkedAndAdvanced { forked, advanced }) => {
-                super::CompositeSignalOwnerResult::forked_and_advanced(forked, advanced)
-            }
-            _ => unreachable!("ready Signal progress carries matching evidence"),
-        };
-        let summary = Self {
-            relational: RelationalAttemptProgress {
-                posture: relational_posture,
-                evidence: None,
-            },
-            signal: SignalAttemptProgress {
-                posture: signal_posture,
-                evidence: None,
-            },
-        };
-        Ok((
-            summary,
-            super::CompositeOwnerExecutionResults::from_components(
-                relational_result,
-                signal_result,
-            ),
-        ))
     }
 }
 

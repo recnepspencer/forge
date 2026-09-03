@@ -183,7 +183,13 @@ fn deadline_after_fork_before_advance_retains_only_the_forked_owner_effect() {
 #[cfg(feature = "test-operation-control")]
 #[test]
 fn stale_product_head_after_fork_before_advance_retains_fork_and_winner_evidence() {
-    let (fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup_with_relational_source();
+    let competing_ready = ready_relational_fork_competitor(
+        &fixture,
+        owner.as_ref(),
+        &expected,
+        "stale-between-fork-and-advance-competitor",
+    );
     let plan = plan(
         &fixture,
         &owner,
@@ -196,11 +202,14 @@ fn stale_product_head_after_fork_before_advance_retains_fork_and_winner_evidence
         CompositeComponentIntent::signal_only(),
         Some("stale-between-fork-and-advance"),
     );
-    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
     let owner_for_callback = Arc::clone(&owner);
     let expected_for_callback = expected.clone();
     let outcome = run_paused_fork_and_advance(&fixture, &owner, reserve(&owner, plan), move |_| {
-        super::failures::install_competing_head(&owner_for_callback, &cell, &expected_for_callback);
+        publish_ready_competing_head(
+            owner_for_callback.as_ref(),
+            competing_ready,
+            &expected_for_callback,
+        );
     });
     let retained = match outcome {
         OwnerExecutionOutcome::ProductUnpublished(retained) => retained,

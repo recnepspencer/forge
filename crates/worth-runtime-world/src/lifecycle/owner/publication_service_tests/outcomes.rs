@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
-    let (mut fixture, owner, expected) = setup();
-    let ready = ready_relational(&mut fixture, &owner, expected);
+    let (fixture, owner, expected) = setup();
+    let ready = ready_relational(&fixture, &owner, expected);
     assert_eq!(owner.state.operation.active(), 1);
     assert_eq!(owner.state.publication_capacity.active(), 1);
     assert_eq!(owner.state.history.reserved_len(), 1);
@@ -32,9 +32,9 @@ fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
 
 #[test]
 fn service_dispatch_records_one_exact_final_publication() {
-    let (mut fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&mut fixture, &owner, expected.clone());
+    let ready = ready_relational(&fixture, &owner, expected.clone());
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
         ready,
@@ -61,9 +61,9 @@ fn service_dispatch_records_one_exact_final_publication() {
 
 #[test]
 fn cancellation_after_owner_movement_retains_partial_until_explicit_cleanup() {
-    let (mut fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&mut fixture, &owner, expected.clone());
+    let ready = ready_relational(&fixture, &owner, expected.clone());
     let before = cell.atomic_snapshot();
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
@@ -93,9 +93,9 @@ fn cancellation_after_owner_movement_retains_partial_until_explicit_cleanup() {
 
 #[test]
 fn cancellation_before_product_movement_does_not_cas_current_head() {
-    let (mut fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&mut fixture, &owner, expected.clone());
+    let ready = ready_relational(&fixture, &owner, expected.clone());
     let before = cell.atomic_snapshot();
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
@@ -123,11 +123,12 @@ fn cancellation_before_product_movement_does_not_cas_current_head() {
 
 #[test]
 fn cancelled_ready_loses_to_winner_and_retains_publication_loss() {
-    let (mut fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup_with_relational_source();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&mut fixture, &owner, expected.clone());
+    let competing_ready = ready_relational_fork_competitor(&fixture, &owner, &expected);
+    let ready = ready_relational(&fixture, &owner, expected.clone());
     let loser_basis = ready.successor_basis().clone();
-    let winner = install_competing_head(&owner, &cell, &expected);
+    let winner = publish_ready_competing_head(&owner, competing_ready, &expected);
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
         ready,
@@ -145,11 +146,14 @@ fn cancelled_ready_loses_to_winner_and_retains_publication_loss() {
     );
     assert_eq!(
         retained.last_observed_head().unwrap().selected_commit(),
-        winner.identity()
+        winner.selected_commit()
     );
     assert_eq!(retained.successor_basis(), Some(&loser_basis));
-    assert_ne!(retained.successor_commit(), winner.identity());
-    assert_eq!(cell.atomic_snapshot().selected_commit(), winner.identity());
+    assert_ne!(retained.successor_commit(), winner.selected_commit());
+    assert_eq!(
+        cell.atomic_snapshot().selected_commit(),
+        winner.selected_commit()
+    );
     assert!(owner
         .state
         .history
@@ -166,9 +170,9 @@ fn cancelled_ready_loses_to_winner_and_retains_publication_loss() {
 
 #[test]
 fn cancellation_observed_after_movement_is_performed_with_evidence() {
-    let (mut fixture, owner, expected) = setup();
+    let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&mut fixture, &owner, expected);
+    let ready = ready_relational(&fixture, &owner, expected);
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
         ready,

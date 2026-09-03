@@ -1,6 +1,8 @@
 use crate::branch::{ProductBranchCreationIntent, RuntimeWorldBootstrapIntent};
 use crate::budget::RuntimeWorldBudgets;
 use crate::lifecycle::{RuntimeWorldClock, RuntimeWorldOwnerInputs};
+use crate::publication::RelationalForkPlanInput;
+use worth_relational::facade::history::BranchId;
 use worth_relational::facade::mvcc::{
     PerformedRelationalCommit, PreparedRelationalCommitCandidate, RelationalPublicationOutcome,
     RelationalTransactionIntent,
@@ -10,6 +12,37 @@ use worth_relational::facade::transactions::WorkerIntentBatch;
 use super::RealReferenceFixture;
 
 impl RealReferenceFixture {
+    pub(crate) fn reserve_relational_fork_target(
+        &self,
+        target: &str,
+    ) -> Result<
+        worth_relational::facade::branch::RelationalForkTargetReservation,
+        worth_relational::facade::branch::RelationalForkDenial,
+    > {
+        self._relational_runtime
+            .fork_port()
+            .reserve_fork_target(BranchId(target.to_owned()))
+    }
+
+    pub(crate) fn relational_fork_input(
+        &self,
+        target: &str,
+        batch: Option<WorkerIntentBatch>,
+    ) -> RelationalForkPlanInput {
+        let identity = self._relational_runtime.main_branch_identity();
+        let fork = self._relational_runtime.fork_port();
+        let (_, source) = fork
+            .observe_fork_source(identity.branch_id())
+            .expect("real Relational owner issues the exact source evidence");
+        let destination = fork
+            .reserve_fork_target(BranchId(target.to_owned()))
+            .expect("real Relational owner reserves the exact destination");
+        match batch {
+            Some(batch) => RelationalForkPlanInput::fork_and_advance(source, destination, batch),
+            None => RelationalForkPlanInput::fork_exact(source, destination),
+        }
+    }
+
     pub(crate) fn retention_owner(
         &self,
     ) -> &crate::retention::RuntimeWorldRetentionOwner<(), (), ()> {

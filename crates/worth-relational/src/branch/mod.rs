@@ -81,9 +81,9 @@ pub(crate) use reference::{
 };
 pub(crate) use reference_publication_cell::RelationalBranchPublicationCell;
 pub use reference_state::RelationalBranchReferenceState;
+pub use registry::RelationalForkTargetReservation;
 pub(crate) use registry::{
-    RelationalBranchReferenceRegistry, RelationalForkTargetReservation,
-    RelationalForkTargetReservationDenial,
+    RelationalBranchReferenceRegistry, RelationalForkTargetReservationDenial,
 };
 pub use root::RelationalRootCorrectnessIndex;
 pub(crate) use root::{

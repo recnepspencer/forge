@@ -338,12 +338,8 @@ impl OwnerExecutionSettlement {
 
 fn recovery_actions(progress: &CompositeAttemptProgress) -> Vec<ProductUnpublishedNextAction> {
     let mut actions = Vec::with_capacity(3);
-    if matches!(
-        progress.relational_posture(),
-        super::RelationalAttemptProgressPosture::Performed
-            | super::RelationalAttemptProgressPosture::SettlementRequired
-            | super::RelationalAttemptProgressPosture::SettlementPending
-    ) && progress.signal_posture() == super::SignalAttemptProgressPosture::Untouched
+    if progress.relational_requires_settlement()
+        && progress.signal_posture() == super::SignalAttemptProgressPosture::Untouched
     {
         actions.push(ProductUnpublishedNextAction::SettleOwnerEffects);
     }

@@ -5,8 +5,7 @@ use worth_relational::facade::mvcc::RelationalTransactionIntent;
 use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
 use crate::branch::{
     ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceCell,
-    ProductBranchReferenceSnapshot,
+    ProductBranchObservation,
 };
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
@@ -14,15 +13,15 @@ use crate::budget::{
     RuntimeWorldObservationBudgetInstallation, RuntimeWorldPublicationBudgetInstallation,
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
-use crate::history::CompositeRuntimeWorldCommit;
 use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
-    RuntimeWorldCloseDenial,
+    RuntimeWorldCloseDenial, RuntimeWorldObservationService, RuntimeWorldOwnerExecutionService,
+    RuntimeWorldPreparationService, RuntimeWorldProductPublicationService,
 };
 use crate::publication::{
-    CompositeAttemptProgress, CompositeComponentIntent, CompositeLateCancellationPosture,
-    CompositeOwnerExecutionResults, CompositePublicationCostCounters, ProductBranchIntent,
-    RelationalAttemptProgress, RuntimeWorldPublicationOutcome, SignalAttemptProgress,
+    CompositeComponentIntent, CompositeExecutionBorrow, CompositeLateCancellationPosture,
+    CompositePublicationCostCounters, OwnerExecutionOutcome, ProductBranchIntent,
+    RuntimeWorldPublicationOutcome,
 };
 use crate::recovery::ProductUnpublishedCause;
 
@@ -54,7 +53,8 @@ fn budgets() -> RuntimeWorldBudgets {
         recovery: RuntimeWorldRecoveryBudgetInstallation {
             retained_product_unpublished_records: 2,
             retained_partial_metadata_bytes:
-                crate::recovery::ProductUnpublishedOwnerEffects::metadata_charge_hint() as u64,
+                crate::recovery::ProductUnpublishedOwnerEffects::metadata_charge_hint()
+                    .saturating_mul(2) as u64,
         },
         retention: RuntimeWorldRetentionBudgetInstallation {
             unique_exact_component_pins: 6,
@@ -86,8 +86,34 @@ fn setup() -> (
     (fixture, owner, performed.product_branch().clone())
 }
 
+fn setup_with_relational_source() -> (
+    RealReferenceFixture,
+    Arc<TestOwner>,
+    ProductBranchObservation,
+) {
+    let (fixture, owner, expected) = setup();
+    let ready = ready_relational(&fixture, &owner, expected.clone());
+    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
+    match RuntimeWorldProductPublicationService::publish(
+        owner.as_ref(),
+        ready,
+        &cell,
+        CompositeLateCancellationPosture::NotRequested,
+        CompositePublicationCostCounters::zero(),
+    ) {
+        RuntimeWorldPublicationOutcome::Performed(_) => {}
+        other => panic!("the canonical seed publishes its product head: {other:?}"),
+    }
+    let expected = RuntimeWorldObservationService::observe_product_branch(
+        owner.as_ref(),
+        &expected.branch_identity().clone(),
+    )
+    .expect("the owner re-observes the published source basis");
+    (fixture, owner, expected)
+}
+
 fn ready_relational(
-    fixture: &mut RealReferenceFixture,
+    fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
 ) -> crate::publication::CompositePublicationReady {
@@ -108,121 +134,105 @@ fn ready_relational(
         ),
     )
     .expect("the observed head admits preparation");
-    let cancellation = RuntimeWorldCancellationSource::new();
-    let mut attempt = crate::lifecycle::RuntimeWorldPreparationService::reserve(
+    let reservation_cancellation = RuntimeWorldCancellationSource::new();
+    let attempt = RuntimeWorldPreparationService::reserve(
         owner,
         plan,
-        &cancellation.token(),
+        &reservation_cancellation.token(),
         None,
     )
     .expect("publication capacity is reserved before owner effects");
-    attempt.begin_owner_execution();
-    let performed = fixture.perform_relational_owner_change();
-    let commit_identity = performed.commit_identity();
-    let successor_relational = performed.next_basis().clone();
-    let successor_for_progress = successor_relational.clone();
-    let result = owner
-        .state
-        .relational
-        .settlement_port()
-        .settle_performed_publication(performed)
-        .expect("the canonical Relational settlement completes");
-    let successor_basis = crate::basis::admit_current(
-        &owner
-            .state
-            .identities
-            .lock()
-            .unwrap_or_else(|error| error.into_inner()),
-        &owner.state.relational.basis_port(),
-        &owner.state.signal.basis_port(),
-        &owner.state.bridge,
-        successor_relational,
-        expected.basis().signal_basis().clone(),
-        expected.basis().correspondence_basis().clone(),
-    )
-    .expect("owner-issued component results admit the successor basis");
-    let progress = CompositeAttemptProgress::new(
-        RelationalAttemptProgress::settled(commit_identity, successor_for_progress, result),
-        SignalAttemptProgress::untouched(),
+    let execution_cancellation = RuntimeWorldCancellationSource::new();
+    let outcome = RuntimeWorldOwnerExecutionService::execute(
+        owner,
+        attempt,
+        CompositeExecutionBorrow::without_signal(),
+        &execution_cancellation.token(),
     );
-    attempt
-        .settle(progress)
-        .ready(successor_basis)
+    let settlement = match outcome {
+        OwnerExecutionOutcome::Settled(settlement) => settlement,
+        other => panic!("the production owner execution must settle: {other:?}"),
+    };
+    let successor = settlement
+        .successor_basis()
+        .cloned()
+        .expect("production owner execution returns its successor basis");
+    settlement
+        .ready(successor)
         .expect("the exact successor retention is available")
 }
 
-fn competing_commit(
+fn ready_relational_fork_competitor(
+    fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: &ProductBranchObservation,
-) -> Arc<CompositeRuntimeWorldCommit> {
-    let (commit_identity, attempt_identity) = {
-        let mut identities = owner
-            .state
-            .identities
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        (
-            identities
-                .composite_commit()
-                .expect("competitor commit identity"),
-            identities
-                .publication_attempt()
-                .expect("competitor attempt identity"),
+) -> crate::publication::CompositePublicationReady {
+    let input = fixture.relational_fork_input("publication-service-competitor", None);
+    let plan = RuntimeWorldPreparationService::prepare(
+        owner,
+        expected.clone(),
+        ProductBranchIntent::new(
+            ProductBranchCreationIntent::named("canonical-relational-fork-competitor")
+                .expect("valid competing operation name"),
+            ProductBranchComponentPostures::new(
+                ProductBranchComponentPosture::ForkExact,
+                ProductBranchComponentPosture::ReuseExact,
+            ),
+            CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
         )
-    };
-    let results = CompositeOwnerExecutionResults::retained();
-    Arc::new(
-        CompositeRuntimeWorldCommit::from_ordinary_publication(
-            commit_identity,
-            expected.snapshot().commit(),
-            expected.basis().clone(),
-            attempt_identity,
-            &results,
-            None,
-        )
-        .expect("same-basis competitor commit"),
+        .with_relational_fork_input(input),
     )
+    .expect("the canonical competing fork plan is prepared");
+    let reservation_cancellation = RuntimeWorldCancellationSource::new();
+    let attempt = RuntimeWorldPreparationService::reserve(
+        owner,
+        plan,
+        &reservation_cancellation.token(),
+        None,
+    )
+    .expect("the canonical competing attempt reserves publication capacity");
+    let runtime_cancellation = RuntimeWorldCancellationSource::new();
+    let outcome = RuntimeWorldOwnerExecutionService::execute(
+        owner,
+        attempt,
+        CompositeExecutionBorrow::without_signal(),
+        &runtime_cancellation.token(),
+    );
+    let settlement = match outcome {
+        OwnerExecutionOutcome::Settled(settlement) => settlement,
+        other => panic!("the canonical competing owner execution must settle: {other:?}"),
+    };
+    let successor = settlement
+        .successor_basis()
+        .cloned()
+        .expect("the competing owner execution returns its successor basis");
+    let ready = settlement
+        .ready(successor)
+        .expect("the competing owner execution forms a ready publication");
+    ready
 }
 
-fn install_competing_head(
+fn publish_ready_competing_head(
     owner: &TestOwner,
-    cell: &ProductBranchReferenceCell,
+    ready: crate::publication::CompositePublicationReady,
     expected: &ProductBranchObservation,
-) -> Arc<CompositeRuntimeWorldCommit> {
-    let commit = competing_commit(owner, expected);
-    owner
-        .state
-        .history
-        .append(Arc::clone(&commit))
-        .expect("competitor commit installs");
-    let snapshot = ProductBranchReferenceSnapshot::owner_issued(
-        expected.owner_identity(),
-        expected.branch_identity().clone(),
-        expected.lifecycle_incarnation(),
-        expected
-            .reference_generation()
-            .advance()
-            .expect("one competitor generation"),
-        Arc::clone(&commit),
+) -> ProductBranchObservation {
+    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
+    match RuntimeWorldProductPublicationService::publish(
+        owner,
+        ready,
+        &cell,
+        CompositeLateCancellationPosture::NotRequested,
+        CompositePublicationCostCounters::zero(),
+    ) {
+        RuntimeWorldPublicationOutcome::Performed(_) => {}
+        other => panic!("the canonical competing publication must perform: {other:?}"),
+    }
+    RuntimeWorldObservationService::observe_product_branch(
+        owner,
+        &expected.branch_identity().clone(),
     )
-    .expect("competitor snapshot belongs to the selected branch");
-    let transfer = owner
-        .state
-        .retention
-        .issue_publication(commit.basis())
-        .expect("competitor acquires existing component pins")
-        .into_product_head_transfer(commit.basis())
-        .expect("competitor transfer matches its basis");
-    let history = owner
-        .state
-        .history
-        .protect_product_head(commit.as_ref())
-        .expect("competitor history protection");
-    let protection = ProductBranchHeadProtection::owner_issued(snapshot, transfer, history)
-        .expect("competitor protection is coherent");
-    cell.compare_and_publish(expected, protection)
-        .expect("competitor wins the exact branch-cell CAS");
-    commit
+    .expect("the owner observes the canonical competing product head")
 }
 
 #[path = "publication_service_tests/outcomes.rs"]

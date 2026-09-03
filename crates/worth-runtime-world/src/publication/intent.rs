@@ -1,7 +1,10 @@
 use crate::branch::ProductBranchCreationIntent;
-use worth_relational::facade::branch::AdmittedRelationalForkSourceBasis;
+use worth_relational::facade::branch::{
+    AdmittedRelationalForkSourceBasis, RelationalForkTargetReservation,
+};
 use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
+use worth_relational::facade::transactions::WorkerIntentBatch;
 use worth_signal::facade::branch::SignalOwnerCancellationToken;
 use worth_signal::facade::branch::ValidatedSignalBranchName;
 use worth_signal::facade::{SignalError, SignalTransaction};
@@ -51,6 +54,72 @@ pub type SignalTransactionMutation<'a, D, I, E, Ctx, T> = Box<
     dyn for<'tx> FnOnce(&mut SignalTransaction<'tx, D, I, E, Ctx, T>) -> Result<(), SignalError>
         + 'a,
 >;
+
+/// Owner-issued evidence and mutation handoff for one Relational fork route.
+/// The source and destination are linear owner capabilities; the batch is the
+/// caller's real post-fork worker input and is never synthesized here.
+#[derive(Debug)]
+pub enum RelationalForkPlanInput {
+    ForkExact {
+        source: AdmittedRelationalForkSourceBasis,
+        destination: RelationalForkTargetReservation,
+    },
+    ForkAndAdvance {
+        source: AdmittedRelationalForkSourceBasis,
+        destination: RelationalForkTargetReservation,
+        batch: WorkerIntentBatch,
+    },
+}
+
+impl RelationalForkPlanInput {
+    pub fn fork_exact(
+        source: AdmittedRelationalForkSourceBasis,
+        destination: RelationalForkTargetReservation,
+    ) -> Self {
+        Self::ForkExact {
+            source,
+            destination,
+        }
+    }
+
+    pub fn fork_and_advance(
+        source: AdmittedRelationalForkSourceBasis,
+        destination: RelationalForkTargetReservation,
+        batch: WorkerIntentBatch,
+    ) -> Self {
+        Self::ForkAndAdvance {
+            source,
+            destination,
+            batch,
+        }
+    }
+
+    pub(crate) fn source(&self) -> &AdmittedRelationalForkSourceBasis {
+        match self {
+            Self::ForkExact { source, .. } | Self::ForkAndAdvance { source, .. } => source,
+        }
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        AdmittedRelationalForkSourceBasis,
+        RelationalForkTargetReservation,
+        Option<WorkerIntentBatch>,
+    ) {
+        match self {
+            Self::ForkExact {
+                source,
+                destination,
+            } => (source, destination, None),
+            Self::ForkAndAdvance {
+                source,
+                destination,
+                batch,
+            } => (source, destination, Some(batch)),
+        }
+    }
+}
 
 /// The only synchronous Signal execution borrow accepted by the publication
 /// port. It cannot be cloned, erased to `()`, or stored as a `'static`
@@ -104,7 +173,7 @@ pub struct ProductBranchIntent {
     component_postures: crate::branch::ProductBranchComponentPostures,
     component_intent: CompositeComponentIntent,
     prepared_relational_candidate: Option<PreparedRelationalCommitCandidate>,
-    relational_fork_source: Option<AdmittedRelationalForkSourceBasis>,
+    relational_fork_input: Option<RelationalForkPlanInput>,
     signal_fork_name: Option<ValidatedSignalBranchName>,
 }
 
@@ -119,7 +188,7 @@ impl ProductBranchIntent {
             component_postures,
             component_intent,
             prepared_relational_candidate: None,
-            relational_fork_source: None,
+            relational_fork_input: None,
             signal_fork_name: None,
         }
     }
@@ -135,13 +204,10 @@ impl ProductBranchIntent {
         self
     }
 
-    /// Attach the one owner-issued Relational fork source for a fork posture.
-    /// A descriptive branch id is never accepted in its place.
-    pub fn with_relational_fork_source(
-        mut self,
-        source: AdmittedRelationalForkSourceBasis,
-    ) -> Self {
-        self.relational_fork_source = Some(source);
+    /// Attach the complete owner-issued Relational fork route. A source alone
+    /// cannot lower to a fork plan because destination custody is also needed.
+    pub fn with_relational_fork_input(mut self, input: RelationalForkPlanInput) -> Self {
+        self.relational_fork_input = Some(input);
         self
     }
 
@@ -168,12 +234,12 @@ impl ProductBranchIntent {
         &mut self,
     ) -> (
         Option<PreparedRelationalCommitCandidate>,
-        Option<AdmittedRelationalForkSourceBasis>,
+        Option<RelationalForkPlanInput>,
         Option<ValidatedSignalBranchName>,
     ) {
         (
             self.prepared_relational_candidate.take(),
-            self.relational_fork_source.take(),
+            self.relational_fork_input.take(),
             self.signal_fork_name.take(),
         )
     }

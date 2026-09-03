@@ -129,7 +129,58 @@ impl RelationalForkPort {
         target_branch: BranchId,
         source: AdmittedRelationalForkSourceBasis,
     ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
-        self.fork_branch_with_pause(target_branch, source, || {})
+        let reservation = self.reserve_fork_target(target_branch)?;
+        self.fork_reserved(reservation, source)
+    }
+
+    /// Reserve one exact destination without installing or moving a branch.
+    /// The returned custody is consumed by [`Self::fork_reserved`] or releases
+    /// the reservation exactly once when dropped.
+    pub fn reserve_fork_target(
+        &self,
+        target_branch: BranchId,
+    ) -> Result<super::RelationalForkTargetReservation, RelationalForkDenial> {
+        let _operation = self
+            .lifecycle
+            .admit()
+            .ok_or(RelationalForkDenial::OwnerUnavailable)?;
+        self.owner
+            .reserve_target(target_branch)
+            .map_err(|denial| match denial {
+                super::RelationalForkTargetReservationDenial::Duplicate => {
+                    RelationalForkDenial::DuplicateTarget
+                }
+                super::RelationalForkTargetReservationDenial::Retired => {
+                    RelationalForkDenial::RetiredTarget
+                }
+            })
+    }
+
+    /// Consume owner-issued destination custody and source evidence through
+    /// the canonical fork authority path.
+    pub fn fork_reserved(
+        &self,
+        reservation: super::RelationalForkTargetReservation,
+        source: AdmittedRelationalForkSourceBasis,
+    ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
+        self.fork_reserved_with_basis(reservation, source)
+            .map(|(outcome, _)| outcome)
+    }
+
+    /// Consume owner-issued fork custody and return the authentic admitted
+    /// basis of the installed destination in the same owner operation.
+    pub fn fork_reserved_with_basis(
+        &self,
+        reservation: super::RelationalForkTargetReservation,
+        source: AdmittedRelationalForkSourceBasis,
+    ) -> Result<(RelationalForkOutcome, super::AdmittedRelationalBranchBasis), RelationalForkDenial>
+    {
+        let outcome = self.fork_reserved_with_pause(reservation, source, || {})?;
+        let (_, basis) = self
+            .basis
+            .observe_branch(outcome.target_identity())
+            .map_err(|_| RelationalForkDenial::OwnerUnavailable)?;
+        Ok((outcome, basis))
     }
 
     #[cfg(test)]
@@ -140,34 +191,28 @@ impl RelationalForkPort {
         reached: &std::sync::Barrier,
         release: &std::sync::Barrier,
     ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
-        self.fork_branch_with_pause(target_branch, source, || {
+        let reservation = self.reserve_fork_target(target_branch)?;
+        self.fork_reserved_with_pause(reservation, source, || {
             reached.wait();
             release.wait();
         })
     }
 
-    fn fork_branch_with_pause(
+    fn fork_reserved_with_pause(
         &self,
-        target_branch: BranchId,
+        reservation: super::RelationalForkTargetReservation,
         source: AdmittedRelationalForkSourceBasis,
         pause: impl FnOnce(),
     ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
+        if !self.owner.owns_reservation(&reservation) {
+            return Err(RelationalForkDenial::ForeignRuntime);
+        }
         let _operation = self
             .lifecycle
             .admit()
             .ok_or(RelationalForkDenial::OwnerUnavailable)?;
+        let target_branch = reservation.branch_id().clone();
         let (descriptor, _authority) = source.into_parts();
-        let reservation = self
-            .owner
-            .reserve_target(target_branch.clone())
-            .map_err(|denial| match denial {
-                super::RelationalForkTargetReservationDenial::Duplicate => {
-                    RelationalForkDenial::DuplicateTarget
-                }
-                super::RelationalForkTargetReservationDenial::Retired => {
-                    RelationalForkDenial::RetiredTarget
-                }
-            })?;
         let validated = self.validate_fork_source(descriptor)?;
         pause();
         let prepared = self.prepare_fork_target(target_branch, reservation, &validated)?;

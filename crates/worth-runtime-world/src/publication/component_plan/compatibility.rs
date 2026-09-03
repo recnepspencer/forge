@@ -2,7 +2,7 @@ use crate::branch::{ProductBranchComponentPosture, ProductBranchObservation};
 
 use super::{
     LoweredOwnerComponentPlan, RelationalComponentPlan, RelationalComponentPlanPosture,
-    SignalComponentPlan, SignalComponentPlanPosture,
+    RelationalForkPlanInput, SignalComponentPlan, SignalComponentPlanPosture,
 };
 
 pub(super) fn plan_is_compatible_with(
@@ -44,13 +44,29 @@ fn relational_plan_is_compatible(
             posture == ProductBranchComponentPosture::ReuseExact
                 && !changes
                 && plan.prepared_candidate().is_none()
-                && plan.fork_source().is_none()
+                && plan.fork_input().is_none()
         }
         RelationalComponentPlanPosture::PublishPrepared => plan
             .prepared_candidate()
             .is_some_and(|candidate| candidate.branch() == plan.expected().identity().branch_id()),
-        RelationalComponentPlanPosture::ForkThenPublish => false,
+        RelationalComponentPlanPosture::ForkExact => plan.fork_input().is_some_and(|input| {
+            matches!(input, RelationalForkPlanInput::ForkExact { .. })
+                && fork_source_matches(input, plan)
+        }),
+        RelationalComponentPlanPosture::ForkAndAdvance => plan.fork_input().is_some_and(|input| {
+            matches!(input, RelationalForkPlanInput::ForkAndAdvance { .. })
+                && fork_source_matches(input, plan)
+        }),
     }
+}
+
+fn fork_source_matches(input: &RelationalForkPlanInput, plan: &RelationalComponentPlan) -> bool {
+    let source = input.source().descriptor();
+    let expected = plan.expected().descriptor();
+    source.runtime_instance_id() == expected.runtime_instance_id()
+        && source.source_branch() == expected.branch_id()
+        && source.observation() == expected.reference()
+        && source.truth_version() == expected.truth_version()
 }
 
 fn signal_plan_is_compatible(

@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
+use worth_relational::facade::transactions::WorkerIntentBatch;
 use worth_signal::facade::branch::{validate_signal_branch_name, SignalOwnerCancellationSource};
 
 use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
@@ -17,12 +18,14 @@ use crate::budget::{
 };
 use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
-    RuntimeWorldOwnerExecutionService, RuntimeWorldPreparationService,
+    RuntimeWorldObservationService, RuntimeWorldOwnerExecutionService,
+    RuntimeWorldPreparationService, RuntimeWorldProductPublicationService,
 };
 use crate::publication::{
-    CompositeComponentIntent, CompositeExecutionBorrow, LoweredOwnerComponentPlan,
-    OwnerExecutionOutcome, OwnerExecutionSettlement, ProductBranchIntent,
-    RelationalAttemptProgressPosture, SignalAttemptProgressPosture,
+    CompositeComponentIntent, CompositeExecutionBorrow, CompositeLateCancellationPosture,
+    CompositePublicationCostCounters, LoweredOwnerComponentPlan, OwnerExecutionOutcome,
+    OwnerExecutionSettlement, ProductBranchIntent, RelationalAttemptProgressPosture,
+    RelationalForkPlanInput, SignalAttemptProgressPosture,
 };
 use crate::recovery::ProductUnpublishedCause;
 
@@ -107,6 +110,51 @@ fn setup() -> (
     setup_with_clock(RuntimeWorldClock::from_source(FixedClock))
 }
 
+fn setup_with_relational_source() -> (
+    RealReferenceFixture,
+    Arc<TestOwner>,
+    ProductBranchObservation,
+) {
+    let (fixture, owner, expected) = setup();
+    let warmup = plan(
+        &fixture,
+        &owner,
+        &expected,
+        "relational-fork-source-seed",
+        ProductBranchComponentPostures::new(
+            ProductBranchComponentPosture::ReuseExact,
+            ProductBranchComponentPosture::ReuseExact,
+        ),
+        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
+        None,
+    );
+    let warmup = settled(execute_without_signal(&owner, reserve(&owner, warmup)));
+    let successor = warmup
+        .successor_basis()
+        .cloned()
+        .expect("the canonical seed carries its successor basis");
+    let ready = warmup
+        .ready(successor)
+        .expect("the canonical seed forms a product publication");
+    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
+    match RuntimeWorldProductPublicationService::publish(
+        owner.as_ref(),
+        ready,
+        &cell,
+        CompositeLateCancellationPosture::NotRequested,
+        CompositePublicationCostCounters::default(),
+    ) {
+        crate::publication::RuntimeWorldPublicationOutcome::Performed(_) => {}
+        other => panic!("the canonical seed publishes its product head: {other:?}"),
+    }
+    let expected = RuntimeWorldObservationService::observe_product_branch(
+        owner.as_ref(),
+        &expected.branch_identity().clone(),
+    )
+    .expect("the owner re-observes the published source basis");
+    (fixture, owner, expected)
+}
+
 fn setup_with_clock(
     clock: RuntimeWorldClock,
 ) -> (
@@ -155,6 +203,82 @@ fn plan(
     }
     RuntimeWorldPreparationService::prepare(owner, expected.clone(), intent)
         .expect("the exact observed head admits the requested owner plan")
+}
+
+fn plan_with_relational_fork(
+    owner: &TestOwner,
+    expected: &ProductBranchObservation,
+    operation_name: &str,
+    postures: ProductBranchComponentPostures,
+    component_intent: CompositeComponentIntent,
+    fork_input: RelationalForkPlanInput,
+    signal_name: Option<&str>,
+) -> LoweredOwnerComponentPlan {
+    let mut intent = ProductBranchIntent::new(
+        ProductBranchCreationIntent::named(operation_name).expect("valid operation name"),
+        postures,
+        component_intent,
+    )
+    .with_relational_fork_input(fork_input);
+    if let Some(signal_name) = signal_name {
+        intent = intent.with_signal_fork_name(
+            validate_signal_branch_name(signal_name).expect("valid Signal branch name"),
+        );
+    }
+    RuntimeWorldPreparationService::prepare(owner, expected.clone(), intent)
+        .expect("the exact observed head admits the requested owner plan")
+}
+
+fn ready_relational_fork_competitor(
+    fixture: &RealReferenceFixture,
+    owner: &TestOwner,
+    expected: &ProductBranchObservation,
+    target: &str,
+) -> crate::publication::CompositePublicationReady {
+    let input = fixture.relational_fork_input(target, None);
+    let plan = plan_with_relational_fork(
+        owner,
+        expected,
+        "canonical-relational-fork-competitor",
+        ProductBranchComponentPostures::new(
+            ProductBranchComponentPosture::ForkExact,
+            ProductBranchComponentPosture::ReuseExact,
+        ),
+        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
+        input,
+        None,
+    );
+    let settlement = settled(execute_without_signal(owner, reserve(owner, plan)));
+    let successor = settlement
+        .successor_basis()
+        .cloned()
+        .expect("the canonical fork competitor returns its successor basis");
+    settlement
+        .ready(successor)
+        .expect("the canonical fork competitor forms a ready publication")
+}
+
+fn publish_ready_competing_head(
+    owner: &TestOwner,
+    ready: crate::publication::CompositePublicationReady,
+    expected: &ProductBranchObservation,
+) -> ProductBranchObservation {
+    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
+    match RuntimeWorldProductPublicationService::publish(
+        owner,
+        ready,
+        &cell,
+        CompositeLateCancellationPosture::NotRequested,
+        CompositePublicationCostCounters::default(),
+    ) {
+        crate::publication::RuntimeWorldPublicationOutcome::Performed(_) => {}
+        other => panic!("the canonical competing publication must perform: {other:?}"),
+    }
+    RuntimeWorldObservationService::observe_product_branch(
+        owner,
+        &expected.branch_identity().clone(),
+    )
+    .expect("the owner observes the canonical competing product head")
 }
 
 fn reserve(

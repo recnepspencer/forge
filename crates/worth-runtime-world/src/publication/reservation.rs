@@ -162,6 +162,10 @@ impl ReservedCompositePublicationAttempt {
         self.plan.take_relational_candidate()
     }
 
+    pub(crate) fn take_relational_fork_input(&mut self) -> Option<super::RelationalForkPlanInput> {
+        self.plan.take_relational_fork_input()
+    }
+
     /// Consume a still-pre-effect reservation into the only no-effect
     /// cancellation terminal. Dropping the attempt releases every capacity.
     pub fn cancel(self) -> NoEffectCompositePublication {

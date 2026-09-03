@@ -16,8 +16,8 @@ pub use crate::branch::{
     RelationalBranchTransactionAdmissionPort, RelationalBranchVersion, RelationalForkDenial,
     RelationalForkOutcome, RelationalForkPort, RelationalForkSourceAuthority,
     RelationalForkSourceAuthorityMarker, RelationalForkSourceDescriptor,
-    RelationalOwnerLifecycleObservation, RelationalOwnerServicePorts,
-    RelationalRootCorrectnessIndex, ResolvedRelationalBasisDescriptor,
+    RelationalForkTargetReservation, RelationalOwnerLifecycleObservation,
+    RelationalOwnerServicePorts, RelationalRootCorrectnessIndex, ResolvedRelationalBasisDescriptor,
     RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
 };
 pub use crate::history::retention::{

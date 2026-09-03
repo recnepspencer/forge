@@ -31,12 +31,8 @@ pub(crate) fn next_actions_for_progress(
     progress: &crate::publication::CompositeAttemptProgress,
 ) -> Vec<ProductUnpublishedNextAction> {
     let mut actions = Vec::with_capacity(3);
-    if matches!(
-        progress.relational_posture(),
-        crate::publication::RelationalAttemptProgressPosture::Performed
-            | crate::publication::RelationalAttemptProgressPosture::SettlementRequired
-            | crate::publication::RelationalAttemptProgressPosture::SettlementPending
-    ) && progress.signal_posture() == crate::publication::SignalAttemptProgressPosture::Untouched
+    if progress.relational_requires_settlement()
+        && progress.signal_posture() == crate::publication::SignalAttemptProgressPosture::Untouched
     {
         actions.push(ProductUnpublishedNextAction::SettleOwnerEffects);
     }
