@@ -11,8 +11,7 @@ use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
 use super::super::branch_execution_cell::SignalBranchForkSourceCustody;
 use super::super::branch_registry::{
-    SignalBranchRegistryDenial, SignalBranchReservation, SignalPreparedBranchCell,
-    SignalPreparedBranchInstallation,
+    SignalBranchReservation, SignalPreparedBranchCell, SignalPreparedBranchInstallation,
 };
 use super::super::operation_control::SignalOwnerOperationBoundary;
 use super::super::owner_metadata::SignalOwnerForkLineageReservation;
@@ -20,6 +19,7 @@ use super::super::{
     SignalBranchCellState, SignalBranchExecutionCell, SignalOwnerCancellationToken,
     SignalOwnerOperationAdmission, SignalOwnerUnavailable,
 };
+use super::fork_denials::{map_fork_owner_lock_denial, map_fork_registry_denial};
 
 impl<D, I, T> super::SignalOwner<D, I, T>
 where
@@ -27,27 +27,21 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(in crate::branch::owner_services) fn reserve_fork_destination<'a>(
-        &'a self,
-        admission: &'a SignalOwnerOperationAdmission<'_>,
+    pub(in crate::branch::owner_services) fn issue_fork_destination_identity(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
         source: &AdmittedSignalBranchBasis,
         requested_identity: ValidatedSignalBranchName,
-    ) -> Result<SignalOwnerForkReservation<'a, D, I, T>, SignalBranchForkOperationDenial> {
+    ) -> Result<SignalBranchHandle, SignalBranchForkOperationDenial> {
+        let parent_branch_id = source.owner_branch_id();
         admission
             .authorize(self.runtime_instance_id, self.lifecycle_identity())
             .map_err(|_| {
                 SignalBranchForkOperationDenial::OwnerUnavailable(SignalOwnerUnavailable)
             })?;
-        admission.owner_lock_acquisition().map_err(|denial| match denial {
-            crate::branch::owner_services::lifecycle_state::SignalOwnerMetadataHoldDenial::BranchCellOrMetadataAlreadyHeld => {
-                SignalBranchForkOperationDenial::OwnerCellMisuse {
-                    branch_id: source.owner_branch_id(),
-                }
-            }
-            crate::branch::owner_services::lifecycle_state::SignalOwnerMetadataHoldDenial::ExecutingThreadReentry => {
-                SignalBranchForkOperationDenial::OwnerReentry
-            }
-        })?;
+        admission
+            .owner_lock_acquisition()
+            .map_err(|denial| map_fork_owner_lock_denial(denial, parent_branch_id))?;
         let branch_id = self
             .next_branch_id
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
@@ -61,15 +55,25 @@ where
             .as_basis()
             .and_then(|target| target.snapshot_id())
             .map(SignalSnapshotId);
-        let handle = SignalBranchHandle {
+        Ok(SignalBranchHandle {
             id: branch_id,
             name: requested_identity.into_inner(),
-            parent_branch_id: Some(source.owner_branch_id()),
+            parent_branch_id: Some(parent_branch_id),
             head_snapshot_id: parent_head_snapshot_id,
-        };
+        })
+    }
+
+    pub(in crate::branch::owner_services) fn reserve_fork_destination<'a>(
+        &'a self,
+        admission: &'a SignalOwnerOperationAdmission<'_>,
+        source: &AdmittedSignalBranchBasis,
+        requested_identity: ValidatedSignalBranchName,
+    ) -> Result<SignalOwnerForkReservation<'a, D, I, T>, SignalBranchForkOperationDenial> {
+        let handle = self.issue_fork_destination_identity(admission, source, requested_identity)?;
+        let branch_id = handle.id;
         let reservation = self
             .registry
-            .reserve(admission, branch_id)
+            .reserve_named(admission, branch_id, handle.name.clone())
             .map_err(|denial| map_fork_registry_denial(denial, source.owner_branch_id()))?;
         let lineage =
             self.metadata
@@ -103,7 +107,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(super) fn new(
+    pub(in crate::branch::owner_services) fn new(
         handle: SignalBranchHandle,
         owner_runtime_instance_id: u64,
         definition_basis: u64,
@@ -153,6 +157,25 @@ where
             destination_observation: None,
         };
         source_cell.capture_fork_source_exact(admission, source, builder, cancellation)
+    }
+
+    pub(in crate::branch::owner_services) fn capture_and_install(
+        self,
+        source_cell: Arc<SignalBranchExecutionCell<SignalBranchCellState<D, I, T>>>,
+        source: &AdmittedSignalBranchBasis,
+        cancellation: &SignalOwnerCancellationToken,
+    ) -> Result<SignalInstalledOwnerFork<'a, D, I, T>, SignalBranchForkOperationDenial> {
+        let source_branch_id = source.owner_branch_id();
+        let source_custody = source_cell
+            .acquire_fork_source_custody(self.reservation.admission())
+            .map_err(|denial| {
+                crate::branch::owner_services::branch_execution_cell::fork::map_fork_cell_denial(
+                    denial,
+                    source_branch_id,
+                )
+            })?;
+        self.capture(source_custody, source, cancellation)?
+            .install()
     }
 }
 
@@ -208,7 +231,9 @@ where
         &self.cell
     }
 
-    pub(super) fn into_handoff_parts(self) -> (SignalBranchHandle, SignalBranchObservation) {
+    pub(in crate::branch::owner_services) fn into_handoff_parts(
+        self,
+    ) -> (SignalBranchHandle, SignalBranchObservation) {
         (self.handle, self.observation)
     }
 }
@@ -344,36 +369,6 @@ where
             cell,
             lifetime: std::marker::PhantomData,
         })
-    }
-}
-
-pub(super) fn map_fork_registry_denial(
-    denial: SignalBranchRegistryDenial,
-    branch_id: crate::state::SignalBranchId,
-) -> SignalBranchForkOperationDenial {
-    match denial {
-        SignalBranchRegistryDenial::ForeignOwner | SignalBranchRegistryDenial::ExpiredAdmission => {
-            SignalBranchForkOperationDenial::OwnerUnavailable(SignalOwnerUnavailable)
-        }
-        SignalBranchRegistryDenial::LiveCapacityExhausted {
-            maximum_live_branches,
-        } => SignalBranchForkOperationDenial::LiveBranchCapacityExhausted {
-            maximum_live_branches,
-        },
-        SignalBranchRegistryDenial::ReservationCapacityExhausted {
-            maximum_reservations,
-        } => SignalBranchForkOperationDenial::ReservationCapacityExhausted {
-            maximum_reservations,
-        },
-        SignalBranchRegistryDenial::OwnerReentry => SignalBranchForkOperationDenial::OwnerReentry,
-        SignalBranchRegistryDenial::OwnerMetadataOrdering => {
-            SignalBranchForkOperationDenial::OwnerCellMisuse { branch_id }
-        }
-        denial => SignalBranchForkOperationDenial::OwnerDeniedNoMovement {
-            error: SignalError::internal(format!(
-                "Signal owner fork reservation invariant failed: {denial:?}"
-            )),
-        },
     }
 }
 

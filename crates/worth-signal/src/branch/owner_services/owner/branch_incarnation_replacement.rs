@@ -32,7 +32,7 @@ where
             .execute(|_, _| Ok::<(), ()>(()))?
             .expect("test-only incarnation retirement is infallible");
         self.registry
-            .reserve(admission, branch_id)?
+            .reserve_named(admission, branch_id, handle.name.clone())?
             .install(SignalBranchCellState::new(
                 handle,
                 self.runtime_instance_id,

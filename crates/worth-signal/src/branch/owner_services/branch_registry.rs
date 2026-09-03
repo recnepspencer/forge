@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::state::SignalBranchId;
 
 use super::branch_execution_cell::{SignalBranchCellAdmissionDenial, SignalBranchExecutionCell};
-use super::cell_incarnation::SignalBranchCellIncarnation;
 use super::counters::SignalOwnerServiceCounters;
 use super::lifecycle_state::{
     SignalOwnerAdmissionMismatch, SignalOwnerLifecycleIdentity, SignalOwnerLifecycleState,
@@ -23,6 +22,12 @@ pub(crate) use prepared::{SignalPreparedBranchCell, SignalPreparedBranchInstalla
 mod capacity;
 #[path = "branch_registry/close_cleanup.rs"]
 mod close_cleanup;
+#[path = "branch_registry/name_occupancy.rs"]
+mod name_occupancy;
+#[path = "branch_registry/reservation.rs"]
+mod reservation;
+use name_occupancy::{mark_name_installed, remove_name_for_branch};
+pub(crate) use reservation::{SignalBranchOwnedReservation, SignalBranchReservation};
 
 pub(super) struct SignalBranchCellConstruction(());
 
@@ -34,6 +39,8 @@ pub(crate) enum SignalBranchRegistryDenial {
     UnknownBranch(SignalBranchId),
     LiveCapacityExhausted { maximum_live_branches: usize },
     ReservationCapacityExhausted { maximum_reservations: usize },
+    NameAlreadyReserved,
+    NameAlreadyInstalled,
     RetirementInProgress(SignalBranchId),
     ExpiredRetirement(SignalBranchId),
     TargetCellDenied(SignalBranchCellAdmissionDenial),
@@ -53,9 +60,17 @@ enum SignalBranchRegistryEntry<S> {
     Retiring(Arc<SignalBranchExecutionCell<S>>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SignalBranchNameOccupancy {
+    Reserved(SignalBranchId),
+    Installed(SignalBranchId),
+}
+
 #[derive(Debug)]
 struct SignalBranchRegistryState<S> {
     entries: BTreeMap<SignalBranchId, SignalBranchRegistryEntry<S>>,
+    names: BTreeMap<String, SignalBranchNameOccupancy>,
+    names_by_branch: BTreeMap<SignalBranchId, String>,
     live_count: usize,
     reservation_count: usize,
 }
@@ -84,6 +99,8 @@ impl<S> SignalBranchRegistry<S> {
             maximum_reservations,
             state: Mutex::new(SignalBranchRegistryState {
                 entries: BTreeMap::new(),
+                names: BTreeMap::new(),
+                names_by_branch: BTreeMap::new(),
                 live_count: 0,
                 reservation_count: 0,
             }),
@@ -115,17 +132,39 @@ impl<S> SignalBranchRegistry<S> {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn reserve<'a>(
         &'a self,
         admission: &'a SignalOwnerOperationAdmission<'_>,
         branch_id: SignalBranchId,
     ) -> Result<SignalBranchReservation<'a, S>, SignalBranchRegistryDenial> {
+        self.reserve_entry(admission, branch_id, None)?;
+        Ok(SignalBranchReservation::unnamed(self, admission, branch_id))
+    }
+
+    pub(super) fn reserve_entry(
+        &self,
+        admission: &SignalOwnerOperationAdmission<'_>,
+        branch_id: SignalBranchId,
+        name: Option<&str>,
+    ) -> Result<(), SignalBranchRegistryDenial> {
         self.validate_admission(admission)?;
         admission.reach_operation_boundary(SignalOwnerOperationBoundary::BranchRegistryReservation);
         let _metadata_hold = admission
             .hold_owner_metadata()
             .map_err(map_metadata_hold_denial)?;
         let mut state = self.lock_state();
+        if let Some(name) = name {
+            match state.names.get(name) {
+                Some(SignalBranchNameOccupancy::Reserved(_)) => {
+                    return Err(SignalBranchRegistryDenial::NameAlreadyReserved)
+                }
+                Some(SignalBranchNameOccupancy::Installed(_)) => {
+                    return Err(SignalBranchRegistryDenial::NameAlreadyInstalled)
+                }
+                None => {}
+            }
+        }
         self.validate_available_identity(&state, branch_id)?;
         self.validate_capacity(&state)?;
         let displaced = state
@@ -135,15 +174,18 @@ impl<S> SignalBranchRegistry<S> {
             displaced.is_none(),
             "accepted reservation identity must be vacant"
         );
+        if let Some(name) = name {
+            let name = name.to_owned();
+            let prior = state
+                .names
+                .insert(name.clone(), SignalBranchNameOccupancy::Reserved(branch_id));
+            debug_assert!(prior.is_none());
+            let prior = state.names_by_branch.insert(branch_id, name);
+            debug_assert!(prior.is_none());
+        }
         state.reservation_count += 1;
         self.counters.record_branch_registry_reservation();
-        Ok(SignalBranchReservation {
-            registry: self,
-            admission,
-            branch_id,
-            prepared_cell_incarnation: None,
-            consumed: false,
-        })
+        Ok(())
     }
 
     pub(crate) fn live_cells_in_identity_order(
@@ -255,132 +297,6 @@ impl From<SignalOwnerAdmissionMismatch> for SignalBranchRegistryDenial {
         match mismatch {
             SignalOwnerAdmissionMismatch::ForeignOwner => Self::ForeignOwner,
             SignalOwnerAdmissionMismatch::ExpiredLifecycle => Self::ExpiredAdmission,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct SignalBranchReservation<'a, S> {
-    registry: &'a SignalBranchRegistry<S>,
-    admission: &'a SignalOwnerOperationAdmission<'a>,
-    branch_id: SignalBranchId,
-    prepared_cell_incarnation: Option<SignalBranchCellIncarnation>,
-    consumed: bool,
-}
-
-impl<'a, S> SignalBranchReservation<'a, S> {
-    pub(crate) fn admission(&self) -> &'a SignalOwnerOperationAdmission<'a> {
-        self.admission
-    }
-
-    pub(crate) fn install(
-        self,
-        state: S,
-    ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
-        self.install_cell(state, false)
-    }
-
-    pub(crate) fn install_fork_destination(
-        self,
-        state: S,
-    ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
-        self.install_cell(state, true)
-    }
-
-    pub(crate) fn prepare_fork_destination_cell(
-        &mut self,
-        state: S,
-    ) -> Result<SignalPreparedBranchCell<S>, SignalBranchRegistryDenial> {
-        self.prepare_cell_state(state, true)
-    }
-
-    pub(crate) fn matches_prepared_fork_destination(
-        &self,
-        prepared: &SignalPreparedBranchCell<S>,
-    ) -> bool {
-        prepared.is_fork_destination
-            && self.prepared_cell_incarnation == Some(prepared.cell.incarnation())
-    }
-
-    pub(crate) fn bind_prepared_fork_destination(
-        self,
-        prepared: SignalPreparedBranchCell<S>,
-    ) -> SignalPreparedBranchInstallation<'a, S> {
-        assert!(
-            self.matches_prepared_fork_destination(&prepared),
-            "prepared fork destination must match its exact reservation"
-        );
-        SignalPreparedBranchInstallation {
-            reservation: self,
-            cell: prepared.cell,
-            is_fork_destination: true,
-        }
-    }
-
-    fn install_cell(
-        self,
-        state: S,
-        is_fork_destination: bool,
-    ) -> Result<Arc<SignalBranchExecutionCell<S>>, SignalBranchRegistryDenial> {
-        self.prepare_cell(state, is_fork_destination)?.install()
-    }
-
-    fn prepare_cell(
-        mut self,
-        state: S,
-        is_fork_destination: bool,
-    ) -> Result<SignalPreparedBranchInstallation<'a, S>, SignalBranchRegistryDenial> {
-        let prepared = self.prepare_cell_state(state, is_fork_destination)?;
-        Ok(SignalPreparedBranchInstallation {
-            reservation: self,
-            cell: prepared.cell,
-            is_fork_destination: prepared.is_fork_destination,
-        })
-    }
-
-    fn prepare_cell_state(
-        &mut self,
-        state: S,
-        is_fork_destination: bool,
-    ) -> Result<SignalPreparedBranchCell<S>, SignalBranchRegistryDenial> {
-        self.registry.validate_admission(self.admission)?;
-        let cell = Arc::new(SignalBranchExecutionCell::new(
-            SignalBranchCellConstruction(()),
-            state,
-            self.registry.owner_runtime_instance_id,
-            self.registry.owner_lifecycle_identity,
-            self.branch_id,
-            Arc::clone(&self.registry.counters),
-        ));
-        if is_fork_destination {
-            self.registry.counters.record_fork_destination_preparation();
-        }
-        self.prepared_cell_incarnation = Some(cell.incarnation());
-        Ok(SignalPreparedBranchCell {
-            cell,
-            is_fork_destination,
-        })
-    }
-}
-
-impl<S> Drop for SignalBranchReservation<'_, S> {
-    fn drop(&mut self) {
-        if !self.consumed {
-            debug_assert!(
-                self.admission.permits_owner_lock_acquisition(),
-                "branch reservation cleanup must run after target-cell release"
-            );
-            let mut state = self.registry.lock_state();
-            if matches!(
-                state.entries.get(&self.branch_id),
-                Some(SignalBranchRegistryEntry::Reserved)
-            ) {
-                state.entries.remove(&self.branch_id);
-                state.reservation_count = state
-                    .reservation_count
-                    .checked_sub(1)
-                    .expect("dropping a Signal branch reservation must release capacity");
-            }
         }
     }
 }

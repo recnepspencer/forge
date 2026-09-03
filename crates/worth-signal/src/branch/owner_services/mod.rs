@@ -17,7 +17,7 @@ mod lifecycle_port;
 mod lifecycle_state;
 mod mutation_port;
 mod operation_control;
-mod owner;
+pub(super) mod owner;
 mod owner_metadata;
 mod service_ports;
 mod unavailable;
@@ -45,7 +45,7 @@ pub(in crate::branch) use lifecycle_state::{
     SignalOwnerAdmissionDenial, SignalOwnerLifecycleIdentity, SignalOwnerLifecycleState,
     SignalOwnerOperationAdmission,
 };
-pub use mutation_port::SignalBranchMutationPort;
+pub use mutation_port::{SignalBranchForkReservation, SignalBranchMutationPort};
 pub(crate) use owner::{SignalOwner, SignalOwnerRoot, DEFAULT_MAXIMUM_LIVE_SIGNAL_BRANCHES};
 
 pub use cancellation::{SignalOwnerCancellationSource, SignalOwnerCancellationToken};

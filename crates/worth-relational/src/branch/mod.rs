@@ -66,7 +66,8 @@ pub use lifecycle::{
     RelationalBranchLifecyclePosture,
 };
 pub use owner_services::{
-    RelationalBranchBasisPort, RelationalBranchLifecyclePort, RelationalOwnerLifecycleObservation,
+    RelationalBranchBasisPort, RelationalBranchLifecyclePort,
+    RelationalBranchTransactionAdmissionPort, RelationalOwnerLifecycleObservation,
     RelationalOwnerServicePorts,
 };
 pub use reference::RelationalBranchCellDenial;

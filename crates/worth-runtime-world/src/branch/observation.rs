@@ -146,6 +146,7 @@ pub enum RuntimeWorldBranchAdmissionDenial {
     OwnerUnavailable,
     ForeignOwner,
     RetiredBranch,
+    DuplicateName,
     CapacityExhausted,
     IdentityExhausted,
 }

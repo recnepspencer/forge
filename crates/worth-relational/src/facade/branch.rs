@@ -13,10 +13,11 @@ pub use crate::branch::{
     RelationalBranchObservationConstructionDenial, RelationalBranchPublicationAuthority,
     RelationalBranchPublicationAuthorityMarker, RelationalBranchReferenceObservation,
     RelationalBranchReferenceState, RelationalBranchRootDescriptor, RelationalBranchTarget,
-    RelationalBranchVersion, RelationalForkDenial, RelationalForkOutcome, RelationalForkPort,
-    RelationalForkSourceAuthority, RelationalForkSourceAuthorityMarker,
-    RelationalForkSourceDescriptor, RelationalOwnerLifecycleObservation,
-    RelationalOwnerServicePorts, RelationalRootCorrectnessIndex, ResolvedRelationalBasisDescriptor,
+    RelationalBranchTransactionAdmissionPort, RelationalBranchVersion, RelationalForkDenial,
+    RelationalForkOutcome, RelationalForkPort, RelationalForkSourceAuthority,
+    RelationalForkSourceAuthorityMarker, RelationalForkSourceDescriptor,
+    RelationalOwnerLifecycleObservation, RelationalOwnerServicePorts,
+    RelationalRootCorrectnessIndex, ResolvedRelationalBasisDescriptor,
     RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
 };
 pub use crate::history::retention::{

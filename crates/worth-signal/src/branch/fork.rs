@@ -23,6 +23,8 @@ pub enum SignalBranchForkOperationDenial {
     ReservationCapacityExhausted {
         maximum_reservations: usize,
     },
+    NameAlreadyReserved,
+    NameAlreadyInstalled,
     UnknownBranch {
         branch_id: SignalBranchId,
     },

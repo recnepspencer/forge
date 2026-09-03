@@ -52,10 +52,10 @@ pub use merge::{SignalBranchMergeDenial, SignalBranchMergeOutcome};
     reason = "Phase 4 port signatures consume the Phase 3 cancellation vocabulary"
 )]
 pub use owner_services::{
-    SignalBranchBasisPort, SignalBranchLifecyclePort, SignalBranchMutationPort,
-    SignalOwnerCancellationSource, SignalOwnerCancellationToken, SignalOwnerLifecycleObservation,
-    SignalOwnerServiceCostSnapshot, SignalOwnerServiceIssuanceDenial, SignalOwnerServicePorts,
-    SignalOwnerUnavailable,
+    SignalBranchBasisPort, SignalBranchForkReservation, SignalBranchLifecyclePort,
+    SignalBranchMutationPort, SignalOwnerCancellationSource, SignalOwnerCancellationToken,
+    SignalOwnerLifecycleObservation, SignalOwnerServiceCostSnapshot,
+    SignalOwnerServiceIssuanceDenial, SignalOwnerServicePorts, SignalOwnerUnavailable,
 };
 #[cfg(feature = "test-operation-control")]
 pub use owner_services::{

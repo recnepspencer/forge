@@ -51,6 +51,12 @@ pub(super) fn map_fork_registry_denial(
         SignalBranchRegistryDenial::RetirementInProgress(_) => {
             SignalBranchForkOperationDenial::RetirementInProgress { branch_id }
         }
+        SignalBranchRegistryDenial::NameAlreadyReserved => {
+            SignalBranchForkOperationDenial::NameAlreadyReserved
+        }
+        SignalBranchRegistryDenial::NameAlreadyInstalled => {
+            SignalBranchForkOperationDenial::NameAlreadyInstalled
+        }
         SignalBranchRegistryDenial::TargetCellDenied(denial) => {
             fork::map_fork_cell_denial(denial, branch_id)
         }

@@ -117,9 +117,10 @@ where
             budgets.in_flight_pin_acquisition_reservations(),
         );
         let branches = ProductBranchRegistry::new(owner_identity, budgets.live_product_branches());
-        let recovery = RecoveryCatalog::new(
+        let recovery = RecoveryCatalog::new_with_metadata(
             owner_identity,
             budgets.retained_product_unpublished_records(),
+            budgets.retained_partial_metadata_bytes(),
         );
         let publication_capacity =
             RuntimeWorldPublicationCapacityLedger::new(budgets.active_publication_attempts());

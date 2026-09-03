@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use super::{
-    map_metadata_hold_denial, SignalBranchExecutionCell, SignalBranchRegistryDenial,
-    SignalBranchRegistryEntry, SignalBranchReservation,
+    map_metadata_hold_denial, mark_name_installed, remove_name_for_branch,
+    SignalBranchExecutionCell, SignalBranchRegistryDenial, SignalBranchRegistryEntry,
+    SignalBranchReservation,
 };
 
 pub(crate) struct SignalPreparedBranchCell<S> {
@@ -45,14 +46,20 @@ impl<'a, S> SignalPreparedBranchInstallation<'a, S> {
             .hold_owner_metadata()
             .map_err(map_metadata_hold_denial)?;
         let mut state = self.reservation.registry.lock_state();
+        assert!(
+            matches!(
+                state.entries.get(&self.reservation.branch_id),
+                Some(SignalBranchRegistryEntry::Reserved)
+            ),
+            "prepared Signal branch reservation must remain vacant"
+        );
+        if let Some(name) = self.reservation.reserved_name.as_deref() {
+            mark_name_installed(&mut state, self.reservation.branch_id, name)?;
+        }
         let entry = state
             .entries
             .get_mut(&self.reservation.branch_id)
             .expect("prepared Signal branch reservation must remain registered");
-        assert!(
-            matches!(entry, SignalBranchRegistryEntry::Reserved),
-            "prepared Signal branch reservation must remain vacant"
-        );
         *entry = SignalBranchRegistryEntry::Live(Arc::clone(&self.cell));
         state.reservation_count = state
             .reservation_count
@@ -99,6 +106,7 @@ impl<S> Drop for SignalInstalledBranchCell<'_, S> {
         );
         if installed_matches {
             state.entries.remove(&self.branch_id);
+            remove_name_for_branch(&mut state, self.branch_id);
             state.live_count = state
                 .live_count
                 .checked_sub(1)

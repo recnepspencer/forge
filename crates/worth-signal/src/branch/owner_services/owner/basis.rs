@@ -333,6 +333,8 @@ fn map_managed_reference_registry_denial(
         SignalBranchRegistryDenial::DuplicateBranch(_)
         | SignalBranchRegistryDenial::LiveCapacityExhausted { .. }
         | SignalBranchRegistryDenial::ReservationCapacityExhausted { .. }
+        | SignalBranchRegistryDenial::NameAlreadyReserved
+        | SignalBranchRegistryDenial::NameAlreadyInstalled
         | SignalBranchRegistryDenial::ExpiredRetirement(_) => {
             ManagedSignalBranchReferenceAdmissionDenial::OwnerInvariantViolation
         }
@@ -367,6 +369,8 @@ pub(in crate::branch::owner_services) fn map_basis_registry_denial(
         SignalBranchRegistryDenial::DuplicateBranch(_)
         | SignalBranchRegistryDenial::LiveCapacityExhausted { .. }
         | SignalBranchRegistryDenial::ReservationCapacityExhausted { .. }
+        | SignalBranchRegistryDenial::NameAlreadyReserved
+        | SignalBranchRegistryDenial::NameAlreadyInstalled
         | SignalBranchRegistryDenial::ExpiredRetirement(_) => {
             SignalBranchBasisObservationDenial::OwnerInvariantViolation { branch_id }
         }

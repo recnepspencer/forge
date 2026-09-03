@@ -7,8 +7,8 @@ use super::super::branch_execution_cell::retirement::SignalBranchRetirementCellO
 use super::super::branch_execution_cell::retirement_planning::SignalBranchRetirementPlanningCellFacts;
 use super::super::{SignalBranchCellState, SignalOwnerCancellationToken};
 use super::{
-    SignalBranchExecutionCell, SignalBranchRegistry, SignalBranchRegistryDenial,
-    SignalBranchRegistryEntry, SignalOwnerOperationAdmission,
+    remove_name_for_branch, SignalBranchExecutionCell, SignalBranchRegistry,
+    SignalBranchRegistryDenial, SignalBranchRegistryEntry, SignalOwnerOperationAdmission,
 };
 
 /// RAII owner of one registry-marked branch retirement.
@@ -45,6 +45,7 @@ impl<S> SignalBranchRetirement<'_, S> {
             ));
         }
         state.entries.remove(&self.branch_id);
+        remove_name_for_branch(&mut state, self.branch_id);
         state.live_count = state
             .live_count
             .checked_sub(1)
@@ -90,6 +91,7 @@ where
             ));
         }
         state.entries.remove(&self.branch_id);
+        remove_name_for_branch(&mut state, self.branch_id);
         state.live_count = state
             .live_count
             .checked_sub(1)
@@ -153,6 +155,7 @@ impl<S> SignalBranchRetirement<'_, S> {
             ));
         }
         state.entries.remove(&self.branch_id);
+        remove_name_for_branch(&mut state, self.branch_id);
         state.live_count = state
             .live_count
             .checked_sub(1)
@@ -176,6 +179,7 @@ impl<S> Drop for SignalBranchRetirement<'_, S> {
                 );
             } else {
                 state.entries.remove(&self.branch_id);
+                remove_name_for_branch(&mut state, self.branch_id);
                 state.live_count = state
                     .live_count
                     .checked_sub(1)

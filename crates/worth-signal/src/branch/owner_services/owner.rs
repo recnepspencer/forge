@@ -15,6 +15,8 @@ mod basis_authority;
 #[cfg(test)]
 mod branch_incarnation_replacement;
 pub(super) mod close_cleanup;
+pub(super) mod fork_denials;
+pub(super) mod fork_destination;
 pub(super) mod fork_reservation;
 mod inspection;
 mod output_retention;
@@ -212,7 +214,7 @@ where
             let branch_id = handle.id;
             let cell = owner
                 .registry
-                .reserve(&admission, branch_id)
+                .reserve_named(&admission, branch_id, handle.name.clone())
                 .and_then(|reservation| {
                     reservation.install(SignalBranchCellState::new(
                         handle,
@@ -271,6 +273,12 @@ where
         let close_coordinator: Arc<dyn SignalOwnerCloseCoordinator + '_> = self.clone();
         self.lifecycle
             .admit_with_close_coordinator(self.runtime_instance_id, close_coordinator)
+    }
+
+    pub(in crate::branch::owner_services) fn registry(
+        &self,
+    ) -> &Arc<SignalBranchRegistry<SignalBranchCellState<D, I, T>>> {
+        &self.registry
     }
 
     pub(super) fn selected_branch_id(&self) -> SignalBranchId {

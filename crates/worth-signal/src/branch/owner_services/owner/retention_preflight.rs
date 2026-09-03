@@ -103,6 +103,8 @@ where
             Err(SignalBranchRegistryDenial::DuplicateBranch(_))
             | Err(SignalBranchRegistryDenial::LiveCapacityExhausted { .. })
             | Err(SignalBranchRegistryDenial::ReservationCapacityExhausted { .. })
+            | Err(SignalBranchRegistryDenial::NameAlreadyReserved)
+            | Err(SignalBranchRegistryDenial::NameAlreadyInstalled)
             | Err(SignalBranchRegistryDenial::ExpiredRetirement(_))
             | Err(SignalBranchRegistryDenial::TargetCellDenied(_)) => {
                 return Err(SignalBranchRetentionAcquisitionDenial::ForeignBasis);

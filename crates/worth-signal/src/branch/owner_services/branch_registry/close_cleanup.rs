@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use super::{SignalBranchExecutionCell, SignalBranchRegistry, SignalBranchRegistryEntry};
+use super::{
+    remove_name_for_branch, SignalBranchExecutionCell, SignalBranchRegistry,
+    SignalBranchRegistryEntry,
+};
 
 pub(in crate::branch::owner_services) struct SignalBranchRegistryCloseBatch<S> {
     _cells: Vec<Arc<SignalBranchExecutionCell<S>>>,
@@ -26,10 +29,11 @@ impl<S> SignalBranchRegistry<S> {
         let mut cells = Vec::with_capacity(maximum_batch_size.min(state.entries.len()));
         let mut cleaned_entries = 0;
         while cleaned_entries < maximum_batch_size {
-            let Some((_branch_id, entry)) = state.entries.pop_first() else {
+            let Some((branch_id, entry)) = state.entries.pop_first() else {
                 break;
             };
             cleaned_entries += 1;
+            remove_name_for_branch(&mut state, branch_id);
             match entry {
                 SignalBranchRegistryEntry::Reserved => {
                     state.reservation_count = state

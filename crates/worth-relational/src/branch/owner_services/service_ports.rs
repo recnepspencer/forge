@@ -1,7 +1,10 @@
 use super::owner_binding::RelationalOwnerServiceBinding;
-use super::{RelationalBranchBasisPort, RelationalBranchLifecyclePort};
+use super::{
+    RelationalBranchBasisPort, RelationalBranchLifecyclePort,
+    RelationalBranchTransactionAdmissionPort,
+};
 
-/// The six concrete independently borrowable services of one Relational owner.
+/// The seven concrete independently borrowable services of one Relational owner.
 #[derive(Debug, Clone)]
 pub struct RelationalOwnerServicePorts {
     preparation: crate::mvcc::RelationalPreparationPort,
@@ -10,6 +13,7 @@ pub struct RelationalOwnerServicePorts {
     settlement: crate::publication::RelationalSettlementPort,
     basis: RelationalBranchBasisPort,
     lifecycle: RelationalBranchLifecyclePort,
+    transaction_admission: RelationalBranchTransactionAdmissionPort,
 }
 
 impl RelationalOwnerServicePorts {
@@ -36,6 +40,10 @@ impl RelationalOwnerServicePorts {
     pub fn lifecycle_port(&self) -> RelationalBranchLifecyclePort {
         self.lifecycle.clone()
     }
+
+    pub fn transaction_admission_port(&self) -> RelationalBranchTransactionAdmissionPort {
+        self.transaction_admission.clone()
+    }
 }
 
 impl crate::runtime::RelationalRuntime {
@@ -48,7 +56,8 @@ impl crate::runtime::RelationalRuntime {
             publication: self.publication_port(),
             settlement: self.settlement_port(),
             basis: RelationalBranchBasisPort::new(owner.clone()),
-            lifecycle: RelationalBranchLifecyclePort::new(owner),
+            lifecycle: RelationalBranchLifecyclePort::new(owner.clone()),
+            transaction_admission: RelationalBranchTransactionAdmissionPort::new(owner),
         }
     }
 }

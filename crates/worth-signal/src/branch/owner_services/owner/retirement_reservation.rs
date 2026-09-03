@@ -284,6 +284,8 @@ pub(in crate::branch::owner_services) fn map_retirement_registry_denial(
         SignalBranchRegistryDenial::DuplicateBranch(_)
         | SignalBranchRegistryDenial::LiveCapacityExhausted { .. }
         | SignalBranchRegistryDenial::ReservationCapacityExhausted { .. }
+        | SignalBranchRegistryDenial::NameAlreadyReserved
+        | SignalBranchRegistryDenial::NameAlreadyInstalled
         | SignalBranchRegistryDenial::ExpiredRetirement(_) => {
             SignalBranchRetirementDenial::OwnerInvariantViolation { branch_id }
         }

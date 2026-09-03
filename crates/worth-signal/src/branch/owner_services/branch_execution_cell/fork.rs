@@ -1,6 +1,8 @@
 use std::sync::atomic::Ordering;
 
-use crate::branch::{AdmittedSignalBranchBasis, SignalBranchForkOperationDenial};
+use crate::branch::{
+    AdmittedSignalBranchBasis, SignalBranchBasisObservationDenial, SignalBranchForkOperationDenial,
+};
 use crate::data::error::SignalError;
 
 use super::super::owner::fork_reservation::{SignalOwnerForkCellBuilder, SignalPreparedOwnerFork};
@@ -25,6 +27,22 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(in crate::branch::owner_services) fn preflight_fork_source_exact(
+        &self,
+        admission: &super::super::SignalOwnerOperationAdmission<'_>,
+        source: &AdmittedSignalBranchBasis,
+    ) -> Result<(), SignalBranchForkOperationDenial> {
+        let live = self
+            .observe_exact(admission)
+            .map_err(map_fork_observation_denial)?;
+        if let Err(mismatch) = live.compare(source.observation()) {
+            return Err(SignalBranchForkOperationDenial::BasisMismatch {
+                axes: mismatch.axes().to_vec(),
+            });
+        }
+        Ok(())
+    }
+
     #[cfg(test)]
     pub(crate) fn fork_source_state_truth_after_fault(&self) -> SignalForkSourceStateTruth {
         let state = self
@@ -110,6 +128,59 @@ where
         state.commit_fork_source_boundary();
         drop(state);
         Ok(builder.bind_prepared_cell(prepared_cell))
+    }
+}
+
+fn map_fork_observation_denial(
+    denial: SignalBranchBasisObservationDenial,
+) -> SignalBranchForkOperationDenial {
+    match denial {
+        SignalBranchBasisObservationDenial::OwnerUnavailable(unavailable) => {
+            SignalBranchForkOperationDenial::OwnerUnavailable(unavailable)
+        }
+        SignalBranchBasisObservationDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        } => SignalBranchForkOperationDenial::OperationCapacityExhausted {
+            maximum_in_flight_operations,
+        },
+        SignalBranchBasisObservationDenial::OwnerReentry => {
+            SignalBranchForkOperationDenial::OwnerReentry
+        }
+        SignalBranchBasisObservationDenial::UnknownBranch { branch_id } => {
+            SignalBranchForkOperationDenial::UnknownBranch { branch_id }
+        }
+        SignalBranchBasisObservationDenial::RetirementInProgress { branch_id } => {
+            SignalBranchForkOperationDenial::RetirementInProgress { branch_id }
+        }
+        SignalBranchBasisObservationDenial::RetiredBranch { branch_id } => {
+            SignalBranchForkOperationDenial::RetiredBranch { branch_id }
+        }
+        SignalBranchBasisObservationDenial::QuarantinedBranch { branch_id } => {
+            SignalBranchForkOperationDenial::QuarantinedBranch { branch_id }
+        }
+        SignalBranchBasisObservationDenial::OwnerCellMisuse { branch_id } => {
+            SignalBranchForkOperationDenial::OwnerCellMisuse { branch_id }
+        }
+        SignalBranchBasisObservationDenial::RetentionUnavailable { denial } => {
+            SignalBranchForkOperationDenial::RetentionUnavailable { denial }
+        }
+        SignalBranchBasisObservationDenial::ManagedReferenceDenied { denial } => {
+            SignalBranchForkOperationDenial::OwnerDeniedNoMovement {
+                error: SignalError::internal(format!(
+                    "Signal fork source observation reference invariant failed: {denial:?}"
+                )),
+            }
+        }
+        SignalBranchBasisObservationDenial::OwnerInvariantViolation { branch_id } => {
+            SignalBranchForkOperationDenial::OwnerDeniedNoMovement {
+                error: SignalError::internal(format!(
+                    "Signal fork source observation invariant failed for branch {branch_id:?}"
+                )),
+            }
+        }
+        SignalBranchBasisObservationDenial::InvalidOwnerObservation { error } => {
+            SignalBranchForkOperationDenial::OwnerDeniedNoMovement { error }
+        }
     }
 }
 

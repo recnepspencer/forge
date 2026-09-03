@@ -17,6 +17,8 @@ use super::RuntimeWorldOwnerConstructionContract;
 mod admission_race;
 #[path = "owner_tests/publication.rs"]
 mod publication;
+#[path = "owner_tests/recovery_metadata_budget.rs"]
+mod recovery_metadata_budget;
 
 #[test]
 fn owner_construction_owns_one_non_resettable_issuer() {

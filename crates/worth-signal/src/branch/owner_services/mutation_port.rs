@@ -14,14 +14,17 @@ use super::{SignalOwner, SignalOwnerCancellationToken, SignalOwnerUnavailable};
 
 #[path = "mutation_port/denials.rs"]
 mod denials;
+#[path = "mutation_port/fork_reservation.rs"]
+mod fork_reservation;
+
+pub use fork_reservation::SignalBranchForkReservation;
 
 #[cfg(test)]
 mod tests;
 
 use denials::{
     map_advance_admission_denial, map_advance_registry_denial, map_capture_admission_denial,
-    map_capture_registry_denial, map_fork_admission_denial, map_fork_registry_denial,
-    map_restore_admission_denial, map_restore_registry_denial,
+    map_capture_registry_denial, map_restore_admission_denial, map_restore_registry_denial,
 };
 
 /// Public concrete weak mutation service issued by a sealed owner root.
@@ -72,27 +75,38 @@ where
         self.diagnostic_owner_runtime_instance_id
     }
 
+    pub(super) fn matches_owner(&self, owner: &Arc<SignalOwner<D, I, T>>) -> bool {
+        std::ptr::eq(self.owner.as_ptr(), Arc::as_ptr(owner))
+    }
+
     pub fn fork_exact(
         &self,
         requested_identity: ValidatedSignalBranchName,
         source: &AdmittedSignalBranchBasis,
         cancellation: &SignalOwnerCancellationToken,
     ) -> Result<SignalBranchForkOutcome, SignalBranchForkOperationDenial> {
-        let owner = self
-            .upgrade_owner()
-            .map_err(SignalBranchForkOperationDenial::OwnerUnavailable)?;
-        let admission = owner.admit().map_err(map_fork_admission_denial)?;
-        let source_branch_id = source.owner_branch_id();
-        let source_cell = owner
-            .lookup_cell(&admission, source_branch_id)
-            .map_err(|denial| map_fork_registry_denial(denial, source_branch_id))?;
-        let output = owner.reserve_fork_output(&admission, &source_cell)?;
-        let ready = output.fork(source, requested_identity, cancellation)?;
-        let (created_branch, created_basis) = ready.into_destination_parts();
-        Ok(SignalBranchForkOutcome::owner_issued(
-            created_branch,
-            created_basis,
-        ))
+        let reservation = fork_reservation::SignalBranchForkReservation::issue_for_immediate_fork(
+            self,
+            requested_identity,
+            source,
+        )?;
+        self.fork_reserved_exact(reservation, cancellation)
+    }
+
+    pub fn reserve_fork_exact(
+        &self,
+        requested_identity: ValidatedSignalBranchName,
+        source: &AdmittedSignalBranchBasis,
+    ) -> Result<SignalBranchForkReservation<D, I, T>, SignalBranchForkOperationDenial> {
+        fork_reservation::SignalBranchForkReservation::issue(self, requested_identity, source)
+    }
+
+    pub fn fork_reserved_exact(
+        &self,
+        reservation: SignalBranchForkReservation<D, I, T>,
+        cancellation: &SignalOwnerCancellationToken,
+    ) -> Result<SignalBranchForkOutcome, SignalBranchForkOperationDenial> {
+        reservation.consume_for(self, cancellation)
     }
 
     pub fn advance_exact<F>(

@@ -8,6 +8,8 @@ use crate::state::SignalBranchId;
 use super::lifecycle_state::SignalOwnerLifecycleIdentity;
 use super::{SignalOwnerOperationAdmission, SignalOwnerUnavailable};
 
+#[path = "owner_metadata/fork_lineage.rs"]
+mod fork_lineage;
 #[path = "owner_metadata/retirement.rs"]
 mod retirement;
 #[cfg(test)]
@@ -20,6 +22,7 @@ mod retirement_planning;
 pub(super) use retention_acquisition::SignalOwnerRetentionAcquisitionDenial;
 #[path = "owner_metadata/snapshot.rs"]
 mod snapshot;
+pub(super) use fork_lineage::SignalOwnerOwnedForkLineageReservation;
 pub(crate) use snapshot::{SignalOwnerSnapshotReservation, SignalOwnerSnapshotStateBinding};
 
 /// Short-lived owner metadata; canonical live branch truth never enters this lock.
@@ -61,29 +64,7 @@ where
         child_branch_id: SignalBranchId,
     ) -> Result<SignalOwnerForkLineageReservation<'a, D, I, T>, SignalBranchForkOperationDenial>
     {
-        admission
-            .authorize(self.runtime_instance_id, self.lifecycle_identity)
-            .map_err(|_| {
-                SignalBranchForkOperationDenial::OwnerUnavailable(SignalOwnerUnavailable)
-            })?;
-        let _hold = admission.hold_owner_metadata().map_err(|denial| match denial {
-            super::lifecycle_state::SignalOwnerMetadataHoldDenial::BranchCellOrMetadataAlreadyHeld => {
-                SignalBranchForkOperationDenial::OwnerCellMisuse {
-                    branch_id: parent_branch_id,
-                }
-            }
-            super::lifecycle_state::SignalOwnerMetadataHoldDenial::ExecutingThreadReentry => {
-                SignalBranchForkOperationDenial::OwnerReentry
-            }
-        })?;
-        let mut state = self.lock();
-        if !state.fork_parent_accepts_child(parent_branch_id) {
-            return Err(SignalBranchForkOperationDenial::RetirementInProgress {
-                branch_id: parent_branch_id,
-            });
-        }
-        state.record_fork_child(parent_branch_id, child_branch_id);
-        drop(state);
+        self.reserve_fork_child_record(admission, parent_branch_id, child_branch_id)?;
         Ok(SignalOwnerForkLineageReservation {
             metadata: self,
             admission,

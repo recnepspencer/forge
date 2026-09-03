@@ -224,12 +224,14 @@ fn map_registry_denial(
         | ProductBranchRegistryDenial::AlreadyRetired
         | ProductBranchRegistryDenial::ReservationMissing
         | ProductBranchRegistryDenial::IdentityMismatch
-        | ProductBranchRegistryDenial::NameAlreadyReserved
-        | ProductBranchRegistryDenial::NameAlreadyInstalled
         | ProductBranchRegistryDenial::BranchAlreadyInstalled
         | ProductBranchRegistryDenial::LifecycleAlreadyInstalled
         | ProductBranchRegistryDenial::UnknownBranch => {
             RuntimeWorldBranchAdmissionDenial::OwnerUnavailable
+        }
+        ProductBranchRegistryDenial::NameAlreadyReserved
+        | ProductBranchRegistryDenial::NameAlreadyInstalled => {
+            RuntimeWorldBranchAdmissionDenial::DuplicateName
         }
     }
 }
@@ -289,3 +291,7 @@ fn map_retirement_denial(
 #[cfg(test)]
 #[path = "../../branch/retirement_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "branch_service_contract_tests.rs"]
+mod contract_tests;

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::branch::{
     AdmittedSignalBranchBasis, AdmittedSignalBranchSnapshot, SignalBranchAdvanceDenial,
     SignalBranchForkOperationDenial, SignalBranchRestoreDenial, SignalBranchSnapshotCaptureDenial,
@@ -268,17 +270,8 @@ where
             self.owner
                 .reserve_fork_destination(self.admission, source, requested_identity)?;
         self.retention.rebind_all(destination.branch().id);
-        let source_custody = self
-            .cell
-            .acquire_fork_source_custody(self.admission)
-            .map_err(|denial| {
-                crate::branch::owner_services::branch_execution_cell::fork::map_fork_cell_denial(
-                    denial,
-                    self.source_branch_id,
-                )
-            })?;
-        let prepared = destination.capture(source_custody, source, cancellation)?;
-        let installed = prepared.install()?;
+        let installed =
+            destination.capture_and_install(Arc::clone(&self.cell), source, cancellation)?;
         Ok(SignalReadyForkOutput {
             reservation: self,
             installed,
