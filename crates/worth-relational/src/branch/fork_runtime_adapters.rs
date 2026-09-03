@@ -34,7 +34,6 @@ impl RelationalRuntime {
                 self.protect_branch_heads(),
                 self.services.instrumentation.clone(),
             ),
-            crate::branch::RelationalBranchBasisPort::from_runtime(self),
         )
     }
 

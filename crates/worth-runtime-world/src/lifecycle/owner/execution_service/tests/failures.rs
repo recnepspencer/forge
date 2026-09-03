@@ -183,6 +183,54 @@ fn missing_signal_sibling_after_relational_movement_retains_exact_progress() {
 }
 
 #[test]
+fn relational_fork_then_signal_owner_loss_retains_exact_fork_custody() {
+    let (fixture, owner, expected) = setup_with_relational_source();
+    let target = "relational-fork-owner-loss";
+    let input = fixture.relational_fork_input(target, None);
+    let plan = plan_with_relational_fork(
+        &owner,
+        &expected,
+        target,
+        ProductBranchComponentPostures::new(
+            ProductBranchComponentPosture::ForkExact,
+            ProductBranchComponentPosture::ReuseExact,
+        ),
+        CompositeComponentIntent::relational_and_signal(RelationalTransactionIntent::ordinary()),
+        input,
+        None,
+    );
+    let retained = match execute_without_signal(&owner, reserve(&owner, plan)) {
+        OwnerExecutionOutcome::ProductUnpublished(retained) => retained,
+        other => panic!("Signal owner loss after the Relational fork must retain it: {other:?}"),
+    };
+    assert_eq!(
+        retained.cause(),
+        ProductUnpublishedCause::SiblingOwnerDenied
+    );
+    assert_eq!(
+        retained.progress().relational_posture(),
+        RelationalAttemptProgressPosture::Performed
+    );
+    assert_eq!(
+        retained.progress().signal_posture(),
+        SignalAttemptProgressPosture::Untouched
+    );
+    assert!(retained.progress().relational().is_fork_only());
+    assert_eq!(retained.owner_effect_count(), 1);
+    assert_eq!(
+        retained
+            .component_results()
+            .relational_fork_target_identity()
+            .expect("retained progress carries the performed fork identity")
+            .branch_id()
+            .0,
+        target
+    );
+    assert_eq!(owner.recovery_record_count(), 1);
+    drop(retained);
+}
+
+#[test]
 fn stale_product_head_is_denied_before_the_first_owner_effect() {
     let (fixture, owner, expected) = setup_with_relational_source();
     let competing_ready = ready_relational_fork_competitor(
