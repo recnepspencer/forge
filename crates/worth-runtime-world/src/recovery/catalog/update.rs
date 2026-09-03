@@ -91,3 +91,27 @@ impl ReservedProductUnpublishedRecordUpdate {
         self.armed = false;
     }
 }
+
+impl ProductUnpublishedRecoveryCatalog {
+    pub(crate) fn drain_records(&self) -> Vec<Arc<ProductUnpublishedOwnerEffectsRecord>> {
+        let mut state = self.locked_state();
+        assert_eq!(
+            state.updating_slots, 0,
+            "catalog shutdown cannot drain while a recovery update owns custody"
+        );
+        assert_eq!(
+            state.reserved_slots, 0,
+            "catalog shutdown cannot drain while a recovery reservation owns custody"
+        );
+        assert_eq!(
+            state.reserved_metadata_bytes, 0,
+            "catalog shutdown cannot drain while metadata reservation custody is live"
+        );
+        assert!(
+            state.updating_identities.is_empty(),
+            "catalog shutdown cannot drain while an update identity is live"
+        );
+        state.metadata_bytes = 0;
+        std::mem::take(&mut state.records).into_values().collect()
+    }
+}

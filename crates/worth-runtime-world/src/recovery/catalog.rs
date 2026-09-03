@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::budget::RuntimeWorldBudgetLimit;
 use crate::identity::{ProductUnpublishedOwnerEffectsIdentity, RuntimeWorldOwnerIdentity};
 
 use super::product_unpublished::{
-    ProductUnpublishedOwnerEffectsRecord, ProductUnpublishedRecoveryHandle,
+    ProductUnpublishedOwnerEffects, ProductUnpublishedOwnerEffectsRecord,
+    ProductUnpublishedRecoveryHandle,
 };
 
 #[path = "catalog/update.rs"]
@@ -39,6 +40,7 @@ struct RecoveryCatalogState {
     maximum_slots: usize,
     maximum_metadata_bytes: usize,
     reserved_slots: usize,
+    reserved_metadata_bytes: usize,
     updating_slots: usize,
     updating_identities: BTreeSet<ProductUnpublishedOwnerEffectsIdentity>,
     metadata_bytes: usize,
@@ -56,6 +58,7 @@ pub(crate) struct ProductUnpublishedRecoveryCatalog {
 #[must_use = "an unpublished recovery slot must be retained or dropped"]
 pub(crate) struct ReservedProductUnpublishedSlot {
     catalog: ProductUnpublishedRecoveryCatalog,
+    reserved_metadata_bytes: usize,
     armed: bool,
 }
 
@@ -73,15 +76,15 @@ impl Drop for ReservedProductUnpublishedSlot {
         if !self.armed {
             return;
         }
-        let mut state = self
-            .catalog
-            .state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
+        let mut state = self.catalog.locked_state();
         state.reserved_slots = state
             .reserved_slots
             .checked_sub(1)
             .expect("a live recovery reservation owns one slot");
+        state.reserved_metadata_bytes = state
+            .reserved_metadata_bytes
+            .checked_sub(self.reserved_metadata_bytes)
+            .expect("a live recovery reservation owns its metadata charge");
         self.armed = false;
     }
 }
@@ -94,25 +97,32 @@ impl ReservedProductUnpublishedSlot {
     pub(crate) fn install_record(
         self,
         identity: ProductUnpublishedOwnerEffectsIdentity,
-        metadata_bytes: usize,
         record: Arc<ProductUnpublishedOwnerEffectsRecord>,
     ) -> Result<(), (Self, RecoveryCatalogDenial)> {
         let catalog = self.catalog.clone();
-        catalog.install_reserved_record(self, identity, metadata_bytes, record)
+        catalog.install_reserved_record(self, identity, record)
     }
 }
 
 impl ProductUnpublishedRecoveryCatalog {
+    fn locked_state(&self) -> MutexGuard<'_, RecoveryCatalogState> {
+        self.state.lock().unwrap_or_else(|error| error.into_inner())
+    }
+
     pub(crate) fn new(
         owner: RuntimeWorldOwnerIdentity,
         maximum_slots: RuntimeWorldBudgetLimit,
     ) -> Self {
+        // R1b remains a shared serial-owner correction: this frozen
+        // constructor cannot receive RuntimeWorldBudgets' metadata limit.
+        // The lane still accounts every installed record with its real charge.
         Self {
             state: Arc::new(Mutex::new(RecoveryCatalogState {
                 owner,
                 maximum_slots: maximum_slots.get(),
                 maximum_metadata_bytes: usize::MAX,
                 reserved_slots: 0,
+                reserved_metadata_bytes: 0,
                 updating_slots: 0,
                 updating_identities: BTreeSet::new(),
                 metadata_bytes: 0,
@@ -132,6 +142,7 @@ impl ProductUnpublishedRecoveryCatalog {
                 maximum_slots: maximum_slots.get(),
                 maximum_metadata_bytes: maximum_metadata_bytes.get(),
                 reserved_slots: 0,
+                reserved_metadata_bytes: 0,
                 updating_slots: 0,
                 updating_identities: BTreeSet::new(),
                 metadata_bytes: 0,
@@ -148,7 +159,7 @@ impl ProductUnpublishedRecoveryCatalog {
         &self,
         owner: RuntimeWorldOwnerIdentity,
     ) -> Result<ReservedProductUnpublishedSlot, RecoveryCatalogDenial> {
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        let mut state = self.locked_state();
         if owner != state.owner {
             return Err(RecoveryCatalogDenial::ForeignOwner {
                 expected: state.owner,
@@ -166,9 +177,26 @@ impl ProductUnpublishedRecoveryCatalog {
                 maximum: state.maximum_slots,
             });
         }
+        let metadata_charge = ProductUnpublishedOwnerEffects::metadata_charge_hint();
+        let Some(metadata_after) = state
+            .metadata_bytes
+            .checked_add(state.reserved_metadata_bytes)
+            .and_then(|bytes| bytes.checked_add(metadata_charge))
+        else {
+            return Err(RecoveryCatalogDenial::CapacityExhausted {
+                maximum: state.maximum_slots,
+            });
+        };
+        if metadata_after > state.maximum_metadata_bytes {
+            return Err(RecoveryCatalogDenial::CapacityExhausted {
+                maximum: state.maximum_slots,
+            });
+        }
         state.reserved_slots += 1;
+        state.reserved_metadata_bytes += metadata_charge;
         Ok(ReservedProductUnpublishedSlot {
             catalog: self.clone(),
+            reserved_metadata_bytes: metadata_charge,
             armed: true,
         })
     }
@@ -177,7 +205,7 @@ impl ProductUnpublishedRecoveryCatalog {
         &self,
         state: &mut RecoveryCatalogState,
         identity: ProductUnpublishedOwnerEffectsIdentity,
-        metadata_bytes: usize,
+        reserved_metadata_bytes: usize,
         record: Arc<ProductUnpublishedOwnerEffectsRecord>,
     ) -> Result<(), RecoveryCatalogDenial> {
         if identity.owner_identity() != state.owner {
@@ -197,12 +225,27 @@ impl ProductUnpublishedRecoveryCatalog {
                 actual: identity.owner_identity(),
             });
         }
+        let metadata_bytes = record.metadata_bytes();
+        let Some(reserved_metadata_after) = state
+            .reserved_metadata_bytes
+            .checked_sub(reserved_metadata_bytes)
+        else {
+            return Err(RecoveryCatalogDenial::CapacityExhausted {
+                maximum: state.maximum_slots,
+            });
+        };
         let Some(metadata_after) = state.metadata_bytes.checked_add(metadata_bytes) else {
             return Err(RecoveryCatalogDenial::CapacityExhausted {
                 maximum: state.maximum_slots,
             });
         };
-        if metadata_after > state.maximum_metadata_bytes {
+        let Some(metadata_with_reservations) = metadata_after.checked_add(reserved_metadata_after)
+        else {
+            return Err(RecoveryCatalogDenial::CapacityExhausted {
+                maximum: state.maximum_slots,
+            });
+        };
+        if metadata_with_reservations > state.maximum_metadata_bytes {
             return Err(RecoveryCatalogDenial::CapacityExhausted {
                 maximum: state.maximum_slots,
             });
@@ -213,6 +256,7 @@ impl ProductUnpublishedRecoveryCatalog {
             });
         }
         state.reserved_slots -= 1;
+        state.reserved_metadata_bytes = reserved_metadata_after;
         state.metadata_bytes = metadata_after;
         assert!(state.records.insert(identity, record).is_none());
         Ok(())
@@ -222,10 +266,9 @@ impl ProductUnpublishedRecoveryCatalog {
         &self,
         slot: ReservedProductUnpublishedSlot,
         identity: ProductUnpublishedOwnerEffectsIdentity,
-        metadata_bytes: usize,
         record: Arc<ProductUnpublishedOwnerEffectsRecord>,
     ) -> Result<(), (ReservedProductUnpublishedSlot, RecoveryCatalogDenial)> {
-        match self.install_record_from_slot(slot, identity, metadata_bytes, record) {
+        match self.install_record_from_slot(slot, identity, record) {
             Ok(()) => Ok(()),
             Err((slot, denial)) => Err((slot, denial)),
         }
@@ -235,12 +278,11 @@ impl ProductUnpublishedRecoveryCatalog {
         &self,
         mut slot: ReservedProductUnpublishedSlot,
         identity: ProductUnpublishedOwnerEffectsIdentity,
-        metadata_bytes: usize,
         record: Arc<ProductUnpublishedOwnerEffectsRecord>,
     ) -> Result<(), (ReservedProductUnpublishedSlot, RecoveryCatalogDenial)> {
         let result = {
-            let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-            self.install_record_locked(&mut state, identity, metadata_bytes, record)
+            let mut state = self.locked_state();
+            self.install_record_locked(&mut state, identity, slot.reserved_metadata_bytes, record)
         };
         match result {
             Ok(()) => {
@@ -258,7 +300,7 @@ impl ProductUnpublishedRecoveryCatalog {
         if handle.catalog_affinity() != self.affinity() {
             return None;
         }
-        let state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        let state = self.locked_state();
         state.records.get(handle.identity()).cloned()
     }
 
@@ -269,7 +311,7 @@ impl ProductUnpublishedRecoveryCatalog {
         if handle.catalog_affinity() != self.affinity() {
             return None;
         }
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        let mut state = self.locked_state();
         let record = state.records.remove(handle.identity())?;
         state.updating_slots = state
             .updating_slots
@@ -294,7 +336,7 @@ impl ProductUnpublishedRecoveryCatalog {
         if handle.catalog_affinity() != self.affinity() {
             return Ok(None);
         }
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        let mut state = self.locked_state();
         let Some(record) = state.records.get(handle.identity()) else {
             return Ok(None);
         };
@@ -315,12 +357,8 @@ impl ProductUnpublishedRecoveryCatalog {
         Ok(Some(record))
     }
 
-    pub(crate) fn contains_handle(&self, handle: &ProductUnpublishedRecoveryHandle) -> bool {
-        self.lookup_record(handle).is_some()
-    }
-
     pub(crate) fn identities(&self) -> Vec<ProductUnpublishedOwnerEffectsIdentity> {
-        let state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        let state = self.locked_state();
         state
             .records
             .keys()
@@ -330,47 +368,30 @@ impl ProductUnpublishedRecoveryCatalog {
     }
 
     pub(crate) fn installed_slots(&self) -> usize {
-        let state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        let state = self.locked_state();
         state.records.len().saturating_add(state.updating_slots)
     }
 
     pub(crate) fn metadata_bytes(&self) -> usize {
-        self.state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner())
-            .metadata_bytes
-    }
-
-    pub(crate) fn drain_records(&self) -> Vec<Arc<ProductUnpublishedOwnerEffectsRecord>> {
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        assert_eq!(
-            state.updating_slots, 0,
-            "catalog shutdown cannot drain while a recovery update owns custody"
-        );
-        assert_eq!(
-            state.reserved_slots, 0,
-            "catalog shutdown cannot drain while a recovery reservation owns custody"
-        );
-        assert!(
-            state.updating_identities.is_empty(),
-            "catalog shutdown cannot drain while an update identity is live"
-        );
-        state.metadata_bytes = 0;
-        std::mem::take(&mut state.records).into_values().collect()
+        self.locked_state().metadata_bytes
     }
 
     pub(crate) fn reserved_slots(&self) -> usize {
-        self.state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner())
-            .reserved_slots
+        self.locked_state().reserved_slots
     }
 
     pub(crate) fn maximum_slots(&self) -> usize {
-        self.state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner())
-            .maximum_slots
+        self.locked_state().maximum_slots
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_metadata_ceiling_for_test(&self, maximum_metadata_bytes: usize) {
+        let mut state = self.locked_state();
+        assert!(
+            state.metadata_bytes <= maximum_metadata_bytes,
+            "test metadata ceiling cannot invalidate installed custody"
+        );
+        state.maximum_metadata_bytes = maximum_metadata_bytes;
     }
 }
 

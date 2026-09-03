@@ -129,7 +129,7 @@ impl OwnerExecutionSettlement {
                 let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
                     &progress,
                     RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
-                    0,
+                    ProductUnpublishedOwnerEffects::metadata_charge_hint(),
                 );
                 return Err(ProductUnpublishedOwnerEffects::new_retention_pending(
                     product_unpublished_identity,
@@ -218,7 +218,7 @@ impl OwnerExecutionSettlement {
         let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
             &progress,
             RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
-            0,
+            ProductUnpublishedOwnerEffects::metadata_charge_hint(),
         );
         operation
             .begin_recovery()

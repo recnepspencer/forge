@@ -138,6 +138,14 @@ impl std::fmt::Debug for ProductUnpublishedOwnerEffects {
 }
 
 impl ProductUnpublishedOwnerEffects {
+    /// Deterministic reservation estimate for the shallow record footprint and
+    /// its bounded action-list allocation. Installation recomputes the same
+    /// charge from the actual record representation before catalog admission.
+    pub(crate) const fn metadata_charge_hint() -> usize {
+        std::mem::size_of::<ProductUnpublishedOwnerEffectsRecord>()
+            + RETAINED_NEXT_ACTION_CAPACITY * std::mem::size_of::<ProductUnpublishedNextAction>()
+    }
+
     pub(crate) fn from_catalog_record(record: Arc<ProductUnpublishedOwnerEffectsRecord>) -> Self {
         Self { record }
     }
@@ -161,7 +169,7 @@ impl ProductUnpublishedOwnerEffects {
         age_ticks: u64,
     ) -> Self {
         let catalog_affinity = recovery_slot.catalog_affinity();
-        let record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
+        let mut record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
             identity: identity.clone(),
             attempt_identity,
             expected_head,
@@ -178,14 +186,10 @@ impl ProductUnpublishedOwnerEffects {
             deadline,
             age_ticks,
             owner_effect_count: summary.owner_effect_count,
-            metadata_bytes: summary.metadata_bytes,
+            metadata_bytes: Self::metadata_charge_hint(),
         });
-        install_record(
-            recovery_slot,
-            identity,
-            summary.metadata_bytes,
-            Arc::clone(&record),
-        );
+        finalize_metadata_charge(&mut record);
+        install_record(recovery_slot, identity, Arc::clone(&record));
         Self { record }
     }
 
@@ -238,7 +242,7 @@ impl ProductUnpublishedOwnerEffects {
         deadline: Option<RuntimeWorldInstant>,
     ) -> Self {
         let catalog_affinity = recovery_slot.catalog_affinity();
-        let record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
+        let mut record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
             identity: identity.clone(),
             attempt_identity,
             expected_head,
@@ -259,14 +263,10 @@ impl ProductUnpublishedOwnerEffects {
             deadline,
             age_ticks: 0,
             owner_effect_count: summary.owner_effect_count,
-            metadata_bytes: summary.metadata_bytes,
+            metadata_bytes: Self::metadata_charge_hint(),
         });
-        install_record(
-            recovery_slot,
-            identity,
-            summary.metadata_bytes,
-            Arc::clone(&record),
-        );
+        finalize_metadata_charge(&mut record);
+        install_record(recovery_slot, identity, Arc::clone(&record));
         Self { record }
     }
 
@@ -364,13 +364,19 @@ impl ProductUnpublishedOwnerEffects {
     }
 }
 
+const RETAINED_NEXT_ACTION_CAPACITY: usize = 3;
+
+fn finalize_metadata_charge(record: &mut Arc<ProductUnpublishedOwnerEffectsRecord>) {
+    let record = Arc::get_mut(record).expect("new recovery record is uniquely owned");
+    record.metadata_bytes = record.derived_metadata_bytes();
+}
+
 fn install_record(
     recovery_slot: ReservedProductUnpublishedSlot,
     identity: ProductUnpublishedOwnerEffectsIdentity,
-    metadata_bytes: usize,
     record: Arc<ProductUnpublishedOwnerEffectsRecord>,
 ) {
-    if let Err((slot, denial)) = recovery_slot.install_record(identity, metadata_bytes, record) {
+    if let Err((slot, denial)) = recovery_slot.install_record(identity, record) {
         drop(slot);
         panic!("reserved recovery capacity could not install its record: {denial:?}");
     }

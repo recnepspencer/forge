@@ -9,6 +9,17 @@ impl ProductUnpublishedOwnerEffectsRecord {
         self.metadata_bytes
     }
 
+    pub(crate) fn derived_metadata_bytes(&self) -> usize {
+        // The record's inline representation plus the action vector's actual
+        // allocation is the catalog's deterministic metadata charge. Owner
+        // pins, history custody, and owner results retain their own proof.
+        std::mem::size_of_val(self).saturating_add(
+            self.next_actions
+                .capacity()
+                .saturating_mul(std::mem::size_of::<ProductUnpublishedNextAction>()),
+        )
+    }
+
     pub(crate) const fn catalog_affinity(&self) -> usize {
         self.catalog_affinity
     }

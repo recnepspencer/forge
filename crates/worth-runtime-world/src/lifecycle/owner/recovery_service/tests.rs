@@ -1,3 +1,6 @@
+//! Settlement and recovery-catalog custody tests only. These tests manually
+//! supply owner-issued effects to prove custody, not production dispatch.
+
 use std::sync::Arc;
 
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
@@ -15,7 +18,7 @@ use crate::budget::{
 };
 use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
-    RuntimeWorldOwnerInputs, RuntimeWorldPreparationService,
+    RuntimeWorldPreparationService,
 };
 use crate::publication::{
     CompositeAttemptProgress, CompositeComponentIntent, ProductBranchIntent,
@@ -63,16 +66,19 @@ fn budgets(maximum_recovery_records: u64) -> RuntimeWorldBudgets {
     .expect("recovery tests install positive owner budgets")
 }
 
-fn setup() -> (
+fn setup_with_recovery_limit(
+    maximum_recovery_records: u64,
+) -> (
     RealReferenceFixture,
     Arc<TestOwner>,
     ProductBranchObservation,
 ) {
     let mut fixture = reference_test_fixture::real_fixture(8, 8);
     let owner = Arc::new(
-        TestOwner::new(
-            fixture.owner_inputs(budgets(1), RuntimeWorldClock::from_source(FixedClock)),
-        )
+        TestOwner::new(fixture.owner_inputs(
+            budgets(maximum_recovery_records),
+            RuntimeWorldClock::from_source(FixedClock),
+        ))
         .expect("managed owner construction"),
     );
     let performed = match owner.bootstrap_root(fixture.bootstrap_intent()) {
@@ -82,6 +88,14 @@ fn setup() -> (
         }
     };
     (fixture, owner, performed.product_branch().clone())
+}
+
+fn setup() -> (
+    RealReferenceFixture,
+    Arc<TestOwner>,
+    ProductBranchObservation,
+) {
+    setup_with_recovery_limit(1)
 }
 
 fn relational_plan(
@@ -127,7 +141,7 @@ fn successor_basis(
 }
 
 #[test]
-fn caller_loss_does_not_erase_a_catalogued_relational_record_or_capacity_fence() {
+fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
     let (fixture, owner, expected) = setup();
     let plan = relational_plan(&owner, expected.clone());
     let cancellation = RuntimeWorldCancellationSource::new();
@@ -175,8 +189,8 @@ fn caller_loss_does_not_erase_a_catalogued_relational_record_or_capacity_fence()
 
 #[cfg(feature = "test-operation-control")]
 #[test]
-fn explicit_cleanup_releases_a_signal_only_record_after_caller_loss() {
-    let (mut fixture, owner, expected) = setup();
+fn metadata_ceiling_rejects_second_charge_and_cleanup_releases_the_first() {
+    let (mut fixture, owner, expected) = setup_with_recovery_limit(2);
     let plan = RuntimeWorldPreparationService::prepare(
         owner.as_ref(),
         expected.clone(),
@@ -213,11 +227,32 @@ fn explicit_cleanup_releases_a_signal_only_record_after_caller_loss() {
         .settle(progress)
         .ready(successor_basis)
         .expect_err("post-effect retention denial enters catalogued recovery");
+    let first_charge = retained.metadata_bytes();
+    assert!(first_charge > 0);
+    owner
+        .state
+        .recovery
+        .set_metadata_ceiling_for_test(first_charge);
     let handle = retained.recovery_handle();
     drop(retained);
     assert_eq!(owner.recovery_record_count(), 1);
+    assert_eq!(owner.state.recovery.metadata_bytes(), first_charge);
+    assert!(matches!(
+        owner
+            .state
+            .recovery
+            .reserve_product_unpublished(owner.owner_identity()),
+        Err(crate::recovery::RecoveryCatalogDenial::CapacityExhausted { .. })
+    ));
     assert!(owner.cleanup_recovery_handle(&handle));
     assert_eq!(owner.recovery_record_count(), 0);
+    assert_eq!(owner.state.recovery.metadata_bytes(), 0);
+    let released_slot = owner
+        .state
+        .recovery
+        .reserve_product_unpublished(owner.owner_identity())
+        .expect("eligible cleanup releases the exact metadata charge");
+    drop(released_slot);
     assert_eq!(owner.state.retention.reserved_unique_pin_capacity(), 0);
     assert_eq!(
         owner

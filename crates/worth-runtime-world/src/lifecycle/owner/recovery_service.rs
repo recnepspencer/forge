@@ -6,7 +6,7 @@ use super::RuntimeWorldOwnerRoot;
 
 #[cfg(test)]
 #[path = "recovery_service/tests.rs"]
-mod tests;
+mod settlement_catalog_tests;
 
 impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
 where
@@ -75,7 +75,7 @@ where
             return Err(super::super::ports::RuntimeWorldOwnerUnavailable::new());
         }
         let handle = effects.recovery_handle();
-        if !self.state.recovery.contains_handle(&handle) {
+        if self.state.recovery.lookup_record(&handle).is_none() {
             return Err(super::super::ports::RuntimeWorldOwnerUnavailable::new());
         }
         Ok(RecoveryContinuationContract::new(
