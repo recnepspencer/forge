@@ -3,11 +3,121 @@ use crate::recovery::{
     ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle, RecoveryContinuationContract,
 };
 
+#[cfg(test)]
+use std::sync::mpsc::SyncSender;
+#[cfg(test)]
+use std::sync::{Arc, Condvar, Mutex, OnceLock};
+#[cfg(test)]
+use std::time::{Duration, Instant};
+
 use super::RuntimeWorldOwnerRoot;
 
 #[cfg(test)]
 #[path = "recovery_service/tests.rs"]
 mod settlement_catalog_tests;
+
+#[cfg(test)]
+#[path = "recovery_service/concurrency_tests.rs"]
+mod concurrency_tests;
+
+#[cfg(test)]
+const RECOVERY_UPDATE_PAUSE_TIMEOUT: Duration = Duration::from_secs(5);
+
+#[cfg(test)]
+#[derive(Debug)]
+pub(super) struct RecoveryUpdatePause {
+    reached: SyncSender<()>,
+    release: Arc<(Mutex<bool>, Condvar)>,
+}
+
+#[cfg(test)]
+pub(super) struct RecoveryUpdatePauseGuard {
+    pause: Arc<RecoveryUpdatePause>,
+}
+
+#[cfg(test)]
+static RECOVERY_UPDATE_PAUSE: OnceLock<Mutex<Option<Arc<RecoveryUpdatePause>>>> = OnceLock::new();
+
+#[cfg(test)]
+fn recovery_update_pause_slot() -> &'static Mutex<Option<Arc<RecoveryUpdatePause>>> {
+    RECOVERY_UPDATE_PAUSE.get_or_init(|| Mutex::new(None))
+}
+
+#[cfg(test)]
+pub(super) fn install_test_recovery_update_pause(
+    reached: SyncSender<()>,
+) -> RecoveryUpdatePauseGuard {
+    let pause = Arc::new(RecoveryUpdatePause {
+        reached,
+        release: Arc::new((Mutex::new(false), Condvar::new())),
+    });
+    let mut installed = recovery_update_pause_slot()
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    assert!(
+        installed.replace(Arc::clone(&pause)).is_none(),
+        "only one recovery update pause may be installed"
+    );
+    RecoveryUpdatePauseGuard { pause }
+}
+
+#[cfg(test)]
+impl RecoveryUpdatePause {
+    fn wait_for_release(&self) {
+        if self.reached.send(()).is_err() {
+            return;
+        }
+        let deadline = Instant::now() + RECOVERY_UPDATE_PAUSE_TIMEOUT;
+        let (opened, signal) = &*self.release;
+        let mut opened = opened.lock().unwrap_or_else(|error| error.into_inner());
+        while !*opened {
+            let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+                return;
+            };
+            let (next, result) = signal
+                .wait_timeout(opened, remaining)
+                .unwrap_or_else(|error| error.into_inner());
+            opened = next;
+            if result.timed_out() {
+                return;
+            }
+        }
+    }
+
+    fn release(&self) {
+        let (opened, signal) = &*self.release;
+        let mut opened = opened.lock().unwrap_or_else(|error| error.into_inner());
+        *opened = true;
+        signal.notify_all();
+    }
+}
+
+#[cfg(test)]
+impl Drop for RecoveryUpdatePauseGuard {
+    fn drop(&mut self) {
+        self.pause.release();
+        let mut installed = recovery_update_pause_slot()
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        if installed
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, &self.pause))
+        {
+            *installed = None;
+        }
+    }
+}
+
+#[cfg(test)]
+fn pause_test_recovery_update() {
+    let pause = recovery_update_pause_slot()
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .clone();
+    if let Some(pause) = pause {
+        pause.wait_for_release();
+    }
+}
 
 impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
 where
@@ -91,6 +201,8 @@ where
             .recovery
             .take_record_for_update(&handle)
             .ok_or_else(super::super::ports::RuntimeWorldOwnerUnavailable::new)?;
+        #[cfg(test)]
+        pause_test_recovery_update();
         let record = update
             .record_mut()
             .ok_or_else(super::super::ports::RuntimeWorldOwnerUnavailable::new)?;

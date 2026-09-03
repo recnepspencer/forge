@@ -26,7 +26,7 @@ use crate::publication::{
 };
 use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 
-type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
+pub(super) type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
 struct FixedClock;
 
@@ -91,7 +91,7 @@ fn setup_with_recovery_limit(
     (fixture, owner, performed.product_branch().clone())
 }
 
-fn setup() -> (
+pub(super) fn setup() -> (
     RealReferenceFixture,
     Arc<TestOwner>,
     ProductBranchObservation,
@@ -99,7 +99,7 @@ fn setup() -> (
     setup_with_recovery_limit(1)
 }
 
-fn relational_plan(
+pub(super) fn relational_plan(
     fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
@@ -123,7 +123,7 @@ fn relational_plan(
     .expect("the owner prepares the exact relational recovery test head")
 }
 
-fn successor_basis(
+pub(super) fn successor_basis(
     owner: &TestOwner,
     expected: &ProductBranchObservation,
     relational: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
