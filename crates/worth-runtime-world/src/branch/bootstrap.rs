@@ -123,3 +123,7 @@ pub enum RuntimeWorldBootstrapOutcome {
     Performed(PerformedRuntimeWorldBootstrap),
     NoEffect(NoEffectRuntimeWorldBootstrap),
 }
+
+#[cfg(test)]
+#[path = "bootstrap_tests.rs"]
+mod tests;

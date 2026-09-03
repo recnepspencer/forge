@@ -7,6 +7,16 @@ pub enum ProductBranchComponentPosture {
     ForkAndAdvance,
 }
 
+impl ProductBranchComponentPosture {
+    pub const fn is_reuse_exact(self) -> bool {
+        matches!(self, Self::ReuseExact)
+    }
+
+    pub const fn requires_owner_effect(self) -> bool {
+        !self.is_reuse_exact()
+    }
+}
+
 /// The branch-creation posture is a complete two-component value. A branch
 /// operation cannot be lowered until both owner postures are present.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,6 +39,14 @@ impl ProductBranchComponentPostures {
 
     pub const fn signal(self) -> ProductBranchComponentPosture {
         self.signal
+    }
+
+    pub const fn is_exact_reuse(self) -> bool {
+        self.relational.is_reuse_exact() && self.signal.is_reuse_exact()
+    }
+
+    pub const fn requires_owner_effect(self) -> bool {
+        self.relational.requires_owner_effect() || self.signal.requires_owner_effect()
     }
 }
 
@@ -83,3 +101,7 @@ impl ProductBranchCreationIntent {
         &self.name
     }
 }
+
+#[cfg(test)]
+#[path = "creation_tests.rs"]
+mod tests;
