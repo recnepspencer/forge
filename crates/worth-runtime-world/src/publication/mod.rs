@@ -26,6 +26,7 @@ pub use no_effect::{NoEffectCause, NoEffectCompositePublication};
 pub(crate) use outcome::OwnerExecutionOutcome;
 pub use outcome::RuntimeWorldPublicationOutcome;
 pub use owner_execution::OwnerExecutionSettlement;
+pub(crate) use owner_execution::{recovery_actions, RETENTION_PENDING_LIVE_OBLIGATION_COUNT};
 pub use owner_results::{
     CompositeOwnerExecutionResults, CompositeRelationalOwnerResult, CompositeSignalOwnerResult,
 };

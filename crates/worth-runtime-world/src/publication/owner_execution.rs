@@ -13,7 +13,7 @@ use super::{
     CompositeAttemptProgress, CompositeOwnerExecutionResults, ReservedCompositePublicationAttempt,
 };
 
-const RETENTION_PENDING_LIVE_OBLIGATION_COUNT: usize = 3;
+pub(crate) const RETENTION_PENDING_LIVE_OBLIGATION_COUNT: usize = 3;
 
 /// Owner effects have been settled into exact progress, but product
 /// publication has not yet crossed its final compare-and-publish point.
@@ -336,7 +336,9 @@ impl OwnerExecutionSettlement {
     }
 }
 
-fn recovery_actions(progress: &CompositeAttemptProgress) -> Vec<ProductUnpublishedNextAction> {
+pub(crate) fn recovery_actions(
+    progress: &CompositeAttemptProgress,
+) -> Vec<ProductUnpublishedNextAction> {
     let mut actions = Vec::with_capacity(3);
     if progress.relational_requires_settlement()
         && progress.signal_posture() == super::SignalAttemptProgressPosture::Untouched

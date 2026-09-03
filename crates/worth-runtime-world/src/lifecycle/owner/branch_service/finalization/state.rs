@@ -249,6 +249,9 @@ impl PublicationBoundForkedBranch {
 }
 
 impl PendingForkedBranch {
+    /// The recovering operation reservation is released only after the record
+    /// exists. Dropping it earlier would clear the close-admission ledger while
+    /// no installed recovery slot yet denies `close()`.
     pub(super) fn into_product_unpublished(self) -> RuntimeWorldBranchCreationOutcome {
         let Self {
             recovery,
@@ -264,7 +267,6 @@ impl PendingForkedBranch {
         operation
             .begin_recovery()
             .expect("a retained branch attempt enters recovery");
-        drop(operation);
         RuntimeWorldBranchCreationOutcome::ProductUnpublished(
             super::recovery::product_unpublished_pending(
                 recovery,
@@ -303,11 +305,16 @@ impl HistoryInstalledForkedBranch {
         I: Copy + Ord + Send + Sync + 'static,
         T: Copy + Ord + Send + Sync + 'static,
     {
-        let (observation_components, observation_history) =
-            match super::issue_observation_authority(owner, &self.history, &self.commit) {
-                Ok(authority) => authority,
-                Err(()) => return Err(self.into_retained()),
-            };
+        let authority = super::issue_observation_authority(owner, &self.history, &self.commit);
+        #[cfg(test)]
+        let authority = super::test_control::withhold_observation_authority_under_rehearsal(
+            &self.recovery.identity,
+            authority,
+        );
+        let (observation_components, observation_history) = match authority {
+            Ok(authority) => authority,
+            Err(()) => return Err(self.into_retained()),
+        };
         let snapshot = ProductBranchReferenceSnapshot::owner_issued(
             owner.owner_identity(),
             self.destination.branch.clone(),
@@ -334,6 +341,9 @@ impl HistoryInstalledForkedBranch {
         })
     }
 
+    /// The recovering operation reservation is released only after the record
+    /// exists. Dropping it earlier would clear the close-admission ledger while
+    /// no installed recovery slot yet denies `close()`.
     fn into_retained(self) -> crate::recovery::ProductUnpublishedOwnerEffects {
         let Self {
             recovery,
@@ -345,7 +355,6 @@ impl HistoryInstalledForkedBranch {
         operation
             .begin_recovery()
             .expect("a retained branch attempt enters recovery");
-        drop(operation);
         super::recovery::retain_forked_effects(recovery, publication, product_history)
     }
 }

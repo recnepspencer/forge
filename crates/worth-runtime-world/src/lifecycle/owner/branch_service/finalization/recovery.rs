@@ -3,9 +3,9 @@ use super::ForkedBranchRecoveryContext;
 use crate::history::{
     ProductHeadHistoryProtectionObligation, ProductUnpublishedHistoryProtectionObligation,
 };
+use crate::publication::{recovery_actions, RETENTION_PENDING_LIVE_OBLIGATION_COUNT};
 use crate::recovery::{
-    ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
-    ProductUnpublishedOwnerEffects,
+    ProductUnpublishedCause, ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects,
 };
 use crate::retention::{
     PublicationRetentionObligation, ReservedComponentPinPairCapacity,
@@ -23,7 +23,7 @@ pub(super) fn retain_forked_effects(
     let (product_head, _) = transfer.into_parts();
     let retained = product_head.transition_to_retained_partial();
     let successor_history = product_history.transition_to_product_unpublished();
-    let summary = ProductUnpublishedOwnerEffectSummary::from_progress(&context.progress, 3, 0);
+    let summary = retained_summary(&context);
     retained_effects(context, retained, successor_history, summary)
 }
 
@@ -34,7 +34,7 @@ pub(super) fn retain_from_protection(
     let (_snapshot, product_head, product_history, _receipt) = protection.into_parts();
     let retained = product_head.transition_to_retained_partial();
     let successor_history = product_history.transition_to_product_unpublished();
-    let summary = ProductUnpublishedOwnerEffectSummary::from_progress(&context.progress, 3, 0);
+    let summary = retained_summary(&context);
     retained_effects(context, retained, successor_history, summary)
 }
 
@@ -54,6 +54,9 @@ fn retained_effects(
         recovery_slot,
         deadline,
     } = context;
+    let next_actions = recovery_actions(&progress);
+    #[cfg(test)]
+    super::test_control::pause_before_forked_recovery_record(&identity);
     ProductUnpublishedOwnerEffects::new_retained(
         identity,
         attempt_identity,
@@ -67,10 +70,7 @@ fn retained_effects(
         recovery_slot,
         summary,
         ProductUnpublishedCause::OwnerLost,
-        vec![
-            ProductUnpublishedNextAction::ReleaseObligations,
-            ProductUnpublishedNextAction::Inspect,
-        ],
+        next_actions,
         deadline,
         0,
     )
@@ -83,11 +83,7 @@ pub(super) fn product_unpublished_pending(
     product_history: ProductHeadHistoryProtectionObligation,
 ) -> ProductUnpublishedOwnerEffects {
     let successor_history = product_history.transition_to_product_unpublished();
-    let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
-        &context.progress,
-        3,
-        ProductUnpublishedOwnerEffects::metadata_charge_hint(),
-    );
+    let summary = retained_summary(&context);
     let ForkedBranchRecoveryContext {
         identity,
         attempt_identity,
@@ -98,6 +94,8 @@ pub(super) fn product_unpublished_pending(
         recovery_slot,
         deadline,
     } = context;
+    #[cfg(test)]
+    super::test_control::pause_before_forked_recovery_record(&identity);
     ProductUnpublishedOwnerEffects::new_reacquisition_pending(
         identity,
         attempt_identity,
@@ -113,5 +111,16 @@ pub(super) fn product_unpublished_pending(
         summary,
         ProductUnpublishedCause::OwnerLost,
         deadline,
+    )
+}
+
+/// Every product-unpublished forked-branch record charges the same retained
+/// live-obligation set and the same record-shaped metadata as the publication
+/// retention route; the counts are named there, never restated as literals.
+fn retained_summary(context: &ForkedBranchRecoveryContext) -> ProductUnpublishedOwnerEffectSummary {
+    ProductUnpublishedOwnerEffectSummary::from_progress(
+        &context.progress,
+        RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
+        ProductUnpublishedOwnerEffects::metadata_charge_hint(),
     )
 }

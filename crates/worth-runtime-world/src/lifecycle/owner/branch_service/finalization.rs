@@ -4,6 +4,9 @@ mod install;
 mod recovery;
 #[path = "finalization/state.rs"]
 mod state;
+#[cfg(test)]
+#[path = "finalization/test_control.rs"]
+mod test_control;
 
 use std::sync::Arc;
 

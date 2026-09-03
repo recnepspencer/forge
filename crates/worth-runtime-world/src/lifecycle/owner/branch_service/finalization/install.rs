@@ -6,6 +6,9 @@ use crate::lifecycle::RuntimeWorldBranchCreationOutcome;
 use super::state::{HistoryInstalledForkedBranch, ObservedForkedBranch};
 
 impl ObservedForkedBranch {
+    /// Both denial arms keep the recovering operation reservation alive until
+    /// the retained record exists; only the performed arm may release it before
+    /// returning, because no recovery custody follows it.
     pub(super) fn install(
         self,
     ) -> Result<RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchAdmissionDenial> {
@@ -35,7 +38,6 @@ impl ObservedForkedBranch {
                     operation
                         .begin_recovery()
                         .expect("a retained branch attempt enters recovery");
-                    drop(operation);
                     return Ok(RuntimeWorldBranchCreationOutcome::ProductUnpublished(
                         super::recovery::retain_from_protection(recovery, protection),
                     ));
@@ -49,7 +51,6 @@ impl ObservedForkedBranch {
                 operation
                     .begin_recovery()
                     .expect("a retained branch attempt enters recovery");
-                drop(operation);
                 return Ok(RuntimeWorldBranchCreationOutcome::ProductUnpublished(
                     super::recovery::retain_from_protection(recovery, protection),
                 ));

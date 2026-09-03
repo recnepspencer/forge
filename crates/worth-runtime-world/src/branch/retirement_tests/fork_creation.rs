@@ -60,7 +60,7 @@ fn fork_budgets(live_branches: u64) -> RuntimeWorldBudgets {
     .expect("fork creation budgets")
 }
 
-fn setup_with_relational_source(
+pub(super) fn setup_with_relational_source(
     live_branches: u64,
 ) -> (
     crate::branch::reference_test_fixture::RealReferenceFixture,
@@ -166,15 +166,15 @@ fn current_root_observation(owner: &TestOwner) -> ProductBranchObservation {
     .expect("the seeded root remains observable")
 }
 
-struct ForkIntentSpec<'a> {
-    name: &'a str,
-    relational_posture: ProductBranchComponentPosture,
-    signal_posture: ProductBranchComponentPosture,
-    relational_input: RelationalForkPlanInput,
-    signal_name: &'a str,
+pub(super) struct ForkIntentSpec<'a> {
+    pub(super) name: &'a str,
+    pub(super) relational_posture: ProductBranchComponentPosture,
+    pub(super) signal_posture: ProductBranchComponentPosture,
+    pub(super) relational_input: RelationalForkPlanInput,
+    pub(super) signal_name: &'a str,
 }
 
-fn fork_intent(spec: ForkIntentSpec<'_>) -> ProductBranchIntent {
+pub(super) fn fork_intent(spec: ForkIntentSpec<'_>) -> ProductBranchIntent {
     ProductBranchIntent::new(
         ProductBranchCreationIntent::named(spec.name).expect("valid product branch name"),
         ProductBranchComponentPostures::new(spec.relational_posture, spec.signal_posture),
