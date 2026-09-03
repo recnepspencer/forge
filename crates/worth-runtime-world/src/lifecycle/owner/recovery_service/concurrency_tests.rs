@@ -53,7 +53,7 @@ fn installed_and_updating_recovery_block_close_until_cleanup() {
     );
 
     let (reached_tx, reached_rx) = mpsc::sync_channel(1);
-    let pause = super::install_test_recovery_update_pause(reached_tx);
+    let pause = super::install_test_recovery_update_pause(handle.clone(), reached_tx);
     let effects = owner
         .inspect_recovery(&handle)
         .expect("installed recovery supplies the continuation capability");

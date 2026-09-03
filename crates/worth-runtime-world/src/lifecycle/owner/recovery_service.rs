@@ -4,6 +4,8 @@ use crate::recovery::{
 };
 
 #[cfg(test)]
+use std::collections::HashMap;
+#[cfg(test)]
 use std::sync::mpsc::SyncSender;
 #[cfg(test)]
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
@@ -32,19 +34,24 @@ pub(super) struct RecoveryUpdatePause {
 
 #[cfg(test)]
 pub(super) struct RecoveryUpdatePauseGuard {
+    handle: ProductUnpublishedRecoveryHandle,
     pause: Arc<RecoveryUpdatePause>,
 }
 
 #[cfg(test)]
-static RECOVERY_UPDATE_PAUSE: OnceLock<Mutex<Option<Arc<RecoveryUpdatePause>>>> = OnceLock::new();
+static RECOVERY_UPDATE_PAUSES: OnceLock<
+    Mutex<HashMap<ProductUnpublishedRecoveryHandle, Arc<RecoveryUpdatePause>>>,
+> = OnceLock::new();
 
 #[cfg(test)]
-fn recovery_update_pause_slot() -> &'static Mutex<Option<Arc<RecoveryUpdatePause>>> {
-    RECOVERY_UPDATE_PAUSE.get_or_init(|| Mutex::new(None))
+fn recovery_update_pause_slot(
+) -> &'static Mutex<HashMap<ProductUnpublishedRecoveryHandle, Arc<RecoveryUpdatePause>>> {
+    RECOVERY_UPDATE_PAUSES.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 #[cfg(test)]
 pub(super) fn install_test_recovery_update_pause(
+    handle: ProductUnpublishedRecoveryHandle,
     reached: SyncSender<()>,
 ) -> RecoveryUpdatePauseGuard {
     let pause = Arc::new(RecoveryUpdatePause {
@@ -55,10 +62,11 @@ pub(super) fn install_test_recovery_update_pause(
         .lock()
         .unwrap_or_else(|error| error.into_inner());
     assert!(
-        installed.replace(Arc::clone(&pause)).is_none(),
-        "only one recovery update pause may be installed"
+        !installed.contains_key(&handle),
+        "only one recovery update pause may be installed for a handle"
     );
-    RecoveryUpdatePauseGuard { pause }
+    installed.insert(handle.clone(), Arc::clone(&pause));
+    RecoveryUpdatePauseGuard { handle, pause }
 }
 
 #[cfg(test)]
@@ -99,21 +107,22 @@ impl Drop for RecoveryUpdatePauseGuard {
         let mut installed = recovery_update_pause_slot()
             .lock()
             .unwrap_or_else(|error| error.into_inner());
-        if installed
-            .as_ref()
-            .is_some_and(|current| Arc::ptr_eq(current, &self.pause))
-        {
-            *installed = None;
+        let owned_registration = installed
+            .get(&self.handle)
+            .is_some_and(|current| Arc::ptr_eq(current, &self.pause));
+        if owned_registration {
+            installed.remove(&self.handle);
         }
     }
 }
 
 #[cfg(test)]
-fn pause_test_recovery_update() {
+fn pause_test_recovery_update(handle: &ProductUnpublishedRecoveryHandle) {
     let pause = recovery_update_pause_slot()
         .lock()
         .unwrap_or_else(|error| error.into_inner())
-        .clone();
+        .get(handle)
+        .cloned();
     if let Some(pause) = pause {
         pause.wait_for_release();
     }
@@ -202,7 +211,7 @@ where
             .take_record_for_update(&handle)
             .ok_or_else(super::super::ports::RuntimeWorldOwnerUnavailable::new)?;
         #[cfg(test)]
-        pause_test_recovery_update();
+        pause_test_recovery_update(&handle);
         let record = update
             .record_mut()
             .ok_or_else(super::super::ports::RuntimeWorldOwnerUnavailable::new)?;
