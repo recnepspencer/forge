@@ -2,7 +2,8 @@ use crate::branch::{ProductBranchCreationIntent, RuntimeWorldBootstrapIntent};
 use crate::budget::RuntimeWorldBudgets;
 use crate::lifecycle::{RuntimeWorldClock, RuntimeWorldOwnerInputs};
 use worth_relational::facade::mvcc::{
-    PerformedRelationalCommit, RelationalPublicationOutcome, RelationalTransactionIntent,
+    PerformedRelationalCommit, PreparedRelationalCommitCandidate, RelationalPublicationOutcome,
+    RelationalTransactionIntent,
 };
 use worth_relational::facade::transactions::WorkerIntentBatch;
 
@@ -38,24 +39,8 @@ impl RealReferenceFixture {
     }
 
     pub(crate) fn perform_relational_owner_change(&self) -> PerformedRelationalCommit {
-        let identity = self._relational_runtime.main_branch_identity();
-        let (_, basis) = self
-            ._relational_runtime
-            .observe_branch(&identity)
-            .expect("real Relational owner observes its current basis");
-        let mut transaction = self
-            ._relational_runtime
-            .begin_branch_transaction(&basis, RelationalTransactionIntent::ordinary())
-            .expect("current owner basis admits a transaction");
-        transaction
-            .push_batch(WorkerIntentBatch::new(
-                "runtime-world-cas-loss-owner-effect",
-            ))
-            .expect("bounded empty batch stages through the production transaction path");
-        let candidate = self
-            ._relational_runtime
-            .prepare_branch_transaction(transaction)
-            .expect("production Relational owner prepares the change");
+        let candidate =
+            self.prepare_relational_owner_candidate("runtime-world-cas-loss-owner-effect");
         match self
             ._relational_runtime
             .publication_port()
@@ -66,6 +51,29 @@ impl RealReferenceFixture {
                 panic!("production Relational owner must perform the test change: {outcome:?}")
             }
         }
+    }
+
+    pub(crate) fn prepare_relational_owner_candidate(
+        &self,
+        operation_name: &str,
+    ) -> PreparedRelationalCommitCandidate {
+        let identity = self._relational_runtime.main_branch_identity();
+        let (_, basis) = self
+            ._relational_runtime
+            .observe_branch(&identity)
+            .expect("real Relational owner observes its current basis");
+        let services = self._relational_runtime.owner_component_services();
+        let mut transaction = services
+            .transaction_admission_port()
+            .begin_branch_transaction(&basis, RelationalTransactionIntent::ordinary())
+            .expect("current owner basis admits a transaction");
+        transaction
+            .push_batch(WorkerIntentBatch::new(operation_name))
+            .expect("bounded empty batch stages through the production transaction path");
+        services
+            .preparation_port()
+            .prepare_branch_transaction(transaction)
+            .expect("production Relational owner prepares the change")
     }
 
     pub(crate) fn perform_signal_owner_change(
@@ -84,6 +92,15 @@ impl RealReferenceFixture {
             .mutation_port()
             .advance_exact(&expected, &mut (), &cancellation.token(), |_| Ok(()))
             .expect("real Signal owner performs the empty bounded transaction")
+    }
+
+    #[cfg(feature = "test-operation-control")]
+    pub(crate) fn signal_operation_control(
+        &self,
+    ) -> worth_signal::facade::branch::SignalOwnerOperationControl {
+        self._signal_runtime
+            .owner_operation_control()
+            .expect("real Signal owner exposes operation control")
     }
 
     #[cfg(feature = "test-operation-control")]

@@ -1,3 +1,4 @@
+use crate::publication::RelationalAttemptProgressPosture;
 use crate::recovery::{
     ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle, RecoveryContinuationContract,
 };
@@ -78,8 +79,94 @@ where
         if self.state.recovery.lookup_record(&handle).is_none() {
             return Err(super::super::ports::RuntimeWorldOwnerUnavailable::new());
         }
-        Ok(RecoveryContinuationContract::new(
-            effects.next_actions().to_vec(),
-        ))
+        let settlement_required = matches!(
+            effects.progress().relational_posture(),
+            RelationalAttemptProgressPosture::Performed
+                | RelationalAttemptProgressPosture::SettlementRequired
+                | RelationalAttemptProgressPosture::SettlementPending
+        );
+        if !settlement_required {
+            let actions = effects.next_actions().to_vec();
+            drop(effects);
+            return Ok(RecoveryContinuationContract::new(actions));
+        }
+
+        drop(effects);
+        let mut update = self
+            .state
+            .recovery
+            .take_record_for_update(&handle)
+            .ok_or_else(super::super::ports::RuntimeWorldOwnerUnavailable::new)?;
+        let record = update
+            .record_mut()
+            .ok_or_else(super::super::ports::RuntimeWorldOwnerUnavailable::new)?;
+        let mut recovery = record
+            .take_relational_recovery()
+            .map_err(|()| super::super::ports::RuntimeWorldOwnerUnavailable::new())?;
+
+        if let Some(performed) = recovery.take_performed() {
+            match self
+                .state
+                .relational
+                .settlement_port()
+                .settle_performed_publication(performed)
+            {
+                Ok(result)
+                    if result.outcome().commit.commit_id
+                        == recovery.commit_identity().commit_id() =>
+                {
+                    record.settle_relational_recovery(recovery, result);
+                }
+                Ok(_) => record.retain_identity_repair(recovery),
+                Err(error) => match error.deferred_settlement() {
+                    Some(settlement)
+                        if settlement.commit().commit_id
+                            == recovery.commit_identity().commit_id() =>
+                    {
+                        record.retain_pending_relational_settlement(recovery, settlement.clone());
+                    }
+                    Some(_) | None => record.retain_identity_repair(recovery),
+                },
+            }
+        } else if let Some(settlement) = recovery.settlement().cloned() {
+            let performed_result = settlement.performed_result().clone();
+            match self
+                .state
+                .relational
+                .settlement_port()
+                .repair_deferred_publication_settlement(&settlement)
+            {
+                Ok(receipt)
+                    if receipt == *settlement.commit()
+                        && performed_result.outcome().commit == receipt =>
+                {
+                    record.settle_relational_recovery(recovery, performed_result);
+                }
+                Ok(_) | Err(_) => record.restore_relational_recovery(recovery),
+            }
+        } else if let Some(commit_identity) = recovery.take_identity_repair() {
+            match self
+                .state
+                .relational
+                .settlement_port()
+                .repair_pending_publication_settlement(commit_identity.commit_id())
+            {
+                Ok(receipt) if receipt.commit_id == commit_identity.commit_id() => {
+                    record.settle_relational_recovery_with_receipt(recovery, receipt);
+                }
+                Ok(_) | Err(_) => {
+                    recovery.restore_identity_repair();
+                    record.restore_relational_recovery(recovery);
+                }
+            }
+        } else {
+            record.restore_relational_recovery(recovery);
+            update.finish();
+            return Err(super::super::ports::RuntimeWorldOwnerUnavailable::new());
+        }
+
+        let actions = record.next_actions().to_vec();
+        update.finish();
+        Ok(RecoveryContinuationContract::new(actions))
     }
 }

@@ -85,7 +85,14 @@ fn lower_reuse_relational_plan(
         return Err(lowering_denied(expected_head));
     }
     match input.prepared_candidate {
-        Some(_) | None => Err(lowering_denied(expected_head)),
+        Some(candidate) if candidate.branch() == expected.identity().branch_id() => Ok(
+            RelationalComponentPlan::publish_prepared(expected, candidate),
+        ),
+        Some(candidate) => {
+            drop(candidate);
+            Err(lowering_denied(expected_head))
+        }
+        None => Err(lowering_denied(expected_head)),
     }
 }
 
@@ -149,15 +156,22 @@ fn lower_fork_signal_plan(
     let Some(name) = input.branch_name else {
         return Err(lowering_denied(expected_head));
     };
-    Ok(SignalComponentPlan::fork_then_advance(expected, name))
+    Ok(match input.posture {
+        ProductBranchComponentPosture::ForkExact => SignalComponentPlan::fork_exact(expected, name),
+        ProductBranchComponentPosture::ForkAndAdvance => {
+            SignalComponentPlan::fork_and_advance(expected, name)
+        }
+        ProductBranchComponentPosture::ReuseExact => unreachable!("reuse is not a fork route"),
+    })
 }
 
 fn valid_fork_route(posture: ProductBranchComponentPosture, changes: bool) -> bool {
-    matches!(
-        (posture, changes),
-        (ProductBranchComponentPosture::ForkExact, false)
-            | (ProductBranchComponentPosture::ForkAndAdvance, true)
-    )
+    changes
+        && matches!(
+            posture,
+            ProductBranchComponentPosture::ForkExact
+                | ProductBranchComponentPosture::ForkAndAdvance
+        )
 }
 
 fn fork_source_matches(

@@ -156,6 +156,12 @@ impl ReservedCompositePublicationAttempt {
             .expect("a publishing attempt enters recovery exactly once");
     }
 
+    pub(crate) fn take_relational_candidate(
+        &mut self,
+    ) -> Option<worth_relational::facade::mvcc::PreparedRelationalCommitCandidate> {
+        self.plan.take_relational_candidate()
+    }
+
     /// Consume a still-pre-effect reservation into the only no-effect
     /// cancellation terminal. Dropping the attempt releases every capacity.
     pub fn cancel(self) -> NoEffectCompositePublication {
@@ -170,6 +176,17 @@ impl ReservedCompositePublicationAttempt {
             .begin_publication()
             .expect("settled owner execution advances into publication exactly once");
         OwnerExecutionSettlement::new(self, progress)
+    }
+
+    pub(crate) fn settle_with_successor_basis(
+        mut self,
+        progress: CompositeAttemptProgress,
+        successor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
+    ) -> OwnerExecutionSettlement {
+        self.operation
+            .begin_publication()
+            .expect("settled owner execution advances into publication exactly once");
+        OwnerExecutionSettlement::with_successor_basis(self, progress, successor_basis)
     }
 
     pub(crate) fn into_parts(

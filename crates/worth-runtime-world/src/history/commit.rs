@@ -77,12 +77,15 @@ enum SignalComponentEvidence {
 pub enum CompositeSignalPublicationIdentity {
     Advanced(SignalBranchBasisAdmissionIdentity),
     Forked(SignalBranchBasisAdmissionIdentity),
+    ForkedAndAdvanced(SignalBranchBasisAdmissionIdentity),
 }
 
 impl CompositeSignalPublicationIdentity {
     fn basis_identity(&self) -> &SignalBranchBasisAdmissionIdentity {
         match self {
-            Self::Advanced(identity) | Self::Forked(identity) => identity,
+            Self::Advanced(identity)
+            | Self::Forked(identity)
+            | Self::ForkedAndAdvanced(identity) => identity,
         }
     }
 }

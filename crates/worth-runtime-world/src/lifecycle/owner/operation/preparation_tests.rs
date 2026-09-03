@@ -82,7 +82,7 @@ fn relational_publication_without_owner_candidate_is_rejected_before_reservation
 }
 
 #[test]
-fn signal_fork_without_owner_name_reservation_is_rejected_before_capacity() {
+fn signal_fork_reserves_destination_before_owner_execution_capacity() {
     let (owner, expected) = setup(2);
     let plan = RuntimeWorldPreparationService::prepare(
         owner.as_ref(),
@@ -103,16 +103,17 @@ fn signal_fork_without_owner_name_reservation_is_rejected_before_capacity() {
     .expect("syntax-only Signal fork lowering is pre-effect");
     assert_eq!(
         plan.signal().posture(),
-        crate::publication::SignalComponentPlanPosture::ForkThenAdvance
+        crate::publication::SignalComponentPlanPosture::ForkAndAdvance
     );
-    let denied = RuntimeWorldPreparationService::reserve(
+    let attempt = RuntimeWorldPreparationService::reserve(
         owner.as_ref(),
         plan,
         &RuntimeWorldCancellationSource::new().token(),
         None,
     )
-    .expect_err("owner-issued Signal name reservation is not yet available");
-    assert_eq!(denied.cause(), NoEffectCause::PreEffectFailure);
+    .expect("owner-issued Signal destination reservation is part of preparation");
+    assert_eq!(reservation_counts(owner.as_ref()), (1, 1, 2, 2, 1));
+    drop(attempt);
     assert_eq!(reservation_counts(owner.as_ref()), (0, 0, 0, 0, 0));
 }
 

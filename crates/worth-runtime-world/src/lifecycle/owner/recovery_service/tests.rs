@@ -18,13 +18,13 @@ use crate::budget::{
 };
 use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
-    RuntimeWorldPreparationService,
+    RuntimeWorldPreparationService, RuntimeWorldRecoveryService,
 };
 use crate::publication::{
     CompositeAttemptProgress, CompositeComponentIntent, ProductBranchIntent,
     RelationalAttemptProgress, SignalAttemptProgress,
 };
-use crate::recovery::ProductUnpublishedCause;
+use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 
 type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -53,7 +53,8 @@ fn budgets(maximum_recovery_records: u64) -> RuntimeWorldBudgets {
         },
         recovery: RuntimeWorldRecoveryBudgetInstallation {
             retained_product_unpublished_records: maximum_recovery_records,
-            retained_partial_metadata_bytes: 1,
+            retained_partial_metadata_bytes:
+                crate::recovery::ProductUnpublishedOwnerEffects::metadata_charge_hint() as u64,
         },
         retention: RuntimeWorldRetentionBudgetInstallation {
             unique_exact_component_pins: 6,
@@ -99,6 +100,7 @@ fn setup() -> (
 }
 
 fn relational_plan(
+    fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
 ) -> crate::publication::LoweredOwnerComponentPlan {
@@ -113,6 +115,9 @@ fn relational_plan(
                 ProductBranchComponentPosture::ReuseExact,
             ),
             CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
+        )
+        .with_prepared_relational_candidate(
+            fixture.prepare_relational_owner_candidate("recovery-custody"),
         ),
     )
     .expect("the owner prepares the exact relational recovery test head")
@@ -143,7 +148,7 @@ fn successor_basis(
 #[test]
 fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
     let (fixture, owner, expected) = setup();
-    let plan = relational_plan(&owner, expected.clone());
+    let plan = relational_plan(&fixture, &owner, expected.clone());
     let cancellation = RuntimeWorldCancellationSource::new();
     let mut attempt =
         RuntimeWorldPreparationService::reserve(owner.as_ref(), plan, &cancellation.token(), None)
@@ -187,6 +192,74 @@ fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
     ));
 }
 
+#[test]
+fn continuation_settles_relational_effects_without_signal_or_product_publication() {
+    let (fixture, owner, expected) = setup();
+    let plan = relational_plan(&fixture, &owner, expected.clone());
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let mut attempt =
+        RuntimeWorldPreparationService::reserve(owner.as_ref(), plan, &cancellation.token(), None)
+            .expect("the owner reserves the complete recovery attempt");
+    attempt.begin_owner_execution();
+
+    let before_product_head = owner
+        .state
+        .branches
+        .root_cell()
+        .expect("bootstrapped cell")
+        .atomic_snapshot();
+    let performed = fixture.perform_relational_owner_change();
+    let successor_basis = successor_basis(&owner, &expected, performed.next_basis().clone(), None);
+    let handle = {
+        let progress = CompositeAttemptProgress::new(
+            RelationalAttemptProgress::performed(performed),
+            SignalAttemptProgress::untouched(),
+        );
+        attempt
+            .settle(progress)
+            .ready(successor_basis)
+            .expect_err("performed Relational work remains a recovery record until settled")
+            .recovery_handle()
+    };
+    let continuation = RuntimeWorldRecoveryService::continue_effects(
+        owner.as_ref(),
+        owner
+            .inspect_recovery(&handle)
+            .expect("catalog exposes the retained caller capability"),
+    )
+    .expect("the real Relational settlement authority completes recovery");
+    assert!(!continuation
+        .actions()
+        .contains(&ProductUnpublishedNextAction::SettleOwnerEffects));
+    assert!(continuation
+        .actions()
+        .contains(&ProductUnpublishedNextAction::ReleaseObligations));
+    let inspected = owner
+        .inspect_recovery(&handle)
+        .expect("settled recovery remains inspectable until explicit cleanup");
+    assert_eq!(
+        inspected.progress().relational_posture(),
+        crate::publication::RelationalAttemptProgressPosture::Settled
+    );
+    assert_eq!(
+        inspected.progress().signal_posture(),
+        crate::publication::SignalAttemptProgressPosture::Untouched
+    );
+    drop(inspected);
+    assert_eq!(
+        owner
+            .state
+            .branches
+            .root_cell()
+            .expect("bootstrapped cell")
+            .atomic_snapshot(),
+        before_product_head,
+        "recovery settlement does not publish a product head"
+    );
+    assert!(owner.cleanup_recovery_handle(&handle));
+    assert_eq!(owner.recovery_record_count(), 0);
+}
+
 #[cfg(feature = "test-operation-control")]
 #[test]
 fn metadata_ceiling_rejects_second_charge_and_cleanup_releases_the_first() {
@@ -227,6 +300,9 @@ fn metadata_ceiling_rejects_second_charge_and_cleanup_releases_the_first() {
         .settle(progress)
         .ready(successor_basis)
         .expect_err("post-effect retention denial enters catalogued recovery");
+    assert!(!retained
+        .next_actions()
+        .contains(&ProductUnpublishedNextAction::SettleOwnerEffects));
     let first_charge = retained.metadata_bytes();
     assert!(first_charge > 0);
     owner

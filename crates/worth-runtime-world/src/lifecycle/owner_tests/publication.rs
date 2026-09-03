@@ -41,6 +41,7 @@ fn setup() -> (
 }
 
 fn relational_plan(
+    fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
 ) -> crate::publication::LoweredOwnerComponentPlan {
@@ -54,6 +55,9 @@ fn relational_plan(
                 ProductBranchComponentPosture::ReuseExact,
             ),
             CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
+        )
+        .with_prepared_relational_candidate(
+            fixture.prepare_relational_owner_candidate("publication"),
         ),
     )
     .expect("the current product head admits Relational preparation")
@@ -83,7 +87,7 @@ fn ready_relational_publication(
     owner: &TestOwner,
     expected: ProductBranchObservation,
 ) -> crate::publication::CompositePublicationReady {
-    let plan = relational_plan(owner, expected.clone());
+    let plan = relational_plan(fixture, owner, expected.clone());
     let cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
     let mut attempt = crate::lifecycle::RuntimeWorldPreparationService::reserve(
         owner,
@@ -95,7 +99,15 @@ fn ready_relational_publication(
     attempt.begin_owner_execution();
 
     let performed = fixture.perform_relational_owner_change();
+    let commit_identity = performed.commit_identity();
     let successor_relational = performed.next_basis().clone();
+    let successor_for_progress = successor_relational.clone();
+    let result = owner
+        .state
+        .relational
+        .settlement_port()
+        .settle_performed_publication(performed)
+        .expect("the canonical Relational settlement completes");
     let successor_basis = crate::basis::admit_current(
         &owner
             .state
@@ -111,7 +123,7 @@ fn ready_relational_publication(
     )
     .expect("the component owners admit the exact successor tuple");
     let progress = CompositeAttemptProgress::new(
-        RelationalAttemptProgress::performed(performed),
+        RelationalAttemptProgress::settled(commit_identity, successor_for_progress, result),
         SignalAttemptProgress::untouched(),
     );
     attempt
@@ -322,7 +334,9 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
         .expect("post-effect denial installs the exact successor occurrence");
     assert_eq!(retained_commit.basis(), retained.successor_basis().unwrap());
     assert_eq!(&cell_snapshot(&owner), expected.snapshot());
-    assert_eq!(owner.state.recovery.reserved_slots(), 1);
+    let recovery_handle = retained.recovery_handle();
+    assert_eq!(owner.state.recovery.reserved_slots(), 0);
+    assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.state.retention.reserved_unique_pin_capacity(), 2);
     assert_eq!(
         owner
@@ -334,6 +348,17 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
     assert_eq!(owner.state.operation.active(), 0);
 
     drop(retained);
+    assert_eq!(owner.recovery_record_count(), 1);
+    assert_eq!(owner.state.retention.reserved_unique_pin_capacity(), 2);
+    assert_eq!(
+        owner
+            .state
+            .retention
+            .reserved_in_flight_acquisition_capacity(),
+        2
+    );
+    assert!(owner.cleanup_recovery_handle(&recovery_handle));
+    assert_eq!(owner.recovery_record_count(), 0);
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
     assert_eq!(owner.state.retention.reserved_unique_pin_capacity(), 0);
     assert_eq!(

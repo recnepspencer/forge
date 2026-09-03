@@ -172,11 +172,25 @@ where
             .map(|cause| NoEffectCompositePublication::new(cause, Some(expected.clone())))
     }
 
-    fn current_product_head_is(&self, expected: &crate::branch::ProductBranchObservation) -> bool {
+    pub(super) fn current_product_head_is(
+        &self,
+        expected: &crate::branch::ProductBranchObservation,
+    ) -> bool {
         self.state
             .branches
-            .root_snapshot()
+            .branch_cell(expected.branch_identity())
+            .map(|cell| cell.atomic_snapshot())
             .is_some_and(|current| expected.mismatch_against_snapshot(&current).is_none())
+    }
+
+    pub(super) fn current_product_head_snapshot(
+        &self,
+        expected: &crate::branch::ProductBranchObservation,
+    ) -> Option<crate::branch::ProductBranchReferenceSnapshot> {
+        self.state
+            .branches
+            .branch_cell(expected.branch_identity())
+            .map(|cell| cell.atomic_snapshot())
     }
 
     fn pre_effect_denial(
@@ -269,7 +283,12 @@ where
                 Some(expected),
             ));
         }
-        let Some(current) = self.state.branches.root_snapshot() else {
+        let Some(current) = self
+            .state
+            .branches
+            .branch_cell(expected.branch_identity())
+            .map(|cell| cell.atomic_snapshot())
+        else {
             return Err(NoEffectCompositePublication::new(
                 NoEffectCause::OwnerUnavailable,
                 Some(expected),

@@ -120,22 +120,62 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    validate_current(
+        relational_port,
+        signal_port,
+        correspondence_port,
+        &relational,
+        &signal,
+        &correspondence,
+    )?;
+    Ok(admit_validated(
+        identities,
+        relational,
+        signal,
+        correspondence,
+    ))
+}
+
+/// Recheck all component owners without holding the Runtime World identity
+/// mutex. Identity issuance is deliberately a separate, non-owner step.
+pub(crate) fn validate_current<D, I, T>(
+    relational_port: &RelationalBranchBasisPort,
+    signal_port: &SignalBranchBasisPort<D, I, T>,
+    correspondence_port: &RuntimeWorldCorrespondencePort,
+    relational: &AdmittedRelationalBranchBasis,
+    signal: &AdmittedSignalBranchBasis,
+    correspondence: &AdmittedRuntimeWorldCorrespondenceBasis,
+) -> Result<(), CompositeBasisAdmissionDenial>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     relational_port
-        .compare_current_exact(&relational)
+        .compare_current_exact(relational)
         .map_err(CompositeBasisAdmissionDenial::Relational)?;
     signal_port
-        .compare_current_exact(&signal)
+        .compare_current_exact(signal)
         .map_err(CompositeBasisAdmissionDenial::Signal)?;
     correspondence_port
-        .compare_current_exact(&correspondence)
+        .compare_current_exact(correspondence)
         .map_err(CompositeBasisAdmissionDenial::Correspondence)?;
+    Ok(())
+}
+
+pub(crate) fn admit_validated(
+    identities: &RuntimeWorldIdentityIssuer,
+    relational: AdmittedRelationalBranchBasis,
+    signal: AdmittedSignalBranchBasis,
+    correspondence: AdmittedRuntimeWorldCorrespondenceBasis,
+) -> AdmittedCompositeRuntimeWorldBasis {
     let identity = identities.composite_basis(
         relational.admission_identity().clone(),
         signal.admission_identity().clone(),
         correspondence.admission_identity().clone(),
     );
     let basis = CompositeRuntimeWorldBasis::admit(relational, signal, correspondence);
-    Ok(AdmittedCompositeRuntimeWorldBasis::new(basis, identity))
+    AdmittedCompositeRuntimeWorldBasis::new(basis, identity)
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
+use crate::branch::ProductBranchReferenceSnapshot;
 use crate::history::CompositeRuntimeWorldCommit;
 use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
@@ -19,6 +20,7 @@ const RETENTION_PENDING_LIVE_OBLIGATION_COUNT: usize = 3;
 pub struct OwnerExecutionSettlement {
     attempt: ReservedCompositePublicationAttempt,
     progress: CompositeAttemptProgress,
+    successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
 }
 
 impl std::fmt::Debug for OwnerExecutionSettlement {
@@ -26,6 +28,7 @@ impl std::fmt::Debug for OwnerExecutionSettlement {
         formatter
             .debug_struct("OwnerExecutionSettlement")
             .field("progress", &self.progress)
+            .field("successor_basis", &self.successor_basis)
             .finish_non_exhaustive()
     }
 }
@@ -35,11 +38,31 @@ impl OwnerExecutionSettlement {
         attempt: ReservedCompositePublicationAttempt,
         progress: CompositeAttemptProgress,
     ) -> Self {
-        Self { attempt, progress }
+        Self {
+            attempt,
+            progress,
+            successor_basis: None,
+        }
+    }
+
+    pub(crate) fn with_successor_basis(
+        attempt: ReservedCompositePublicationAttempt,
+        progress: CompositeAttemptProgress,
+        successor_basis: AdmittedCompositeRuntimeWorldBasis,
+    ) -> Self {
+        Self {
+            attempt,
+            progress,
+            successor_basis: Some(successor_basis),
+        }
     }
 
     pub fn progress(&self) -> &CompositeAttemptProgress {
         &self.progress
+    }
+
+    pub(crate) fn successor_basis(&self) -> Option<&AdmittedCompositeRuntimeWorldBasis> {
+        self.successor_basis.as_ref()
     }
 
     /// Consume exact settled owner evidence into one successor commit and bind
@@ -64,6 +87,8 @@ impl OwnerExecutionSettlement {
                     successor_basis,
                     owner_results,
                     ProductUnpublishedCause::SettlementPending,
+                    None,
+                    true,
                 ));
             }
         };
@@ -74,6 +99,8 @@ impl OwnerExecutionSettlement {
                 successor_basis,
                 owner_results,
                 ProductUnpublishedCause::CancellationAfterEffect,
+                None,
+                true,
             ));
         }
         let (
@@ -135,6 +162,7 @@ impl OwnerExecutionSettlement {
                     product_unpublished_identity,
                     attempt_identity,
                     expected_head,
+                    None,
                     progress,
                     successor_basis,
                     owner_results,
@@ -166,12 +194,38 @@ impl OwnerExecutionSettlement {
         ))
     }
 
+    /// Retain an exact owner-progress image at an intermediate boundary. This
+    /// path is used when a later owner or product-head check denies the
+    /// attempt; it never performs the final product CAS.
+    pub(crate) fn retain_with_cause(
+        self,
+        successor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
+        cause: ProductUnpublishedCause,
+        last_observed_head: Option<ProductBranchReferenceSnapshot>,
+    ) -> ProductUnpublishedOwnerEffects {
+        let (attempt, progress) = self.into_parts();
+        let (progress, owner_results) = progress
+            .into_recovery_results()
+            .expect("owner-effect retention carries representable progress");
+        Self::retain_owner_effects(
+            attempt,
+            progress,
+            successor_basis,
+            owner_results,
+            cause,
+            last_observed_head,
+            false,
+        )
+    }
+
     fn retain_owner_effects(
         attempt: ReservedCompositePublicationAttempt,
         progress: CompositeAttemptProgress,
         successor_basis: AdmittedCompositeRuntimeWorldBasis,
         owner_results: CompositeOwnerExecutionResults,
         cause: ProductUnpublishedCause,
+        last_observed_head: Option<ProductBranchReferenceSnapshot>,
+        enforce_plan_match: bool,
     ) -> ProductUnpublishedOwnerEffects {
         let (
             attempt_identity,
@@ -191,10 +245,12 @@ impl OwnerExecutionSettlement {
             _order,
             _reserved_progress,
         ) = attempt.into_parts();
-        assert!(
-            owner_results.matches_plan(&plan),
-            "retained owner results must match the reserved component plan"
-        );
+        if enforce_plan_match {
+            assert!(
+                owner_results.matches_plan(&plan),
+                "retained owner results must match the reserved component plan"
+            );
+        }
         let commit = Arc::new(
             CompositeRuntimeWorldCommit::from_ordinary_publication(
                 reserved_commit_identity,
@@ -237,7 +293,7 @@ impl OwnerExecutionSettlement {
                     product_unpublished_identity,
                     attempt_identity,
                     expected_head,
-                    None,
+                    last_observed_head,
                     progress,
                     Some(successor_basis),
                     owner_results,
@@ -255,6 +311,7 @@ impl OwnerExecutionSettlement {
                 product_unpublished_identity,
                 attempt_identity,
                 expected_head,
+                last_observed_head,
                 progress,
                 successor_basis,
                 owner_results,
@@ -284,8 +341,10 @@ fn recovery_actions(progress: &CompositeAttemptProgress) -> Vec<ProductUnpublish
     if matches!(
         progress.relational_posture(),
         super::RelationalAttemptProgressPosture::Performed
+            | super::RelationalAttemptProgressPosture::SettlementRequired
             | super::RelationalAttemptProgressPosture::SettlementPending
-    ) {
+    ) && progress.signal_posture() == super::SignalAttemptProgressPosture::Untouched
+    {
         actions.push(ProductUnpublishedNextAction::SettleOwnerEffects);
     }
     actions.push(ProductUnpublishedNextAction::ReleaseObligations);

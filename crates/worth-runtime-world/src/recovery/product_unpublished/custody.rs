@@ -10,14 +10,10 @@ impl ProductUnpublishedOwnerEffectsRecord {
     }
 
     pub(crate) fn derived_metadata_bytes(&self) -> usize {
-        // The record's inline representation plus the action vector's actual
-        // allocation is the catalog's deterministic metadata charge. Owner
-        // pins, history custody, and owner results retain their own proof.
-        std::mem::size_of_val(self).saturating_add(
-            self.next_actions
-                .capacity()
-                .saturating_mul(std::mem::size_of::<ProductUnpublishedNextAction>()),
-        )
+        // Every retained field, including the bounded action array, is inline
+        // in the record. Owner pins, history custody, and owner results retain
+        // their own proof and are not allocator-sized hints.
+        std::mem::size_of_val(self)
     }
 
     pub(crate) const fn catalog_affinity(&self) -> usize {
@@ -28,8 +24,13 @@ impl ProductUnpublishedOwnerEffectsRecord {
         matches!(
             self.progress.relational_posture(),
             crate::publication::RelationalAttemptProgressPosture::Performed
+                | crate::publication::RelationalAttemptProgressPosture::SettlementRequired
                 | crate::publication::RelationalAttemptProgressPosture::SettlementPending
         )
+    }
+
+    pub(crate) fn next_actions(&self) -> &[ProductUnpublishedNextAction] {
+        self.next_actions.as_slice()
     }
 
     pub(crate) fn take_relational_recovery(&mut self) -> Result<RelationalRecoveryRecordState, ()> {
@@ -38,7 +39,7 @@ impl ProductUnpublishedOwnerEffectsRecord {
             &mut self.component_results,
             CompositeOwnerExecutionResults::retained(),
         );
-        let (commit_identity, successor_basis, performed, settlement, signal_posture) =
+        let (commit_identity, successor_basis, recovery_route, signal_posture) =
             match progress.into_relational_recovery_parts() {
                 Ok(parts) => parts,
                 Err(progress) => {
@@ -47,21 +48,26 @@ impl ProductUnpublishedOwnerEffectsRecord {
                     return Err(());
                 }
             };
-        let route = match (performed, settlement) {
-            (Some(performed), None) => RelationalRecoveryRecordRoute::Performed {
-                performed,
-                commit_identity: commit_identity.clone(),
-                successor_basis: successor_basis.clone(),
-            },
-            (None, Some(settlement)) => RelationalRecoveryRecordRoute::SettlementPending {
-                settlement,
-                commit_identity: commit_identity.clone(),
-                successor_basis: successor_basis.clone(),
-            },
-            _ => {
-                self.progress = CompositeAttemptProgress::untouched();
-                self.component_results = component_results;
-                return Err(());
+        let route = match recovery_route {
+            crate::publication::RelationalRecoveryRoute::Performed(performed) => {
+                RelationalRecoveryRecordRoute::Performed {
+                    performed,
+                    commit_identity: commit_identity.clone(),
+                    successor_basis: successor_basis.clone(),
+                }
+            }
+            crate::publication::RelationalRecoveryRoute::SettlementPending(settlement) => {
+                RelationalRecoveryRecordRoute::SettlementPending {
+                    settlement,
+                    commit_identity: commit_identity.clone(),
+                    successor_basis: successor_basis.clone(),
+                }
+            }
+            crate::publication::RelationalRecoveryRoute::IdentityRequired => {
+                RelationalRecoveryRecordRoute::IdentityRequired {
+                    commit_identity: commit_identity.clone(),
+                    successor_basis: successor_basis.clone(),
+                }
             }
         };
         Ok(RelationalRecoveryRecordState {
@@ -99,10 +105,10 @@ impl ProductUnpublishedOwnerEffectsRecord {
             );
         state.route = None;
         self.cause = ProductUnpublishedCause::OwnerSettlementComplete;
-        self.next_actions = vec![
+        self.next_actions = super::RetainedNextActions::from_vec(vec![
             ProductUnpublishedNextAction::ReleaseObligations,
             ProductUnpublishedNextAction::Inspect,
-        ];
+        ]);
     }
 
     pub(crate) fn retain_pending_relational_settlement(
@@ -121,6 +127,50 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 settlement,
             );
         state.route = None;
+        self.cause = ProductUnpublishedCause::SettlementPending;
+        self.next_actions = super::RetainedNextActions::from_vec(vec![
+            ProductUnpublishedNextAction::SettleOwnerEffects,
+            ProductUnpublishedNextAction::ReleaseObligations,
+            ProductUnpublishedNextAction::Inspect,
+        ]);
+    }
+
+    pub(crate) fn retain_identity_repair(&mut self, mut state: RelationalRecoveryRecordState) {
+        self.progress = state.identity_required_progress();
+        self.component_results = state
+            .component_results
+            .take()
+            .expect("recovery result projection remains while identity repair is required");
+        state.route = None;
+        self.cause = ProductUnpublishedCause::SettlementPending;
+        self.next_actions = super::RetainedNextActions::from_vec(vec![
+            ProductUnpublishedNextAction::SettleOwnerEffects,
+            ProductUnpublishedNextAction::ReleaseObligations,
+            ProductUnpublishedNextAction::Inspect,
+        ]);
+    }
+
+    pub(crate) fn settle_relational_recovery_with_receipt(
+        &mut self,
+        mut state: RelationalRecoveryRecordState,
+        receipt: worth_relational::facade::history::RelationalCommitReceipt,
+    ) {
+        self.progress = state.settled_receipt_progress(receipt.clone());
+        self.component_results = state
+            .component_results
+            .take()
+            .expect("recovery result projection settles exactly once")
+            .with_relational_settled_receipt(
+                state.commit_identity.clone(),
+                state.successor_basis.clone(),
+                receipt,
+            );
+        state.route = None;
+        self.cause = ProductUnpublishedCause::OwnerSettlementComplete;
+        self.next_actions = super::RetainedNextActions::from_vec(vec![
+            ProductUnpublishedNextAction::ReleaseObligations,
+            ProductUnpublishedNextAction::Inspect,
+        ]);
     }
 }
 
@@ -143,6 +193,10 @@ enum RelationalRecoveryRecordRoute {
         successor_basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
         settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
     },
+    IdentityRequired {
+        commit_identity: worth_relational::facade::history::RelationalCommitIdentity,
+        successor_basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+    },
 }
 
 impl RelationalRecoveryRecordRoute {
@@ -152,6 +206,7 @@ impl RelationalRecoveryRecordRoute {
         match self {
             Self::Performed { .. } => None,
             Self::SettlementPending { settlement, .. } => Some(settlement),
+            Self::IdentityRequired { .. } => None,
         }
     }
 }
@@ -184,6 +239,29 @@ impl RelationalRecoveryRecordState {
         }
     }
 
+    pub(crate) fn take_identity_repair(
+        &mut self,
+    ) -> Option<worth_relational::facade::history::RelationalCommitIdentity> {
+        let route = self.route.take()?;
+        match route {
+            RelationalRecoveryRecordRoute::IdentityRequired {
+                commit_identity, ..
+            } => Some(commit_identity),
+            route => {
+                self.route = Some(route);
+                None
+            }
+        }
+    }
+
+    pub(crate) fn restore_identity_repair(&mut self) {
+        assert!(self.route.is_none(), "identity repair is restored once");
+        self.route = Some(RelationalRecoveryRecordRoute::IdentityRequired {
+            commit_identity: self.commit_identity.clone(),
+            successor_basis: self.successor_basis.clone(),
+        });
+    }
+
     fn into_progress(mut self) -> CompositeAttemptProgress {
         let signal_posture = self.signal_posture;
         match self
@@ -206,6 +284,16 @@ impl RelationalRecoveryRecordState {
                     commit_identity,
                     successor_basis,
                     settlement,
+                ),
+                crate::publication::SignalAttemptProgress::summary(signal_posture),
+            ),
+            RelationalRecoveryRecordRoute::IdentityRequired {
+                commit_identity,
+                successor_basis,
+            } => CompositeAttemptProgress::new(
+                crate::publication::RelationalAttemptProgress::settlement_required(
+                    commit_identity,
+                    successor_basis,
                 ),
                 crate::publication::SignalAttemptProgress::summary(signal_posture),
             ),
@@ -235,6 +323,30 @@ impl RelationalRecoveryRecordState {
                 self.commit_identity.clone(),
                 self.successor_basis.clone(),
                 settlement,
+            ),
+            crate::publication::SignalAttemptProgress::summary(self.signal_posture),
+        )
+    }
+
+    fn identity_required_progress(&self) -> CompositeAttemptProgress {
+        CompositeAttemptProgress::new(
+            crate::publication::RelationalAttemptProgress::settlement_required(
+                self.commit_identity.clone(),
+                self.successor_basis.clone(),
+            ),
+            crate::publication::SignalAttemptProgress::summary(self.signal_posture),
+        )
+    }
+
+    fn settled_receipt_progress(
+        &self,
+        receipt: worth_relational::facade::history::RelationalCommitReceipt,
+    ) -> CompositeAttemptProgress {
+        CompositeAttemptProgress::new(
+            crate::publication::RelationalAttemptProgress::settled_receipt(
+                self.commit_identity.clone(),
+                self.successor_basis.clone(),
+                receipt,
             ),
             crate::publication::SignalAttemptProgress::summary(self.signal_posture),
         )

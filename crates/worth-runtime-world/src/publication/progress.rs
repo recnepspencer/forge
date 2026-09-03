@@ -1,14 +1,20 @@
 use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::history::RelationalCommitIdentity;
-use worth_relational::facade::mvcc::{
-    PerformedRelationalCommit, PreparedRelationalCommitCandidate,
-};
+use worth_relational::facade::mvcc::PerformedRelationalCommit;
 use worth_relational::facade::publication::DeferredPublicationSettlement;
 use worth_relational::facade::transactions::CommitResult;
 use worth_signal::facade::branch::{SignalBranchAdvanceOutcome, SignalBranchForkOutcome};
 
 #[path = "progress/recovery.rs"]
 mod recovery;
+pub(crate) use recovery::RelationalRecoveryRoute;
+
+#[path = "progress/preparation.rs"]
+mod preparation;
+
+#[path = "progress/effect_count.rs"]
+mod effect_count;
+pub(crate) use effect_count::owner_effect_count_from_postures;
 
 /// Exact Relational owner progress. A generic ordinal cannot say which owner
 /// evidence or settlement obligation is alive.
@@ -17,6 +23,7 @@ pub enum RelationalAttemptProgressPosture {
     Untouched,
     Prepared,
     Performed,
+    SettlementRequired,
     SettlementPending,
     Settled,
 }
@@ -24,10 +31,19 @@ pub enum RelationalAttemptProgressPosture {
 #[derive(Debug)]
 pub(super) enum RelationalProgressEvidence {
     Performed(PerformedRelationalCommit),
+    SettlementRequired {
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+    },
     SettlementPending {
         commit_identity: RelationalCommitIdentity,
         successor_basis: AdmittedRelationalBranchBasis,
         settlement: DeferredPublicationSettlement,
+    },
+    SettledReceipt {
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+        receipt: worth_relational::facade::history::RelationalCommitReceipt,
     },
     Settled {
         commit_identity: RelationalCommitIdentity,
@@ -98,6 +114,40 @@ impl RelationalAttemptProgress {
         self.posture
     }
 
+    pub(crate) fn successor_basis(&self) -> Option<&AdmittedRelationalBranchBasis> {
+        match self.evidence.as_ref() {
+            Some(RelationalProgressEvidence::Performed(performed)) => Some(performed.next_basis()),
+            Some(RelationalProgressEvidence::SettlementRequired {
+                successor_basis, ..
+            })
+            | Some(RelationalProgressEvidence::SettlementPending {
+                successor_basis, ..
+            })
+            | Some(RelationalProgressEvidence::Settled {
+                successor_basis, ..
+            }) => Some(successor_basis),
+            Some(RelationalProgressEvidence::SettledReceipt {
+                successor_basis, ..
+            }) => Some(successor_basis),
+            None => None,
+        }
+    }
+
+    pub(crate) fn settled_receipt(
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+        receipt: worth_relational::facade::history::RelationalCommitReceipt,
+    ) -> Self {
+        Self {
+            posture: RelationalAttemptProgressPosture::Settled,
+            evidence: Some(RelationalProgressEvidence::SettledReceipt {
+                commit_identity,
+                successor_basis,
+                receipt,
+            }),
+        }
+    }
+
     pub(super) fn into_evidence(self) -> Option<RelationalProgressEvidence> {
         self.evidence
     }
@@ -116,6 +166,10 @@ pub(super) enum SignalProgressEvidence {
     Prepared,
     Advanced(SignalBranchAdvanceOutcome),
     Forked(SignalBranchForkOutcome),
+    ForkedAndAdvanced {
+        forked: SignalBranchForkOutcome,
+        advanced: SignalBranchAdvanceOutcome,
+    },
 }
 
 #[derive(Debug)]
@@ -160,8 +214,31 @@ impl SignalAttemptProgress {
         }
     }
 
+    pub(crate) fn forked_and_advanced(
+        forked: SignalBranchForkOutcome,
+        advanced: SignalBranchAdvanceOutcome,
+    ) -> Self {
+        Self {
+            posture: SignalAttemptProgressPosture::Performed,
+            evidence: Some(SignalProgressEvidence::ForkedAndAdvanced { forked, advanced }),
+        }
+    }
+
     pub const fn posture(&self) -> SignalAttemptProgressPosture {
         self.posture
+    }
+
+    pub(crate) fn successor_basis(
+        &self,
+    ) -> Option<&worth_signal::facade::branch::AdmittedSignalBranchBasis> {
+        match self.evidence.as_ref() {
+            Some(SignalProgressEvidence::Advanced(outcome)) => Some(outcome.advanced_basis()),
+            Some(SignalProgressEvidence::Forked(outcome)) => Some(outcome.created_basis()),
+            Some(SignalProgressEvidence::ForkedAndAdvanced { advanced, .. }) => {
+                Some(advanced.advanced_basis())
+            }
+            _ => None,
+        }
     }
 
     pub(super) fn into_evidence(self) -> Option<SignalProgressEvidence> {
@@ -175,33 +252,18 @@ pub struct CompositeAttemptProgress {
     signal: SignalAttemptProgress,
 }
 
-/// Non-sendable preparation custody is kept outside the post-effect progress
-/// row. A candidate can cross into owner publication, but it can never be
-/// installed in the cross-thread recovery catalog.
-#[derive(Debug)]
-pub(crate) struct PreparedRelationalAttemptProgress {
-    candidate: PreparedRelationalCommitCandidate,
-}
-
-impl PreparedRelationalAttemptProgress {
-    pub(crate) fn new(candidate: PreparedRelationalCommitCandidate) -> Self {
-        Self { candidate }
-    }
-
-    pub(crate) fn posture(&self) -> RelationalAttemptProgressPosture {
-        RelationalAttemptProgressPosture::Prepared
-    }
-
-    pub(crate) fn into_candidate(self) -> PreparedRelationalCommitCandidate {
-        self.candidate
-    }
-}
-
 impl RelationalAttemptProgress {
-    pub(crate) fn prepared(
-        candidate: PreparedRelationalCommitCandidate,
-    ) -> PreparedRelationalAttemptProgress {
-        PreparedRelationalAttemptProgress::new(candidate)
+    pub(crate) fn settlement_required(
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+    ) -> Self {
+        Self {
+            posture: RelationalAttemptProgressPosture::SettlementRequired,
+            evidence: Some(RelationalProgressEvidence::SettlementRequired {
+                commit_identity,
+                successor_basis,
+            }),
+        }
     }
 }
 
@@ -278,6 +340,12 @@ impl CompositeAttemptProgress {
             Some(RelationalProgressEvidence::SettlementPending { .. }) => {
                 unreachable!("pending Relational progress is rejected above")
             }
+            Some(RelationalProgressEvidence::SettlementRequired { .. }) => {
+                unreachable!("required Relational settlement is rejected above")
+            }
+            Some(RelationalProgressEvidence::SettledReceipt { .. }) => {
+                unreachable!("receipt-only settlement is recovery evidence")
+            }
             _ => unreachable!("ready Relational progress carries matching evidence"),
         };
         let signal_result = match signal.evidence {
@@ -289,6 +357,9 @@ impl CompositeAttemptProgress {
             }
             Some(SignalProgressEvidence::Forked(forked)) => {
                 super::CompositeSignalOwnerResult::forked(forked)
+            }
+            Some(SignalProgressEvidence::ForkedAndAdvanced { forked, advanced }) => {
+                super::CompositeSignalOwnerResult::forked_and_advanced(forked, advanced)
             }
             _ => unreachable!("ready Signal progress carries matching evidence"),
         };
@@ -312,56 +383,6 @@ impl CompositeAttemptProgress {
     }
 }
 
-const fn owner_effect_count_from_postures(
-    relational: RelationalAttemptProgressPosture,
-    signal: SignalAttemptProgressPosture,
-) -> usize {
-    let relational = match relational {
-        RelationalAttemptProgressPosture::Untouched
-        | RelationalAttemptProgressPosture::Prepared => 0,
-        RelationalAttemptProgressPosture::Performed
-        | RelationalAttemptProgressPosture::SettlementPending
-        | RelationalAttemptProgressPosture::Settled => 1,
-    };
-    let signal = match signal {
-        SignalAttemptProgressPosture::Untouched
-        | SignalAttemptProgressPosture::PreparedForExecution => 0,
-        SignalAttemptProgressPosture::Performed => 1,
-    };
-    relational + signal
-}
-
 #[cfg(test)]
-mod tests {
-    use super::{
-        owner_effect_count_from_postures, RelationalAttemptProgressPosture,
-        SignalAttemptProgressPosture,
-    };
-
-    #[test]
-    fn owner_effect_projection_covers_zero_one_and_two_performed_owners() {
-        let cases = [
-            (
-                RelationalAttemptProgressPosture::Prepared,
-                SignalAttemptProgressPosture::PreparedForExecution,
-                0,
-            ),
-            (
-                RelationalAttemptProgressPosture::Performed,
-                SignalAttemptProgressPosture::PreparedForExecution,
-                1,
-            ),
-            (
-                RelationalAttemptProgressPosture::Settled,
-                SignalAttemptProgressPosture::Performed,
-                2,
-            ),
-        ];
-        for (relational, signal, expected) in cases {
-            assert_eq!(
-                owner_effect_count_from_postures(relational, signal),
-                expected
-            );
-        }
-    }
-}
+#[path = "progress/tests.rs"]
+mod tests;

@@ -26,7 +26,8 @@ pub enum RelationalComponentPlanPosture {
 pub enum SignalComponentPlanPosture {
     RetainExact,
     AdvanceExact,
-    ForkThenAdvance,
+    ForkExact,
+    ForkAndAdvance,
 }
 
 #[derive(Debug)]
@@ -119,6 +120,10 @@ impl RelationalComponentPlan {
             self.fork_source,
         )
     }
+
+    pub(crate) fn take_prepared_candidate(&mut self) -> Option<PreparedRelationalCommitCandidate> {
+        self.prepared_candidate.take()
+    }
 }
 
 #[derive(Debug)]
@@ -159,12 +164,23 @@ impl SignalComponentPlan {
         }
     }
 
-    pub(crate) fn fork_then_advance(
+    pub(crate) fn fork_exact(
         expected: AdmittedSignalBranchBasis,
         requested_branch_name: ValidatedSignalBranchName,
     ) -> Self {
         Self {
-            posture: SignalComponentPlanPosture::ForkThenAdvance,
+            posture: SignalComponentPlanPosture::ForkExact,
+            expected,
+            requested_branch_name: Some(requested_branch_name),
+        }
+    }
+
+    pub(crate) fn fork_and_advance(
+        expected: AdmittedSignalBranchBasis,
+        requested_branch_name: ValidatedSignalBranchName,
+    ) -> Self {
+        Self {
+            posture: SignalComponentPlanPosture::ForkAndAdvance,
             expected,
             requested_branch_name: Some(requested_branch_name),
         }
@@ -249,5 +265,11 @@ impl LoweredOwnerComponentPlan {
     /// owner-issued equality, not a digest or branch-name comparison.
     pub(crate) fn is_compatible_with(&self, expected: &ProductBranchObservation) -> bool {
         compatibility::plan_is_compatible_with(self, expected)
+    }
+
+    pub(crate) fn take_relational_candidate(
+        &mut self,
+    ) -> Option<PreparedRelationalCommitCandidate> {
+        self.relational.take_prepared_candidate()
     }
 }

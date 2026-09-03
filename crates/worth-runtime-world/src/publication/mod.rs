@@ -32,6 +32,7 @@ pub use owner_results::{
 pub use performed::{CompositeLateCancellationPosture, PerformedCompositePublication};
 pub use product_cas::CompositePublicationReady;
 pub use product_comparison::ResolvedExpectedProductHead;
+pub(crate) use progress::RelationalRecoveryRoute;
 pub use progress::{
     CompositeAttemptProgress, RelationalAttemptProgress, RelationalAttemptProgressPosture,
     SignalAttemptProgress, SignalAttemptProgressPosture,

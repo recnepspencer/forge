@@ -46,10 +46,9 @@ fn relational_plan_is_compatible(
                 && plan.prepared_candidate().is_none()
                 && plan.fork_source().is_none()
         }
-        // The frozen upstream candidate does not expose the exact basis
-        // affinity needed here, so no Relational mutation route is admissible
-        // until the owner binding supplies that proof.
-        RelationalComponentPlanPosture::PublishPrepared => false,
+        RelationalComponentPlanPosture::PublishPrepared => plan
+            .prepared_candidate()
+            .is_some_and(|candidate| candidate.branch() == plan.expected().identity().branch_id()),
         RelationalComponentPlanPosture::ForkThenPublish => false,
     }
 }
@@ -70,20 +69,15 @@ fn signal_plan_is_compatible(
                 && changes
                 && plan.requested_branch_name().is_none()
         }
-        SignalComponentPlanPosture::ForkThenAdvance => {
-            matches!(
-                posture,
-                ProductBranchComponentPosture::ForkExact
-                    | ProductBranchComponentPosture::ForkAndAdvance
-            ) && changes
+        SignalComponentPlanPosture::ForkExact => {
+            posture == ProductBranchComponentPosture::ForkExact
+                && changes
                 && plan.requested_branch_name().is_some()
-                && signal_fork_name_reservation_is_admitted()
+        }
+        SignalComponentPlanPosture::ForkAndAdvance => {
+            posture == ProductBranchComponentPosture::ForkAndAdvance
+                && changes
+                && plan.requested_branch_name().is_some()
         }
     }
-}
-
-const fn signal_fork_name_reservation_is_admitted() -> bool {
-    // ValidatedSignalBranchName proves syntax only. The serial owner contract
-    // has not yet supplied the linear name reservation required for admission.
-    false
 }

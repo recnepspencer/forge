@@ -20,6 +20,11 @@ use super::{
 #[path = "product_unpublished/custody.rs"]
 mod custody;
 
+#[path = "product_unpublished/actions.rs"]
+mod actions;
+pub(crate) use actions::next_actions_for_progress;
+pub(crate) use actions::RetainedNextActions;
+
 /// Why at least one owner effect survived without a product-reference move.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProductUnpublishedCause {
@@ -27,6 +32,7 @@ pub enum ProductUnpublishedCause {
     SettlementPending,
     OwnerSettlementComplete,
     CancellationAfterEffect,
+    DeadlineAfterEffect,
     StaleProductHead,
     OwnerLost,
     ProductPublicationLost,
@@ -107,7 +113,7 @@ pub(crate) struct ProductUnpublishedOwnerEffectsRecord {
     catalog_affinity: usize,
     live_obligations: usize,
     cause: ProductUnpublishedCause,
-    next_actions: Vec<ProductUnpublishedNextAction>,
+    next_actions: RetainedNextActions,
     deadline: Option<RuntimeWorldInstant>,
     age_ticks: u64,
     owner_effect_count: usize,
@@ -138,12 +144,11 @@ impl std::fmt::Debug for ProductUnpublishedOwnerEffects {
 }
 
 impl ProductUnpublishedOwnerEffects {
-    /// Deterministic reservation estimate for the shallow record footprint and
-    /// its bounded action-list allocation. Installation recomputes the same
-    /// charge from the actual record representation before catalog admission.
+    /// Exact reservation charge for the inline retained-record representation.
+    /// Actions are stored in a fixed bounded array, so no allocator capacity or
+    /// lower-bound vector hint can undercharge an installed record.
     pub(crate) const fn metadata_charge_hint() -> usize {
         std::mem::size_of::<ProductUnpublishedOwnerEffectsRecord>()
-            + RETAINED_NEXT_ACTION_CAPACITY * std::mem::size_of::<ProductUnpublishedNextAction>()
     }
 
     pub(crate) fn from_catalog_record(record: Arc<ProductUnpublishedOwnerEffectsRecord>) -> Self {
@@ -182,7 +187,7 @@ impl ProductUnpublishedOwnerEffects {
             catalog_affinity,
             live_obligations: summary.live_obligation_count,
             cause,
-            next_actions,
+            next_actions: RetainedNextActions::from_vec(next_actions),
             deadline,
             age_ticks,
             owner_effect_count: summary.owner_effect_count,
@@ -198,6 +203,7 @@ impl ProductUnpublishedOwnerEffects {
         identity: ProductUnpublishedOwnerEffectsIdentity,
         attempt_identity: CompositePublicationAttemptIdentity,
         expected_head: ProductBranchObservation,
+        last_observed_head: Option<ProductBranchReferenceSnapshot>,
         progress: CompositeAttemptProgress,
         successor_basis: AdmittedCompositeRuntimeWorldBasis,
         component_results: CompositeOwnerExecutionResults,
@@ -212,6 +218,7 @@ impl ProductUnpublishedOwnerEffects {
             identity,
             attempt_identity,
             expected_head,
+            last_observed_head,
             progress,
             successor_basis,
             component_results,
@@ -230,6 +237,7 @@ impl ProductUnpublishedOwnerEffects {
         identity: ProductUnpublishedOwnerEffectsIdentity,
         attempt_identity: CompositePublicationAttemptIdentity,
         expected_head: ProductBranchObservation,
+        last_observed_head: Option<ProductBranchReferenceSnapshot>,
         progress: CompositeAttemptProgress,
         successor_basis: AdmittedCompositeRuntimeWorldBasis,
         component_results: CompositeOwnerExecutionResults,
@@ -242,11 +250,12 @@ impl ProductUnpublishedOwnerEffects {
         deadline: Option<RuntimeWorldInstant>,
     ) -> Self {
         let catalog_affinity = recovery_slot.catalog_affinity();
+        let next_actions = next_actions_for_progress(&progress);
         let mut record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
             identity: identity.clone(),
             attempt_identity,
             expected_head,
-            last_observed_head: None,
+            last_observed_head,
             progress,
             successor_basis: Some(successor_basis),
             component_results,
@@ -255,11 +264,7 @@ impl ProductUnpublishedOwnerEffects {
             catalog_affinity,
             live_obligations: summary.live_obligation_count,
             cause,
-            next_actions: vec![
-                ProductUnpublishedNextAction::SettleOwnerEffects,
-                ProductUnpublishedNextAction::ReleaseObligations,
-                ProductUnpublishedNextAction::Inspect,
-            ],
+            next_actions: RetainedNextActions::from_vec(next_actions),
             deadline,
             age_ticks: 0,
             owner_effect_count: summary.owner_effect_count,
@@ -337,7 +342,7 @@ impl ProductUnpublishedOwnerEffects {
     }
 
     pub fn next_actions(&self) -> &[ProductUnpublishedNextAction] {
-        &self.record.next_actions
+        self.record.next_actions.as_slice()
     }
 
     pub fn deadline(&self) -> Option<RuntimeWorldInstant> {
@@ -363,8 +368,6 @@ impl ProductUnpublishedOwnerEffects {
         )
     }
 }
-
-const RETAINED_NEXT_ACTION_CAPACITY: usize = 3;
 
 fn finalize_metadata_charge(record: &mut Arc<ProductUnpublishedOwnerEffectsRecord>) {
     let record = Arc::get_mut(record).expect("new recovery record is uniquely owned");

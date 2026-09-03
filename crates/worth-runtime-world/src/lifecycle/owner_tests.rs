@@ -87,7 +87,9 @@ fn bootstrap_budgets() -> RuntimeWorldBudgets {
         },
         recovery: RuntimeWorldRecoveryBudgetInstallation {
             retained_product_unpublished_records: 2,
-            retained_partial_metadata_bytes: 1,
+            retained_partial_metadata_bytes:
+                crate::recovery::ProductUnpublishedOwnerEffects::metadata_charge_hint()
+                    .saturating_mul(2) as u64,
         },
         retention: RuntimeWorldRetentionBudgetInstallation {
             // Two bootstrap pins plus two pessimistic pin reservations for

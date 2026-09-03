@@ -2,9 +2,12 @@ use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::history::RelationalCommitIdentity;
 use worth_relational::facade::publication::DeferredPublicationSettlement;
 use worth_relational::facade::transactions::CommitResult;
-use worth_signal::facade::branch::{SignalBranchAdvanceOutcome, SignalBranchForkOutcome};
 
 use crate::history::CompositeComponentChangePosture;
+
+#[path = "owner_results/signal.rs"]
+mod signal;
+pub use signal::CompositeSignalOwnerResult;
 
 /// Exact result of the Relational leg. The retained variant is evidence that
 /// no Relational owner movement was requested, not an absent or guessed result.
@@ -31,20 +34,6 @@ enum CompositeRelationalOwnerResultKind {
         successor_basis: AdmittedRelationalBranchBasis,
         settlement: DeferredPublicationSettlement,
     },
-}
-
-/// Exact result of the Signal leg. A changed Signal component must carry the
-/// owner-issued advance/fork result.
-#[derive(Debug)]
-pub struct CompositeSignalOwnerResult {
-    result: CompositeSignalOwnerResultKind,
-}
-
-#[derive(Debug)]
-enum CompositeSignalOwnerResultKind {
-    RetainedExact,
-    Advanced(SignalBranchAdvanceOutcome),
-    Forked(SignalBranchForkOutcome),
 }
 
 impl CompositeRelationalOwnerResult {
@@ -95,24 +84,19 @@ impl CompositeRelationalOwnerResult {
             },
         }
     }
-}
 
-impl CompositeSignalOwnerResult {
-    pub(super) fn retained() -> Self {
+    pub(crate) fn settled_receipt(
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+        receipt: worth_relational::facade::history::RelationalCommitReceipt,
+    ) -> Self {
         Self {
-            result: CompositeSignalOwnerResultKind::RetainedExact,
-        }
-    }
-
-    pub(super) fn advanced(result: SignalBranchAdvanceOutcome) -> Self {
-        Self {
-            result: CompositeSignalOwnerResultKind::Advanced(result),
-        }
-    }
-
-    pub(super) fn forked(result: SignalBranchForkOutcome) -> Self {
-        Self {
-            result: CompositeSignalOwnerResultKind::Forked(result),
+            result: CompositeRelationalOwnerResultKind::Published {
+                commit_identity,
+                successor_basis,
+                settlement: Some(receipt),
+                result: None,
+            },
         }
     }
 }
@@ -201,6 +185,23 @@ impl CompositeOwnerExecutionResults {
         }
     }
 
+    pub(crate) fn with_relational_settled_receipt(
+        self,
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+        receipt: worth_relational::facade::history::RelationalCommitReceipt,
+    ) -> Self {
+        let (_, signal) = self.into_parts();
+        Self {
+            relational: CompositeRelationalOwnerResult::settled_receipt(
+                commit_identity,
+                successor_basis,
+                receipt,
+            ),
+            signal,
+        }
+    }
+
     pub(crate) fn with_relational_settlement_pending(
         self,
         commit_identity: RelationalCommitIdentity,
@@ -240,15 +241,7 @@ impl CompositeOwnerExecutionResults {
     }
 
     pub fn signal_posture(&self) -> CompositeComponentChangePosture {
-        match self.signal.result {
-            CompositeSignalOwnerResultKind::RetainedExact => {
-                CompositeComponentChangePosture::RetainExact
-            }
-            CompositeSignalOwnerResultKind::Advanced(_)
-            | CompositeSignalOwnerResultKind::Forked(_) => {
-                CompositeComponentChangePosture::Published
-            }
-        }
+        self.signal.posture()
     }
 
     pub(crate) fn relational_publication_identity(
@@ -308,23 +301,11 @@ impl CompositeOwnerExecutionResults {
     pub(crate) fn signal_publication_identity(
         &self,
     ) -> Option<crate::history::CompositeSignalPublicationIdentity> {
-        match &self.signal.result {
-            CompositeSignalOwnerResultKind::RetainedExact => None,
-            CompositeSignalOwnerResultKind::Advanced(result) => Some(
-                crate::history::CompositeSignalPublicationIdentity::Advanced(
-                    result.advanced_basis().admission_identity().clone(),
-                ),
-            ),
-            CompositeSignalOwnerResultKind::Forked(result) => {
-                Some(crate::history::CompositeSignalPublicationIdentity::Forked(
-                    result.created_basis().admission_identity().clone(),
-                ))
-            }
-        }
+        self.signal.publication_identity()
     }
 
     pub(crate) fn matches_plan(&self, plan: &super::LoweredOwnerComponentPlan) -> bool {
-        use super::{RelationalComponentPlanPosture, SignalComponentPlanPosture};
+        use super::RelationalComponentPlanPosture;
 
         let relational_matches = match plan.relational().posture() {
             RelationalComponentPlanPosture::RetainExact => {
@@ -335,15 +316,7 @@ impl CompositeOwnerExecutionResults {
                 self.relational_posture() == CompositeComponentChangePosture::Published
             }
         };
-        let signal_matches = match plan.signal().posture() {
-            SignalComponentPlanPosture::RetainExact => {
-                self.signal_posture() == CompositeComponentChangePosture::RetainExact
-            }
-            SignalComponentPlanPosture::AdvanceExact
-            | SignalComponentPlanPosture::ForkThenAdvance => {
-                self.signal_posture() == CompositeComponentChangePosture::Published
-            }
-        };
+        let signal_matches = self.signal.matches_plan(plan.signal().posture());
         relational_matches && signal_matches
     }
 }

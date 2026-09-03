@@ -42,7 +42,9 @@ fn budgets(publication_attempts: u64) -> RuntimeWorldBudgets {
         },
         recovery: RuntimeWorldRecoveryBudgetInstallation {
             retained_product_unpublished_records: 8,
-            retained_partial_metadata_bytes: 4096,
+            retained_partial_metadata_bytes:
+                crate::recovery::ProductUnpublishedOwnerEffects::metadata_charge_hint()
+                    .saturating_mul(publication_attempts as usize) as u64,
         },
         retention: RuntimeWorldRetentionBudgetInstallation {
             unique_exact_component_pins: 8,

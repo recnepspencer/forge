@@ -15,8 +15,7 @@ impl CompositeAttemptProgress {
         (
             RelationalCommitIdentity,
             AdmittedRelationalBranchBasis,
-            Option<PerformedRelationalCommit>,
-            Option<DeferredPublicationSettlement>,
+            RelationalRecoveryRoute,
             SignalAttemptProgressPosture,
         ),
         Self,
@@ -33,8 +32,7 @@ impl CompositeAttemptProgress {
                 (
                     performed.commit_identity(),
                     performed.next_basis().clone(),
-                    Some(performed),
-                    None,
+                    RelationalRecoveryRoute::Performed(performed),
                     signal.posture,
                 )
             }
@@ -45,8 +43,16 @@ impl CompositeAttemptProgress {
             }) if posture == RelationalAttemptProgressPosture::SettlementPending => (
                 commit_identity,
                 successor_basis,
-                None,
-                Some(settlement),
+                RelationalRecoveryRoute::SettlementPending(settlement),
+                signal.posture,
+            ),
+            Some(RelationalProgressEvidence::SettlementRequired {
+                commit_identity,
+                successor_basis,
+            }) if posture == RelationalAttemptProgressPosture::SettlementRequired => (
+                commit_identity,
+                successor_basis,
+                RelationalRecoveryRoute::IdentityRequired,
                 signal.posture,
             ),
             evidence => {
@@ -93,6 +99,9 @@ fn recovery_result(
     progress: &RelationalAttemptProgress,
 ) -> Option<crate::publication::CompositeRelationalOwnerResult> {
     match progress.evidence.as_ref() {
+        None if progress.posture() == RelationalAttemptProgressPosture::Untouched => {
+            Some(crate::publication::CompositeRelationalOwnerResult::retained())
+        }
         Some(RelationalProgressEvidence::Performed(performed)) => Some(
             crate::publication::CompositeRelationalOwnerResult::settlement_required(
                 performed.commit_identity(),
@@ -110,8 +119,32 @@ fn recovery_result(
                 settlement.clone(),
             ),
         ),
+        Some(RelationalProgressEvidence::SettlementRequired {
+            commit_identity,
+            successor_basis,
+        }) => Some(
+            crate::publication::CompositeRelationalOwnerResult::settlement_required(
+                commit_identity.clone(),
+                successor_basis.clone(),
+            ),
+        ),
+        Some(RelationalProgressEvidence::Settled {
+            commit_identity,
+            successor_basis,
+            result,
+        }) => Some(crate::publication::CompositeRelationalOwnerResult::settled(
+            commit_identity.clone(),
+            successor_basis.clone(),
+            result.clone(),
+        )),
         _ => None,
     }
+}
+
+pub(crate) enum RelationalRecoveryRoute {
+    Performed(PerformedRelationalCommit),
+    SettlementPending(DeferredPublicationSettlement),
+    IdentityRequired,
 }
 
 impl SignalAttemptProgress {
@@ -145,6 +178,13 @@ impl SignalAttemptProgress {
                 if posture == SignalAttemptProgressPosture::Performed =>
             {
                 crate::publication::CompositeSignalOwnerResult::forked(outcome)
+            }
+            Some(super::SignalProgressEvidence::ForkedAndAdvanced { forked, advanced })
+                if posture == SignalAttemptProgressPosture::Performed =>
+            {
+                crate::publication::CompositeSignalOwnerResult::forked_and_advanced(
+                    forked, advanced,
+                )
             }
             evidence => return Err(Self { posture, evidence }),
         };
