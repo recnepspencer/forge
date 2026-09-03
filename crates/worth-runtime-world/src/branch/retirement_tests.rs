@@ -15,6 +15,7 @@ use crate::lifecycle::{
     RuntimeWorldObservationService, RuntimeWorldOwnerRoot,
 };
 use crate::publication::{CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent};
+use worth_relational::facade::mvcc::RelationalTransactionIntent;
 
 struct FixedClock;
 
@@ -74,7 +75,7 @@ fn fork_intent(name: &str) -> ProductBranchIntent {
             ProductBranchComponentPosture::ForkExact,
             ProductBranchComponentPosture::ReuseExact,
         ),
-        CompositeComponentIntent::signal_only(),
+        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
     )
 }
 
@@ -257,7 +258,7 @@ fn retired_identity_high_water_classifies_evicted_history_as_already_retired() {
 }
 
 #[test]
-fn branch_capacity_denies_before_identity_or_retention_work_and_fork_denies_without_effect() {
+fn branch_capacity_denies_before_identity_or_retention_work_for_fork_input() {
     let (_fixture, owner, root) = setup(1);
     let before = owner.state.retention.cost_snapshot();
     assert!(matches!(
@@ -290,11 +291,11 @@ fn branch_capacity_denies_before_identity_or_retention_work_and_fork_denies_with
             &owner,
             RuntimeWorldBranchCreationRequest::new(
                 root.clone(),
-                fork_intent("unsupported-fork"),
+                fork_intent("capacity-fork"),
                 CompositeExecutionBorrow::without_signal(),
             ),
         ),
-        Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)
+        Err(RuntimeWorldBranchAdmissionDenial::CapacityExhausted)
     ));
     assert_eq!(owner.state.branches.branch_count(), 1);
     assert_eq!(owner.state.retention.cost_snapshot(), before);
@@ -353,3 +354,7 @@ fn foreign_basis_is_rejected_before_branch_reservation() {
     ));
     assert_eq!(owner.state.branches.reserved_branch_count(), 0);
 }
+
+#[cfg(test)]
+#[path = "retirement_tests/fork_creation.rs"]
+mod fork_creation;

@@ -14,6 +14,7 @@ use crate::lifecycle::{
     RuntimeWorldBranchService, RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant,
 };
 use crate::publication::{CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent};
+use worth_relational::facade::mvcc::RelationalTransactionIntent;
 
 type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -155,4 +156,36 @@ fn held_duplicate_name_maps_to_the_same_denial_and_drop_releases_it() {
     drop(held);
 
     create_reused_branch(&owner, &root, reuse_intent("held-duplicate"));
+}
+
+#[test]
+fn fork_without_owner_issued_plan_input_is_no_effect() {
+    let (_fixture, owner, root) = setup();
+    let before_history = owner.state.history.counters();
+    let before_retention = owner.state.retention.cost_snapshot();
+
+    let intent = ProductBranchIntent::new(
+        ProductBranchCreationIntent::named("missing-fork-input").expect("valid branch name"),
+        ProductBranchComponentPostures::new(
+            ProductBranchComponentPosture::ForkExact,
+            ProductBranchComponentPosture::ReuseExact,
+        ),
+        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
+    );
+    assert!(matches!(
+        RuntimeWorldBranchService::create_product_branch(
+            &owner,
+            RuntimeWorldBranchCreationRequest::new(
+                root.clone(),
+                intent,
+                CompositeExecutionBorrow::without_signal(),
+            ),
+        ),
+        Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)
+    ));
+    assert_eq!(owner.state.branches.branch_count(), 1);
+    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
+    assert_eq!(owner.state.history.counters(), before_history);
+    assert_eq!(owner.state.retention.cost_snapshot(), before_retention);
+    assert_eq!(owner.recovery_record_count(), 0);
 }

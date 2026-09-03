@@ -13,6 +13,8 @@ use crate::publication::{CompositeExecutionBorrow, ProductBranchIntent};
 use super::super::ports::{RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest};
 use super::RuntimeWorldOwnerRoot;
 
+mod creation;
+
 impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
@@ -54,6 +56,36 @@ where
         source: ProductBranchObservation,
         intent: ProductBranchIntent,
     ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
+        let (basis, commit) = self.reused_commit(&source)?;
+
+        let reservation = self
+            .state
+            .branches
+            .reserve_branch(self.owner_identity(), intent.creation().name().clone())
+            .map_err(map_registry_denial)?;
+        let (branch, lifecycle) = self
+            .issue_branch_identities()
+            .map_err(|_| RuntimeWorldBranchAdmissionDenial::IdentityExhausted)?;
+        let (cell, snapshot) =
+            self.issue_reused_head(branch.clone(), lifecycle, &basis, Arc::clone(&commit))?;
+        let observation = self.issue_reused_observation(snapshot, commit)?;
+
+        reservation
+            .install(branch, lifecycle, cell)
+            .map_err(|(_, denial)| map_registry_denial(denial))?;
+        Ok(observation)
+    }
+
+    fn reused_commit(
+        &self,
+        source: &ProductBranchObservation,
+    ) -> Result<
+        (
+            crate::basis::AdmittedCompositeRuntimeWorldBasis,
+            Arc<crate::history::CompositeRuntimeWorldCommit>,
+        ),
+        RuntimeWorldBranchAdmissionDenial,
+    > {
         let basis = source.basis().clone();
         let commit_identity = self
             .state
@@ -68,20 +100,19 @@ where
         if crate::basis::compare_exact(commit.basis(), &basis).is_err() {
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
+        Ok((basis, commit))
+    }
 
-        let reservation = self
-            .state
-            .branches
-            .reserve_branch(self.owner_identity(), intent.creation().name().clone())
-            .map_err(map_registry_denial)?;
-        let (branch, lifecycle) = self
-            .issue_branch_identities()
-            .map_err(|_| RuntimeWorldBranchAdmissionDenial::IdentityExhausted)?;
-
-        // The exact basis is already admitted and retained by the source
-        // observation/product head. This direct product-head issuance joins
-        // existing unique pins and performs no component-owner work for the
-        // normal reuse path.
+    fn issue_reused_head(
+        &self,
+        branch: ProductBranchIdentity,
+        lifecycle: ProductBranchLifecycleIncarnation,
+        basis: &crate::basis::AdmittedCompositeRuntimeWorldBasis,
+        commit: Arc<crate::history::CompositeRuntimeWorldCommit>,
+    ) -> Result<
+        (ProductBranchReferenceCell, ProductBranchReferenceSnapshot),
+        RuntimeWorldBranchAdmissionDenial,
+    > {
         let product_head = self
             .state
             .retention
@@ -108,6 +139,14 @@ where
         .map_err(|_| RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
         let cell = ProductBranchReferenceCell::new(protection)
             .map_err(|_| RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
+        Ok((cell, snapshot))
+    }
+
+    fn issue_reused_observation(
+        &self,
+        snapshot: ProductBranchReferenceSnapshot,
+        commit: Arc<crate::history::CompositeRuntimeWorldCommit>,
+    ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
         let observation_components = self
             .state
             .retention
@@ -124,10 +163,6 @@ where
             observation_history,
         )
         .map_err(|_| RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
-
-        reservation
-            .install(branch, lifecycle, cell)
-            .map_err(|(_, denial)| map_registry_denial(denial))?;
         Ok(observation)
     }
 }
@@ -186,17 +221,15 @@ where
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
         let postures = intent.component_postures();
-        if !postures.is_exact_reuse() {
-            // The branch lane freezes the owner-issued source and borrow now;
-            // fork execution remains a later behavior slice until its
-            // component owners are wired through this exact port.
-            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+        if postures.is_exact_reuse() {
+            if !matches!(signal, CompositeExecutionBorrow::WithoutSignal) {
+                return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+            }
+            return self
+                .create_reused_branch(source, intent)
+                .map(RuntimeWorldBranchCreationOutcome::Performed);
         }
-        if !matches!(signal, CompositeExecutionBorrow::WithoutSignal) {
-            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
-        }
-        self.create_reused_branch(source, intent)
-            .map(RuntimeWorldBranchCreationOutcome::Performed)
+        creation::create_forked_branch(self, source, intent, signal)
     }
 
     fn retire_product_branch(
