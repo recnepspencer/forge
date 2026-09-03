@@ -169,6 +169,7 @@ impl ProductBranchRegistryReservation {
                 *count = count
                     .checked_add(1)
                     .expect("live branch count cannot overflow a bounded registry");
+                super::record_installed_branch(&mut state, &installed_root);
                 if root {
                     state.root = Some(installed_root);
                 }

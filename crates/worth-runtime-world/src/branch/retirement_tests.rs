@@ -227,6 +227,48 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
 }
 
 #[test]
+fn retired_identity_high_water_classifies_evicted_history_as_already_retired() {
+    let (_fixture, owner, root) = setup(2);
+    let first = RuntimeWorldBranchService::create_product_branch(
+        &owner,
+        root.basis().clone(),
+        reuse_intent("first"),
+    )
+    .expect("first child");
+    let first_id = first.branch_identity().clone();
+    RuntimeWorldBranchService::retire_product_branch(&owner, first_id.clone())
+        .expect("first retirement");
+    drop(first);
+
+    let second = RuntimeWorldBranchService::create_product_branch(
+        &owner,
+        root.basis().clone(),
+        reuse_intent("second"),
+    )
+    .expect("second child");
+    let second_id = second.branch_identity().clone();
+    RuntimeWorldBranchService::retire_product_branch(&owner, second_id).expect("second retirement");
+    drop(second);
+
+    let third = RuntimeWorldBranchService::create_product_branch(
+        &owner,
+        root.basis().clone(),
+        reuse_intent("third"),
+    )
+    .expect("third child");
+    let third_id = third.branch_identity().clone();
+    RuntimeWorldBranchService::retire_product_branch(&owner, third_id).expect("third retirement");
+    drop(third);
+
+    assert!(matches!(
+        RuntimeWorldBranchService::retire_product_branch(&owner, first_id),
+        Err(RuntimeWorldBranchRetirementDenial::AlreadyRetired)
+    ));
+    assert_eq!(owner.state.branches.branch_count(), 1);
+    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
+}
+
+#[test]
 fn branch_capacity_denies_before_identity_or_retention_work_and_fork_denies_without_effect() {
     let (_fixture, owner, root) = setup(1);
     let before = owner.state.retention.cost_snapshot();
@@ -288,8 +330,8 @@ fn foreign_basis_is_rejected_before_branch_reservation() {
         foreign_fixture.owner_inputs(budgets(3), RuntimeWorldClock::from_source(FixedClock)),
     )
     .expect("foreign managed owner");
-    let foreign_basis = match foreign_owner.bootstrap_root(foreign_fixture.bootstrap_intent()) {
-        RuntimeWorldBootstrapOutcome::Performed(performed) => performed.basis().clone(),
+    let foreign_root = match foreign_owner.bootstrap_root(foreign_fixture.bootstrap_intent()) {
+        RuntimeWorldBootstrapOutcome::Performed(performed) => performed.product_branch().clone(),
         RuntimeWorldBootstrapOutcome::NoEffect(no_effect) => {
             panic!(
                 "foreign bootstrap unexpectedly denied: {:?}",
@@ -297,6 +339,7 @@ fn foreign_basis_is_rejected_before_branch_reservation() {
             )
         }
     };
+    let foreign_basis = foreign_root.basis().clone();
     assert!(matches!(
         RuntimeWorldBranchService::create_product_branch(
             &owner,
@@ -304,6 +347,13 @@ fn foreign_basis_is_rejected_before_branch_reservation() {
             reuse_intent("foreign"),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::ForeignOwner)
+    ));
+    assert!(matches!(
+        RuntimeWorldBranchService::retire_product_branch(
+            &owner,
+            foreign_root.branch_identity().clone(),
+        ),
+        Err(RuntimeWorldBranchRetirementDenial::OwnerUnavailable)
     ));
     assert_eq!(owner.state.branches.reserved_branch_count(), 0);
 }

@@ -1,6 +1,6 @@
 mod reservation;
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
@@ -37,7 +37,7 @@ struct ProductBranchRegistryState {
     entries: HashMap<ProductBranchIdentity, ProductBranchRegistryEntry>,
     names: HashMap<String, ProductBranchIdentity>,
     lifecycles: HashSet<ProductBranchLifecycleIncarnation>,
-    retired_branches: VecDeque<ProductBranchIdentity>,
+    installed_branch_high_water: Option<ProductBranchIdentity>,
     basis_commits: HashMap<CompositeBasisIdentity, HashMap<CompositeCommitIdentity, usize>>,
     root: Option<ProductBranchIdentity>,
 }
@@ -75,7 +75,7 @@ impl ProductBranchRegistry {
                 entries: HashMap::new(),
                 names: HashMap::new(),
                 lifecycles: HashSet::new(),
-                retired_branches: VecDeque::new(),
+                installed_branch_high_water: None,
                 basis_commits: HashMap::new(),
                 root: None,
             })),
@@ -219,11 +219,17 @@ impl ProductBranchRegistry {
         let entry = match state.entries.remove(branch) {
             Some(entry) => entry,
             None => {
-                return Err(if state.retired_branches.contains(branch) {
-                    ProductBranchRegistryDenial::AlreadyRetired
-                } else {
-                    ProductBranchRegistryDenial::UnknownBranch
-                });
+                return Err(
+                    if state
+                        .installed_branch_high_water
+                        .as_ref()
+                        .map_or(false, |high_water| branch <= high_water)
+                    {
+                        ProductBranchRegistryDenial::AlreadyRetired
+                    } else {
+                        ProductBranchRegistryDenial::UnknownBranch
+                    },
+                );
             }
         };
         state.names.remove(entry.name.as_str());
@@ -232,19 +238,21 @@ impl ProductBranchRegistry {
         if state.root.as_ref() == Some(branch) {
             state.root = None;
         }
-        remember_retired_branch(&mut state, branch);
         Ok(entry.cell)
     }
 }
 
-fn remember_retired_branch(state: &mut ProductBranchRegistryState, branch: &ProductBranchIdentity) {
-    if state.retired_branches.len() >= state.maximum_branches {
-        state
-            .retired_branches
-            .pop_front()
-            .expect("a full retirement ledger has one oldest entry");
+pub(super) fn record_installed_branch(
+    state: &mut ProductBranchRegistryState,
+    branch: &ProductBranchIdentity,
+) {
+    if state
+        .installed_branch_high_water
+        .as_ref()
+        .map_or(true, |high_water| branch > high_water)
+    {
+        state.installed_branch_high_water = Some(branch.clone());
     }
-    state.retired_branches.push_back(branch.clone());
 }
 
 fn remove_basis_candidate(
