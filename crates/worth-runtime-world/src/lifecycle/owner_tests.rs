@@ -13,6 +13,11 @@ use crate::lifecycle::{
 
 use super::RuntimeWorldOwnerConstructionContract;
 
+#[path = "owner_tests/admission_race.rs"]
+mod admission_race;
+#[path = "owner_tests/publication.rs"]
+mod publication;
+
 #[test]
 fn owner_construction_owns_one_non_resettable_issuer() {
     let first = RuntimeWorldOwnerConstructionContract::new().expect("first managed owner identity");
@@ -69,7 +74,7 @@ fn bootstrap_budgets() -> RuntimeWorldBudgets {
             live_product_branches: 1,
         },
         history: RuntimeWorldHistoryBudgetInstallation {
-            retained_composite_commits: 2,
+            retained_composite_commits: 4,
             history_metadata_bytes: 4096,
         },
         observations: RuntimeWorldObservationBudgetInstallation {
@@ -79,11 +84,13 @@ fn bootstrap_budgets() -> RuntimeWorldBudgets {
             active_publication_attempts: 2,
         },
         recovery: RuntimeWorldRecoveryBudgetInstallation {
-            retained_product_unpublished_records: 1,
+            retained_product_unpublished_records: 2,
             retained_partial_metadata_bytes: 1,
         },
         retention: RuntimeWorldRetentionBudgetInstallation {
-            unique_exact_component_pins: 4,
+            // Two bootstrap pins plus two pessimistic pin reservations for
+            // each of the two concurrently admitted publication attempts.
+            unique_exact_component_pins: 6,
             in_flight_pin_acquisition_reservations: 4,
         },
         custody: RuntimeWorldCustodyBudgetInstallation {
@@ -294,14 +301,7 @@ fn owner_reservation_owns_all_real_capacity_and_drops_it_as_one_attempt() {
         2
     );
     assert_eq!(owner.state.publication_capacity.active(), 1);
-    assert_eq!(
-        *owner
-            .state
-            .operation
-            .lock()
-            .unwrap_or_else(|error| error.into_inner()),
-        super::RuntimeWorldOperationState::Preparing
-    );
+    assert_eq!(owner.state.operation.active(), 1);
     assert_eq!(owner.close(), Err(RuntimeWorldCloseDenial::AlreadyClosing));
     drop(attempt);
     assert_eq!(owner.state.history.reserved_len(), 0);
@@ -315,12 +315,5 @@ fn owner_reservation_owns_all_real_capacity_and_drops_it_as_one_attempt() {
         0
     );
     assert_eq!(owner.state.publication_capacity.active(), 0);
-    assert_eq!(
-        *owner
-            .state
-            .operation
-            .lock()
-            .unwrap_or_else(|error| error.into_inner()),
-        super::RuntimeWorldOperationState::Idle
-    );
+    assert_eq!(owner.state.operation.active(), 0);
 }

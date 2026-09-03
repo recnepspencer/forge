@@ -50,7 +50,8 @@ impl ReservedComponentPinPairCapacity {
     }
 
     /// Bind the reserved pair to the exact basis selected by the operation.
-    /// On denial the token and all reservation capacity remain recoverable.
+    /// On denial, the owner restores consumed credit before returning this
+    /// still-armed token so recovery can retry or release it exactly once.
     pub(crate) fn bind_publication(
         mut self,
         basis: &AdmittedCompositeRuntimeWorldBasis,
@@ -110,7 +111,7 @@ where
         Ok(ReservedComponentPinPairCapacity::issued(control))
     }
 
-    pub(super) fn restore_reserved_pair_capacity(&self) {
+    pub(super) fn release_reserved_pair_capacity(&self) {
         let mut state = self.lock();
         state.reserved_unique_slots = state
             .reserved_unique_slots
@@ -120,6 +121,20 @@ where
             .reserved_in_flight_reservations
             .checked_sub(2)
             .expect("a live pair reservation owns two in-flight capacity units");
+    }
+
+    pub(super) fn restore_consumed_pair_capacity(&self) {
+        let mut state = self.lock();
+        state.reserved_unique_slots = state
+            .reserved_unique_slots
+            .checked_add(2)
+            .expect("fixed pair capacity restoration cannot overflow");
+        state.reserved_in_flight_reservations = state
+            .reserved_in_flight_reservations
+            .checked_add(2)
+            .expect("fixed pair capacity restoration cannot overflow");
+        assert!(state.reserved_unique_slots <= state.maximum_unique_pins);
+        assert!(state.reserved_in_flight_reservations <= state.maximum_in_flight_reservations);
     }
 }
 
@@ -144,6 +159,6 @@ where
     }
 
     fn release_pair_capacity(&self) {
-        self.restore_reserved_pair_capacity();
+        self.release_reserved_pair_capacity();
     }
 }

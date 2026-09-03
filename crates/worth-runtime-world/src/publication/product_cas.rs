@@ -1,45 +1,24 @@
 use std::sync::Arc;
 
 use crate::branch::{
-    ProductBranchHeadProtection, ProductBranchHeadProtectionDenial, ProductBranchObservation,
-    ProductBranchReferenceCell, ProductBranchReferencePublishFailure,
+    ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceCell,
+    ProductBranchReferencePublishFailure, ProductBranchReferenceSnapshot,
 };
-use crate::history::{CompositeRuntimeWorldCommit, ProductHeadHistoryProtectionObligation};
+use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::CompositePublicationAttemptIdentity;
 use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
     ProductUnpublishedOwnerEffects,
 };
-use crate::retention::{
-    ProductHeadRetentionObligation, ProductHeadRetentionTransfer, PublicationRetentionObligation,
-    RetentionTransferDenial,
-};
+use crate::retention::PublicationRetentionObligation;
 
 use super::{
     CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
-    CompositePublicationCostCounters, NoEffectCause, NoEffectCompositePublication,
-    PerformedCompositePublication, RuntimeWorldPublicationOutcome,
+    CompositePublicationCostCounters, PerformedCompositePublication,
+    RuntimeWorldPublicationOutcome,
 };
 
 const PRODUCT_CAS_LOSS_LIVE_OBLIGATION_COUNT: usize = 3;
-
-#[derive(Debug)]
-pub(crate) enum CompositePublicationReadyFailure {
-    NoEffect(NoEffectCompositePublication),
-    ProductHeadTransfer {
-        obligation: PublicationRetentionObligation,
-        denial: RetentionTransferDenial,
-    },
-    ProductHeadTransition {
-        obligation: ProductHeadRetentionObligation,
-        history: ProductHeadHistoryProtectionObligation,
-        denial: RetentionTransferDenial,
-    },
-    ProductHeadProtection {
-        transfer: ProductHeadRetentionTransfer,
-        denial: ProductBranchHeadProtectionDenial,
-    },
-}
 
 /// Final pre-publication phase. It owns all real reservations and the
 /// successor-basis publication retention until the product CAS resolves.
@@ -133,10 +112,9 @@ impl CompositePublicationReady {
     pub(crate) fn publish(
         self,
         cell: &ProductBranchReferenceCell,
-        new_product_head: ProductBranchObservation,
         late_cancellation: CompositeLateCancellationPosture,
         cost_counters: CompositePublicationCostCounters,
-    ) -> Result<RuntimeWorldPublicationOutcome, CompositePublicationReadyFailure> {
+    ) -> RuntimeWorldPublicationOutcome {
         let Self {
             attempt_identity,
             expected_head,
@@ -148,118 +126,74 @@ impl CompositePublicationReady {
             reserved_recovery_slot,
             reserved_publication_capacity: _reserved_publication_capacity,
             history,
-            operation: _operation,
+            mut operation,
             publication_retention,
             cancellation: _cancellation,
             deadline,
             order: _order,
         } = self;
-        if !valid_successor(
-            &expected_head,
-            &new_product_head,
-            commit.as_ref(),
-            &owner_results,
-        ) {
-            return Err(CompositePublicationReadyFailure::NoEffect(
-                NoEffectCompositePublication::new(
-                    NoEffectCause::OwnerDeniedBeforeEffect,
-                    Some(expected_head),
-                ),
-            ));
-        }
-        let entry = match reserved_commit_capacity.install(Arc::clone(&commit)) {
-            Ok(entry) => entry,
-            Err(_) => {
-                return Err(CompositePublicationReadyFailure::NoEffect(
-                    NoEffectCompositePublication::new(
-                        NoEffectCause::CapacityExhausted,
-                        Some(expected_head),
-                    ),
-                ))
-            }
-        };
+        assert!(
+            commit.matches_owner_results(expected_head.basis(), &owner_results),
+            "a ready publication carries the exact owner results embodied by its commit"
+        );
+        let successor_snapshot = ProductBranchReferenceSnapshot::owner_issued(
+            expected_head.owner_identity(),
+            expected_head.branch_identity().clone(),
+            expected_head.lifecycle_incarnation(),
+            expected_head
+                .reference_generation()
+                .advance()
+                .expect("reference generation capacity was checked before owner effects"),
+            Arc::clone(&commit),
+        )
+        .expect("the ready commit and expected head share one owner and branch lineage");
+        let entry = reserved_commit_capacity
+            .install(Arc::clone(&commit))
+            .expect("the ready commit matches its reserved history slot");
         let installed_rollback = history.arm_installed_commit_rollback(entry.identity());
-        let product_history = match history.protect_product_head(entry.commit()) {
-            Ok(protection) => protection,
-            Err(_) => {
-                return Err(CompositePublicationReadyFailure::NoEffect(
-                    NoEffectCompositePublication::new(
-                        NoEffectCause::CapacityExhausted,
-                        Some(expected_head),
-                    ),
-                ))
-            }
-        };
-        let transfer = match publication_retention.into_product_head_transfer(commit.basis()) {
-            Ok(transfer) => transfer,
-            Err((obligation, denial)) => {
-                return Err(CompositePublicationReadyFailure::ProductHeadTransfer {
-                    obligation,
-                    denial,
-                })
-            }
-        };
-        let protection = match ProductBranchHeadProtection::owner_issued(
-            new_product_head.snapshot().clone(),
+        let product_history = history
+            .protect_product_head(entry.commit())
+            .expect("the installed ready commit admits product-head history protection");
+        let transfer = publication_retention
+            .into_product_head_transfer(commit.basis())
+            .expect("ready publication retention is bound to the exact successor basis");
+        let protection = ProductBranchHeadProtection::owner_issued(
+            successor_snapshot,
             transfer,
             product_history,
-        ) {
-            Ok(protection) => protection,
-            Err(failure) => {
-                let denial = failure.denial();
-                let (_snapshot, product_head, product_history, receipt) =
-                    failure.into_protection().into_parts();
-                drop(product_history);
-                let receipt = receipt.expect("owner-issued protection carries transfer evidence");
-                return Err(CompositePublicationReadyFailure::ProductHeadProtection {
-                    transfer: ProductHeadRetentionTransfer::new(product_head, receipt),
-                    denial,
-                });
-            }
-        };
+        )
+        .expect("ready component and history custody match the successor image");
         installed_rollback.commit();
         match cell.compare_and_publish(&expected_head, protection) {
-            Ok(movement) => Ok(RuntimeWorldPublicationOutcome::Performed(
+            Ok(movement) => RuntimeWorldPublicationOutcome::Performed(
                 PerformedCompositePublication::owner_issued(
                     expected_head,
-                    new_product_head,
+                    movement,
                     commit,
                     attempt_identity,
                     owner_results,
                     late_cancellation,
-                    movement.retention_transfer().clone(),
                     cost_counters,
                 ),
-            )),
-            Err(failure) => Ok(RuntimeWorldPublicationOutcome::ProductUnpublished(
-                unpublished_from_cas_loss(
+            ),
+            Err(failure) => {
+                operation
+                    .begin_recovery()
+                    .expect("a lost product CAS enters retained recovery");
+                RuntimeWorldPublicationOutcome::ProductUnpublished(unpublished_from_cas_loss(
                     failure,
                     attempt_identity,
                     product_unpublished_identity,
                     expected_head,
                     progress,
                     commit,
+                    owner_results,
                     reserved_recovery_slot,
                     deadline,
-                )?,
-            )),
+                ))
+            }
         }
     }
-}
-
-fn valid_successor(
-    expected: &ProductBranchObservation,
-    successor: &ProductBranchObservation,
-    commit: &CompositeRuntimeWorldCommit,
-    owner_results: &CompositeOwnerExecutionResults,
-) -> bool {
-    let next_generation = expected.reference_generation().advance().ok();
-    successor.owner_identity() == expected.owner_identity()
-        && successor.branch_identity() == expected.branch_identity()
-        && successor.lifecycle_incarnation() == expected.lifecycle_incarnation()
-        && next_generation == Some(successor.reference_generation())
-        && successor.selected_commit() == commit.identity()
-        && commit.matches_owner_results(expected.basis(), owner_results)
 }
 
 fn unpublished_from_cas_loss(
@@ -269,34 +203,27 @@ fn unpublished_from_cas_loss(
     expected_head: ProductBranchObservation,
     progress: super::CompositeAttemptProgress,
     commit: Arc<CompositeRuntimeWorldCommit>,
+    owner_results: CompositeOwnerExecutionResults,
     recovery_slot: crate::recovery::ReservedProductUnpublishedSlot,
     deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
-) -> Result<ProductUnpublishedOwnerEffects, CompositePublicationReadyFailure> {
+) -> ProductUnpublishedOwnerEffects {
     let (observed_head, protection) = failure.into_recovery_parts();
     let (_snapshot, product_head, product_history, _receipt) = protection.into_parts();
-    let retained = match product_head.try_transition_to_retained_partial() {
-        Ok(retained) => retained,
-        Err((obligation, denial)) => {
-            return Err(CompositePublicationReadyFailure::ProductHeadTransition {
-                obligation,
-                history: product_history,
-                denial,
-            })
-        }
-    };
+    let retained = product_head.transition_to_retained_partial();
     let successor_history = product_history.transition_to_product_unpublished();
     let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
         &progress,
         PRODUCT_CAS_LOSS_LIVE_OBLIGATION_COUNT,
         0,
     );
-    Ok(ProductUnpublishedOwnerEffects::new(
+    ProductUnpublishedOwnerEffects::new_retained(
         identity,
         attempt_identity,
         expected_head,
         Some(observed_head),
         progress,
         Some(commit.basis().clone()),
+        owner_results,
         retained,
         successor_history,
         recovery_slot,
@@ -308,9 +235,5 @@ fn unpublished_from_cas_loss(
         ],
         deadline,
         0,
-    ))
+    )
 }
-
-#[cfg(test)]
-#[path = "product_cas_tests.rs"]
-mod tests;

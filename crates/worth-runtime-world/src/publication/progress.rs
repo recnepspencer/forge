@@ -25,6 +25,7 @@ pub(super) enum RelationalProgressEvidence {
         settlement: DeferredPublicationSettlement,
     },
     Settled {
+        performed: PerformedRelationalCommit,
         receipt: RelationalCommitReceipt,
     },
 }
@@ -70,10 +71,13 @@ impl RelationalAttemptProgress {
         }
     }
 
-    pub(crate) fn settled(receipt: RelationalCommitReceipt) -> Self {
+    pub(crate) fn settled(
+        performed: PerformedRelationalCommit,
+        receipt: RelationalCommitReceipt,
+    ) -> Self {
         Self {
             posture: RelationalAttemptProgressPosture::Settled,
-            evidence: Some(RelationalProgressEvidence::Settled { receipt }),
+            evidence: Some(RelationalProgressEvidence::Settled { performed, receipt }),
         }
     }
 
@@ -188,6 +192,69 @@ impl CompositeAttemptProgress {
 
     pub(crate) fn into_parts(self) -> (RelationalAttemptProgress, SignalAttemptProgress) {
         (self.relational, self.signal)
+    }
+
+    pub(super) fn into_ready_results(
+        self,
+    ) -> Result<(Self, super::CompositeOwnerExecutionResults), Self> {
+        let relational_ready = matches!(
+            self.relational.posture,
+            RelationalAttemptProgressPosture::Untouched
+                | RelationalAttemptProgressPosture::Performed
+                | RelationalAttemptProgressPosture::Settled
+        );
+        let signal_ready = matches!(
+            self.signal.posture,
+            SignalAttemptProgressPosture::Untouched | SignalAttemptProgressPosture::Performed
+        );
+        if !relational_ready || !signal_ready || self.owner_effect_count() == 0 {
+            return Err(self);
+        }
+
+        let Self { relational, signal } = self;
+        let relational_posture = relational.posture;
+        let signal_posture = signal.posture;
+        let relational_result = match relational.evidence {
+            None if relational_posture == RelationalAttemptProgressPosture::Untouched => {
+                super::CompositeRelationalOwnerResult::retained()
+            }
+            Some(RelationalProgressEvidence::Performed(performed)) => {
+                super::CompositeRelationalOwnerResult::published(performed, None)
+            }
+            Some(RelationalProgressEvidence::Settled { performed, receipt }) => {
+                super::CompositeRelationalOwnerResult::published(performed, Some(receipt))
+            }
+            _ => unreachable!("ready Relational progress carries matching evidence"),
+        };
+        let signal_result = match signal.evidence {
+            None if signal_posture == SignalAttemptProgressPosture::Untouched => {
+                super::CompositeSignalOwnerResult::retained()
+            }
+            Some(SignalProgressEvidence::Advanced(advanced)) => {
+                super::CompositeSignalOwnerResult::advanced(advanced)
+            }
+            Some(SignalProgressEvidence::Forked(forked)) => {
+                super::CompositeSignalOwnerResult::forked(forked)
+            }
+            _ => unreachable!("ready Signal progress carries matching evidence"),
+        };
+        let summary = Self {
+            relational: RelationalAttemptProgress {
+                posture: relational_posture,
+                evidence: None,
+            },
+            signal: SignalAttemptProgress {
+                posture: signal_posture,
+                evidence: None,
+            },
+        };
+        Ok((
+            summary,
+            super::CompositeOwnerExecutionResults::from_components(
+                relational_result,
+                signal_result,
+            ),
+        ))
     }
 }
 

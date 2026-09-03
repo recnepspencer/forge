@@ -104,7 +104,6 @@ pub(crate) trait RuntimeWorldProductPublicationService {
         &self,
         ready: CompositePublicationReady,
         cell: &ProductBranchReferenceCell,
-        successor: ProductBranchObservation,
         late_cancellation: CompositeLateCancellationPosture,
         cost_counters: CompositePublicationCostCounters,
     ) -> RuntimeWorldPublicationOutcome;

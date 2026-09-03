@@ -90,7 +90,7 @@ pub(super) fn linear_history(
                     .issuer_mut()
                     .publication_attempt()
                     .expect("ordinary attempt"),
-                CompositeOwnerExecutionResults::retained(),
+                &CompositeOwnerExecutionResults::retained(),
                 None,
             )
             .expect("ordinary commit"),

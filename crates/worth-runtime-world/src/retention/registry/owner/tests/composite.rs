@@ -206,9 +206,7 @@ fn product_head_transfer_and_recovery_change_both_exact_classes_once() {
         ComponentBasisDependencyClass::ProductBranchHead
     );
 
-    let retained = product_head
-        .try_transition_to_retained_partial()
-        .expect("product-head authority moves as one pair");
+    let retained = product_head.transition_to_retained_partial();
     assert_eq!(
         retained.signal().dependency(),
         ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects

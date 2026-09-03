@@ -68,6 +68,34 @@ impl RealReferenceFixture {
         }
     }
 
+    pub(crate) fn perform_signal_owner_change(
+        &mut self,
+    ) -> worth_signal::facade::branch::SignalBranchAdvanceOutcome {
+        let services = self
+            ._signal_runtime
+            .owner_component_services()
+            .expect("real Signal owner issues its mutation service");
+        let expected = self
+            ._signal_runtime
+            .observe_signal_branch_basis(self._signal_runtime.current_branch())
+            .expect("real Signal owner observes its current basis");
+        let cancellation = worth_signal::facade::branch::SignalOwnerCancellationSource::new();
+        services
+            .mutation_port()
+            .advance_exact(&expected, &mut (), &cancellation.token(), |_| Ok(()))
+            .expect("real Signal owner performs the empty bounded transaction")
+    }
+
+    #[cfg(feature = "test-operation-control")]
+    pub(crate) fn inject_signal_retention_panic(&self) {
+        use worth_signal::facade::branch::SignalOwnerOperationBoundary;
+
+        self._signal_runtime
+            .owner_operation_control()
+            .expect("real Signal owner exposes operation control")
+            .inject_panic_once(SignalOwnerOperationBoundary::BranchRegistryLookup);
+    }
+
     pub(crate) fn owner_inputs(
         &mut self,
         budgets: RuntimeWorldBudgets,

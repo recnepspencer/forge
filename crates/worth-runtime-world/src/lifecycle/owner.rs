@@ -25,8 +25,9 @@ pub(crate) use construction::{
     RuntimeWorldOwnerConstructionCapability, RuntimeWorldOwnerConstructionContract,
 };
 pub(crate) use operation::{
-    ReservedPublicationAttemptCapacity, RuntimeWorldOperationReservation,
-    RuntimeWorldOperationState, RuntimeWorldPublicationCapacityLedger,
+    ReservedPublicationAttemptCapacity, RuntimeWorldOperationLedger,
+    RuntimeWorldOperationReservation, RuntimeWorldOperationState,
+    RuntimeWorldPublicationCapacityLedger,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,7 +81,7 @@ where
     pub(super) recovery: RecoveryCatalog,
     pub(super) bootstrap: Mutex<RuntimeWorldBootstrapState>,
     pub(super) close: Mutex<RuntimeWorldCloseContract>,
-    pub(super) operation: Arc<Mutex<RuntimeWorldOperationState>>,
+    pub(super) operation: RuntimeWorldOperationLedger,
     pub(super) publication_capacity: RuntimeWorldPublicationCapacityLedger,
 }
 
@@ -133,7 +134,7 @@ where
                 recovery,
                 bootstrap: Mutex::new(RuntimeWorldBootstrapState::Unperformed),
                 close: Mutex::new(RuntimeWorldCloseContract::open()),
-                operation: Arc::new(Mutex::new(RuntimeWorldOperationState::Idle)),
+                operation: RuntimeWorldOperationLedger::new(),
                 publication_capacity,
             }),
         })

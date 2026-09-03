@@ -420,10 +420,10 @@ the only ordinary continuation authority.
 
 `PerformedCompositePublication` proves that the exact reserved commit was
 installed and the expected product reference moved once. It carries the
-canonical commit, old and new reference observations, exact component results,
-late-cancellation posture, retention transfer, and cost counters. It is linear
-private authority consumed by Query 9.17.3. A cloneable inspection projection
-may describe it but cannot authorize a Query committed terminal.
+canonical commit, old observation and exact reference movement, component
+results, late-cancellation posture, retention transfer, and cost counters. It
+is linear private authority consumed by Query 9.17.3. A cloneable inspection
+projection may describe it but cannot authorize a Query committed terminal.
 
 Cancellation is no-effect only through the last safe point before the first
 owner effect. Between owner calls or before product CAS it produces

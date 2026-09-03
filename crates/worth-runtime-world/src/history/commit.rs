@@ -266,7 +266,7 @@ impl CompositeRuntimeWorldCommit {
         predecessor: &CompositeRuntimeWorldCommit,
         basis: AdmittedCompositeRuntimeWorldBasis,
         publication: CompositePublicationAttemptIdentity,
-        owner_results: CompositeOwnerExecutionResults,
+        owner_results: &CompositeOwnerExecutionResults,
         caller_correlation: Option<CompositeCallerCorrelation>,
     ) -> Result<Self, CompositeCommitConstructionDenial> {
         require_owner(identity.owner_identity(), basis.owner_identity())?;
@@ -280,7 +280,7 @@ impl CompositeRuntimeWorldCommit {
             predecessor.basis().owner_identity(),
         )?;
         let component_evidence = CompositeComponentEvidence::from_owner_results(
-            &owner_results,
+            owner_results,
             predecessor.basis(),
             &basis,
         )?;

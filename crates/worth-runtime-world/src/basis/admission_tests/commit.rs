@@ -45,7 +45,7 @@ fn constructor_binds_parent_basis_and_owner_results() {
             .issuer_mut()
             .publication_attempt()
             .expect("publication provenance"),
-        CompositeOwnerExecutionResults::retained(),
+        &CompositeOwnerExecutionResults::retained(),
         None,
     )
     .expect("retained owner results match the exact predecessor basis");
@@ -86,7 +86,7 @@ fn constructor_binds_parent_basis_and_owner_results() {
             .issuer_mut()
             .publication_attempt()
             .expect("mismatched publication provenance"),
-        CompositeOwnerExecutionResults::retained(),
+        &CompositeOwnerExecutionResults::retained(),
         None,
     )
     .expect_err("retained evidence cannot be paired with a different component basis");

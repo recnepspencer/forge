@@ -7,6 +7,7 @@ mod progress;
 pub use continuation::{ProductUnpublishedNextAction, RecoveryContinuationContract};
 pub use product_unpublished::{
     ProductUnpublishedCause, ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle,
+    ProductUnpublishedRetentionPosture,
 };
 
 pub(crate) use catalog::{RecoveryCatalog, RecoveryCatalogDenial, ReservedProductUnpublishedSlot};

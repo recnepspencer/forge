@@ -7,9 +7,7 @@ use crate::branch::{
     RuntimeWorldBootstrapIntent, RuntimeWorldBootstrapNoEffectCause, RuntimeWorldBootstrapOutcome,
 };
 use crate::history::{CompositeCommitParent, CompositeRuntimeWorldCommit};
-use crate::lifecycle::owner::{
-    RuntimeWorldBootstrapState, RuntimeWorldOperationState, RuntimeWorldOwnerRoot,
-};
+use crate::lifecycle::owner::{RuntimeWorldBootstrapState, RuntimeWorldOwnerRoot};
 use crate::retention::RetentionObligationDenial;
 
 impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
@@ -60,7 +58,6 @@ where
         &self,
         intent: RuntimeWorldBootstrapIntent,
     ) -> RuntimeWorldBootstrapOutcome {
-        self.set_operation(RuntimeWorldOperationState::Preparing);
         let (creation, relational, signal, correspondence, generation) = intent.into_parts();
         let branch_reservation = match self.state.branches.reserve_root(self.owner_identity()) {
             Ok(reservation) => reservation,
@@ -131,7 +128,6 @@ where
         };
 
         let mut root_rollback;
-        self.set_operation(RuntimeWorldOperationState::Executing);
         // These are the unique component pins. They are acquired before any
         // retained-history protection is issued.
         let product_head = match self.state.retention.issue_product_head(&basis) {
@@ -206,16 +202,7 @@ where
             .take()
             .expect("successful root installation retains rollback custody")
             .commit();
-        self.set_operation(RuntimeWorldOperationState::Idle);
         PerformedRuntimeWorldBootstrap::new(bootstrap_attempt, basis, observation).into_outcome()
-    }
-
-    fn set_operation(&self, operation: RuntimeWorldOperationState) {
-        *self
-            .state
-            .operation
-            .lock()
-            .unwrap_or_else(|error| error.into_inner()) = operation;
     }
 }
 
@@ -251,12 +238,6 @@ where
                 .lock()
                 .unwrap_or_else(|error| error.into_inner()) =
                 RuntimeWorldBootstrapState::Unperformed;
-            *self
-                .owner
-                .state
-                .operation
-                .lock()
-                .unwrap_or_else(|error| error.into_inner()) = RuntimeWorldOperationState::Idle;
         }
     }
 }

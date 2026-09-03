@@ -50,9 +50,9 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
-    pub(super) fn issue_pair<'a>(
+    pub(super) fn issue_pair(
         &self,
-        basis: &'a AdmittedCompositeRuntimeWorldBasis,
+        basis: &AdmittedCompositeRuntimeWorldBasis,
         dependency: ComponentBasisDependencyClass,
     ) -> Result<IssuedComponentPinPair, RetentionObligationDenial> {
         let reservation = match self.reserve_pair(basis, dependency) {
@@ -74,9 +74,9 @@ where
         }
     }
 
-    pub(super) fn issue_pair_with_reserved_capacity<'a>(
+    pub(super) fn issue_pair_with_reserved_capacity(
         &self,
-        basis: &'a AdmittedCompositeRuntimeWorldBasis,
+        basis: &AdmittedCompositeRuntimeWorldBasis,
         dependency: ComponentBasisDependencyClass,
     ) -> Result<IssuedComponentPinPair, RetentionObligationDenial> {
         let reservation = match self.reserve_pair_with_capacity(basis, dependency) {
@@ -92,7 +92,7 @@ where
                 Ok(pair)
             }
             Err(denial) => {
-                self.restore_reserved_pair_capacity();
+                self.restore_consumed_pair_capacity();
                 self.record_batch_denial();
                 Err(denial)
             }

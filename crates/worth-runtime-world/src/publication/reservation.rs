@@ -136,6 +136,18 @@ impl ReservedCompositePublicationAttempt {
         self.cancellation = CompositeAttemptCancellationPosture::CancellationObserved;
     }
 
+    pub(crate) fn begin_owner_execution(&mut self) {
+        self.operation
+            .begin_owner_execution()
+            .expect("a reserved attempt begins owner execution exactly once");
+    }
+
+    pub(crate) fn begin_recovery(&mut self) {
+        self.operation
+            .begin_recovery()
+            .expect("a publishing attempt enters recovery exactly once");
+    }
+
     /// Consume a still-pre-effect reservation into the only no-effect
     /// cancellation terminal. Dropping the attempt releases every capacity.
     pub fn cancel(self) -> NoEffectCompositePublication {
@@ -145,7 +157,10 @@ impl ReservedCompositePublicationAttempt {
         )
     }
 
-    pub(crate) fn settle(self, progress: CompositeAttemptProgress) -> OwnerExecutionSettlement {
+    pub(crate) fn settle(mut self, progress: CompositeAttemptProgress) -> OwnerExecutionSettlement {
+        self.operation
+            .begin_publication()
+            .expect("settled owner execution advances into publication exactly once");
         OwnerExecutionSettlement::new(self, progress)
     }
 

@@ -34,9 +34,10 @@ where
         let operation = self
             .state
             .operation
+            .state
             .lock()
             .unwrap_or_else(|error| error.into_inner());
-        if *operation != super::owner::RuntimeWorldOperationState::Idle {
+        if operation.active != 0 {
             return Err(RuntimeWorldCloseDenial::AlreadyClosing);
         }
         let mut close = self

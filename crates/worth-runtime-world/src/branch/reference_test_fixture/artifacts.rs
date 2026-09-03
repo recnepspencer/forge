@@ -121,7 +121,7 @@ pub(crate) fn ordinary_commit(
             .issuer_mut()
             .publication_attempt()
             .expect("publication attempt identity"),
-        CompositeOwnerExecutionResults::retained(),
+        &CompositeOwnerExecutionResults::retained(),
         None,
     )
     .expect("explicit ordinary commit from same admitted basis")

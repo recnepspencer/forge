@@ -220,6 +220,45 @@ fn parked_real_batch_shares_denial_rolls_back_and_retries_cleanly() {
 }
 
 #[test]
+fn reserved_pair_owner_denial_preserves_credit_without_unwind_panic() {
+    let fixture = real_fixture(4, 4);
+    let control = fixture
+        .signal_runtime
+        .owner_operation_control()
+        .expect("real Signal owner exposes operation control");
+    control.inject_panic_once(SignalOwnerOperationBoundary::BranchRegistryLookup);
+    let reservation = fixture
+        .owner
+        .reserve_product_publication_pair()
+        .expect("the owner reserves the pair before contact");
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        reservation.bind_publication(&fixture.basis)
+    }))
+    .expect("typed owner denial must not panic while releasing capacity");
+
+    let (reservation, denial) = result.expect_err("the injected owner panic is typed");
+    assert_eq!(denial, RetentionObligationDenial::OwnerOperationPanicked);
+    assert_eq!(fixture.owner.reserved_unique_pin_capacity(), 2);
+    assert_eq!(fixture.owner.reserved_in_flight_acquisition_capacity(), 2);
+    assert_eq!(fixture.owner.in_flight_acquisition_count(), 0);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.reclaim(2).reclaimed(), 1);
+    drop(reservation);
+    assert_eq!(fixture.owner.reserved_unique_pin_capacity(), 0);
+    assert_eq!(fixture.owner.reserved_in_flight_acquisition_capacity(), 0);
+
+    let retry = fixture
+        .owner
+        .reserve_product_publication_pair()
+        .expect("the consumed denial leaves reservation capacity reusable")
+        .bind_publication(&fixture.basis)
+        .expect("the one-shot owner denial leaves binding retryable");
+    drop(retry);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+}
+
+#[test]
 fn reclaim_skips_husk_while_batch_reacquisition_flight_is_active() {
     let mut fixture = real_fixture(2, 2);
     let root = Arc::new(root_commit(&mut fixture));

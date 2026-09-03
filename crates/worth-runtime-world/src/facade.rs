@@ -67,5 +67,6 @@ pub use crate::publication::{
 };
 pub use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffects,
-    ProductUnpublishedRecoveryHandle, RecoveryContinuationContract,
+    ProductUnpublishedRecoveryHandle, ProductUnpublishedRetentionPosture,
+    RecoveryContinuationContract,
 };

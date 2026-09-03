@@ -9,6 +9,7 @@ pub enum NoEffectCause {
     DeadlineBeforeEffect,
     OwnerDeniedBeforeEffect,
     CorrespondenceRebindRequired,
+    ReferenceGenerationExhausted,
     CapacityExhausted,
     OwnerUnavailable,
     PreEffectFailure,

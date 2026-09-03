@@ -115,6 +115,38 @@ fn reserved_pair_capacity_drops_without_contact_or_leak() {
 }
 
 #[test]
+fn reserved_pair_preconsumption_denial_returns_live_credit_for_recovery() {
+    let fixture = real_fixture(2, 2);
+    let foreign = real_fixture(2, 2);
+    let before = fixture.owner.cost_snapshot();
+    let reservation = fixture
+        .owner
+        .reserve_product_publication_pair()
+        .expect("the local owner reserves one pair");
+
+    let (reservation, denial) = reservation
+        .bind_publication(&foreign.basis)
+        .expect_err("a foreign composite basis is denied before credit consumption");
+
+    assert!(matches!(
+        denial,
+        crate::retention::registry::RetentionObligationDenial::ForeignOwner { .. }
+    ));
+    assert_eq!(fixture.owner.reserved_unique_pin_capacity(), 2);
+    assert_eq!(fixture.owner.reserved_in_flight_acquisition_capacity(), 2);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    let after_denial = fixture.owner.cost_snapshot();
+    assert_eq!(after_denial.batch_denied(), before.batch_denied() + 1);
+    assert_eq!(
+        after_denial.owner_acquisition_contacts(),
+        before.owner_acquisition_contacts()
+    );
+    drop(reservation);
+    assert_eq!(fixture.owner.reserved_unique_pin_capacity(), 0);
+    assert_eq!(fixture.owner.reserved_in_flight_acquisition_capacity(), 0);
+}
+
+#[test]
 fn reserved_pair_binds_to_owner_issued_publication_and_releases_once() {
     let fixture = real_fixture(4, 4);
     let reservation = fixture

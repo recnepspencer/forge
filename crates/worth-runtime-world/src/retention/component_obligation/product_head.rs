@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::identity::{CompositeBasisIdentity, RuntimeWorldOwnerIdentity};
 
-use super::super::obligation_transfer::RetentionTransferDenial;
 use super::super::unique_component_pin::{ComponentBasisPinClaim, ExactComponentPinRequest};
 use super::super::ComponentBasisDependencyClass;
 use super::retained_partial::RetainedPartialRetentionObligation;
@@ -98,12 +97,10 @@ impl ProductHeadRetentionObligation {
             && self.signal.dependency() == ComponentBasisDependencyClass::ProductBranchHead
     }
 
-    /// The only product-head-to-recovery transition. It moves both claims in
-    /// one owner-checked operation and returns the original authority on any
-    /// denial.
-    pub(crate) fn try_transition_to_retained_partial(
-        self,
-    ) -> Result<RetainedPartialRetentionObligation, (Self, RetentionTransferDenial)> {
+    /// The only product-head-to-recovery transition. Both live claims already
+    /// passed owner, basis, and dependency admission, so a denial here would be
+    /// registry corruption rather than a recoverable publication outcome.
+    pub(crate) fn transition_to_retained_partial(self) -> RetainedPartialRetentionObligation {
         let Self {
             owner,
             basis,
@@ -113,17 +110,13 @@ impl ProductHeadRetentionObligation {
         let relational_claim = relational.into_claim();
         let signal_claim = signal.into_claim();
         let control = Arc::clone(&relational_claim.control);
-        match control.transfer_pair(
-            relational_claim,
-            signal_claim,
-            ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
-        ) {
-            Ok((relational, signal)) => Ok(RetainedPartialRetentionObligation::transferred(
-                owner, basis, relational, signal,
-            )),
-            Err((relational, signal, denial)) => {
-                Err((Self::transferred(owner, basis, relational, signal), denial))
-            }
-        }
+        let (relational, signal) = control
+            .transfer_pair(
+                relational_claim,
+                signal_claim,
+                ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
+            )
+            .expect("live product-head claims transition atomically into recovery custody");
+        RetainedPartialRetentionObligation::transferred(owner, basis, relational, signal)
     }
 }

@@ -5,8 +5,10 @@ use crate::identity::{
     CompositePublicationAttemptIdentity, ProductUnpublishedOwnerEffectsIdentity,
 };
 use crate::lifecycle::RuntimeWorldInstant;
-use crate::publication::CompositeAttemptProgress;
-use crate::retention::RetainedPartialRetentionObligation;
+use crate::publication::{CompositeAttemptProgress, CompositeOwnerExecutionResults};
+use crate::retention::{
+    ReservedComponentPinPairCapacity, RetainedPartialRetentionObligation, RetentionObligationDenial,
+};
 
 use super::{
     ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
@@ -22,6 +24,36 @@ pub enum ProductUnpublishedCause {
     StaleProductHead,
     OwnerLost,
     ProductPublicationLost,
+}
+
+/// Whether recovery already owns exact successor pins or retains the reserved
+/// pair capacity needed to retry an owner-denied acquisition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProductUnpublishedRetentionPosture {
+    RetainedExact,
+    ReacquisitionPending,
+}
+
+enum ProductUnpublishedRetentionCustody {
+    Retained(RetainedPartialRetentionObligation),
+    Pending {
+        capacity: ReservedComponentPinPairCapacity,
+        denial: RetentionObligationDenial,
+    },
+}
+
+impl std::fmt::Debug for ProductUnpublishedRetentionCustody {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Retained(obligation) => {
+                formatter.debug_tuple("Retained").field(obligation).finish()
+            }
+            Self::Pending { denial, .. } => formatter
+                .debug_struct("Pending")
+                .field("denial", denial)
+                .finish_non_exhaustive(),
+        }
+    }
 }
 
 /// A non-authorizing handle that lets a caller retain or inspect a specific
@@ -52,7 +84,8 @@ pub struct ProductUnpublishedOwnerEffects {
     last_observed_head: Option<ProductBranchReferenceSnapshot>,
     progress: CompositeAttemptProgress,
     successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
-    retention_obligation: RetainedPartialRetentionObligation,
+    component_results: CompositeOwnerExecutionResults,
+    retention: ProductUnpublishedRetentionCustody,
     successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
     recovery_slot: ReservedProductUnpublishedSlot,
     live_obligations: usize,
@@ -81,13 +114,14 @@ impl std::fmt::Debug for ProductUnpublishedOwnerEffects {
 
 impl ProductUnpublishedOwnerEffects {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub(crate) fn new_retained(
         identity: ProductUnpublishedOwnerEffectsIdentity,
         attempt_identity: CompositePublicationAttemptIdentity,
         expected_head: ProductBranchObservation,
         last_observed_head: Option<ProductBranchReferenceSnapshot>,
         progress: CompositeAttemptProgress,
         successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
+        component_results: CompositeOwnerExecutionResults,
         retention_obligation: RetainedPartialRetentionObligation,
         successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
         recovery_slot: ReservedProductUnpublishedSlot,
@@ -104,7 +138,8 @@ impl ProductUnpublishedOwnerEffects {
             last_observed_head,
             progress,
             successor_basis,
-            retention_obligation,
+            component_results,
+            retention: ProductUnpublishedRetentionCustody::Retained(retention_obligation),
             successor_history_protection,
             recovery_slot,
             live_obligations: summary.live_obligation_count,
@@ -112,6 +147,46 @@ impl ProductUnpublishedOwnerEffects {
             next_actions,
             deadline,
             age_ticks,
+            owner_effect_count: summary.owner_effect_count,
+            metadata_bytes: summary.metadata_bytes,
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_retention_pending(
+        identity: ProductUnpublishedOwnerEffectsIdentity,
+        attempt_identity: CompositePublicationAttemptIdentity,
+        expected_head: ProductBranchObservation,
+        progress: CompositeAttemptProgress,
+        successor_basis: AdmittedCompositeRuntimeWorldBasis,
+        component_results: CompositeOwnerExecutionResults,
+        capacity: ReservedComponentPinPairCapacity,
+        denial: RetentionObligationDenial,
+        successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
+        recovery_slot: ReservedProductUnpublishedSlot,
+        summary: ProductUnpublishedOwnerEffectSummary,
+        deadline: Option<RuntimeWorldInstant>,
+    ) -> Self {
+        Self {
+            identity,
+            attempt_identity,
+            expected_head,
+            last_observed_head: None,
+            progress,
+            successor_basis: Some(successor_basis),
+            component_results,
+            retention: ProductUnpublishedRetentionCustody::Pending { capacity, denial },
+            successor_history_protection,
+            recovery_slot,
+            live_obligations: summary.live_obligation_count,
+            cause: ProductUnpublishedCause::OwnerLost,
+            next_actions: vec![
+                ProductUnpublishedNextAction::SettleOwnerEffects,
+                ProductUnpublishedNextAction::ReleaseObligations,
+                ProductUnpublishedNextAction::Inspect,
+            ],
+            deadline,
+            age_ticks: 0,
             owner_effect_count: summary.owner_effect_count,
             metadata_bytes: summary.metadata_bytes,
         }
@@ -141,14 +216,32 @@ impl ProductUnpublishedOwnerEffects {
         self.successor_basis.as_ref()
     }
 
+    pub fn component_results(&self) -> &CompositeOwnerExecutionResults {
+        &self.component_results
+    }
+
     /// Exact installed successor occurrence retained by this recovery record.
     /// The identity is evidence only; it grants no History or publication authority.
     pub fn successor_commit(&self) -> &crate::identity::CompositeCommitIdentity {
         self.successor_history_protection.commit_identity()
     }
 
-    pub(crate) fn retention_obligation(&self) -> &RetainedPartialRetentionObligation {
-        &self.retention_obligation
+    pub fn retention_posture(&self) -> ProductUnpublishedRetentionPosture {
+        match self.retention {
+            ProductUnpublishedRetentionCustody::Retained(_) => {
+                ProductUnpublishedRetentionPosture::RetainedExact
+            }
+            ProductUnpublishedRetentionCustody::Pending { .. } => {
+                ProductUnpublishedRetentionPosture::ReacquisitionPending
+            }
+        }
+    }
+
+    pub(crate) fn retention_obligation(&self) -> Option<&RetainedPartialRetentionObligation> {
+        match &self.retention {
+            ProductUnpublishedRetentionCustody::Retained(obligation) => Some(obligation),
+            ProductUnpublishedRetentionCustody::Pending { .. } => None,
+        }
     }
 
     pub(crate) fn successor_history_protection(
