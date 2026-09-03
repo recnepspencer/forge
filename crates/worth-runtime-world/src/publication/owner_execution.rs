@@ -7,7 +7,7 @@ use crate::recovery::{ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOw
 use super::product_cas::CompositePublicationReady;
 use super::{CompositeAttemptProgress, ReservedCompositePublicationAttempt};
 
-const RETENTION_PENDING_LIVE_OBLIGATION_COUNT: usize = 2;
+const RETENTION_PENDING_LIVE_OBLIGATION_COUNT: usize = 3;
 
 /// Owner effects have been settled into exact progress, but product
 /// publication has not yet crossed its final compare-and-publish point.

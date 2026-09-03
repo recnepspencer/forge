@@ -106,9 +106,10 @@ Every delegated review prompt must state its reading boundary. For incremental
 corrections, give the exact last-approved-to-candidate diff, changed-file and
 finding inventory, invalidated seams, and prior accepted evidence. Instruct the
 reviewer to read that patch once, then revisit only named hunks or line ranges.
-The reviewer must not reopen the whole diff or reread the full milestone,
-crate, kernel, manifest set, or dirty surface. Any necessary scope expansion is
-announced and justified before inspection.
+Diff reads use at most five context lines; high-context or whole-file diff
+output is prohibited. The reviewer must not reopen the whole diff or reread the
+full milestone, crate, kernel, manifest set, or dirty surface. Any necessary
+scope expansion is announced and justified before inspection.
 
 Holistic reading is reserved for an explicitly named phase or milestone closure
 gate. Even then, provide the commit inventory and completed evidence up front,

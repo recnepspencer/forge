@@ -309,6 +309,7 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
         ProductUnpublishedRetentionPosture::ReacquisitionPending
     );
     assert_eq!(retained.owner_effect_count(), 1);
+    assert_eq!(retained.live_obligation_count(), 3);
     assert_eq!(
         retained.component_results().signal_posture(),
         crate::history::CompositeComponentChangePosture::Published
