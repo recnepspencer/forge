@@ -239,8 +239,9 @@ fn cancellation_before_product_movement(
         attempt,
         super::CompositeAttemptCancellationPosture::CancellationObserved
     ) {
+        let observed_head = cell.atomic_snapshot();
         cost_counters.record_product_cell_touch();
-        return Some(cell.atomic_snapshot());
+        return (observed_head == *expected_head.snapshot()).then_some(observed_head);
     }
     if !matches!(
         late,

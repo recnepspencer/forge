@@ -5,7 +5,8 @@ use worth_relational::facade::mvcc::RelationalTransactionIntent;
 use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
 use crate::branch::{
     ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchObservation,
+    ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceCell,
+    ProductBranchReferenceSnapshot,
 };
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
@@ -13,14 +14,15 @@ use crate::budget::{
     RuntimeWorldObservationBudgetInstallation, RuntimeWorldPublicationBudgetInstallation,
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
+use crate::history::CompositeRuntimeWorldCommit;
 use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
     RuntimeWorldCloseDenial,
 };
 use crate::publication::{
     CompositeAttemptProgress, CompositeComponentIntent, CompositeLateCancellationPosture,
-    CompositePublicationCostCounters, ProductBranchIntent, RelationalAttemptProgress,
-    RuntimeWorldPublicationOutcome, SignalAttemptProgress,
+    CompositeOwnerExecutionResults, CompositePublicationCostCounters, ProductBranchIntent,
+    RelationalAttemptProgress, RuntimeWorldPublicationOutcome, SignalAttemptProgress,
 };
 use crate::recovery::ProductUnpublishedCause;
 
@@ -140,6 +142,80 @@ fn ready_relational(
         .expect("the exact successor retention is available")
 }
 
+fn competing_commit(
+    owner: &TestOwner,
+    expected: &ProductBranchObservation,
+) -> Arc<CompositeRuntimeWorldCommit> {
+    let (commit_identity, attempt_identity) = {
+        let mut identities = owner
+            .state
+            .identities
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        (
+            identities
+                .composite_commit()
+                .expect("competitor commit identity"),
+            identities
+                .publication_attempt()
+                .expect("competitor attempt identity"),
+        )
+    };
+    let results = CompositeOwnerExecutionResults::retained();
+    Arc::new(
+        CompositeRuntimeWorldCommit::from_ordinary_publication(
+            commit_identity,
+            expected.snapshot().commit(),
+            expected.basis().clone(),
+            attempt_identity,
+            &results,
+            None,
+        )
+        .expect("same-basis competitor commit"),
+    )
+}
+
+fn install_competing_head(
+    owner: &TestOwner,
+    cell: &ProductBranchReferenceCell,
+    expected: &ProductBranchObservation,
+) -> Arc<CompositeRuntimeWorldCommit> {
+    let commit = competing_commit(owner, expected);
+    owner
+        .state
+        .history
+        .append(Arc::clone(&commit))
+        .expect("competitor commit installs");
+    let snapshot = ProductBranchReferenceSnapshot::owner_issued(
+        expected.owner_identity(),
+        expected.branch_identity().clone(),
+        expected.lifecycle_incarnation(),
+        expected
+            .reference_generation()
+            .advance()
+            .expect("one competitor generation"),
+        Arc::clone(&commit),
+    )
+    .expect("competitor snapshot belongs to the selected branch");
+    let transfer = owner
+        .state
+        .retention
+        .issue_publication(commit.basis())
+        .expect("competitor acquires existing component pins")
+        .into_product_head_transfer(commit.basis())
+        .expect("competitor transfer matches its basis");
+    let history = owner
+        .state
+        .history
+        .protect_product_head(commit.as_ref())
+        .expect("competitor history protection");
+    let protection = ProductBranchHeadProtection::owner_issued(snapshot, transfer, history)
+        .expect("competitor protection is coherent");
+    cell.compare_and_publish(expected, protection)
+        .expect("competitor wins the exact branch-cell CAS");
+    commit
+}
+
 #[test]
 fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
     let (mut fixture, owner, expected) = setup();
@@ -255,6 +331,48 @@ fn cancellation_before_product_movement_does_not_cas_current_head() {
     owner
         .close()
         .expect("close succeeds after cancellation custody drops");
+}
+
+#[test]
+fn cancelled_ready_loses_to_winner_and_retains_publication_loss() {
+    let (mut fixture, owner, expected) = setup();
+    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
+    let ready = ready_relational(&mut fixture, &owner, expected.clone(), true);
+    let loser_basis = ready.successor_basis().clone();
+    let winner = install_competing_head(&owner, &cell, &expected);
+    let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
+        owner.as_ref(),
+        ready,
+        &cell,
+        CompositeLateCancellationPosture::NotRequested,
+        CompositePublicationCostCounters::default(),
+    );
+    let retained = match outcome {
+        RuntimeWorldPublicationOutcome::ProductUnpublished(retained) => retained,
+        other => panic!("cancelled stale publication must retain loss: {other:?}"),
+    };
+    assert_eq!(
+        retained.cause(),
+        ProductUnpublishedCause::ProductPublicationLost
+    );
+    assert_eq!(
+        retained.last_observed_head().unwrap().selected_commit(),
+        winner.identity()
+    );
+    assert_eq!(retained.successor_basis(), Some(&loser_basis));
+    assert_ne!(retained.successor_commit(), winner.identity());
+    assert_eq!(cell.atomic_snapshot().selected_commit(), winner.identity());
+    assert!(owner
+        .state
+        .history
+        .lookup(retained.successor_commit())
+        .is_some());
+    assert_eq!(owner.state.recovery.reserved_slots(), 1);
+    assert_eq!(owner.state.operation.active(), 0);
+    drop(retained);
+    owner
+        .close()
+        .expect("close succeeds after stale cancellation custody drops");
 }
 
 #[test]
