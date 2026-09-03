@@ -1,6 +1,9 @@
 use crate::branch::ProductBranchCreationIntent;
+use worth_relational::facade::branch::AdmittedRelationalForkSourceBasis;
+use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
 use worth_signal::facade::branch::SignalOwnerCancellationToken;
+use worth_signal::facade::branch::ValidatedSignalBranchName;
 use worth_signal::facade::{SignalError, SignalTransaction};
 
 /// Which owner components a future operation is allowed to change. Omission
@@ -100,6 +103,9 @@ pub struct ProductBranchIntent {
     creation: ProductBranchCreationIntent,
     component_postures: crate::branch::ProductBranchComponentPostures,
     component_intent: CompositeComponentIntent,
+    prepared_relational_candidate: Option<PreparedRelationalCommitCandidate>,
+    relational_fork_source: Option<AdmittedRelationalForkSourceBasis>,
+    signal_fork_name: Option<ValidatedSignalBranchName>,
 }
 
 impl ProductBranchIntent {
@@ -112,7 +118,38 @@ impl ProductBranchIntent {
             creation,
             component_postures,
             component_intent,
+            prepared_relational_candidate: None,
+            relational_fork_source: None,
+            signal_fork_name: None,
         }
+    }
+
+    /// Attach the one owner-issued Relational candidate that corresponds to
+    /// this intent. The candidate remains move-only and is consumed by plan
+    /// lowering or dropped with the intent on a rejected route.
+    pub fn with_prepared_relational_candidate(
+        mut self,
+        candidate: PreparedRelationalCommitCandidate,
+    ) -> Self {
+        self.prepared_relational_candidate = Some(candidate);
+        self
+    }
+
+    /// Attach the one owner-issued Relational fork source for a fork posture.
+    /// A descriptive branch id is never accepted in its place.
+    pub fn with_relational_fork_source(
+        mut self,
+        source: AdmittedRelationalForkSourceBasis,
+    ) -> Self {
+        self.relational_fork_source = Some(source);
+        self
+    }
+
+    /// Attach the owner-validated Signal destination for a fork route. A
+    /// product name is not promoted implicitly into a component identity.
+    pub fn with_signal_fork_name(mut self, name: ValidatedSignalBranchName) -> Self {
+        self.signal_fork_name = Some(name);
+        self
     }
 
     pub fn creation(&self) -> &ProductBranchCreationIntent {
@@ -125,5 +162,19 @@ impl ProductBranchIntent {
 
     pub const fn component_postures(&self) -> crate::branch::ProductBranchComponentPostures {
         self.component_postures
+    }
+
+    pub(crate) fn take_plan_inputs(
+        &mut self,
+    ) -> (
+        Option<PreparedRelationalCommitCandidate>,
+        Option<AdmittedRelationalForkSourceBasis>,
+        Option<ValidatedSignalBranchName>,
+    ) {
+        (
+            self.prepared_relational_candidate.take(),
+            self.relational_fork_source.take(),
+            self.signal_fork_name.take(),
+        )
     }
 }

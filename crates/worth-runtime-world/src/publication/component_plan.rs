@@ -4,7 +4,12 @@ use worth_relational::facade::branch::{
 use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
 use worth_signal::facade::branch::{AdmittedSignalBranchBasis, ValidatedSignalBranchName};
 
+use crate::branch::ProductBranchObservation;
 use crate::publication::{CompositeComponentIntent, ResolvedExpectedProductHead};
+
+mod compatibility;
+mod lowering;
+pub(crate) use lowering::lower_component_plans;
 
 /// Relational owner posture. It is separate from Signal posture so a sibling
 /// cannot be silently refreshed or omitted.
@@ -39,6 +44,19 @@ impl RelationalComponentPlan {
 
     pub fn expected(&self) -> &AdmittedRelationalBranchBasis {
         &self.expected
+    }
+
+    /// The owner-issued candidate, when this plan carries ordinary
+    /// Relational publication evidence. Borrowing it never transfers or
+    /// duplicates the candidate's linear authority.
+    pub fn prepared_candidate(&self) -> Option<&PreparedRelationalCommitCandidate> {
+        self.prepared_candidate.as_ref()
+    }
+
+    /// The owner-issued source authority, when this plan carries a
+    /// Relational fork route. A descriptive branch id is never substituted.
+    pub fn fork_source(&self) -> Option<&AdmittedRelationalForkSourceBasis> {
+        self.fork_source.as_ref()
     }
 
     pub(crate) fn retain_exact(expected: AdmittedRelationalBranchBasis) -> Self {
@@ -85,6 +103,22 @@ impl RelationalComponentPlan {
             fork_source: None,
         }
     }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        RelationalComponentPlanPosture,
+        AdmittedRelationalBranchBasis,
+        Option<PreparedRelationalCommitCandidate>,
+        Option<AdmittedRelationalForkSourceBasis>,
+    ) {
+        (
+            self.posture,
+            self.expected,
+            self.prepared_candidate,
+            self.fork_source,
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -101,6 +135,12 @@ impl SignalComponentPlan {
 
     pub fn expected(&self) -> &AdmittedSignalBranchBasis {
         &self.expected
+    }
+
+    /// A validated Signal name is retained only for a fork route. The
+    /// execution callback and caller context remain outside this plan.
+    pub fn requested_branch_name(&self) -> Option<&ValidatedSignalBranchName> {
+        self.requested_branch_name.as_ref()
     }
 
     pub(crate) fn retain_exact(expected: AdmittedSignalBranchBasis) -> Self {
@@ -139,6 +179,16 @@ impl SignalComponentPlan {
             expected,
             requested_branch_name: None,
         }
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        SignalComponentPlanPosture,
+        AdmittedSignalBranchBasis,
+        Option<ValidatedSignalBranchName>,
+    ) {
+        (self.posture, self.expected, self.requested_branch_name)
     }
 }
 
@@ -193,28 +243,11 @@ impl LoweredOwnerComponentPlan {
     ) {
         (self.expected, self.intent, self.relational, self.signal)
     }
-}
 
-pub(crate) fn lower_component_plans(
-    expected: ResolvedExpectedProductHead,
-    intent: CompositeComponentIntent,
-) -> LoweredOwnerComponentPlan {
-    let basis = expected.expected().basis();
-    let relational = if intent.changes_relational() {
-        RelationalComponentPlan::planned(
-            RelationalComponentPlanPosture::PublishPrepared,
-            basis.relational_basis().clone(),
-        )
-    } else {
-        RelationalComponentPlan::retain_exact(basis.relational_basis().clone())
-    };
-    let signal = if intent.changes_signal() {
-        SignalComponentPlan::planned(
-            SignalComponentPlanPosture::AdvanceExact,
-            basis.signal_basis().clone(),
-        )
-    } else {
-        SignalComponentPlan::retain_exact(basis.signal_basis().clone())
-    };
-    LoweredOwnerComponentPlan::new(expected, intent, relational, signal)
+    /// Recheck the complete plan against the exact product predecessor before
+    /// any bounded reservation is acquired. Component basis equality is
+    /// owner-issued equality, not a digest or branch-name comparison.
+    pub(crate) fn is_compatible_with(&self, expected: &ProductBranchObservation) -> bool {
+        compatibility::plan_is_compatible_with(self, expected)
+    }
 }

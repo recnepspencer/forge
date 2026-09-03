@@ -1,0 +1,140 @@
+use crate::history::{CompositeCommitParent, CompositeHistoryCatalog, OrdinaryParent};
+use crate::identity::{
+    CompositeCommitIdentity, CompositePublicationAttemptIdentity,
+    ProductUnpublishedOwnerEffectsIdentity,
+};
+use crate::publication::NoEffectCause;
+use crate::recovery::{RecoveryCatalogDenial, ReservedProductUnpublishedSlot};
+use crate::retention::ReservedComponentPinPairCapacity;
+
+use super::{ReservedPublicationAttemptCapacity, RuntimeWorldOwnerRoot};
+
+pub(super) struct IssuedPublicationIdentities {
+    pub(super) attempt_identity: CompositePublicationAttemptIdentity,
+    pub(super) commit_identity: CompositeCommitIdentity,
+    pub(super) product_unpublished_identity: ProductUnpublishedOwnerEffectsIdentity,
+}
+
+pub(super) struct ReservedPublicationResources {
+    pub(super) history: CompositeHistoryCatalog,
+    pub(super) reserved_commit_capacity: crate::history::ReservedCompositeCommitCapacity,
+    pub(super) reserved_recovery_slot: ReservedProductUnpublishedSlot,
+    pub(super) reserved_component_pin_pair: ReservedComponentPinPairCapacity,
+    pub(super) reserved_publication_capacity: ReservedPublicationAttemptCapacity,
+}
+
+pub(super) fn issue_publication_identities<D, I, E, Ctx, T>(
+    owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
+) -> Result<IssuedPublicationIdentities, NoEffectCause>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    let mut identities = owner
+        .state
+        .identities
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    let attempt_identity = identities
+        .publication_attempt()
+        .map_err(|_| NoEffectCause::PreEffectFailure)?;
+    let commit_identity = identities
+        .composite_commit()
+        .map_err(|_| NoEffectCause::PreEffectFailure)?;
+    let product_unpublished_identity = identities
+        .product_unpublished()
+        .map_err(|_| NoEffectCause::PreEffectFailure)?;
+    Ok(IssuedPublicationIdentities {
+        attempt_identity,
+        commit_identity,
+        product_unpublished_identity,
+    })
+}
+
+pub(super) fn reserve_publication_resources<D, I, E, Ctx, T>(
+    owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
+    expected: &crate::branch::ProductBranchObservation,
+    commit_identity: &CompositeCommitIdentity,
+) -> Result<ReservedPublicationResources, NoEffectCause>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    let history = owner.state.history.clone();
+    let reserved_commit_capacity = reserve_history(&history, expected, commit_identity)?;
+    let reserved_recovery_slot = reserve_recovery(owner)?;
+    let reserved_component_pin_pair = reserve_component_pin_pair(owner)?;
+    let reserved_publication_capacity = reserve_publication_capacity(owner)?;
+    Ok(ReservedPublicationResources {
+        history,
+        reserved_commit_capacity,
+        reserved_recovery_slot,
+        reserved_component_pin_pair,
+        reserved_publication_capacity,
+    })
+}
+
+fn reserve_history(
+    history: &CompositeHistoryCatalog,
+    expected: &crate::branch::ProductBranchObservation,
+    commit_identity: &CompositeCommitIdentity,
+) -> Result<crate::history::ReservedCompositeCommitCapacity, NoEffectCause> {
+    let parent =
+        CompositeCommitParent::Ordinary(OrdinaryParent::new(expected.selected_commit().clone()));
+    history
+        .reserve_commit_capacity(commit_identity.clone(), parent)
+        .map_err(|_| NoEffectCause::CapacityExhausted)
+}
+
+fn reserve_recovery<D, I, E, Ctx, T>(
+    owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
+) -> Result<ReservedProductUnpublishedSlot, NoEffectCause>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    match owner
+        .state
+        .recovery
+        .reserve_product_unpublished(owner.owner_identity())
+    {
+        Ok(slot) => Ok(slot),
+        Err(RecoveryCatalogDenial::CapacityExhausted { .. }) => {
+            Err(NoEffectCause::CapacityExhausted)
+        }
+        Err(RecoveryCatalogDenial::ForeignOwner { .. }) => Err(NoEffectCause::OwnerUnavailable),
+    }
+}
+
+fn reserve_component_pin_pair<D, I, E, Ctx, T>(
+    owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
+) -> Result<ReservedComponentPinPairCapacity, NoEffectCause>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    owner
+        .state
+        .retention
+        .reserve_product_publication_pair()
+        .map_err(|_| NoEffectCause::CapacityExhausted)
+}
+
+fn reserve_publication_capacity<D, I, E, Ctx, T>(
+    owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
+) -> Result<ReservedPublicationAttemptCapacity, NoEffectCause>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    owner
+        .state
+        .publication_capacity
+        .reserve()
+        .map_err(|_| NoEffectCause::CapacityExhausted)
+}

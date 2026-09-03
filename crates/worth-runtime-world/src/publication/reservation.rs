@@ -120,6 +120,14 @@ impl ReservedCompositePublicationAttempt {
         &self.predecessor_basis
     }
 
+    pub fn plan(&self) -> &LoweredOwnerComponentPlan {
+        &self.plan
+    }
+
+    pub fn deadline(&self) -> Option<RuntimeWorldInstant> {
+        self.deadline
+    }
+
     pub fn order(&self) -> CompositePublicationOrder {
         self.order
     }
