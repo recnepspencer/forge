@@ -1,6 +1,4 @@
-use super::preparation_test_support::{
-    install_competing_head, intent, reservation_counts, setup, signal_intent,
-};
+use super::preparation_test_support::{intent, reservation_counts, setup, signal_intent};
 use crate::branch::ProductBranchComponentPosture;
 use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldInstant, RuntimeWorldPreparationService,
@@ -34,6 +32,10 @@ fn healthy_signal_plan_is_exact_and_reservation_is_linear() {
     let attempt =
         RuntimeWorldPreparationService::reserve(owner.as_ref(), plan, &cancellation.token(), None)
             .expect("healthy plan reserves");
+    assert_eq!(
+        attempt.order(),
+        crate::publication::CompositePublicationOrder::RelationalThenSignal
+    );
     assert_eq!(reservation_counts(owner.as_ref()), (1, 1, 2, 2, 1));
     assert_eq!(attempt.expected_head(), &expected);
     drop(attempt);
@@ -80,28 +82,38 @@ fn relational_publication_without_owner_candidate_is_rejected_before_reservation
 }
 
 #[test]
-fn explicit_signal_fork_route_validates_and_retains_its_name() {
+fn signal_fork_without_owner_name_reservation_is_rejected_before_capacity() {
     let (owner, expected) = setup(2);
-    let signal_plan = RuntimeWorldPreparationService::prepare(
+    let plan = RuntimeWorldPreparationService::prepare(
         owner.as_ref(),
         expected,
         intent(
-            "signal-fork",
+            "signal-fork-without-owner-name-reservation",
             ProductBranchComponentPosture::ReuseExact,
             ProductBranchComponentPosture::ForkAndAdvance,
             CompositeComponentIntent::signal_only(),
         )
         .with_signal_fork_name(
-            worth_signal::facade::branch::validate_signal_branch_name("signal-fork")
-                .expect("Signal fork name validates"),
+            worth_signal::facade::branch::validate_signal_branch_name(
+                "signal-fork-without-owner-name-reservation",
+            )
+            .expect("Signal fork name validates"),
         ),
     )
-    .expect("an explicit Signal fork posture lowers");
+    .expect("syntax-only Signal fork lowering is pre-effect");
     assert_eq!(
-        signal_plan.signal().posture(),
+        plan.signal().posture(),
         crate::publication::SignalComponentPlanPosture::ForkThenAdvance
     );
-    assert!(signal_plan.signal().requested_branch_name().is_some());
+    let denied = RuntimeWorldPreparationService::reserve(
+        owner.as_ref(),
+        plan,
+        &RuntimeWorldCancellationSource::new().token(),
+        None,
+    )
+    .expect_err("owner-issued Signal name reservation is not yet available");
+    assert_eq!(denied.cause(), NoEffectCause::PreEffectFailure);
+    assert_eq!(reservation_counts(owner.as_ref()), (0, 0, 0, 0, 0));
 }
 
 #[test]
@@ -122,37 +134,9 @@ fn signal_fork_without_explicit_validated_name_is_rejected_before_reservation() 
     assert_eq!(reservation_counts(owner.as_ref()), (0, 0, 0, 0, 0));
 }
 
-#[test]
-fn stale_expected_head_is_rejected_at_prepare_and_reserve() {
-    let (owner, expected) = setup(2);
-    install_competing_head(owner.as_ref(), &expected);
-    let denied = RuntimeWorldPreparationService::prepare(
-        owner.as_ref(),
-        expected.clone(),
-        signal_intent("stale-at-prepare"),
-    )
-    .expect_err("stale expected head cannot be lowered");
-    assert_eq!(denied.cause(), NoEffectCause::StaleExpectedProductHead);
-    assert_eq!(denied.expected_head(), Some(&expected));
-
-    let (owner, expected) = setup(2);
-    let plan = RuntimeWorldPreparationService::prepare(
-        owner.as_ref(),
-        expected.clone(),
-        signal_intent("stale-at-reserve"),
-    )
-    .expect("head is current during lowering");
-    install_competing_head(owner.as_ref(), &expected);
-    let denied = RuntimeWorldPreparationService::reserve(
-        owner.as_ref(),
-        plan,
-        &RuntimeWorldCancellationSource::new().token(),
-        None,
-    )
-    .expect_err("stale expected head cannot reserve capacity");
-    assert_eq!(denied.cause(), NoEffectCause::StaleExpectedProductHead);
-    assert_eq!(reservation_counts(owner.as_ref()), (0, 0, 0, 0, 0));
-}
+// Serial-integration blocker (P4): restore stale-head coverage through the
+// canonical owner-publication path after contract convergence; this lane
+// cannot mint competing publication/CAS authority.
 
 #[test]
 fn cancellation_and_deadline_win_before_any_capacity_is_reserved() {

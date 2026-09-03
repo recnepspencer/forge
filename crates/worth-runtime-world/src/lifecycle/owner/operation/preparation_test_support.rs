@@ -3,8 +3,7 @@ use std::sync::Arc;
 use crate::branch::reference_test_fixture;
 use crate::branch::{
     ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceSnapshot,
-    RuntimeWorldBootstrapOutcome,
+    ProductBranchObservation, RuntimeWorldBootstrapOutcome,
 };
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
@@ -12,11 +11,8 @@ use crate::budget::{
     RuntimeWorldObservationBudgetInstallation, RuntimeWorldPublicationBudgetInstallation,
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
-use crate::history::CompositeRuntimeWorldCommit;
 use crate::lifecycle::{RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant};
-use crate::publication::{
-    CompositeComponentIntent, CompositeOwnerExecutionResults, ProductBranchIntent,
-};
+use crate::publication::{CompositeComponentIntent, ProductBranchIntent};
 
 pub(super) type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -97,94 +93,6 @@ pub(super) fn signal_intent(name: &str) -> ProductBranchIntent {
         ProductBranchComponentPosture::ReuseExact,
         CompositeComponentIntent::signal_only(),
     )
-}
-
-pub(super) fn install_competing_head(owner: &TestOwner, expected: &ProductBranchObservation) {
-    let commit = competing_commit(owner, expected);
-    owner
-        .state
-        .history
-        .append(Arc::clone(&commit))
-        .expect("competitor commit installs");
-    let snapshot = competing_snapshot(expected, Arc::clone(&commit));
-    let protection = competing_protection(owner, snapshot, commit.as_ref());
-    owner
-        .state
-        .branches
-        .root_cell()
-        .expect("bootstrapped root cell")
-        .compare_and_publish(expected, protection)
-        .expect("competitor wins the exact branch-cell CAS");
-}
-
-fn competing_commit(
-    owner: &TestOwner,
-    expected: &ProductBranchObservation,
-) -> Arc<CompositeRuntimeWorldCommit> {
-    let (commit_identity, attempt_identity) = {
-        let mut identities = owner
-            .state
-            .identities
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        (
-            identities
-                .composite_commit()
-                .expect("competitor commit identity"),
-            identities
-                .publication_attempt()
-                .expect("competitor attempt identity"),
-        )
-    };
-    Arc::new(
-        CompositeRuntimeWorldCommit::from_ordinary_publication(
-            commit_identity,
-            expected.snapshot().commit(),
-            expected.basis().clone(),
-            attempt_identity,
-            &CompositeOwnerExecutionResults::retained(),
-            None,
-        )
-        .expect("same-basis competitor commit"),
-    )
-}
-
-fn competing_snapshot(
-    expected: &ProductBranchObservation,
-    commit: Arc<CompositeRuntimeWorldCommit>,
-) -> ProductBranchReferenceSnapshot {
-    ProductBranchReferenceSnapshot::owner_issued(
-        expected.owner_identity(),
-        expected.branch_identity().clone(),
-        expected.lifecycle_incarnation(),
-        expected
-            .reference_generation()
-            .advance()
-            .expect("competitor generation"),
-        commit,
-    )
-    .expect("competitor snapshot is coherent")
-}
-
-fn competing_protection(
-    owner: &TestOwner,
-    snapshot: ProductBranchReferenceSnapshot,
-    commit: &CompositeRuntimeWorldCommit,
-) -> ProductBranchHeadProtection {
-    let transfer = owner
-        .state
-        .retention
-        .issue_publication(commit.basis())
-        .expect("competitor publication retention")
-        .into_product_head_transfer(commit.basis())
-        .expect("competitor transfer matches its basis");
-    let history = owner
-        .state
-        .history
-        .protect_product_head(commit)
-        .expect("competitor history protection");
-    ProductBranchHeadProtection::owner_issued(snapshot, transfer, history)
-        .expect("competitor protection is coherent")
 }
 
 pub(super) fn reservation_counts(owner: &TestOwner) -> (usize, usize, usize, usize, usize) {

@@ -75,7 +75,15 @@ fn signal_plan_is_compatible(
                 posture,
                 ProductBranchComponentPosture::ForkExact
                     | ProductBranchComponentPosture::ForkAndAdvance
-            ) && plan.requested_branch_name().is_some()
+            ) && changes
+                && plan.requested_branch_name().is_some()
+                && signal_fork_name_reservation_is_admitted()
         }
     }
+}
+
+const fn signal_fork_name_reservation_is_admitted() -> bool {
+    // ValidatedSignalBranchName proves syntax only. The serial owner contract
+    // has not yet supplied the linear name reservation required for admission.
+    false
 }
