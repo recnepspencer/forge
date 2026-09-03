@@ -18,7 +18,7 @@ use crate::budget::{
 };
 use crate::lifecycle::{
     RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
-    RuntimeWorldPreparationService, RuntimeWorldRecoveryService,
+    RuntimeWorldCloseDenial, RuntimeWorldPreparationService, RuntimeWorldRecoveryService,
 };
 use crate::publication::{
     CompositeAttemptProgress, CompositeComponentIntent, ProductBranchIntent,
@@ -170,6 +170,11 @@ fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
     let handle = retained.recovery_handle();
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.recovery_handles(), vec![handle.clone()]);
+    assert_eq!(
+        owner.close(),
+        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        "installed recovery custody has its own close denial"
+    );
     drop(retained);
 
     assert_eq!(owner.recovery_record_count(), 1);

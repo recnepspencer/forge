@@ -10,10 +10,11 @@ use crate::budget::{
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
 use crate::lifecycle::{
+    RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest,
     RuntimeWorldBranchService, RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant,
     RuntimeWorldObservationService, RuntimeWorldOwnerRoot,
 };
-use crate::publication::{CompositeComponentIntent, ProductBranchIntent};
+use crate::publication::{CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent};
 
 struct FixedClock;
 
@@ -102,16 +103,33 @@ fn setup(
     (fixture, owner, root)
 }
 
+fn create_reused_branch(
+    owner: &TestOwner,
+    source: &ProductBranchObservation,
+    intent: ProductBranchIntent,
+) -> ProductBranchObservation {
+    match RuntimeWorldBranchService::create_product_branch(
+        owner,
+        RuntimeWorldBranchCreationRequest::new(
+            source.clone(),
+            intent,
+            CompositeExecutionBorrow::without_signal(),
+        ),
+    )
+    .expect("exact reuse is admitted")
+    {
+        RuntimeWorldBranchCreationOutcome::Performed(observation) => observation,
+        RuntimeWorldBranchCreationOutcome::ProductUnpublished(_) => {
+            panic!("exact reuse did not produce a branch observation")
+        }
+    }
+}
+
 #[test]
 fn reuse_selects_the_exact_commit_with_fresh_branch_and_lifecycle_identities() {
     let (_fixture, owner, root) = setup(3);
     let before = owner.state.retention.cost_snapshot();
-    let child = RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("child"),
-    )
-    .expect("exact reuse is implementable from the installed root");
+    let child = create_reused_branch(&owner, &root, reuse_intent("child"));
     let after = owner.state.retention.cost_snapshot();
 
     assert_ne!(child.branch_identity(), root.branch_identity());
@@ -133,12 +151,7 @@ fn reuse_selects_the_exact_commit_with_fresh_branch_and_lifecycle_identities() {
 #[test]
 fn observation_issues_the_current_exact_branch_image_and_retirement_denies_new_reads() {
     let (_fixture, owner, root) = setup(3);
-    let child = RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("child"),
-    )
-    .expect("reuse child");
+    let child = create_reused_branch(&owner, &root, reuse_intent("child"));
     let observed =
         RuntimeWorldObservationService::observe_product_branch(&owner, child.branch_identity())
             .expect("live child observation");
@@ -159,12 +172,7 @@ fn observation_issues_the_current_exact_branch_image_and_retirement_denies_new_r
 #[test]
 fn retirement_releases_product_capacity_without_releasing_live_observation_custody() {
     let (_fixture, owner, root) = setup(3);
-    let child = RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("reusable"),
-    )
-    .expect("reuse child");
+    let child = create_reused_branch(&owner, &root, reuse_intent("reusable"));
     let child_id = child.branch_identity().clone();
     let child_lifecycle = child.lifecycle_incarnation();
     let before_retirement = owner.state.retention.active_component_obligation_count();
@@ -209,12 +217,7 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
 
     drop(child);
     assert_eq!(owner.state.retention.active_component_obligation_count(), 4);
-    let replacement = RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("reusable"),
-    )
-    .expect("retirement releases the name and branch slot");
+    let replacement = create_reused_branch(&owner, &root, reuse_intent("reusable"));
     assert_ne!(replacement.branch_identity(), root.branch_identity());
     assert_ne!(replacement.branch_identity(), &child_id);
     assert_ne!(replacement.lifecycle_incarnation(), child_lifecycle);
@@ -229,33 +232,18 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
 #[test]
 fn retired_identity_high_water_classifies_evicted_history_as_already_retired() {
     let (_fixture, owner, root) = setup(2);
-    let first = RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("first"),
-    )
-    .expect("first child");
+    let first = create_reused_branch(&owner, &root, reuse_intent("first"));
     let first_id = first.branch_identity().clone();
     RuntimeWorldBranchService::retire_product_branch(&owner, first_id.clone())
         .expect("first retirement");
     drop(first);
 
-    let second = RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("second"),
-    )
-    .expect("second child");
+    let second = create_reused_branch(&owner, &root, reuse_intent("second"));
     let second_id = second.branch_identity().clone();
     RuntimeWorldBranchService::retire_product_branch(&owner, second_id).expect("second retirement");
     drop(second);
 
-    let third = RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("third"),
-    )
-    .expect("third child");
+    let third = create_reused_branch(&owner, &root, reuse_intent("third"));
     let third_id = third.branch_identity().clone();
     RuntimeWorldBranchService::retire_product_branch(&owner, third_id).expect("third retirement");
     drop(third);
@@ -275,8 +263,11 @@ fn branch_capacity_denies_before_identity_or_retention_work_and_fork_denies_with
     assert!(matches!(
         RuntimeWorldBranchService::create_product_branch(
             &owner,
-            root.basis().clone(),
-            reuse_intent("full"),
+            RuntimeWorldBranchCreationRequest::new(
+                root.clone(),
+                reuse_intent("full"),
+                CompositeExecutionBorrow::without_signal(),
+            ),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::CapacityExhausted)
     ));
@@ -297,8 +288,11 @@ fn branch_capacity_denies_before_identity_or_retention_work_and_fork_denies_with
     assert!(matches!(
         RuntimeWorldBranchService::create_product_branch(
             &owner,
-            root.basis().clone(),
-            fork_intent("unsupported-fork"),
+            RuntimeWorldBranchCreationRequest::new(
+                root.clone(),
+                fork_intent("unsupported-fork"),
+                CompositeExecutionBorrow::without_signal(),
+            ),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)
     ));
@@ -339,12 +333,14 @@ fn foreign_basis_is_rejected_before_branch_reservation() {
             )
         }
     };
-    let foreign_basis = foreign_root.basis().clone();
     assert!(matches!(
         RuntimeWorldBranchService::create_product_branch(
             &owner,
-            foreign_basis,
-            reuse_intent("foreign"),
+            RuntimeWorldBranchCreationRequest::new(
+                foreign_root.clone(),
+                reuse_intent("foreign"),
+                CompositeExecutionBorrow::without_signal(),
+            ),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::ForeignOwner)
     ));

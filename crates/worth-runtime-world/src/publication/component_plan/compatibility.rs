@@ -46,17 +46,29 @@ fn relational_plan_is_compatible(
                 && plan.prepared_candidate().is_none()
                 && plan.fork_input().is_none()
         }
-        RelationalComponentPlanPosture::PublishPrepared => plan
-            .prepared_candidate()
-            .is_some_and(|candidate| candidate.branch() == plan.expected().identity().branch_id()),
-        RelationalComponentPlanPosture::ForkExact => plan.fork_input().is_some_and(|input| {
-            matches!(input, RelationalForkPlanInput::ForkExact { .. })
-                && fork_source_matches(input, plan)
-        }),
-        RelationalComponentPlanPosture::ForkAndAdvance => plan.fork_input().is_some_and(|input| {
-            matches!(input, RelationalForkPlanInput::ForkAndAdvance { .. })
-                && fork_source_matches(input, plan)
-        }),
+        RelationalComponentPlanPosture::PublishPrepared => {
+            posture == ProductBranchComponentPosture::ReuseExact
+                && changes
+                && plan.prepared_candidate().is_some_and(|candidate| {
+                    candidate.branch() == plan.expected().identity().branch_id()
+                })
+        }
+        RelationalComponentPlanPosture::ForkExact => {
+            posture == ProductBranchComponentPosture::ForkExact
+                && changes
+                && plan.fork_input().is_some_and(|input| {
+                    matches!(input, RelationalForkPlanInput::ForkExact { .. })
+                        && fork_source_matches(input, plan)
+                })
+        }
+        RelationalComponentPlanPosture::ForkAndAdvance => {
+            posture == ProductBranchComponentPosture::ForkAndAdvance
+                && changes
+                && plan.fork_input().is_some_and(|input| {
+                    matches!(input, RelationalForkPlanInput::ForkAndAdvance { .. })
+                        && fork_source_matches(input, plan)
+                })
+        }
     }
 }
 

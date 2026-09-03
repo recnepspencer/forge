@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::branch::{
     ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceCell,
     ProductBranchReferenceSnapshot, RuntimeWorldBranchAdmissionDenial,
@@ -9,8 +8,9 @@ use crate::branch::{
 use crate::identity::{
     ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
 };
-use crate::publication::ProductBranchIntent;
+use crate::publication::{CompositeExecutionBorrow, ProductBranchIntent};
 
+use super::super::ports::{RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest};
 use super::RuntimeWorldOwnerRoot;
 
 impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
@@ -51,9 +51,10 @@ where
 
     fn create_reused_branch(
         &self,
-        basis: AdmittedCompositeRuntimeWorldBasis,
+        source: ProductBranchObservation,
         intent: ProductBranchIntent,
     ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
+        let basis = source.basis().clone();
         let commit_identity = self
             .state
             .branches
@@ -165,12 +166,20 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
+    type SignalDefinition = D;
+    type SignalIdentity = I;
+    type SignalEvent = E;
+    type SignalContext = Ctx;
+    type SignalTransactionKey = T;
+
     fn create_product_branch(
         &self,
-        basis: AdmittedCompositeRuntimeWorldBasis,
-        intent: ProductBranchIntent,
-    ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
-        if basis.owner_identity() != self.owner_identity() {
+        request: RuntimeWorldBranchCreationRequest<'_, D, I, E, Ctx, T>,
+    ) -> Result<RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchAdmissionDenial> {
+        let (source, intent, signal) = request.into_parts();
+        if source.owner_identity() != self.owner_identity()
+            || source.branch_identity().owner_identity() != self.owner_identity()
+        {
             return Err(RuntimeWorldBranchAdmissionDenial::ForeignOwner);
         }
         if !self.branch_service_is_available() {
@@ -178,12 +187,16 @@ where
         }
         let postures = intent.component_postures();
         if !postures.is_exact_reuse() {
-            // The frozen seam supplies no source commit, execution borrow,
-            // cancellation, or fork-success evidence. Calling either owner
-            // here would make a performed component effect unrepresentable.
+            // The branch lane freezes the owner-issued source and borrow now;
+            // fork execution remains a later behavior slice until its
+            // component owners are wired through this exact port.
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
-        self.create_reused_branch(basis, intent)
+        if !matches!(signal, CompositeExecutionBorrow::WithoutSignal) {
+            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+        }
+        self.create_reused_branch(source, intent)
+            .map(RuntimeWorldBranchCreationOutcome::Performed)
     }
 
     fn retire_product_branch(

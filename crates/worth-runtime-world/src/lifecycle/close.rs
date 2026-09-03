@@ -12,6 +12,7 @@ pub(crate) enum RuntimeWorldCloseState {
 pub enum RuntimeWorldCloseDenial {
     AlreadyClosing,
     AlreadyClosed,
+    RecoveryInProgress,
 }
 
 use super::owner::RuntimeWorldOwnerRoot;
@@ -37,6 +38,12 @@ where
             .state
             .lock()
             .unwrap_or_else(|error| error.into_inner());
+        if operation.recovery_active != 0 {
+            return Err(RuntimeWorldCloseDenial::RecoveryInProgress);
+        }
+        if self.state.recovery.installed_slots() != 0 {
+            return Err(RuntimeWorldCloseDenial::RecoveryInProgress);
+        }
         if operation.active != 0 {
             return Err(RuntimeWorldCloseDenial::AlreadyClosing);
         }

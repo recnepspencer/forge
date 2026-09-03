@@ -13,6 +13,7 @@ pub use owner::RuntimeWorldOwnerRoot;
 pub use owner_inputs::RuntimeWorldOwnerInputs;
 #[allow(unused_imports)]
 pub(crate) use ports::{
+    RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest,
     RuntimeWorldBranchService, RuntimeWorldLifecycleService, RuntimeWorldObservationService,
     RuntimeWorldOwnerExecutionService, RuntimeWorldPreparationService,
     RuntimeWorldProductPublicationService, RuntimeWorldRecoveryService,

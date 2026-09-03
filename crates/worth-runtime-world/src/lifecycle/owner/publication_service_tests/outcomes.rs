@@ -115,7 +115,14 @@ fn cancellation_before_product_movement_does_not_cas_current_head() {
     assert_eq!(cell.atomic_snapshot(), before);
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
     assert_eq!(owner.recovery_record_count(), 1);
+    let handle = retained.recovery_handle();
     drop(retained);
+    assert_eq!(
+        owner.close(),
+        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        "installed recovery custody must be cleaned before close"
+    );
+    assert!(owner.cleanup_recovery_handle(&handle));
     owner
         .close()
         .expect("close succeeds after cancellation custody drops");
@@ -162,7 +169,14 @@ fn cancelled_ready_loses_to_winner_and_retains_publication_loss() {
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.state.operation.active(), 0);
+    let handle = retained.recovery_handle();
     drop(retained);
+    assert_eq!(
+        owner.close(),
+        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        "installed recovery custody must be cleaned before close"
+    );
+    assert!(owner.cleanup_recovery_handle(&handle));
     owner
         .close()
         .expect("close succeeds after stale cancellation custody drops");

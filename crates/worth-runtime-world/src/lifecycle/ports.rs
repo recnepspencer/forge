@@ -1,4 +1,3 @@
-use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::branch::ProductBranchReferenceCell;
 use crate::branch::{
     ProductBranchObservation, RuntimeWorldBootstrapIntent, RuntimeWorldBootstrapOutcome,
@@ -37,6 +36,59 @@ impl RuntimeWorldOwnerUnavailable {
     }
 }
 
+/// Owner-issued input for one composite branch-creation attempt. The source
+/// observation carries the exact source identity, reference occurrence, and
+/// component basis; the borrow carries only the synchronous Signal authority
+/// required by the requested posture.
+pub(crate) struct RuntimeWorldBranchCreationRequest<'a, D, I, E, Ctx, T = ()>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    source: ProductBranchObservation,
+    intent: ProductBranchIntent,
+    signal: CompositeExecutionBorrow<'a, D, I, E, Ctx, T>,
+}
+
+impl<'a, D, I, E, Ctx, T> RuntimeWorldBranchCreationRequest<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(crate) fn new(
+        source: ProductBranchObservation,
+        intent: ProductBranchIntent,
+        signal: CompositeExecutionBorrow<'a, D, I, E, Ctx, T>,
+    ) -> Self {
+        Self {
+            source,
+            intent,
+            signal,
+        }
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        ProductBranchObservation,
+        ProductBranchIntent,
+        CompositeExecutionBorrow<'a, D, I, E, Ctx, T>,
+    ) {
+        (self.source, self.intent, self.signal)
+    }
+}
+
+/// Terminal owned by the branch-creation service. A performed value is a new
+/// product reference occurrence; a partial value keeps performed owner work
+/// in the bounded recovery authority without publishing a product head.
+#[derive(Debug)]
+pub(crate) enum RuntimeWorldBranchCreationOutcome {
+    Performed(ProductBranchObservation),
+    ProductUnpublished(ProductUnpublishedOwnerEffects),
+}
+
 /// Shared internal seam for exact product-head observation.
 pub(crate) trait RuntimeWorldObservationService {
     fn observe_product_branch(
@@ -49,11 +101,23 @@ pub(crate) trait RuntimeWorldObservationService {
 /// component posture pair lives in `ProductBranchIntent`; retirement cannot
 /// delete a component branch as a side effect.
 pub(crate) trait RuntimeWorldBranchService {
+    type SignalDefinition: Copy + Ord + std::fmt::Debug + 'static;
+    type SignalIdentity: Copy + Ord;
+    type SignalEvent;
+    type SignalContext;
+    type SignalTransactionKey: Copy + Ord;
+
     fn create_product_branch(
         &self,
-        basis: AdmittedCompositeRuntimeWorldBasis,
-        intent: ProductBranchIntent,
-    ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial>;
+        request: RuntimeWorldBranchCreationRequest<
+            '_,
+            Self::SignalDefinition,
+            Self::SignalIdentity,
+            Self::SignalEvent,
+            Self::SignalContext,
+            Self::SignalTransactionKey,
+        >,
+    ) -> Result<RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchAdmissionDenial>;
 
     fn retire_product_branch(
         &self,

@@ -1,6 +1,9 @@
-use std::sync::{Arc, Barrier};
+use std::sync::{mpsc, Arc, Barrier};
+use std::time::Duration;
 
 use crate::tests::support::*;
+
+const CLOSE_START_ACK_TIMEOUT: Duration = Duration::from_secs(1);
 
 #[test]
 fn phase2_ports_are_cloneable_sendable_and_shared_borrow_services() {
@@ -168,14 +171,16 @@ fn fork_basis_return_holds_owner_admission_across_post_install_close_boundary() 
     });
 
     reached.wait();
-    let close_started = Arc::new(Barrier::new(2));
+    let (close_started_tx, close_started_rx) = mpsc::channel();
     runtime
         .owner_binding()
-        .install_test_close_start_ack(Arc::clone(&close_started));
+        .install_test_close_start_ack(close_started_tx);
     let closer = std::thread::spawn(move || {
         drop(runtime);
     });
-    close_started.wait();
+    close_started_rx
+        .recv_timeout(CLOSE_START_ACK_TIMEOUT)
+        .expect("close acknowledges lifecycle admission before the fork is released");
     release.wait();
 
     let (outcome, basis) = worker

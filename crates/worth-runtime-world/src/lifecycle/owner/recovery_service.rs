@@ -71,10 +71,9 @@ where
         effects: ProductUnpublishedOwnerEffects,
     ) -> Result<RecoveryContinuationContract, super::super::ports::RuntimeWorldOwnerUnavailable>
     {
-        if self.lifecycle_observation() != super::super::RuntimeWorldOwnerLifecycleObservation::Open
-        {
-            return Err(super::super::ports::RuntimeWorldOwnerUnavailable::new());
-        }
+        let _operation = self
+            .reserve_recovery_operation_if_open_and_bootstrapped()
+            .map_err(|_| super::super::ports::RuntimeWorldOwnerUnavailable::new())?;
         let handle = effects.recovery_handle();
         if self.state.recovery.lookup_record(&handle).is_none() {
             return Err(super::super::ports::RuntimeWorldOwnerUnavailable::new());

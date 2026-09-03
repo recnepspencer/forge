@@ -4,10 +4,14 @@ impl CompositeAttemptProgress {
     pub(crate) fn into_ready_results(
         self,
     ) -> Result<(Self, crate::publication::CompositeOwnerExecutionResults), Self> {
-        let relational_ready = matches!(
-            self.relational.posture,
-            RelationalAttemptProgressPosture::Untouched | RelationalAttemptProgressPosture::Settled
-        ) || self.relational.is_fork_only();
+        let relational_ready = match (&self.relational.posture, &self.relational.evidence) {
+            (RelationalAttemptProgressPosture::Untouched, None)
+            | (
+                RelationalAttemptProgressPosture::Settled,
+                Some(RelationalProgressEvidence::Settled { .. }),
+            ) => true,
+            _ => self.relational.is_fork_only(),
+        };
         let signal_ready = matches!(
             self.signal.posture,
             SignalAttemptProgressPosture::Untouched | SignalAttemptProgressPosture::Performed

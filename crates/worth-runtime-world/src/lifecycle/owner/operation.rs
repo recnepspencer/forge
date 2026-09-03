@@ -212,6 +212,25 @@ where
     fn reserve_operation_if_open_and_bootstrapped(
         &self,
     ) -> Result<RuntimeWorldOperationReservation, ()> {
+        self.reserve_operation_with_state(RuntimeWorldOperationState::Preparing)
+    }
+
+    pub(super) fn reserve_recovery_operation_if_open_and_bootstrapped(
+        &self,
+    ) -> Result<RuntimeWorldOperationReservation, ()> {
+        self.reserve_operation_with_state(RuntimeWorldOperationState::Recovering)
+    }
+
+    fn reserve_operation_with_state(
+        &self,
+        initial_state: RuntimeWorldOperationState,
+    ) -> Result<RuntimeWorldOperationReservation, ()> {
+        if !matches!(
+            initial_state,
+            RuntimeWorldOperationState::Preparing | RuntimeWorldOperationState::Recovering
+        ) {
+            return Err(());
+        }
         let bootstrap = self
             .state
             .bootstrap
@@ -234,11 +253,24 @@ where
         if close.state() != super::super::close::RuntimeWorldCloseState::Open {
             return Err(());
         }
-        ledger.active = ledger.active.checked_add(1).ok_or(())?;
+        let active = ledger.active.checked_add(1).ok_or(())?;
+        let recovery_active = if initial_state == RuntimeWorldOperationState::Recovering {
+            Some(ledger.recovery_active.checked_add(1).ok_or(())?)
+        } else {
+            None
+        };
+        ledger.active = active;
+        if let Some(recovery_active) = recovery_active {
+            ledger.recovery_active = recovery_active;
+        }
         drop(close);
         drop(ledger);
         drop(bootstrap);
-        Ok(self.state.operation.preparing_reservation())
+        Ok(if initial_state == RuntimeWorldOperationState::Recovering {
+            self.state.operation.recovering_reservation()
+        } else {
+            self.state.operation.preparing_reservation()
+        })
     }
 
     fn is_open_and_bootstrapped(&self) -> bool {

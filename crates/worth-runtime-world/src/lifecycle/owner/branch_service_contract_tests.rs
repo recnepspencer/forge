@@ -10,9 +10,10 @@ use crate::budget::{
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
 use crate::lifecycle::{
+    RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest,
     RuntimeWorldBranchService, RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant,
 };
-use crate::publication::{CompositeComponentIntent, ProductBranchIntent};
+use crate::publication::{CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent};
 
 type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -86,22 +87,42 @@ fn setup() -> (
     (fixture, owner, root)
 }
 
+fn create_reused_branch(
+    owner: &TestOwner,
+    source: &ProductBranchObservation,
+    intent: ProductBranchIntent,
+) -> ProductBranchObservation {
+    match RuntimeWorldBranchService::create_product_branch(
+        owner,
+        RuntimeWorldBranchCreationRequest::new(
+            source.clone(),
+            intent,
+            CompositeExecutionBorrow::without_signal(),
+        ),
+    )
+    .expect("exact reuse is admitted")
+    {
+        RuntimeWorldBranchCreationOutcome::Performed(observation) => observation,
+        RuntimeWorldBranchCreationOutcome::ProductUnpublished(_) => {
+            panic!("exact reuse did not produce a branch observation")
+        }
+    }
+}
+
 #[test]
 fn installed_duplicate_name_maps_to_the_exact_branch_denial() {
     let (_fixture, owner, root) = setup();
-    RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("installed-duplicate"),
-    )
-    .expect("the first named branch installs");
+    create_reused_branch(&owner, &root, reuse_intent("installed-duplicate"));
     let before = owner.state.branches.branch_count();
 
     assert!(matches!(
         RuntimeWorldBranchService::create_product_branch(
             &owner,
-            root.basis().clone(),
-            reuse_intent("installed-duplicate"),
+            RuntimeWorldBranchCreationRequest::new(
+                root.clone(),
+                reuse_intent("installed-duplicate"),
+                CompositeExecutionBorrow::without_signal(),
+            ),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::DuplicateName)
     ));
@@ -123,17 +144,15 @@ fn held_duplicate_name_maps_to_the_same_denial_and_drop_releases_it() {
     assert!(matches!(
         RuntimeWorldBranchService::create_product_branch(
             &owner,
-            root.basis().clone(),
-            reuse_intent("held-duplicate"),
+            RuntimeWorldBranchCreationRequest::new(
+                root.clone(),
+                reuse_intent("held-duplicate"),
+                CompositeExecutionBorrow::without_signal(),
+            ),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::DuplicateName)
     ));
     drop(held);
 
-    RuntimeWorldBranchService::create_product_branch(
-        &owner,
-        root.basis().clone(),
-        reuse_intent("held-duplicate"),
-    )
-    .expect("dropping the reservation releases the duplicate name");
+    create_reused_branch(&owner, &root, reuse_intent("held-duplicate"));
 }

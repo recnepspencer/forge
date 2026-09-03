@@ -20,6 +20,7 @@ pub(crate) struct RuntimeWorldOperationTransitionDenial {
 #[derive(Debug, Default)]
 pub(crate) struct RuntimeWorldOperationLedgerState {
     pub(crate) active: usize,
+    pub(crate) recovery_active: usize,
 }
 
 /// Close-admission ledger for independent attempt-local operation phases.
@@ -37,8 +38,19 @@ impl RuntimeWorldOperationLedger {
     }
 
     pub(super) fn preparing_reservation(&self) -> RuntimeWorldOperationReservation {
+        self.reservation(RuntimeWorldOperationState::Preparing)
+    }
+
+    pub(super) fn recovering_reservation(&self) -> RuntimeWorldOperationReservation {
+        self.reservation(RuntimeWorldOperationState::Recovering)
+    }
+
+    fn reservation(
+        &self,
+        initial_state: RuntimeWorldOperationState,
+    ) -> RuntimeWorldOperationReservation {
         RuntimeWorldOperationReservation {
-            state: Arc::new(Mutex::new(RuntimeWorldOperationState::Preparing)),
+            state: Arc::new(Mutex::new(initial_state)),
             ledger: self.clone(),
             armed: true,
         }
@@ -81,6 +93,7 @@ impl Drop for RuntimeWorldOperationReservation {
             RuntimeWorldOperationState::Idle,
             "a live operation reservation cannot be dropped while Idle"
         );
+        let recovering = *state == RuntimeWorldOperationState::Recovering;
         *state = RuntimeWorldOperationState::Idle;
         drop(state);
         let mut ledger = self
@@ -92,6 +105,12 @@ impl Drop for RuntimeWorldOperationReservation {
             .active
             .checked_sub(1)
             .expect("a live operation reservation owns one ledger entry");
+        if recovering {
+            ledger.recovery_active = ledger
+                .recovery_active
+                .checked_sub(1)
+                .expect("a recovering operation reservation owns one recovery entry");
+        }
         self.armed = false;
     }
 }
@@ -132,9 +151,27 @@ impl RuntimeWorldOperationReservation {
     }
 
     pub(crate) fn begin_recovery(&mut self) -> Result<(), RuntimeWorldOperationTransitionDenial> {
-        self.transition(
-            RuntimeWorldOperationState::Publishing,
-            RuntimeWorldOperationState::Recovering,
-        )
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        if *state != RuntimeWorldOperationState::Publishing {
+            return Err(RuntimeWorldOperationTransitionDenial {
+                expected: RuntimeWorldOperationState::Publishing,
+                actual: *state,
+            });
+        }
+        let mut ledger = self
+            .ledger
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        ledger.recovery_active =
+            ledger
+                .recovery_active
+                .checked_add(1)
+                .ok_or(RuntimeWorldOperationTransitionDenial {
+                    expected: RuntimeWorldOperationState::Publishing,
+                    actual: *state,
+                })?;
+        *state = RuntimeWorldOperationState::Recovering;
+        Ok(())
     }
 }

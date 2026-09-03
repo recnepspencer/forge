@@ -105,18 +105,6 @@ impl RelationalComponentPlan {
         }
     }
 
-    pub(crate) fn planned(
-        posture: RelationalComponentPlanPosture,
-        expected: AdmittedRelationalBranchBasis,
-    ) -> Self {
-        Self {
-            posture,
-            expected,
-            prepared_candidate: None,
-            fork_input: None,
-        }
-    }
-
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -199,17 +187,6 @@ impl SignalComponentPlan {
             posture: SignalComponentPlanPosture::ForkAndAdvance,
             expected,
             requested_branch_name: Some(requested_branch_name),
-        }
-    }
-
-    pub(crate) fn planned(
-        posture: SignalComponentPlanPosture,
-        expected: AdmittedSignalBranchBasis,
-    ) -> Self {
-        Self {
-            posture,
-            expected,
-            requested_branch_name: None,
         }
     }
 

@@ -1,4 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+#[cfg(test)]
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex};
 
 /// Drop-governed lifecycle authority shared by every independently borrowable
@@ -21,7 +23,7 @@ struct RelationalRuntimeLifecycle {
     close_wait: Mutex<()>,
     close_ready: Condvar,
     #[cfg(test)]
-    test_close_start_ack: Mutex<Option<Arc<std::sync::Barrier>>>,
+    test_close_start_ack: Mutex<Option<Sender<()>>>,
 }
 
 #[derive(Debug)]
@@ -99,7 +101,7 @@ impl RelationalRuntimeOwnerBinding {
     }
 
     #[cfg(test)]
-    pub(crate) fn install_test_close_start_ack(&self, ack: Arc<std::sync::Barrier>) {
+    pub(crate) fn install_test_close_start_ack(&self, ack: Sender<()>) {
         let mut hook = self
             .lifecycle
             .test_close_start_ack
@@ -117,7 +119,7 @@ impl RelationalRuntimeOwnerBinding {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .take();
         if let Some(hook) = hook {
-            hook.wait();
+            let _ = hook.send(());
         }
     }
 }
