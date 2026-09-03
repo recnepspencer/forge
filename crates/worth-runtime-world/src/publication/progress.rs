@@ -1,9 +1,14 @@
-use worth_relational::facade::history::RelationalCommitReceipt;
+use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
+use worth_relational::facade::history::RelationalCommitIdentity;
 use worth_relational::facade::mvcc::{
     PerformedRelationalCommit, PreparedRelationalCommitCandidate,
 };
 use worth_relational::facade::publication::DeferredPublicationSettlement;
+use worth_relational::facade::transactions::CommitResult;
 use worth_signal::facade::branch::{SignalBranchAdvanceOutcome, SignalBranchForkOutcome};
+
+#[path = "progress/recovery.rs"]
+mod recovery;
 
 /// Exact Relational owner progress. A generic ordinal cannot say which owner
 /// evidence or settlement obligation is alive.
@@ -18,15 +23,16 @@ pub enum RelationalAttemptProgressPosture {
 
 #[derive(Debug)]
 pub(super) enum RelationalProgressEvidence {
-    Prepared(PreparedRelationalCommitCandidate),
     Performed(PerformedRelationalCommit),
     SettlementPending {
-        performed: PerformedRelationalCommit,
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
         settlement: DeferredPublicationSettlement,
     },
     Settled {
-        performed: PerformedRelationalCommit,
-        receipt: RelationalCommitReceipt,
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+        result: CommitResult,
     },
 }
 
@@ -44,21 +50,20 @@ impl RelationalAttemptProgress {
         }
     }
 
-    pub(crate) fn prepared(candidate: PreparedRelationalCommitCandidate) -> Self {
-        Self {
-            posture: RelationalAttemptProgressPosture::Prepared,
-            evidence: Some(RelationalProgressEvidence::Prepared(candidate)),
-        }
-    }
-
-    pub(crate) fn performed_settlement_pending(
-        performed: PerformedRelationalCommit,
+    /// Record a performed Relational route after its owner consumed the
+    /// linear performed witness and returned a deferred settlement. The
+    /// successor basis is captured before that consuming owner call; the
+    /// deferred settlement is the remaining owner-issued repair authority.
+    pub(crate) fn settlement_pending(
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
         settlement: DeferredPublicationSettlement,
     ) -> Self {
         Self {
             posture: RelationalAttemptProgressPosture::SettlementPending,
             evidence: Some(RelationalProgressEvidence::SettlementPending {
-                performed,
+                commit_identity,
+                successor_basis,
                 settlement,
             }),
         }
@@ -71,13 +76,21 @@ impl RelationalAttemptProgress {
         }
     }
 
+    /// Record the exact result returned by the consuming Relational
+    /// settlement call. The commit receipt is retained inside `CommitResult`;
+    /// no second performed witness is manufactured.
     pub(crate) fn settled(
-        performed: PerformedRelationalCommit,
-        receipt: RelationalCommitReceipt,
+        commit_identity: RelationalCommitIdentity,
+        successor_basis: AdmittedRelationalBranchBasis,
+        result: CommitResult,
     ) -> Self {
         Self {
             posture: RelationalAttemptProgressPosture::Settled,
-            evidence: Some(RelationalProgressEvidence::Settled { performed, receipt }),
+            evidence: Some(RelationalProgressEvidence::Settled {
+                commit_identity,
+                successor_basis,
+                result,
+            }),
         }
     }
 
@@ -126,6 +139,13 @@ impl SignalAttemptProgress {
         }
     }
 
+    pub(crate) const fn summary(posture: SignalAttemptProgressPosture) -> Self {
+        Self {
+            posture,
+            evidence: None,
+        }
+    }
+
     pub(crate) fn advanced(outcome: SignalBranchAdvanceOutcome) -> Self {
         Self {
             posture: SignalAttemptProgressPosture::Performed,
@@ -153,6 +173,36 @@ impl SignalAttemptProgress {
 pub struct CompositeAttemptProgress {
     relational: RelationalAttemptProgress,
     signal: SignalAttemptProgress,
+}
+
+/// Non-sendable preparation custody is kept outside the post-effect progress
+/// row. A candidate can cross into owner publication, but it can never be
+/// installed in the cross-thread recovery catalog.
+#[derive(Debug)]
+pub(crate) struct PreparedRelationalAttemptProgress {
+    candidate: PreparedRelationalCommitCandidate,
+}
+
+impl PreparedRelationalAttemptProgress {
+    pub(crate) fn new(candidate: PreparedRelationalCommitCandidate) -> Self {
+        Self { candidate }
+    }
+
+    pub(crate) fn posture(&self) -> RelationalAttemptProgressPosture {
+        RelationalAttemptProgressPosture::Prepared
+    }
+
+    pub(crate) fn into_candidate(self) -> PreparedRelationalCommitCandidate {
+        self.candidate
+    }
+}
+
+impl RelationalAttemptProgress {
+    pub(crate) fn prepared(
+        candidate: PreparedRelationalCommitCandidate,
+    ) -> PreparedRelationalAttemptProgress {
+        PreparedRelationalAttemptProgress::new(candidate)
+    }
 }
 
 impl CompositeAttemptProgress {
@@ -199,9 +249,7 @@ impl CompositeAttemptProgress {
     ) -> Result<(Self, super::CompositeOwnerExecutionResults), Self> {
         let relational_ready = matches!(
             self.relational.posture,
-            RelationalAttemptProgressPosture::Untouched
-                | RelationalAttemptProgressPosture::Performed
-                | RelationalAttemptProgressPosture::Settled
+            RelationalAttemptProgressPosture::Untouched | RelationalAttemptProgressPosture::Settled
         );
         let signal_ready = matches!(
             self.signal.posture,
@@ -218,11 +266,17 @@ impl CompositeAttemptProgress {
             None if relational_posture == RelationalAttemptProgressPosture::Untouched => {
                 super::CompositeRelationalOwnerResult::retained()
             }
-            Some(RelationalProgressEvidence::Performed(performed)) => {
-                super::CompositeRelationalOwnerResult::published(performed, None)
-            }
-            Some(RelationalProgressEvidence::Settled { performed, receipt }) => {
-                super::CompositeRelationalOwnerResult::published(performed, Some(receipt))
+            Some(RelationalProgressEvidence::Settled {
+                commit_identity,
+                successor_basis,
+                result,
+            }) => super::CompositeRelationalOwnerResult::settled(
+                commit_identity,
+                successor_basis,
+                result,
+            ),
+            Some(RelationalProgressEvidence::SettlementPending { .. }) => {
+                unreachable!("pending Relational progress is rejected above")
             }
             _ => unreachable!("ready Relational progress carries matching evidence"),
         };
