@@ -72,6 +72,17 @@ authority. Query still has branch-bearing surfaces that may use Relational
 identity, ambient Signal context, or weaker descriptors. The migration must
 cover the complete causal chain:
 
+Query also still owns its unit-typed Signal runtime inside
+`BridgeOwnedSignalRuntime`, whose ordinary paths use construction-only Signal
+graph access. That root cannot simply issue 9.17.1.2 services and continue on
+the old lane. This milestone must refactor or replace that composition root
+once so Runtime Bridge and Runtime World operate against one owner-compatible
+sealed Signal state. The three frozen branch ports do not expose Bridge's
+conditional graph execution; Phase 1 must either prove that lane is no longer
+needed or freeze one concrete Signal-owned Bridge execution service before
+carriage parallelizes. A consumer adapter, second Signal graph, or simultaneous
+legacy graph access after sealing is forbidden.
+
 ```text
 declaration -> normalization -> admission -> planning -> access plan
     -> provider session -> observations/read set -> proposal -> invariants
@@ -226,7 +237,9 @@ implementing behavior.
 Inventory every branch-bearing Query type, constructor, transition, facade,
 lower-runtime request, receipt, history/live/preview/inspection surface, and
 fixture. Install the private admitted composite-basis carrier and compiler
-denials before broad migration.
+denials before broad migration. Freeze the one-graph
+`BridgeOwnedSignalRuntime` cutover seam and its exact service ownership before
+parallel carriage work begins.
 
 ### Phase 2: Planning Through Invariant Carriage
 

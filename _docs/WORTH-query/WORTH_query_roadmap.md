@@ -5220,6 +5220,13 @@ in bounded `ProductUnpublishedOwnerEffects` recovery records and are never
 misnamed rollback or a commit. Closure requires no mixed product observation,
 no global composition or Signal lock, no silent ancestry pruning, and honest
 cost scopes. It does not claim public Query cutover or physical persistence.
+The owner remains generic over the frozen
+`SignalOwnerServicePorts<D, I, E, Ctx, T>` contract, admits Bridge meaning only
+from a real installed correspondence witness, and honors Relational's distinct
+fresh fork-source-token protocol. Branch creation is the explicit two-by-two
+reuse/fork matrix; component change is a separate publication. The current
+Query `BridgeOwnedSignalRuntime` graph-access topology is cut over in 9.17.3,
+without a second Signal graph or an erased compatibility lane.
 
 #### Milestone 9.17.3: Query Product-Branch Carriage, Facade, And Certification
 

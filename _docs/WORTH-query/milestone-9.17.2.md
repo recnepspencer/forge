@@ -12,6 +12,11 @@
 > accepted production revision `95c9aa7455`. Its Relational bundle and
 > independently borrowable Signal services are frozen prerequisites for this
 > milestone.
+>
+> **Boundary revalidation:** Re-audited on 2026-09-01 against integrated
+> revision `a09f241c61`, including the concrete Relational/Signal owner ports,
+> current Runtime Bridge correspondence surface, and Query's live composition
+> root.
 
 ## Goal And Roadmap Placement
 
@@ -69,42 +74,64 @@ are legal. It is not a product commit and it is not rollback.
 
 The claim is false if:
 
-- Relational or Signal currentness alone defines the product world;
-- a component is selected through ambient `main`, `current`, or `latest`;
-- an equal id, ordinal, version, digest, descriptor, receipt, or memory layout
-  substitutes for owner admission;
-- a component result becomes product-current before the product reference
-  moves;
-- owner-local movement is hidden after a losing product race;
-- a stale attempt rebases or retries under a new expected head;
-- unchanged components are refreshed or contacted opportunistically;
-- a global Bridge, history, component-owner, or Signal runtime lock serializes
-  unrelated product branches;
-- one composite commit creates one owner retention lease per repeated use of
-  the same exact component basis;
-- history, observations, or recovery state grow without an installed bound;
-- Query, an adapter, a persisted representation, or a diagnostic projection
-  mints composition authority; or
-- this milestone introduces a codec, backend, checkpoint, recovery cursor,
-  physical runtime, or restart promise.
+- component currentness or ambient `main`/`current`/`latest` defines the world;
+- an equal-looking representation substitutes for owner admission;
+- component results become product-current before CAS, losing movement is
+  hidden, or stale attempts rebase;
+- unchanged owners are contacted, unrelated branches share a global lock, or
+  repeated bases amplify leases;
+- managed state is unbounded or Query/adapters/projections mint authority; or
+- this milestone adds persistence, physical runtime, or restart machinery.
 
-## Current Boundary And Required Correction
+## Current Boundary And Required Composition
 
-The completed owner milestones provide:
+The completed owners provide concrete Relational preparation/fork/publication/
+settlement/basis/lifecycle services; exact admitted bases; typed movement;
+pre-movement Relational settlement recovery; and exact, terminal retention.
+Descriptors remain diagnostic only.
 
-- independently borrowable Relational preparation, fork, publication,
-  settlement, observation, retention, and lifecycle services;
-- exact Relational and Signal admitted bases, with transport descriptors
-  carried only as non-authorizing diagnostics;
-- owner-local branch movement with complete performed/no-movement outcomes;
-- Relational pending-settlement recovery installed before movement;
-- exact current and historical component retention; and
-- terminal retention obligations even when a capability or owner is lost.
+The accepted predecessor surface is now concrete. Runtime World consumes the
+non-generic `RelationalOwnerServicePorts` and the generic
+`SignalOwnerServicePorts<D, I, E, Ctx, T>` directly. Relational service issuance
+is infallible from `&RelationalRuntime`; Signal service issuance is a fallible,
+one-way seal from `&mut SignalRuntime<D, I, E, Ctx, T>` and preserves the
+predecessor's explicit `Send + Sync + 'static` bounds. Runtime World is
+therefore generic over the exact Signal contract. It may not erase those five
+parameters, define a consumer trait, or specialize the composition crate to
+Query's current unit-typed Signal runtime.
 
-The pre-gate code still leaves Relational basis/lifecycle calls and Signal
-mutation on owner roots; 9.17.1.2 closes both service gaps. Because Relational
-already depends on Runtime Bridge, this milestone resolves the remaining Cargo
-cycle by composing above Bridge. Neither move changes component authority.
+The public owner/builder/Signal-execution bounds are exactly the predecessor
+bounds: `D: Copy + Ord + Debug + Send + Sync + 'static`,
+`I: Copy + Ord + Send + Sync + 'static`, `E: Send + Sync + 'static`,
+`Ctx: Send + Sync + 'static`, and
+`T: Copy + Ord + Send + Sync + 'static`. Runtime World may not strengthen them
+with `Clone`, `Default`, serialization, or an application trait merely to ease
+storage.
+
+The component contracts are intentionally asymmetric. Signal `fork_exact`
+accepts the carried `AdmittedSignalBranchBasis` directly. Relational
+`fork_branch` instead consumes an `AdmittedRelationalForkSourceBasis` freshly
+issued by `observe_fork_source`. Runtime World must observe through the carried
+basis's branch identity, compare every shared exact axis—runtime, branch,
+reference observation, and truth version—between the returned fork descriptor
+and the admitted source basis, and only then consume the fork token. A raw
+branch id selects the owner cell; it never authorizes the fork.
+
+Because Relational already depends on Runtime Bridge, this milestone resolves
+the remaining Cargo cycle by composing above Bridge. Neither placement nor
+generic carriage changes component authority.
+
+### Query-owned Signal topology constraint
+
+The current Query composition root stores a unit-typed `SignalRuntime` inside
+`BridgeOwnedSignalRuntime`, whose ordinary Bridge methods still use
+construction-only `graph()`/`graph_mut()`. Sealing it would invalidate those
+paths. This milestone instead proves one standalone Signal owner with Bridge
+meaning installed against the same graph before sealing.
+
+Milestone 9.17.3 must refactor or replace the Query/Bridge root once before
+cutover. A second graph, post-seal legacy access, or erased adapter is forbidden;
+this is an integration dependency, not unfinished 9.17.2 authority.
 
 ## Ownership And Truth Lock
 
@@ -129,35 +156,40 @@ diagnostics, and Query projections are derived. Destroying them must not change
 which product commit a branch selects or which retained partial obligations
 remain unsettled.
 
-## Semantic Identities And Non-Substitution
+## Semantic Identities, Keys, And Non-Substitution
 
 The following are distinct sealed meanings even if their representations
 match:
 
 - `RuntimeWorldOwnerIdentity` identifies one live composition owner instance;
-- `ProductBranchIdentity` identifies one mutable product reference for the
-  lifetime of that owner and is never reused;
+- `ProductBranchIdentity` identifies one normalized owner-scoped product branch
+  name;
+- `ProductBranchIncarnation` identifies the live reference cell admitted for
+  that name, changes after retirement/recreation, and makes the
+  `(owner, branch, incarnation)` tuple non-reusable;
 - `ProductBranchReferenceGeneration` changes only when that reference moves;
 - `RuntimeWorldBootstrapAttemptIdentity` identifies the one attempt that may
   establish this owner's root commit and first product reference;
 - `CompositeCommitIdentity` identifies one immutable commit occurrence and is
   not derived from content;
-- `CompositeBasisIdentity` identifies the exact component/correspondence tuple
-  for comparison and reuse;
+- `CompositeBasisKey` is the canonical, non-authorizing equality key for the
+  exact component/correspondence tuple;
 - `CompositePublicationAttemptIdentity` identifies one bounded execution
   attempt; and
 - `ProductUnpublishedOwnerEffectsIdentity` identifies one retained recovery
   obligation after at least one owner effect.
 
 Equal component bases may appear in multiple distinct commit occurrences.
-Equal composite bases do not collapse history, parentage, operation occurrence,
-or reference movement. Digests may prove canonical comparison but never mint
-any identity above.
+Equal `CompositeBasisKey` values permit pin reuse and equality comparison but
+do not admit a basis, collapse history, parentage, operation occurrence, or
+reference movement. The admitted component bases and admitted Bridge binding
+remain the authority. Digests may prove canonical comparison but never mint an
+identity or admit an operation.
 
 Every `ProductBranchObservation` compares the complete owner identity, branch
-identity, lifecycle incarnation, reference generation, and selected composite
-commit. Comparing only a branch name, commit id, or generation is forbidden.
-Identity or generation exhaustion is a typed pre-effect denial.
+identity, `ProductBranchIncarnation`, reference generation, and selected
+composite commit. Comparing only a branch name, commit id, or generation is
+forbidden. Identity or generation exhaustion is a typed pre-effect denial.
 
 ## Composite Commit Contract
 
@@ -167,8 +199,11 @@ Identity or generation exhaustion is a typed pre-effect denial.
 - `Root` or one `OrdinaryParent` identity;
 - the exact `CompositeRuntimeWorldBasis`;
 - explicit Relational and Signal change posture;
-- exact owner publication/fork identities for every changed component;
-- the exact Bridge correspondence-basis identity;
+- exact owner-issued performed outcomes and successor bases for every changed
+  component, without inventing a component occurrence id the owner does not
+  expose;
+- the exact admitted Bridge Runtime World correspondence binding and its
+  descriptive equality key;
 - exact occurrence provenance: the root bootstrap attempt or one composite
   publication attempt;
 - caller correlation accepted as descriptive, non-authorizing boundary
@@ -191,16 +226,72 @@ stable `history/parentage/` axis. Later multi-parent work may add an ordered
 parent-set sibling or versioned commit family there, but no multi-parent API,
 placeholder, optional vector, or merge behavior is created now.
 
+## Bridge Runtime World Correspondence Contract
+
+Runtime Bridge adds one narrow `RuntimeWorldCorrespondencePort`. Its admission
+method accepts a reference to a real `BridgeInstalledSemanticCorrespondence`
+and returns `AdmittedRuntimeWorldCorrespondenceBasis` or a typed
+`RuntimeWorldCorrespondenceAdmissionDenial`. The port validates owner/runtime
+affinity, source installation identity and generation, graph participation,
+Signal graph instance, and the fact that the supplied artifact is an installed
+witness. It does not accept a detached `BridgeCorrespondenceBasis` as
+authority. Runtime Bridge has no managed close/liveness contract in the frozen
+surface, so this port must not invent one.
+
+The frozen facade shape is:
+
+```rust,no_run
+impl RuntimeBridge {
+    pub fn runtime_world_correspondence_port(&self) -> RuntimeWorldCorrespondencePort;
+}
+
+impl RuntimeWorldCorrespondencePort {
+    pub fn admit_installed(
+        &self,
+        installed: &BridgeInstalledSemanticCorrespondence,
+    ) -> Result<AdmittedRuntimeWorldCorrespondenceBasis,
+                RuntimeWorldCorrespondenceAdmissionDenial>;
+
+    pub fn revalidate(
+        &self,
+        admitted: &AdmittedRuntimeWorldCorrespondenceBasis,
+    ) -> Result<(), RuntimeWorldCorrespondenceAdmissionDenial>;
+}
+```
+
+The denial variants distinguish `ForeignBridgeRuntime`, `ForeignSignalGraph`,
+`SourceInstallationIdentityMismatch`, `SourceInstallationGenerationMismatch`,
+`SourceAuthorityBindingMismatch`, `GraphParticipationMismatch`, and
+`CorrespondenceConfigurationMismatch`. Admission and revalidation are
+read-only; they allocate no Signal target, mutate no registry, and perform no
+delivery.
+
+The admitted result is cloneable inspection-and-composition authority bound to
+the Bridge owner and installed generation. It exposes a canonical descriptive
+key for composite equality, but its constructor and authority fields remain
+private. Revalidation through the same port distinguishes foreign Bridge,
+foreign Signal graph, source-generation drift, and correspondence mismatch.
+Runtime World stores the admitted result and may compare or revalidate it; it
+never owns mappings, deliveries, conditional evaluation, or Signal targets.
+
+Multiple installed correspondences may share one exact admitted Bridge basis.
+That equality does not make their dependency or target declarations
+interchangeable. This milestone binds the world-level interpretation basis,
+not an unordered inventory of every installed mapping.
+
 ## Root Bootstrap
 
-`RuntimeWorldOwner` construction creates an empty composition owner. It does
+`RuntimeWorldOwner<D, I, E, Ctx, T>` construction creates an empty composition
+owner. It does
 not inspect ambient component heads, infer a default branch, or manufacture a
 root. Exactly one `bootstrap_root` operation may establish the owner graph. It
 requires:
 
 - one exact owner-issued admitted Relational basis;
 - one exact owner-issued admitted Signal basis;
-- one basis admitted through the Bridge Runtime World correspondence port;
+- one `AdmittedRuntimeWorldCorrespondenceBasis` issued by the Bridge Runtime
+  World correspondence port from a real installed semantic-correspondence
+  witness;
 - one validated initial `ProductBranchCreationIntent`; and
 - installed history, branch, pin, attempt, and metadata budgets.
 
@@ -245,19 +336,36 @@ cannot observe a moved reference whose commit is absent from history or whose
 component pins are not yet installed.
 
 Product branch creation starts from an admitted retained composite basis and
-requires one explicit posture per component:
+requires one owner-specialized explicit posture per component:
 
-- `ReuseExact` retains the exact component basis without owner movement;
-- `ForkExact` asks that component owner to create a distinct component branch
-  from the exact admitted source; or
-- `ForkAndAdvance` forks and then performs owner-local work declared by the
-  admitted creation plan.
+```text
+RelationalBranchCreationPlan
+    ReuseExact
+    ForkExact { target: BranchId }
+
+SignalBranchCreationPlan
+    ReuseExact
+    ForkExact { target: ValidatedSignalBranchName }
+```
 
 Omission is invalid. Two `ReuseExact` postures may select the existing commit.
 Creation otherwise uses publication's pre-effect reservation and
 Relational-then-Signal order. Each fork creates a new composition occurrence
 under the source commit even when content is equal; a performed fork followed
 by sibling denial terminates as `ProductUnpublishedOwnerEffects`.
+
+Branch creation does not also publish or advance component state. Callers that
+need a changed new branch first create it through the two-by-two reuse/fork
+matrix, observe its product head, and submit a separate publication. This keeps
+creation implementable through the frozen owner ports, prevents a hidden
+post-fork transaction factory, and gives every owner movement one explicit
+attempt and terminal artifact.
+
+For Relational `ForkExact`, Runtime World calls `observe_fork_source` with the
+source basis's carried branch id, compares all shared exact axes of the returned
+source descriptor to the admitted source basis, then calls `fork_branch`. For
+Signal `ForkExact`, it calls `fork_exact` with the admitted source basis.
+Neither path re-resolves `main`, `current`, or `latest`.
 
 Product branch retirement removes only the product reference and releases its
 composition obligations. It never assumes a component branch is exclusive and
@@ -275,24 +383,24 @@ component:
 RelationalComponentPlan
     RetainExact
     PublishPrepared
-    ForkThenPublish
 
 SignalComponentPlan
     RetainExact
     AdvanceExact
-    ForkThenAdvance
 ```
 
 Plans remain owner-specialized. Relational plans carry owner-issued candidates.
-Signal advance posture is admitted during preparation, but its mutation and
-caller-owned runtime context enter as a `SignalExecutionBorrow` only for the
-synchronous owner call. The attempt never retains, clones, erases, or registers
-either value.
+Signal advance posture is admitted during preparation, but its mutation closure
+and caller-owned runtime context enter only as generic arguments to the
+synchronous Signal execution call. The attempt never retains, clones, erases,
+boxes, or registers either value. Fork-then-change is expressed as branch
+creation followed by publication, not as a third component-plan variant.
 
 For a combined change, canonical effect order is:
 
-1. prepare every fallible compatibility, correspondence, budget, retention,
-   history-slot, and attempt-record requirement;
+1. prepare every Runtime World compatibility, correspondence, budget,
+   retention, history-slot, and attempt-record requirement that can be checked
+   before owner effects;
 2. prepare the Relational candidate without component movement;
 3. recheck the exact product-head observation;
 4. perform and settle Relational publication;
@@ -323,6 +431,22 @@ No Runtime World lock, product-reference lock, history lock, or pin-registry
 lock may be held while calling a component owner. Owner calls occur only from
 named execution phases after Runtime World preparation locks have been
 released.
+
+### Cancellation handoff
+
+Runtime World owns `RuntimeWorldCancellationSource` and its cloneable
+`RuntimeWorldCancellationToken`. The source records one shared Runtime World
+flag and one private `SignalOwnerCancellationSource`; `cancel()` changes both.
+World phases read only the Runtime World flag, while a Signal fork, advance, or
+retirement receives the embedded `SignalOwnerCancellationToken`. Callers cannot
+supply a raw Signal token in place of the Runtime World token.
+
+Relational has no matching publication cancellation token. Runtime World checks
+cancellation and deadline immediately before entering Relational; once the
+owner call begins, its performed/no-movement and settlement outcomes decide
+truth. No timer thread is introduced: the installed clock is sampled only at
+named phase boundaries, and concurrent cancellation during Signal's synchronous
+call is observed by Signal's own cutoff.
 
 ## Pre-Effect Reservation And Attempt Authority
 
@@ -369,7 +493,7 @@ It records:
 - the exact expected and last observed product heads;
 - a typed progress row for each component: untouched, prepared, performed,
   settlement pending, or settled;
-- every performed owner occurrence and successor basis;
+- every owner-issued performed outcome and successor basis;
 - every still-live component and composite retention obligation;
 - the cause: sibling denial, owner settlement pending, cancellation after
   effect, stale product head, owner loss, or product publication loss;
@@ -459,10 +583,13 @@ diagnostic event does not make a product world current.
 
 ## Retention And Reclamation
 
-Runtime World owns a unique component-basis pin registry. The key is the full
-owner-issued exact basis identity, never a hash alone. One registry entry holds
-at most one external owner retention lease for that exact basis and accounts
-for Runtime World dependents by semantic class:
+Runtime World owns a unique component-basis pin registry. Its map key is the
+complete canonical descriptor axes for one exact owner basis, never a hash
+alone. The key is descriptive and cannot acquire or recover anything. The
+first claimant must carry the corresponding owner-admitted basis; retention is
+performed only through that basis and the concrete owner basis port. One
+registry entry holds at most one external owner retention lease for that exact
+basis and accounts for Runtime World dependents by semantic class:
 
 - product branch heads;
 - retained composite history;
@@ -482,9 +609,10 @@ bounded acquiring reservation, releases the registry lock, and alone calls the
 owner. Contenders join that reservation. Success installs one lease; denial
 removes the reservation and wakes contenders with the same typed result.
 
-Composite commit records contain exact descriptors and owner occurrence
-identities, not operational owner leases. The history retention graph owns the
-pins needed to interpret retained records.
+Composite commit records contain exact descriptors and owner-issued performed
+evidence, not operational owner leases or Runtime World-invented component
+occurrence ids. The history retention graph owns the pins needed to interpret
+retained records.
 
 The in-memory history budget has exact commit-count and Runtime World
 metadata-byte limits. Reachable ancestry is not silently truncated because
@@ -508,10 +636,15 @@ No counter claims a cross-owner total that the owners do not expose.
 
 ## Lifecycle And Construction
 
-`RuntimeWorldOwner` is a non-cloneable managed owner. It constructs cloneable
-weak observation, publication, recovery, and lifecycle ports. Ports share the
-live owner state but cannot keep a closed owner alive. Calls after close return
-typed `RuntimeWorldOwnerUnavailable`.
+`RuntimeWorldOwner<D, I, E, Ctx, T>` is a non-cloneable managed owner carrying
+the exact Signal type contract. It constructs cloneable weak observation,
+publication, recovery, and lifecycle ports. Ports share the live owner state
+but cannot keep a closed owner alive. Calls after close return typed
+`RuntimeWorldOwnerUnavailable`. Basis, commit, observation, and history types
+remain non-generic because the admitted Signal basis already owner-seals the
+exact branch target without exposing those type parameters; only owners,
+builders, publication ports, and Signal-changing
+execution surfaces carry the five Signal parameters.
 
 Request-local `RuntimeBridge::fork_managed_request_lane` never clones, resets,
 or forks product history; Query composition explicitly carries one Runtime
@@ -520,15 +653,18 @@ World port beside any request-local Bridge execution lane.
 Construction is compiler-total. The application composition root must supply:
 
 - the base Bridge correspondence-basis port;
-- Relational preparation, fork, publication, settlement, observation,
-  retention, and lifecycle services;
-- Signal basis, mutation, and lifecycle services from 9.17.1.2;
+- one complete `RelationalOwnerServicePorts` bundle;
+- one complete `SignalOwnerServicePorts<D, I, E, Ctx, T>` bundle, already
+  issued successfully by the Signal owner root;
 - installed history, attempt, retained-partial, observation, branch, and pin
   budgets; and
 - an explicit clock only for attempt deadlines and cleanup eligibility.
 
 Adding or omitting one required subsystem breaks every construction site. The
 clock cannot affect product meaning, identity, parentage, or authority.
+The service bundles are weak: the application composition root, not Runtime
+World, retains the Relational and Signal owner roots for their intended
+lifetime. Closing Runtime World never closes a component owner.
 
 Close stops new admission, waits only for declared in-flight critical sections,
 settles or exposes every retained owner obligation, releases product/reference
@@ -537,19 +673,28 @@ strong cycle and does not manufacture success when a component owner is lost.
 
 ## Owner-Facing DX Contract
 
-The integration path must be expressible through the real facade without
-private imports:
+The integration path must be expressible through the real facades without
+private imports. The fallible Signal seal and Bridge admission occur before
+Runtime World construction. `installed_correspondence` below was installed
+against the same Signal graph before that graph entered `signal` and before the
+one-way service seal:
 
 ```rust,no_run
 use worth_runtime_world::facade::{
-    CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchCreationIntent,
-    RuntimeWorldBootstrapIntent, RuntimeWorldOwner, RuntimeWorldPublicationOutcome,
+    CompositePublicationIntent, ProductBranchCreationIntent,
+    RuntimeWorldBootstrapIntent, RuntimeWorldCancellationSource, RuntimeWorldOwner,
+    RuntimeWorldPublicationOutcome,
 };
 
+let bridge_correspondence_port = bridge.runtime_world_correspondence_port();
+let signal_services = signal.owner_component_services()?;
+let bridge_correspondence = bridge_correspondence_port
+    .admit_installed(&installed_correspondence)?;
+
 let world = RuntimeWorldOwner::builder()
-    .with_bridge_correspondence(bridge.runtime_world_correspondence_port())
+    .with_bridge_correspondence(bridge_correspondence_port)
     .with_relational_services(relational.owner_component_services())
-    .with_signal_services(signal.owner_component_services())
+    .with_signal_services(signal_services)
     .with_budgets(runtime_world_budgets)
     .with_clock(runtime_world_clock)
     .build()?;
@@ -559,7 +704,7 @@ let bootstrapped = world.lifecycle_port().bootstrap_root(
         ProductBranchCreationIntent::named("main")?,
         initial_relational_basis,
         initial_signal_basis,
-        installed_correspondence_basis,
+        bridge_correspondence,
     ),
 )?;
 let product_branch = bootstrapped.product_branch();
@@ -570,13 +715,13 @@ let expected = world
 
 let prepared = world.publication_port().prepare(
     expected,
-    CompositeComponentIntent::relational_only(relational_change),
+    CompositePublicationIntent::without_signal(relational_change),
 )?;
+let cancellation = RuntimeWorldCancellationSource::new();
 
-match world.publication_port().execute(
+match world.publication_port().execute_without_signal(
     prepared,
-    CompositeExecutionBorrow::without_signal(),
-    cancellation,
+    &cancellation.token(),
 )? {
     RuntimeWorldPublicationOutcome::Performed(performed) => {
         query_handoff.accept(performed)?;
@@ -591,142 +736,66 @@ match world.publication_port().execute(
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-Signal-changing execution instead borrows its caller context and lowered
-mutation through `CompositeExecutionBorrow::signal`; the borrow ends with the
-synchronous call. Builder grouping may refine, but callers never supply a raw
-owner runtime, generic authority marker, component-id string, or private
+`CompositePublicationIntent::without_signal` and
+`CompositePublicationIntent::with_signal` produce distinct prepared typestates.
+The former is compiler-visible shorthand for an explicit Signal
+`RetainExact`; it is not an omitted component plan.
+The latter is consumed only by `execute_with_signal`, whose generic method
+arguments are `&mut Ctx` and the exact
+`FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>`
+accepted by `SignalBranchMutationPort::advance_exact`. The borrow and closure
+end with that synchronous call. No-signal execution has no phantom closure type
+to infer; Signal-changing execution cannot omit its context or apply function.
+Builder grouping may refine, but callers never supply a raw owner runtime,
+generic authority marker, component-id string, erased callback, or private
 history handle.
 
 ## Destination Dependency And Module Topology
 
-The current slice creates this package and populated topology:
+The current slice creates this owned topology; omitted `mod.rs` files are
+assembly only:
 
 ```text
-crates/worth-runtime-world/                         [create]
-    Cargo.toml                                      [create: includes test-operation-control]
-    README.md                                       [create]
-    COMPOSITE_HISTORY.md                            [create]
-    COORDINATED_PUBLICATION.md                      [create]
-    RETENTION_AND_RECOVERY.md                       [create]
+crates/worth-runtime-world/
+    Cargo.toml
+    README.md
+    COMPOSITE_HISTORY.md
+    COORDINATED_PUBLICATION.md
+    RETENTION_AND_RECOVERY.md
     src/
-        lib.rs                                      [create: private topology + facade]
-        facade.rs                                   [create: sole public aggregation]
-        basis/
-            composite.rs                           [create]
-            admission.rs                           [create]
-            equivalence.rs                         [create]
-        identity/
-            owner.rs                               [create]
-            branch.rs                              [create]
-            commit.rs                              [create]
-            bootstrap.rs                           [create]
-            attempt.rs                             [create]
+        lib.rs
+        facade.rs
+        basis/{composite,admission,equivalence}.rs
+        identity/{owner,branch,commit,bootstrap,attempt}.rs
         history/
-            commit.rs                              [create]
-            catalog.rs                             [create]
-            parentage/
-                ordinary_parent.rs                 [create]
-            retention.rs                           [create]
-            reclamation.rs                         [create]
-        branch/
-            bootstrap.rs                           [create]
-            reference_cell.rs                      [create]
-            observation.rs                         [create]
-            creation.rs                            [create]
-            retirement.rs                          [create]
+            {commit,catalog,retention,reclamation}.rs
+            parentage/ordinary_parent.rs
+        branch/{bootstrap,reference_cell,observation,creation,retirement}.rs
         publication/
-            intent.rs                              [create]
-            component_plan.rs                      [create]
-            reservation.rs                         [create]
-            owner_execution.rs                     [create]
-            product_comparison.rs                  [create]
-            performed.rs                           [create]
-            no_effect.rs                           [create]
-        recovery/
-            product_unpublished.rs                 [create]
-            progress.rs                            [create]
-            continuation.rs                        [create]
-            cleanup.rs                             [create]
-        retention/
-            unique_component_pin.rs                [create]
-            dependency_counts.rs                   [create]
-            obligation_transfer.rs                 [create]
-        lifecycle/
-            owner.rs                               [create]
-            ports.rs                               [create]
-            close.rs                               [create]
-        inspection/
-            history.rs                             [create]
-            retention.rs                           [create]
-            recovery.rs                            [create]
-            cost.rs                                [create]
-    examples/
-        runtime_world_publication.rs                 [create: executable contract]
+            {intent,cancellation,signal_execution,reservation}.rs
+            {owner_execution,product_comparison,performed,no_effect}.rs
+            component_plan/
+                {relational,signal}.rs
+        recovery/{product_unpublished,progress,continuation,cleanup}.rs
+        retention/{unique_component_pin,dependency_counts,obligation_transfer}.rs
+        lifecycle/{owner,ports,close}.rs
+        inspection/{history,retention,recovery,cost}.rs
+    examples/runtime_world_publication.rs
     tests/
-        runtime_world_certification.rs               [create: one integration target]
+        runtime_world_certification.rs
         runtime_world_certification/
-            world.rs                                [create: court assembly only]
-            world/
-                definition.rs                       [create: semantic world inputs]
-                compiler.rs                         [create: public-facade compilation]
-                relational.rs                       [create: real owner fixture]
-                signal.rs                           [create: real owner fixture]
-                bridge.rs                           [create: installed correspondence]
-                observation.rs                      [create: neutral observations]
-            oracle.rs                               [create: pure oracle assembly only]
-            oracle/
-                state.rs                            [create: test-local world state]
-                transition.rs                       [create: independent progression]
-                comparison.rs                       [create: neutral comparison]
-            cases/
-                provenance_and_bootstrap.rs         [create]
-                branch_lifecycle.rs                 [create]
-                component_plans.rs                  [create]
-                publication_outcomes.rs             [create: sequential outcomes]
-                recovery.rs                         [create]
-                retention_history.rs                [create]
-                substitution.rs                     [create]
-                model_sequences.rs                  [create]
-                cost.rs                             [create]
-                facade.rs                           [create]
-                operation_control.rs                [create: feature-gated assembly]
-                operation_control/
-                    concurrency.rs                  [create]
-                    publication_boundaries.rs       [create]
-                    recovery_boundaries.rs          [create]
-            ui/                                     [create: grouped pass/fail fixtures]
+            world.rs + world/{definition,compiler,relational,signal,bridge,observation}.rs
+            oracle.rs + oracle/{state,transition,comparison}.rs
+            cases/{provenance_and_bootstrap,branch_lifecycle,component_plans}.rs
+            cases/{publication_outcomes,recovery,retention_history,substitution}.rs
+            cases/{model_sequences,cost,facade,operation_control}.rs
+            cases/operation_control/{concurrency,publication_boundaries,recovery_boundaries}.rs
+            ui/
 
 crates/worth-runtime-bridge/src/
-    correspondence/
-        runtime_world_admission.rs                  [create: admit existing Bridge meaning]
-    facade/
-        runtime_world.rs                            [create: curated admission port]
-
-crates/worth-runtime-world/src/correction/           [9.18 committed successor;
-                                                      do not create now]
-crates/worth-runtime-world/src/history/parentage/
-    ordered_parent_set.rs                            [cross-runtime committed
-                                                      successor; do not create now]
+    correspondence/runtime_world_admission.rs
+    facade/runtime_world.rs
 ```
-
-The dominant axes are:
-
-- base Bridge `correspondence/`: the existing installed semantic
-  correspondence meaning plus a narrow Runtime World admission port, excluding
-  component state and product history;
-- Runtime World `basis/`: the exact composite of owner bases under admitted
-  Bridge meaning, excluding mapping implementation;
-- `history/`: immutable commit occurrences and retention, excluding mutable
-  reference policy;
-- `branch/`: mutable product references and lifecycle, excluding commit
-  contents;
-- `publication/`: forward phase progression to product movement, excluding
-  recovery of already-performed owner effects;
-- `recovery/`: product-unpublished owner-effect lifecycle, excluding ordinary
-  publication and certification replay;
-- `retention/`: unique operational component obligations, excluding history
-  navigation; and
-- `inspection/`: derived read-only projections, excluding operational handles.
 
 The stable facade is `worth_runtime_world::facade`. Internal modules are
 private or `pub(crate)`. The facade aggregates but implements no publication,
@@ -741,7 +810,8 @@ Forbidden destinations include:
 - Relational-owned Signal correspondence;
 - Bridge access to private owner storage;
 - a global mutex around any component runtime or the whole composition owner;
-- replay, persistence, codec, Store adapter, or physical-runtime modules.
+- replay, persistence, codec, Store adapter, physical-runtime,
+  `correction/`, or multi-parent modules.
 
 A listed file that would exceed 400 lines splits by its named semantic
 responsibilities; it may not become a catch-all or require an exemption.
@@ -768,13 +838,11 @@ use, retained-partial promotion, and generic authority-marker substitution.
 ## Ordered Phase Plan
 
 Contract evolution uses serial freeze gates followed by parallel waves of two
-to four implementation lanes. Only a gate may edit `Cargo.toml`, `lib.rs`,
-module roots, `facade.rs`, shared phase/outcome types, or integration-target
-roots. A parallel lane exclusively owns its named paths and must land real
-behavior or independent evidence. If implementation disproves a contract, the
-affected lanes pause while a serial correction gate revises the canonical type
-once and reruns its consumers; no lane may add an adapter, alias, duplicate
-trait, or provisional compatibility surface.
+to four lanes. Only a gate edits manifests, assembly, facades, shared
+phase/outcome types, or test roots. Lanes own disjoint paths and ship behavior
+or independent evidence. A contract-breaking discovery triggers one serial
+correction and consumer rebase; no lane adds an adapter, alias, duplicate trait,
+or provisional surface.
 
 Every incremental-review prompt begins by limiting review to the exact last
 approved-to-candidate diff and directly invalidated seams. Reviewers read that
@@ -785,82 +853,61 @@ inspection. Holistic review occurs only at an explicit phase or closure gate.
 
 ### Phase 1: Serial composition-contract gate
 
-Create `worth-runtime-world`, install dependency fences and assembly, and add
-the narrow Bridge admission contract. Freeze identities, budgets, owner bundle
-inputs, composite basis, phase/outcome vocabulary, exact attempt progress, and
-the branch/publication/recovery service seams. These are real invariant-bearing
-types, not hollow scaffolding. This gate owns all shared files and records the
-exclusive paths and focused commands for each following lane.
+Create the package, dependency fences, assembly, and Bridge admission. Freeze
+generic owner/bundle inputs, identities, budgets, correspondence denials,
+composite basis/key/incarnation meanings, prepared Signal typestates,
+phase/outcome vocabulary, attempt progress, and service seams. The types carry
+real invariants. Record each next lane's exclusive paths and focused commands.
 
 ### Phase 2: Parallel foundations
 
-- **Bridge lane:** own only Runtime Bridge correspondence admission behavior
-  and its focused facade-contract proof, excluding facade aggregation;
-- **basis/history lane:** own Runtime World basis, identity, immutable commits,
-  catalog, parentage, and bounded history behavior;
-- **retention lane:** own unique component pins, dependency counts, obligation
-  transfer, and reclamation; and
-- **reference lane:** own product reference cells, managed observations, and
-  old-or-new reader semantics, without branch creation policy.
+- **Bridge:** correspondence admission and focused facade proof.
+- **Basis/history:** basis, identity, commits, parentage, and bounded catalog.
+- **Retention:** unique pins, counts, transfer, and reclamation.
+- **Reference:** product cells, observations, and old-or-new reader semantics.
 
-The lanes consume Phase 1 contracts and cannot edit assembly or facades. This
-wave establishes honest independent owners before any workflow orchestrates
-them.
+They consume Phase 1 contracts and cannot edit assembly or facades.
 
 ### Phase 3: Serial bootstrap and publication gate
 
-Integrate exact root bootstrap, owner construction, capacity installation, and
-the Phase 2 services. Prove immutable history is distinct from mutable
-currentness and unique pins precede retained history. Then freeze the exact
-component-plan, reservation, owner-execution, product-CAS, recovery, and close
-interfaces used by the next wave.
+Integrate owner construction, capacities, exact bootstrap, pins, history, and
+references. Prove immutable history differs from mutable currentness, then
+freeze plan, reservation, execution, CAS, recovery, and close interfaces.
 
 ### Phase 4: Parallel product mechanics
 
-- **branch lane:** own branch bootstrap completion, explicit reuse/fork
-  creation, retirement, custody records, and branch/history capacity;
-- **preparation lane:** own intent lowering, owner-specialized plans,
-  compatibility and expected-head checks, reservations, pins, and linear
-  pre-effect attempt installation;
-- **owner/recovery lane:** own canonical Relational-then-Signal execution,
-  typed settlement, product-unpublished progress, continuation, cleanup, and
-  caller-loss transfer; and
-- **publication/lifecycle lane:** own exact-head comparison, reserved commit
-  install, reference movement, performed/no-effect issuance, owner close, and
-  derived inspection.
+- **Branch:** bootstrap completion, reuse/fork creation, retirement, custody,
+  and capacity.
+- **Preparation:** lowering, specialized plans, checks, reservations, pins, and
+  linear attempt installation.
+- **Owner/recovery:** canonical execution, settlement, product-unpublished
+  progress, continuation, cleanup, and caller-loss transfer.
+- **Publication/lifecycle:** final comparison, commit install, reference move,
+  terminal issuance, close, and inspection.
 
-The lanes own disjoint files under `branch`, `publication`, `recovery`,
-`lifecycle`, and `inspection`; none may hold a product lock across an owner
-call. Predictable Runtime World failures remain pre-effect, and continuation
-toward product movement after retained partial work remains a fresh
-Query-admitted operation.
+Branch implements only the two-by-two reuse/fork matrix; change is a later
+publication. No lane holds a product lock across an owner call. Predictable
+World failures remain pre-effect; continuation toward product movement after a
+partial remains a fresh Query-admitted operation.
 
 ### Phase 5: Serial progression and facade freeze
 
-Assemble the full typed progression through the frozen services, audit every
-cancellation and capacity edge, and resolve any contract revision at its sole
-owner. Prove the three outcomes, same-head one-winner CAS, unrelated-branch
-progress, bounded recovery, and no half-current product world. Freeze the sole
-public facade and exact performed/recovery artifacts consumed by 9.17.3.
+Assemble the typed progression; audit cancellation/capacity edges; prove three
+outcomes, one-winner CAS, unrelated progress, bounded recovery, and no mixed
+world; freeze the facade and 9.17.3 artifacts.
 
 ### Phase 6: Parallel certification and documentation
 
-- **production-world lane:** own causal public-facade compilation, real owner
-  fixtures, neutral observations, bootstrap, branch, and sequential cases;
-- **independent-oracle lane:** own pure state, transitions, comparison, and
-  model sequences without production semantic helpers;
-- **adversarial lane:** own operation-control publication/recovery schedules,
-  hostile substitutions, compiler fixtures, and race courts; and
-- **operability lane:** own cost/scale evidence, facade cases, executable
-  example, owner guides, and dependency/residue proof.
+- **Production world:** real fixtures, neutral observations, and sequential cases.
+- **Oracle:** pure state, transitions, comparisons, and model sequences.
+- **Adversarial:** controlled schedules, substitutions, compiler cases, races.
+- **Operability:** cost/scale, facade, example, docs, dependency/residue proof.
 
 ### Phase 7: Serial closure gate
 
-Assemble the one intentional integration target and run its default and
-feature-gated selections plus owner, compiler, scale, documentation,
-formatting, lint, line-cap, boundary, and generated-context checks. A
-review-only or merge-only assignment does not count as a parallel lane, and no
-unresolved contract fork may cross the 9.17.3 handoff.
+Run the one integration target's default/feature lanes plus owner, compiler,
+scale, docs, format, lint, line-cap, boundary, and context gates. Review/merge
+is not an implementation lane; no contract fork crosses into 9.17.3.
 
 ## Performance And Resource Contract
 
@@ -903,28 +950,18 @@ prove unrelated progress and same-head races. The scheduled scale profile must
 measure structural slopes across `B`, `H`, `U`, `A`, and `W` with named runtime
 configuration, cold/warm posture, repetitions, variance, and percentiles.
 
-## Adversarial Courtroom
-
-The decisive real-facade court starts two product branches from one commit. It
-parks one owner call while an unrelated branch publishes to convict global
-locking. On one product branch, Relational-only and Signal-only attempts share
-one expected head; both owner effects must linearize and park before product
-CAS. Exactly one becomes `Performed`; independent owner observations require
-the loser to be `ProductUnpublished`. A combined-versus-single variant proves
-owner-phase losers are classified from actual movement, not predicted winner
-identity. This schedule convicts a per-branch lock held across owner calls.
-
-The pure history oracle owns semantic state, not outcome classification. Direct
-owner counters and Runtime World observations feed the outcome table below.
-The remaining bootstrap, creation, recovery, retention, substitution,
-capacity, compiler, and scale obligations belong to their named families.
-
 ## Test Evidence Architecture
 
 The certification target follows the established Supply Chain and Bank World
 standard: a causally compiled real world, an independently authored oracle,
 direct evidence from every external owner crossed by the claim, and hostile
 twins that differ in one relevant fact.
+
+Its decisive schedule parks an owner call while an unrelated branch publishes,
+then overlaps Relational-only and Signal-only attempts on one expected head
+before product CAS. Exactly one is `Performed`; direct owner evidence requires
+the loser to be `ProductUnpublished`. The pure oracle owns semantic state, not
+outcome classification.
 
 The production side uses only the real public facades of Runtime World,
 Relational, Signal, and Runtime Bridge. The expected side uses a pure
@@ -947,10 +984,17 @@ voyage, and manifest world. Its compiler:
 
 1. installs component state in a real Relational owner through its public
    facade;
-2. installs the corresponding cargo-routing derivation in a real Signal owner
-   through its public facade;
-3. installs and admits a real base-Bridge correspondence basis; and
-4. creates a real Runtime World owner and performs explicit root bootstrap from
+2. constructs and configures the real Signal graph, including the cargo-routing
+   derivation, without sealing owner services;
+3. binds Runtime Bridge to that same construction-phase graph, installs and
+   retains a real `BridgeInstalledSemanticCorrespondence`, and performs no
+   detached-graph substitution;
+4. moves that graph into the real Signal runtime, issues
+   `SignalOwnerServicePorts<D, I, E, Ctx, T>`, and admits the exact initial
+   Signal basis through its public facade;
+5. admits the installed Bridge witness through
+   `RuntimeWorldCorrespondencePort`; and
+6. creates a real Runtime World owner and performs explicit root bootstrap from
    those exact admitted bases.
 
 The court must not copy the private test kit of another crate or replace an
@@ -962,9 +1006,10 @@ The `CompositeWorldOracle` models independently:
 
 - explicit bootstrap and one root occurrence;
 - immutable commit occurrences with exactly one ordinary parent;
-- product branch identity, lifecycle incarnation, head, and generation;
+- product branch identity, `ProductBranchIncarnation`, head, and generation;
 - exact Relational, Signal, and correspondence bindings;
-- `ReuseExact`, `ForkExact`, and `ForkAndAdvance` component postures;
+- the two-by-two owner-specialized `ReuseExact`/`ForkExact` creation matrix and
+  the independent `RetainExact`/owner-change publication matrix;
 - unique component-pin dependency classes for heads, history, observations,
   active attempts, and retained partials; and
 - bounded attempt, history, reclamation, and recovery state.
@@ -978,62 +1023,39 @@ and settlement; a composite result cannot establish any of them.
 
 The one certification target must contain these named families:
 
-1. **Provenance and bootstrap:** prove one healthy explicit root with zero owner
-   mutation calls and unchanged component heads; then attempt
-   duplicate, foreign-owner, foreign-runtime, incompatible-correspondence,
-   cancelled, and each capacity-denied bootstrap. Each denial is exact
-   no-effect and releases every temporary lease or reservation.
-2. **Branch lifecycle and the posture matrix:** cover the full three-by-three
-   Relational/Signal matrix of `ReuseExact`, `ForkExact`, and
-   `ForkAndAdvance`. Omission is denied. A forked but content-equal basis creates
-   a distinct component binding and composite occurrence. If one fork performs
-   before its sibling denies, bounded product-unpublished custody owns the
-   result. Retirement releases only obligations owned by that branch.
-3. **Component plans and call exactness:** exercise retain, owner-local change,
-   and `ForkThen*` for each owner. Fork creates a new owner identity and
-   occurrence without moving the source. Single-owner work makes zero sibling
-   contacts; combined work follows canonical order, and unsettled Relational
-   performance prohibits Signal contact.
-4. **Publication outcome table:** cover cancellation, preflight denial, stale
-   expected head, each owner denial, owner performance followed by sibling
-   denial, owner settlement followed by a late head change, Signal performance
-   followed by CAS loss, CAS success followed by cancellation, capability loss
-   after an owner effect, and owner loss. Assert exactly `NoEffect`,
-   `ProductUnpublished`, or `Performed` from direct owner and product evidence.
-5. **Deterministic concurrency:** prove unrelated progress at each owner park.
-   On one head, make Relational-only and Signal-only effects both linearize and
-   park before CAS; exactly one performs product movement and the other is
-   product-unpublished. A combined-versus-single variant covers owner-phase
-   loss. Direct owner evidence classifies losers; readers see only complete old
-   or new bases.
-6. **Recovery authority:** prove the retained-partial handle is owner- and
-   attempt-affine; forged, copied, or foreign handles fail. Resume may settle or
-   clean up only—it cannot call the sibling owner or publish. Cover lost caller
-   capability, cleanup-versus-inspect/resume, owner close, clock-advanced cleanup
-   eligibility without lost settlement, and complete obligation enumeration.
-   Query-admitted adoption remains 9.17.3 work.
-7. **Retention and history:** reuse one Signal basis across sequential and
-   concurrent commits and prove one external lease. Exercise every dependency
-   class, cloned observations with one shared obligation, final-drop release,
-   bounded batch reclamation, unreachable-only pruning, ancestry protection,
-   history-full pre-effect denial, and branch-name retire/recreate ABA defense.
-8. **Authority substitution:** substitute representation-, ordinal-, digest-,
-   or version-equal artifacts from another owner, branch, definition,
-   correspondence, or Runtime World, including installed-correspondence drift.
-   Raw identifiers and descriptors cannot admit, retain, recover, or publish.
-9. **Seeded model sequences:** run deterministic sequences of bootstrap,
-   branch create/retire, publish, observe/drop, retain/release, cancel, stale
-   comparison, reclaim, resume, and cleanup against the real world and oracle.
-   On failure, print the seed and minimal reproducing prefix.
-10. **Structural cost:** vary `B`, `H`, `U`, `A`, `P`, `O`, and `W`
-    independently. Assert exact-zero unrelated owner contacts, no new lease on a
-    unique-pin hit, no foreign product-cell touch, bounded reclamation breadth,
-    and the required ordinary-operation slopes. Do not invent Signal bytes.
-11. **Facade, dependency, and documentation:** compile-pass facade-only use;
-    compile-fail raw basis/commit construction, cross-head or cross-owner
-    pairing, duplicate performed consumption, product-unpublished or inspection
-    projection promotion, generic authority substitution, and private access.
-    Run dependency fences and the public example as executable evidence.
+1. **Provenance/bootstrap:** healthy root with zero mutations; duplicate,
+   foreign, incompatible, cancelled, and capacity denials are exact no-effect
+   and release temporary obligations.
+2. **Branch lifecycle:** full two-by-two `ReuseExact`/`ForkExact` matrix;
+   omission, equal-content forks, sibling denial custody, retirement, ABA, and
+   separate create-then-publish.
+3. **Component plans:** full `RetainExact`/owner-change matrix; candidate
+   affinity, exact Signal context/apply signature, typestate separation, zero
+   sibling contact, canonical order, and no Signal after unsettled Relational.
+4. **Outcomes:** cancellation, stale/preflight/owner denial, sibling denial,
+   late head change, CAS loss, Signal panic, post-movement unwind, late cancel,
+   capability loss, and owner loss classified from direct evidence.
+5. **Concurrency:** unrelated progress at every park; same-head
+   Relational-only versus Signal-only and combined-versus-single races yield one
+   performed winner, product-unpublished losers, and old-or-new readers.
+6. **Recovery:** owner/attempt affinity; forged/foreign rejection; settlement-
+   or-cleanup-only resume; caller loss, cleanup races, close, age eligibility,
+   and complete obligation enumeration. Adoption stays in 9.17.3.
+7. **Retention/history:** one lease for reused Signal basis; every dependency
+   class; clone/final-drop behavior; bounded unreachable-only reclamation;
+   ancestry protection and history-full pre-effect denial.
+8. **Substitution:** equal-looking foreign owner/branch/definition/Bridge/World
+   artifacts and correspondence drift; raw ids/descriptors authorize nothing.
+9. **Model sequences:** seeded bootstrap, branch, publish, observe, retain,
+   cancel, stale, reclaim, resume, and cleanup sequences; print seed and minimal
+   failing prefix.
+10. **Cost:** vary `B`, `H`, `U`, `A`, `P`, `O`, and `W`; prove zero unrelated
+    contacts, pin-hit acquisition, foreign-cell touch, or invented Signal bytes,
+    plus bounded reclamation and required slopes.
+11. **Facade/dependency/docs:** facade-only and non-unit compile-pass;
+    compile-fail construction, detached Bridge admission, cross-affinity,
+    typestate exchange, duplicate consumption, authority promotion, and private
+    access; run fences and the executable example.
 
 ## Outcome Classification Table
 
@@ -1046,7 +1068,7 @@ from product truth:
 | an owner moved, required sibling work is incomplete, and the product head stayed put | `ProductUnpublished` | rollback, performed product state, or implicit sibling continuation |
 | Relational settled, then the product head changed before Signal | `ProductUnpublished` | calling Signal against a now-stale product intent |
 | Signal moved, then final product CAS lost | `ProductUnpublished` | silently adopting owner-local movement |
-| product CAS installed the reserved commit and movement envelope carrying exact changed-owner occurrence identities | `Performed` | late cancellation or an inspection projection replacing linear authority |
+| product CAS installed the reserved commit and movement envelope carrying exact changed-owner outcomes and successor bases | `Performed` | late cancellation or an inspection projection replacing linear authority |
 | caller capability disappeared after an owner effect | preinstalled retained partial | losing custody, duplicating work, or finishing the sibling/product step |
 
 Each row needs a healthy twin, direct component-owner counters, Runtime World
@@ -1078,34 +1100,42 @@ Signal test-operation-control capabilities required by the court. CI must fail
 if a command intended to select a required feature-gated family executes zero
 cases.
 
+The manifest spelling is exact:
+
+```toml
+[features]
+test-operation-control = [
+    "worth-relational/test-operation-control",
+    "worth-signal/test-operation-control",
+]
+```
+
 The planned commands are:
 
 ```text
+cargo test -p worth-runtime-bridge runtime_world_correspondence
 cargo test -p worth-runtime-world --test runtime_world_certification
 cargo test -p worth-runtime-world --features test-operation-control --test runtime_world_certification operation_control::
 cargo test -p worth-runtime-world --features test-operation-control --test runtime_world_certification -- --ignored
+cargo test -p worth-runtime-world --doc
+cargo test -p worth-runtime-world --example runtime_world_publication
+cargo clippy -p worth-runtime-world --all-targets --all-features -- -D warnings
 ```
 
-The last command belongs to the scheduled lane. This milestone does not add
+The ignored certification command belongs to the scheduled lane. The example
+is declared with `test = true` and `harness = false`, so the ordinary package
+test lane also executes its real `main`. This milestone does not add
 Docker, TCP, or process tests: Runtime World is intentionally memory-resident,
 and those boundaries would be theatre here. Query's real composition root is
 9.17.3; durable restart belongs to Store successors.
 
 ## Sensitivity And Teardown Contract
 
-The suite must become red for each defective implementation below, through a
-targeted hostile twin, fault placement, or review-time mutation probe:
-
-- removing final expected-head comparison or CAS;
-- inverting canonical owner order;
-- holding any product or Signal-global lock across an owner call;
-- acquiring one component lease per commit instead of per unique exact basis;
-- resolving latest or accepting a representation-compatible descriptor;
-- treating any owner effect as performed product truth;
-- allowing retained-partial recovery to call a sibling owner or product CAS;
-- pruning reachable ancestry;
-- exposing a commit before its reference-movement envelope is complete; or
-- reusing a retired product branch's lifecycle identity.
+Targeted hostile twins or mutation probes must turn red when final CAS/head
+comparison or owner order is removed; locks cross owner calls; leases amplify;
+latest/descriptors substitute for admission; owner effects become product
+truth; recovery calls a sibling/CAS; reachable ancestry is pruned; publication
+evidence is incomplete; or a retired incarnation is reused.
 
 Every family uses fresh owners. Success and failure paths release observations,
 leases, parks, and test faults; close Runtime World and both component owners;
@@ -1114,49 +1144,21 @@ partial records. A drop-safe harness must unblock parked workers before
 propagating a panic so an assertion failure cannot hang the suite or poison the
 next case.
 
-## QA Considerations
-
-Architecture review must confirm the new crate is the sole composition owner,
-the Cargo graph is acyclic, component owners retain their authority, and no
-global lock or compatibility representation bypasses the public owner ports.
-
-Lifecycle and concurrency review must cover capability loss, owner loss,
-same-head races, unrelated branch progress, cancellation at every safe point,
-retained-partial resume/cleanup races, observation versus reclamation, and
-owner close.
-
-Performance review must validate structural counters and scopes, unique-basis
-deduplication, fixed-cardinality execution, bounded histories and registries,
-and absence of background-cost laundering. Signal counts must not be presented
-as byte truth.
-
-Evidence review must ensure the independent oracle does not reuse production
-comparison or retention logic, the real owner facades are crossed, failure
-setup cannot create wrong-reason green results, compile sessions are grouped,
-and the selected scale lane is proportionate.
-
 ## Documentation Deliverables
 
-- `crates/worth-runtime-world/README.md` for integrators: construction,
-  explicit root bootstrap, ownership, common publication flow, typed outcomes,
-  and the explicit memory-resident limit.
-- `crates/worth-runtime-world/COMPOSITE_HISTORY.md` for Query and future
-  correction authors: commit occurrence versus basis equivalence, parentage,
-  root bootstrap, product references, observations, branch creation, and
-  retained history.
-- `crates/worth-runtime-world/COORDINATED_PUBLICATION.md` for runtime
-  integrators: phase progression, canonical owner order, no-effect versus
-  product-unpublished versus performed outcomes, cancellation, and recovery.
-- `crates/worth-runtime-world/RETENTION_AND_RECOVERY.md` for operators and
-  runtime authors: unique pins, budgets, retained partials, reclamation,
-  inspection, close, and owner-loss posture.
+- `README.md`: construction, bootstrap, ownership, publication, outcomes, and
+  memory-resident limits.
+- `COMPOSITE_HISTORY.md`: occurrence/equivalence, parentage, references,
+  observations, creation, and retained history.
+- `COORDINATED_PUBLICATION.md`: phases, owner order, cancellation, three
+  outcomes, and recovery.
+- `RETENTION_AND_RECOVERY.md`: pins, budgets, partials, reclamation, close, and
+  owner loss.
 - `crates/worth-runtime-world/examples/runtime_world_publication.rs` as an
   executable facade contract covering bootstrap, ordinary, stale, and
   retained-partial handling.
-- revise `crates/worth-runtime-bridge/API_OVERVIEW.md` and
-  `crates/worth-runtime-bridge/REFERENCE_MAP.md` to identify the new higher
-  composition owner and prevent readers from looking for product history in
-  the base Bridge crate.
+- revise Bridge `API_OVERVIEW.md` and `REFERENCE_MAP.md` to point product
+  history to Runtime World.
 
 The example must compile and execute against the real public facade in an
 ordinary package test command. Documentation must not claim durability,
@@ -1164,44 +1166,27 @@ restart recovery, multi-parent history, or Query public completion.
 
 ## Must Ship
 
-- the acyclic `worth-runtime-world` composition package and enforced dependency
-  direction;
-- explicit one-root bootstrap from exact admitted component/correspondence
-  inputs, with no ambient initial head;
-- exact Bridge correspondence-basis admission;
-- owner-issued, non-substitutable Runtime World, product branch, commit,
-  attempt, and retained-partial identities;
-- immutable root/single-parent commits and independently synchronized product
-  reference cells;
-- managed exact observations and unique component-basis pinning;
-- explicit product branch reuse/fork creation and retirement lifecycle;
-- bounded history, observation, attempt, recovery, and reclamation behavior;
-- owner-specialized component plans and canonical Relational-then-Signal order;
-- pre-effect attempt and recovery reservation;
-- typed no-effect, product-unpublished, and performed outcomes;
-- atomic product compare-and-publish and reconstructible live performed
-  authority;
-- honest cost scopes and structural counters; and
-- one stable facade, executable docs, dependency/compile enforcement, and the
-  adversarial court.
+- the acyclic `worth-runtime-world` owner, exact installed-witness Bridge
+  admission, and explicit one-root bootstrap with no ambient head;
+- non-substitutable identities, immutable single-parent commits, synchronized
+  product cells, managed observations, and unique exact-basis pins;
+- the explicit reuse/fork branch lifecycle, owner-specialized publication,
+  canonical owner order, and pre-effect attempt/recovery reservation;
+- bounded history/recovery/reclamation and typed `NoEffect`,
+  `ProductUnpublished`, and `Performed` outcomes around one product CAS; and
+- the stable facade, honest counters, executable docs, dependency/compiler
+  enforcement, and adversarial court.
 
 ## Must Preserve
 
-- every 9.17.1 owner basis, branch isolation, structural sharing, independent
-  Relational progress, retention, and publication guarantee;
-- every 9.17.1.1 Relational service, settlement recovery, exact Signal
-  retention, terminal lease, facade, cost-scope, and evidence guarantee;
-- every 9.17.1.2 concrete owner-service, Signal progress, lifecycle, and no-
-  global-lock guarantee;
-- distinct Relational, Signal, Bridge, Runtime World, Query, and Store
-  authority;
-- Foundational descriptive vocabulary without authority promotion;
-- concrete owner-specialized Proof carriers;
-- one canonical owner artifact for each performed component publication;
-- Query's existing outbox payload inside the Relational component result;
-- ordinary, history, recovery, maintenance, diagnostic, and certification lane
-  separation; and
-- certification-only replay.
+- all 9.17.1/.1.1/.1.2 owner-basis, service, settlement, retention, lifecycle,
+  independent-progress, cost-scope, and no-global-lock guarantees;
+- distinct Relational, Signal, Bridge, Runtime World, Query, Store, and
+  Foundational authority, with concrete owner-specialized Proof carriers;
+- each owner's canonical performed artifact and Query's existing outbox payload
+  inside the Relational result; and
+- ordinary/history/recovery/maintenance/diagnostic lane separation with replay
+  remaining certification-only.
 
 ## Explicit Non-Goals
 
@@ -1225,12 +1210,15 @@ Milestone 9.17.2 closes only when:
   capacity-denied bootstrap is exact no-effect;
 - the real owner facade proves exact correspondence and rejects every hostile
   substitution before effects;
+- one non-unit Signal contract compiles through the generic owner while the
+  builder rejects omitted bundles and the two prepared execution typestates
+  cannot be exchanged;
 - product branch observations remain valid under concurrent publication and
   pin exact component bases;
 - immutable root/single-parent commits and mutable product references remain
   distinct;
 - branch creation supports exact reuse and owner-issued fork without ambient
-  selection;
+  selection, including Relational's fresh fork-source-token comparison;
 - independent branches progress without a global composition or Signal lock;
 - same-head mixed-plan races overlap owner effects, produce one winner, and
   classify every loser from observed owner movement;
@@ -1249,6 +1237,11 @@ Milestone 9.17.2 closes only when:
   deterministic operation-control lane, seeded model family, sensitivity
   cases, and teardown assertions satisfy their contracts; and
 - review finds no legacy or competing composition authority.
+
+Closure does not require the 9.17.3 Query cutover, but review must confirm that
+9.17.2 added no second Signal graph, no `BridgeOwnedSignalRuntime` sealing
+shortcut, and no erased bridge between the current Query topology and the new
+owner.
 
 Milestone 9.17.3 receives only:
 
