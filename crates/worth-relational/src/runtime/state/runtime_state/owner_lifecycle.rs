@@ -20,6 +20,8 @@ struct RelationalRuntimeLifecycle {
     in_flight: AtomicUsize,
     close_wait: Mutex<()>,
     close_ready: Condvar,
+    #[cfg(test)]
+    test_close_start_ack: Mutex<Option<Arc<std::sync::Barrier>>>,
 }
 
 #[derive(Debug)]
@@ -36,6 +38,8 @@ impl RelationalRuntimeOwner {
                     in_flight: AtomicUsize::new(0),
                     close_wait: Mutex::new(()),
                     close_ready: Condvar::new(),
+                    #[cfg(test)]
+                    test_close_start_ack: Mutex::new(None),
                 }),
             },
         }
@@ -56,6 +60,8 @@ impl RelationalRuntimeOwnerBinding {
         self.lifecycle
             .accepting_operations
             .store(false, Ordering::Release);
+        #[cfg(test)]
+        self.acknowledge_test_close_start();
         let mut wait = self
             .lifecycle
             .close_wait
@@ -90,6 +96,29 @@ impl RelationalRuntimeOwnerBinding {
     /// not increment or otherwise participate in the in-flight drain.
     pub(crate) fn accepts_operations(&self) -> bool {
         self.lifecycle.accepting_operations.load(Ordering::Acquire)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn install_test_close_start_ack(&self, ack: Arc<std::sync::Barrier>) {
+        let mut hook = self
+            .lifecycle
+            .test_close_start_ack
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *hook = Some(ack);
+    }
+
+    #[cfg(test)]
+    fn acknowledge_test_close_start(&self) {
+        let hook = self
+            .lifecycle
+            .test_close_start_ack
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if let Some(hook) = hook {
+            hook.wait();
+        }
     }
 }
 

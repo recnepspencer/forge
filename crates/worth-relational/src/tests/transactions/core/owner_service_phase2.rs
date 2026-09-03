@@ -169,9 +169,10 @@ fn fork_basis_return_holds_owner_admission_across_post_install_close_boundary() 
 
     reached.wait();
     let close_started = Arc::new(Barrier::new(2));
-    let close_ready = Arc::clone(&close_started);
+    runtime
+        .owner_binding()
+        .install_test_close_start_ack(Arc::clone(&close_started));
     let closer = std::thread::spawn(move || {
-        close_ready.wait();
         drop(runtime);
     });
     close_started.wait();
