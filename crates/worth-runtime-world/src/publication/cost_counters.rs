@@ -99,4 +99,53 @@ impl CompositePublicationCostCounters {
     pub const fn retained_partial_cleanups(self) -> u64 {
         self.retained_partial_cleanups
     }
+
+    pub(crate) fn record_expected_head_recheck(&mut self) {
+        self.expected_head_rechecks = self
+            .expected_head_rechecks
+            .checked_add(1)
+            .expect("one bounded publication cannot overflow head recheck accounting");
+    }
+
+    pub(crate) fn record_history_slot_installed(&mut self) {
+        self.history_slots_installed = self
+            .history_slots_installed
+            .checked_add(1)
+            .expect("one bounded publication cannot overflow history accounting");
+    }
+
+    pub(crate) fn record_product_cell_touch(&mut self) {
+        self.product_cell_touches = self
+            .product_cell_touches
+            .checked_add(1)
+            .expect("one bounded publication cannot overflow cell accounting");
+    }
+
+    pub(crate) fn record_cas_attempt(&mut self) {
+        self.cas_attempts = self
+            .cas_attempts
+            .checked_add(1)
+            .expect("one bounded publication cannot overflow CAS accounting");
+    }
+
+    pub(crate) fn record_cas_win(&mut self) {
+        self.cas_wins = self
+            .cas_wins
+            .checked_add(1)
+            .expect("one bounded publication cannot overflow CAS-win accounting");
+    }
+
+    pub(crate) fn record_cas_loss(&mut self) {
+        self.cas_losses = self
+            .cas_losses
+            .checked_add(1)
+            .expect("one bounded publication cannot overflow CAS-loss accounting");
+    }
+
+    pub(crate) fn record_cancellation_observation(&mut self) {
+        self.cancellation_observations = self
+            .cancellation_observations
+            .checked_add(1)
+            .expect("one bounded publication cannot overflow cancellation accounting");
+    }
 }

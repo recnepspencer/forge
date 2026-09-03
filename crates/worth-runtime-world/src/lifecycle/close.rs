@@ -40,6 +40,9 @@ where
         if operation.active != 0 {
             return Err(RuntimeWorldCloseDenial::AlreadyClosing);
         }
+        if self.state.recovery.reserved_slots() != 0 {
+            return Err(RuntimeWorldCloseDenial::AlreadyClosing);
+        }
         let mut close = self
             .state
             .close

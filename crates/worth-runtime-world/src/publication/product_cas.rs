@@ -18,7 +18,7 @@ use super::{
     RuntimeWorldPublicationOutcome,
 };
 
-const PRODUCT_CAS_LOSS_LIVE_OBLIGATION_COUNT: usize = 3;
+const PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT: usize = 3;
 
 /// Final pre-publication phase. It owns all real reservations and the
 /// successor-basis publication retention until the product CAS resolves.
@@ -128,55 +128,77 @@ impl CompositePublicationReady {
             history,
             mut operation,
             publication_retention,
-            cancellation: _cancellation,
+            cancellation,
             deadline,
             order: _order,
         } = self;
+        let mut cost_counters = cost_counters;
         assert!(
             commit.matches_owner_results(expected_head.basis(), &owner_results),
             "a ready publication carries the exact owner results embodied by its commit"
         );
-        let successor_snapshot = ProductBranchReferenceSnapshot::owner_issued(
-            expected_head.owner_identity(),
-            expected_head.branch_identity().clone(),
-            expected_head.lifecycle_incarnation(),
-            expected_head
-                .reference_generation()
-                .advance()
-                .expect("reference generation capacity was checked before owner effects"),
-            Arc::clone(&commit),
-        )
-        .expect("the ready commit and expected head share one owner and branch lineage");
-        let entry = reserved_commit_capacity
-            .install(Arc::clone(&commit))
-            .expect("the ready commit matches its reserved history slot");
-        let installed_rollback = history.arm_installed_commit_rollback(entry.identity());
-        let product_history = history
-            .protect_product_head(entry.commit())
-            .expect("the installed ready commit admits product-head history protection");
-        let transfer = publication_retention
-            .into_product_head_transfer(commit.basis())
-            .expect("ready publication retention is bound to the exact successor basis");
-        let protection = ProductBranchHeadProtection::owner_issued(
+        let cancellation_was_observed = cancellation_observed(cancellation, late_cancellation);
+        if cancellation_was_observed {
+            cost_counters.record_cancellation_observation();
+        }
+        let cancellation_head = cancellation_before_product_movement(
+            cancellation,
+            late_cancellation,
+            cell,
+            &expected_head,
+            &mut cost_counters,
+        );
+        let successor_snapshot = derive_successor_snapshot(&expected_head, &commit);
+        let protection = install_successor_protection(
+            history,
+            reserved_commit_capacity,
+            publication_retention,
+            &commit,
             successor_snapshot,
-            transfer,
-            product_history,
-        )
-        .expect("ready component and history custody match the successor image");
-        installed_rollback.commit();
-        match cell.compare_and_publish(&expected_head, protection) {
-            Ok(movement) => RuntimeWorldPublicationOutcome::Performed(
-                PerformedCompositePublication::owner_issued(
-                    expected_head,
-                    movement,
-                    commit,
+        );
+        cost_counters.record_history_slot_installed();
+
+        if let Some(observed_head) = cancellation_head {
+            operation
+                .begin_recovery()
+                .expect("cancellation after owner movement enters retained recovery");
+            return RuntimeWorldPublicationOutcome::ProductUnpublished(
+                unpublished_from_protection(
+                    observed_head,
+                    protection,
                     attempt_identity,
+                    product_unpublished_identity,
+                    expected_head,
+                    progress,
+                    commit,
                     owner_results,
-                    late_cancellation,
-                    cost_counters,
+                    reserved_recovery_slot,
+                    deadline,
+                    ProductUnpublishedCause::CancellationAfterEffect,
                 ),
-            ),
+            );
+        }
+
+        cost_counters.record_expected_head_recheck();
+        cost_counters.record_product_cell_touch();
+        cost_counters.record_cas_attempt();
+        match cell.compare_and_publish(&expected_head, protection) {
+            Ok(movement) => {
+                cost_counters.record_cas_win();
+                RuntimeWorldPublicationOutcome::Performed(
+                    PerformedCompositePublication::owner_issued(
+                        expected_head,
+                        movement,
+                        commit,
+                        attempt_identity,
+                        owner_results,
+                        late_cancellation,
+                        cost_counters,
+                    ),
+                )
+            }
             Err(failure) => {
+                cost_counters.record_cas_loss();
                 operation
                     .begin_recovery()
                     .expect("a lost product CAS enters retained recovery");
@@ -196,6 +218,86 @@ impl CompositePublicationReady {
     }
 }
 
+fn cancellation_observed(
+    attempt: super::CompositeAttemptCancellationPosture,
+    late: CompositeLateCancellationPosture,
+) -> bool {
+    matches!(
+        attempt,
+        super::CompositeAttemptCancellationPosture::CancellationObserved
+    ) || !matches!(late, CompositeLateCancellationPosture::NotRequested)
+}
+
+fn cancellation_before_product_movement(
+    attempt: super::CompositeAttemptCancellationPosture,
+    late: CompositeLateCancellationPosture,
+    cell: &ProductBranchReferenceCell,
+    expected_head: &ProductBranchObservation,
+    cost_counters: &mut CompositePublicationCostCounters,
+) -> Option<ProductBranchReferenceSnapshot> {
+    if matches!(
+        attempt,
+        super::CompositeAttemptCancellationPosture::CancellationObserved
+    ) {
+        cost_counters.record_product_cell_touch();
+        return Some(cell.atomic_snapshot());
+    }
+    if !matches!(
+        late,
+        CompositeLateCancellationPosture::RequestedBeforeProductMovement
+    ) {
+        return None;
+    }
+    let observed_head = cell.atomic_snapshot();
+    cost_counters.record_expected_head_recheck();
+    cost_counters.record_product_cell_touch();
+    // A frozen caller may report this posture while another ready attempt has
+    // already moved the cell. Let the one CAS classify that observed race as
+    // product-publication loss rather than hiding the loss as cancellation.
+    (observed_head == *expected_head.snapshot()).then_some(observed_head)
+}
+
+fn derive_successor_snapshot(
+    expected_head: &ProductBranchObservation,
+    commit: &Arc<CompositeRuntimeWorldCommit>,
+) -> ProductBranchReferenceSnapshot {
+    ProductBranchReferenceSnapshot::owner_issued(
+        expected_head.owner_identity(),
+        expected_head.branch_identity().clone(),
+        expected_head.lifecycle_incarnation(),
+        expected_head
+            .reference_generation()
+            .advance()
+            .expect("reference generation capacity was checked before owner effects"),
+        Arc::clone(commit),
+    )
+    .expect("the ready commit and expected head share one owner and branch lineage")
+}
+
+fn install_successor_protection(
+    history: crate::history::CompositeHistoryCatalog,
+    reserved_commit_capacity: crate::history::ReservedCompositeCommitCapacity,
+    publication_retention: PublicationRetentionObligation,
+    commit: &Arc<CompositeRuntimeWorldCommit>,
+    successor_snapshot: ProductBranchReferenceSnapshot,
+) -> ProductBranchHeadProtection {
+    let entry = reserved_commit_capacity
+        .install(Arc::clone(commit))
+        .expect("the ready commit matches its reserved history slot");
+    let installed_rollback = history.arm_installed_commit_rollback(entry.identity());
+    let product_history = history
+        .protect_product_head(entry.commit())
+        .expect("the installed ready commit admits product-head history protection");
+    let transfer = publication_retention
+        .into_product_head_transfer(commit.basis())
+        .expect("ready publication retention is bound to the exact successor basis");
+    let protection =
+        ProductBranchHeadProtection::owner_issued(successor_snapshot, transfer, product_history)
+            .expect("ready component and history custody match the successor image");
+    installed_rollback.commit();
+    protection
+}
+
 fn unpublished_from_cas_loss(
     failure: ProductBranchReferencePublishFailure,
     attempt_identity: CompositePublicationAttemptIdentity,
@@ -208,12 +310,40 @@ fn unpublished_from_cas_loss(
     deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
 ) -> ProductUnpublishedOwnerEffects {
     let (observed_head, protection) = failure.into_recovery_parts();
+    unpublished_from_protection(
+        observed_head,
+        protection,
+        attempt_identity,
+        identity,
+        expected_head,
+        progress,
+        commit,
+        owner_results,
+        recovery_slot,
+        deadline,
+        ProductUnpublishedCause::ProductPublicationLost,
+    )
+}
+
+fn unpublished_from_protection(
+    observed_head: ProductBranchReferenceSnapshot,
+    protection: ProductBranchHeadProtection,
+    attempt_identity: CompositePublicationAttemptIdentity,
+    identity: crate::identity::ProductUnpublishedOwnerEffectsIdentity,
+    expected_head: ProductBranchObservation,
+    progress: super::CompositeAttemptProgress,
+    commit: Arc<CompositeRuntimeWorldCommit>,
+    owner_results: CompositeOwnerExecutionResults,
+    recovery_slot: crate::recovery::ReservedProductUnpublishedSlot,
+    deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
+    cause: ProductUnpublishedCause,
+) -> ProductUnpublishedOwnerEffects {
     let (_snapshot, product_head, product_history, _receipt) = protection.into_parts();
     let retained = product_head.transition_to_retained_partial();
     let successor_history = product_history.transition_to_product_unpublished();
     let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
         &progress,
-        PRODUCT_CAS_LOSS_LIVE_OBLIGATION_COUNT,
+        PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT,
         0,
     );
     ProductUnpublishedOwnerEffects::new_retained(
@@ -228,7 +358,7 @@ fn unpublished_from_cas_loss(
         successor_history,
         recovery_slot,
         summary,
-        ProductUnpublishedCause::ProductPublicationLost,
+        cause,
         vec![
             ProductUnpublishedNextAction::Inspect,
             ProductUnpublishedNextAction::ReleaseObligations,
