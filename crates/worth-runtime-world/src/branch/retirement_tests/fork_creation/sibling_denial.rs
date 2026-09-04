@@ -101,3 +101,76 @@ fn assert_cleanup_releases_custody(
     assert_eq!(&source_after, source);
     assert_eq!(owner.state.branches.branch_count(), 1);
 }
+
+/// The performed leg of a partial creation is a component branch that really
+/// exists. Whatever the creation does with the rest of its reservations, that
+/// branch must stay named in custody under the occurrence that made it: losing
+/// the record is how a component branch becomes unreachable garbage.
+#[test]
+fn relational_fork_then_signal_owner_loss_retains_exact_fork_custody() {
+    let (_fixture, owner, source) = setup_with_relational_source(3);
+    let held = owner
+        .state
+        .signal
+        .mutation_port()
+        .reserve_fork_exact(
+            validate_signal_branch_name("signal-branch-fork-loss").expect("valid Signal name"),
+            source.basis().signal_basis(),
+        )
+        .expect("the Signal destination this creation will ask for is already held");
+    let effects = create_partial_effects(
+        &owner,
+        &source,
+        fork_intent(
+            "branch-fork-loss",
+            relational_fork("relational-branch-fork-loss"),
+            signal_fork("signal-branch-fork-loss"),
+        ),
+    );
+    drop(held);
+
+    assert_eq!(effects.cause(), ProductUnpublishedCause::SiblingOwnerDenied);
+    assert_eq!(effects.owner_effect_count(), 1);
+    assert_eq!(
+        effects.progress().relational_posture(),
+        crate::publication::RelationalAttemptProgressPosture::Performed
+    );
+    assert_eq!(
+        effects.progress().signal_posture(),
+        crate::publication::SignalAttemptProgressPosture::Untouched
+    );
+
+    assert_exact_fork_custody(&owner);
+    assert_eq!(owner.state.branches.branch_count(), 1);
+    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
+    drop(effects);
+}
+
+/// Exactly one record, naming the destination the performed fork created, keyed
+/// to the product-branch occurrence that reserved it.
+fn assert_exact_fork_custody(owner: &TestOwner) {
+    let records = owner.state.custody.installed_records();
+    assert_eq!(
+        records.len(),
+        1,
+        "the denied Signal leg charges nothing and the performed Relational leg charges once"
+    );
+    assert_eq!(
+        records[0].target(),
+        &crate::branch::ComponentBranchTarget::Relational(BranchId(
+            "relational-branch-fork-loss".to_owned()
+        )),
+        "custody names the exact destination the performed fork created"
+    );
+    assert_eq!(
+        records[0].product_branch(),
+        &crate::identity::ProductBranchIdentity::issued(
+            owner.owner_identity(),
+            crate::branch::ProductBranchCreationIntent::named("branch-fork-loss")
+                .expect("valid product branch name")
+                .name()
+                .clone(),
+        ),
+        "the record is keyed to the product-branch occurrence that reserved it"
+    );
+}

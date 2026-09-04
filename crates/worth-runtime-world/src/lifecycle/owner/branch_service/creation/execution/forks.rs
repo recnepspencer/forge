@@ -10,7 +10,10 @@ use crate::publication::{
 use super::super::super::super::RuntimeWorldOwnerRoot;
 use super::{install_custody, CreationDestination};
 
-use worth_relational::facade::branch::RelationalForkDenial;
+use worth_relational::facade::branch::{
+    AdmittedRelationalBranchBasis, AdmittedRelationalForkSourceBasis, RelationalForkDenial,
+    RelationalForkSourceDescriptor,
+};
 
 /// One owner fork was refused. A creation fork is the first effect its owner
 /// performs, so the denial always names why no branch exists.
@@ -18,8 +21,9 @@ pub(super) struct ForkFailure {
     pub(super) denial: RuntimeWorldBranchAdmissionDenial,
 }
 
-/// Ask the Relational owner for the exact destination this plan named. Custody
-/// is recorded only after the owner reports the branch exists.
+/// Ask the Relational owner for the exact destination this plan named, from a
+/// source Runtime World observes for itself and proves is still the admitted
+/// one. Custody is recorded only after the owner reports the branch exists.
 pub(super) fn fork_relational<D, I, E, Ctx, T>(
     owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
     attempt: &mut ReservedBranchCreationAttempt,
@@ -36,20 +40,11 @@ where
         }
         RelationalBranchCreationPlan::ForkExact { target } => target.clone(),
     };
+    let source = observe_exact_fork_source(owner, attempt)?;
     let custody = attempt.take_relational_custody().ok_or(ForkFailure {
         denial: RuntimeWorldBranchAdmissionDenial::CustodyCapacityExhausted,
     })?;
-    let source_branch = attempt
-        .source()
-        .basis()
-        .relational_basis()
-        .identity()
-        .branch_id()
-        .clone();
     let fork_port = owner.state.relational.fork_port();
-    let (_descriptor, source) = fork_port
-        .observe_fork_source(&source_branch)
-        .map_err(|denial| relational_fork_failure(&denial))?;
     let reservation = fork_port
         .reserve_fork_target(target.clone())
         .map_err(|denial| relational_fork_failure(&denial))?;
@@ -62,6 +57,49 @@ where
         ComponentBranchTarget::Relational(target),
     );
     Ok(RelationalAttemptProgress::forked(fork, target_basis))
+}
+
+/// Observe the fork source the admitted basis names and prove it is still that
+/// exact source. Runtime World issues the fork token itself: no caller-held
+/// source token exists, and a source that moved between admission and this call
+/// denies here, before the destination is reserved or any branch is created.
+fn observe_exact_fork_source<D, I, E, Ctx, T>(
+    owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
+    attempt: &ReservedBranchCreationAttempt,
+) -> Result<AdmittedRelationalForkSourceBasis, ForkFailure>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    let admitted = attempt.source().basis().relational_basis();
+    let (descriptor, source) = owner
+        .state
+        .relational
+        .fork_port()
+        .observe_fork_source(admitted.descriptor().branch_id())
+        .map_err(|denial| relational_fork_failure(&denial))?;
+    if source_is_the_admitted_basis(&descriptor, admitted) {
+        Ok(source)
+    } else {
+        Err(ForkFailure {
+            denial: RuntimeWorldBranchAdmissionDenial::ForkSourceChanged,
+        })
+    }
+}
+
+/// Every axis the fresh source descriptor shares with the admitted source
+/// basis. A single differing axis means the branch the owner would fork is not
+/// the branch this creation was admitted against.
+fn source_is_the_admitted_basis(
+    descriptor: &RelationalForkSourceDescriptor,
+    admitted: &AdmittedRelationalBranchBasis,
+) -> bool {
+    let basis = admitted.descriptor();
+    descriptor.runtime_instance_id() == basis.runtime_instance_id()
+        && descriptor.source_branch() == basis.branch_id()
+        && descriptor.observation() == basis.reference()
+        && descriptor.truth_version() == basis.truth_version()
 }
 
 /// Ask the Signal owner for the exact destination this plan named. The

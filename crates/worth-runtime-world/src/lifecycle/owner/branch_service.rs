@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use crate::branch::{
-    ProductBranchHeadProtection, ProductBranchName, ProductBranchObservation,
-    ProductBranchReferenceCell, ProductBranchReferenceSnapshot, ProductBranchRetirementReport,
-    RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
+    OwnerCreatedComponentCustodyRecord, ProductBranchHeadProtection, ProductBranchName,
+    ProductBranchObservation, ProductBranchReferenceCell, ProductBranchReferenceSnapshot,
+    ProductBranchRetirementReport, RuntimeWorldBranchAdmissionDenial,
+    RuntimeWorldBranchRetirementDenial,
 };
 use crate::identity::{
     ProductBranchIdentity, ProductBranchIncarnation, ProductBranchReferenceGeneration,
@@ -242,7 +243,7 @@ where
         if !self.branch_service_is_available() {
             return Err(RuntimeWorldBranchRetirementDenial::OwnerUnavailable);
         }
-        let cell = self
+        let (cell, incarnation) = self
             .state
             .branches
             .retire(self.owner_identity(), &branch)
@@ -250,14 +251,21 @@ where
         // Drop the product-head and history custody after the registry lock
         // has been released. No component lifecycle/delete port is called.
         drop(cell);
-        // LANE A owns turning this branch's custody records into typed owner
-        // work. The registry is installed on the owner state and
-        // `take_for_branch` already returns the exact records this branch
-        // created; what is still undecided is the retirement contract itself,
-        // so the records stay charged until Lane A claims them. Reporting an
-        // empty work list is the honest statement that this world names no
-        // component branch for deletion yet, not a fabricated one.
-        Ok(ProductBranchRetirementReport::new(branch, Vec::new()))
+        // The component branches this exact occurrence asked its owners to
+        // create become typed work for those owners. Runtime World releases the
+        // custody charge by naming the work, never by deleting a component
+        // reference itself.
+        let owner_retirement_work = self
+            .state
+            .custody
+            .take_for_incarnation(&branch, incarnation)
+            .into_iter()
+            .map(OwnerCreatedComponentCustodyRecord::into_retirement_work)
+            .collect();
+        Ok(ProductBranchRetirementReport::new(
+            branch,
+            owner_retirement_work,
+        ))
     }
 }
 

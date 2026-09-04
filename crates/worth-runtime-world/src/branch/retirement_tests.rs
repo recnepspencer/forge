@@ -83,7 +83,7 @@ pub(super) fn relational_fork_intent(name: &str, target: &str) -> ProductBranchC
     .expect("valid product branch name")
 }
 
-fn setup(
+pub(super) fn setup(
     live_branches: u64,
 ) -> (
     crate::branch::reference_test_fixture::RealReferenceFixture,
@@ -108,7 +108,7 @@ fn setup(
     (fixture, owner, root)
 }
 
-fn create_reused_branch(
+pub(super) fn create_reused_branch(
     owner: &TestOwner,
     source: &ProductBranchObservation,
     intent: ProductBranchCreationIntent,
@@ -174,7 +174,7 @@ fn observation_issues_the_current_exact_branch_image_and_retirement_denies_new_r
 
 /// Both component owners as they observe their own lifecycle. Product-branch
 /// retirement removes a product reference; it must not move either owner.
-fn owner_lifecycles(
+pub(super) fn owner_lifecycles(
     owner: &TestOwner,
 ) -> (
     worth_relational::facade::branch::RelationalOwnerLifecycleObservation,
@@ -239,7 +239,7 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
 }
 
 #[test]
-fn retired_identity_high_water_classifies_evicted_history_as_already_retired() {
+fn every_retired_name_stays_already_retired_however_many_names_follow_it() {
     let (_fixture, owner, root) = setup(2);
     let first = create_reused_branch(&owner, &root, reuse_intent("first"));
     let first_id = first.branch_identity().clone();

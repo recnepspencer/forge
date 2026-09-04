@@ -12,6 +12,9 @@ use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedOwnerEffects};
 
 use super::super::super::RuntimeWorldOwnerRoot;
 
+#[cfg(test)]
+#[path = "execution/boundary_control.rs"]
+mod boundary_control;
 #[path = "execution/forks.rs"]
 mod forks;
 #[path = "execution/terminal.rs"]
@@ -60,7 +63,7 @@ where
     }
     if !owner.current_product_head_is(attempt.source()) {
         return BranchCreationExecution::NoEffect(
-            RuntimeWorldBranchAdmissionDenial::OwnerUnavailable,
+            RuntimeWorldBranchAdmissionDenial::StaleSourceHead,
         );
     }
 
@@ -70,16 +73,11 @@ where
     };
     let progress = CompositeAttemptProgress::new(relational, SignalAttemptProgress::untouched());
 
-    if let Err(denial) = owner.creation_boundary_gate(&attempt, cancellation) {
-        return terminal::retain_or_no_effect(
-            owner,
-            attempt,
-            progress,
-            terminal::CreationDenialNaming {
-                cause: ProductUnpublishedCause::StaleProductHead,
-                denial,
-            },
-        );
+    #[cfg(test)]
+    boundary_control::pause_between_creation_forks(owner.owner_identity());
+
+    if let Err(naming) = owner.creation_boundary_gate(&attempt, cancellation) {
+        return terminal::retain_or_no_effect(owner, attempt, progress, naming);
     }
 
     let signal = match fork_signal(owner, &mut attempt, destination, cancellation) {
@@ -122,18 +120,26 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
-    /// The between-owners boundary for a creation. A denial here has already
-    /// moved the Relational owner, so the caller must retain, not discard.
+    /// The between-owners boundary for a creation. A denial here may already
+    /// have moved the Relational owner, so the caller retains rather than
+    /// discards; the two ways the boundary closes are named apart, because a
+    /// displaced head is the one of them whose evidence can carry a winner.
     fn creation_boundary_gate(
         &self,
         attempt: &ReservedBranchCreationAttempt,
         cancellation: &RuntimeWorldCancellationToken,
-    ) -> Result<(), RuntimeWorldBranchAdmissionDenial> {
+    ) -> Result<(), terminal::CreationDenialNaming> {
         if cancellation.is_cancelled() || self.deadline_expired(attempt.deadline()) {
-            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+            return Err(terminal::CreationDenialNaming {
+                cause: ProductUnpublishedCause::CancellationAfterEffect,
+                denial: RuntimeWorldBranchAdmissionDenial::OwnerUnavailable,
+            });
         }
         if !self.current_product_head_is(attempt.source()) {
-            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+            return Err(terminal::CreationDenialNaming {
+                cause: ProductUnpublishedCause::StaleProductHead,
+                denial: RuntimeWorldBranchAdmissionDenial::StaleSourceHead,
+            });
         }
         Ok(())
     }

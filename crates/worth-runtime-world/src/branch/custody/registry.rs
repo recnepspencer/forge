@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::branch::observation::RuntimeWorldBranchAdmissionDenial;
 use crate::budget::RuntimeWorldBudgetLimit;
-use crate::identity::{ProductBranchIdentity, RuntimeWorldOwnerIdentity};
+use crate::identity::{ProductBranchIdentity, ProductBranchIncarnation, RuntimeWorldOwnerIdentity};
 
 use super::{CustodyComponent, OwnerCreatedComponentCustodyRecord};
 
@@ -63,15 +63,20 @@ impl OwnerCreatedComponentCustodyRegistry {
         })
     }
 
-    pub(crate) fn take_for_branch(
+    /// Drain the records one exact product-branch occurrence created. The key
+    /// is the identity **and** its incarnation: a name-keyed identity outlives
+    /// retirement, so filtering on it alone would hand a recreated branch the
+    /// component branches an earlier occurrence created.
+    pub(crate) fn take_for_incarnation(
         &self,
         branch: &ProductBranchIdentity,
+        incarnation: ProductBranchIncarnation,
     ) -> Vec<OwnerCreatedComponentCustodyRecord> {
         let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         let mut taken = Vec::new();
         let mut retained = Vec::with_capacity(state.installed.len());
         for record in std::mem::take(&mut state.installed) {
-            if record.product_branch() == branch {
+            if record.product_branch() == branch && record.incarnation() == incarnation {
                 taken.push(record);
             } else {
                 retained.push(record);
@@ -79,6 +84,16 @@ impl OwnerCreatedComponentCustodyRegistry {
         }
         state.installed = retained;
         taken
+    }
+
+    /// Every record still charged against this registry, in installation order.
+    #[cfg(test)]
+    pub(crate) fn installed_records(&self) -> Vec<OwnerCreatedComponentCustodyRecord> {
+        self.state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .installed
+            .clone()
     }
 
     pub(crate) fn installed(&self) -> usize {

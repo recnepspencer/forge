@@ -89,6 +89,17 @@ impl RealReferenceFixture {
             .expect("production Relational owner prepares the change")
     }
 
+    /// The Signal owner's own view of the branch it is currently on. A fork
+    /// creates a destination without advancing this source, so a creation proof
+    /// can hold the two apart.
+    pub(crate) fn observe_signal_current_basis(
+        &self,
+    ) -> worth_signal::facade::branch::AdmittedSignalBranchBasis {
+        self._signal_runtime
+            .observe_signal_branch_basis(self._signal_runtime.current_branch())
+            .expect("real Signal owner observes its current basis")
+    }
+
     pub(crate) fn perform_signal_owner_change(
         &mut self,
     ) -> worth_signal::facade::branch::SignalBranchAdvanceOutcome {

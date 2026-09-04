@@ -28,10 +28,22 @@ use worth_signal::facade::branch::validate_signal_branch_name;
 
 type TestOwner = super::TestOwner;
 
+#[path = "fork_creation/custody.rs"]
+mod custody;
+#[path = "fork_creation/destinations.rs"]
+mod destinations;
+#[path = "fork_creation/incarnation.rs"]
+mod incarnation;
+#[path = "fork_creation/matrix.rs"]
+mod matrix;
 #[path = "fork_creation/sibling_denial.rs"]
 mod sibling_denial;
+#[path = "fork_creation/source_token.rs"]
+mod source_token;
+#[path = "fork_creation/stale_head.rs"]
+mod stale_head;
 
-fn fork_budgets(live_branches: u64) -> RuntimeWorldBudgets {
+fn fork_budgets(live_branches: u64, custody_records: u64) -> RuntimeWorldBudgets {
     RuntimeWorldBudgets::install(RuntimeWorldBudgetInstallation {
         branches: RuntimeWorldBranchBudgetInstallation {
             live_product_branches: live_branches,
@@ -57,7 +69,7 @@ fn fork_budgets(live_branches: u64) -> RuntimeWorldBudgets {
             in_flight_pin_acquisition_reservations: 12,
         },
         custody: RuntimeWorldCustodyBudgetInstallation {
-            owner_created_component_custody_records: 4,
+            owner_created_component_custody_records: custody_records,
         },
     })
     .expect("fork creation budgets")
@@ -70,9 +82,22 @@ pub(super) fn setup_with_relational_source(
     TestOwner,
     ProductBranchObservation,
 ) {
+    setup_with_custody_budget(live_branches, 4)
+}
+
+/// The same seeded source with an explicit owner-created custody ceiling, so a
+/// creation can be starved of the slot its fork posture must charge.
+pub(super) fn setup_with_custody_budget(
+    live_branches: u64,
+    custody_records: u64,
+) -> (
+    crate::branch::reference_test_fixture::RealReferenceFixture,
+    TestOwner,
+    ProductBranchObservation,
+) {
     let mut fixture = crate::branch::reference_test_fixture::real_fixture(12, 12);
     let owner = TestOwner::new(fixture.owner_inputs(
-        fork_budgets(live_branches),
+        fork_budgets(live_branches, custody_records),
         RuntimeWorldClock::from_source(super::FixedClock),
     ))
     .expect("managed branch owner");
@@ -101,7 +126,7 @@ fn bootstrap_root(
 
 /// Give the source product head one real Relational occurrence, so a later
 /// creation forks from a component commit the owner actually published.
-fn seed_relational_source(
+pub(super) fn seed_relational_source(
     owner: &TestOwner,
     fixture: &mut crate::branch::reference_test_fixture::RealReferenceFixture,
     initial: ProductBranchObservation,
@@ -150,7 +175,7 @@ fn seed_relational_source(
     drop(initial);
 }
 
-fn current_root_observation(owner: &TestOwner) -> ProductBranchObservation {
+pub(super) fn current_root_observation(owner: &TestOwner) -> ProductBranchObservation {
     let cell = owner
         .state
         .branches
@@ -190,7 +215,7 @@ pub(super) fn signal_fork(target: &str) -> SignalBranchCreationPlan {
     }
 }
 
-fn create_forked_branch(
+pub(super) fn create_forked_branch(
     owner: &TestOwner,
     source: &ProductBranchObservation,
     intent: ProductBranchCreationIntent,
@@ -209,7 +234,7 @@ fn create_forked_branch(
     }
 }
 
-fn assert_new_branch_observation(
+pub(super) fn assert_new_branch_observation(
     owner: &TestOwner,
     source: &ProductBranchObservation,
     child: &ProductBranchObservation,
@@ -273,56 +298,4 @@ fn fork_exact_creates_a_distinct_composite_branch_after_both_owner_forks() {
     let costs_after = owner.state.retention.cost_snapshot();
     assert!(costs_after.relational_contacts() > costs_before.relational_contacts());
     assert!(costs_after.signal_contacts() > costs_before.signal_contacts());
-}
-
-/// The matrix cell where only the Relational owner is asked to move: the Signal
-/// component of the child names the exact commit the source already names.
-#[test]
-fn relational_fork_with_signal_reuse_moves_exactly_one_owner() {
-    let (_fixture, owner, source) = setup_with_relational_source(3);
-    let history_before = owner.state.history.len();
-    let child = create_forked_branch(
-        &owner,
-        &source,
-        fork_intent(
-            "branch-relational-fork-only",
-            relational_fork("relational-branch-fork-only"),
-            SignalBranchCreationPlan::ReuseExact,
-        ),
-    );
-    assert_new_branch_observation(&owner, &source, &child, history_before);
-    assert_ne!(
-        child.basis().relational_basis().identity(),
-        source.basis().relational_basis().identity()
-    );
-    assert_eq!(
-        child.basis().signal_basis().admission_identity(),
-        source.basis().signal_basis().admission_identity()
-    );
-}
-
-/// The mirrored cell: only the Signal owner forks, and the Relational component
-/// is reused exactly.
-#[test]
-fn signal_fork_with_relational_reuse_moves_exactly_one_owner() {
-    let (_fixture, owner, source) = setup_with_relational_source(3);
-    let history_before = owner.state.history.len();
-    let child = create_forked_branch(
-        &owner,
-        &source,
-        fork_intent(
-            "branch-signal-fork-only",
-            RelationalBranchCreationPlan::ReuseExact,
-            signal_fork("signal-branch-fork-only"),
-        ),
-    );
-    assert_new_branch_observation(&owner, &source, &child, history_before);
-    assert_eq!(
-        child.basis().relational_basis().identity(),
-        source.basis().relational_basis().identity()
-    );
-    assert_ne!(
-        child.basis().signal_basis().admission_identity(),
-        source.basis().signal_basis().admission_identity()
-    );
 }

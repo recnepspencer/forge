@@ -34,17 +34,21 @@ struct ProductBranchRegistryState {
     maximum_branches: usize,
     reserved_branches: usize,
     reserved_names: HashSet<String>,
+    /// Keyed by the owner-plus-normalized-name identity, so the installed name
+    /// index and the branch index are one map rather than two authorities.
     entries: HashMap<ProductBranchIdentity, ProductBranchRegistryEntry>,
-    names: HashMap<String, ProductBranchIdentity>,
     lifecycles: HashSet<ProductBranchIncarnation>,
-    installed_branch_high_water: Option<ProductBranchIdentity>,
+    /// Identities that held an installed incarnation and no longer do. Under a
+    /// name-keyed identity this, not an ordinal high-water mark, is what
+    /// separates "retired" from "never installed". It is disjoint from
+    /// `entries`: recreating a name takes its identity back out.
+    retired: HashSet<ProductBranchIdentity>,
     basis_commits: HashMap<CompositeBasisKey, HashMap<CompositeCommitIdentity, usize>>,
     root: Option<ProductBranchIdentity>,
 }
 
 #[derive(Debug)]
 struct ProductBranchRegistryEntry {
-    name: ProductBranchName,
     lifecycle: ProductBranchIncarnation,
     basis: CompositeBasisKey,
     commit: CompositeCommitIdentity,
@@ -73,9 +77,8 @@ impl ProductBranchRegistry {
                 reserved_branches: 0,
                 reserved_names: HashSet::new(),
                 entries: HashMap::new(),
-                names: HashMap::new(),
                 lifecycles: HashSet::new(),
-                installed_branch_high_water: None,
+                retired: HashSet::new(),
                 basis_commits: HashMap::new(),
                 root: None,
             })),
@@ -106,11 +109,13 @@ impl ProductBranchRegistry {
         if owner != state.owner {
             return Err(ProductBranchRegistryDenial::ForeignOwner);
         }
-        let name_key = name.as_str().to_owned();
-        if state.names.contains_key(&name_key) {
+        if state
+            .entries
+            .contains_key(&ProductBranchIdentity::issued(owner, name.clone()))
+        {
             return Err(ProductBranchRegistryDenial::NameAlreadyInstalled);
         }
-        if !state.reserved_names.insert(name_key) {
+        if !state.reserved_names.insert(name.as_str().to_owned()) {
             return Err(ProductBranchRegistryDenial::NameAlreadyReserved);
         }
         if let Err(denial) = reservation::reserve_slot(&mut state) {
@@ -155,8 +160,8 @@ impl ProductBranchRegistry {
         state
             .root
             .as_ref()
-            .and_then(|branch| state.entries.get(branch))
-            .map(|entry| entry.name.clone())
+            .filter(|branch| state.entries.contains_key(*branch))
+            .map(|branch| branch.name().clone())
     }
 
     pub(crate) fn branch_cell(
@@ -207,11 +212,15 @@ impl ProductBranchRegistry {
             .reserved_branches
     }
 
+    /// Release one installed product reference. The retired incarnation is
+    /// returned with the cell because it, not the name-keyed identity, is what
+    /// the custody records of this occurrence are keyed by.
     pub(crate) fn retire(
         &self,
         owner: RuntimeWorldOwnerIdentity,
         branch: &ProductBranchIdentity,
-    ) -> Result<ProductBranchReferenceCell, ProductBranchRegistryDenial> {
+    ) -> Result<(ProductBranchReferenceCell, ProductBranchIncarnation), ProductBranchRegistryDenial>
+    {
         let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         if owner != state.owner || branch.owner_identity() != state.owner {
             return Err(ProductBranchRegistryDenial::ForeignOwner);
@@ -219,36 +228,20 @@ impl ProductBranchRegistry {
         let entry = match state.entries.remove(branch) {
             Some(entry) => entry,
             None => {
-                return Err(
-                    if state
-                        .installed_branch_high_water
-                        .as_ref()
-                        .map_or(false, |high_water| branch <= high_water)
-                    {
-                        ProductBranchRegistryDenial::AlreadyRetired
-                    } else {
-                        ProductBranchRegistryDenial::UnknownBranch
-                    },
-                );
+                return Err(if state.retired.contains(branch) {
+                    ProductBranchRegistryDenial::AlreadyRetired
+                } else {
+                    ProductBranchRegistryDenial::UnknownBranch
+                });
             }
         };
-        state.names.remove(entry.name.as_str());
         state.lifecycles.remove(&entry.lifecycle);
+        state.retired.insert(branch.clone());
         remove_basis_candidate(&mut state, &entry.basis, &entry.commit);
         if state.root.as_ref() == Some(branch) {
             state.root = None;
         }
-        Ok(entry.cell)
-    }
-}
-
-fn record_installed_branch(state: &mut ProductBranchRegistryState, branch: &ProductBranchIdentity) {
-    if state
-        .installed_branch_high_water
-        .as_ref()
-        .map_or(true, |high_water| branch > high_water)
-    {
-        state.installed_branch_high_water = Some(branch.clone());
+        Ok((entry.cell, entry.lifecycle))
     }
 }
 

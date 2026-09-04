@@ -82,7 +82,15 @@ impl ProductBranchRegistryReservation {
         lifecycle: ProductBranchIncarnation,
         cell: ProductBranchReferenceCell,
     ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
-        self.install_reserved(name, branch, lifecycle, cell, true)
+        self.install_reserved(
+            InstalledBranch {
+                name,
+                branch,
+                lifecycle,
+                cell,
+            },
+            true,
+        )
     }
 
     pub(crate) fn install(
@@ -94,87 +102,32 @@ impl ProductBranchRegistryReservation {
         let Some(name) = self.name.clone() else {
             return Err((self, ProductBranchRegistryDenial::ReservationMissing));
         };
-        self.install_reserved(name, branch, lifecycle, cell, false)
+        self.install_reserved(
+            InstalledBranch {
+                name,
+                branch,
+                lifecycle,
+                cell,
+            },
+            false,
+        )
     }
 
     fn install_reserved(
         mut self,
-        name: ProductBranchName,
-        branch: ProductBranchIdentity,
-        lifecycle: ProductBranchIncarnation,
-        cell: ProductBranchReferenceCell,
+        installed: InstalledBranch,
         root: bool,
     ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
-        if self.root != root {
-            return Err((self, ProductBranchRegistryDenial::ReservationMissing));
+        if let Err(denial) = self.admits_installation(&installed, root) {
+            return Err((self, denial));
         }
-        if branch.owner_identity() != self.owner || lifecycle.owner_identity() != self.owner {
-            return Err((self, ProductBranchRegistryDenial::IdentityMismatch));
-        }
-        if !root && self.name.as_ref() != Some(&name) {
-            return Err((self, ProductBranchRegistryDenial::IdentityMismatch));
-        }
-        let snapshot = cell.atomic_snapshot();
-        if snapshot.owner_identity() != self.owner
-            || snapshot.branch_identity() != &branch
-            || snapshot.lifecycle_incarnation() != lifecycle
-        {
-            return Err((self, ProductBranchRegistryDenial::IdentityMismatch));
-        }
-        let basis = snapshot.basis().identity().clone();
-        let commit = snapshot.selected_commit().clone();
-        let installed_root = branch.clone();
         let result = {
             let mut state = self
                 .registry
                 .state
                 .lock()
                 .unwrap_or_else(|error| error.into_inner());
-            if root && state.root.is_some() {
-                Err(ProductBranchRegistryDenial::AlreadyInstalled)
-            } else if state.reserved_branches.checked_sub(1).is_none() {
-                Err(ProductBranchRegistryDenial::ReservationMissing)
-            } else if state.entries.contains_key(&branch) {
-                Err(ProductBranchRegistryDenial::BranchAlreadyInstalled)
-            } else if state.lifecycles.contains(&lifecycle) {
-                Err(ProductBranchRegistryDenial::LifecycleAlreadyInstalled)
-            } else if root && state.reserved_names.contains(name.as_str()) {
-                Err(ProductBranchRegistryDenial::NameAlreadyReserved)
-            } else if state.names.contains_key(name.as_str()) {
-                Err(ProductBranchRegistryDenial::NameAlreadyInstalled)
-            } else if !self.root && !state.reserved_names.contains(name.as_str()) {
-                Err(ProductBranchRegistryDenial::ReservationMissing)
-            } else if basis.owner_identity() != state.owner
-                || commit.owner_identity() != state.owner
-            {
-                Err(ProductBranchRegistryDenial::IdentityMismatch)
-            } else {
-                state.reserved_branches -= 1;
-                state.reserved_names.remove(name.as_str());
-                let entry = ProductBranchRegistryEntry {
-                    name: name.clone(),
-                    lifecycle,
-                    basis: basis.clone(),
-                    commit: commit.clone(),
-                    cell,
-                };
-                assert!(state.entries.insert(branch.clone(), entry).is_none());
-                assert!(state
-                    .names
-                    .insert(name.as_str().to_owned(), branch)
-                    .is_none());
-                assert!(state.lifecycles.insert(lifecycle));
-                let candidates = state.basis_commits.entry(basis).or_default();
-                let count = candidates.entry(commit).or_insert(0);
-                *count = count
-                    .checked_add(1)
-                    .expect("live branch count cannot overflow a bounded registry");
-                super::record_installed_branch(&mut state, &installed_root);
-                if root {
-                    state.root = Some(installed_root);
-                }
-                Ok(())
-            }
+            insert_installed(&mut state, installed, root)
         };
         if let Err(denial) = result {
             return Err((self, denial));
@@ -183,6 +136,111 @@ impl ProductBranchRegistryReservation {
         self.name = None;
         Ok(())
     }
+
+    /// Every identity axis the reservation can settle on its own, before it
+    /// takes the registry lock: the posture it was issued for, the owner of
+    /// each identity, and the head the cell actually carries.
+    fn admits_installation(
+        &self,
+        installed: &InstalledBranch,
+        root: bool,
+    ) -> Result<(), ProductBranchRegistryDenial> {
+        if self.root != root {
+            return Err(ProductBranchRegistryDenial::ReservationMissing);
+        }
+        if installed.branch.owner_identity() != self.owner
+            || installed.lifecycle.owner_identity() != self.owner
+        {
+            return Err(ProductBranchRegistryDenial::IdentityMismatch);
+        }
+        if !root && self.name.as_ref() != Some(&installed.name) {
+            return Err(ProductBranchRegistryDenial::IdentityMismatch);
+        }
+        // The identity is the owner plus this exact normalized name, so the
+        // installed key and the reserved name cannot disagree.
+        if installed.branch.name() != &installed.name {
+            return Err(ProductBranchRegistryDenial::IdentityMismatch);
+        }
+        let snapshot = installed.cell.atomic_snapshot();
+        if snapshot.owner_identity() != self.owner
+            || snapshot.branch_identity() != &installed.branch
+            || snapshot.lifecycle_incarnation() != installed.lifecycle
+        {
+            return Err(ProductBranchRegistryDenial::IdentityMismatch);
+        }
+        Ok(())
+    }
+}
+
+/// One product-branch occurrence as it is handed to the registry: the name it
+/// was reserved under, the identity that name issues, the incarnation that
+/// distinguishes this occurrence, and the reference cell holding its head.
+pub(crate) struct InstalledBranch {
+    pub(crate) name: ProductBranchName,
+    pub(crate) branch: ProductBranchIdentity,
+    pub(crate) lifecycle: ProductBranchIncarnation,
+    pub(crate) cell: ProductBranchReferenceCell,
+}
+
+/// Take the reserved slot and install the occurrence, under the registry lock.
+/// A root installation consumes the root slot rather than a reserved name.
+fn insert_installed(
+    state: &mut ProductBranchRegistryState,
+    installed: InstalledBranch,
+    root: bool,
+) -> Result<(), ProductBranchRegistryDenial> {
+    let InstalledBranch {
+        name,
+        branch,
+        lifecycle,
+        cell,
+    } = installed;
+    let snapshot = cell.atomic_snapshot();
+    let basis = snapshot.basis().identity().clone();
+    let commit = snapshot.selected_commit().clone();
+    if root && state.root.is_some() {
+        return Err(ProductBranchRegistryDenial::AlreadyInstalled);
+    }
+    if state.reserved_branches.checked_sub(1).is_none() {
+        return Err(ProductBranchRegistryDenial::ReservationMissing);
+    }
+    if state.entries.contains_key(&branch) {
+        return Err(ProductBranchRegistryDenial::BranchAlreadyInstalled);
+    }
+    if state.lifecycles.contains(&lifecycle) {
+        return Err(ProductBranchRegistryDenial::LifecycleAlreadyInstalled);
+    }
+    if root && state.reserved_names.contains(name.as_str()) {
+        return Err(ProductBranchRegistryDenial::NameAlreadyReserved);
+    }
+    if !root && !state.reserved_names.contains(name.as_str()) {
+        return Err(ProductBranchRegistryDenial::ReservationMissing);
+    }
+    if basis.owner_identity() != state.owner || commit.owner_identity() != state.owner {
+        return Err(ProductBranchRegistryDenial::IdentityMismatch);
+    }
+    state.reserved_branches -= 1;
+    state.reserved_names.remove(name.as_str());
+    let entry = ProductBranchRegistryEntry {
+        lifecycle,
+        basis: basis.clone(),
+        commit: commit.clone(),
+        cell,
+    };
+    // A recreated name is no longer retired: `retired` and `entries` are
+    // disjoint, so the two together classify every identity exactly once.
+    state.retired.remove(&branch);
+    assert!(state.entries.insert(branch.clone(), entry).is_none());
+    assert!(state.lifecycles.insert(lifecycle));
+    let candidates = state.basis_commits.entry(basis).or_default();
+    let count = candidates.entry(commit).or_insert(0);
+    *count = count
+        .checked_add(1)
+        .expect("live branch count cannot overflow a bounded registry");
+    if root {
+        state.root = Some(branch);
+    }
+    Ok(())
 }
 
 pub(super) fn reserve_slot(

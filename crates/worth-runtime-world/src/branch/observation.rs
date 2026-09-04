@@ -155,6 +155,14 @@ pub enum RuntimeWorldBranchAdmissionDenial {
     /// The installed owner-created component custody budget has no free slot
     /// for the fork this creation would perform.
     CustodyCapacityExhausted,
+    /// The admitted source observation no longer matches the branch's current
+    /// head, so the operation it was admitted for is answering about a product
+    /// occurrence that has already moved on. Nothing was reserved or moved.
+    StaleSourceHead,
+    /// The component owner's freshly observed fork source no longer matches
+    /// every shared exact axis of the admitted source basis, so forking it
+    /// would silently create a branch from state the caller never observed.
+    ForkSourceChanged,
 }
 
 impl ProductBranchObservation {
