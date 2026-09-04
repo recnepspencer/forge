@@ -5,22 +5,30 @@ use worth_signal::facade::branch::AdmittedSignalBranchBasis;
 use super::{LoweredOwnerComponentPlan, RelationalComponentPlan, SignalComponentPlan};
 use crate::branch::ProductBranchObservation;
 use crate::publication::{
-    CompositeComponentIntent, NoEffectCause, NoEffectCompositePublication,
-    ResolvedExpectedProductHead,
+    NoEffectCause, NoEffectCompositePublication, ResolvedExpectedProductHead,
 };
 
-/// Lower one admitted product head plus its component intent into the two
-/// per-owner plans. Branch creation is lowered elsewhere: publication has no
-/// fork route.
+/// Lower one admitted product head into the two per-owner publication plans.
+/// Branch creation is lowered elsewhere: publication has no fork route.
+///
+/// The matrix is total and has exactly three cells, one per component intent
+/// the caller's publication stage can express:
+///
+/// - `RelationalOnly` (a `WithoutSignal` intent): Relational `PublishPrepared`
+///   against the owner-issued candidate, Signal `RetainExact`;
+/// - `SignalOnly` (a `WithSignal` intent with no Relational change): Relational
+///   `RetainExact`, Signal `AdvanceExact`;
+/// - `RelationalAndSignal` (a `WithSignal` intent carrying a Relational
+///   change): Relational `PublishPrepared`, Signal `AdvanceExact`.
+///
+/// No cell retains both components, so a Retain/Retain publication is not
+/// lowerable and never reaches a reservation. The admitted head carries its own
+/// intent, so no second copy can disagree with it here.
 pub(crate) fn lower_component_plans(
     expected: ResolvedExpectedProductHead,
-    intent: CompositeComponentIntent,
     prepared_candidate: Option<PreparedRelationalCommitCandidate>,
 ) -> Result<LoweredOwnerComponentPlan, NoEffectCompositePublication> {
-    if expected.intent() != &intent {
-        drop(prepared_candidate);
-        return Err(lowering_denied(expected.expected()));
-    }
+    let intent = expected.intent().clone();
     let expected_head = expected.expected().clone();
     let basis = expected_head.basis();
     let relational = lower_relational_plan(

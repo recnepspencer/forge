@@ -1,8 +1,62 @@
-use super::preparation_test_support::{reservation_counts, setup, signal_intent};
+use super::preparation_test_support::{fork_both_intent, reservation_counts, setup, signal_intent};
 use crate::lifecycle::{RuntimeWorldInstant, RuntimeWorldPreparationService};
 use crate::publication::{
-    CompositePublicationIntent, NoEffectCause, RuntimeWorldCancellationSource,
+    CompositePublicationCostCounters, CompositePublicationIntent, NoEffectCause,
+    RuntimeWorldCancellationSource,
 };
+
+#[path = "preparation_tests/compatibility.rs"]
+mod compatibility;
+#[path = "preparation_tests/creation.rs"]
+mod creation;
+
+/// SPEC-P4-012. Both terminal-governed attempts carry their structural
+/// counters from the moment they are reserved, and every counter reads zero
+/// while the reservation is still pre-effect. The counters ride the attempt;
+/// they are not handed to the publication phase by a caller.
+#[test]
+fn attempt_reserves_structural_counters_before_the_first_owner_effect() {
+    let (owner, expected) = setup(2);
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let prepared = RuntimeWorldPreparationService::prepare_publication(
+        owner.as_ref(),
+        expected.clone(),
+        signal_intent(),
+        &cancellation.token(),
+        None,
+    )
+    .expect("current head admits Signal preparation");
+    assert_eq!(
+        prepared.attempt().counters(),
+        &CompositePublicationCostCounters::zero(),
+        "a reserved publication attempt has contacted no owner yet"
+    );
+    assert_eq!(
+        prepared.attempt().cancellation_posture(),
+        crate::publication::CompositeAttemptCancellationPosture::Open
+    );
+
+    let created = RuntimeWorldPreparationService::prepare_creation(
+        owner.as_ref(),
+        expected,
+        fork_both_intent("counters-child"),
+        &cancellation.token(),
+        None,
+    )
+    .expect("current head admits a creation reservation");
+    assert_eq!(
+        created.counters(),
+        &CompositePublicationCostCounters::zero(),
+        "a reserved creation attempt has contacted no owner yet"
+    );
+
+    // Both attempts hold live capacity while reporting zero cost, which is the
+    // exact window the spec calls "initialized before execution".
+    assert_eq!(reservation_counts(owner.as_ref()), (2, 2, 4, 4, 2));
+    drop(prepared);
+    drop(created);
+    assert_eq!(reservation_counts(owner.as_ref()), (0, 0, 0, 0, 0));
+}
 
 #[test]
 fn healthy_signal_preparation_is_exact_and_reservation_is_linear() {

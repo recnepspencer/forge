@@ -296,7 +296,7 @@ where
         let current = self.admit_publication_source(&expected)?;
         let (component_intent, prepared_candidate) = intent.into_parts();
         let resolved = match ResolvedExpectedProductHead::from_current(
-            component_intent.clone(),
+            component_intent,
             expected.clone(),
             &current,
         ) {
@@ -309,7 +309,7 @@ where
                 ));
             }
         };
-        let plan = lower_component_plans(resolved, component_intent, prepared_candidate)?;
+        let plan = lower_component_plans(resolved, prepared_candidate)?;
         let attempt = RuntimeWorldOwnerRoot::reserve(self, plan, cancellation, deadline)?;
         Ok(S::seal(attempt))
     }

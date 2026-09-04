@@ -39,8 +39,14 @@ where
     }
 
     /// The pre-reservation admission for a creation: this owner, an open and
-    /// bootstrapped world, the exact current product head, and a plan whose
-    /// two per-owner legs match the source it was lowered against.
+    /// bootstrapped world, an intent that carries both per-owner postures, and
+    /// an admitted source that still matches the registry's current head for
+    /// that branch on every observation axis.
+    ///
+    /// The head comparison is taken after lowering, against the plan's own
+    /// admitted source and the live reference cell, so it is the last check
+    /// before any capacity is charged and it compares the plan against
+    /// something the caller does not supply.
     fn admit_creation_source(
         &self,
         source: &ProductBranchObservation,
@@ -55,15 +61,11 @@ where
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
         creation_pre_effect_denial(self, cancellation, deadline)?;
-        if !self.current_product_head_is(source) {
+        let plan = LoweredBranchCreationPlan::lower(source.clone(), intent)?;
+        if !self.current_product_head_is(plan.expected()) {
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
-        let plan = LoweredBranchCreationPlan::lower(source.clone(), intent)?;
-        if plan.is_compatible_with(source) {
-            Ok(plan)
-        } else {
-            Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)
-        }
+        Ok(plan)
     }
 
     /// Charge every bounded resource the lowered plan can consume. Nothing

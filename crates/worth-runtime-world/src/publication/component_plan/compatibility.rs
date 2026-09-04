@@ -5,6 +5,12 @@ use super::{
     SignalComponentPlan, SignalComponentPlanPosture,
 };
 
+/// The complete publication posture matrix, rechecked against an exact product
+/// predecessor. Compatibility is decided per component against the admitted
+/// component intent, so a Retain/Retain plan is compatible only with an intent
+/// that changes neither component. `CompositeComponentIntent` has no such
+/// value, which is what makes a both-retained publication unreservable rather
+/// than merely unreachable through the caller-facing constructors.
 pub(super) fn plan_is_compatible_with(
     plan: &LoweredOwnerComponentPlan,
     expected: &ProductBranchObservation,
