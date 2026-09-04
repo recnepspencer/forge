@@ -299,3 +299,30 @@ fn fork_exact_creates_a_distinct_composite_branch_after_both_owner_forks() {
     assert!(costs_after.relational_contacts() > costs_before.relational_contacts());
     assert!(costs_after.signal_contacts() > costs_before.signal_contacts());
 }
+
+/// The observation a fork finalization issues joins the exact component slots
+/// the fork's own publication already pinned on the destination basis. That is
+/// what makes observation issuance after product movement reserved by
+/// construction: it adds no unique pin, so it can meet no unique-pin capacity
+/// denial once the head has moved. A fork of both owners moves both component
+/// axes, so the world grows by exactly that pin pair and nothing more.
+#[test]
+fn fork_observation_issuance_adds_no_unique_pin_beyond_the_published_head() {
+    let (_fixture, owner, source) = setup_with_relational_source(3);
+    let pins_before = owner.state.retention.unique_pin_count();
+    let child = create_forked_branch(
+        &owner,
+        &source,
+        fork_intent(
+            "branch-fork-observation-pins",
+            relational_fork("relational-branch-fork-observation-pins"),
+            signal_fork("signal-branch-fork-observation-pins"),
+        ),
+    );
+    assert_eq!(
+        owner.state.retention.unique_pin_count(),
+        pins_before + 2,
+        "the destination pins one new slot per forked owner; the observation pair joins them"
+    );
+    drop(child);
+}

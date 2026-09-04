@@ -1,16 +1,19 @@
-//! Exact reuse resolves the commit the branch actually carries, including
-//! after a composite publication has moved that branch's head.
+//! Exact reuse installs the commit the source observation names, and only
+//! while the branch still carries it.
 //!
-//! The reference cell is the authority for a product head; the registry's
-//! basis-to-commit index is derived from it. A publication that moved the cell
-//! without re-indexing would leave exact reuse resolving the commit the branch
-//! was installed with, so a creation from a head the owner had just published
-//! would be denied.
+//! The reference cell is the only authority for a product head. A reuse that
+//! resolved its commit through a basis index derived from the cell lagged
+//! every movement by one re-index and, in that window, denied a creation from
+//! a head the owner itself had just published. Resolving from the observation
+//! the cell issued has no window: the source is either current, and the child
+//! takes its exact commit, or displaced, and the creation is refused as a
+//! stale source head before any capacity is charged.
 
-use super::fork_creation::{
-    current_root_observation, seed_relational_source, setup_with_relational_source,
-};
-use super::{create_reused_branch, reuse_intent};
+use super::fork_creation::{seed_relational_source, setup_with_relational_source};
+use super::{create_reused_branch, owner_lifecycles, reuse_intent};
+use crate::branch::RuntimeWorldBranchAdmissionDenial;
+use crate::lifecycle::{RuntimeWorldBranchCreationRequest, RuntimeWorldBranchService};
+use crate::publication::RuntimeWorldCancellationSource;
 
 #[test]
 fn exact_reuse_after_a_publication_selects_the_published_commit() {
@@ -39,32 +42,37 @@ fn exact_reuse_after_a_publication_selects_the_published_commit() {
     );
 }
 
-/// The index exchanges the head it holds rather than accumulating heads: a
-/// second publication on the same occurrence vacates the basis the first one
-/// installed, so a stale basis stops resolving at the same moment the
-/// published one starts.
+/// The mirrored case: the source observation names a head the branch has
+/// since moved past. Nothing resolves it to some other occurrence carrying the
+/// same basis and nothing calls it an unavailable owner; the creation is
+/// refused as a stale source head and charges nothing.
 #[test]
-fn a_second_publication_vacates_the_basis_the_first_one_indexed() {
+fn exact_reuse_from_a_displaced_source_head_denies_as_stale_before_any_charge() {
     let (mut fixture, owner, first) = setup_with_relational_source(3);
-    let vacated_basis = first.basis().clone();
-    assert_eq!(
-        owner.state.branches.commit_for_basis(&vacated_basis),
-        Some(first.selected_commit().clone()),
-        "the first publication indexed the head it installed"
-    );
-
+    let held_source = first.clone();
     seed_relational_source(&owner, &mut fixture, first);
-    let second = current_root_observation(&owner);
+    let lifecycles_before = owner_lifecycles(&owner);
+    let costs_before = owner.state.retention.cost_snapshot();
+    let pins_before = owner.state.retention.unique_pin_count();
+    let cancellation = RuntimeWorldCancellationSource::new();
 
-    assert_ne!(second.basis(), &vacated_basis);
-    assert_eq!(
-        owner.state.branches.commit_for_basis(&vacated_basis),
-        None,
-        "the occurrence that moved no longer counts against the basis it left"
-    );
-    assert_eq!(
-        owner.state.branches.commit_for_basis(second.basis()),
-        Some(second.selected_commit().clone()),
-        "the basis the branch now carries resolves to the commit it now carries"
-    );
+    let denial = RuntimeWorldBranchService::create_product_branch(
+        &owner,
+        RuntimeWorldBranchCreationRequest::new(
+            held_source.clone(),
+            reuse_intent("displaced-head-child"),
+            &cancellation.token(),
+        ),
+    )
+    .expect_err("a displaced source head denies an exact reuse");
+
+    assert_eq!(denial, RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
+    assert_eq!(owner_lifecycles(&owner), lifecycles_before);
+    assert_eq!(owner.state.retention.cost_snapshot(), costs_before);
+    assert_eq!(owner.state.retention.unique_pin_count(), pins_before);
+    assert_eq!(owner.state.branches.branch_count(), 1);
+    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
+    // The caller's own observation is the only custody in play; it is held
+    // across the assertions so that its release is not mistaken for a charge.
+    drop(held_source);
 }

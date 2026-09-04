@@ -195,9 +195,6 @@ fn insert_installed(
         lifecycle,
         cell,
     } = installed;
-    let snapshot = cell.atomic_snapshot();
-    let basis = snapshot.basis().identity().clone();
-    let commit = snapshot.selected_commit().clone();
     if root && state.root.is_some() {
         return Err(ProductBranchRegistryDenial::AlreadyInstalled);
     }
@@ -216,23 +213,14 @@ fn insert_installed(
     if !root && !state.reserved_names.contains(name.as_str()) {
         return Err(ProductBranchRegistryDenial::ReservationMissing);
     }
-    if basis.owner_identity() != state.owner || commit.owner_identity() != state.owner {
-        return Err(ProductBranchRegistryDenial::IdentityMismatch);
-    }
     state.reserved_branches -= 1;
     state.reserved_names.remove(name.as_str());
-    let entry = ProductBranchRegistryEntry {
-        lifecycle,
-        basis: basis.clone(),
-        commit: commit.clone(),
-        cell,
-    };
+    let entry = ProductBranchRegistryEntry { lifecycle, cell };
     // A recreated name is no longer retired: `retired` and `entries` are
     // disjoint, so the two together classify every identity exactly once.
     state.retired.remove(&branch);
     assert!(state.entries.insert(branch.clone(), entry).is_none());
     assert!(state.lifecycles.insert(lifecycle));
-    super::insert_basis_candidate(state, basis, commit);
     if root {
         state.root = Some(branch);
     }

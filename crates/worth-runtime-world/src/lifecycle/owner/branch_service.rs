@@ -62,7 +62,14 @@ where
         source: ProductBranchObservation,
         name: ProductBranchName,
     ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
-        let (basis, commit) = self.reused_commit(&source)?;
+        // The reference cell is the only authority for a head. A source the
+        // cell has moved past is refused here, before any capacity is charged;
+        // a source the cell still carries is reused as the exact commit the
+        // caller observed, which that observation keeps alive in history.
+        if !self.current_product_head_is(&source) {
+            return Err(RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
+        }
+        let commit = source.snapshot().shared_commit();
 
         let reservation = self
             .state
@@ -73,7 +80,7 @@ where
             .issue_branch_identities(name)
             .map_err(|_| RuntimeWorldBranchAdmissionDenial::IdentityExhausted)?;
         let (cell, snapshot) =
-            self.issue_reused_head(branch.clone(), lifecycle, &basis, Arc::clone(&commit))?;
+            self.issue_reused_head(branch.clone(), lifecycle, Arc::clone(&commit))?;
         let observation = self.issue_reused_observation(snapshot, commit)?;
 
         reservation
@@ -82,38 +89,10 @@ where
         Ok(observation)
     }
 
-    fn reused_commit(
-        &self,
-        source: &ProductBranchObservation,
-    ) -> Result<
-        (
-            crate::basis::AdmittedCompositeRuntimeWorldBasis,
-            Arc<crate::history::CompositeRuntimeWorldCommit>,
-        ),
-        RuntimeWorldBranchAdmissionDenial,
-    > {
-        let basis = source.basis().clone();
-        let commit_identity = self
-            .state
-            .branches
-            .commit_for_basis(&basis)
-            .ok_or(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
-        let commit = self
-            .state
-            .history
-            .lookup(&commit_identity)
-            .ok_or(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
-        if crate::basis::compare_exact(commit.basis(), &basis).is_err() {
-            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
-        }
-        Ok((basis, commit))
-    }
-
     fn issue_reused_head(
         &self,
         branch: ProductBranchIdentity,
         lifecycle: ProductBranchIncarnation,
-        basis: &crate::basis::AdmittedCompositeRuntimeWorldBasis,
         commit: Arc<crate::history::CompositeRuntimeWorldCommit>,
     ) -> Result<
         (ProductBranchReferenceCell, ProductBranchReferenceSnapshot),
@@ -122,7 +101,7 @@ where
         let product_head = self
             .state
             .retention
-            .issue_product_head(basis)
+            .issue_product_head(commit.basis())
             .map_err(map_retention_denial)?;
         let product_history = self
             .state

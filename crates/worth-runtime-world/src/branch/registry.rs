@@ -3,11 +3,7 @@ mod reservation;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-use crate::basis::AdmittedCompositeRuntimeWorldBasis;
-use crate::identity::{
-    CompositeBasisKey, CompositeCommitIdentity, ProductBranchIdentity, ProductBranchIncarnation,
-    RuntimeWorldOwnerIdentity,
-};
+use crate::identity::{ProductBranchIdentity, ProductBranchIncarnation, RuntimeWorldOwnerIdentity};
 
 use super::{ProductBranchName, ProductBranchReferenceCell, ProductBranchReferenceSnapshot};
 
@@ -54,23 +50,22 @@ struct ProductBranchRegistryState {
     /// `lifecycles` set and the owner's monotonic incarnation cursor, and this
     /// field is deleted rather than replaced.
     retired: HashSet<ProductBranchIdentity>,
-    basis_commits: HashMap<CompositeBasisKey, HashMap<CompositeCommitIdentity, usize>>,
     root: Option<ProductBranchIdentity>,
 }
 
 #[derive(Debug)]
 struct ProductBranchRegistryEntry {
     lifecycle: ProductBranchIncarnation,
-    basis: CompositeBasisKey,
-    commit: CompositeCommitIdentity,
     cell: ProductBranchReferenceCell,
 }
 
 /// The only managed owner registry for Runtime World product branches.
 ///
-/// The registry owns only product-reference cells and their local indexes. It
-/// never owns a component branch and never calls a component owner while its
-/// mutex is held.
+/// The registry owns only product-reference cells and the name, incarnation,
+/// and root indexes over them. It keeps no copy of a head: the cell is the
+/// one authority for what a branch carries, and exact reuse resolves the
+/// commit from the observation a cell issued. It never owns a component
+/// branch and never calls a component owner while its mutex is held.
 #[derive(Debug, Clone)]
 pub(crate) struct ProductBranchRegistry {
     state: Arc<Mutex<ProductBranchRegistryState>>,
@@ -90,7 +85,6 @@ impl ProductBranchRegistry {
                 entries: HashMap::new(),
                 lifecycles: HashSet::new(),
                 retired: HashSet::new(),
-                basis_commits: HashMap::new(),
                 root: None,
             })),
         }
@@ -187,44 +181,6 @@ impl ProductBranchRegistry {
             .map(|entry| entry.cell.clone())
     }
 
-    /// Resolve a basis only when one installed product branch occurrence
-    /// supplies an unambiguous exact commit. A basis with multiple commit
-    /// occurrences is deliberately denied rather than selecting a heuristic.
-    pub(crate) fn commit_for_basis(
-        &self,
-        basis: &AdmittedCompositeRuntimeWorldBasis,
-    ) -> Option<CompositeCommitIdentity> {
-        let state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        if basis.owner_identity() != state.owner {
-            return None;
-        }
-        let candidates = state.basis_commits.get(basis.identity())?;
-        (candidates.len() == 1).then(|| {
-            candidates
-                .keys()
-                .next()
-                .expect("one candidate exists")
-                .clone()
-        })
-    }
-
-    /// Re-index one installed occurrence against the head a product
-    /// publication just installed. The registry owns the basis-to-commit index
-    /// that exact reuse resolves against, so a product movement reports itself
-    /// here instead of leaving a second copy of the head somewhere else.
-    ///
-    /// A head whose occurrence the registry no longer holds is not an error:
-    /// retirement already took that occurrence out of the index, and a name
-    /// recreated since the movement is a different incarnation carrying its own
-    /// head.
-    pub(crate) fn record_published_head(&self, head: &ProductBranchReferenceSnapshot) {
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        if !indexes_this_occurrence(&state, head) {
-            return;
-        }
-        reindex_occurrence_head(&mut state, head);
-    }
-
     pub(crate) fn branch_count(&self) -> usize {
         self.state
             .lock()
@@ -301,82 +257,10 @@ fn release_installed_entry(
     let entry = state.entries.remove(branch)?;
     state.lifecycles.remove(&entry.lifecycle);
     state.retired.insert(branch.clone());
-    remove_basis_candidate(state, &entry.basis, &entry.commit);
     if state.root.as_ref() == Some(branch) {
         state.root = None;
     }
     Some(entry)
-}
-
-/// Whether the index still describes the exact occurrence this head belongs
-/// to. Identity is the name, so only the incarnation separates the occurrence
-/// that moved from one that has since taken its name.
-fn indexes_this_occurrence(
-    state: &ProductBranchRegistryState,
-    head: &ProductBranchReferenceSnapshot,
-) -> bool {
-    head.owner_identity() == state.owner
-        && state
-            .entries
-            .get(head.branch_identity())
-            .is_some_and(|entry| entry.lifecycle == head.lifecycle_incarnation())
-}
-
-/// Move one occurrence's recorded basis and commit to the published head. The
-/// pair it leaves and the pair it takes are exchanged in the same call, so the
-/// candidate index never counts one occurrence under two heads.
-fn reindex_occurrence_head(
-    state: &mut ProductBranchRegistryState,
-    head: &ProductBranchReferenceSnapshot,
-) {
-    let basis = head.basis().identity().clone();
-    let commit = head.selected_commit().clone();
-    let entry = state
-        .entries
-        .get_mut(head.branch_identity())
-        .expect("the occurrence this head names was just found in the index");
-    if entry.basis == basis && entry.commit == commit {
-        return;
-    }
-    let vacated_basis = std::mem::replace(&mut entry.basis, basis.clone());
-    let vacated_commit = std::mem::replace(&mut entry.commit, commit.clone());
-    remove_basis_candidate(state, &vacated_basis, &vacated_commit);
-    insert_basis_candidate(state, basis, commit);
-}
-
-/// Count one more installed occurrence of this exact basis at this exact
-/// commit. Installation and product movement both enter the index here.
-fn insert_basis_candidate(
-    state: &mut ProductBranchRegistryState,
-    basis: CompositeBasisKey,
-    commit: CompositeCommitIdentity,
-) {
-    let candidates = state.basis_commits.entry(basis).or_default();
-    let count = candidates.entry(commit).or_insert(0);
-    *count = count
-        .checked_add(1)
-        .expect("live branch count cannot overflow a bounded registry");
-}
-
-fn remove_basis_candidate(
-    state: &mut ProductBranchRegistryState,
-    basis: &CompositeBasisKey,
-    commit: &CompositeCommitIdentity,
-) {
-    let mut remove_basis = false;
-    if let Some(candidates) = state.basis_commits.get_mut(basis) {
-        if let Some(count) = candidates.get_mut(commit) {
-            if *count <= 1 {
-                candidates.remove(commit);
-            } else {
-                *count -= 1;
-            }
-        }
-        remove_basis = candidates.is_empty();
-    }
-    if remove_basis {
-        state.basis_commits.remove(basis);
-    }
 }
 
 #[cfg(test)]

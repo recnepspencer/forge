@@ -90,6 +90,12 @@ impl ProductBranchReferenceSnapshot {
         &self.commit
     }
 
+    /// The commit this image was captured at, shared: a reuse of this head
+    /// installs the very commit the image names rather than looking it up.
+    pub(crate) fn shared_commit(&self) -> Arc<CompositeRuntimeWorldCommit> {
+        Arc::clone(&self.commit)
+    }
+
     pub fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
         self.owner
     }
