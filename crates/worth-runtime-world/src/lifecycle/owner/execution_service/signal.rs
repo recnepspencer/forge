@@ -52,18 +52,25 @@ where
             (
                 SignalComponentPlanPosture::AdvanceExact,
                 SignalExecutionRequest::AdvanceExact { runtime_ctx, apply },
-            ) => self
-                .state
-                .signal
-                .mutation_port()
-                .advance_exact(
-                    plan.signal().expected(),
-                    runtime_ctx,
-                    runtime_cancellation.signal_token(),
-                    apply,
-                )
-                .map(SignalAttemptProgress::advanced)
-                .map_err(|denial| advance_failure(&denial)),
+            ) => {
+                // SPEC-P4-005: the Signal owner is handed the token embedded in
+                // the Runtime World source, never a caller-supplied Signal
+                // token, so one `cancel()` reaches an in-flight advance.
+                let signal_cancellation = runtime_cancellation.signal_token();
+                #[cfg(test)]
+                super::rehearsal::reach_signal_advance(self.owner_identity(), signal_cancellation);
+                self.state
+                    .signal
+                    .mutation_port()
+                    .advance_exact(
+                        plan.signal().expected(),
+                        runtime_ctx,
+                        signal_cancellation,
+                        apply,
+                    )
+                    .map(SignalAttemptProgress::advanced)
+                    .map_err(|denial| advance_failure(&denial))
+            }
             // An advancing plan reached the seam without the caller's Signal
             // borrow. The plan and the borrow are chosen together at the
             // typestate, so this is an owner the publication cannot reach.

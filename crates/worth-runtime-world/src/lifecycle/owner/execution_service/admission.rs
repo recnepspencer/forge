@@ -69,12 +69,16 @@ where
         Ok(())
     }
 
+    /// The gate between a settled Relational effect and the Signal advance.
+    /// Every denial here stops before the Signal owner is contacted.
     pub(super) fn pre_advance_signal_gate(
         &self,
         expected_head: &ProductBranchObservation,
         deadline: Option<RuntimeWorldInstant>,
         cancellation: &RuntimeWorldCancellationToken,
     ) -> Result<(), (ProductUnpublishedCause, NoEffectCause)> {
+        #[cfg(test)]
+        super::rehearsal::reach_between_owner_effects(self.owner_identity());
         if cancellation
             .check(RuntimeWorldCancellationBoundary::BetweenOwnerEffects)
             .is_err()

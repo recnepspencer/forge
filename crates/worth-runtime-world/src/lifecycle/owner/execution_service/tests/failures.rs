@@ -94,5 +94,45 @@ fn stale_product_head_is_denied_before_the_first_owner_effect() {
         no_effect.observed_head().unwrap().selected_commit(),
         winner.selected_commit()
     );
+    assert!(
+        crate::basis::validate_current(
+            &owner.state.relational.basis_port(),
+            &owner.state.signal.basis_port(),
+            &owner.state.bridge,
+            winner.basis().relational_basis(),
+            winner.basis().signal_basis(),
+            winner.basis().correspondence_basis(),
+        )
+        .is_ok(),
+        "the stale expected head is denied before any owner contact: the winner's exact component bases are still current"
+    );
     assert_eq!(owner.recovery_record_count(), 0);
+}
+
+/// The Signal sibling denies its advance after the Relational effect has
+/// already settled. The record names the exact settled Relational evidence and
+/// an untouched Signal owner; nothing is reclassified as no-effect.
+#[test]
+fn missing_signal_sibling_after_relational_movement_retains_exact_progress() {
+    let (fixture, owner, expected) = setup();
+    let prepared = prepare_both_owners(&fixture, &owner, &expected, "missing-signal-sibling");
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let mut context = ();
+    let record = retained(RuntimeWorldOwnerExecutionService::execute_with_signal(
+        owner.as_ref(),
+        prepared,
+        &mut context,
+        &cancellation.token(),
+        |_| {
+            Err(worth_signal::facade::SignalError::invalid_input(
+                "the Signal sibling is absent from this composition",
+            ))
+        },
+    ));
+    assert_retains_only_the_relational_effect(&record, ProductUnpublishedCause::SiblingOwnerDenied);
+    assert!(
+        record.successor_basis().is_some(),
+        "the retained record names the successor basis the settled effect reached"
+    );
+    drop(record);
 }

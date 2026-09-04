@@ -79,10 +79,8 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 result,
             );
         state.route = None;
-        self.next_actions = super::RetainedNextActions::from_vec(vec![
-            ProductUnpublishedNextAction::ReleaseObligations,
-            ProductUnpublishedNextAction::Inspect,
-        ]);
+        self.next_actions =
+            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
     }
 
     pub(crate) fn retain_pending_relational_settlement(
@@ -101,11 +99,8 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 settlement,
             );
         state.route = None;
-        self.next_actions = super::RetainedNextActions::from_vec(vec![
-            ProductUnpublishedNextAction::SettleOwnerEffects,
-            ProductUnpublishedNextAction::ReleaseObligations,
-            ProductUnpublishedNextAction::Inspect,
-        ]);
+        self.next_actions =
+            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
     }
 
     pub(crate) fn retain_identity_repair(&mut self, mut state: RelationalRecoveryRecordState) {
@@ -115,11 +110,8 @@ impl ProductUnpublishedOwnerEffectsRecord {
             .take()
             .expect("recovery result projection remains while identity repair is required");
         state.route = None;
-        self.next_actions = super::RetainedNextActions::from_vec(vec![
-            ProductUnpublishedNextAction::SettleOwnerEffects,
-            ProductUnpublishedNextAction::ReleaseObligations,
-            ProductUnpublishedNextAction::Inspect,
-        ]);
+        self.next_actions =
+            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
     }
 
     pub(crate) fn settle_relational_recovery_with_receipt(
@@ -138,9 +130,7 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 receipt,
             );
         state.route = None;
-        self.next_actions = super::RetainedNextActions::from_vec(vec![
-            ProductUnpublishedNextAction::ReleaseObligations,
-            ProductUnpublishedNextAction::Inspect,
-        ]);
+        self.next_actions =
+            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
     }
 }

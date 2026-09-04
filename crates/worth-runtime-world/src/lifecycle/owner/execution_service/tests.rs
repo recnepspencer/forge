@@ -1,5 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc::{sync_channel, Receiver};
 use std::sync::Arc;
+use std::time::Duration;
 
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
 
@@ -24,12 +26,24 @@ use crate::publication::{
 };
 use crate::recovery::ProductUnpublishedCause;
 
+use super::rehearsal::{ExecutionRehearsal, ExecutionRehearsalBoundary, ReachedExecutionBoundary};
+
+#[path = "tests/between_owners.rs"]
+mod between_owners;
 #[path = "tests/boundaries.rs"]
 mod boundaries;
+#[path = "tests/cancellation.rs"]
+mod cancellation;
 #[path = "tests/failures.rs"]
 mod failures;
 #[path = "tests/planning.rs"]
 mod planning;
+#[path = "tests/retained_next_actions.rs"]
+mod retained_next_actions;
+
+/// A rehearsal handshake is never an open-ended wait: a boundary the owner does
+/// not reach fails the arming test by name inside this budget.
+const REHEARSAL_HANDSHAKE_BUDGET: Duration = Duration::from_secs(5);
 
 type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -285,4 +299,82 @@ fn settled(outcome: OwnerExecutionOutcome) -> OwnerExecutionSettlement {
         OwnerExecutionOutcome::Settled(settlement) => settlement,
         other => panic!("owner execution must settle: {other:?}"),
     }
+}
+
+/// Arms one execution boundary for this owner and returns the arming handle
+/// together with the channel the parked execution reports on.
+fn arm_rehearsal(
+    owner: &TestOwner,
+    boundary: ExecutionRehearsalBoundary,
+) -> (ExecutionRehearsal, Receiver<ReachedExecutionBoundary>) {
+    let (sender, receiver) = sync_channel(1);
+    (
+        ExecutionRehearsal::arm(owner.owner_identity(), boundary, sender),
+        receiver,
+    )
+}
+
+fn await_boundary(receiver: &Receiver<ReachedExecutionBoundary>) -> ReachedExecutionBoundary {
+    receiver
+        .recv_timeout(REHEARSAL_HANDSHAKE_BUDGET)
+        .expect("the owner reaches the armed execution boundary within its budget")
+}
+
+/// The exact Signal token the seam is about to hand the Signal owner.
+fn awaited_signal_token(
+    receiver: &Receiver<ReachedExecutionBoundary>,
+) -> worth_signal::facade::branch::SignalOwnerCancellationToken {
+    match await_boundary(receiver) {
+        ReachedExecutionBoundary::SignalAdvance { signal_token } => signal_token,
+        ReachedExecutionBoundary::BetweenOwnerEffects => {
+            panic!("the armed boundary is the Signal advance seam")
+        }
+    }
+}
+
+/// One publication that changes both owners: Relational `PublishPrepared` and
+/// then Signal `AdvanceExact`, in the one canonical order.
+fn prepare_both_owners(
+    fixture: &RealReferenceFixture,
+    owner: &TestOwner,
+    expected: &ProductBranchObservation,
+    operation_name: &str,
+) -> PreparedCompositePublicationWithSignal {
+    let cancellation = RuntimeWorldCancellationSource::new();
+    RuntimeWorldPreparationService::prepare_publication(
+        owner,
+        expected.clone(),
+        CompositePublicationIntent::with_signal(Some(RelationalTransactionIntent::ordinary()))
+            .with_prepared_relational_candidate(
+                fixture.prepare_relational_owner_candidate(operation_name),
+            ),
+        &cancellation.token(),
+        None,
+    )
+    .expect("the exact observed head admits both owner legs")
+}
+
+fn retained(outcome: OwnerExecutionOutcome) -> crate::recovery::ProductUnpublishedOwnerEffects {
+    match outcome {
+        OwnerExecutionOutcome::ProductUnpublished(retained) => retained,
+        other => panic!("the attempt must retain its owner effects: {other:?}"),
+    }
+}
+
+/// The exact record shape every proof in this module expects when a settled
+/// Relational effect is retained and the Signal owner never moved.
+fn assert_retains_only_the_relational_effect(
+    record: &crate::recovery::ProductUnpublishedOwnerEffects,
+    cause: ProductUnpublishedCause,
+) {
+    assert_eq!(record.cause(), cause);
+    assert_eq!(record.owner_effect_count(), 1);
+    assert_eq!(
+        record.progress().relational_posture(),
+        RelationalAttemptProgressPosture::Settled
+    );
+    assert_eq!(
+        record.progress().signal_posture(),
+        SignalAttemptProgressPosture::Untouched
+    );
 }

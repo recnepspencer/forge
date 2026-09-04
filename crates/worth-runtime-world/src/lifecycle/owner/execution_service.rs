@@ -22,6 +22,9 @@ mod successor;
 mod terminal;
 
 #[cfg(test)]
+#[path = "execution_service/rehearsal.rs"]
+mod rehearsal;
+#[cfg(test)]
 #[path = "execution_service/tests.rs"]
 mod tests;
 
