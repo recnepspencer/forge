@@ -34,13 +34,11 @@ fn installed_and_updating_recovery_block_close_until_cleanup() {
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.recovery_handles(), vec![handle.clone()]);
     assert!(owner.inspect_recovery(&handle).is_some());
-    assert_eq!(
-        owner
-            .close()
-            .expect_err("installed recovery custody denies close"),
-        RuntimeWorldCloseDenial::InFlightCriticalSection,
-        "installed recovery custody denies close before update begins"
-    );
+    // SPEC-P4-008: an installed record no longer denies close; it is exposed in
+    // the terminal report. Closing here would end the world this proof still
+    // needs, so the installed-record exposure is pinned by
+    // `close_exposes_every_retained_record_in_its_terminal_report`. The
+    // updating-record denial below is the half that survives.
     assert_eq!(
         owner.lifecycle_observation(),
         RuntimeWorldOwnerLifecycleObservation::Open

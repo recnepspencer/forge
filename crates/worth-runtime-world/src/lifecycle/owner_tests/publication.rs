@@ -13,9 +13,9 @@ use crate::publication::{
     PreparedCompositePublicationWithoutSignal, RuntimeWorldPublicationOutcome,
 };
 
-type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
+pub(super) type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
-fn setup() -> (
+pub(super) fn setup() -> (
     RealReferenceFixture,
     Arc<TestOwner>,
     ProductBranchObservation,
@@ -62,7 +62,7 @@ fn setup_with_relational_source() -> (
     (fixture, owner, expected)
 }
 
-fn prepare_relational(
+pub(super) fn prepare_relational(
     fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
@@ -81,7 +81,7 @@ fn prepare_relational(
     .expect("the current product head admits Relational preparation")
 }
 
-fn ready_relational_publication(
+pub(super) fn ready_relational_publication(
     fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
@@ -93,7 +93,7 @@ fn ready_relational_publication(
     )
 }
 
-fn ready_from_prepared(
+pub(super) fn ready_from_prepared(
     owner: &TestOwner,
     prepared: PreparedCompositePublicationWithoutSignal,
     context: &str,

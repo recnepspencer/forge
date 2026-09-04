@@ -14,8 +14,8 @@ use crate::budget::{
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
 use crate::lifecycle::{
-    RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldCloseDenial,
-    RuntimeWorldPreparationService, RuntimeWorldRecoveryService,
+    RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldPreparationService,
+    RuntimeWorldRecoveryService,
 };
 use crate::publication::{
     CompositeAttemptProgress, CompositePublicationIntent, RelationalAttemptProgress,
@@ -162,13 +162,9 @@ fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
     let handle = retained.recovery_handle();
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.recovery_handles(), vec![handle.clone()]);
-    assert_eq!(
-        owner
-            .close()
-            .expect_err("installed recovery custody denies close"),
-        RuntimeWorldCloseDenial::InFlightCriticalSection,
-        "installed recovery custody has its own close denial"
-    );
+    // SPEC-P4-008: an installed record is exposed by close, not refused, and
+    // this proof still needs its world open. See
+    // `close_exposes_every_retained_record_in_its_terminal_report`.
     drop(retained);
 
     assert_eq!(owner.recovery_record_count(), 1);

@@ -46,6 +46,16 @@ where
         Ok(report)
     }
 
+    /// How many callers are queued inside close admission right now. Close
+    /// stops new admission at the operation ledger, so a world that will not
+    /// close is distinguished from a world nobody is closing by this count
+    /// rather than by waiting.
+    pub fn close_admission_waiters(&self) -> usize {
+        self.state
+            .close_admission_waiters
+            .load(std::sync::atomic::Ordering::SeqCst)
+    }
+
     pub fn lifecycle_observation(&self) -> super::RuntimeWorldOwnerLifecycleObservation {
         match self
             .state

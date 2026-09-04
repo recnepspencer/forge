@@ -1,4 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, TryLockError};
 
 use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
@@ -73,22 +72,20 @@ fn wait_until_bootstrap_is_held(owner: &TestOwner) {
     panic!("reservation worker never reached the bootstrap admission lock");
 }
 
-/// Wait for a close worker to enter close admission. Close reads the bootstrap
-/// state and releases that lock again before it takes the operation ledger, so
-/// unlike a reservation it is never parked on a lock a test can observe. What
-/// can be observed is that the worker has entered `close()`; the settle window
-/// after that is bounded wall-clock, and the race it sets up still fails by
-/// name in the assertions that follow rather than hanging here.
+/// Wait until a close worker is queued on the operation ledger inside close
+/// admission. Close publishes its queued waiter immediately before it takes
+/// that lock, so entering admission is a production observable rather than an
+/// elapsed interval: this waits for the state itself, never for a settle
+/// window, and fails by name inside a bounded budget.
 #[track_caller]
-fn wait_until_close_is_admitting(entered: &AtomicBool) {
+fn wait_until_close_is_admitting(owner: &TestOwner) {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-    while !entered.load(Ordering::SeqCst) {
+    while owner.close_admission_waiters() == 0 {
         if std::time::Instant::now() >= deadline {
-            panic!("close worker never entered owner close admission");
+            panic!("close worker never queued on the owner close admission ledger");
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
-    std::thread::sleep(std::time::Duration::from_millis(250));
 }
 
 #[test]
@@ -146,13 +143,8 @@ fn reserve_and_close_have_one_atomic_winner_in_both_lock_orders() {
         .lock()
         .unwrap_or_else(|error| error.into_inner());
     let close_owner = Arc::clone(&owner);
-    let entered = Arc::new(AtomicBool::new(false));
-    let close_entered = Arc::clone(&entered);
-    let close = std::thread::spawn(move || {
-        close_entered.store(true, Ordering::SeqCst);
-        close_owner.close()
-    });
-    wait_until_close_is_admitting(&entered);
+    let close = std::thread::spawn(move || close_owner.close());
+    wait_until_close_is_admitting(&owner);
     let reserve_owner = Arc::clone(&owner);
     let reserve = std::thread::spawn(move || prepare(reserve_owner.as_ref(), expected));
     drop(ledger_gate);

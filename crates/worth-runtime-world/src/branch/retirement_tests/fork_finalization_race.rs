@@ -112,8 +112,8 @@ fn assert_close_denied_before_any_record(owner: &super::TestOwner) {
     assert_eq!(recovery_active(owner), 1);
 }
 
-/// Once the record is installed the reservation is gone, yet the installed slot
-/// continues the same denial and the destination is left uninstalled.
+/// Once the record is installed the reservation is gone, so the close denial
+/// ends with it, and the destination is left uninstalled.
 fn assert_retained_custody_survives_the_reservation(
     owner: &super::TestOwner,
     branches_before: usize,
@@ -121,13 +121,9 @@ fn assert_retained_custody_survives_the_reservation(
     assert_eq!(owner.state.operation.active(), 0);
     assert_eq!(recovery_active(owner), 0);
     assert_eq!(owner.recovery_record_count(), 1);
-    assert_eq!(
-        owner
-            .close()
-            .expect_err("the installed record continues the close denial"),
-        RuntimeWorldCloseDenial::InFlightCriticalSection,
-        "the installed record continues the close denial the reservation began"
-    );
+    // SPEC-P4-008: the reservation's denial ends with the reservation. The
+    // installed record it left behind is exposed by close rather than refused,
+    // so this proof keeps its world open for the cleanup step below.
     assert_eq!(
         owner.state.branches.reserved_branch_count(),
         0,

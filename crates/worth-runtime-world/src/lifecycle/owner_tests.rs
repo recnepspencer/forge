@@ -15,6 +15,10 @@ use super::RuntimeWorldOwnerConstructionContract;
 
 #[path = "owner_tests/admission_race.rs"]
 mod admission_race;
+#[path = "owner_tests/close_report.rs"]
+mod close_report;
+#[path = "owner_tests/product_cas_loss.rs"]
+mod product_cas_loss;
 #[path = "owner_tests/publication.rs"]
 mod publication;
 #[path = "owner_tests/recovery_metadata_budget.rs"]

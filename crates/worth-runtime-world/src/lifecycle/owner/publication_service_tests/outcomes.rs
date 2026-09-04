@@ -53,7 +53,10 @@ fn service_dispatch_records_one_exact_final_publication() {
     let counters = performed.cost_counters();
     assert_eq!(counters.expected_head_rechecks(), 1);
     assert_eq!(counters.history_slots_installed(), 1);
-    assert_eq!(counters.product_cell_touches(), 1);
+    // SPEC-P4-016 reads the cell twice on the winning path: once for the
+    // expected-observation comparison that precedes materialization, and once
+    // inside the CAS itself.
+    assert_eq!(counters.product_cell_touches(), 2);
     assert_eq!(counters.cas_attempts(), 1);
     assert_eq!(counters.cas_wins(), 1);
     assert_eq!(counters.cas_losses(), 0);
@@ -119,17 +122,21 @@ fn cancellation_before_product_movement_does_not_cas_current_head() {
     assert_eq!(owner.recovery_record_count(), 1);
     let handle = retained.recovery_handle();
     drop(retained);
+    // SPEC-P4-008: an installed retained record is exposed in the terminal
+    // report, never refused as an undrainable critical section.
+    let report = owner
+        .close()
+        .expect("close exposes installed recovery custody instead of refusing it");
+    let row = report
+        .retained_records()
+        .iter()
+        .find(|row| row.identity() == handle.identity())
+        .expect("close names the retained cancellation record");
     assert_eq!(
-        owner
-            .close()
-            .expect_err("installed recovery custody denies close"),
-        RuntimeWorldCloseDenial::InFlightCriticalSection,
-        "installed recovery custody must be cleaned before close"
+        row.cause(),
+        ProductUnpublishedCause::CancellationAfterEffect
     );
     assert!(owner.cleanup_recovery_handle(&handle));
-    let _report = owner
-        .close()
-        .expect("close succeeds after cancellation custody drops");
 }
 
 #[test]
