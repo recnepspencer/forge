@@ -123,7 +123,9 @@ fn assert_retained_custody_survives_the_reservation(
     assert_eq!(owner.recovery_record_count(), 1);
     // SPEC-P4-008: the reservation's denial ends with the reservation. The
     // installed record it left behind is exposed by close rather than refused,
-    // so this proof keeps its world open for the cleanup step below.
+    // and that exposure is pinned by
+    // `close_exposes_every_retained_record_in_its_terminal_report`, so this
+    // proof keeps its world open for the cleanup step below.
     assert_eq!(
         owner.state.branches.reserved_branch_count(),
         0,

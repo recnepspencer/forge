@@ -33,22 +33,18 @@ where
 {
     /// Close the owner and report what the drain settled, released, and
     /// deliberately exposed. A retained obligation is never discarded.
+    ///
+    /// The whole sequence runs under one operation-admission guard held by the
+    /// drain: the ledger check, the drain itself, and the Open -> Closing flip
+    /// are one window, so no reservation can be admitted after the check and
+    /// closed over before the flip.
     pub fn close(&self) -> Result<RuntimeWorldCloseReport, RuntimeWorldCloseDenial> {
-        drain::admit_close(&self.state)?;
-        let report = drain::drain_for_close(&self.state)?;
-        let mut close = self
-            .state
-            .close
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        close.begin()?;
-        close.finish()?;
-        Ok(report)
+        drain::close_owner(&self.state)
     }
 
     /// How many callers are queued inside close admission right now. Close
-    /// stops new admission at the operation ledger, so a world that will not
-    /// close is distinguished from a world nobody is closing by this count
+    /// blocks on the operation ledger before it decides, so a world that will
+    /// not close is distinguished from a world nobody is closing by this count
     /// rather than by waiting.
     pub fn close_admission_waiters(&self) -> usize {
         self.state

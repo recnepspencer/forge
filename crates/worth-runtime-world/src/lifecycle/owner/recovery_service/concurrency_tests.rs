@@ -14,7 +14,7 @@ use super::settlement_catalog_tests::{relational_attempt, setup, successor_basis
 const RECOVERY_CLOSE_TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[test]
-fn installed_and_updating_recovery_block_close_until_cleanup() {
+fn updating_recovery_blocks_close_until_cleanup() {
     let (fixture, owner, expected) = setup();
     let mut attempt = relational_attempt(&fixture, &owner, expected.clone());
     attempt.begin_owner_execution();

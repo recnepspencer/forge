@@ -177,8 +177,15 @@ impl AttemptTerminal {
 
 /// Materialize the reserved history slot for recovery only. The successor
 /// commit is installed because a retained record must keep its exact successor
-/// reachable, but the attempt never takes product-head authority and never
-/// advances the product reference generation.
+/// reachable.
+///
+/// Both classes here are taken and immediately relabelled: the history
+/// protection is taken in the `ProductHead` class and relabelled by
+/// `transition_to_product_unpublished`, and the component pins are taken as a
+/// product-head transfer and relabelled by `transition_to_retained_partial`.
+/// Neither is authority over the product reference: the attempt takes no
+/// `ProductBranchHeadProtection` over the cell and advances no product
+/// reference generation.
 fn settle_unmaterialized(
     successor: UnmaterializedSuccessor,
     commit: &Arc<CompositeRuntimeWorldCommit>,

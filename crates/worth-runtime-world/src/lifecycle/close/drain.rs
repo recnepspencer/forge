@@ -2,27 +2,33 @@ use std::sync::atomic::Ordering;
 
 use crate::lifecycle::owner::{RuntimeWorldBootstrapState, RuntimeWorldOwnerState};
 use crate::recovery::{
-    ProductUnpublishedNextAction, ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle,
+    ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle,
     ProductUnpublishedRetentionPosture,
 };
+use crate::retention::RetainedPartialRetentionObligation;
 
 use super::report::{
     RuntimeWorldCloseReleaseCounts, RuntimeWorldCloseReport, RuntimeWorldRetainedRecordReport,
 };
 use super::RuntimeWorldCloseDenial;
 
-/// A retained record whose posture is `RetainedExact` keeps exactly one
-/// relational and one signal pin live.
-const RETAINED_EXACT_COMPONENT_PIN_PAIR: usize = 2;
+/// A record in the `ReacquisitionPending` posture holds a
+/// `ReservedComponentPinPairCapacity` instead of issued pins
+/// (`recovery/product_unpublished.rs`): the reserved charge for exactly the
+/// relational and signal scopes the retained posture holds as obligations.
+/// Pinned by `close_reports_a_pending_record_as_a_reserved_component_pair`.
+const RESERVED_COMPONENT_PIN_PAIR: usize = 2;
 
-/// Admit a close attempt. A declared critical section that is still in flight
-/// cannot be drained, so it denies here rather than closing over live work.
+/// Close the owner: admit, drain, and flip Open -> Closing -> Closed while
+/// holding one operation-admission guard across all three.
 ///
-/// An installed retained record is deliberately not a denial: close settles
-/// what it can and exposes the rest in its terminal report.
-pub(super) fn admit_close<D, I, E, Ctx, T>(
+/// The guard is what makes the report complete. `admit_close` checks the
+/// ledger and `RuntimeWorldCloseContract::begin` flips the state; a reservation
+/// admitted between those two points would be closed over silently and would
+/// be missing from the report, so nothing may be admitted in that window.
+pub(super) fn close_owner<D, I, E, Ctx, T>(
     state: &RuntimeWorldOwnerState<D, I, E, Ctx, T>,
-) -> Result<(), RuntimeWorldCloseDenial>
+) -> Result<RuntimeWorldCloseReport, RuntimeWorldCloseDenial>
 where
     D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
     I: Copy + Ord + Send + Sync + 'static,
@@ -36,9 +42,9 @@ where
         return Err(RuntimeWorldCloseDenial::AlreadyClosing);
     }
     drop(bootstrap);
-    // Close stops new admission at the operation ledger. Publish the queued
-    // waiter before blocking so the transition from "no close" to "a close is
-    // admitting" is observable rather than inferred from elapsed time.
+    // Publish the queued waiter before blocking so the transition from "no
+    // close" to "a close is admitting" is observable rather than inferred from
+    // elapsed time.
     state.close_admission_waiters.fetch_add(1, Ordering::SeqCst);
     let operation = state
         .operation
@@ -46,14 +52,38 @@ where
         .lock()
         .unwrap_or_else(|error| error.into_inner());
     state.close_admission_waiters.fetch_sub(1, Ordering::SeqCst);
-    if operation.recovery_active != 0 {
+    admit_close(
+        operation.recovery_active,
+        operation.active,
+        state.recovery.reserved_slots(),
+    )?;
+    let report = drain_for_close(state)?;
+    let mut close = state
+        .close
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    close.begin()?;
+    close.finish()?;
+    drop(close);
+    drop(operation);
+    Ok(report)
+}
+
+/// Decide whether this owner can be drained at all, from the operation ledger
+/// the caller is holding. A declared critical section that is still in flight
+/// cannot be drained, so it denies here rather than closing over live work.
+///
+/// An installed retained record is deliberately not a denial: close settles
+/// what it can and exposes the rest in its terminal report.
+fn admit_close(
+    recovery_active: usize,
+    active: usize,
+    reserved_recovery_slots: usize,
+) -> Result<(), RuntimeWorldCloseDenial> {
+    if recovery_active != 0 {
         return Err(RuntimeWorldCloseDenial::InFlightCriticalSection);
     }
-    if operation.active != 0 {
-        return Err(RuntimeWorldCloseDenial::AlreadyClosing);
-    }
-    drop(operation);
-    if state.recovery.reserved_slots() != 0 {
+    if active != 0 || reserved_recovery_slots != 0 {
         return Err(RuntimeWorldCloseDenial::AlreadyClosing);
     }
     Ok(())
@@ -65,7 +95,7 @@ where
 /// SPEC-P4-008: an installed retained record is a report row, never a denial.
 /// The only remaining denial here is a record whose critical section is still
 /// in flight, which no report row can honestly describe.
-pub(super) fn drain_for_close<D, I, E, Ctx, T>(
+fn drain_for_close<D, I, E, Ctx, T>(
     state: &RuntimeWorldOwnerState<D, I, E, Ctx, T>,
 ) -> Result<RuntimeWorldCloseReport, RuntimeWorldCloseDenial>
 where
@@ -74,16 +104,11 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     let retained_records = enumerate_retained_records(state)?;
-    let settled_records = retained_records
-        .iter()
-        .filter(|record| {
-            !record
-                .next_actions()
-                .contains(&ProductUnpublishedNextAction::SettleOwnerEffects)
-        })
-        .count();
     let counts = RuntimeWorldCloseReleaseCounts {
-        settled_records,
+        // Enumerating a retained record is exposure, never settlement. The
+        // drain settles no record today: every record it can read survives the
+        // close that named it, so the settled count is the zero it settled.
+        settled_records: 0,
         // Product-head and observation pins are held by live product branch
         // cells and by caller-held observations. Neither is enumerable from the
         // owner state today, so close reports the zero it actually released
@@ -130,20 +155,14 @@ where
     Ok(rows)
 }
 
-/// Split the record's own live obligation count into the exact component pins
-/// it holds and the composite-scoped custody it holds. The two halves always
-/// sum to the count the record reports, so the report cannot disagree with the
-/// record it describes.
+/// Split the record's own live obligation count into the component-scoped
+/// charge it holds and the composite-scoped custody it holds. The split is
+/// total by construction: the composite half is whatever the record's own count
+/// leaves, so the report can never contradict the record it describes and never
+/// panics on one it cannot describe.
 fn describe(effects: &ProductUnpublishedOwnerEffects) -> RuntimeWorldRetainedRecordReport {
-    let live_component_obligations = match effects.retention_posture() {
-        ProductUnpublishedRetentionPosture::RetainedExact => RETAINED_EXACT_COMPONENT_PIN_PAIR,
-        ProductUnpublishedRetentionPosture::ReacquisitionPending => 0,
-    };
     let live_obligations = effects.live_obligation_count();
-    assert!(
-        live_component_obligations <= live_obligations,
-        "a retained record cannot hold more component pins than live obligations"
-    );
+    let live_component_obligations = component_charge(effects).min(live_obligations);
     RuntimeWorldRetainedRecordReport::new(
         effects.identity().clone(),
         effects.cause(),
@@ -151,6 +170,27 @@ fn describe(effects: &ProductUnpublishedOwnerEffects) -> RuntimeWorldRetainedRec
         live_obligations - live_component_obligations,
         effects.next_actions().to_vec(),
     )
+}
+
+/// How many component-scoped charges the record holds, read off its own
+/// custody rather than restated as a shape literal.
+fn component_charge(effects: &ProductUnpublishedOwnerEffects) -> usize {
+    match effects.retention_obligation() {
+        Some(obligation) => issued_component_pins(obligation),
+        None => {
+            debug_assert_eq!(
+                effects.retention_posture(),
+                ProductUnpublishedRetentionPosture::ReacquisitionPending
+            );
+            RESERVED_COMPONENT_PIN_PAIR
+        }
+    }
+}
+
+/// The exact pins a `RetainedPartialRetentionObligation` holds, counted from
+/// the obligation itself.
+fn issued_component_pins(obligation: &RetainedPartialRetentionObligation) -> usize {
+    [obligation.relational(), obligation.signal()].len()
 }
 
 /// Release every exact component pin that no live dependency and no component

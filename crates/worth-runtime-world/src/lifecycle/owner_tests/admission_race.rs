@@ -78,7 +78,7 @@ fn wait_until_bootstrap_is_held(owner: &TestOwner) {
 /// elapsed interval: this waits for the state itself, never for a settle
 /// window, and fails by name inside a bounded budget.
 #[track_caller]
-fn wait_until_close_is_admitting(owner: &TestOwner) {
+pub(super) fn wait_until_close_is_admitting(owner: &TestOwner) {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
     while owner.close_admission_waiters() == 0 {
         if std::time::Instant::now() >= deadline {

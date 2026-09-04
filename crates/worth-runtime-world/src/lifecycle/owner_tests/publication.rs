@@ -8,10 +8,16 @@ use crate::lifecycle::{
     RuntimeWorldObservationService, RuntimeWorldOwnerExecutionService,
     RuntimeWorldPreparationService, RuntimeWorldProductPublicationService,
 };
+#[cfg(feature = "test-operation-control")]
+use crate::publication::{
+    CompositeAttemptProgress, RelationalAttemptProgress, SignalAttemptProgress,
+};
 use crate::publication::{
     CompositeLateCancellationPosture, CompositePublicationIntent, OwnerExecutionOutcome,
     PreparedCompositePublicationWithoutSignal, RuntimeWorldPublicationOutcome,
 };
+#[cfg(feature = "test-operation-control")]
+use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedRetentionPosture};
 
 pub(super) type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -37,7 +43,7 @@ pub(super) fn setup() -> (
     (fixture, owner, performed.product_branch().clone())
 }
 
-fn setup_with_relational_source() -> (
+pub(super) fn setup_with_relational_source() -> (
     RealReferenceFixture,
     Arc<TestOwner>,
     ProductBranchObservation,
@@ -139,9 +145,23 @@ fn complete_ready_publish_path_derives_and_installs_the_successor_snapshot() {
     assert_eq!(owner.state.operation.active(), 0);
 }
 
+/// One resolved post-effect retention denial: the record it installed is in the
+/// `ReacquisitionPending` posture, holding a reserved component pin pair instead
+/// of issued pins.
 #[cfg(feature = "test-operation-control")]
-#[test]
-fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity() {
+pub(super) struct PendingRetentionDenial {
+    /// Keeps the component fixture carrying the injected Signal retention panic
+    /// alive for as long as the owner under proof.
+    _fixture: RealReferenceFixture,
+    pub(super) owner: Arc<TestOwner>,
+    pub(super) expected: ProductBranchObservation,
+    pub(super) retained: crate::recovery::ProductUnpublishedOwnerEffects,
+}
+
+/// Drive one publication past its component effect and deny its post-effect
+/// retention reacquisition, which is the only way to reach the pending posture.
+#[cfg(feature = "test-operation-control")]
+pub(super) fn resolve_post_effect_retention_denial() -> PendingRetentionDenial {
     let (mut fixture, owner, expected) = setup();
     let cancellation = crate::publication::RuntimeWorldCancellationSource::new();
     let mut attempt = RuntimeWorldPreparationService::prepare_publication(
@@ -181,6 +201,23 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
         .settle(progress)
         .ready(successor_basis)
         .expect_err("the injected post-effect retention denial becomes recovery");
+    PendingRetentionDenial {
+        _fixture: fixture,
+        owner,
+        expected,
+        retained,
+    }
+}
+
+#[cfg(feature = "test-operation-control")]
+#[test]
+fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity() {
+    let PendingRetentionDenial {
+        _fixture,
+        owner,
+        expected,
+        retained,
+    } = resolve_post_effect_retention_denial();
 
     assert_eq!(retained.cause(), ProductUnpublishedCause::OwnerLost);
     assert_eq!(
@@ -204,35 +241,32 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
     let recovery_handle = retained.recovery_handle();
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
     assert_eq!(owner.recovery_record_count(), 1);
-    assert_eq!(owner.state.retention.reserved_unique_pin_capacity(), 2);
-    assert_eq!(
-        owner
-            .state
-            .retention
-            .reserved_in_flight_acquisition_capacity(),
-        2
-    );
+    assert_retry_capacity(&owner, 2);
     assert_eq!(owner.state.operation.active(), 0);
     drop(retained);
     assert_eq!(owner.recovery_record_count(), 1);
-    assert_eq!(owner.state.retention.reserved_unique_pin_capacity(), 2);
-    assert_eq!(
-        owner
-            .state
-            .retention
-            .reserved_in_flight_acquisition_capacity(),
-        2
-    );
+    assert_retry_capacity(&owner, 2);
     assert!(owner.cleanup_recovery_handle(&recovery_handle));
     assert_eq!(owner.recovery_record_count(), 0);
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
-    assert_eq!(owner.state.retention.reserved_unique_pin_capacity(), 0);
+    assert_retry_capacity(&owner, 0);
+}
+
+/// The reacquisition capacity a pending record keeps reserved for its retry:
+/// one exact pin pair and one in-flight acquisition pair.
+#[cfg(feature = "test-operation-control")]
+#[track_caller]
+fn assert_retry_capacity(owner: &TestOwner, expected: usize) {
+    assert_eq!(
+        owner.state.retention.reserved_unique_pin_capacity(),
+        expected
+    );
     assert_eq!(
         owner
             .state
             .retention
             .reserved_in_flight_acquisition_capacity(),
-        0
+        expected
     );
 }
 fn cell_snapshot(owner: &TestOwner) -> ProductBranchReferenceSnapshot {

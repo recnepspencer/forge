@@ -14,6 +14,7 @@
 
 use std::sync::Arc;
 
+use crate::branch::reference_test_fixture::RealReferenceFixture;
 use crate::branch::{
     ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceCell,
     ProductBranchReferenceSnapshot,
@@ -28,7 +29,9 @@ use crate::recovery::{
     ProductUnpublishedRetentionPosture,
 };
 
-use super::publication::{prepare_relational, ready_from_prepared, setup, TestOwner};
+use super::publication::{
+    prepare_relational, ready_from_prepared, setup, setup_with_relational_source, TestOwner,
+};
 
 /// One resolved race: the winner's product head, and the retained record the
 /// loser produced against it.
@@ -43,7 +46,27 @@ pub(super) struct ResolvedRace {
 /// Admit and execute one ready attempt, move the product head out from under
 /// it with a second owner-issued publication, then send it into `publish`.
 pub(super) fn resolve_one_race(late: CompositeLateCancellationPosture) -> ResolvedRace {
-    let (fixture, owner, expected) = setup();
+    race_from(setup(), late)
+}
+
+/// The same race, run against an owner that has already completed one ordinary
+/// publication. The completed attempt released its exact component custody, so
+/// the registry carries a zero-count entry no live holder still names.
+pub(super) fn resolve_one_race_after_a_completed_publication(
+    late: CompositeLateCancellationPosture,
+) -> ResolvedRace {
+    race_from(setup_with_relational_source(), late)
+}
+
+fn race_from(
+    base: (
+        RealReferenceFixture,
+        Arc<TestOwner>,
+        ProductBranchObservation,
+    ),
+    late: CompositeLateCancellationPosture,
+) -> ResolvedRace {
+    let (fixture, owner, expected) = base;
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
     let loser = ready_from_prepared(
         owner.as_ref(),
@@ -150,11 +173,14 @@ fn competing_commit(
 /// authority: it advances no product reference generation, leaves the winner's
 /// snapshot as the sole product head, and leaks no reserved capacity.
 ///
-/// The successor commit it retains is still installed, because the frozen
+/// It does consume its reserved history slot: the frozen
 /// `ProductUnpublishedOwnerEffectsRecord` requires a history protection over an
-/// installed successor. That remainder is LANE-BLOCK-1.
+/// installed successor, so the slot becomes exactly one retained successor
+/// occurrence rather than nothing. The plan's proof-10 name, which claims the
+/// slot is not consumed at all, is therefore blocked by LANE-BLOCK-1; the
+/// integration INT-008 remainder restores it.
 #[test]
-fn a_losing_cas_attempt_does_not_consume_its_reserved_history_slot() {
+fn a_losing_cas_attempt_takes_no_product_head_authority_and_advances_no_generation() {
     let race = resolve_one_race(CompositeLateCancellationPosture::NotRequested);
     let cell = race
         .owner
@@ -270,7 +296,7 @@ fn cancelled_ready_loses_to_winner_and_retains_publication_loss() {
 /// The loser keeps its exact commit results and its exact component custody:
 /// the successor occurrence stays reachable and the pin pair stays held.
 #[test]
-fn complete_ready_publish_path_retains_commit_results_and_custody_on_cas_loss() {
+fn complete_ready_publish_path_retains_commit_results_and_custody_on_observed_product_loss() {
     let race = resolve_one_race(CompositeLateCancellationPosture::NotRequested);
 
     assert_eq!(
