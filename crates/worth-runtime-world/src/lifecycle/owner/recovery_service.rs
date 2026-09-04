@@ -1,5 +1,7 @@
+use crate::branch::{OwnerCreatedComponentCustodyRecord, OwnerRetirementWork};
 use crate::recovery::{
-    ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle, RecoveryContinuationContract,
+    ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle, RecoveryCleanupOutcome,
+    RecoveryContinuationContract,
 };
 
 #[cfg(test)]
@@ -160,9 +162,22 @@ where
             .map(ProductUnpublishedOwnerEffects::from_catalog_record)
     }
 
-    /// Consume a caller capability and explicitly release a record only when
-    /// no Relational settlement route remains. The catalog retains custody if
-    /// a separate caller still inspects the same record.
+    /// Consume a caller capability and explicitly release its record. The
+    /// capability is dropped first so that it cannot be the inspection that
+    /// keeps the record retained; the release itself is
+    /// [`Self::cleanup_recovery_handle`].
+    pub(crate) fn cleanup_recovery(
+        &self,
+        effects: ProductUnpublishedOwnerEffects,
+    ) -> Option<Vec<OwnerRetirementWork>> {
+        let handle = effects.recovery_handle();
+        drop(effects);
+        self.cleanup_recovery_handle(&handle)
+    }
+
+    /// Explicitly release a record only when no Relational settlement route
+    /// remains. The catalog retains custody if a separate caller still
+    /// inspects the same record.
     ///
     /// Releasing the record is also what drains the component branches its
     /// forks created: the record names the exact destination occurrence, and
@@ -170,34 +185,30 @@ where
     /// component owners still owe is returned here rather than left installed
     /// under a branch that will never exist. `None` is a record this call did
     /// not release; it drains nothing, because it retired nothing.
-    pub(crate) fn cleanup_recovery(
-        &self,
-        effects: ProductUnpublishedOwnerEffects,
-    ) -> Option<Vec<crate::branch::OwnerRetirementWork>> {
-        let handle = effects.recovery_handle();
-        let destination = effects
-            .destination_branch()
-            .map(|(branch, incarnation)| (branch.clone(), incarnation));
-        drop(effects);
-        self.state.recovery.cleanup_record(&handle).ok()?;
-        let Some((branch, incarnation)) = destination else {
-            return Some(Vec::new());
-        };
-        Some(
-            self.state
-                .custody
-                .take_for_incarnation(&branch, incarnation)
-                .into_iter()
-                .map(crate::branch::OwnerCreatedComponentCustodyRecord::into_retirement_work)
-                .collect(),
-        )
-    }
-
     pub(crate) fn cleanup_recovery_handle(
         &self,
         handle: &ProductUnpublishedRecoveryHandle,
-    ) -> bool {
-        self.state.recovery.cleanup_record(handle).is_ok()
+    ) -> Option<Vec<OwnerRetirementWork>> {
+        let released = self.state.recovery.cleanup_record(handle).ok()?;
+        Some(self.drain_released_occurrence(&released))
+    }
+
+    /// Drain the custody charged to the occurrence a released record named.
+    /// A record that named no occurrence was a publication: it charged no
+    /// custody, and there is nothing to drain.
+    fn drain_released_occurrence(
+        &self,
+        released: &RecoveryCleanupOutcome,
+    ) -> Vec<OwnerRetirementWork> {
+        let Some((branch, incarnation)) = released.destination() else {
+            return Vec::new();
+        };
+        self.state
+            .custody
+            .take_for_incarnation(branch, incarnation)
+            .into_iter()
+            .map(OwnerCreatedComponentCustodyRecord::into_retirement_work)
+            .collect()
     }
 }
 

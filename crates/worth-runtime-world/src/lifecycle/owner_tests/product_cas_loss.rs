@@ -210,7 +210,7 @@ fn a_losing_cas_attempt_takes_no_product_head_authority_and_advances_no_generati
 
     let handle = race.retained.recovery_handle();
     drop(race.retained);
-    assert!(race.owner.cleanup_recovery_handle(&handle));
+    assert!(race.owner.cleanup_recovery_handle(&handle).is_some());
     assert_eq!(race.owner.recovery_record_count(), 0);
     assert_eq!(
         cell.atomic_snapshot(),
@@ -337,7 +337,7 @@ fn a_losing_cas_attempt_does_not_consume_its_reserved_history_slot() {
 
     let handle = race.retained.recovery_handle();
     drop(race.retained);
-    assert!(race.owner.cleanup_recovery_handle(&handle));
+    assert!(race.owner.cleanup_recovery_handle(&handle).is_some());
     assert_eq!(
         race.owner.state.history.len(),
         race.history_len_after_winner,

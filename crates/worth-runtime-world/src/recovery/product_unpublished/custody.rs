@@ -26,6 +26,16 @@ impl ProductUnpublishedOwnerEffectsRecord {
         self.progress.relational_requires_settlement()
     }
 
+    /// The occurrence whose creation charged this record's custody, when the
+    /// attempt created one. The catalog reads it as it releases the record, so
+    /// the custody drain keys on what the record named and never on what a
+    /// caller remembered.
+    pub(crate) fn destination(&self) -> Option<(&ProductBranchIdentity, ProductBranchIncarnation)> {
+        self.destination
+            .as_ref()
+            .map(|(branch, incarnation)| (branch, *incarnation))
+    }
+
     pub(crate) fn next_actions(&self) -> &[ProductUnpublishedNextAction] {
         self.next_actions.as_slice()
     }

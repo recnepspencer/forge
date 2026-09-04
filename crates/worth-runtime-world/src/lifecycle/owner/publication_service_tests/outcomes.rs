@@ -139,7 +139,7 @@ fn cancellation_before_product_movement_does_not_cas_current_head() {
         row.cause(),
         ProductUnpublishedCause::CancellationAfterEffect
     );
-    assert!(owner.cleanup_recovery_handle(&handle));
+    assert!(owner.cleanup_recovery_handle(&handle).is_some());
 }
 
 #[test]

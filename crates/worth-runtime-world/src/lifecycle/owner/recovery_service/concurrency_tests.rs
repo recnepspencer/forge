@@ -134,7 +134,7 @@ fn assert_settled_record_closes_only_after_cleanup(
     );
     drop(inspected);
 
-    assert!(owner.cleanup_recovery_handle(handle));
+    assert!(owner.cleanup_recovery_handle(handle).is_some());
     assert_eq!(owner.recovery_record_count(), 0);
     let _report = owner
         .close()

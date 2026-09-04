@@ -1,6 +1,8 @@
 use super::ProductUnpublishedNextAction;
 
-use crate::identity::ProductUnpublishedOwnerEffectsIdentity;
+use crate::identity::{
+    ProductBranchIdentity, ProductBranchIncarnation, ProductUnpublishedOwnerEffectsIdentity,
+};
 
 /// Explicit recovery cleanup permission. It cannot be inferred from a
 /// product publication or from dropping a caller's inspection handle.
@@ -29,14 +31,27 @@ pub(crate) enum RecoveryCleanupDenial {
     SettlementRequired,
 }
 
+/// What the catalog released: the record's identity and the product-branch
+/// occurrence it named. The occurrence travels with the release because the
+/// record was the only thing naming it, and the custody charged to it must be
+/// drained by whoever released the record, on every release path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RecoveryCleanupOutcome {
     identity: ProductUnpublishedOwnerEffectsIdentity,
+    destination: Option<(ProductBranchIdentity, ProductBranchIncarnation)>,
 }
 
 impl RecoveryCleanupOutcome {
     pub(crate) fn identity(&self) -> &ProductUnpublishedOwnerEffectsIdentity {
         &self.identity
+    }
+
+    /// The occurrence whose custody the released record was answerable for,
+    /// when the attempt created one.
+    pub(crate) fn destination(&self) -> Option<(&ProductBranchIdentity, ProductBranchIncarnation)> {
+        self.destination
+            .as_ref()
+            .map(|(branch, incarnation)| (branch, *incarnation))
     }
 }
 
@@ -53,8 +68,14 @@ impl super::catalog::ProductUnpublishedRecoveryCatalog {
         match removed {
             Ok(Some(record)) => {
                 let identity = record.identity().clone();
+                let destination = record
+                    .destination()
+                    .map(|(branch, incarnation)| (branch.clone(), incarnation));
                 drop(record);
-                Ok(RecoveryCleanupOutcome { identity })
+                Ok(RecoveryCleanupOutcome {
+                    identity,
+                    destination,
+                })
             }
             Ok(None) => Err(RecoveryCleanupDenial::Missing),
             Err(super::catalog::RecoveryRecordRemovalDenial::CallerCapabilityLive) => {

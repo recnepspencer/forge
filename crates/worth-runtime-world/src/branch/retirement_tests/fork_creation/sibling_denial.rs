@@ -143,6 +143,55 @@ fn assert_cleanup_releases_custody(
     assert_eq!(owner.state.branches.branch_count(), 1);
 }
 
+/// Releasing the record by its handle is the same release as consuming the
+/// capability: one catalog authority reads the occurrence the record named
+/// and drains its custody, so neither path can leave the performed fork
+/// installed under an occurrence nothing will ever name.
+#[test]
+fn releasing_the_record_by_handle_drains_the_same_fork_custody() {
+    let (_fixture, owner, source) = setup_with_relational_source(3);
+    let held = owner
+        .state
+        .signal
+        .mutation_port()
+        .reserve_fork_exact(
+            validate_signal_branch_name("signal-branch-handle").expect("valid Signal name"),
+            source.basis().signal_basis(),
+        )
+        .expect("the Signal destination this creation will ask for is already held");
+    let effects = create_partial_effects(
+        &owner,
+        &source,
+        fork_intent(
+            "branch-fork-handle",
+            relational_fork("relational-branch-handle"),
+            signal_fork("signal-branch-handle"),
+        ),
+    );
+    drop(held);
+    let handle = effects.recovery_handle();
+    drop(effects);
+    assert_eq!(owner.state.custody.installed(), 1);
+
+    let work = owner
+        .cleanup_recovery_handle(&handle)
+        .expect("a settled record with no live capability is released by its handle");
+
+    assert_eq!(
+        work,
+        vec![OwnerRetirementWork::RelationalBranchRetirement {
+            target: BranchId("relational-branch-handle".to_owned()),
+        }],
+        "the handle release returns the forked owner's retirement work, typed and exact"
+    );
+    assert_eq!(
+        owner.state.custody.installed(),
+        0,
+        "the handle release drains the occurrence's custody exactly as the capability release does"
+    );
+    assert_eq!(owner.recovery_record_count(), 0);
+}
+
 /// The performed leg of a partial creation is a component branch that really
 /// exists. Whatever the creation does with the rest of its reservations, that
 /// branch must stay named in custody under the occurrence that made it: losing

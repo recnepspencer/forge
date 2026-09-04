@@ -250,7 +250,7 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
     drop(retained);
     assert_eq!(owner.recovery_record_count(), 1);
     assert_retry_capacity(&owner, 2);
-    assert!(owner.cleanup_recovery_handle(&recovery_handle));
+    assert!(owner.cleanup_recovery_handle(&recovery_handle).is_some());
     assert_eq!(owner.recovery_record_count(), 0);
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
     assert_retry_capacity(&owner, 0);

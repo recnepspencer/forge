@@ -275,10 +275,7 @@ impl ProductUnpublishedOwnerEffects {
     /// for, when the attempt created one. It names the custody a cleanup must
     /// drain; it is not authority to install or retire that branch.
     pub fn destination_branch(&self) -> Option<(&ProductBranchIdentity, ProductBranchIncarnation)> {
-        self.record
-            .destination
-            .as_ref()
-            .map(|(branch, incarnation)| (branch, *incarnation))
+        self.record.destination()
     }
 
     pub fn retention_posture(&self) -> ProductUnpublishedRetentionPosture {

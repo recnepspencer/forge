@@ -175,9 +175,9 @@ fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
         inspected.cause(),
         ProductUnpublishedCause::SettlementPending
     );
-    assert!(!owner.cleanup_recovery_handle(&handle));
+    assert!(owner.cleanup_recovery_handle(&handle).is_none());
     drop(inspected);
-    assert!(!owner.cleanup_recovery_handle(&handle));
+    assert!(owner.cleanup_recovery_handle(&handle).is_none());
     assert!(matches!(
         owner
             .state
@@ -252,7 +252,7 @@ fn continuation_settles_relational_effects_without_signal_or_product_publication
         before_product_head,
         "recovery settlement does not publish a product head"
     );
-    assert!(owner.cleanup_recovery_handle(&handle));
+    assert!(owner.cleanup_recovery_handle(&handle).is_some());
     assert_eq!(owner.recovery_record_count(), 0);
 }
 
@@ -311,7 +311,7 @@ fn metadata_ceiling_rejects_second_charge_and_cleanup_releases_the_first() {
             .reserve_product_unpublished(owner.owner_identity()),
         Err(crate::recovery::RecoveryCatalogDenial::CapacityExhausted { .. })
     ));
-    assert!(owner.cleanup_recovery_handle(&handle));
+    assert!(owner.cleanup_recovery_handle(&handle).is_some());
     assert_eq!(owner.recovery_record_count(), 0);
     assert_eq!(owner.state.recovery.metadata_bytes(), 0);
     let released_slot = owner
