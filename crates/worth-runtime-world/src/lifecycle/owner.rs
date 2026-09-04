@@ -25,6 +25,8 @@ mod execution_service;
 mod operation;
 mod publication_service;
 mod recovery_service;
+#[cfg(test)]
+mod rehearsal;
 
 pub(crate) use construction::{
     RuntimeWorldOwnerConstructionCapability, RuntimeWorldOwnerConstructionContract,

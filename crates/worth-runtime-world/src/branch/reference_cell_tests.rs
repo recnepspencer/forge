@@ -199,6 +199,50 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
 }
 
 #[test]
+fn while_current_holds_the_guard_across_its_section_and_refuses_a_displaced_head() {
+    let (mut fixture, catalog, root) = fixture::installed_root();
+    let initial = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));
+    let cell = product_cell(initial.clone(), &catalog, &fixture);
+    let expected = observation(&cell, &fixture, &catalog);
+    let successor = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
+    let successor_snapshot = fixture::successor_snapshot(&initial, Arc::clone(&successor));
+    let successor_protection =
+        fixture::product_head_protection(&fixture, &catalog, successor_snapshot.clone());
+
+    assert!(!cell.writers_are_locked_out_for_test());
+    let section = cell.while_current(&expected, 7, |argument| {
+        assert!(
+            cell.writers_are_locked_out_for_test(),
+            "no publication can move the head while the section runs"
+        );
+        argument + 1
+    });
+    assert_eq!(section.ok(), Some(8));
+    assert!(!cell.writers_are_locked_out_for_test());
+
+    cell.compare_and_publish(&expected, successor_protection)
+        .expect("the head moves once the section has returned");
+    let (observed, argument) = cell
+        .while_current(&expected, 7, |_| {
+            panic!("a displaced head enters no section")
+        })
+        .expect_err("the section is refused against the moved head");
+    assert_eq!(observed.commit().identity(), successor.identity());
+    assert_eq!(argument, 7, "the refused argument comes back untouched");
+
+    let shared = cell.clone();
+    assert!(
+        shared.into_protection().is_none(),
+        "a shared cell keeps its protection"
+    );
+    assert!(
+        cell.into_protection().is_some(),
+        "the last holder gets the protection back"
+    );
+    drop(expected);
+}
+
+#[test]
 fn bootstrap_product_head_protection_survives_without_an_observation() {
     let (mut fixture, catalog, root) = fixture::installed_root();
     let snapshot = fixture::initial_snapshot(&mut fixture, Arc::clone(&root));

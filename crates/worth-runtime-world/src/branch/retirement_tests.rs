@@ -379,3 +379,6 @@ mod fork_finalization_race;
 
 #[path = "retirement_tests/observation_issuance_pins.rs"]
 mod observation_issuance_pins;
+
+#[path = "retirement_tests/source_guarded_install.rs"]
+mod source_guarded_install;

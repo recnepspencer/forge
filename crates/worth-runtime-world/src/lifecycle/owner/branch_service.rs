@@ -14,6 +14,8 @@ use super::super::ports::{RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchC
 use super::RuntimeWorldOwnerRoot;
 
 mod creation;
+#[cfg(test)]
+mod install_control;
 
 impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
 where
@@ -57,19 +59,50 @@ where
         ))
     }
 
+    /// Name a source head's admission before any charge. A source whose
+    /// branch holds no occurrence is `RetiredBranch`, the answer
+    /// `observe_product_branch` gives for the same branch; a source whose
+    /// branch carries another head, or another occurrence of the same name,
+    /// is `StaleSourceHead`. Every creation route names a source this way.
+    pub(super) fn admit_source_head(
+        &self,
+        expected: &ProductBranchObservation,
+    ) -> Result<(), RuntimeWorldBranchAdmissionDenial> {
+        let cell = self
+            .state
+            .branches
+            .branch_cell(expected.branch_identity())
+            .ok_or(RuntimeWorldBranchAdmissionDenial::RetiredBranch)?;
+        if expected
+            .mismatch_against_snapshot(&cell.atomic_snapshot())
+            .is_some()
+        {
+            return Err(RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
+        }
+        Ok(())
+    }
+
     fn create_reused_branch(
         &self,
         source: ProductBranchObservation,
         name: ProductBranchName,
     ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
         // The reference cell is the only authority for a head. A source the
-        // cell has moved past is refused here, before any capacity is charged;
-        // a source the cell still carries is reused as the exact commit the
-        // caller observed, which that observation keeps alive in history.
-        if !self.current_product_head_is(&source) {
-            return Err(RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
-        }
+        // cell has moved past, or no longer holds, is refused here before any
+        // capacity is charged, and refused again under the cell's own guard
+        // at installation, so a publication between the two cannot install a
+        // child from a head that is no longer current. A current source is
+        // reused as the exact commit the caller observed, which that
+        // observation keeps alive in history.
+        self.admit_source_head(&source)?;
         let commit = source.snapshot().shared_commit();
+        // Reuse moves no owner, but it does install a product reference, and
+        // close drains those. Holding an operation reservation across the
+        // installation is what makes close wait for it instead of draining
+        // underneath it.
+        let operation = self
+            .reserve_creation_operation()
+            .map_err(|()| RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
 
         let reservation = self
             .state
@@ -83,9 +116,12 @@ where
             self.issue_reused_head(branch.clone(), lifecycle, Arc::clone(&commit))?;
         let observation = self.issue_reused_observation(snapshot, commit)?;
 
+        #[cfg(test)]
+        install_control::pause_before_source_guarded_install(self.owner_identity());
         reservation
-            .install(branch, lifecycle, cell)
-            .map_err(|(_, denial)| map_registry_denial(denial))?;
+            .install_from_source(&source, branch, lifecycle, cell)
+            .map_err(|failure| map_source_install_denial(failure.denial))?;
+        drop(operation);
         Ok(observation)
     }
 
@@ -272,6 +308,22 @@ fn map_registry_denial(
         ProductBranchRegistryDenial::NameAlreadyReserved
         | ProductBranchRegistryDenial::NameAlreadyInstalled => {
             RuntimeWorldBranchAdmissionDenial::DuplicateName
+        }
+    }
+}
+
+fn map_source_install_denial(
+    denial: crate::branch::registry::ProductBranchSourceInstallDenial,
+) -> RuntimeWorldBranchAdmissionDenial {
+    use crate::branch::registry::ProductBranchSourceInstallDenial;
+
+    match denial {
+        ProductBranchSourceInstallDenial::Registry(denial) => map_registry_denial(denial),
+        ProductBranchSourceInstallDenial::SourceRetired => {
+            RuntimeWorldBranchAdmissionDenial::RetiredBranch
+        }
+        ProductBranchSourceInstallDenial::SourceDisplaced(_) => {
+            RuntimeWorldBranchAdmissionDenial::StaleSourceHead
         }
     }
 }

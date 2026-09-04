@@ -157,7 +157,8 @@ pub enum RuntimeWorldBranchAdmissionDenial {
     CustodyCapacityExhausted,
     /// The admitted source observation no longer matches the branch's current
     /// head, so the operation it was admitted for is answering about a product
-    /// occurrence that has already moved on. Nothing was reserved or moved.
+    /// occurrence that has already moved on. Nothing was reserved or moved. A
+    /// branch with no head at all is `RetiredBranch`, not this.
     StaleSourceHead,
     /// The component owner's freshly observed fork source no longer matches
     /// every shared exact axis of the admitted source basis, so forking it

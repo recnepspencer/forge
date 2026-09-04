@@ -136,9 +136,9 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     /// The last pre-effect recheck before the first owner fork. Nothing has
-    /// moved yet, so both ways this closes are plain admission denials, and the
-    /// two are named apart because a displaced source head is not an
-    /// unavailable owner.
+    /// moved yet, so every way this closes is a plain admission denial, and
+    /// they are named apart because a displaced or retired source head is not
+    /// an unavailable owner.
     fn creation_execution_is_admissible(
         &self,
         attempt: &ReservedBranchCreationAttempt,
@@ -147,10 +147,7 @@ where
         if cancellation.is_cancelled() || self.deadline_expired(attempt.deadline()) {
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
-        if !self.current_product_head_is(attempt.source()) {
-            return Err(RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
-        }
-        Ok(())
+        self.admit_source_head(attempt.source())
     }
 
     /// The between-owners boundary for a creation. A denial here may already
@@ -168,10 +165,10 @@ where
                 denial: RuntimeWorldBranchAdmissionDenial::OwnerUnavailable,
             });
         }
-        if !self.current_product_head_is(attempt.source()) {
+        if let Err(denial) = self.admit_source_head(attempt.source()) {
             return Err(terminal::CreationDenialNaming {
                 cause: ProductUnpublishedCause::StaleProductHead,
-                denial: RuntimeWorldBranchAdmissionDenial::StaleSourceHead,
+                denial,
             });
         }
         Ok(())

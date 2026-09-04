@@ -64,9 +64,7 @@ where
         }
         creation_pre_effect_denial(self, cancellation, deadline)?;
         let plan = LoweredBranchCreationPlan::lower(source.clone(), intent)?;
-        if !self.current_product_head_is(plan.expected()) {
-            return Err(RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
-        }
+        self.admit_source_head(plan.expected())?;
         Ok(plan)
     }
 

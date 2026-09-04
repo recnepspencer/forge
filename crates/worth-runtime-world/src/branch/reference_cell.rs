@@ -146,6 +146,41 @@ impl ProductBranchReferenceCell {
         self.state.read().snapshot.clone()
     }
 
+    /// Run `f` on `argument` while this cell provably still carries
+    /// `expected`. The branch-local read guard is held across `f`, so nothing
+    /// can publish past the expected head until `f` returns: what `f`
+    /// installs from that head is installed from a current head, not from one
+    /// that was current when it was last checked. `f` must not touch this
+    /// cell. A displaced head returns the head the cell carries, with the
+    /// argument untouched, so the caller keeps whatever custody it holds.
+    pub(crate) fn while_current<A, R>(
+        &self,
+        expected: &ProductBranchObservation,
+        argument: A,
+        f: impl FnOnce(A) -> R,
+    ) -> Result<R, (ProductBranchReferenceSnapshot, A)> {
+        let current = self.state.read();
+        if expected
+            .mismatch_against_snapshot(&current.snapshot)
+            .is_some()
+        {
+            return Err((current.snapshot.clone(), argument));
+        }
+        Ok(f(argument))
+    }
+
+    /// Give back the protection of a cell nobody else shares. A cell the
+    /// registry never installed has exactly one holder, so for it this is
+    /// total; a shared cell keeps its protection and answers `None`.
+    pub(crate) fn into_protection(self) -> Option<ProductBranchHeadProtection> {
+        Arc::try_unwrap(self.state.current).ok().map(|image| {
+            image
+                .into_inner()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .protection
+        })
+    }
+
     /// Protect and recheck one candidate before asking the component owner for
     /// its exact observation claims. The equal recheck is the head
     /// linearization point; all owner calls happen after its read guard drops.
@@ -255,6 +290,16 @@ impl ProductBranchReferenceCell {
     #[cfg(test)]
     fn hold_for_test(&self) -> impl Drop + '_ {
         self.state.write()
+    }
+
+    /// Whether a writer would block right now: true exactly while some guard
+    /// on this cell is held. Non-blocking, so a guarded section may ask it.
+    #[cfg(test)]
+    fn writers_are_locked_out_for_test(&self) -> bool {
+        matches!(
+            self.state.current.try_write(),
+            Err(std::sync::TryLockError::WouldBlock)
+        )
     }
 }
 

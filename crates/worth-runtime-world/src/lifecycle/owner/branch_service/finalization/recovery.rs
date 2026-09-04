@@ -1,5 +1,6 @@
 use super::ForkedBranchRecoveryContext;
 
+use crate::branch::ProductBranchReferenceSnapshot;
 use crate::history::{
     ProductHeadHistoryProtectionObligation, ProductUnpublishedHistoryProtectionObligation,
 };
@@ -13,11 +14,27 @@ use crate::retention::{
     RetainedPartialRetentionObligation, RetentionObligationDenial,
 };
 
-/// Why a settled fork that cannot install its product reference is retained.
-/// This route is reached only by losing an owner-issued authority the fork
-/// already depended on, so the record's cause and the continuation derived
-/// from it are named once here rather than restated at each terminal.
-const FORKED_RECOVERY_CAUSE: ProductUnpublishedCause = ProductUnpublishedCause::OwnerLost;
+/// How a settled fork that cannot install its product reference names what
+/// stopped it: the cause its record carries and, when a moved source head is
+/// that cause, the head that won. The route is reached either by losing an
+/// owner-issued authority the fork already depended on, or by a source head
+/// that moved, or was retired, between the fork's last recheck and its
+/// installation under the source guard.
+pub(super) struct RetainedForkNaming {
+    pub(super) cause: ProductUnpublishedCause,
+    pub(super) last_observed_head: Option<ProductBranchReferenceSnapshot>,
+}
+
+impl RetainedForkNaming {
+    /// Losing an owner-issued authority the fork already depended on. No
+    /// head displaced the fork, so there is no winner to name.
+    pub(super) const fn owner_lost() -> Self {
+        Self {
+            cause: ProductUnpublishedCause::OwnerLost,
+            last_observed_head: None,
+        }
+    }
+}
 
 pub(super) fn retain_forked_effects(
     context: ForkedBranchRecoveryContext,
@@ -30,27 +47,32 @@ pub(super) fn retain_forked_effects(
     let (product_head, _) = transfer.into_parts();
     let retained = product_head.transition_to_retained_partial();
     let successor_history = product_history.transition_to_product_unpublished();
-    let summary = retained_summary(&context);
-    retained_effects(context, retained, successor_history, summary)
+    retained_effects(
+        context,
+        retained,
+        successor_history,
+        RetainedForkNaming::owner_lost(),
+    )
 }
 
 pub(super) fn retain_from_protection(
     context: ForkedBranchRecoveryContext,
     protection: crate::branch::ProductBranchHeadProtection,
+    naming: RetainedForkNaming,
 ) -> ProductUnpublishedOwnerEffects {
     let (_snapshot, product_head, product_history, _receipt) = protection.into_parts();
     let retained = product_head.transition_to_retained_partial();
     let successor_history = product_history.transition_to_product_unpublished();
-    let summary = retained_summary(&context);
-    retained_effects(context, retained, successor_history, summary)
+    retained_effects(context, retained, successor_history, naming)
 }
 
 fn retained_effects(
     context: ForkedBranchRecoveryContext,
     retained: RetainedPartialRetentionObligation,
     successor_history: ProductUnpublishedHistoryProtectionObligation,
-    summary: ProductUnpublishedOwnerEffectSummary,
+    naming: RetainedForkNaming,
 ) -> ProductUnpublishedOwnerEffects {
+    let summary = retained_summary(&context);
     let ForkedBranchRecoveryContext {
         identity,
         attempt_identity,
@@ -62,6 +84,10 @@ fn retained_effects(
         deadline,
         destination,
     } = context;
+    let RetainedForkNaming {
+        cause,
+        last_observed_head,
+    } = naming;
     #[cfg(test)]
     super::test_control::pause_before_forked_recovery_record(&identity);
     ProductUnpublishedOwnerEffects::new_retained(
@@ -69,7 +95,7 @@ fn retained_effects(
             identity,
             attempt_identity,
             expected_head,
-            last_observed_head: None,
+            last_observed_head,
             progress,
             owner_results,
             destination: Some(destination),
@@ -82,7 +108,7 @@ fn retained_effects(
         RetainedRecordCharges {
             recovery_slot,
             summary,
-            cause: FORKED_RECOVERY_CAUSE,
+            cause,
             deadline,
         },
     )
@@ -127,7 +153,7 @@ pub(super) fn product_unpublished_pending(
         RetainedRecordCharges {
             recovery_slot,
             summary,
-            cause: FORKED_RECOVERY_CAUSE,
+            cause: RetainedForkNaming::owner_lost().cause,
             deadline,
         },
     )

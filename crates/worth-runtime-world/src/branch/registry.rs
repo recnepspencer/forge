@@ -5,9 +5,15 @@ use std::sync::{Arc, Mutex};
 
 use crate::identity::{ProductBranchIdentity, ProductBranchIncarnation, RuntimeWorldOwnerIdentity};
 
-use super::{ProductBranchName, ProductBranchReferenceCell, ProductBranchReferenceSnapshot};
+use super::{
+    ProductBranchName, ProductBranchObservation, ProductBranchReferenceCell,
+    ProductBranchReferenceSnapshot,
+};
 
-pub(crate) use reservation::ProductBranchRegistryReservation;
+pub(crate) use reservation::{
+    ProductBranchRegistryReservation, ProductBranchSourceInstallDenial,
+    ProductBranchSourceInstallFailure,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ProductBranchRegistryDenial {

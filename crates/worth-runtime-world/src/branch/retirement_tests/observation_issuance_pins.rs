@@ -3,10 +3,11 @@
 //!
 //! The issuance happens after the product movement with no token reserved for
 //! it, and it is safe only because it can add no unique pin. This proof
-//! isolates that step in one world by taking the same fork twice: once with
-//! the observation authority withheld by the rehearsal seam, once with it
-//! issued. Each route must add exactly the pin pair the two forked owners'
-//! destination basis costs, so the issuance itself adds nothing.
+//! isolates the issuance and the product-head transfer that follows it, in
+//! one world, by taking the same fork twice: once with the observation
+//! authority withheld by the rehearsal seam, which stops before both, and
+//! once with it issued. Each route must add exactly the pin pair the two
+//! forked owners' destination basis costs, so neither step adds anything.
 
 use std::sync::{mpsc, Arc};
 use std::time::Duration;

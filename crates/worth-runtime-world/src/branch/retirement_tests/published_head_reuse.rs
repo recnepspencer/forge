@@ -5,9 +5,11 @@
 //! resolved its commit through a basis index derived from the cell lagged
 //! every movement by one re-index and, in that window, denied a creation from
 //! a head the owner itself had just published. Resolving from the observation
-//! the cell issued has no window: the source is either current, and the child
-//! takes its exact commit, or displaced, and the creation is refused as a
-//! stale source head before any capacity is charged.
+//! the cell issued removes that window: a source that is current takes its
+//! exact commit, and a source already displaced is refused as a stale source
+//! head before any capacity is charged. A movement that lands after this
+//! admission is refused at the installation itself, under the source cell's
+//! guard; that window is pinned in `source_guarded_install`.
 
 use super::fork_creation::{seed_relational_source, setup_with_relational_source};
 use super::{create_reused_branch, owner_lifecycles, reuse_intent};
