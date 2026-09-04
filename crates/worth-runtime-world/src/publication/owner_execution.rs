@@ -112,11 +112,21 @@ impl OwnerExecutionSettlement {
                 owner_results,
                 cause,
                 last_observed_head,
+                destination: PUBLICATION_CREATES_NO_OCCURRENCE,
             },
             false,
         )
     }
 }
+
+/// A publication moves the head of a product branch that already exists, so it
+/// reserves no branch occurrence and charges no custody. Every publication
+/// retention terminal says so with this one name rather than a bare `None`
+/// whose meaning would have to be re-derived at each site.
+const PUBLICATION_CREATES_NO_OCCURRENCE: Option<(
+    crate::identity::ProductBranchIdentity,
+    crate::identity::ProductBranchIncarnation,
+)> = None;
 
 /// Retain a publication attempt's owner effects. Only a publication reaches
 /// this wrapper, so the plan match it enforces is the publication plan.
@@ -176,6 +186,7 @@ impl OwnerExecutionSettlement {
                         owner_results,
                         cause: ProductUnpublishedCause::SettlementPending,
                         last_observed_head: None,
+                        destination: PUBLICATION_CREATES_NO_OCCURRENCE,
                     },
                     true,
                 ));
@@ -190,6 +201,7 @@ impl OwnerExecutionSettlement {
                     owner_results,
                     cause: ProductUnpublishedCause::CancellationAfterEffect,
                     last_observed_head: None,
+                    destination: PUBLICATION_CREATES_NO_OCCURRENCE,
                 },
                 true,
             ));
@@ -358,20 +370,30 @@ impl SettledPublication {
             RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
             ProductUnpublishedOwnerEffects::metadata_charge_hint(),
         );
-        ProductUnpublishedOwnerEffects::new_retention_pending(
-            product_unpublished_identity,
-            self.identity,
-            self.expected_head,
-            None,
-            self.progress,
-            self.successor_basis,
-            self.owner_results,
-            capacity,
-            denial,
-            successor_history,
-            reserved_recovery_slot,
-            summary,
-            self.deadline,
+        ProductUnpublishedOwnerEffects::new_reacquisition_pending(
+            crate::recovery::RetainedAttemptFacts {
+                identity: product_unpublished_identity,
+                attempt_identity: self.identity,
+                expected_head: self.expected_head,
+                last_observed_head: None,
+                progress: self.progress,
+                owner_results: self.owner_results,
+                destination: PUBLICATION_CREATES_NO_OCCURRENCE,
+            },
+            crate::recovery::InstalledSuccessorEvidence {
+                basis: self.successor_basis,
+                history_protection: successor_history,
+            },
+            crate::recovery::PendingRetentionCustody { capacity, denial },
+            crate::recovery::RetainedRecordCharges {
+                recovery_slot: reserved_recovery_slot,
+                summary,
+                // Retention could not reacquire its pins after a real owner
+                // effect, which is the owner-issued authority this attempt
+                // depended on going away underneath it.
+                cause: ProductUnpublishedCause::OwnerLost,
+                deadline: self.deadline,
+            },
         )
     }
 }

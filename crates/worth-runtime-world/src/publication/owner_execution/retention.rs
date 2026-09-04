@@ -7,12 +7,15 @@ use crate::history::{
     ProductUnpublishedHistoryProtectionObligation, ReservedCompositeCommitCapacity,
 };
 use crate::identity::{
-    CompositePublicationAttemptIdentity, ProductUnpublishedOwnerEffectsIdentity,
+    CompositePublicationAttemptIdentity, ProductBranchIdentity, ProductBranchIncarnation,
+    ProductUnpublishedOwnerEffectsIdentity,
 };
 use crate::lifecycle::RuntimeWorldInstant;
 use crate::recovery::{
-    next_actions_for_progress, ProductUnpublishedCause, ProductUnpublishedOwnerEffectSummary,
-    ProductUnpublishedOwnerEffects, ReservedProductUnpublishedSlot,
+    InstalledSuccessorEvidence, PendingRetentionCustody, ProductUnpublishedCause,
+    ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects,
+    ReservedProductUnpublishedSlot, RetainedAttemptFacts, RetainedRecordCharges,
+    RetainedSuccessorEvidence,
 };
 use crate::retention::{
     ReservedComponentPinPairCapacity, RetainedPartialRetentionObligation, RetentionObligationDenial,
@@ -42,6 +45,11 @@ pub(crate) struct RetainedOwnerEffectInputs {
     pub(crate) owner_results: CompositeOwnerExecutionResults,
     pub(crate) cause: ProductUnpublishedCause,
     pub(crate) last_observed_head: Option<ProductBranchReferenceSnapshot>,
+    /// The occurrence a creation reserved for these effects. A publication
+    /// moves an existing head and reserves no occurrence, so it is `None`
+    /// there; the record carries it so a cleanup can drain that occurrence's
+    /// custody without asking the caller to remember it.
+    pub(crate) destination: Option<(ProductBranchIdentity, ProductBranchIncarnation)>,
 }
 
 /// Install one retained owner-effect image. The caller has already checked
@@ -157,23 +165,27 @@ impl RetainedTerminal {
         self,
         retention_obligation: RetainedPartialRetentionObligation,
     ) -> ProductUnpublishedOwnerEffects {
-        let next_actions = next_actions_for_progress(&self.effects.progress);
         ProductUnpublishedOwnerEffects::new_retained(
-            self.product_unpublished_identity,
-            self.attempt_identity,
-            self.expected_head,
-            self.effects.last_observed_head,
-            self.effects.progress,
-            Some(self.effects.successor_basis),
-            self.effects.owner_results,
+            RetainedAttemptFacts {
+                identity: self.product_unpublished_identity,
+                attempt_identity: self.attempt_identity,
+                expected_head: self.expected_head,
+                last_observed_head: self.effects.last_observed_head,
+                progress: self.effects.progress,
+                owner_results: self.effects.owner_results,
+                destination: self.effects.destination,
+            },
+            RetainedSuccessorEvidence {
+                basis: Some(self.effects.successor_basis),
+                history_protection: Some(self.successor_history),
+            },
             retention_obligation,
-            self.successor_history,
-            self.reserved_recovery_slot,
-            self.summary,
-            self.effects.cause,
-            next_actions,
-            self.deadline,
-            0,
+            RetainedRecordCharges {
+                recovery_slot: self.reserved_recovery_slot,
+                summary: self.summary,
+                cause: self.effects.cause,
+                deadline: self.deadline,
+            },
         )
     }
 
@@ -185,20 +197,26 @@ impl RetainedTerminal {
         denial: RetentionObligationDenial,
     ) -> ProductUnpublishedOwnerEffects {
         ProductUnpublishedOwnerEffects::new_reacquisition_pending(
-            self.product_unpublished_identity,
-            self.attempt_identity,
-            self.expected_head,
-            self.effects.last_observed_head,
-            self.effects.progress,
-            self.effects.successor_basis,
-            self.effects.owner_results,
-            capacity,
-            denial,
-            self.successor_history,
-            self.reserved_recovery_slot,
-            self.summary,
-            self.effects.cause,
-            self.deadline,
+            RetainedAttemptFacts {
+                identity: self.product_unpublished_identity,
+                attempt_identity: self.attempt_identity,
+                expected_head: self.expected_head,
+                last_observed_head: self.effects.last_observed_head,
+                progress: self.effects.progress,
+                owner_results: self.effects.owner_results,
+                destination: self.effects.destination,
+            },
+            InstalledSuccessorEvidence {
+                basis: self.effects.successor_basis,
+                history_protection: self.successor_history,
+            },
+            PendingRetentionCustody { capacity, denial },
+            RetainedRecordCharges {
+                recovery_slot: self.reserved_recovery_slot,
+                summary: self.summary,
+                cause: self.effects.cause,
+                deadline: self.deadline,
+            },
         )
     }
 }

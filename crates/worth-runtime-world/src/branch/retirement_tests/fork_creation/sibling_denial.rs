@@ -58,7 +58,12 @@ fn forked_relational_effect_is_retained_when_later_signal_sibling_denies() {
         effects.progress().signal_posture(),
         crate::publication::SignalAttemptProgressPosture::Untouched
     );
-    assert_ne!(effects.successor_commit(), source.selected_commit());
+    assert_ne!(
+        effects
+            .successor_commit()
+            .expect("a retained fork installs its successor occurrence"),
+        source.selected_commit()
+    );
     assert_ne!(
         effects
             .successor_basis()
@@ -81,6 +86,11 @@ fn forked_relational_effect_is_retained_when_later_signal_sibling_denies() {
 
 /// Cleaning up the retained record is what releases the custody the partial
 /// creation charged, and it leaves the source observation exactly as it was.
+///
+/// INT-003. The Relational fork really happened, so the cleanup that retires
+/// the record must hand back the component branch that fork created. A cleanup
+/// that released the record and left the custody installed would leave a real
+/// Relational branch under an occurrence no product reference will ever name.
 fn assert_cleanup_releases_custody(
     owner: &TestOwner,
     effects: crate::recovery::ProductUnpublishedOwnerEffects,
@@ -89,7 +99,38 @@ fn assert_cleanup_releases_custody(
 ) {
     let handle = effects.recovery_handle();
     assert!(owner.inspect_recovery(&handle).is_some());
-    assert!(owner.cleanup_recovery(effects));
+    let (destination, incarnation) = effects
+        .destination_branch()
+        .expect("a creation record names the occurrence it reserved");
+    let destination = destination.clone();
+    let custody_installed = owner.state.custody.installed();
+    assert_eq!(
+        custody_installed, 1,
+        "the performed Relational fork is the one charged custody record"
+    );
+    let work = owner
+        .cleanup_recovery(effects)
+        .expect("the retained record is released by its own caller capability");
+    assert_eq!(
+        work,
+        vec![OwnerRetirementWork::RelationalBranchRetirement {
+            target: BranchId("relational-branch-partial".to_owned()),
+        }],
+        "cleanup returns the forked owner's retirement work, typed and exact"
+    );
+    assert_eq!(
+        owner.state.custody.installed(),
+        0,
+        "the occurrence's custody is empty once the cleanup drained it"
+    );
+    assert!(
+        owner
+            .state
+            .custody
+            .take_for_incarnation(&destination, incarnation)
+            .is_empty(),
+        "a second drain of the same occurrence finds nothing left to retire"
+    );
     assert_eq!(owner.recovery_record_count(), 0);
     assert_eq!(
         owner.state.retention.active_component_obligation_count(),

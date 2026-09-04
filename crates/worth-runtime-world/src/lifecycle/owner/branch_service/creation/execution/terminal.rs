@@ -7,7 +7,16 @@ use crate::publication::{
 use crate::recovery::ProductUnpublishedCause;
 
 use super::super::super::super::RuntimeWorldOwnerRoot;
-use super::BranchCreationExecution;
+use super::{BranchCreationExecution, CreationDestination};
+
+/// One creation attempt at the point where its owner legs are done with it:
+/// the reservations it still owns and the exact evidence it produced. Every
+/// creation terminal is handed the pair together, because neither half names a
+/// terminal on its own.
+pub(super) struct SettledCreationAttempt {
+    pub(super) attempt: ReservedBranchCreationAttempt,
+    pub(super) progress: CompositeAttemptProgress,
+}
 
 /// How one post-Relational denial is named on both sides of the effect
 /// boundary: the cause a retained record carries, and the admission denial the
@@ -21,15 +30,19 @@ pub(super) struct CreationDenialNaming {
 /// yet is a plain admission denial; one that has is retained, never discarded.
 pub(super) fn retain_or_no_effect<D, I, E, Ctx, T>(
     owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
-    mut attempt: ReservedBranchCreationAttempt,
-    progress: CompositeAttemptProgress,
+    settled: SettledCreationAttempt,
     naming: CreationDenialNaming,
+    destination: &CreationDestination,
 ) -> BranchCreationExecution
 where
     D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
+    let SettledCreationAttempt {
+        mut attempt,
+        progress,
+    } = settled;
     if progress.owner_effect_count() == 0 {
         return BranchCreationExecution::NoEffect(naming.denial);
     }
@@ -51,6 +64,7 @@ where
             successor_basis,
             cause: naming.cause,
             last_observed_head,
+            destination: destination.retained_key(),
         },
     ))
 }
@@ -60,15 +74,19 @@ where
 /// caller's next step.
 pub(super) fn settle_creation<D, I, E, Ctx, T>(
     owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
-    mut attempt: ReservedBranchCreationAttempt,
-    progress: CompositeAttemptProgress,
+    settled: SettledCreationAttempt,
     cancellation: &RuntimeWorldCancellationToken,
+    destination: &CreationDestination,
 ) -> BranchCreationExecution
 where
     D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
+    let SettledCreationAttempt {
+        mut attempt,
+        progress,
+    } = settled;
     attempt.begin_publication();
     let successor_basis =
         owner.issue_successor_basis_from_progress(&progress, attempt.source().basis());
@@ -80,6 +98,7 @@ where
                 successor_basis,
                 cause: ProductUnpublishedCause::CancellationAfterEffect,
                 last_observed_head: None,
+                destination: destination.retained_key(),
             },
         ));
     }
@@ -91,6 +110,7 @@ where
                 successor_basis,
                 cause: ProductUnpublishedCause::OwnerLost,
                 last_observed_head: None,
+                destination: destination.retained_key(),
             },
         ));
     }
@@ -114,6 +134,7 @@ fn retain_creation_effects(
         successor_basis,
         cause,
         last_observed_head,
+        destination,
     } = retained;
     let ReservedBranchCreationParts {
         identity,
@@ -145,6 +166,7 @@ fn retain_creation_effects(
             owner_results,
             cause,
             last_observed_head,
+            destination,
         },
     )
 }
@@ -156,4 +178,8 @@ struct RetainedCreation {
     successor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
     cause: ProductUnpublishedCause,
     last_observed_head: Option<crate::branch::ProductBranchReferenceSnapshot>,
+    destination: Option<(
+        crate::identity::ProductBranchIdentity,
+        crate::identity::ProductBranchIncarnation,
+    )>,
 }

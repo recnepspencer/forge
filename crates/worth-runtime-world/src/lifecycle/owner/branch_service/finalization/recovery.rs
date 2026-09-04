@@ -4,14 +4,21 @@ use crate::history::{
     ProductHeadHistoryProtectionObligation, ProductUnpublishedHistoryProtectionObligation,
 };
 use crate::publication::RETENTION_PENDING_LIVE_OBLIGATION_COUNT;
-use crate::recovery::next_actions_for_progress;
 use crate::recovery::{
-    ProductUnpublishedCause, ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects,
+    InstalledSuccessorEvidence, PendingRetentionCustody, ProductUnpublishedCause,
+    ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects, RetainedAttemptFacts,
+    RetainedRecordCharges, RetainedSuccessorEvidence,
 };
 use crate::retention::{
     PublicationRetentionObligation, ReservedComponentPinPairCapacity,
     RetainedPartialRetentionObligation, RetentionObligationDenial,
 };
+
+/// Why a settled fork that cannot install its product reference is retained.
+/// This route is reached only by losing an owner-issued authority the fork
+/// already depended on, so the record's cause and the continuation derived
+/// from it are named once here rather than restated at each terminal.
+const FORKED_RECOVERY_CAUSE: ProductUnpublishedCause = ProductUnpublishedCause::OwnerLost;
 
 pub(super) fn retain_forked_effects(
     context: ForkedBranchRecoveryContext,
@@ -54,26 +61,31 @@ fn retained_effects(
         owner_results,
         recovery_slot,
         deadline,
+        destination,
     } = context;
-    let next_actions = next_actions_for_progress(&progress);
     #[cfg(test)]
     super::test_control::pause_before_forked_recovery_record(&identity);
     ProductUnpublishedOwnerEffects::new_retained(
-        identity,
-        attempt_identity,
-        expected_head,
-        None,
-        progress,
-        Some(successor_basis),
-        owner_results,
+        RetainedAttemptFacts {
+            identity,
+            attempt_identity,
+            expected_head,
+            last_observed_head: None,
+            progress,
+            owner_results,
+            destination: Some(destination),
+        },
+        RetainedSuccessorEvidence {
+            basis: Some(successor_basis),
+            history_protection: Some(successor_history),
+        },
         retained,
-        successor_history,
-        recovery_slot,
-        summary,
-        ProductUnpublishedCause::OwnerLost,
-        next_actions,
-        deadline,
-        0,
+        RetainedRecordCharges {
+            recovery_slot,
+            summary,
+            cause: FORKED_RECOVERY_CAUSE,
+            deadline,
+        },
     )
 }
 
@@ -94,24 +106,31 @@ pub(super) fn product_unpublished_pending(
         owner_results,
         recovery_slot,
         deadline,
+        destination,
     } = context;
     #[cfg(test)]
     super::test_control::pause_before_forked_recovery_record(&identity);
     ProductUnpublishedOwnerEffects::new_reacquisition_pending(
-        identity,
-        attempt_identity,
-        expected_head,
-        None,
-        progress,
-        successor_basis,
-        owner_results,
-        capacity,
-        denial,
-        successor_history,
-        recovery_slot,
-        summary,
-        ProductUnpublishedCause::OwnerLost,
-        deadline,
+        RetainedAttemptFacts {
+            identity,
+            attempt_identity,
+            expected_head,
+            last_observed_head: None,
+            progress,
+            owner_results,
+            destination: Some(destination),
+        },
+        InstalledSuccessorEvidence {
+            basis: successor_basis,
+            history_protection: successor_history,
+        },
+        PendingRetentionCustody { capacity, denial },
+        RetainedRecordCharges {
+            recovery_slot,
+            summary,
+            cause: FORKED_RECOVERY_CAUSE,
+            deadline,
+        },
     )
 }
 

@@ -1,4 +1,4 @@
-use super::ProductUnpublishedNextAction;
+use super::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 use crate::publication::{
     CompositeAttemptProgress, RelationalAttemptProgressPosture, SignalAttemptProgressPosture,
 };
@@ -40,6 +40,7 @@ impl RetainedNextActions {
 /// the fixed contract bound.
 pub(crate) fn next_actions_for_progress(
     progress: &CompositeAttemptProgress,
+    cause: ProductUnpublishedCause,
 ) -> Vec<ProductUnpublishedNextAction> {
     let mut actions = Vec::with_capacity(RETAINED_NEXT_ACTION_CAPACITY);
     if settlement_is_owed(progress) {
@@ -50,11 +51,29 @@ pub(crate) fn next_actions_for_progress(
     }
     actions.push(ProductUnpublishedNextAction::ReleaseObligations);
     actions.push(ProductUnpublishedNextAction::Inspect);
+    if owner_closure_is_permitted(cause) {
+        actions.push(ProductUnpublishedNextAction::CloseOwner);
+    }
     assert!(
         actions.len() <= RETAINED_NEXT_ACTION_CAPACITY,
         "retained recovery actions exceed the fixed contract bound"
     );
     actions
+}
+
+/// Closing the owner is a continuation only for a record whose own cause says
+/// an owner-issued authority this world depended on is gone; every other cause
+/// leaves a live owner the caller can still settle or release against, so
+/// offering closure there would advertise an action the record cannot justify.
+///
+/// `ProductPublicationLost` is deliberately not that record. It names a product
+/// reference race whose loser observed a live owner on both sides, and the
+/// cause is a bare discriminant carrying no owner-unavailable evidence, so
+/// nothing here can derive owner closure from it. A derived continuation never
+/// guesses: if that route ever has to permit closure, it must carry the
+/// evidence that justifies it, not a wider match here.
+fn owner_closure_is_permitted(cause: ProductUnpublishedCause) -> bool {
+    matches!(cause, ProductUnpublishedCause::OwnerLost)
 }
 
 /// A record owes settlement while its Relational commit is performed but not

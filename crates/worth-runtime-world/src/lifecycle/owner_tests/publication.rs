@@ -234,7 +234,11 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
     let retained_commit = owner
         .state
         .history
-        .lookup(retained.successor_commit())
+        .lookup(
+            retained
+                .successor_commit()
+                .expect("a reacquisition-pending record kept its installed successor"),
+        )
         .expect("post-effect denial installs the exact successor occurrence");
     assert_eq!(retained_commit.basis(), retained.successor_basis().unwrap());
     assert_eq!(&cell_snapshot(&owner), expected.snapshot());

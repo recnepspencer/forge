@@ -43,6 +43,10 @@ pub(super) struct ForkedBranchRecoveryContext {
     pub(super) owner_results: CompositeOwnerExecutionResults,
     pub(super) recovery_slot: ReservedProductUnpublishedSlot,
     pub(super) deadline: Option<RuntimeWorldInstant>,
+    /// The occurrence this fork reserved. A finalization that cannot install
+    /// its product reference still charged that occurrence's custody, so the
+    /// retained record names it and a cleanup drains it.
+    pub(super) destination: (ProductBranchIdentity, ProductBranchIncarnation),
 }
 
 use state::ForkedBranchFinalization;

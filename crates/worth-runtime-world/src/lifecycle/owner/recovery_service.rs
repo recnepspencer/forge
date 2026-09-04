@@ -163,10 +163,34 @@ where
     /// Consume a caller capability and explicitly release a record only when
     /// no Relational settlement route remains. The catalog retains custody if
     /// a separate caller still inspects the same record.
-    pub(crate) fn cleanup_recovery(&self, effects: ProductUnpublishedOwnerEffects) -> bool {
+    ///
+    /// Releasing the record is also what drains the component branches its
+    /// forks created: the record names the exact destination occurrence, and
+    /// the custody registry is keyed by that occurrence, so the typed work the
+    /// component owners still owe is returned here rather than left installed
+    /// under a branch that will never exist. `None` is a record this call did
+    /// not release; it drains nothing, because it retired nothing.
+    pub(crate) fn cleanup_recovery(
+        &self,
+        effects: ProductUnpublishedOwnerEffects,
+    ) -> Option<Vec<crate::branch::OwnerRetirementWork>> {
         let handle = effects.recovery_handle();
+        let destination = effects
+            .destination_branch()
+            .map(|(branch, incarnation)| (branch.clone(), incarnation));
         drop(effects);
-        self.state.recovery.cleanup_record(&handle).is_ok()
+        self.state.recovery.cleanup_record(&handle).ok()?;
+        let Some((branch, incarnation)) = destination else {
+            return Some(Vec::new());
+        };
+        Some(
+            self.state
+                .custody
+                .take_for_incarnation(&branch, incarnation)
+                .into_iter()
+                .map(crate::branch::OwnerCreatedComponentCustodyRecord::into_retirement_work)
+                .collect(),
+        )
     }
 
     pub(crate) fn cleanup_recovery_handle(

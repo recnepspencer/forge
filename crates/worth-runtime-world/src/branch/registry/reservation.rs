@@ -232,11 +232,7 @@ fn insert_installed(
     state.retired.remove(&branch);
     assert!(state.entries.insert(branch.clone(), entry).is_none());
     assert!(state.lifecycles.insert(lifecycle));
-    let candidates = state.basis_commits.entry(basis).or_default();
-    let count = candidates.entry(commit).or_insert(0);
-    *count = count
-        .checked_add(1)
-        .expect("live branch count cannot overflow a bounded registry");
+    super::insert_basis_candidate(state, basis, commit);
     if root {
         state.root = Some(branch);
     }

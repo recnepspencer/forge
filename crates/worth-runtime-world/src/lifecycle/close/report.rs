@@ -9,24 +9,53 @@ use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 pub struct RuntimeWorldRetainedRecordReport {
     identity: ProductUnpublishedOwnerEffectsIdentity,
     cause: ProductUnpublishedCause,
-    live_component_obligations: usize,
-    live_composite_obligations: usize,
+    obligations: RetainedObligationSplit,
     next_actions: Vec<ProductUnpublishedNextAction>,
+}
+
+/// A retained record's own live obligation count, divided into the
+/// component-scoped half and the composite-scoped remainder. It is one value
+/// rather than two counts because the halves are only meaningful together:
+/// they must sum to the record's own count, and nothing outside this type may
+/// name a pair that does not.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct RetainedObligationSplit {
+    component: usize,
+    composite: usize,
+}
+
+impl RetainedObligationSplit {
+    /// Charge `component_charge` of a record's `live` obligations to the
+    /// component half and leave the rest composite.
+    ///
+    /// Both retention postures charge exactly 2 component-scoped obligations,
+    /// and a retained record's live count is 3 when it kept its successor
+    /// installed and 2 when it released its history slot before the product
+    /// reference moved, so the clamp is unreachable today: the charge equals
+    /// the count in the smaller case and is one below it in the larger. It
+    /// stays because the split must remain total: a future posture that
+    /// charges more components than the record has obligations must report a
+    /// zero composite half, never underflow.
+    pub(crate) fn new(live: usize, component_charge: usize) -> Self {
+        let component = component_charge.min(live);
+        Self {
+            component,
+            composite: live - component,
+        }
+    }
 }
 
 impl RuntimeWorldRetainedRecordReport {
     pub(crate) fn new(
         identity: ProductUnpublishedOwnerEffectsIdentity,
         cause: ProductUnpublishedCause,
-        live_component_obligations: usize,
-        live_composite_obligations: usize,
+        obligations: RetainedObligationSplit,
         next_actions: Vec<ProductUnpublishedNextAction>,
     ) -> Self {
         Self {
             identity,
             cause,
-            live_component_obligations,
-            live_composite_obligations,
+            obligations,
             next_actions,
         }
     }
@@ -40,11 +69,11 @@ impl RuntimeWorldRetainedRecordReport {
     }
 
     pub const fn live_component_obligations(&self) -> usize {
-        self.live_component_obligations
+        self.obligations.component
     }
 
     pub const fn live_composite_obligations(&self) -> usize {
-        self.live_composite_obligations
+        self.obligations.composite
     }
 
     pub fn next_actions(&self) -> &[ProductUnpublishedNextAction] {

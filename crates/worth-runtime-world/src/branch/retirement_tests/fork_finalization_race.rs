@@ -141,7 +141,10 @@ fn assert_retained_custody_survives_the_reservation(
 /// Clearing the retained record is the last close obligation the diverted fork
 /// created.
 fn assert_cleanup_reopens_close(owner: &super::TestOwner, effects: ProductUnpublishedOwnerEffects) {
-    assert!(owner.cleanup_recovery(effects));
+    assert!(
+        owner.cleanup_recovery(effects).is_some(),
+        "the retained finalization record is released by its own capability"
+    );
     assert_eq!(owner.recovery_record_count(), 0);
     let _report = owner
         .close()
@@ -161,6 +164,11 @@ fn assert_cleanup_reopens_close(owner: &super::TestOwner, effects: ProductUnpubl
 /// `relational_requires_settlement()` is structurally false on this route. The
 /// assertion therefore pins the derived slice, not a literal, against the same
 /// authority the publication route uses.
+///
+/// `CloseOwner` does appear: this route is reached only by losing an
+/// owner-issued authority the fork already depended on, so the record's cause
+/// is `OwnerLost` and the continuation the cause axis derives is appended to
+/// the two actions the progress alone justifies.
 fn assert_finalization_record_contract(effects: &ProductUnpublishedOwnerEffects) {
     assert_eq!(
         effects.progress().relational_posture(),
@@ -172,14 +180,16 @@ fn assert_finalization_record_contract(effects: &ProductUnpublishedOwnerEffects)
     );
     assert_eq!(
         effects.next_actions(),
-        next_actions_for_progress(effects.progress()).as_slice(),
+        next_actions_for_progress(effects.progress(), effects.cause()).as_slice(),
         "finalization derives its continuation instead of restating a literal"
     );
+    assert_eq!(effects.cause(), ProductUnpublishedCause::OwnerLost);
     assert_eq!(
         effects.next_actions(),
         [
             ProductUnpublishedNextAction::ReleaseObligations,
-            ProductUnpublishedNextAction::Inspect
+            ProductUnpublishedNextAction::Inspect,
+            ProductUnpublishedNextAction::CloseOwner
         ]
     );
     assert_eq!(

@@ -100,6 +100,26 @@ impl CompositePublicationCostCounters {
         self.retained_partial_cleanups
     }
 
+    /// One round of Relational-owner-facing work this attempt asked for. A
+    /// creation fork and a publication commit are each one contact however many
+    /// port calls the owner needs to perform it: the counter names how often the
+    /// owner was asked, not how its port is shaped.
+    pub(crate) fn record_relational_owner_contact(&mut self) {
+        self.relational_owner_contacts = self
+            .relational_owner_contacts
+            .checked_add(1)
+            .expect("one bounded attempt cannot overflow relational contact accounting");
+    }
+
+    /// One round of Signal-owner-facing work this attempt asked for, counted on
+    /// the same rule as the Relational side.
+    pub(crate) fn record_signal_owner_contact(&mut self) {
+        self.signal_owner_contacts = self
+            .signal_owner_contacts
+            .checked_add(1)
+            .expect("one bounded attempt cannot overflow signal contact accounting");
+    }
+
     pub(crate) fn record_expected_head_recheck(&mut self) {
         self.expected_head_rechecks = self
             .expected_head_rechecks

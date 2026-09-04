@@ -1,5 +1,6 @@
 use std::sync::atomic::Ordering;
 
+use crate::branch::{OwnerCreatedComponentCustodyRecord, OwnerRetirementWork};
 use crate::lifecycle::owner::{RuntimeWorldBootstrapState, RuntimeWorldOwnerState};
 use crate::recovery::{
     ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle,
@@ -8,7 +9,8 @@ use crate::recovery::{
 use crate::retention::RetainedPartialRetentionObligation;
 
 use super::report::{
-    RuntimeWorldCloseReleaseCounts, RuntimeWorldCloseReport, RuntimeWorldRetainedRecordReport,
+    RetainedObligationSplit, RuntimeWorldCloseReleaseCounts, RuntimeWorldCloseReport,
+    RuntimeWorldRetainedRecordReport,
 };
 use super::RuntimeWorldCloseDenial;
 
@@ -104,28 +106,44 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     let retained_records = enumerate_retained_records(state)?;
+    // Order matters: releasing the branch references first is what makes the
+    // custody drain total. A record still installed after that belongs to an
+    // occurrence no product reference names any more, which is exactly the
+    // work close must hand back instead of dropping.
+    let released_product_head_pins = state.branches.release_non_root_branches();
+    let outstanding_owner_retirement_work: Vec<OwnerRetirementWork> = state
+        .custody
+        .take_all_installed()
+        .into_iter()
+        .map(OwnerCreatedComponentCustodyRecord::into_retirement_work)
+        .collect();
     let counts = RuntimeWorldCloseReleaseCounts {
         // Enumerating a retained record is exposure, never settlement. The
         // drain settles no record today: every record it can read survives the
         // close that named it, so the settled count is the zero it settled.
         settled_records: 0,
-        // Product-head and observation pins are held by live product branch
-        // cells and by caller-held observations. Neither is enumerable from the
-        // owner state today, so close reports the zero it actually released
-        // instead of a count inferred from a budget limit.
-        released_product_head_pins: 0,
+        // One per non-root product branch whose reference the registry held and
+        // close released. The root is the world's own reference, not a created
+        // branch, so it is not counted here. Observation pins are held by
+        // caller-owned observations that outlive this call and are not
+        // enumerable from the owner state, so that count stays the zero close
+        // actually released.
+        released_product_head_pins,
         released_observation_pins: 0,
         // Every installed commit is still protected, either by a product head
         // or by a retained record enumerated above, so close releases no
         // history protection.
         released_history_pins: 0,
         released_unique_component_pins: release_reclaimable_component_pins(state),
-        retired_owner_created_custody: 0,
+        // Close retires the custody charge itself: the registry no longer
+        // holds these records. What it cannot do is delete a component branch,
+        // so the same records leave as typed work the caller must dispatch.
+        retired_owner_created_custody: outstanding_owner_retirement_work.len(),
     };
     Ok(RuntimeWorldCloseReport::new(
         retained_records,
         counts,
-        Vec::new(),
+        outstanding_owner_retirement_work,
     ))
 }
 
@@ -161,18 +179,10 @@ where
 /// leaves, so the report can never contradict the record it describes and never
 /// panics on one it cannot describe.
 fn describe(effects: &ProductUnpublishedOwnerEffects) -> RuntimeWorldRetainedRecordReport {
-    let live_obligations = effects.live_obligation_count();
-    // Both retention postures charge exactly 2 component-scoped obligations
-    // against a retained record's frozen live count of 3, so the clamp is
-    // unreachable today. It stays because the split must remain total: a future
-    // posture that charges more components than the record has obligations must
-    // report a zero composite half, never underflow.
-    let live_component_obligations = component_charge(effects).min(live_obligations);
     RuntimeWorldRetainedRecordReport::new(
         effects.identity().clone(),
         effects.cause(),
-        live_component_obligations,
-        live_obligations - live_component_obligations,
+        RetainedObligationSplit::new(effects.live_obligation_count(), component_charge(effects)),
         effects.next_actions().to_vec(),
     )
 }

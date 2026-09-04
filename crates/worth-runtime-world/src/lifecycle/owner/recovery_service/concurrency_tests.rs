@@ -61,10 +61,32 @@ fn updating_recovery_blocks_close_until_cleanup() {
     reached_rx
         .recv_timeout(RECOVERY_CLOSE_TEST_TIMEOUT)
         .expect("recovery reaches the catalog-update boundary");
+    assert_updating_record_denies_close_but_stays_named(&owner, &handle);
+
+    drop(pause);
+    let continuation = finished_rx
+        .recv_timeout(RECOVERY_CLOSE_TEST_TIMEOUT)
+        .expect("recovery settlement finishes after the update boundary is released")
+        .expect("the real Relational settlement authority completes recovery");
+    worker.join().expect("recovery worker does not panic");
+    assert!(!continuation
+        .actions()
+        .contains(&ProductUnpublishedNextAction::SettleOwnerEffects));
+    assert_settled_record_closes_only_after_cleanup(&owner, &handle);
+}
+
+/// A record inside its own catalog update is still the owner's obligation: it
+/// stays counted and named by identity, it is deliberately not inspectable
+/// while it is being rewritten, and it is the one thing close still refuses,
+/// because no report row could honestly describe a record mid-rewrite.
+fn assert_updating_record_denies_close_but_stays_named(
+    owner: &super::settlement_catalog_tests::TestOwner,
+    handle: &crate::recovery::ProductUnpublishedRecoveryHandle,
+) {
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.recovery_handles(), vec![handle.clone()]);
     assert!(
-        owner.inspect_recovery(&handle).is_none(),
+        owner.inspect_recovery(handle).is_none(),
         "the updating record is absent from the installed map but remains reported by identity"
     );
     assert_eq!(owner.state.operation.active(), 1);
@@ -93,20 +115,18 @@ fn updating_recovery_blocks_close_until_cleanup() {
         RuntimeWorldOwnerLifecycleObservation::Open,
         "close denial must not enter Closing while recovery updates"
     );
+}
 
-    drop(pause);
-    let continuation = finished_rx
-        .recv_timeout(RECOVERY_CLOSE_TEST_TIMEOUT)
-        .expect("recovery settlement finishes after the update boundary is released")
-        .expect("the real Relational settlement authority completes recovery");
-    worker.join().expect("recovery worker does not panic");
-    assert!(!continuation
-        .actions()
-        .contains(&ProductUnpublishedNextAction::SettleOwnerEffects));
+/// Once the update completes the record is installed and settled again, and
+/// only an explicit cleanup removes the close obligation it represents.
+fn assert_settled_record_closes_only_after_cleanup(
+    owner: &super::settlement_catalog_tests::TestOwner,
+    handle: &crate::recovery::ProductUnpublishedRecoveryHandle,
+) {
     assert_eq!(owner.state.operation.active(), 0);
     assert_eq!(owner.recovery_record_count(), 1);
     let inspected = owner
-        .inspect_recovery(&handle)
+        .inspect_recovery(handle)
         .expect("settled recovery remains installed until cleanup");
     assert_eq!(
         inspected.progress().relational_posture(),
@@ -114,7 +134,7 @@ fn updating_recovery_blocks_close_until_cleanup() {
     );
     drop(inspected);
 
-    assert!(owner.cleanup_recovery_handle(&handle));
+    assert!(owner.cleanup_recovery_handle(handle));
     assert_eq!(owner.recovery_record_count(), 0);
     let _report = owner
         .close()

@@ -46,6 +46,10 @@ where
         }
         RelationalBranchCreationPlan::ForkExact { target } => target.clone(),
     };
+    // Observing the fork source is already Relational-owner-facing work, so the
+    // contact is charged before it, not after the fork returns: a denial from
+    // any of this leg's port calls still cost the owner one contact.
+    attempt.counters_mut().record_relational_owner_contact();
     let source = observe_exact_fork_source(owner, attempt)?;
     let custody = attempt.take_relational_custody().ok_or(ForkFailure {
         denial: RuntimeWorldBranchAdmissionDenial::CustodyCapacityExhausted,
@@ -165,6 +169,7 @@ where
         SignalBranchCreationPlan::ReuseExact => return Ok(SignalAttemptProgress::untouched()),
         SignalBranchCreationPlan::ForkExact { target } => target.clone(),
     };
+    attempt.counters_mut().record_signal_owner_contact();
     let custody = attempt.take_signal_custody().ok_or(ForkFailure {
         denial: RuntimeWorldBranchAdmissionDenial::CustodyCapacityExhausted,
     })?;

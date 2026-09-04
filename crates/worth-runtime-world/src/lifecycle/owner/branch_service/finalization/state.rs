@@ -163,6 +163,7 @@ impl ForkedBranchFinalization {
             attempt_identity: &attempt_identity,
             owner_results: &owner_results,
         });
+        let retained_destination = (branch.clone(), lifecycle);
         Self {
             destination: ForkedBranchDestination {
                 branch,
@@ -178,6 +179,7 @@ impl ForkedBranchFinalization {
                 owner_results,
                 recovery_slot,
                 deadline,
+                destination: retained_destination,
             },
             commit,
             reserved_commit_capacity,

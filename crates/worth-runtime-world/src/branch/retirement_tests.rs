@@ -369,7 +369,10 @@ fn foreign_basis_is_rejected_before_branch_reservation() {
 
 #[cfg(test)]
 #[path = "retirement_tests/fork_creation.rs"]
-mod fork_creation;
+pub(super) mod fork_creation;
+
+#[path = "retirement_tests/published_head_reuse.rs"]
+mod published_head_reuse;
 
 #[path = "retirement_tests/fork_finalization_race.rs"]
 mod fork_finalization_race;

@@ -173,12 +173,8 @@ fn competing_commit(
 /// authority: it advances no product reference generation, leaves the winner's
 /// snapshot as the sole product head, and leaks no reserved capacity.
 ///
-/// It does consume its reserved history slot: the frozen
-/// `ProductUnpublishedOwnerEffectsRecord` requires a history protection over an
-/// installed successor, so the slot becomes exactly one retained successor
-/// occurrence rather than nothing. The plan's proof-10 name, which claims the
-/// slot is not consumed at all, is therefore blocked by LANE-BLOCK-1; the
-/// integration INT-008 remainder restores it.
+/// Its reserved history slot is released rather than spent; that is proved on
+/// its own by `a_losing_cas_attempt_does_not_consume_its_reserved_history_slot`.
 #[test]
 fn a_losing_cas_attempt_takes_no_product_head_authority_and_advances_no_generation() {
     let race = resolve_one_race(CompositeLateCancellationPosture::NotRequested);
@@ -203,17 +199,6 @@ fn a_losing_cas_attempt_takes_no_product_head_authority_and_advances_no_generati
         cell.atomic_snapshot().selected_commit(),
         race.winner_head.selected_commit(),
         "the product head reaches the winner's commit alone"
-    );
-    assert_eq!(
-        race.owner.state.history.reserved_len(),
-        0,
-        "the loser leaks no reserved history capacity"
-    );
-    assert_eq!(
-        race.owner.state.history.len(),
-        race.history_len_after_winner + 1,
-        "the loser's reserved slot becomes exactly one retained successor, \
-         never a second product-head slot and never nothing at all"
     );
     assert_eq!(
         race.owner.state.recovery.reserved_slots(),
@@ -261,7 +246,7 @@ fn lost_product_cas_retains_the_settled_owner_occurrence_and_observed_winner() {
     );
     assert_eq!(
         race.retained.next_actions(),
-        crate::recovery::next_actions_for_progress(race.retained.progress()),
+        crate::recovery::next_actions_for_progress(race.retained.progress(), race.retained.cause()),
         "next actions are derived from the attempt's progress, never hard-coded"
     );
     assert!(!race
@@ -304,24 +289,59 @@ fn complete_ready_publish_path_retains_commit_results_and_custody_on_observed_pr
         ProductUnpublishedRetentionPosture::RetainedExact,
         "a lost CAS keeps the exact component pins it already held"
     );
-    assert_eq!(race.retained.live_obligation_count(), 3);
+    assert_eq!(
+        race.retained.live_obligation_count(),
+        2,
+        "a record that installed no successor keeps the recovery slot and the          component pins alone"
+    );
     assert_eq!(race.retained.owner_effect_count(), 1);
     assert_eq!(
-        race.owner.state.history.len(),
-        race.history_len_after_winner + 1,
-        "the retained successor occurrence stays installed for recovery"
+        race.retained.successor_commit(),
+        None,
+        "a pre-movement loser names no installed successor occurrence"
     );
-    let successor = race
-        .owner
-        .state
-        .history
-        .lookup(race.retained.successor_commit())
-        .expect("the retained record keeps its exact successor occurrence reachable");
-    assert_eq!(
-        successor.basis(),
+    assert_ne!(
         race.retained
             .successor_basis()
-            .expect("a lost CAS retains its successor basis")
+            .expect("a lost CAS retains its successor basis"),
+        race.expected.basis(),
+        "the successor this attempt would have published is retained as basis          evidence: the owner occurrence it settled, not the head it admitted          against"
     );
     assert_eq!(race.owner.recovery_record_count(), 1);
+}
+
+/// The reserved history slot of an attempt that lost before the product
+/// reference moved goes back to the catalog. Installing it would charge a
+/// bounded slot for a commit no product head names and no caller can reach,
+/// and the retained record needs no installed occurrence to stay honest: the
+/// successor basis is the evidence a fresh attempt names it by.
+#[test]
+fn a_losing_cas_attempt_does_not_consume_its_reserved_history_slot() {
+    let race = resolve_one_race(CompositeLateCancellationPosture::NotRequested);
+
+    assert_eq!(
+        race.owner.state.history.len(),
+        race.history_len_after_winner,
+        "the loser installs nothing into history"
+    );
+    assert_eq!(
+        race.owner.state.history.reserved_len(),
+        0,
+        "the loser's history reservation is released, not held"
+    );
+    assert_eq!(
+        race.retained.successor_commit(),
+        None,
+        "no installed successor occurrence is retained"
+    );
+
+    let handle = race.retained.recovery_handle();
+    drop(race.retained);
+    assert!(race.owner.cleanup_recovery_handle(&handle));
+    assert_eq!(
+        race.owner.state.history.len(),
+        race.history_len_after_winner,
+        "cleanup has no successor occurrence to remove and removes none"
+    );
+    assert_eq!(race.owner.state.history.reserved_len(), 0);
 }

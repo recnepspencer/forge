@@ -23,7 +23,8 @@ use crate::identity::{
 };
 use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects,
-    ReservedProductUnpublishedSlot,
+    ReservedProductUnpublishedSlot, RetainedAttemptFacts, RetainedRecordCharges,
+    RetainedSuccessorEvidence,
 };
 use crate::retention::{PublicationRetentionObligation, RetainedPartialRetentionObligation};
 
@@ -35,8 +36,16 @@ use super::CompositePublicationReadyInputs;
 
 /// The reserved recovery slot, the installed successor commit protection, and
 /// the exact component pin pair are the three obligations a retained record
-/// keeps live.
+/// keeps live when it kept its successor installed. A record that released its
+/// history slot instead keeps one fewer, which is why the count is derived from
+/// the custody rather than restated at each terminal.
 pub(super) const PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT: usize = 3;
+
+fn live_obligation_count(
+    successor_history: Option<&ProductUnpublishedHistoryProtectionObligation>,
+) -> usize {
+    PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT - usize::from(successor_history.is_none())
+}
 
 /// The parts of a ready attempt that outlive its product-CAS decision. Both
 /// terminals take exactly these; nothing here is re-derived or re-observed.
@@ -149,72 +158,71 @@ impl AttemptTerminal {
         };
         let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
             &self.progress,
-            PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT,
+            live_obligation_count(successor_history.as_ref()),
             0,
         );
-        let next_actions = crate::recovery::next_actions_for_progress(&self.progress);
         RuntimeWorldPublicationOutcome::ProductUnpublished(
             ProductUnpublishedOwnerEffects::new_retained(
-                self.identity,
-                self.attempt_identity,
-                self.expected_head,
-                Some(observed_head),
-                self.progress,
-                Some(self.commit.basis().clone()),
-                self.owner_results,
+                RetainedAttemptFacts {
+                    identity: self.identity,
+                    attempt_identity: self.attempt_identity,
+                    expected_head: self.expected_head,
+                    last_observed_head: Some(observed_head),
+                    progress: self.progress,
+                    owner_results: self.owner_results,
+                    // A product CAS moves the head of a branch that already
+                    // exists. The loser reserved no occurrence, so it charged
+                    // no custody and a cleanup has nothing to drain.
+                    destination: None,
+                },
+                RetainedSuccessorEvidence {
+                    basis: Some(self.commit.basis().clone()),
+                    history_protection: successor_history,
+                },
                 retention,
-                successor_history,
-                self.recovery_slot,
-                summary,
-                cause,
-                next_actions,
-                self.deadline,
-                0,
+                RetainedRecordCharges {
+                    recovery_slot: self.recovery_slot,
+                    summary,
+                    cause,
+                    deadline: self.deadline,
+                },
             ),
         )
     }
 }
 
-/// Materialize the reserved history slot for recovery only. The successor
-/// commit is installed because a retained record must keep its exact successor
-/// reachable.
+/// Release the reserved history slot a pre-movement loser never used, and take
+/// its component pins into retained custody.
 ///
-/// Both classes here are taken and immediately relabelled: the history
-/// protection is taken in the `ProductHead` class and relabelled by
-/// `transition_to_product_unpublished`, and the component pins are taken as a
-/// product-head transfer and relabelled by `transition_to_retained_partial`.
-/// Neither is authority over the product reference: the attempt takes no
-/// `ProductBranchHeadProtection` over the cell and advances no product
-/// reference generation.
+/// This attempt lost before the product reference could move, so its successor
+/// occurrence is never installed: spending a bounded history slot on a commit
+/// no product head names and no caller can reach would charge the budget for
+/// evidence the record does not need. The successor basis it retains is that
+/// evidence, and the slot goes back to the catalog when the reservation drops.
+///
+/// The component pins are taken as a product-head transfer and relabelled by
+/// `transition_to_retained_partial`. That is not authority over the product
+/// reference: the attempt takes no `ProductBranchHeadProtection` over the cell
+/// and advances no product reference generation.
 fn settle_unmaterialized(
     successor: UnmaterializedSuccessor,
     commit: &Arc<CompositeRuntimeWorldCommit>,
 ) -> (
     RetainedPartialRetentionObligation,
-    ProductUnpublishedHistoryProtectionObligation,
+    Option<ProductUnpublishedHistoryProtectionObligation>,
 ) {
     let UnmaterializedSuccessor {
         history,
         reserved_commit_capacity,
         publication_retention,
     } = successor;
-    let entry = reserved_commit_capacity
-        .install(Arc::clone(commit))
-        .expect("the ready commit matches its reserved history slot");
-    let installed_rollback = history.arm_installed_commit_rollback(entry.identity());
-    let successor_history = history
-        .protect_product_head(entry.commit())
-        .expect("the installed ready commit admits successor history protection")
-        .transition_to_product_unpublished();
-    installed_rollback.commit();
+    drop(reserved_commit_capacity);
+    drop(history);
     let (product_head, _receipt) = publication_retention
         .into_product_head_transfer(commit.basis())
         .expect("ready publication retention is bound to the exact successor basis")
         .into_parts();
-    (
-        product_head.transition_to_retained_partial(),
-        successor_history,
-    )
+    (product_head.transition_to_retained_partial(), None)
 }
 
 /// Take back the authority the product cell returned after a lost CAS.
@@ -222,11 +230,11 @@ fn settle_product_head_authority(
     protection: ProductBranchHeadProtection,
 ) -> (
     RetainedPartialRetentionObligation,
-    ProductUnpublishedHistoryProtectionObligation,
+    Option<ProductUnpublishedHistoryProtectionObligation>,
 ) {
     let (_snapshot, product_head, product_history, _receipt) = protection.into_parts();
     (
         product_head.transition_to_retained_partial(),
-        product_history.transition_to_product_unpublished(),
+        Some(product_history.transition_to_product_unpublished()),
     )
 }

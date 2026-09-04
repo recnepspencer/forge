@@ -86,6 +86,16 @@ impl OwnerCreatedComponentCustodyRegistry {
         taken
     }
 
+    /// Take every record still charged against this registry. Close drains
+    /// custody exactly once and reports the typed work it drained; a record
+    /// left installed behind a closed owner would be a component branch nobody
+    /// is named as owing, so the drain empties the registry rather than
+    /// reading it.
+    pub(crate) fn take_all_installed(&self) -> Vec<OwnerCreatedComponentCustodyRecord> {
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        std::mem::take(&mut state.installed)
+    }
+
     /// Every record still charged against this registry, in installation order.
     #[cfg(test)]
     pub(crate) fn installed_records(&self) -> Vec<OwnerCreatedComponentCustodyRecord> {

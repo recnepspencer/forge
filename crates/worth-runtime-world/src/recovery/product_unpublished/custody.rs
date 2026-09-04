@@ -79,8 +79,10 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 result,
             );
         state.route = None;
-        self.next_actions =
-            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
+        self.next_actions = super::RetainedNextActions::from_vec(super::next_actions_for_progress(
+            &self.progress,
+            self.cause,
+        ));
     }
 
     pub(crate) fn retain_pending_relational_settlement(
@@ -99,7 +101,7 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 settlement,
             );
         state.route = None;
-        let next_actions = super::next_actions_for_progress(&self.progress);
+        let next_actions = super::next_actions_for_progress(&self.progress, self.cause);
         // This record owes settlement: `recovery_continuation` reaches these
         // transitions only for a record whose Relational leg requires it, so
         // the derived continuation names settlement first.
@@ -118,7 +120,7 @@ impl ProductUnpublishedOwnerEffectsRecord {
             .take()
             .expect("recovery result projection remains while identity repair is required");
         state.route = None;
-        let next_actions = super::next_actions_for_progress(&self.progress);
+        let next_actions = super::next_actions_for_progress(&self.progress, self.cause);
         // This record owes settlement: `recovery_continuation` reaches these
         // transitions only for a record whose Relational leg requires it, so
         // the derived continuation names settlement first.
@@ -146,7 +148,9 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 receipt,
             );
         state.route = None;
-        self.next_actions =
-            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
+        self.next_actions = super::RetainedNextActions::from_vec(super::next_actions_for_progress(
+            &self.progress,
+            self.cause,
+        ));
     }
 }

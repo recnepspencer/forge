@@ -1,8 +1,8 @@
 use super::super::*;
 
 use crate::branch::{
-    ProductBranchCreationIntent, ProductBranchCreationPlans, RelationalBranchCreationPlan,
-    SignalBranchCreationPlan,
+    OwnerRetirementWork, ProductBranchCreationIntent, ProductBranchCreationPlans,
+    RelationalBranchCreationPlan, SignalBranchCreationPlan,
 };
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
@@ -75,7 +75,7 @@ fn fork_budgets(live_branches: u64, custody_records: u64) -> RuntimeWorldBudgets
     .expect("fork creation budgets")
 }
 
-pub(super) fn setup_with_relational_source(
+pub(crate) fn setup_with_relational_source(
     live_branches: u64,
 ) -> (
     crate::branch::reference_test_fixture::RealReferenceFixture,
@@ -191,7 +191,7 @@ pub(super) fn current_root_observation(owner: &TestOwner) -> ProductBranchObserv
 /// One cell of the creation matrix: each owner is told, on its own, whether to
 /// reuse the component commit the source names or to fork an owner-issued
 /// destination.
-pub(super) fn fork_intent(
+pub(crate) fn fork_intent(
     name: &str,
     relational: RelationalBranchCreationPlan,
     signal: SignalBranchCreationPlan,
@@ -203,13 +203,13 @@ pub(super) fn fork_intent(
     .expect("valid product branch name")
 }
 
-pub(super) fn relational_fork(target: &str) -> RelationalBranchCreationPlan {
+pub(crate) fn relational_fork(target: &str) -> RelationalBranchCreationPlan {
     RelationalBranchCreationPlan::ForkExact {
         target: BranchId(target.to_owned()),
     }
 }
 
-pub(super) fn signal_fork(target: &str) -> SignalBranchCreationPlan {
+pub(crate) fn signal_fork(target: &str) -> SignalBranchCreationPlan {
     SignalBranchCreationPlan::ForkExact {
         target: validate_signal_branch_name(target).expect("valid Signal name"),
     }

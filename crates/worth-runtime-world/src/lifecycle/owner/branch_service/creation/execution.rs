@@ -17,6 +17,9 @@ use super::super::super::RuntimeWorldOwnerRoot;
 mod boundary_control;
 #[path = "execution/forks.rs"]
 mod forks;
+#[cfg(test)]
+#[path = "execution/owner_contact_tests.rs"]
+mod owner_contact_tests;
 #[path = "execution/terminal.rs"]
 mod terminal;
 
@@ -41,6 +44,15 @@ pub(super) struct CreationDestination {
     pub(super) incarnation: ProductBranchIncarnation,
 }
 
+impl CreationDestination {
+    /// The custody key a retained record carries. It is the same pair the
+    /// installed custody records are keyed by, so a cleanup drains exactly the
+    /// occurrence whose forks it is answering for and never a recreated name's.
+    fn retained_key(&self) -> Option<(ProductBranchIdentity, ProductBranchIncarnation)> {
+        Some((self.branch.clone(), self.incarnation))
+    }
+}
+
 /// Run the Relational fork, then the Signal fork, in that fixed order. No
 /// cross-owner lock is held across the two calls; the boundary between them is
 /// rechecked exactly as a publication rechecks it.
@@ -56,15 +68,8 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     attempt.begin_owner_execution();
-    if cancellation.is_cancelled() || owner.deadline_expired(attempt.deadline()) {
-        return BranchCreationExecution::NoEffect(
-            RuntimeWorldBranchAdmissionDenial::OwnerUnavailable,
-        );
-    }
-    if !owner.current_product_head_is(attempt.source()) {
-        return BranchCreationExecution::NoEffect(
-            RuntimeWorldBranchAdmissionDenial::StaleSourceHead,
-        );
+    if let Err(denial) = owner.creation_execution_is_admissible(&attempt, cancellation) {
+        return BranchCreationExecution::NoEffect(denial);
     }
 
     let relational = match fork_relational(owner, &mut attempt, destination) {
@@ -77,7 +82,12 @@ where
     boundary_control::pause_between_creation_forks(owner.owner_identity());
 
     if let Err(naming) = owner.creation_boundary_gate(&attempt, cancellation) {
-        return terminal::retain_or_no_effect(owner, attempt, progress, naming);
+        return terminal::retain_or_no_effect(
+            owner,
+            terminal::SettledCreationAttempt { attempt, progress },
+            naming,
+            destination,
+        );
     }
 
     let signal = match fork_signal(owner, &mut attempt, destination, cancellation) {
@@ -85,19 +95,24 @@ where
         Err(ForkFailure { denial }) => {
             return terminal::retain_or_no_effect(
                 owner,
-                attempt,
-                progress,
+                terminal::SettledCreationAttempt { attempt, progress },
                 terminal::CreationDenialNaming {
                     cause: ProductUnpublishedCause::SiblingOwnerDenied,
                     denial,
                 },
+                destination,
             )
         }
     };
     let (relational, _) = progress.into_parts();
     let progress = CompositeAttemptProgress::new(relational, signal);
 
-    terminal::settle_creation(owner, attempt, progress, cancellation)
+    terminal::settle_creation(
+        owner,
+        terminal::SettledCreationAttempt { attempt, progress },
+        cancellation,
+        destination,
+    )
 }
 
 /// Attribute one performed owner fork to the destination product branch. The
@@ -120,6 +135,24 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
+    /// The last pre-effect recheck before the first owner fork. Nothing has
+    /// moved yet, so both ways this closes are plain admission denials, and the
+    /// two are named apart because a displaced source head is not an
+    /// unavailable owner.
+    fn creation_execution_is_admissible(
+        &self,
+        attempt: &ReservedBranchCreationAttempt,
+        cancellation: &RuntimeWorldCancellationToken,
+    ) -> Result<(), RuntimeWorldBranchAdmissionDenial> {
+        if cancellation.is_cancelled() || self.deadline_expired(attempt.deadline()) {
+            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+        }
+        if !self.current_product_head_is(attempt.source()) {
+            return Err(RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
+        }
+        Ok(())
+    }
+
     /// The between-owners boundary for a creation. A denial here may already
     /// have moved the Relational owner, so the caller retains rather than
     /// discards; the two ways the boundary closes are named apart, because a

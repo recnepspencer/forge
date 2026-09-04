@@ -286,6 +286,13 @@ impl ReservedBranchCreationAttempt {
         &self.counters
     }
 
+    /// The counters an owner leg records its contact on, taken before that
+    /// owner is asked for anything. Creation and publication charge the same
+    /// counter type, so a creation's cost is readable on the same axes.
+    pub(crate) fn counters_mut(&mut self) -> &mut CompositePublicationCostCounters {
+        &mut self.counters
+    }
+
     pub(crate) fn take_relational_custody(&mut self) -> Option<ReservedCustodySlot> {
         self.relational_custody.take()
     }

@@ -4,7 +4,8 @@ use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::branch::{ProductBranchObservation, ProductBranchReferenceSnapshot};
 use crate::history::ProductUnpublishedHistoryProtectionObligation;
 use crate::identity::{
-    CompositePublicationAttemptIdentity, ProductUnpublishedOwnerEffectsIdentity,
+    CompositePublicationAttemptIdentity, ProductBranchIdentity, ProductBranchIncarnation,
+    ProductUnpublishedOwnerEffectsIdentity,
 };
 use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::{CompositeAttemptProgress, CompositeOwnerExecutionResults};
@@ -12,13 +13,21 @@ use crate::retention::{
     ReservedComponentPinPairCapacity, RetainedPartialRetentionObligation, RetentionObligationDenial,
 };
 
-use super::{
-    ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
-    ReservedProductUnpublishedSlot,
-};
+use super::{ProductUnpublishedNextAction, ReservedProductUnpublishedSlot};
 
 #[path = "product_unpublished/custody.rs"]
 mod custody;
+
+#[path = "product_unpublished/handle.rs"]
+mod handle;
+pub use handle::ProductUnpublishedRecoveryHandle;
+
+#[path = "product_unpublished/record_inputs.rs"]
+mod record_inputs;
+pub(crate) use record_inputs::{
+    InstalledSuccessorEvidence, PendingRetentionCustody, RetainedAttemptFacts,
+    RetainedRecordCharges, RetainedSuccessorEvidence,
+};
 
 #[path = "product_unpublished/actions.rs"]
 mod actions;
@@ -67,34 +76,6 @@ impl std::fmt::Debug for ProductUnpublishedRetentionCustody {
     }
 }
 
-/// A non-authorizing handle that lets a caller retain or inspect a specific
-/// recovery record without turning it into a product commit.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ProductUnpublishedRecoveryHandle {
-    identity: ProductUnpublishedOwnerEffectsIdentity,
-    catalog_affinity: usize,
-}
-
-impl ProductUnpublishedRecoveryHandle {
-    pub(crate) const fn new(
-        identity: ProductUnpublishedOwnerEffectsIdentity,
-        catalog_affinity: usize,
-    ) -> Self {
-        Self {
-            identity,
-            catalog_affinity,
-        }
-    }
-
-    pub fn identity(&self) -> &ProductUnpublishedOwnerEffectsIdentity {
-        &self.identity
-    }
-
-    pub(crate) const fn catalog_affinity(&self) -> usize {
-        self.catalog_affinity
-    }
-}
-
 /// Catalog-owned recovery custody. The public returned value below is only a
 /// view over this allocation, so dropping the caller capability cannot drop
 /// the component pins, history protection, or deferred owner route.
@@ -108,7 +89,18 @@ pub(crate) struct ProductUnpublishedOwnerEffectsRecord {
     successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
     component_results: CompositeOwnerExecutionResults,
     retention: ProductUnpublishedRetentionCustody,
-    successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
+    /// History protection over an installed successor occurrence, held only by
+    /// a record whose attempt actually installed one. A pre-movement loser
+    /// releases its reserved slot instead of spending it on a commit no head
+    /// names, so its successor is evidence in the basis alone.
+    successor_history_protection: Option<ProductUnpublishedHistoryProtectionObligation>,
+    /// The exact product-branch occurrence whose creation charged this
+    /// attempt's custody, when the attempt was a creation at all. A publication
+    /// moves an existing head and creates no occurrence, so it carries `None`.
+    /// The pair is the custody key: the name-keyed identity outlives
+    /// retirement, so only identity plus incarnation names the occurrence whose
+    /// component branches this record is answerable for.
+    destination: Option<(ProductBranchIdentity, ProductBranchIncarnation)>,
     catalog_affinity: usize,
     live_obligations: usize,
     cause: ProductUnpublishedCause,
@@ -154,112 +146,77 @@ impl ProductUnpublishedOwnerEffects {
         Self { record }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    /// The retained posture: this attempt owns its component pins outright.
     pub(crate) fn new_retained(
-        identity: ProductUnpublishedOwnerEffectsIdentity,
-        attempt_identity: CompositePublicationAttemptIdentity,
-        expected_head: ProductBranchObservation,
-        last_observed_head: Option<ProductBranchReferenceSnapshot>,
-        progress: CompositeAttemptProgress,
-        successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
-        component_results: CompositeOwnerExecutionResults,
+        facts: RetainedAttemptFacts,
+        successor: RetainedSuccessorEvidence,
         retention_obligation: RetainedPartialRetentionObligation,
-        successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
-        recovery_slot: ReservedProductUnpublishedSlot,
-        summary: ProductUnpublishedOwnerEffectSummary,
-        cause: ProductUnpublishedCause,
-        next_actions: Vec<ProductUnpublishedNextAction>,
-        deadline: Option<RuntimeWorldInstant>,
-        age_ticks: u64,
+        charges: RetainedRecordCharges,
     ) -> Self {
-        let catalog_affinity = recovery_slot.catalog_affinity();
-        let mut record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
-            identity: identity.clone(),
-            attempt_identity,
-            expected_head,
-            last_observed_head,
-            progress,
-            successor_basis,
-            component_results,
-            retention: ProductUnpublishedRetentionCustody::Retained(retention_obligation),
-            successor_history_protection,
-            catalog_affinity,
-            live_obligations: summary.live_obligation_count,
-            cause,
-            next_actions: RetainedNextActions::from_vec(next_actions),
-            deadline,
-            age_ticks,
-            owner_effect_count: summary.owner_effect_count,
-            metadata_bytes: Self::metadata_charge_hint(),
-        });
-        finalize_metadata_charge(&mut record);
-        install_record(recovery_slot, identity, Arc::clone(&record));
-        Self { record }
+        Self::install_new_record(
+            facts,
+            successor,
+            ProductUnpublishedRetentionCustody::Retained(retention_obligation),
+            charges,
+        )
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new_retention_pending(
-        identity: ProductUnpublishedOwnerEffectsIdentity,
-        attempt_identity: CompositePublicationAttemptIdentity,
-        expected_head: ProductBranchObservation,
-        last_observed_head: Option<ProductBranchReferenceSnapshot>,
-        progress: CompositeAttemptProgress,
-        successor_basis: AdmittedCompositeRuntimeWorldBasis,
-        component_results: CompositeOwnerExecutionResults,
-        capacity: ReservedComponentPinPairCapacity,
-        denial: RetentionObligationDenial,
-        successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
-        recovery_slot: ReservedProductUnpublishedSlot,
-        summary: ProductUnpublishedOwnerEffectSummary,
-        deadline: Option<RuntimeWorldInstant>,
+    /// The reacquisition-pending posture: the owner effects are just as real,
+    /// but the component pins could not be reacquired, so the record carries
+    /// the reserved capacity and the denial that names why.
+    pub(crate) fn new_reacquisition_pending(
+        facts: RetainedAttemptFacts,
+        successor: InstalledSuccessorEvidence,
+        retention: PendingRetentionCustody,
+        charges: RetainedRecordCharges,
     ) -> Self {
-        Self::new_reacquisition_pending(
+        let PendingRetentionCustody { capacity, denial } = retention;
+        Self::install_new_record(
+            facts,
+            successor.into(),
+            ProductUnpublishedRetentionCustody::Pending { capacity, denial },
+            charges,
+        )
+    }
+
+    /// Build and install the record both postures produce. The next actions
+    /// are derived here from the progress and the cause rather than supplied,
+    /// so no caller can install a record whose advertised actions disagree
+    /// with the evidence it carries.
+    fn install_new_record(
+        facts: RetainedAttemptFacts,
+        successor: RetainedSuccessorEvidence,
+        retention: ProductUnpublishedRetentionCustody,
+        charges: RetainedRecordCharges,
+    ) -> Self {
+        let RetainedAttemptFacts {
             identity,
             attempt_identity,
             expected_head,
             last_observed_head,
             progress,
-            successor_basis,
-            component_results,
-            capacity,
-            denial,
-            successor_history_protection,
+            owner_results,
+            destination,
+        } = facts;
+        let RetainedRecordCharges {
             recovery_slot,
             summary,
-            ProductUnpublishedCause::OwnerLost,
+            cause,
             deadline,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new_reacquisition_pending(
-        identity: ProductUnpublishedOwnerEffectsIdentity,
-        attempt_identity: CompositePublicationAttemptIdentity,
-        expected_head: ProductBranchObservation,
-        last_observed_head: Option<ProductBranchReferenceSnapshot>,
-        progress: CompositeAttemptProgress,
-        successor_basis: AdmittedCompositeRuntimeWorldBasis,
-        component_results: CompositeOwnerExecutionResults,
-        capacity: ReservedComponentPinPairCapacity,
-        denial: RetentionObligationDenial,
-        successor_history_protection: ProductUnpublishedHistoryProtectionObligation,
-        recovery_slot: ReservedProductUnpublishedSlot,
-        summary: ProductUnpublishedOwnerEffectSummary,
-        cause: ProductUnpublishedCause,
-        deadline: Option<RuntimeWorldInstant>,
-    ) -> Self {
+        } = charges;
         let catalog_affinity = recovery_slot.catalog_affinity();
-        let next_actions = next_actions_for_progress(&progress);
+        let next_actions = next_actions_for_progress(&progress, cause);
         let mut record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
             identity: identity.clone(),
             attempt_identity,
             expected_head,
             last_observed_head,
             progress,
-            successor_basis: Some(successor_basis),
-            component_results,
-            retention: ProductUnpublishedRetentionCustody::Pending { capacity, denial },
-            successor_history_protection,
+            successor_basis: successor.basis,
+            component_results: owner_results,
+            retention,
+            successor_history_protection: successor.history_protection,
+            destination,
             catalog_affinity,
             live_obligations: summary.live_obligation_count,
             cause,
@@ -302,10 +259,26 @@ impl ProductUnpublishedOwnerEffects {
         &self.record.component_results
     }
 
-    /// Exact installed successor occurrence retained by this recovery record.
-    /// The identity is evidence only; it grants no History or publication authority.
-    pub fn successor_commit(&self) -> &crate::identity::CompositeCommitIdentity {
-        self.record.successor_history_protection.commit_identity()
+    /// Exact installed successor occurrence retained by this recovery record,
+    /// when the attempt installed one at all. `None` is a record whose attempt
+    /// lost before the product reference moved: it released its history slot
+    /// and names its successor by basis alone. The identity is evidence only;
+    /// it grants no History or publication authority.
+    pub fn successor_commit(&self) -> Option<&crate::identity::CompositeCommitIdentity> {
+        self.record
+            .successor_history_protection
+            .as_ref()
+            .map(ProductUnpublishedHistoryProtectionObligation::commit_identity)
+    }
+
+    /// The product-branch occurrence this record's owner effects were created
+    /// for, when the attempt created one. It names the custody a cleanup must
+    /// drain; it is not authority to install or retire that branch.
+    pub fn destination_branch(&self) -> Option<(&ProductBranchIdentity, ProductBranchIncarnation)> {
+        self.record
+            .destination
+            .as_ref()
+            .map(|(branch, incarnation)| (branch, *incarnation))
     }
 
     pub fn retention_posture(&self) -> ProductUnpublishedRetentionPosture {
@@ -324,12 +297,6 @@ impl ProductUnpublishedOwnerEffects {
             ProductUnpublishedRetentionCustody::Retained(obligation) => Some(obligation),
             ProductUnpublishedRetentionCustody::Pending { .. } => None,
         }
-    }
-
-    pub(crate) fn successor_history_protection(
-        &self,
-    ) -> &ProductUnpublishedHistoryProtectionObligation {
-        &self.record.successor_history_protection
     }
 
     pub fn live_obligation_count(&self) -> usize {

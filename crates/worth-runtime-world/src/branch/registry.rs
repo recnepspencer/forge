@@ -42,6 +42,17 @@ struct ProductBranchRegistryState {
     /// name-keyed identity this, not an ordinal high-water mark, is what
     /// separates "retired" from "never installed". It is disjoint from
     /// `entries`: recreating a name takes its identity back out.
+    ///
+    /// INT-BLOCK-1. This set is bounded by the number of distinct names ever
+    /// retired, not by the branch budget, so it grows over a long-lived owner.
+    /// It cannot be bounded under the frozen retirement seam: `retire` is given
+    /// only a name-keyed identity, and separating "retired" from "never
+    /// installed" from a name alone requires remembering the names. The seam
+    /// that bounds it is
+    /// `retire_product_branch(owner, branch, incarnation)` — with the
+    /// occurrence named, `AlreadyRetired` is derivable from the bounded
+    /// `lifecycles` set and the owner's monotonic incarnation cursor, and this
+    /// field is deleted rather than replaced.
     retired: HashSet<ProductBranchIdentity>,
     basis_commits: HashMap<CompositeBasisKey, HashMap<CompositeCommitIdentity, usize>>,
     root: Option<ProductBranchIdentity>,
@@ -197,6 +208,23 @@ impl ProductBranchRegistry {
         })
     }
 
+    /// Re-index one installed occurrence against the head a product
+    /// publication just installed. The registry owns the basis-to-commit index
+    /// that exact reuse resolves against, so a product movement reports itself
+    /// here instead of leaving a second copy of the head somewhere else.
+    ///
+    /// A head whose occurrence the registry no longer holds is not an error:
+    /// retirement already took that occurrence out of the index, and a name
+    /// recreated since the movement is a different incarnation carrying its own
+    /// head.
+    pub(crate) fn record_published_head(&self, head: &ProductBranchReferenceSnapshot) {
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        if !indexes_this_occurrence(&state, head) {
+            return;
+        }
+        reindex_occurrence_head(&mut state, head);
+    }
+
     pub(crate) fn branch_count(&self) -> usize {
         self.state
             .lock()
@@ -225,7 +253,7 @@ impl ProductBranchRegistry {
         if owner != state.owner || branch.owner_identity() != state.owner {
             return Err(ProductBranchRegistryDenial::ForeignOwner);
         }
-        let entry = match state.entries.remove(branch) {
+        let entry = match release_installed_entry(&mut state, branch) {
             Some(entry) => entry,
             None => {
                 return Err(if state.retired.contains(branch) {
@@ -235,14 +263,99 @@ impl ProductBranchRegistry {
                 });
             }
         };
-        state.lifecycles.remove(&entry.lifecycle);
-        state.retired.insert(branch.clone());
-        remove_basis_candidate(&mut state, &entry.basis, &entry.commit);
-        if state.root.as_ref() == Some(branch) {
-            state.root = None;
-        }
         Ok((entry.cell, entry.lifecycle))
     }
+
+    /// Release every installed non-root product reference and report how many
+    /// product-head references that released. Close owns this: the registry is
+    /// the only holder of an installed branch's reference cell, so the count is
+    /// what close actually let go of, not what a budget says could exist.
+    ///
+    /// The root is deliberately excluded. It is the world's own reference
+    /// rather than a branch a caller created, and the close report describes
+    /// created branches.
+    pub(crate) fn release_non_root_branches(&self) -> usize {
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        let root = state.root.clone();
+        let branches: Vec<ProductBranchIdentity> = state
+            .entries
+            .keys()
+            .filter(|branch| root.as_ref() != Some(*branch))
+            .cloned()
+            .collect();
+        for branch in &branches {
+            release_installed_entry(&mut state, branch)
+                .expect("a branch just read out of the index is still installed");
+        }
+        branches.len()
+    }
+}
+
+/// Take one installed occurrence out of every index that names it. Retirement
+/// and close both release a product reference, and both release exactly this
+/// much: one authority, so neither can leave an index the other clears.
+fn release_installed_entry(
+    state: &mut ProductBranchRegistryState,
+    branch: &ProductBranchIdentity,
+) -> Option<ProductBranchRegistryEntry> {
+    let entry = state.entries.remove(branch)?;
+    state.lifecycles.remove(&entry.lifecycle);
+    state.retired.insert(branch.clone());
+    remove_basis_candidate(state, &entry.basis, &entry.commit);
+    if state.root.as_ref() == Some(branch) {
+        state.root = None;
+    }
+    Some(entry)
+}
+
+/// Whether the index still describes the exact occurrence this head belongs
+/// to. Identity is the name, so only the incarnation separates the occurrence
+/// that moved from one that has since taken its name.
+fn indexes_this_occurrence(
+    state: &ProductBranchRegistryState,
+    head: &ProductBranchReferenceSnapshot,
+) -> bool {
+    head.owner_identity() == state.owner
+        && state
+            .entries
+            .get(head.branch_identity())
+            .is_some_and(|entry| entry.lifecycle == head.lifecycle_incarnation())
+}
+
+/// Move one occurrence's recorded basis and commit to the published head. The
+/// pair it leaves and the pair it takes are exchanged in the same call, so the
+/// candidate index never counts one occurrence under two heads.
+fn reindex_occurrence_head(
+    state: &mut ProductBranchRegistryState,
+    head: &ProductBranchReferenceSnapshot,
+) {
+    let basis = head.basis().identity().clone();
+    let commit = head.selected_commit().clone();
+    let entry = state
+        .entries
+        .get_mut(head.branch_identity())
+        .expect("the occurrence this head names was just found in the index");
+    if entry.basis == basis && entry.commit == commit {
+        return;
+    }
+    let vacated_basis = std::mem::replace(&mut entry.basis, basis.clone());
+    let vacated_commit = std::mem::replace(&mut entry.commit, commit.clone());
+    remove_basis_candidate(state, &vacated_basis, &vacated_commit);
+    insert_basis_candidate(state, basis, commit);
+}
+
+/// Count one more installed occurrence of this exact basis at this exact
+/// commit. Installation and product movement both enter the index here.
+fn insert_basis_candidate(
+    state: &mut ProductBranchRegistryState,
+    basis: CompositeBasisKey,
+    commit: CompositeCommitIdentity,
+) {
+    let candidates = state.basis_commits.entry(basis).or_default();
+    let count = candidates.entry(commit).or_insert(0);
+    *count = count
+        .checked_add(1)
+        .expect("live branch count cannot overflow a bounded registry");
 }
 
 fn remove_basis_candidate(

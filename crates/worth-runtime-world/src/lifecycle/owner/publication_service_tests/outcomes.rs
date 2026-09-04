@@ -90,7 +90,10 @@ fn cancellation_after_owner_movement_retains_partial_until_explicit_cleanup() {
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.state.operation.active(), 0);
-    assert!(owner.cleanup_recovery(retained));
+    assert!(
+        owner.cleanup_recovery(retained).is_some(),
+        "a publication's retained record is released by its own capability"
+    );
     assert_eq!(owner.recovery_record_count(), 0);
     let _report = owner
         .close()

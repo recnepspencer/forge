@@ -23,7 +23,9 @@ use super::*;
 use crate::publication::{
     CompositeAttemptProgress, RelationalAttemptProgress, SignalAttemptProgress,
 };
-use crate::recovery::{next_actions_for_progress, ProductUnpublishedNextAction};
+use crate::recovery::{
+    next_actions_for_progress, ProductUnpublishedCause, ProductUnpublishedNextAction,
+};
 
 /// The fixed bound a retained list is held to. `RetainedNextActions` asserts the
 /// same bound where a record is minted; no derived shape may reach it.
@@ -100,8 +102,25 @@ fn settled_progress(
     )
 }
 
+/// The cause a progress-axis assertion is driven under. It is a live-owner
+/// cause, so the derived list is exactly what the progress alone justifies and
+/// the two axes can be proved apart.
+const LIVE_OWNER_CAUSE: ProductUnpublishedCause = ProductUnpublishedCause::SiblingOwnerDenied;
+
+/// Every cause a retained record can carry, so the cause axis is proved total
+/// rather than sampled.
+const EVERY_CAUSE: [ProductUnpublishedCause; 7] = [
+    ProductUnpublishedCause::SiblingOwnerDenied,
+    ProductUnpublishedCause::SettlementPending,
+    ProductUnpublishedCause::CancellationAfterEffect,
+    ProductUnpublishedCause::DeadlineAfterEffect,
+    ProductUnpublishedCause::StaleProductHead,
+    ProductUnpublishedCause::OwnerLost,
+    ProductUnpublishedCause::ProductPublicationLost,
+];
+
 fn assert_derives(progress: &CompositeAttemptProgress, expected: &[ProductUnpublishedNextAction]) {
-    let actions = next_actions_for_progress(progress);
+    let actions = next_actions_for_progress(progress, LIVE_OWNER_CAUSE);
     assert_eq!(
         actions.as_slice(),
         expected,
@@ -192,4 +211,48 @@ fn every_composite_progress_shape_derives_an_exact_continuation() {
     assert_shapes_without_publication_evidence(&mut fixture);
     assert_shapes_that_owe_settlement(&fixture, &evidence);
     assert_settled_publication_shapes(&mut fixture, &evidence);
+}
+
+/// The cause axis. `CloseOwner` is offered exactly when the record's cause says
+/// an owner-issued authority is gone, it is offered once, and it is appended to
+/// the list the progress already justified rather than reshaping it.
+#[test]
+fn owner_loss_is_the_only_cause_that_permits_closing_the_owner() {
+    let (fixture, owner) = derivation_owner();
+    let evidence = settled_relational_evidence(&fixture, &owner);
+    for progress in [
+        CompositeAttemptProgress::untouched(),
+        CompositeAttemptProgress::new(
+            RelationalAttemptProgress::performed(fixture.perform_relational_owner_change()),
+            SignalAttemptProgress::untouched(),
+        ),
+        settled_progress(&evidence, SignalAttemptProgress::untouched()),
+    ] {
+        assert_cause_axis(&progress);
+    }
+}
+
+fn assert_cause_axis(progress: &CompositeAttemptProgress) {
+    let derived_from_progress = next_actions_for_progress(progress, LIVE_OWNER_CAUSE);
+    for cause in EVERY_CAUSE {
+        let actions = next_actions_for_progress(progress, cause);
+        let closures = actions
+            .iter()
+            .filter(|action| **action == ProductUnpublishedNextAction::CloseOwner)
+            .count();
+        assert_eq!(
+            closures,
+            usize::from(cause == ProductUnpublishedCause::OwnerLost),
+            "{cause:?} permits closing the owner exactly when the owner is lost"
+        );
+        assert!(
+            actions.len() <= RETAINED_NEXT_ACTION_BOUND,
+            "a derived continuation never exceeds the retained-record bound"
+        );
+        assert_eq!(
+            &actions[..actions.len() - closures],
+            derived_from_progress.as_slice(),
+            "{cause:?} appends its own action instead of reshaping the progress-derived list"
+        );
+    }
 }

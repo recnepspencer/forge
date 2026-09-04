@@ -154,3 +154,67 @@ fn custody_capacity_denies_creation_before_any_owner_effect() {
     );
     drop(child);
 }
+
+/// INT-003. A close that leaves an owner-created component branch installed in
+/// custody would drop a real branch on the floor: the world stops, and nobody
+/// is named as owing its retirement. Close therefore drains custody and hands
+/// the same typed work back in its terminal report, and it counts the product
+/// references it released while doing so.
+#[test]
+fn close_reports_every_undrained_custody_record_as_outstanding_retirement_work() {
+    let (_fixture, owner, source) = setup_with_relational_source(3);
+    let forked = create_forked_branch(
+        &owner,
+        &source,
+        fork_intent(
+            "branch-custody-unretired",
+            relational_fork("relational-branch-unretired"),
+            signal_fork("signal-branch-unretired"),
+        ),
+    );
+    assert_eq!(
+        owner.state.custody.installed(),
+        2,
+        "the branch is never retired, so both fork records are still installed"
+    );
+    let branches_before = owner.state.branches.branch_count();
+    drop(forked);
+
+    let report = owner
+        .close()
+        .expect("undrained custody is a report row, never a close denial");
+
+    assert_eq!(
+        report.outstanding_owner_retirement_work(),
+        [
+            OwnerRetirementWork::RelationalBranchRetirement {
+                target: BranchId("relational-branch-unretired".to_owned()),
+            },
+            OwnerRetirementWork::SignalBranchRetirement {
+                target: validate_signal_branch_name("signal-branch-unretired")
+                    .expect("valid Signal name"),
+            },
+        ],
+        "close names the exact component branches nothing retired"
+    );
+    assert_eq!(
+        report.retired_owner_created_custody(),
+        2,
+        "the custody charge close released is the work it reported"
+    );
+    assert_eq!(
+        owner.state.custody.installed(),
+        0,
+        "close drains custody once; a record left installed would be unnamed"
+    );
+    assert_eq!(
+        report.released_product_head_pins(),
+        branches_before - 1,
+        "close released every non-root product reference the registry held"
+    );
+    assert_eq!(
+        owner.state.branches.branch_count(),
+        1,
+        "the root reference is the world's own, not a created branch"
+    );
+}
