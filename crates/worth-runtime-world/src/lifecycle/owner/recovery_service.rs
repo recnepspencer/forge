@@ -7,6 +7,8 @@ use crate::recovery::{
 #[cfg(test)]
 use std::collections::HashMap;
 #[cfg(test)]
+use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(test)]
 use std::sync::mpsc::SyncSender;
 #[cfg(test)]
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
@@ -31,6 +33,8 @@ const RECOVERY_UPDATE_PAUSE_TIMEOUT: Duration = Duration::from_secs(5);
 pub(super) struct RecoveryUpdatePause {
     reached: SyncSender<()>,
     release: Arc<(Mutex<bool>, Condvar)>,
+    /// Set when the paused update gave up waiting and resumed on its own.
+    timed_out: AtomicBool,
 }
 
 #[cfg(test)]
@@ -58,6 +62,7 @@ pub(super) fn install_test_recovery_update_pause(
     let pause = Arc::new(RecoveryUpdatePause {
         reached,
         release: Arc::new((Mutex::new(false), Condvar::new())),
+        timed_out: AtomicBool::new(false),
     });
     let mut installed = recovery_update_pause_slot()
         .lock()
@@ -81,16 +86,28 @@ impl RecoveryUpdatePause {
         let mut opened = opened.lock().unwrap_or_else(|error| error.into_inner());
         while !*opened {
             let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+                self.note_timeout();
                 return;
             };
             let (next, result) = signal
                 .wait_timeout(opened, remaining)
                 .unwrap_or_else(|error| error.into_inner());
             opened = next;
-            if result.timed_out() {
+            // A release that lands in the same instant the wait expires is a
+            // release, not a timeout: the loop condition decides.
+            if result.timed_out() && !*opened {
+                self.note_timeout();
                 return;
             }
         }
+    }
+
+    fn note_timeout(&self) {
+        self.timed_out.store(true, Ordering::SeqCst);
+    }
+
+    fn timed_out(&self) -> bool {
+        self.timed_out.load(Ordering::SeqCst)
     }
 
     fn release(&self) {
@@ -114,6 +131,13 @@ impl Drop for RecoveryUpdatePauseGuard {
         if owned_registration {
             installed.remove(&self.handle);
         }
+        drop(installed);
+        // A pause that resumed on its own describes an update the test never
+        // controlled, so the test fails here by name.
+        assert!(
+            !self.pause.timed_out() || std::thread::panicking(),
+            "recovery update pause was never released within {RECOVERY_UPDATE_PAUSE_TIMEOUT:?}"
+        );
     }
 }
 

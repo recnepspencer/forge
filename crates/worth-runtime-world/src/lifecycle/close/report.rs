@@ -1,6 +1,8 @@
 use crate::branch::OwnerRetirementWork;
 use crate::identity::ProductUnpublishedOwnerEffectsIdentity;
-use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
+use crate::recovery::{
+    ProductUnpublishedCause, ProductUnpublishedLiveObligations, ProductUnpublishedNextAction,
+};
 
 /// One row per retained obligation the owner exposed instead of discarding.
 /// A row is exposure only: it carries no capability to settle or delete the
@@ -9,47 +11,15 @@ use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 pub struct RuntimeWorldRetainedRecordReport {
     identity: ProductUnpublishedOwnerEffectsIdentity,
     cause: ProductUnpublishedCause,
-    obligations: RetainedObligationSplit,
+    obligations: ProductUnpublishedLiveObligations,
     next_actions: Vec<ProductUnpublishedNextAction>,
-}
-
-/// A retained record's own live obligation count, divided into the
-/// component-scoped half and the composite-scoped remainder. It is one value
-/// rather than two counts because the halves are only meaningful together:
-/// they must sum to the record's own count, and nothing outside this type may
-/// name a pair that does not.
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct RetainedObligationSplit {
-    component: usize,
-    composite: usize,
-}
-
-impl RetainedObligationSplit {
-    /// Charge `component_charge` of a record's `live` obligations to the
-    /// component half and leave the rest composite.
-    ///
-    /// Both retention postures charge exactly 2 component-scoped obligations,
-    /// and a retained record's live count is 3 when it kept its successor
-    /// installed and 2 when it released its history slot before the product
-    /// reference moved, so the clamp is unreachable today: the charge equals
-    /// the count in the smaller case and is one below it in the larger. It
-    /// stays because the split must remain total: a future posture that
-    /// charges more components than the record has obligations must report a
-    /// zero composite half, never underflow.
-    pub(crate) fn new(live: usize, component_charge: usize) -> Self {
-        let component = component_charge.min(live);
-        Self {
-            component,
-            composite: live - component,
-        }
-    }
 }
 
 impl RuntimeWorldRetainedRecordReport {
     pub(crate) fn new(
         identity: ProductUnpublishedOwnerEffectsIdentity,
         cause: ProductUnpublishedCause,
-        obligations: RetainedObligationSplit,
+        obligations: ProductUnpublishedLiveObligations,
         next_actions: Vec<ProductUnpublishedNextAction>,
     ) -> Self {
         Self {
@@ -68,12 +38,15 @@ impl RuntimeWorldRetainedRecordReport {
         self.cause
     }
 
+    /// The exact component pin pair the record holds or reserved.
     pub const fn live_component_obligations(&self) -> usize {
-        self.obligations.component
+        self.obligations.component()
     }
 
+    /// The recovery slot the record occupies plus the successor history
+    /// protection it holds when its attempt installed a successor occurrence.
     pub const fn live_composite_obligations(&self) -> usize {
-        self.obligations.composite
+        self.obligations.composite()
     }
 
     pub fn next_actions(&self) -> &[ProductUnpublishedNextAction] {

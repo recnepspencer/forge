@@ -23,6 +23,9 @@ pub(crate) struct ReservedAttemptCapacities {
     operation: RuntimeWorldOperationReservation,
 }
 
+/// The eight reservations named apart. The bundle is assembled from this
+/// record and disassembled back into it, so a terminal that takes the bundle
+/// apart names each resource it consumes rather than counting tuple slots.
 pub(crate) struct ReservedAttemptCapacityInputs {
     pub(crate) reserved_commit_identity: CompositeCommitIdentity,
     pub(crate) product_unpublished_identity: ProductUnpublishedOwnerEffectsIdentity,
@@ -86,28 +89,16 @@ impl ReservedAttemptCapacities {
             .expect("a publishing attempt enters recovery exactly once");
     }
 
-    #[allow(clippy::type_complexity)]
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        CompositeCommitIdentity,
-        ProductUnpublishedOwnerEffectsIdentity,
-        ReservedCompositeCommitCapacity,
-        ReservedProductUnpublishedSlot,
-        ReservedComponentPinPairCapacity,
-        ReservedPublicationAttemptCapacity,
-        CompositeHistoryCatalog,
-        RuntimeWorldOperationReservation,
-    ) {
-        (
-            self.reserved_commit_identity,
-            self.product_unpublished_identity,
-            self.reserved_commit_capacity,
-            self.reserved_recovery_slot,
-            self.reserved_component_pin_pair,
-            self.reserved_publication_capacity,
-            self.history,
-            self.operation,
-        )
+    pub(crate) fn into_parts(self) -> ReservedAttemptCapacityInputs {
+        ReservedAttemptCapacityInputs {
+            reserved_commit_identity: self.reserved_commit_identity,
+            product_unpublished_identity: self.product_unpublished_identity,
+            reserved_commit_capacity: self.reserved_commit_capacity,
+            reserved_recovery_slot: self.reserved_recovery_slot,
+            reserved_component_pin_pair: self.reserved_component_pin_pair,
+            reserved_publication_capacity: self.reserved_publication_capacity,
+            history: self.history,
+            operation: self.operation,
+        }
     }
 }

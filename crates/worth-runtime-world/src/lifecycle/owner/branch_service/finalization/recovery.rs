@@ -3,7 +3,6 @@ use super::ForkedBranchRecoveryContext;
 use crate::history::{
     ProductHeadHistoryProtectionObligation, ProductUnpublishedHistoryProtectionObligation,
 };
-use crate::publication::RETENTION_PENDING_LIVE_OBLIGATION_COUNT;
 use crate::recovery::{
     InstalledSuccessorEvidence, PendingRetentionCustody, ProductUnpublishedCause,
     ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects, RetainedAttemptFacts,
@@ -134,13 +133,13 @@ pub(super) fn product_unpublished_pending(
     )
 }
 
-/// Every product-unpublished forked-branch record charges the same retained
-/// live-obligation set and the same record-shaped metadata as the publication
-/// retention route; the counts are named there, never restated as literals.
+/// Every product-unpublished forked-branch record charges the same
+/// record-shaped metadata as the publication retention route. Its live
+/// obligations are not named here at all: the record counts them from the
+/// custody it is installed with.
 fn retained_summary(context: &ForkedBranchRecoveryContext) -> ProductUnpublishedOwnerEffectSummary {
     ProductUnpublishedOwnerEffectSummary::from_progress(
         &context.progress,
-        RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
         ProductUnpublishedOwnerEffects::metadata_charge_hint(),
     )
 }

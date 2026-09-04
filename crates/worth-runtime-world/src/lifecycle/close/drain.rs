@@ -2,24 +2,12 @@ use std::sync::atomic::Ordering;
 
 use crate::branch::{OwnerCreatedComponentCustodyRecord, OwnerRetirementWork};
 use crate::lifecycle::owner::{RuntimeWorldBootstrapState, RuntimeWorldOwnerState};
-use crate::recovery::{
-    ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle,
-    ProductUnpublishedRetentionPosture,
-};
-use crate::retention::RetainedPartialRetentionObligation;
+use crate::recovery::{ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle};
 
 use super::report::{
-    RetainedObligationSplit, RuntimeWorldCloseReleaseCounts, RuntimeWorldCloseReport,
-    RuntimeWorldRetainedRecordReport,
+    RuntimeWorldCloseReleaseCounts, RuntimeWorldCloseReport, RuntimeWorldRetainedRecordReport,
 };
 use super::RuntimeWorldCloseDenial;
-
-/// A record in the `ReacquisitionPending` posture holds a
-/// `ReservedComponentPinPairCapacity` instead of issued pins
-/// (`recovery/product_unpublished.rs`): the reserved charge for exactly the
-/// relational and signal scopes the retained posture holds as obligations.
-/// Pinned by `close_reports_a_pending_record_as_a_reserved_component_pair`.
-const RESERVED_COMPONENT_PIN_PAIR: usize = 2;
 
 /// Close the owner: admit, drain, and flip Open -> Closing -> Closed while
 /// holding one operation-admission guard across all three.
@@ -173,39 +161,16 @@ where
     Ok(rows)
 }
 
-/// Split the record's own live obligation count into the component-scoped
-/// charge it holds and the composite-scoped custody it holds. The split is
-/// total by construction: the composite half is whatever the record's own count
-/// leaves, so the report can never contradict the record it describes and never
-/// panics on one it cannot describe.
+/// One report row per record, carrying the record's own live obligations. The
+/// split is the record's, read as it stands: the report never re-derives a
+/// count it could contradict.
 fn describe(effects: &ProductUnpublishedOwnerEffects) -> RuntimeWorldRetainedRecordReport {
     RuntimeWorldRetainedRecordReport::new(
         effects.identity().clone(),
         effects.cause(),
-        RetainedObligationSplit::new(effects.live_obligation_count(), component_charge(effects)),
+        effects.live_obligations(),
         effects.next_actions().to_vec(),
     )
-}
-
-/// How many component-scoped charges the record holds, read off its own
-/// custody rather than restated as a shape literal.
-fn component_charge(effects: &ProductUnpublishedOwnerEffects) -> usize {
-    match effects.retention_obligation() {
-        Some(obligation) => issued_component_pins(obligation),
-        None => {
-            debug_assert_eq!(
-                effects.retention_posture(),
-                ProductUnpublishedRetentionPosture::ReacquisitionPending
-            );
-            RESERVED_COMPONENT_PIN_PAIR
-        }
-    }
-}
-
-/// The exact pins a `RetainedPartialRetentionObligation` holds, counted from
-/// the obligation itself.
-fn issued_component_pins(obligation: &RetainedPartialRetentionObligation) -> usize {
-    [obligation.relational(), obligation.signal()].len()
 }
 
 /// Release every exact component pin that no live dependency and no component

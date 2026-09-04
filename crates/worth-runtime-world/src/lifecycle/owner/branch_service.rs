@@ -122,7 +122,7 @@ where
         let product_head = self
             .state
             .retention
-            .issue_product_head(&basis)
+            .issue_product_head(basis)
             .map_err(map_retention_denial)?;
         let product_history = self
             .state

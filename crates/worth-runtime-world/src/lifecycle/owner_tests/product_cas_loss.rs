@@ -291,8 +291,8 @@ fn complete_ready_publish_path_retains_commit_results_and_custody_on_observed_pr
     );
     assert_eq!(
         race.retained.live_obligation_count(),
-        2,
-        "a record that installed no successor keeps the recovery slot and the          component pins alone"
+        3,
+        "a record that installed no successor keeps its two component pins and the recovery slot alone"
     );
     assert_eq!(race.retained.owner_effect_count(), 1);
     assert_eq!(

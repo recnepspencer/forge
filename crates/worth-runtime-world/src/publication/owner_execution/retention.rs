@@ -23,8 +23,8 @@ use crate::retention::{
 
 use super::super::{
     CompositeAttemptProgress, CompositeOwnerExecutionResults, ReservedAttemptCapacities,
+    ReservedAttemptCapacityInputs,
 };
-use super::RETENTION_PENDING_LIVE_OBLIGATION_COUNT;
 
 /// The reserved resources one retained attempt still owns. Publication and
 /// branch creation reach retention with the same bundle, so a retained record
@@ -65,16 +65,16 @@ pub(crate) fn retain_attempt_effects(
         capacities,
         deadline,
     } = inputs;
-    let (
+    let ReservedAttemptCapacityInputs {
         reserved_commit_identity,
         product_unpublished_identity,
         reserved_commit_capacity,
         reserved_recovery_slot,
         reserved_component_pin_pair,
-        _reserved_publication_capacity,
+        reserved_publication_capacity: _,
         history,
         mut operation,
-    ) = capacities.into_parts();
+    } = capacities.into_parts();
     let commit = Arc::new(
         CompositeRuntimeWorldCommit::from_ordinary_publication(
             reserved_commit_identity,
@@ -89,7 +89,6 @@ pub(crate) fn retain_attempt_effects(
     let successor_history = install_retained_commit(history, reserved_commit_capacity, &commit);
     let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
         &effects.progress,
-        RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
         ProductUnpublishedOwnerEffects::metadata_charge_hint(),
     );
     operation

@@ -30,8 +30,6 @@ pub(crate) use retention::{
     retain_attempt_effects, RetainedAttemptInputs, RetainedOwnerEffectInputs,
 };
 
-pub(crate) const RETENTION_PENDING_LIVE_OBLIGATION_COUNT: usize = 3;
-
 /// Owner effects have been settled into exact progress, but product
 /// publication has not yet crossed its final compare-and-publish point.
 pub struct OwnerExecutionSettlement {
@@ -279,7 +277,7 @@ impl SettledPublication {
         self,
         capacities: super::ReservedAttemptCapacities,
     ) -> Result<CompositePublicationReady, ProductUnpublishedOwnerEffects> {
-        let (
+        let super::ReservedAttemptCapacityInputs {
             reserved_commit_identity,
             product_unpublished_identity,
             reserved_commit_capacity,
@@ -288,7 +286,7 @@ impl SettledPublication {
             reserved_publication_capacity,
             history,
             operation,
-        ) = capacities.into_parts();
+        } = capacities.into_parts();
         let commit = self.successor_commit(reserved_commit_identity);
         let publication_retention =
             match reserved_component_pin_pair.bind_publication(commit.basis()) {
@@ -367,7 +365,6 @@ impl SettledPublication {
             .expect("a publishing attempt enters retained recovery");
         let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
             &self.progress,
-            RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
             ProductUnpublishedOwnerEffects::metadata_charge_hint(),
         );
         ProductUnpublishedOwnerEffects::new_reacquisition_pending(

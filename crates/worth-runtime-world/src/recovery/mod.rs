@@ -18,4 +18,6 @@ pub(crate) use product_unpublished::{
     InstalledSuccessorEvidence, PendingRetentionCustody, RetainedAttemptFacts,
     RetainedRecordCharges, RetainedSuccessorEvidence,
 };
-pub(crate) use progress::ProductUnpublishedOwnerEffectSummary;
+pub(crate) use progress::{
+    ProductUnpublishedLiveObligations, ProductUnpublishedOwnerEffectSummary,
+};

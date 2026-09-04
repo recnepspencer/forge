@@ -34,19 +34,6 @@ use super::super::{
 };
 use super::CompositePublicationReadyInputs;
 
-/// The reserved recovery slot, the installed successor commit protection, and
-/// the exact component pin pair are the three obligations a retained record
-/// keeps live when it kept its successor installed. A record that released its
-/// history slot instead keeps one fewer, which is why the count is derived from
-/// the custody rather than restated at each terminal.
-pub(super) const PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT: usize = 3;
-
-fn live_obligation_count(
-    successor_history: Option<&ProductUnpublishedHistoryProtectionObligation>,
-) -> usize {
-    PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT - usize::from(successor_history.is_none())
-}
-
 /// The parts of a ready attempt that outlive its product-CAS decision. Both
 /// terminals take exactly these; nothing here is re-derived or re-observed.
 pub(super) struct AttemptTerminal {
@@ -156,11 +143,7 @@ impl AttemptTerminal {
                 settle_product_head_authority(protection)
             }
         };
-        let summary = ProductUnpublishedOwnerEffectSummary::from_progress(
-            &self.progress,
-            live_obligation_count(successor_history.as_ref()),
-            0,
-        );
+        let summary = ProductUnpublishedOwnerEffectSummary::from_progress(&self.progress, 0);
         RuntimeWorldPublicationOutcome::ProductUnpublished(
             ProductUnpublishedOwnerEffects::new_retained(
                 RetainedAttemptFacts {

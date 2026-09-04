@@ -13,7 +13,9 @@ use crate::retention::{
     ReservedComponentPinPairCapacity, RetainedPartialRetentionObligation, RetentionObligationDenial,
 };
 
-use super::{ProductUnpublishedNextAction, ReservedProductUnpublishedSlot};
+use super::{
+    ProductUnpublishedLiveObligations, ProductUnpublishedNextAction, ReservedProductUnpublishedSlot,
+};
 
 #[path = "product_unpublished/custody.rs"]
 mod custody;
@@ -62,6 +64,24 @@ enum ProductUnpublishedRetentionCustody {
     },
 }
 
+/// A record in the `ReacquisitionPending` posture holds a
+/// `ReservedComponentPinPairCapacity` instead of issued pins: the reserved
+/// charge for exactly the relational and signal scopes it still owes.
+/// Pinned by `close_reports_a_pending_record_as_a_reserved_component_pair`.
+const RESERVED_COMPONENT_PIN_PAIR: usize = 2;
+
+impl ProductUnpublishedRetentionCustody {
+    /// The component-scoped pins this custody answers for: the exact pair the
+    /// retained posture holds, counted from the obligation itself, or the pair
+    /// the pending posture reserved to reacquire them.
+    fn component_pins(&self) -> usize {
+        match self {
+            Self::Retained(obligation) => [obligation.relational(), obligation.signal()].len(),
+            Self::Pending { .. } => RESERVED_COMPONENT_PIN_PAIR,
+        }
+    }
+}
+
 impl std::fmt::Debug for ProductUnpublishedRetentionCustody {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -102,7 +122,7 @@ pub(crate) struct ProductUnpublishedOwnerEffectsRecord {
     /// component branches this record is answerable for.
     destination: Option<(ProductBranchIdentity, ProductBranchIncarnation)>,
     catalog_affinity: usize,
-    live_obligations: usize,
+    live_obligations: ProductUnpublishedLiveObligations,
     cause: ProductUnpublishedCause,
     next_actions: RetainedNextActions,
     deadline: Option<RuntimeWorldInstant>,
@@ -206,6 +226,10 @@ impl ProductUnpublishedOwnerEffects {
         } = charges;
         let catalog_affinity = recovery_slot.catalog_affinity();
         let next_actions = next_actions_for_progress(&progress, cause);
+        let live_obligations = ProductUnpublishedLiveObligations::from_custody(
+            retention.component_pins(),
+            successor.history_protection.is_some(),
+        );
         let mut record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
             identity: identity.clone(),
             attempt_identity,
@@ -218,7 +242,7 @@ impl ProductUnpublishedOwnerEffects {
             successor_history_protection: successor.history_protection,
             destination,
             catalog_affinity,
-            live_obligations: summary.live_obligation_count,
+            live_obligations,
             cause,
             next_actions: RetainedNextActions::from_vec(next_actions),
             deadline,
@@ -289,14 +313,15 @@ impl ProductUnpublishedOwnerEffects {
         }
     }
 
-    pub(crate) fn retention_obligation(&self) -> Option<&RetainedPartialRetentionObligation> {
-        match &self.record.retention {
-            ProductUnpublishedRetentionCustody::Retained(obligation) => Some(obligation),
-            ProductUnpublishedRetentionCustody::Pending { .. } => None,
-        }
+    /// Every obligation this record still holds live, counted from its own
+    /// custody when it was installed.
+    pub fn live_obligation_count(&self) -> usize {
+        self.record.live_obligations.total()
     }
 
-    pub fn live_obligation_count(&self) -> usize {
+    /// The same count divided by scope, for a report that must never
+    /// contradict the record it describes.
+    pub(crate) fn live_obligations(&self) -> ProductUnpublishedLiveObligations {
         self.record.live_obligations
     }
 

@@ -15,6 +15,7 @@
 //! by name instead of hanging.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::SyncSender;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -43,6 +44,7 @@ where
             observation_authority_armed: Mutex::new(true),
             reached,
             release: (Mutex::new(false), Condvar::new()),
+            timed_out: AtomicBool::new(false),
         });
         let mut armed = rehearsals()
             .lock()
@@ -109,6 +111,14 @@ impl Drop for ForkedFinalizationRehearsalGuard {
         if owned_registration {
             armed.remove(&self.owner);
         }
+        drop(armed);
+        // A rehearsal that resumed on its own describes a world the arming
+        // test never controlled, so the test fails here by name instead of on
+        // whatever downstream assertion the unheld attempt happened to break.
+        assert!(
+            !self.rehearsal.timed_out() || std::thread::panicking(),
+            "forked finalization rehearsal was never released within {FORKED_FINALIZATION_PAUSE_TIMEOUT:?}"
+        );
     }
 }
 
@@ -117,6 +127,8 @@ struct ForkedFinalizationRehearsal {
     observation_authority_armed: Mutex<bool>,
     reached: SyncSender<ProductUnpublishedOwnerEffectsIdentity>,
     release: (Mutex<bool>, Condvar),
+    /// Set when the held attempt gave up waiting and resumed on its own.
+    timed_out: AtomicBool,
 }
 
 impl ForkedFinalizationRehearsal {
@@ -139,16 +151,28 @@ impl ForkedFinalizationRehearsal {
         let mut opened = opened.lock().unwrap_or_else(|error| error.into_inner());
         while !*opened {
             let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+                self.note_timeout();
                 return;
             };
             let (next, result) = signal
                 .wait_timeout(opened, remaining)
                 .unwrap_or_else(|error| error.into_inner());
             opened = next;
-            if result.timed_out() {
+            // A release that lands in the same instant the wait expires is a
+            // release, not a timeout: the loop condition decides.
+            if result.timed_out() && !*opened {
+                self.note_timeout();
                 return;
             }
         }
+    }
+
+    fn note_timeout(&self) {
+        self.timed_out.store(true, Ordering::SeqCst);
+    }
+
+    fn timed_out(&self) -> bool {
+        self.timed_out.load(Ordering::SeqCst)
     }
 
     fn release(&self) {

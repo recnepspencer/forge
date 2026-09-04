@@ -58,16 +58,16 @@ impl SettledForkedAttempt {
             owner_results.matches_creation_plan(&plan),
             "settled branch owner results must match the reserved creation plan"
         );
-        let (
+        let crate::publication::ReservedAttemptCapacityInputs {
             reserved_commit_identity,
             product_unpublished_identity,
             reserved_commit_capacity,
-            recovery_slot,
+            reserved_recovery_slot: recovery_slot,
             reserved_component_pin_pair,
-            _reserved_publication_capacity,
+            reserved_publication_capacity: _,
             history,
             operation,
-        ) = capacities.into_parts();
+        } = capacities.into_parts();
         Self {
             attempt_identity: identity,
             expected_head: source,

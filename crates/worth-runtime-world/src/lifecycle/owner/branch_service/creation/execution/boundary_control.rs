@@ -99,7 +99,7 @@ impl Drop for CreationBoundaryRehearsalGuard {
         }
         drop(armed);
         assert!(
-            !(self.rehearsal.timed_out() && !std::thread::panicking()),
+            !self.rehearsal.timed_out() || std::thread::panicking(),
             "creation boundary rehearsal was never released within {CREATION_BOUNDARY_PAUSE_TIMEOUT:?}"
         );
     }

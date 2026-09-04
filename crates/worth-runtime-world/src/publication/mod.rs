@@ -32,7 +32,6 @@ pub use outcome::RuntimeWorldPublicationOutcome;
 pub use owner_execution::OwnerExecutionSettlement;
 pub(crate) use owner_execution::{
     retain_attempt_effects, RetainedAttemptInputs, RetainedOwnerEffectInputs,
-    RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
 };
 pub use owner_results::{
     CompositeOwnerExecutionResults, CompositeRelationalOwnerResult, CompositeSignalOwnerResult,

@@ -5,7 +5,8 @@
 //! only custody covering the gap between `begin_recovery()` and the installed
 //! recovery record is the operation reservation itself: while it lives the
 //! ledger reports one recovering operation, and `close()` must answer
-//! `RecoveryInProgress`; once the record exists the installed slot takes over.
+//! `InFlightCriticalSection`; once the record exists the installed slot takes
+//! over.
 //!
 //! The route is reached by withholding the observation authority that
 //! `issue_observation_authority` already models as a denial. Every other
@@ -23,7 +24,6 @@ use crate::lifecycle::{
 };
 use crate::publication::{
     RelationalAttemptProgressPosture, RuntimeWorldCancellationSource, SignalAttemptProgressPosture,
-    RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
 };
 use crate::recovery::{
     next_actions_for_progress, ProductUnpublishedCause, ProductUnpublishedNextAction,
@@ -194,7 +194,8 @@ fn assert_finalization_record_contract(effects: &ProductUnpublishedOwnerEffects)
     );
     assert_eq!(
         effects.live_obligation_count(),
-        RETENTION_PENDING_LIVE_OBLIGATION_COUNT
+        4,
+        "the exact pin pair, the recovery slot, and the installed successor history"
     );
     assert_eq!(
         effects.metadata_bytes(),

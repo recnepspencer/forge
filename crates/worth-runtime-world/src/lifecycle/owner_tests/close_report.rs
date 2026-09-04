@@ -121,6 +121,35 @@ fn close_reclaims_released_component_pins_and_never_a_retained_record_pin() {
     );
 }
 
+/// CLS-001. A pre-movement CAS loser released its history slot but still
+/// occupies its recovery slot, so its row reports the exact pin pair as the
+/// component half and that slot as the composite half. Both halves are the
+/// record's own count read by scope, never a component charge subtracted from
+/// a total that counted the pins differently.
+#[test]
+fn close_reports_a_pre_movement_loser_as_its_pin_pair_plus_its_recovery_slot() {
+    let race = resolve_one_race(CompositeLateCancellationPosture::NotRequested);
+    assert_eq!(race.retained.successor_commit(), None);
+    assert_eq!(race.retained.live_obligation_count(), 3);
+
+    let report = race
+        .owner
+        .close()
+        .expect("a retained record is exposed by close, never refused");
+
+    let row = &report.retained_records()[0];
+    assert_eq!(
+        row.live_component_obligations(),
+        2,
+        "the loser still holds its exact relational and signal pins"
+    );
+    assert_eq!(
+        row.live_composite_obligations(),
+        1,
+        "the loser installed no successor, so the recovery slot it occupies is its one composite obligation"
+    );
+}
+
 /// REV-D-003. The ledger check and the Open -> Closing flip are one window: a
 /// reservation offered while close is draining must not be admitted, because no
 /// report row could name it.
@@ -175,9 +204,9 @@ fn close_admits_no_operation_between_its_ledger_check_and_its_state_flip() {
 
 /// REV-D-006. A record in the `ReacquisitionPending` posture holds no issued
 /// pins but does hold a reserved component pin pair, so its component half is a
-/// pair and its composite half is the successor history protection it still
-/// owes. The split is read from the record, never inferred from the retained
-/// posture's shape.
+/// pair and its composite half is the recovery slot it occupies plus the
+/// successor history protection it still owes. The split is read from the
+/// record, never inferred from the retained posture's shape.
 #[cfg(feature = "test-operation-control")]
 #[test]
 fn close_reports_a_pending_record_as_a_reserved_component_pair() {
@@ -205,8 +234,8 @@ fn close_reports_a_pending_record_as_a_reserved_component_pair() {
     );
     assert_eq!(
         row.live_composite_obligations(),
-        1,
-        "the remaining charge is the composite successor history protection"
+        2,
+        "the composite half is the recovery slot and the installed successor history protection"
     );
     assert_eq!(
         row.live_component_obligations() + row.live_composite_obligations(),
