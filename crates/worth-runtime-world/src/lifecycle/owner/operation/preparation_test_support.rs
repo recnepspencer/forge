@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::branch::reference_test_fixture;
+use worth_signal::facade::branch::AdmittedSignalBranchBasis;
+
+use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
 use crate::branch::{
     ProductBranchCreationIntent, ProductBranchCreationPlans, RelationalBranchCreationPlan,
     SignalBranchCreationPlan,
@@ -12,11 +14,16 @@ use crate::budget::{
     RuntimeWorldObservationBudgetInstallation, RuntimeWorldPublicationBudgetInstallation,
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
-use crate::lifecycle::{RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant};
+use crate::lifecycle::{
+    RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant,
+    RuntimeWorldObservationService, RuntimeWorldOwnerExecutionService,
+    RuntimeWorldPreparationService, RuntimeWorldProductPublicationService,
+};
 use crate::publication::{
-    CompositeComponentIntent, CompositePublicationIntent, LoweredOwnerComponentPlan,
-    RelationalComponentPlan, ResolvedExpectedProductHead, SignalComponentPlan,
-    SignalComponentPlanPosture, WithSignal,
+    CompositeComponentIntent, CompositeLateCancellationPosture, CompositePublicationIntent,
+    LoweredOwnerComponentPlan, OwnerExecutionOutcome, RelationalComponentPlan,
+    ResolvedExpectedProductHead, RuntimeWorldCancellationSource, RuntimeWorldPublicationOutcome,
+    SignalComponentPlan, SignalComponentPlanPosture, WithSignal,
 };
 
 pub(super) type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
@@ -73,6 +80,21 @@ pub(super) fn setup_with_custody(
     publication_attempts: u64,
     custody_records: u64,
 ) -> (Arc<TestOwner>, ProductBranchObservation) {
+    let (_fixture, owner, source) = setup_with_fixture(publication_attempts, custody_records);
+    (owner, source)
+}
+
+/// The same world with the component fixture handed back. An owner effect
+/// reaches the real Relational and Signal runtimes the fixture owns, so a test
+/// that executes anything must keep it alive.
+pub(super) fn setup_with_fixture(
+    publication_attempts: u64,
+    custody_records: u64,
+) -> (
+    RealReferenceFixture,
+    Arc<TestOwner>,
+    ProductBranchObservation,
+) {
     let mut fixture = reference_test_fixture::real_fixture(8, 8);
     let owner = Arc::new(
         TestOwner::new(fixture.owner_inputs(
@@ -87,7 +109,7 @@ pub(super) fn setup_with_custody(
             panic!("bootstrap unexpectedly denied: {:?}", no_effect.cause())
         }
     };
-    (owner, performed.product_branch().clone())
+    (fixture, owner, performed.product_branch().clone())
 }
 
 /// The focused Signal-only publication meaning: an explicit Signal
@@ -142,6 +164,84 @@ pub(super) fn retained_relational_plan(
         intent,
         RelationalComponentPlan::retain_exact(expected.basis().relational_basis().clone()),
         signal_plan,
+    )
+}
+
+/// Move the product cell off `expected` through the canonical owner path: one
+/// Signal-only publication, executed and published, then re-observed. Nothing
+/// here mints CAS authority; it is the same route a competing publisher takes.
+pub(super) fn advance_product_head(
+    owner: &TestOwner,
+    expected: &ProductBranchObservation,
+) -> ProductBranchObservation {
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let prepared = RuntimeWorldPreparationService::prepare_publication(
+        owner,
+        expected.clone(),
+        CompositePublicationIntent::with_signal(None),
+        &cancellation.token(),
+        None,
+    )
+    .expect("the current head admits a Signal-only publication");
+    let mut context = ();
+    let settlement = match RuntimeWorldOwnerExecutionService::execute_with_signal(
+        owner,
+        prepared,
+        &mut context,
+        &cancellation.token(),
+        |_| Ok(()),
+    ) {
+        OwnerExecutionOutcome::Settled(settlement) => settlement,
+        other => panic!("the head-advancing publication must settle: {other:?}"),
+    };
+    let successor = settlement
+        .successor_basis()
+        .cloned()
+        .expect("a settled Signal advance returns its successor basis");
+    let ready = settlement
+        .ready(successor)
+        .expect("the settled advance forms a ready publication");
+    let cell = owner
+        .state
+        .branches
+        .root_cell()
+        .expect("the bootstrapped product branch has a reference cell");
+    match RuntimeWorldProductPublicationService::publish(
+        owner,
+        ready,
+        &cell,
+        CompositeLateCancellationPosture::NotRequested,
+    ) {
+        RuntimeWorldPublicationOutcome::Performed(_) => {}
+        other => panic!("the head-advancing publication must perform: {other:?}"),
+    }
+    RuntimeWorldObservationService::observe_product_branch(
+        owner,
+        &expected.branch_identity().clone(),
+    )
+    .expect("the owner observes its advanced product head")
+}
+
+/// A lowered plan whose two postures agree with its component intent but whose
+/// Signal leg still pins a basis the admitted head has moved past. Only the
+/// component-basis half of the consistency predicate can refuse it.
+pub(super) fn plan_pinning_signal_basis(
+    owner: &TestOwner,
+    expected: &ProductBranchObservation,
+    signal_basis: AdmittedSignalBranchBasis,
+) -> LoweredOwnerComponentPlan {
+    let intent = CompositeComponentIntent::signal_only();
+    let current = owner
+        .current_product_head_snapshot(expected)
+        .expect("the advanced product branch still has a reference cell");
+    let resolved =
+        ResolvedExpectedProductHead::from_current(intent.clone(), expected.clone(), &current)
+            .expect("the advanced head is its own current image");
+    LoweredOwnerComponentPlan::new(
+        resolved,
+        intent,
+        RelationalComponentPlan::retain_exact(expected.basis().relational_basis().clone()),
+        SignalComponentPlan::advance_exact(signal_basis),
     )
 }
 

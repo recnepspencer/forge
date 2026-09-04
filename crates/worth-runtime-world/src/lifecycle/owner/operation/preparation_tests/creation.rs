@@ -1,5 +1,6 @@
 use super::super::preparation_test_support::{
-    fork_both_intent, reservation_counts, setup, setup_with_custody, TestOwner,
+    advance_product_head, fork_both_intent, reservation_counts, setup, setup_with_custody,
+    setup_with_fixture, TestOwner,
 };
 use crate::branch::{
     ProductBranchCreationIntent, ProductBranchObservation, RelationalBranchCreationPlan,
@@ -23,6 +24,31 @@ fn prepare(
         &RuntimeWorldCancellationSource::new().token(),
         None,
     )
+}
+
+/// The head comparison in `admit_creation_source` is the creation lane's
+/// stale-source gate: a source the reference cell has moved past is refused
+/// before a single capacity is charged.
+#[test]
+fn stale_creation_source_is_denied_before_any_reservation() {
+    let (_fixture, owner, source) = setup_with_fixture(2, 8);
+    let advanced = advance_product_head(owner.as_ref(), &source);
+    assert_ne!(advanced.selected_commit(), source.selected_commit());
+    let before = reservation_counts(owner.as_ref());
+    assert_eq!(owner.state.operation.active(), 0);
+
+    let denied = prepare(owner.as_ref(), &source, fork_both_intent("stale-child"))
+        .expect_err("a source the cell has moved past cannot be admitted");
+    // One line at creation_reservation.rs:66 turns this into
+    // RuntimeWorldBranchAdmissionDenial::StaleSourceHead once Lane A adds the
+    // variant; nothing else about this proof changes.
+    assert_eq!(denied, RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+    assert_eq!(reservation_counts(owner.as_ref()), before);
+    assert_eq!(owner.state.operation.active(), 0);
+
+    let fresh = prepare(owner.as_ref(), &advanced, fork_both_intent("fresh-child"))
+        .expect("the advanced head is admitted by the same gate");
+    assert_eq!(fresh.source(), &advanced);
 }
 
 /// The creation twin of the publication preparation contract: the reserved

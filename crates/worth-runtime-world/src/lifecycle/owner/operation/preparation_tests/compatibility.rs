@@ -1,4 +1,7 @@
-use super::super::preparation_test_support::{reservation_counts, retained_relational_plan, setup};
+use super::super::preparation_test_support::{
+    advance_product_head, plan_pinning_signal_basis, reservation_counts, retained_relational_plan,
+    setup, setup_with_fixture,
+};
 use crate::publication::{
     CompositeComponentIntent, NoEffectCause, RuntimeWorldCancellationSource,
     SignalComponentPlanPosture,
@@ -61,5 +64,31 @@ fn retain_retain_publication_is_denied_before_any_reservation() {
         .expect_err("a publication that moves neither owner has nothing to publish");
     assert_eq!(denied.cause(), NoEffectCause::PreEffectFailure);
     assert_eq!(reservation_counts(owner.as_ref()), (0, 0, 0, 0, 0));
+    assert_eq!(owner.state.operation.active(), 0);
+}
+
+/// The other half of the consistency predicate: postures can agree with the
+/// intent and the plan still be internally wrong, because a component leg pins
+/// a basis its own admitted head has moved past. That is refused at the same
+/// boundary, before any capacity is charged, and it is a distinct failure from
+/// a stale head - the head here is the current one.
+#[test]
+fn plan_pinning_a_superseded_component_basis_is_rejected_before_reservation() {
+    let (_fixture, owner, source) = setup_with_fixture(2, 8);
+    let advanced = advance_product_head(owner.as_ref(), &source);
+    let superseded = source.basis().signal_basis().clone();
+    assert_ne!(
+        superseded.admission_identity(),
+        advanced.basis().signal_basis().admission_identity()
+    );
+    let before = reservation_counts(owner.as_ref());
+
+    let plan = plan_pinning_signal_basis(owner.as_ref(), &advanced, superseded);
+    let denied = owner
+        .reserve(plan, &RuntimeWorldCancellationSource::new().token(), None)
+        .expect_err("a leg pinning a superseded component basis cannot reserve");
+    assert_eq!(denied.cause(), NoEffectCause::PreEffectFailure);
+    assert_eq!(denied.expected_head(), Some(&advanced));
+    assert_eq!(reservation_counts(owner.as_ref()), before);
     assert_eq!(owner.state.operation.active(), 0);
 }

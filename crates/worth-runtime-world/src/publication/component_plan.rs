@@ -1,6 +1,5 @@
 use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
 
-use crate::branch::ProductBranchObservation;
 use crate::publication::{CompositeComponentIntent, ResolvedExpectedProductHead};
 
 mod compatibility;
@@ -66,11 +65,14 @@ impl LoweredOwnerComponentPlan {
         (self.expected, self.intent, self.relational, self.signal)
     }
 
-    /// Recheck the complete plan against the exact product predecessor before
-    /// any bounded reservation is acquired. Component basis equality is
-    /// owner-issued equality, not a digest or branch-name comparison.
-    pub(crate) fn is_compatible_with(&self, expected: &ProductBranchObservation) -> bool {
-        compatibility::plan_is_compatible_with(self, expected)
+    /// Recheck the plan against its own admitted head before any bounded
+    /// reservation is acquired: postures against the component intent they
+    /// were lowered from, and each leg against the head's component basis.
+    /// Component basis equality is owner-issued equality, not a digest or
+    /// branch-name comparison. Staleness against the live reference cell is a
+    /// separate check.
+    pub(crate) fn is_internally_consistent(&self) -> bool {
+        compatibility::plan_is_internally_consistent(self)
     }
 
     pub(crate) fn take_relational_candidate(

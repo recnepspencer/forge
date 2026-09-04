@@ -43,10 +43,12 @@ where
     /// an admitted source that still matches the registry's current head for
     /// that branch on every observation axis.
     ///
-    /// The head comparison is taken after lowering, against the plan's own
-    /// admitted source and the live reference cell, so it is the last check
-    /// before any capacity is charged and it compares the plan against
-    /// something the caller does not supply.
+    /// The head comparison is taken after lowering, between the plan's
+    /// admitted source and the live reference cell for that branch. Its
+    /// independence comes from the cell: the caller supplies the source, the
+    /// registry supplies what is current, and a caller holding an observation
+    /// the cell has since moved past is refused here, before any capacity is
+    /// charged.
     fn admit_creation_source(
         &self,
         source: &ProductBranchObservation,

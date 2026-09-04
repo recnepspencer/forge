@@ -135,7 +135,7 @@ where
         if expected.owner_identity() != self.owner_identity() {
             return Err(NoEffectCause::OwnerDeniedBeforeEffect);
         }
-        if !plan.is_compatible_with(expected) {
+        if !plan.is_internally_consistent() {
             return Err(NoEffectCause::PreEffectFailure);
         }
         if !self.current_product_head_is(expected) {

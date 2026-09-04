@@ -32,7 +32,7 @@ where
         if self.deadline_expired(attempt.deadline()) {
             return Err(NoEffectCause::DeadlineBeforeEffect);
         }
-        if !plan.is_compatible_with(plan.expected().expected()) {
+        if !plan.is_internally_consistent() {
             return Err(NoEffectCause::PreEffectFailure);
         }
         if matches!(
