@@ -890,6 +890,93 @@ publication. No lane holds a product lock across an owner call. Predictable
 World failures remain pre-effect; continuation toward product movement after a
 partial remains a fresh Query-admitted operation.
 
+#### Phase 4 closure record (2026-09-04)
+
+Phase 4 is implemented on branch `codex/9-17-2-phase4-contract-sync`. The
+certified code revision is `598bf7f88a`; this record is the docs-only commit
+that follows it. Nothing is merged to master and nothing is pushed.
+
+**Commits since the Phase 3 head `f71c88cc8a`** (in order): `b2145be130`,
+`4f858fc81e`, `7c8d0f6c91` (Codex forked-branch creation), `bec8baee1b` (spec
+sync to the 2026-09-02 revision), `6ac9d37f84` (operation reservation held
+across forked-branch recovery install), `b93fbd6a1b` (two-by-two creation and
+typestate publication contract freeze), lane B `3aa3df85ab` + `a5dff614c7`
+(lowering, compatibility, reservation), lane A `a4806059d9` + `440fb82419`
+(branch creation custody and retirement), lane C `0f4b28a74e` + `e68d8a887a`
++ `1f6daf4481` (execution, recovery, evidence), lane D `88b244496b` +
+`c9d71bc219` (product CAS and close report), `33f8e6fc94` (lane integration),
+`e255d01ba7` (integration findings INT-001..010), `d0312854f3` (custody drain
+on every recovery release), `598bf7f88a` (closure review findings CLS-001..006).
+
+**Gate on `598bf7f88a`** (every cargo command through the shared
+`CARGO_TARGET_DIR`):
+
+| Gate | Result |
+| --- | --- |
+| `cargo test -p worth-runtime-world --lib` | 154 passed |
+| `cargo test -p worth-runtime-world --lib --features test-operation-control` | 161 passed |
+| `cargo clippy -p worth-runtime-world --lib --tests --features test-operation-control` (crate lints `deny(clippy::all)`) | 0 errors |
+| `cargo test -p worth-runtime-world --test runtime_world_certification` | 13 passed |
+| `cargo fmt --all -- --check`, `git diff --check` | clean |
+| `scripts/ci/check_workspace_rust_line_caps.sh` (dirty and whole workspace) | PASS, no allowlist edits |
+| `scripts/quality/scrutinize_rust_functions.py` (whole crate) | 47 candidates, all pre-existing, 0 net new |
+| `tools/boundary-check`, `tools/agent-context check` | green |
+| runtime-world compiler warning locations | 69 against the 78 at `6ac9d37f84`; all pre-existing dead-code warnings |
+
+**Reviewer verdicts.** Lane B APPROVE after one correction round; lane A
+APPROVE after one; lane C APPROVE after two; lane D APPROVE after one. The
+integration delta (`33f8e6fc94`, `e255d01ba7`) was reviewed by the
+orchestrator, producing `d0312854f3`. Holistic closure review over
+`f71c88cc8a..d0312854f3`: REQUEST CHANGES on two Medium findings (the retained
+record's live obligation count had two authorities in two units, so a
+pre-movement CAS loser was reported with zero composite obligations while it
+held its recovery slot; two in-range lines failed the crate's deny-level clippy
+gate), fixed in `598bf7f88a` together with the Low findings. Re-review over
+`f71c88cc8a..598bf7f88a`: APPROVE.
+
+**Deferred with reason (not Phase 4 defects):**
+
+- `SPEC-P4-017` facade cutover (`RuntimeWorldOwner`/`builder()`, public
+  `CompositePublicationIntent`, facade-driveable ports) is the Phase 5 entry
+  condition; Phase 4 froze the crate-internal seams it cuts over.
+- `SPEC-P4-018` crate documentation (`COMPOSITE_HISTORY.md` branch-creation
+  section, basis-identity naming) is a Phase 6 documentation item.
+- The Product Branch contract figure above still names `ProductBranchIntent`;
+  the frozen type is `ProductBranchCreationIntent`. Documentation item for
+  Phase 6.
+- `CLS-004`/`CLS-007`: two denial names are imprecise under the frozen facade.
+  The fork finalization retention route records `OwnerLost` for what is a
+  Runtime World bookkeeping failure (a usize overflow in the pin or protection
+  counts), and `OwnerUnavailable` covers both a closed owner and the transient
+  publication re-index window. Both are `RuntimeWorldBranchAdmissionDenial` /
+  `ProductUnpublishedCause` variant names and change with the Phase 5 facade
+  freeze.
+- `INT-BLOCK-1`: `ProductBranchRegistry` keeps the set of retired names to
+  tell `AlreadyRetired` from `UnknownBranch`; under the frozen
+  `retire_product_branch(owner, branch)` seam that set grows with the number
+  of distinct names ever retired and not recreated. Bounding it needs the
+  occurrence named at retirement, `retire_product_branch(owner, branch,
+  incarnation)`, which is a facade signature change and is therefore a Phase 5
+  serial-gate item.
+
+**Accepted residual risk:**
+
+- A creation that observes a head between the product reference move and the
+  registry re-index resolves no commit for its basis and is denied
+  `OwnerUnavailable`; the denial is transient and retryable (see `CLS-007`).
+- Close releases every non-root product reference and drains custody into
+  `outstanding_owner_retirement_work`; the caller must dispatch that work,
+  close does not retire component branches.
+- Observation issuance after the fork's product movement is reserved only by
+  construction (the observation pair joins slots the publication already
+  installed on the same basis), not by a token; a change that makes the
+  observation basis differ from the publication basis would reintroduce a
+  post-effect capacity denial. A one-line proof pinning the unique pin count
+  across `issue_observation` is a Phase 5 entry item.
+- `next_actions_for_progress` derives `CloseOwner` only from `OwnerLost`;
+  `ProductPublicationLost` carries no owner-unavailable evidence, so a loser
+  that later finds its owner gone must be re-observed, not inferred.
+
 ### Phase 5: Serial progression and facade freeze
 
 Assemble the typed progression; audit cancellation/capacity edges; prove three
