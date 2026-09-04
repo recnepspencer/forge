@@ -60,16 +60,19 @@ pub(crate) fn next_actions_for_progress(
 /// A record owes settlement while its Relational commit is performed but not
 /// settled and no Signal movement has been recorded against it.
 ///
-/// The Signal conjunct is not redundant. Publication settles the Relational leg
-/// before the pre-advance gate, and the gate sits between that settlement and
-/// the Signal advance, so a *publication* that still owes settlement provably
-/// never reached the Signal owner and is always `Untouched` here. The shape
-/// that carries a moved Signal beside an unsettled Relational commit is fork
-/// finalization, which is branch-creation evidence rather than publication
-/// evidence: its frozen contract, asserted in
-/// `branch/retirement_tests/fork_finalization_race.rs`, offers release and
-/// inspection only. Keying on `Untouched` is what keeps those two apart from
-/// one authority.
+/// Publication settles the Relational leg before the pre-advance gate, and the
+/// gate sits between that settlement and the Signal advance, so a publication
+/// that still owes settlement provably never reached the Signal owner and is
+/// always `Untouched` here.
+///
+/// Fork finalization is not what the Signal conjunct separates out.
+/// `RelationalAttemptProgress::forked` carries no commit evidence, and
+/// `requires_settlement()` matches on evidence, so fork-only progress is
+/// already excluded by the first conjunct -- as
+/// `branch/retirement_tests/fork_finalization_race.rs` states, settlement is
+/// structurally false on that route. The Signal conjunct is defence in depth
+/// against a shape that pairs a moved Signal with an unsettled Relational
+/// commit, not the discriminator between publication and fork evidence.
 fn settlement_is_owed(progress: &CompositeAttemptProgress) -> bool {
     progress.relational_requires_settlement()
         && progress.signal_posture() == SignalAttemptProgressPosture::Untouched
