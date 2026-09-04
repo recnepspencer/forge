@@ -99,8 +99,19 @@ impl ProductUnpublishedOwnerEffectsRecord {
                 settlement,
             );
         state.route = None;
-        self.next_actions =
-            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
+        let next_actions = super::next_actions_for_progress(&self.progress);
+        // This record owes settlement: `recovery_continuation` reaches these
+        // transitions only for a record whose Relational leg requires it. The
+        // derived continuation therefore names settlement first, unless the
+        // Signal owner moved beside it -- see `settlement_is_owed`.
+        debug_assert!(
+            self.progress.signal_posture()
+                != crate::publication::SignalAttemptProgressPosture::Untouched
+                || next_actions.first()
+                    == Some(&ProductUnpublishedNextAction::SettleOwnerEffects),
+            "a retained record that owes settlement and never reached the Signal owner names settlement first"
+        );
+        self.next_actions = super::RetainedNextActions::from_vec(next_actions);
     }
 
     pub(crate) fn retain_identity_repair(&mut self, mut state: RelationalRecoveryRecordState) {
@@ -110,8 +121,19 @@ impl ProductUnpublishedOwnerEffectsRecord {
             .take()
             .expect("recovery result projection remains while identity repair is required");
         state.route = None;
-        self.next_actions =
-            super::RetainedNextActions::from_vec(super::next_actions_for_progress(&self.progress));
+        let next_actions = super::next_actions_for_progress(&self.progress);
+        // This record owes settlement: `recovery_continuation` reaches these
+        // transitions only for a record whose Relational leg requires it. The
+        // derived continuation therefore names settlement first, unless the
+        // Signal owner moved beside it -- see `settlement_is_owed`.
+        debug_assert!(
+            self.progress.signal_posture()
+                != crate::publication::SignalAttemptProgressPosture::Untouched
+                || next_actions.first()
+                    == Some(&ProductUnpublishedNextAction::SettleOwnerEffects),
+            "a retained record that owes settlement and never reached the Signal owner names settlement first"
+        );
+        self.next_actions = super::RetainedNextActions::from_vec(next_actions);
     }
 
     pub(crate) fn settle_relational_recovery_with_receipt(

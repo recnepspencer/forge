@@ -130,6 +130,15 @@ fn missing_signal_sibling_after_relational_movement_retains_exact_progress() {
         },
     ));
     assert_retains_only_the_relational_effect(&record, ProductUnpublishedCause::SiblingOwnerDenied);
+    assert_eq!(
+        record.next_actions(),
+        [
+            ProductUnpublishedNextAction::StartFreshCompositePublication,
+            ProductUnpublishedNextAction::ReleaseObligations,
+            ProductUnpublishedNextAction::Inspect,
+        ],
+        "a minted record whose Relational publication evidence is settled advertises a fresh composite attempt, in the authority's order"
+    );
     assert!(
         record.successor_basis().is_some(),
         "the retained record names the successor basis the settled effect reached"

@@ -1,6 +1,18 @@
 //! SPEC-P4-013. Every retained owner-effect record derives its continuation
-//! from one authority, `next_actions_for_progress`, and that derivation is
-//! total over the composite progress shapes this world can construct.
+//! from one authority, `next_actions_for_progress`. This module drives that
+//! authority over the composite progress shapes reachable from the constructors
+//! in `publication/progress`, using evidence minted by the production ports.
+//!
+//! Two shapes are covered elsewhere rather than here. The fork-only `Performed`
+//! shape is proved against a real finalization record by
+//! `branch/retirement_tests/fork_finalization_race.rs`
+//! (`assert_finalization_record_contract`), and a minted record advertising a
+//! settled publication is proved by
+//! `missing_signal_sibling_after_relational_movement_retains_exact_progress` in
+//! `failures.rs`. `SettlementPending` is not reachable from this crate at all:
+//! `DeferredPublicationSettlement::new` is `pub(crate)` to `worth-relational`.
+//! It drives the same `requires_settlement()` predicate as the `Performed` and
+//! `SettlementRequired` shapes proved below.
 
 use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::history::RelationalCommitIdentity;
@@ -174,7 +186,7 @@ fn assert_settled_publication_shapes(
 }
 
 #[test]
-fn cas_loss_and_late_cancel_records_derive_their_next_actions() {
+fn every_composite_progress_shape_derives_an_exact_continuation() {
     let (mut fixture, owner) = derivation_owner();
     let evidence = settled_relational_evidence(&fixture, &owner);
     assert_shapes_without_publication_evidence(&mut fixture);

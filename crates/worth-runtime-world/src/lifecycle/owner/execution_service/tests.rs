@@ -24,7 +24,7 @@ use crate::publication::{
     PreparedCompositePublicationWithoutSignal, RelationalAttemptProgressPosture,
     RuntimeWorldCancellationSource, SignalAttemptProgressPosture,
 };
-use crate::recovery::ProductUnpublishedCause;
+use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 
 use super::rehearsal::{ExecutionRehearsal, ExecutionRehearsalBoundary, ReachedExecutionBoundary};
 

@@ -117,11 +117,16 @@ fn deadline_between_the_relational_effect_and_the_signal_advance_retains_only_th
     drop(record);
 }
 
-/// The third arm of the same gate. A product head replaced by a competing
-/// winner is reported as a stale head together with the winner the attempt now
-/// observes, so a settled Relational effect stops before the Signal owner.
+/// The third arm of the same gate, proved directly on the gate itself.
+///
+/// This is a gate-level unit proof, not an end-to-end race: any competing
+/// publication that could replace the product head also moves a component
+/// basis, so a racing attempt is denied at admission long before it reaches
+/// this gate. The gate reports the cause only — it carries no observed head —
+/// so the winner an attempt observes is proved where a caller is actually told
+/// about it, on the no-effect surface in `failures.rs`.
 #[test]
-fn the_pre_advance_gate_reports_a_stale_product_head_with_the_observed_winner() {
+fn the_pre_advance_gate_denies_a_stale_product_head_before_the_signal_advance() {
     let (fixture, owner, expected) = setup_with_relational_source();
     let competing_ready = ready_relational_competitor(
         &fixture,
@@ -129,6 +134,8 @@ fn the_pre_advance_gate_reports_a_stale_product_head_with_the_observed_winner() 
         &expected,
         "stale-between-owners-competitor",
     );
+    let (rehearsal, _reached) =
+        arm_rehearsal(owner.as_ref(), ExecutionRehearsalBoundary::SignalAdvance);
     let cancellation = RuntimeWorldCancellationSource::new();
     assert!(
         owner
@@ -137,7 +144,7 @@ fn the_pre_advance_gate_reports_a_stale_product_head_with_the_observed_winner() 
         "the gate admits the attempt while its exact head is current"
     );
 
-    let winner = publish_ready_competing_head(owner.as_ref(), competing_ready, &expected);
+    publish_ready_competing_head(owner.as_ref(), competing_ready, &expected);
     assert!(
         matches!(
             owner.pre_advance_signal_gate(&expected, None, &cancellation.token()),
@@ -149,10 +156,8 @@ fn the_pre_advance_gate_reports_a_stale_product_head_with_the_observed_winner() 
         "a replaced product head stops the attempt before the Signal advance"
     );
     assert_eq!(
-        owner
-            .current_product_head_snapshot(&expected)
-            .expect("the replaced cell reports the winner the attempt observes")
-            .selected_commit(),
-        winner.selected_commit(),
+        rehearsal.signal_advance_entries(),
+        0,
+        "no outcome of this gate contacts the Signal owner"
     );
 }
