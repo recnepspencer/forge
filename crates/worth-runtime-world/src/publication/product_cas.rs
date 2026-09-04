@@ -126,10 +126,6 @@ impl CompositePublicationReady {
         &self.progress
     }
 
-    pub(crate) fn successor_basis(&self) -> &crate::basis::AdmittedCompositeRuntimeWorldBasis {
-        self.commit.basis()
-    }
-
     /// Hand the exact reserved contents back as one bundle. Nothing is
     /// re-derived; this is the same linear custody the constructor took.
     fn into_inputs(self) -> CompositePublicationReadyInputs {

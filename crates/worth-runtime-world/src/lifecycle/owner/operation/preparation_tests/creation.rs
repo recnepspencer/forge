@@ -39,10 +39,7 @@ fn stale_creation_source_is_denied_before_any_reservation() {
 
     let denied = prepare(owner.as_ref(), &source, fork_both_intent("stale-child"))
         .expect_err("a source the cell has moved past cannot be admitted");
-    // One line at creation_reservation.rs:66 turns this into
-    // RuntimeWorldBranchAdmissionDenial::StaleSourceHead once Lane A adds the
-    // variant; nothing else about this proof changes.
-    assert_eq!(denied, RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+    assert_eq!(denied, RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
     assert_eq!(reservation_counts(owner.as_ref()), before);
     assert_eq!(owner.state.operation.active(), 0);
 

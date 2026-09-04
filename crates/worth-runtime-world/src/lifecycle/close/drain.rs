@@ -162,6 +162,11 @@ where
 /// panics on one it cannot describe.
 fn describe(effects: &ProductUnpublishedOwnerEffects) -> RuntimeWorldRetainedRecordReport {
     let live_obligations = effects.live_obligation_count();
+    // Both retention postures charge exactly 2 component-scoped obligations
+    // against a retained record's frozen live count of 3, so the clamp is
+    // unreachable today. It stays because the split must remain total: a future
+    // posture that charges more components than the record has obligations must
+    // report a zero composite half, never underflow.
     let live_component_obligations = component_charge(effects).min(live_obligations);
     RuntimeWorldRetainedRecordReport::new(
         effects.identity().clone(),

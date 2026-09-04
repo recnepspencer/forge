@@ -69,13 +69,17 @@ fn budgets(publication_attempts: u64, custody_records: u64) -> RuntimeWorldBudge
     .expect("focused preparation budgets are nonzero")
 }
 
+/// The focused world with the component fixture already dropped, so no owner
+/// effect may be driven through it. A test that executes anything against the
+/// real Relational or Signal runtimes must use `setup_with_fixture` instead.
 pub(super) fn setup(publication_attempts: u64) -> (Arc<TestOwner>, ProductBranchObservation) {
     setup_with_custody(publication_attempts, 8)
 }
 
 /// The same focused world with an explicit owner-created custody bound, so a
 /// creation reservation can be driven to custody exhaustion without disturbing
-/// any other capacity.
+/// any other capacity. It drops the component fixture too: no owner effects
+/// through this helper, use `setup_with_fixture`.
 pub(super) fn setup_with_custody(
     publication_attempts: u64,
     custody_records: u64,

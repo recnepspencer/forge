@@ -52,8 +52,4 @@ impl LoweredBranchCreationPlan {
     pub(crate) fn is_exact_reuse(&self) -> bool {
         self.relational.is_reuse_exact() && self.signal.is_reuse_exact()
     }
-
-    pub(crate) fn is_compatible_with(&self, expected: &ProductBranchObservation) -> bool {
-        self.expected.compare(expected).is_ok()
-    }
 }

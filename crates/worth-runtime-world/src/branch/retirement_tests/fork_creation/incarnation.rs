@@ -72,7 +72,7 @@ fn assert_aba_observation_is_refused(
         ),
     )
     .expect_err("a stale occurrence cannot be the source of a creation");
-    assert_eq!(denial, RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+    assert_eq!(denial, RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
     assert_eq!(super::super::owner_lifecycles(owner), lifecycles_before);
     assert_eq!(owner.state.branches.branch_count(), branches_before);
     assert_eq!(owner.state.branches.reserved_branch_count(), 0);

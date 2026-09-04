@@ -140,7 +140,10 @@ impl CreationBoundaryRehearsal {
                 .wait_timeout(opened, remaining)
                 .unwrap_or_else(|error| error.into_inner());
             opened = next;
-            if result.timed_out() {
+            // A release that lands in the same instant the wait expires is a
+            // release, not a timeout: the loop condition, not the clock, is
+            // what decides whether this rehearsal was actually held.
+            if result.timed_out() && !*opened {
                 self.note_timeout();
                 return;
             }
