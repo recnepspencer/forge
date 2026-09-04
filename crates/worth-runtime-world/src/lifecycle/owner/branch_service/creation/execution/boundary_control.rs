@@ -12,6 +12,7 @@
 //! name instead of hanging.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::SyncSender;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -40,6 +41,7 @@ where
             armed: Mutex::new(true),
             reached,
             release: (Mutex::new(false), Condvar::new()),
+            timed_out: AtomicBool::new(false),
         });
         let mut armed = rehearsals()
             .lock()
@@ -79,6 +81,11 @@ impl std::fmt::Debug for CreationBoundaryRehearsalGuard {
 }
 
 impl Drop for CreationBoundaryRehearsalGuard {
+    /// Release and disarm, then refuse to let a rehearsal that resumed itself
+    /// pass as one this test held. Without this the arming test would fail on
+    /// whatever downstream assertion the unheld creation happened to break.
+    /// The panicking check only avoids aborting the process on an unwind that
+    /// is already reporting a failure.
     fn drop(&mut self) {
         self.rehearsal.release();
         let mut armed = rehearsals()
@@ -90,6 +97,11 @@ impl Drop for CreationBoundaryRehearsalGuard {
         if owned_registration {
             armed.remove(&self.owner);
         }
+        drop(armed);
+        assert!(
+            !(self.rehearsal.timed_out() && !std::thread::panicking()),
+            "creation boundary rehearsal was never released within {CREATION_BOUNDARY_PAUSE_TIMEOUT:?}"
+        );
     }
 }
 
@@ -98,6 +110,10 @@ struct CreationBoundaryRehearsal {
     armed: Mutex<bool>,
     reached: SyncSender<RuntimeWorldOwnerIdentity>,
     release: (Mutex<bool>, Condvar),
+    /// Set when the held creation gave up waiting. A timed-out rehearsal
+    /// resumed on its own, so everything the arming test observes afterwards
+    /// describes a world it never actually controlled.
+    timed_out: AtomicBool,
 }
 
 impl CreationBoundaryRehearsal {
@@ -117,6 +133,7 @@ impl CreationBoundaryRehearsal {
         let mut opened = opened.lock().unwrap_or_else(|error| error.into_inner());
         while !*opened {
             let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+                self.note_timeout();
                 return;
             };
             let (next, result) = signal
@@ -124,9 +141,18 @@ impl CreationBoundaryRehearsal {
                 .unwrap_or_else(|error| error.into_inner());
             opened = next;
             if result.timed_out() {
+                self.note_timeout();
                 return;
             }
         }
+    }
+
+    fn note_timeout(&self) {
+        self.timed_out.store(true, Ordering::SeqCst);
+    }
+
+    fn timed_out(&self) -> bool {
+        self.timed_out.load(Ordering::SeqCst)
     }
 
     fn release(&self) {

@@ -71,13 +71,13 @@ fn owner_created_component_branches_carry_custody_and_retirement_emits_typed_wor
         "reported work discharges the custody charge it was derived from"
     );
     drop(forked);
-    assert_reuse_owes_no_component_work();
 }
 
 /// The mirrored cell of the same matrix: an exact reuse creates no component
 /// branch, so it never enters custody and owes its owners nothing at
 /// retirement.
-fn assert_reuse_owes_no_component_work() {
+#[test]
+fn exactly_reused_component_branches_never_enter_custody_and_retirement_emits_no_work() {
     let (_fixture, owner, root) = super::super::setup(3);
     let reused = super::super::create_reused_branch(
         &owner,
