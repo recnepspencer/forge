@@ -376,3 +376,6 @@ mod published_head_reuse;
 
 #[path = "retirement_tests/fork_finalization_race.rs"]
 mod fork_finalization_race;
+
+#[path = "retirement_tests/observation_issuance_pins.rs"]
+mod observation_issuance_pins;
