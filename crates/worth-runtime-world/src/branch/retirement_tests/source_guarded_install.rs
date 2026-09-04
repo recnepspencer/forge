@@ -1,16 +1,18 @@
 //! Installation under the source head's guard.
 //!
 //! Exact reuse and fork finalization both recheck the source head before they
-//! charge anything, and a publication can land between that recheck and the
-//! registry installation. The installation therefore happens under the source
-//! cell's own read guard, so the recheck and the install are one step: a
-//! source that moved in the window is refused at the install, named the way
-//! the pre-effect recheck names it, and nothing is installed from a head that
-//! is no longer current. The window is reached through the seam that holds
-//! one creation just before it takes the guard.
+//! charge anything, and a publication or retirement can land between that
+//! recheck and the registry installation. The installation therefore happens
+//! under the source cell's own read guard, so the recheck and the install are
+//! one step: a source that moved in the window is refused at the install,
+//! named the way the pre-effect recheck names it, and nothing is installed
+//! from a head that is no longer current. The window is reached through the
+//! seam that holds one creation just before it takes the guard.
 //!
 //! A source branch that holds no occurrence at all is `RetiredBranch` on
-//! every creation route, the same answer observation gives for that branch.
+//! every creation route, the same answer observation gives for that branch,
+//! whether it was retired before the creation was admitted or while the
+//! creation was held at the guard.
 
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
@@ -36,7 +38,8 @@ const SOURCE_GUARD_TEST_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Run one creation, hold it just before its source-guarded installation, let
 /// the caller act on the world while it is held, then release it and return
-/// where it landed.
+/// where it landed. A creation that panics while held surfaces its own panic,
+/// not the completion channel's disconnection.
 fn creation_interrupted_before_install(
     owner: &Arc<TestOwner>,
     source: ProductBranchObservation,
@@ -65,11 +68,44 @@ fn creation_interrupted_before_install(
     while_held(owner.as_ref());
 
     drop(rehearsal);
-    let outcome = finished_rx
-        .recv_timeout(SOURCE_GUARD_TEST_TIMEOUT)
-        .expect("the creation finishes once its installation is released");
-    worker.join().expect("the creation worker does not panic");
-    outcome
+    match finished_rx.recv_timeout(SOURCE_GUARD_TEST_TIMEOUT) {
+        Ok(outcome) => {
+            worker.join().expect("the creation worker does not panic");
+            outcome
+        }
+        Err(failure) => {
+            if let Err(payload) = worker.join() {
+                std::panic::resume_unwind(payload);
+            }
+            panic!("the creation finishes once its installation is released: {failure:?}")
+        }
+    }
+}
+
+/// Retire `branch` while a creation from it is held at the guard.
+fn retire_while_held(owner: &TestOwner, branch: &ProductBranchObservation) {
+    let report =
+        RuntimeWorldBranchService::retire_product_branch(owner, branch.branch_identity().clone())
+            .expect("the source retires while the creation is held");
+    assert!(report.owner_retirement_work().is_empty());
+}
+
+/// A refused reuse installs nothing and keeps nothing: the destination
+/// reservation, the operation reservation, and every obligation the held
+/// reuse carried are released.
+fn assert_reuse_left_nothing(owner: &TestOwner, branches: usize, obligations: usize) {
+    assert_eq!(
+        owner.state.branches.branch_count(),
+        branches,
+        "no child is installed from a head that is no longer current"
+    );
+    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
+    assert_eq!(owner.state.operation.active(), 0);
+    assert_eq!(
+        owner.state.retention.active_component_obligation_count(),
+        obligations,
+        "the refused child's head and observation obligations are released"
+    );
 }
 
 #[test]
@@ -78,8 +114,9 @@ fn exact_reuse_whose_source_moves_before_install_is_refused_under_the_guard() {
     let owner = Arc::new(owner);
     let lifecycles_before = owner_lifecycles(&owner);
     let history_before = owner.state.history.len();
+    let before_hold = owner.state.retention.active_component_obligation_count();
     let held_source = source.clone();
-    let mut pins_after_move = None;
+    let mut expected_after = None;
     let denial = creation_interrupted_before_install(
         &owner,
         source.clone(),
@@ -95,10 +132,22 @@ fn exact_reuse_whose_source_moves_before_install_is_refused_under_the_guard() {
                 1,
                 "the reuse holds an operation reservation, so close cannot drain under it"
             );
+            let reuse_cost = paused_owner
+                .state
+                .retention
+                .active_component_obligation_count()
+                - before_hold;
+            assert!(reuse_cost > 0, "the held reuse carries its own obligations");
             // A different operation wins the product head this reuse was
             // admitted against, after its pre-charge recheck passed.
             seed_relational_source(paused_owner, &mut fixture, held_source);
-            pins_after_move = Some(paused_owner.state.retention.unique_pin_count());
+            expected_after = Some(
+                paused_owner
+                    .state
+                    .retention
+                    .active_component_obligation_count()
+                    - reuse_cost,
+            );
         },
     )
     .expect_err("a source that moved before the install is refused at the install");
@@ -106,24 +155,54 @@ fn exact_reuse_whose_source_moves_before_install_is_refused_under_the_guard() {
     assert_eq!(denial, RuntimeWorldBranchAdmissionDenial::StaleSourceHead);
     assert_eq!(owner_lifecycles(&owner), lifecycles_before);
     assert_eq!(
-        owner.state.branches.branch_count(),
-        1,
-        "no child is installed from a head that is no longer current"
-    );
-    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
-    assert_eq!(owner.state.operation.active(), 0);
-    assert_eq!(
         owner.state.history.len(),
         history_before + 1,
         "the winning publication is the only history the window added"
     );
-    assert_eq!(
-        Some(owner.state.retention.unique_pin_count()),
-        pins_after_move,
-        "the refused child's head and observation pins are released"
-    );
+    assert_reuse_left_nothing(&owner, 1, expected_after.expect("measured while held"));
     drop(source);
     drop(fixture);
+}
+
+#[test]
+fn exact_reuse_whose_source_retires_before_install_is_named_retired_under_the_guard() {
+    let (_fixture, owner, root) = setup_with_relational_source(3);
+    let child = create_reused_branch(&owner, &root, reuse_intent("source-retired-under-reuse"));
+    let owner = Arc::new(owner);
+    let lifecycles_before = owner_lifecycles(&owner);
+    let before_hold = owner.state.retention.active_component_obligation_count();
+    let held_child = child.clone();
+    let mut expected_after = None;
+    let denial = creation_interrupted_before_install(
+        &owner,
+        child.clone(),
+        reuse_intent("reuse-from-source-retired-at-the-guard"),
+        |paused_owner| {
+            let reuse_cost = paused_owner
+                .state
+                .retention
+                .active_component_obligation_count()
+                - before_hold;
+            retire_while_held(paused_owner, &held_child);
+            expected_after = Some(
+                paused_owner
+                    .state
+                    .retention
+                    .active_component_obligation_count()
+                    - reuse_cost,
+            );
+        },
+    )
+    .expect_err("a source retired before the install is refused at the install");
+
+    assert_eq!(
+        denial,
+        RuntimeWorldBranchAdmissionDenial::RetiredBranch,
+        "a source with no occurrence is retired, not stale, at the install too"
+    );
+    assert_eq!(owner_lifecycles(&owner), lifecycles_before);
+    assert_reuse_left_nothing(&owner, 1, expected_after.expect("measured while held"));
+    drop(child);
 }
 
 #[test]
@@ -157,40 +236,63 @@ fn a_fork_whose_source_moves_before_install_retains_the_winner_instead_of_instal
 
     let winner = current_root_observation(&owner);
     assert_ne!(winner.selected_commit(), source.selected_commit());
-    let effects = match outcome {
-        RuntimeWorldBranchCreationOutcome::ProductUnpublished(effects) => effects,
-        RuntimeWorldBranchCreationOutcome::Performed(_) => {
-            panic!("a fork cannot install a child from a head that is no longer current")
-        }
-    };
-    assert_retained_behind_winner(&effects, &winner);
-    assert_eq!(owner.state.branches.branch_count(), 1);
-    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
-    assert_eq!(owner.state.operation.active(), 0);
-    assert_eq!(
-        owner.state.custody.installed(),
-        2,
-        "the component branches the fork really made stay in custody"
-    );
-    assert_eq!(owner.recovery_record_count(), 1);
+    let effects = retained_after_both_forks(outcome);
+    let observed = effects
+        .last_observed_head()
+        .expect("the record names the head that displaced the fork");
+    assert_eq!(observed.commit().identity(), winner.selected_commit());
+    assert_eq!(observed.branch(), winner.branch_identity());
+    assert_fork_retained_nothing_else(&owner, 1);
     assert!(owner.cleanup_recovery(effects).is_some());
     assert_eq!(owner.recovery_record_count(), 0);
     drop(winner);
     drop(fixture);
 }
 
-/// The retained record of a fork that performed both owner forks and was then
-/// refused at the install names the head that displaced it.
-fn assert_retained_behind_winner(
-    effects: &ProductUnpublishedOwnerEffects,
-    winner: &ProductBranchObservation,
-) {
+#[test]
+fn a_fork_whose_source_retires_before_install_is_retained_without_a_winner() {
+    let (_fixture, owner, root) = setup_with_relational_source(3);
+    let child = create_reused_branch(&owner, &root, reuse_intent("source-retired-under-fork"));
+    let owner = Arc::new(owner);
+    let held_child = child.clone();
+    let outcome = creation_interrupted_before_install(
+        &owner,
+        child.clone(),
+        fork_intent(
+            "branch-fork-under-retired-source",
+            relational_fork("relational-branch-fork-under-retired-source"),
+            signal_fork("signal-branch-fork-under-retired-source"),
+        ),
+        |paused_owner| {
+            assert_eq!(paused_owner.state.custody.installed(), 2);
+            retire_while_held(paused_owner, &held_child);
+        },
+    )
+    .expect("a source retired at the install is retained, not denied");
+
+    let effects = retained_after_both_forks(outcome);
+    assert!(
+        effects.last_observed_head().is_none(),
+        "no head displaced the fork, so the record names no winner"
+    );
+    assert_fork_retained_nothing_else(&owner, 1);
+    assert!(owner.cleanup_recovery(effects).is_some());
+    assert_eq!(owner.recovery_record_count(), 0);
+    drop(child);
+}
+
+/// A fork that performed both owner forks and was then refused at the install
+/// is retained as a stale product head with both postures performed.
+fn retained_after_both_forks(
+    outcome: RuntimeWorldBranchCreationOutcome,
+) -> ProductUnpublishedOwnerEffects {
+    let effects = match outcome {
+        RuntimeWorldBranchCreationOutcome::ProductUnpublished(effects) => effects,
+        RuntimeWorldBranchCreationOutcome::Performed(_) => {
+            panic!("a fork cannot install a child from a head that is no longer current")
+        }
+    };
     assert_eq!(effects.cause(), ProductUnpublishedCause::StaleProductHead);
-    let observed = effects
-        .last_observed_head()
-        .expect("the record names the head that displaced the fork");
-    assert_eq!(observed.commit().identity(), winner.selected_commit());
-    assert_eq!(observed.branch(), winner.branch_identity());
     assert_eq!(
         effects.progress().relational_posture(),
         RelationalAttemptProgressPosture::Performed
@@ -204,6 +306,22 @@ fn assert_retained_behind_winner(
         4,
         "the exact pin pair, the recovery slot, and the installed successor history"
     );
+    effects
+}
+
+/// The retained fork installed no product reference, released its
+/// destination and operation reservations, and kept the component branches
+/// it really made in custody behind one recovery record.
+fn assert_fork_retained_nothing_else(owner: &TestOwner, branches: usize) {
+    assert_eq!(owner.state.branches.branch_count(), branches);
+    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
+    assert_eq!(owner.state.operation.active(), 0);
+    assert_eq!(
+        owner.state.custody.installed(),
+        2,
+        "the component branches the fork really made stay in custody"
+    );
+    assert_eq!(owner.recovery_record_count(), 1);
 }
 
 #[test]

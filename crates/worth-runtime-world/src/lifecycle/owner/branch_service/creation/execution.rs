@@ -152,8 +152,10 @@ where
 
     /// The between-owners boundary for a creation. A denial here may already
     /// have moved the Relational owner, so the caller retains rather than
-    /// discards; the two ways the boundary closes are named apart, because a
-    /// displaced head is the one of them whose evidence can carry a winner.
+    /// discards. A cancelled or expired attempt is retained as cancellation
+    /// after effect; a displaced or retired source head is retained as a
+    /// stale product head, and the displaced one alone carries the head that
+    /// won.
     fn creation_boundary_gate(
         &self,
         attempt: &ReservedBranchCreationAttempt,

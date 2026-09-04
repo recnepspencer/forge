@@ -100,42 +100,39 @@ impl ProductBranchRegistryReservation {
         }
     }
 
+    /// Install the root occurrence. Every non-root occurrence is created
+    /// from a source and goes through `install_from_source`; there is no
+    /// named install that bypasses the source guard.
     pub(crate) fn install_root(
-        self,
+        mut self,
         name: ProductBranchName,
         branch: ProductBranchIdentity,
         lifecycle: ProductBranchIncarnation,
         cell: ProductBranchReferenceCell,
     ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
-        self.install_reserved(
-            InstalledBranch {
-                name,
-                branch,
-                lifecycle,
-                cell,
-            },
-            true,
-        )
-    }
-
-    pub(crate) fn install(
-        self,
-        branch: ProductBranchIdentity,
-        lifecycle: ProductBranchIncarnation,
-        cell: ProductBranchReferenceCell,
-    ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
-        let Some(name) = self.name.clone() else {
-            return Err((self, ProductBranchRegistryDenial::ReservationMissing));
+        let installed = InstalledBranch {
+            name,
+            branch,
+            lifecycle,
+            cell,
         };
-        self.install_reserved(
-            InstalledBranch {
-                name,
-                branch,
-                lifecycle,
-                cell,
-            },
-            false,
-        )
+        if let Err(denial) = self.admits_installation(&installed, true) {
+            return Err((self, denial));
+        }
+        let result = {
+            let mut state = self
+                .registry
+                .state
+                .lock()
+                .unwrap_or_else(|error| error.into_inner());
+            insert_installed(&mut state, installed, true)
+        };
+        if let Err((denial, _uninstalled)) = result {
+            return Err((self, denial));
+        }
+        self.armed = false;
+        self.name = None;
+        Ok(())
     }
 
     /// Install a non-root occurrence created from `source`, and only while
@@ -191,30 +188,6 @@ impl ProductBranchRegistryReservation {
             }
             Err((denial, installed)) => Err(source_install_failure(self, denial, installed)),
         }
-    }
-
-    fn install_reserved(
-        mut self,
-        installed: InstalledBranch,
-        root: bool,
-    ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
-        if let Err(denial) = self.admits_installation(&installed, root) {
-            return Err((self, denial));
-        }
-        let result = {
-            let mut state = self
-                .registry
-                .state
-                .lock()
-                .unwrap_or_else(|error| error.into_inner());
-            insert_installed(&mut state, installed, root)
-        };
-        if let Err((denial, _uninstalled)) = result {
-            return Err((self, denial));
-        }
-        self.armed = false;
-        self.name = None;
-        Ok(())
     }
 
     /// Every identity axis the reservation can settle on its own, before it
