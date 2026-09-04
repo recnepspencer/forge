@@ -30,8 +30,7 @@ pub(crate) use construction::{
 };
 pub(crate) use operation::{
     ReservedPublicationAttemptCapacity, RuntimeWorldOperationLedger,
-    RuntimeWorldOperationReservation, RuntimeWorldOperationState,
-    RuntimeWorldPublicationCapacityLedger,
+    RuntimeWorldOperationReservation, RuntimeWorldPublicationCapacityLedger,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,6 +81,7 @@ where
     pub(super) history: CompositeHistoryCatalog,
     pub(super) retention: RuntimeWorldRetentionOwner<D, I, T>,
     pub(super) branches: ProductBranchRegistry,
+    pub(super) custody: crate::branch::OwnerCreatedComponentCustodyRegistry,
     pub(super) recovery: RecoveryCatalog,
     pub(super) bootstrap: Mutex<RuntimeWorldBootstrapState>,
     pub(super) close: Mutex<RuntimeWorldCloseContract>,
@@ -117,6 +117,10 @@ where
             budgets.in_flight_pin_acquisition_reservations(),
         );
         let branches = ProductBranchRegistry::new(owner_identity, budgets.live_product_branches());
+        let custody = crate::branch::OwnerCreatedComponentCustodyRegistry::new(
+            owner_identity,
+            budgets.owner_created_component_custody_records(),
+        );
         let recovery = RecoveryCatalog::new_with_metadata(
             owner_identity,
             budgets.retained_product_unpublished_records(),
@@ -136,6 +140,7 @@ where
                 history,
                 retention,
                 branches,
+                custody,
                 recovery,
                 bootstrap: Mutex::new(RuntimeWorldBootstrapState::Unperformed),
                 close: Mutex::new(RuntimeWorldCloseContract::open()),

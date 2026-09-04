@@ -2,9 +2,10 @@ use std::sync::{mpsc, Arc, Barrier};
 use std::thread;
 use std::time::Duration;
 
+use super::protection::ProductBranchHeadProtectionDenial;
 use super::{
-    ProductBranchHeadProtection, ProductBranchHeadProtectionDenial, ProductBranchReferenceCell,
-    ProductBranchReferenceCellDenial, ProductBranchReferenceSnapshot,
+    ProductBranchHeadProtection, ProductBranchReferenceCell, ProductBranchReferenceCellDenial,
+    ProductBranchReferenceSnapshot,
 };
 use crate::branch::observation::ProductBranchObservation;
 use crate::branch::reference_test_fixture as fixture;
@@ -177,7 +178,8 @@ fn stale_expected_head_precedes_successor_validation_and_returns_proof() {
 
     let current = observation(&cell, &fixture, &catalog);
     let malformed_commit = fixture::install_ordinary(&mut fixture, &catalog, root.as_ref());
-    let malformed = fixture::initial_snapshot(&mut fixture, Arc::clone(&malformed_commit));
+    let malformed =
+        fixture::initial_snapshot_named(&mut fixture, Arc::clone(&malformed_commit), "elsewhere");
     let before_successor_failure = catalog.counters();
     let invalid = cell
         .compare_and_publish(

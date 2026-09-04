@@ -4,8 +4,8 @@ use super::super::SignalComponentPlanPosture;
 
 use worth_signal::facade::branch::{SignalBranchAdvanceOutcome, SignalBranchForkOutcome};
 
-/// Exact result of the Signal leg, including the distinct fork-and-advance
-/// operation so history cannot confuse a created-only branch with a moved one.
+/// Exact result of the Signal leg. Advancing and forking are distinct owner
+/// operations, so history cannot confuse a created branch with a moved one.
 #[derive(Debug)]
 pub struct CompositeSignalOwnerResult {
     result: CompositeSignalOwnerResultKind,
@@ -16,10 +16,6 @@ enum CompositeSignalOwnerResultKind {
     RetainedExact,
     Advanced(SignalBranchAdvanceOutcome),
     Forked(SignalBranchForkOutcome),
-    ForkedAndAdvanced {
-        forked: SignalBranchForkOutcome,
-        advanced: SignalBranchAdvanceOutcome,
-    },
 }
 
 impl CompositeSignalOwnerResult {
@@ -41,23 +37,13 @@ impl CompositeSignalOwnerResult {
         }
     }
 
-    pub(crate) fn forked_and_advanced(
-        forked: SignalBranchForkOutcome,
-        advanced: SignalBranchAdvanceOutcome,
-    ) -> Self {
-        Self {
-            result: CompositeSignalOwnerResultKind::ForkedAndAdvanced { forked, advanced },
-        }
-    }
-
     pub(crate) fn posture(&self) -> CompositeComponentChangePosture {
         match self.result {
             CompositeSignalOwnerResultKind::RetainedExact => {
                 CompositeComponentChangePosture::RetainExact
             }
             CompositeSignalOwnerResultKind::Advanced(_)
-            | CompositeSignalOwnerResultKind::Forked(_)
-            | CompositeSignalOwnerResultKind::ForkedAndAdvanced { .. } => {
+            | CompositeSignalOwnerResultKind::Forked(_) => {
                 CompositeComponentChangePosture::Published
             }
         }
@@ -78,11 +64,6 @@ impl CompositeSignalOwnerResult {
                     result.created_basis().admission_identity().clone(),
                 ))
             }
-            CompositeSignalOwnerResultKind::ForkedAndAdvanced { advanced, .. } => Some(
-                crate::history::CompositeSignalPublicationIdentity::ForkedAndAdvanced(
-                    advanced.advanced_basis().admission_identity().clone(),
-                ),
-            ),
         }
     }
 
@@ -92,15 +73,35 @@ impl CompositeSignalOwnerResult {
                 self.posture() == CompositeComponentChangePosture::RetainExact
             }
             SignalComponentPlanPosture::AdvanceExact => {
-                self.posture() == CompositeComponentChangePosture::Published
+                matches!(self.result, CompositeSignalOwnerResultKind::Advanced(_))
             }
-            SignalComponentPlanPosture::ForkExact => {
+        }
+    }
+
+    /// Whether this result is the exact evidence the creation plan asked the
+    /// Signal owner to produce.
+    pub(crate) fn matches_creation_plan(
+        &self,
+        plan: &crate::branch::SignalBranchCreationPlan,
+    ) -> bool {
+        match plan {
+            crate::branch::SignalBranchCreationPlan::ReuseExact => {
+                matches!(self.result, CompositeSignalOwnerResultKind::RetainedExact)
+            }
+            crate::branch::SignalBranchCreationPlan::ForkExact { .. } => {
                 matches!(self.result, CompositeSignalOwnerResultKind::Forked(_))
             }
-            SignalComponentPlanPosture::ForkAndAdvance => matches!(
-                self.result,
-                CompositeSignalOwnerResultKind::ForkedAndAdvanced { .. }
-            ),
         }
+    }
+
+    /// Whether this result is honest evidence for a creation that stopped
+    /// partway. A leg the denial never reached is untouched; a leg that did
+    /// move must still be exactly what its plan asked for.
+    pub(crate) fn matches_partial_creation_plan(
+        &self,
+        plan: &crate::branch::SignalBranchCreationPlan,
+    ) -> bool {
+        matches!(self.result, CompositeSignalOwnerResultKind::RetainedExact)
+            || self.matches_creation_plan(plan)
     }
 }

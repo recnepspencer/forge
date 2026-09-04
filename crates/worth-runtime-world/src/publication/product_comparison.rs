@@ -1,13 +1,13 @@
 use crate::branch::{
     ProductBranchObservation, ProductBranchObservationMismatch, ProductBranchReferenceSnapshot,
 };
-use crate::publication::ProductBranchIntent;
+use crate::publication::CompositeComponentIntent;
 
 /// Product-head observation admitted for the next phase. The observation is
 /// carried unchanged; a caller cannot swap a basis between planning steps.
 #[derive(Debug)]
 pub struct ResolvedExpectedProductHead {
-    intent: ProductBranchIntent,
+    intent: CompositeComponentIntent,
     expected: ProductBranchObservation,
 }
 
@@ -17,7 +17,7 @@ impl ResolvedExpectedProductHead {
     /// unchanged; this function never re-observes a component or asks for an
     /// ambient latest basis.
     pub(crate) fn from_current(
-        intent: ProductBranchIntent,
+        intent: CompositeComponentIntent,
         expected: ProductBranchObservation,
         current: &ProductBranchReferenceSnapshot,
     ) -> Result<Self, ProductBranchObservationMismatch> {
@@ -31,21 +31,11 @@ impl ResolvedExpectedProductHead {
         &self.expected
     }
 
-    pub fn intent(&self) -> &ProductBranchIntent {
+    pub fn intent(&self) -> &CompositeComponentIntent {
         &self.intent
     }
 
-    pub(crate) fn into_parts(self) -> (ProductBranchIntent, ProductBranchObservation) {
+    pub(crate) fn into_parts(self) -> (CompositeComponentIntent, ProductBranchObservation) {
         (self.intent, self.expected)
-    }
-
-    pub(crate) fn take_plan_inputs(
-        &mut self,
-    ) -> (
-        Option<worth_relational::facade::mvcc::PreparedRelationalCommitCandidate>,
-        Option<super::RelationalForkPlanInput>,
-        Option<worth_signal::facade::branch::ValidatedSignalBranchName>,
-    ) {
-        self.intent.take_plan_inputs()
     }
 }

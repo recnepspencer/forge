@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::history::ExplicitCommitHistoryProtectionObligation;
 use crate::identity::{
-    CompositeCommitIdentity, ProductBranchIdentity, ProductBranchLifecycleIncarnation,
+    CompositeCommitIdentity, ProductBranchIdentity, ProductBranchIncarnation,
     ProductBranchReferenceGeneration, RuntimeWorldOwnerIdentity,
 };
 use crate::retention::ObservationRetentionObligation;
@@ -149,6 +149,12 @@ pub enum RuntimeWorldBranchAdmissionDenial {
     DuplicateName,
     CapacityExhausted,
     IdentityExhausted,
+    /// A creation intent reached branch creation without the two explicit
+    /// component postures a creation cell requires.
+    PlansOmitted,
+    /// The installed owner-created component custody budget has no free slot
+    /// for the fork this creation would perform.
+    CustodyCapacityExhausted,
 }
 
 impl ProductBranchObservation {
@@ -191,7 +197,7 @@ impl ProductBranchObservation {
         self.snapshot.branch()
     }
 
-    pub fn lifecycle_incarnation(&self) -> ProductBranchLifecycleIncarnation {
+    pub fn lifecycle_incarnation(&self) -> ProductBranchIncarnation {
         self.snapshot.lifecycle()
     }
 

@@ -3,7 +3,8 @@ use super::ForkedBranchRecoveryContext;
 use crate::history::{
     ProductHeadHistoryProtectionObligation, ProductUnpublishedHistoryProtectionObligation,
 };
-use crate::publication::{recovery_actions, RETENTION_PENDING_LIVE_OBLIGATION_COUNT};
+use crate::publication::RETENTION_PENDING_LIVE_OBLIGATION_COUNT;
+use crate::recovery::next_actions_for_progress;
 use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects,
 };
@@ -54,7 +55,7 @@ fn retained_effects(
         recovery_slot,
         deadline,
     } = context;
-    let next_actions = recovery_actions(&progress);
+    let next_actions = next_actions_for_progress(&progress);
     #[cfg(test)]
     super::test_control::pause_before_forked_recovery_record(&identity);
     ProductUnpublishedOwnerEffects::new_retained(

@@ -1,90 +1,56 @@
-use worth_relational::facade::branch::{
-    AdmittedRelationalBranchBasis, AdmittedRelationalForkSourceBasis,
-};
+use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
-use worth_signal::facade::branch::{AdmittedSignalBranchBasis, ValidatedSignalBranchName};
+use worth_signal::facade::branch::AdmittedSignalBranchBasis;
 
 use super::{LoweredOwnerComponentPlan, RelationalComponentPlan, SignalComponentPlan};
-use crate::branch::{ProductBranchComponentPosture, ProductBranchObservation};
+use crate::branch::ProductBranchObservation;
 use crate::publication::{
-    CompositeComponentIntent, NoEffectCause, NoEffectCompositePublication, RelationalForkPlanInput,
+    CompositeComponentIntent, NoEffectCause, NoEffectCompositePublication,
     ResolvedExpectedProductHead,
 };
 
+/// Lower one admitted product head plus its component intent into the two
+/// per-owner plans. Branch creation is lowered elsewhere: publication has no
+/// fork route.
 pub(crate) fn lower_component_plans(
-    mut expected: ResolvedExpectedProductHead,
+    expected: ResolvedExpectedProductHead,
     intent: CompositeComponentIntent,
+    prepared_candidate: Option<PreparedRelationalCommitCandidate>,
 ) -> Result<LoweredOwnerComponentPlan, NoEffectCompositePublication> {
-    if expected.intent().component_intent() != intent {
+    if expected.intent() != &intent {
+        drop(prepared_candidate);
         return Err(lowering_denied(expected.expected()));
     }
-
-    let (prepared_candidate, fork_input, signal_fork_name) = expected.take_plan_inputs();
     let expected_head = expected.expected().clone();
     let basis = expected_head.basis();
-    let postures = expected.intent().component_postures();
     let relational = lower_relational_plan(
         basis.relational_basis().clone(),
-        RelationalPlanInput {
-            posture: postures.relational(),
-            changes: intent.changes_relational(),
-            prepared_candidate,
-            fork_input,
-        },
+        intent.changes_relational(),
+        prepared_candidate,
         &expected_head,
     )?;
-    let signal = lower_signal_plan(
-        basis.signal_basis().clone(),
-        SignalPlanInput {
-            posture: postures.signal(),
-            changes: intent.changes_signal(),
-            branch_name: signal_fork_name,
-        },
-        &expected_head,
-    )?;
+    let signal = lower_signal_plan(basis.signal_basis().clone(), intent.changes_signal());
     Ok(LoweredOwnerComponentPlan::new(
         expected, intent, relational, signal,
     ))
 }
 
-struct RelationalPlanInput {
-    posture: ProductBranchComponentPosture,
-    changes: bool,
-    prepared_candidate: Option<PreparedRelationalCommitCandidate>,
-    fork_input: Option<RelationalForkPlanInput>,
-}
-
 fn lower_relational_plan(
     expected: AdmittedRelationalBranchBasis,
-    input: RelationalPlanInput,
+    changes: bool,
+    prepared_candidate: Option<PreparedRelationalCommitCandidate>,
     expected_head: &ProductBranchObservation,
 ) -> Result<RelationalComponentPlan, NoEffectCompositePublication> {
-    match input.posture {
-        ProductBranchComponentPosture::ReuseExact => {
-            lower_reuse_relational_plan(expected, input, expected_head)
-        }
-        ProductBranchComponentPosture::ForkExact
-        | ProductBranchComponentPosture::ForkAndAdvance => {
-            lower_relational_fork_plan(expected, input, expected_head)
-        }
-    }
-}
-
-fn lower_reuse_relational_plan(
-    expected: AdmittedRelationalBranchBasis,
-    input: RelationalPlanInput,
-    expected_head: &ProductBranchObservation,
-) -> Result<RelationalComponentPlan, NoEffectCompositePublication> {
-    if !input.changes {
-        return match (input.prepared_candidate, input.fork_input) {
-            (None, None) => Ok(RelationalComponentPlan::retain_exact(expected)),
-            _ => Err(lowering_denied(expected_head)),
+    if !changes {
+        return match prepared_candidate {
+            None => Ok(RelationalComponentPlan::retain_exact(expected)),
+            Some(candidate) => {
+                drop(candidate);
+                Err(lowering_denied(expected_head))
+            }
         };
     }
-    if input.fork_input.is_some() {
-        return Err(lowering_denied(expected_head));
-    }
-    match input.prepared_candidate {
+    match prepared_candidate {
         Some(candidate) if candidate.branch() == expected.identity().branch_id() => Ok(
             RelationalComponentPlan::publish_prepared(expected, candidate),
         ),
@@ -96,104 +62,12 @@ fn lower_reuse_relational_plan(
     }
 }
 
-fn lower_relational_fork_plan(
-    expected: AdmittedRelationalBranchBasis,
-    input: RelationalPlanInput,
-    expected_head: &ProductBranchObservation,
-) -> Result<RelationalComponentPlan, NoEffectCompositePublication> {
-    if input.prepared_candidate.is_some() {
-        return Err(lowering_denied(expected_head));
+fn lower_signal_plan(expected: AdmittedSignalBranchBasis, changes: bool) -> SignalComponentPlan {
+    if changes {
+        SignalComponentPlan::advance_exact(expected)
+    } else {
+        SignalComponentPlan::retain_exact(expected)
     }
-    if !input.changes {
-        return Err(lowering_denied(expected_head));
-    }
-    let Some(fork_input) = input.fork_input else {
-        return Err(lowering_denied(expected_head));
-    };
-    if !fork_source_matches(fork_input.source(), &expected) {
-        return Err(lowering_denied(expected_head));
-    }
-    match (input.posture, &fork_input) {
-        (ProductBranchComponentPosture::ForkExact, RelationalForkPlanInput::ForkExact { .. }) => {
-            Ok(RelationalComponentPlan::fork_exact(expected, fork_input))
-        }
-        (
-            ProductBranchComponentPosture::ForkAndAdvance,
-            RelationalForkPlanInput::ForkAndAdvance { .. },
-        ) => Ok(RelationalComponentPlan::fork_and_advance(
-            expected, fork_input,
-        )),
-        _ => Err(lowering_denied(expected_head)),
-    }
-}
-
-struct SignalPlanInput {
-    posture: ProductBranchComponentPosture,
-    changes: bool,
-    branch_name: Option<ValidatedSignalBranchName>,
-}
-
-fn lower_signal_plan(
-    expected: AdmittedSignalBranchBasis,
-    input: SignalPlanInput,
-    expected_head: &ProductBranchObservation,
-) -> Result<SignalComponentPlan, NoEffectCompositePublication> {
-    match input.posture {
-        ProductBranchComponentPosture::ReuseExact
-            if input.changes && input.branch_name.is_none() =>
-        {
-            Ok(SignalComponentPlan::advance_exact(expected))
-        }
-        ProductBranchComponentPosture::ReuseExact if input.branch_name.is_none() => {
-            Ok(SignalComponentPlan::retain_exact(expected))
-        }
-        ProductBranchComponentPosture::ReuseExact => Err(lowering_denied(expected_head)),
-        ProductBranchComponentPosture::ForkExact
-        | ProductBranchComponentPosture::ForkAndAdvance => {
-            lower_fork_signal_plan(expected, input, expected_head)
-        }
-    }
-}
-
-fn lower_fork_signal_plan(
-    expected: AdmittedSignalBranchBasis,
-    input: SignalPlanInput,
-    expected_head: &ProductBranchObservation,
-) -> Result<SignalComponentPlan, NoEffectCompositePublication> {
-    if !valid_fork_route(input.posture, input.changes) {
-        return Err(lowering_denied(expected_head));
-    }
-    let Some(name) = input.branch_name else {
-        return Err(lowering_denied(expected_head));
-    };
-    Ok(match input.posture {
-        ProductBranchComponentPosture::ForkExact => SignalComponentPlan::fork_exact(expected, name),
-        ProductBranchComponentPosture::ForkAndAdvance => {
-            SignalComponentPlan::fork_and_advance(expected, name)
-        }
-        ProductBranchComponentPosture::ReuseExact => unreachable!("reuse is not a fork route"),
-    })
-}
-
-fn valid_fork_route(posture: ProductBranchComponentPosture, changes: bool) -> bool {
-    changes
-        && matches!(
-            posture,
-            ProductBranchComponentPosture::ForkExact
-                | ProductBranchComponentPosture::ForkAndAdvance
-        )
-}
-
-fn fork_source_matches(
-    source: &AdmittedRelationalForkSourceBasis,
-    expected: &AdmittedRelationalBranchBasis,
-) -> bool {
-    let source = source.descriptor();
-    let expected = expected.descriptor();
-    source.runtime_instance_id() == expected.runtime_instance_id()
-        && source.source_branch() == expected.branch_id()
-        && source.observation() == expected.reference()
-        && source.truth_version() == expected.truth_version()
 }
 
 fn lowering_denied(expected: &ProductBranchObservation) -> NoEffectCompositePublication {

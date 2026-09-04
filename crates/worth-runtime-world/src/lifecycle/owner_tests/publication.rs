@@ -3,21 +3,15 @@ use std::sync::Arc;
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
 
 use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
-use crate::branch::{
-    ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchObservation, ProductBranchReferenceSnapshot,
-};
+use crate::branch::{ProductBranchObservation, ProductBranchReferenceSnapshot};
 use crate::lifecycle::{
     RuntimeWorldObservationService, RuntimeWorldOwnerExecutionService,
     RuntimeWorldPreparationService, RuntimeWorldProductPublicationService,
 };
 use crate::publication::{
-    CompositeAttemptProgress, CompositeComponentIntent, CompositeExecutionBorrow,
-    CompositeLateCancellationPosture, CompositePublicationCostCounters, OwnerExecutionOutcome,
-    ProductBranchIntent, RelationalAttemptProgress, RuntimeWorldPublicationOutcome,
-    SignalAttemptProgress,
+    CompositeLateCancellationPosture, CompositePublicationIntent, OwnerExecutionOutcome,
+    PreparedCompositePublicationWithoutSignal, RuntimeWorldPublicationOutcome,
 };
-use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedRetentionPosture};
 
 type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -56,7 +50,6 @@ fn setup_with_relational_source() -> (
         ready,
         &cell,
         CompositeLateCancellationPosture::NotRequested,
-        CompositePublicationCostCounters::zero(),
     ) {
         RuntimeWorldPublicationOutcome::Performed(_) => {}
         other => panic!("the canonical seed publishes its product head: {other:?}"),
@@ -69,46 +62,23 @@ fn setup_with_relational_source() -> (
     (fixture, owner, expected)
 }
 
-fn relational_plan(
+fn prepare_relational(
     fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
-) -> crate::publication::LoweredOwnerComponentPlan {
-    crate::lifecycle::RuntimeWorldPreparationService::prepare(
+    candidate_name: &str,
+) -> PreparedCompositePublicationWithoutSignal {
+    RuntimeWorldPreparationService::prepare_publication(
         owner,
         expected,
-        ProductBranchIntent::new(
-            ProductBranchCreationIntent::named("publication").expect("valid operation name"),
-            ProductBranchComponentPostures::new(
-                ProductBranchComponentPosture::ReuseExact,
-                ProductBranchComponentPosture::ReuseExact,
+        CompositePublicationIntent::without_signal(RelationalTransactionIntent::ordinary())
+            .with_prepared_relational_candidate(
+                fixture.prepare_relational_owner_candidate(candidate_name),
             ),
-            CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-        )
-        .with_prepared_relational_candidate(
-            fixture.prepare_relational_owner_candidate("publication"),
-        ),
+        &crate::publication::RuntimeWorldCancellationSource::new().token(),
+        None,
     )
     .expect("the current product head admits Relational preparation")
-}
-
-fn signal_plan(
-    owner: &TestOwner,
-    expected: ProductBranchObservation,
-) -> crate::publication::LoweredOwnerComponentPlan {
-    crate::lifecycle::RuntimeWorldPreparationService::prepare(
-        owner,
-        expected,
-        ProductBranchIntent::new(
-            ProductBranchCreationIntent::named("signal-publication").expect("valid operation name"),
-            ProductBranchComponentPostures::new(
-                ProductBranchComponentPosture::ReuseExact,
-                ProductBranchComponentPosture::ReuseExact,
-            ),
-            CompositeComponentIntent::signal_only(),
-        ),
-    )
-    .expect("the current product head admits Signal preparation")
 }
 
 fn ready_relational_publication(
@@ -116,105 +86,35 @@ fn ready_relational_publication(
     owner: &TestOwner,
     expected: ProductBranchObservation,
 ) -> crate::publication::CompositePublicationReady {
-    let plan = relational_plan(fixture, owner, expected.clone());
-    let reservation_cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
-    let attempt = RuntimeWorldPreparationService::reserve(
+    ready_from_prepared(
         owner,
-        plan,
-        &reservation_cancellation.token(),
-        None,
+        prepare_relational(fixture, owner, expected, "publication"),
+        "the production owner execution must settle",
     )
-    .expect("the owner reserves complete publication capacity");
-    let cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
-    let outcome = RuntimeWorldOwnerExecutionService::execute(
+}
+
+fn ready_from_prepared(
+    owner: &TestOwner,
+    prepared: PreparedCompositePublicationWithoutSignal,
+    context: &str,
+) -> crate::publication::CompositePublicationReady {
+    let cancellation = crate::publication::RuntimeWorldCancellationSource::new();
+    let outcome = RuntimeWorldOwnerExecutionService::execute_without_signal(
         owner,
-        attempt,
-        CompositeExecutionBorrow::without_signal(),
+        prepared,
         &cancellation.token(),
     );
     let settlement = match outcome {
         OwnerExecutionOutcome::Settled(settlement) => settlement,
-        other => panic!("the production owner execution must settle: {other:?}"),
+        other => panic!("{context}: {other:?}"),
     };
     let successor = settlement
         .successor_basis()
         .cloned()
-        .expect("production owner execution returns its successor basis");
+        .expect("owner execution returns its successor basis");
     settlement
         .ready(successor)
         .expect("real successor retention binds after owner execution")
-}
-
-fn ready_relational_fork_competitor(
-    fixture: &RealReferenceFixture,
-    owner: &TestOwner,
-    expected: &ProductBranchObservation,
-) -> crate::publication::CompositePublicationReady {
-    let plan = RuntimeWorldPreparationService::prepare(
-        owner,
-        expected.clone(),
-        ProductBranchIntent::new(
-            ProductBranchCreationIntent::named("canonical-relational-fork-competitor")
-                .expect("valid competing operation name"),
-            ProductBranchComponentPostures::new(
-                ProductBranchComponentPosture::ForkExact,
-                ProductBranchComponentPosture::ReuseExact,
-            ),
-            CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-        )
-        .with_relational_fork_input(fixture.relational_fork_input("publication-competitor", None)),
-    )
-    .expect("the canonical competing fork plan is prepared");
-    let reservation_cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
-    let attempt = RuntimeWorldPreparationService::reserve(
-        owner,
-        plan,
-        &reservation_cancellation.token(),
-        None,
-    )
-    .expect("the canonical competing attempt reserves publication capacity");
-    let cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
-    let outcome = RuntimeWorldOwnerExecutionService::execute(
-        owner,
-        attempt,
-        CompositeExecutionBorrow::without_signal(),
-        &cancellation.token(),
-    );
-    let settlement = match outcome {
-        OwnerExecutionOutcome::Settled(settlement) => settlement,
-        other => panic!("the canonical competing owner execution must settle: {other:?}"),
-    };
-    let successor = settlement
-        .successor_basis()
-        .cloned()
-        .expect("the competing owner execution returns its successor basis");
-    let ready = settlement
-        .ready(successor)
-        .expect("the competing owner execution forms a ready publication");
-    ready
-}
-
-fn publish_ready_competing_head(
-    owner: &TestOwner,
-    ready: crate::publication::CompositePublicationReady,
-    expected: &ProductBranchObservation,
-) -> ProductBranchObservation {
-    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    match RuntimeWorldProductPublicationService::publish(
-        owner,
-        ready,
-        &cell,
-        CompositeLateCancellationPosture::NotRequested,
-        CompositePublicationCostCounters::zero(),
-    ) {
-        RuntimeWorldPublicationOutcome::Performed(_) => {}
-        other => panic!("the canonical competing publication must perform: {other:?}"),
-    }
-    RuntimeWorldObservationService::observe_product_branch(
-        owner,
-        &expected.branch_identity().clone(),
-    )
-    .expect("the owner observes the canonical competing product head")
 }
 
 #[test]
@@ -224,11 +124,7 @@ fn complete_ready_publish_path_derives_and_installs_the_successor_snapshot() {
     let ready = ready_relational_publication(&fixture, &owner, expected.clone());
     assert_eq!(owner.state.operation.active(), 1);
 
-    let outcome = ready.publish(
-        &cell,
-        CompositeLateCancellationPosture::NotRequested,
-        CompositePublicationCostCounters::zero(),
-    );
+    let outcome = ready.publish(&cell, CompositeLateCancellationPosture::NotRequested);
     let performed = match outcome {
         RuntimeWorldPublicationOutcome::Performed(performed) => performed,
         other => panic!("the uncontended ready publication must perform: {other:?}"),
@@ -243,71 +139,20 @@ fn complete_ready_publish_path_derives_and_installs_the_successor_snapshot() {
     assert_eq!(owner.state.operation.active(), 0);
 }
 
-#[test]
-fn complete_ready_publish_path_retains_commit_results_and_custody_on_cas_loss() {
-    let (fixture, owner, expected) = setup_with_relational_source();
-    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let competing_ready = ready_relational_fork_competitor(&fixture, &owner, &expected);
-    let ready = ready_relational_publication(&fixture, &owner, expected.clone());
-    let loser_basis = ready.successor_basis().clone();
-    let winner = publish_ready_competing_head(&owner, competing_ready, &expected);
-
-    let outcome = ready.publish(
-        &cell,
-        CompositeLateCancellationPosture::RequestedBeforeProductMovement,
-        CompositePublicationCostCounters::zero(),
-    );
-    let retained = match outcome {
-        RuntimeWorldPublicationOutcome::ProductUnpublished(retained) => retained,
-        other => panic!("the stale ready publication must retain owner effects: {other:?}"),
-    };
-
-    assert_eq!(
-        retained.cause(),
-        ProductUnpublishedCause::ProductPublicationLost
-    );
-    assert_eq!(
-        retained.last_observed_head().unwrap().selected_commit(),
-        winner.selected_commit()
-    );
-    assert_eq!(retained.successor_basis(), Some(&loser_basis));
-    assert_ne!(retained.successor_commit(), winner.selected_commit());
-    let retained_commit = owner
-        .state
-        .history
-        .lookup(retained.successor_commit())
-        .expect("the losing occurrence remains installed in History");
-    assert_eq!(retained_commit.basis(), &loser_basis);
-    assert_eq!(owner.state.history.len(), 4);
-    assert_eq!(retained.owner_effect_count(), 1);
-    assert_eq!(
-        retained.retention_posture(),
-        ProductUnpublishedRetentionPosture::RetainedExact
-    );
-    assert_eq!(
-        retained.component_results().relational_posture(),
-        crate::history::CompositeComponentChangePosture::Published
-    );
-    assert_eq!(
-        cell.atomic_snapshot().selected_commit(),
-        winner.selected_commit()
-    );
-    assert_eq!(owner.state.operation.active(), 0);
-}
-
 #[cfg(feature = "test-operation-control")]
 #[test]
 fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity() {
     let (mut fixture, owner, expected) = setup();
-    let plan = signal_plan(&owner, expected.clone());
-    let cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
-    let mut attempt = crate::lifecycle::RuntimeWorldPreparationService::reserve(
+    let cancellation = crate::publication::RuntimeWorldCancellationSource::new();
+    let mut attempt = RuntimeWorldPreparationService::prepare_publication(
         owner.as_ref(),
-        plan,
+        expected.clone(),
+        CompositePublicationIntent::with_signal(None),
         &cancellation.token(),
         None,
     )
-    .expect("the owner reserves complete publication capacity");
+    .expect("the owner reserves complete publication capacity")
+    .into_attempt();
     attempt.begin_owner_execution();
 
     let advanced = fixture.perform_signal_owner_change();

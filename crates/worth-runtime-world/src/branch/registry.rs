@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::identity::{
-    CompositeBasisIdentity, CompositeCommitIdentity, ProductBranchIdentity,
-    ProductBranchLifecycleIncarnation, RuntimeWorldOwnerIdentity,
+    CompositeBasisKey, CompositeCommitIdentity, ProductBranchIdentity, ProductBranchIncarnation,
+    RuntimeWorldOwnerIdentity,
 };
 
 use super::{ProductBranchName, ProductBranchReferenceCell, ProductBranchReferenceSnapshot};
@@ -36,17 +36,17 @@ struct ProductBranchRegistryState {
     reserved_names: HashSet<String>,
     entries: HashMap<ProductBranchIdentity, ProductBranchRegistryEntry>,
     names: HashMap<String, ProductBranchIdentity>,
-    lifecycles: HashSet<ProductBranchLifecycleIncarnation>,
+    lifecycles: HashSet<ProductBranchIncarnation>,
     installed_branch_high_water: Option<ProductBranchIdentity>,
-    basis_commits: HashMap<CompositeBasisIdentity, HashMap<CompositeCommitIdentity, usize>>,
+    basis_commits: HashMap<CompositeBasisKey, HashMap<CompositeCommitIdentity, usize>>,
     root: Option<ProductBranchIdentity>,
 }
 
 #[derive(Debug)]
 struct ProductBranchRegistryEntry {
     name: ProductBranchName,
-    lifecycle: ProductBranchLifecycleIncarnation,
-    basis: CompositeBasisIdentity,
+    lifecycle: ProductBranchIncarnation,
+    basis: CompositeBasisKey,
     commit: CompositeCommitIdentity,
     cell: ProductBranchReferenceCell,
 }
@@ -242,10 +242,7 @@ impl ProductBranchRegistry {
     }
 }
 
-pub(super) fn record_installed_branch(
-    state: &mut ProductBranchRegistryState,
-    branch: &ProductBranchIdentity,
-) {
+fn record_installed_branch(state: &mut ProductBranchRegistryState, branch: &ProductBranchIdentity) {
     if state
         .installed_branch_high_water
         .as_ref()
@@ -257,7 +254,7 @@ pub(super) fn record_installed_branch(
 
 fn remove_basis_candidate(
     state: &mut ProductBranchRegistryState,
-    basis: &CompositeBasisIdentity,
+    basis: &CompositeBasisKey,
     commit: &CompositeCommitIdentity,
 ) {
     let mut remove_basis = false;

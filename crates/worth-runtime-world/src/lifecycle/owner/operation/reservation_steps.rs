@@ -7,7 +7,12 @@ use crate::publication::NoEffectCause;
 use crate::recovery::{RecoveryCatalogDenial, ReservedProductUnpublishedSlot};
 use crate::retention::ReservedComponentPinPairCapacity;
 
-use super::{ReservedPublicationAttemptCapacity, RuntimeWorldOwnerRoot};
+use super::{
+    LoweredOwnerComponentPlan, ProductBranchObservation, ReservedAttemptCapacities,
+    ReservedAttemptCapacityInputs, ReservedCompositePublicationAttempt,
+    ReservedPublicationAttemptCapacity, RuntimeWorldInstant, RuntimeWorldOperationReservation,
+    RuntimeWorldOwnerRoot,
+};
 
 pub(super) struct IssuedPublicationIdentities {
     pub(super) attempt_identity: CompositePublicationAttemptIdentity,
@@ -137,4 +142,61 @@ where
         .publication_capacity
         .reserve()
         .map_err(|_| NoEffectCause::CapacityExhausted)
+}
+
+/// Everything one reserved attempt owns once every capacity is held. Passing
+/// it as one value keeps the reservation boundary checks readable as a single
+/// sequence instead of a long constructor call.
+pub(super) struct ReservedAttemptAssembly {
+    pub(super) identities: IssuedPublicationIdentities,
+    pub(super) resources: ReservedPublicationResources,
+    pub(super) plan: LoweredOwnerComponentPlan,
+    pub(super) expected_head: ProductBranchObservation,
+    pub(super) deadline: Option<RuntimeWorldInstant>,
+    pub(super) operation: RuntimeWorldOperationReservation,
+}
+
+/// Bind the issued identities and the held capacities into the linear attempt.
+/// No check happens here: every boundary the attempt depends on was already
+/// taken by the caller, in order.
+pub(super) fn assemble_reserved_attempt(
+    assembly: ReservedAttemptAssembly,
+) -> ReservedCompositePublicationAttempt {
+    let ReservedAttemptAssembly {
+        identities:
+            IssuedPublicationIdentities {
+                attempt_identity,
+                commit_identity,
+                product_unpublished_identity,
+            },
+        resources:
+            ReservedPublicationResources {
+                history,
+                reserved_commit_capacity,
+                reserved_recovery_slot,
+                reserved_component_pin_pair,
+                reserved_publication_capacity,
+            },
+        plan,
+        expected_head,
+        deadline,
+        operation,
+    } = assembly;
+    ReservedCompositePublicationAttempt::new(
+        attempt_identity,
+        expected_head.clone(),
+        expected_head.basis().clone(),
+        plan,
+        ReservedAttemptCapacities::new(ReservedAttemptCapacityInputs {
+            reserved_commit_identity: commit_identity,
+            product_unpublished_identity,
+            reserved_commit_capacity,
+            reserved_recovery_slot,
+            reserved_component_pin_pair,
+            reserved_publication_capacity,
+            history,
+            operation,
+        }),
+        deadline,
+    )
 }

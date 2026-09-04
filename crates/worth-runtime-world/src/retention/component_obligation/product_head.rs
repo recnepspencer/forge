@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
-use crate::identity::{CompositeBasisIdentity, RuntimeWorldOwnerIdentity};
+use crate::identity::{CompositeBasisKey, RuntimeWorldOwnerIdentity};
 
 use super::super::unique_component_pin::{ComponentBasisPinClaim, ExactComponentPinRequest};
 use super::super::ComponentBasisDependencyClass;
@@ -14,7 +14,7 @@ use super::{ComponentBasisPinObligation, IssuedComponentPinPair};
 #[must_use = "the product head must retain both exact component pins"]
 pub(crate) struct ProductHeadRetentionObligation {
     owner: RuntimeWorldOwnerIdentity,
-    basis: CompositeBasisIdentity,
+    basis: CompositeBasisKey,
     relational: ComponentBasisPinObligation,
     signal: ComponentBasisPinObligation,
 }
@@ -40,7 +40,7 @@ impl ProductHeadRetentionObligation {
 
     pub(super) fn transferred(
         owner: RuntimeWorldOwnerIdentity,
-        basis: CompositeBasisIdentity,
+        basis: CompositeBasisKey,
         relational: ComponentBasisPinClaim,
         signal: ComponentBasisPinClaim,
     ) -> Self {
@@ -66,7 +66,7 @@ impl ProductHeadRetentionObligation {
         self.owner
     }
 
-    pub(crate) fn basis(&self) -> &CompositeBasisIdentity {
+    pub(crate) fn basis(&self) -> &CompositeBasisKey {
         &self.basis
     }
 

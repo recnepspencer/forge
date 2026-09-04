@@ -3,7 +3,7 @@
 The frozen compiler-visible progression is:
 
 ```text
-ProductBranchIntent
+CompositePublicationIntent
   -> ResolvedExpectedProductHead
   -> AdmittedCompositeRuntimeWorldBasis
   -> LoweredOwnerComponentPlan

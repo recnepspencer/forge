@@ -11,9 +11,7 @@ pub(crate) use component_obligation::{
 pub(crate) use dependency_counts::ComponentBasisDependencyClass;
 #[cfg(test)]
 pub(crate) use obligation_transfer::ComponentBasisObligationTransferDestination;
-pub(crate) use obligation_transfer::{
-    ProductHeadRetentionTransfer, RetentionTransferDenial, RetentionTransferReceipt,
-};
+pub(crate) use obligation_transfer::{ProductHeadRetentionTransfer, RetentionTransferReceipt};
 #[allow(unused_imports)]
 pub(crate) use registry::{
     ReservedComponentPinPairCapacity, RetentionCostSnapshot, RetentionObligationDenial,

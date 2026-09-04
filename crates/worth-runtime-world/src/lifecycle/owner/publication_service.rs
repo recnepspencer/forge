@@ -3,8 +3,7 @@ use super::RuntimeWorldOwnerRoot;
 use crate::branch::ProductBranchReferenceCell;
 use crate::lifecycle::ports::RuntimeWorldProductPublicationService;
 use crate::publication::{
-    CompositeLateCancellationPosture, CompositePublicationCostCounters, CompositePublicationReady,
-    RuntimeWorldPublicationOutcome,
+    CompositeLateCancellationPosture, CompositePublicationReady, RuntimeWorldPublicationOutcome,
 };
 
 impl<D, I, E, Ctx, T> RuntimeWorldProductPublicationService
@@ -19,9 +18,8 @@ where
         ready: CompositePublicationReady,
         cell: &ProductBranchReferenceCell,
         late_cancellation: CompositeLateCancellationPosture,
-        cost_counters: CompositePublicationCostCounters,
     ) -> RuntimeWorldPublicationOutcome {
-        ready.publish(cell, late_cancellation, cost_counters)
+        ready.publish(cell, late_cancellation)
     }
 }
 

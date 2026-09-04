@@ -34,8 +34,7 @@ fn owner_issuer_keeps_families_scoped_and_checked() {
     let owner = construction.owner_identity();
     let issuer = construction.issuer_mut();
     assert_eq!(issuer.owner(), owner);
-    assert_eq!(issuer.product_branch().unwrap().owner_identity(), owner);
-    assert_eq!(issuer.branch_lifecycle().unwrap().owner_identity(), owner);
+    assert_eq!(issuer.branch_incarnation().unwrap().owner_identity(), owner);
     assert_eq!(issuer.composite_commit().unwrap().owner_identity(), owner);
     assert_eq!(issuer.bootstrap_attempt().unwrap().owner_identity(), owner);
     assert_eq!(
@@ -190,7 +189,12 @@ fn close_is_typed_and_prevents_a_later_bootstrap() {
         owner.lifecycle_observation(),
         RuntimeWorldOwnerLifecycleObservation::Closed
     );
-    assert_eq!(owner.close(), Err(RuntimeWorldCloseDenial::AlreadyClosed));
+    assert_eq!(
+        owner
+            .close()
+            .expect_err("a closed owner cannot close twice"),
+        RuntimeWorldCloseDenial::AlreadyClosed
+    );
     assert!(matches!(
         owner.bootstrap_root(fixture.bootstrap_intent()),
         RuntimeWorldBootstrapOutcome::NoEffect(no_effect)
@@ -199,7 +203,7 @@ fn close_is_typed_and_prevents_a_later_bootstrap() {
 }
 
 #[test]
-fn closed_owner_rejects_preparation_and_reservation_without_consuming_capacity() {
+fn closed_owner_rejects_preparation_without_consuming_capacity() {
     let mut fixture = crate::branch::reference_test_fixture::real_fixture(4, 4);
     let owner = super::RuntimeWorldOwnerRoot::new(fixture.owner_inputs(
         bootstrap_budgets(),
@@ -212,35 +216,22 @@ fn closed_owner_rejects_preparation_and_reservation_without_consuming_capacity()
             panic!("bootstrap unexpectedly denied: {:?}", no_effect.cause())
         }
     };
-    let intent = crate::publication::ProductBranchIntent::new(
-        crate::branch::ProductBranchCreationIntent::named("closed")
-            .expect("valid operation branch name"),
-        crate::branch::ProductBranchComponentPostures::new(
-            crate::branch::ProductBranchComponentPosture::ReuseExact,
-            crate::branch::ProductBranchComponentPosture::ReuseExact,
-        ),
-        crate::publication::CompositeComponentIntent::signal_only(),
-    );
-    let plan = crate::lifecycle::RuntimeWorldPreparationService::prepare(
-        &owner,
-        performed.product_branch().clone(),
-        intent,
-    )
-    .expect("open owner prepares the exact observed head");
+    let expected = performed.product_branch().clone();
     let before = (
         owner.state.history.reserved_len(),
         owner.state.recovery.reserved_slots(),
         owner.state.retention.reserved_unique_pin_capacity(),
         owner.state.publication_capacity.active(),
     );
-    owner.close().expect("owner closes while idle");
-    let denied = crate::lifecycle::RuntimeWorldPreparationService::reserve(
+    let _report = owner.close().expect("owner closes while idle");
+    let denied = crate::lifecycle::RuntimeWorldPreparationService::prepare_publication(
         &owner,
-        plan,
-        &crate::lifecycle::RuntimeWorldCancellationSource::new().token(),
+        expected,
+        crate::publication::CompositePublicationIntent::with_signal(None),
+        &crate::publication::RuntimeWorldCancellationSource::new().token(),
         None,
     )
-    .expect_err("closed owner cannot reserve a publication");
+    .expect_err("closed owner cannot prepare a publication");
     assert_eq!(
         denied.cause(),
         crate::publication::NoEffectCause::OwnerUnavailable
@@ -270,25 +261,11 @@ fn owner_reservation_owns_all_real_capacity_and_drops_it_as_one_attempt() {
             panic!("bootstrap unexpectedly denied: {:?}", no_effect.cause())
         }
     };
-    let intent = crate::publication::ProductBranchIntent::new(
-        crate::branch::ProductBranchCreationIntent::named("next")
-            .expect("valid operation branch name"),
-        crate::branch::ProductBranchComponentPostures::new(
-            crate::branch::ProductBranchComponentPosture::ReuseExact,
-            crate::branch::ProductBranchComponentPosture::ReuseExact,
-        ),
-        crate::publication::CompositeComponentIntent::signal_only(),
-    );
-    let plan = crate::lifecycle::RuntimeWorldPreparationService::prepare(
+    let cancellation = crate::publication::RuntimeWorldCancellationSource::new();
+    let attempt = crate::lifecycle::RuntimeWorldPreparationService::prepare_publication(
         &owner,
         performed.product_branch().clone(),
-        intent,
-    )
-    .expect("owner prepares the exact observed head");
-    let cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
-    let attempt = crate::lifecycle::RuntimeWorldPreparationService::reserve(
-        &owner,
-        plan,
+        crate::publication::CompositePublicationIntent::with_signal(None),
         &cancellation.token(),
         None,
     )
@@ -306,7 +283,12 @@ fn owner_reservation_owns_all_real_capacity_and_drops_it_as_one_attempt() {
     );
     assert_eq!(owner.state.publication_capacity.active(), 1);
     assert_eq!(owner.state.operation.active(), 1);
-    assert_eq!(owner.close(), Err(RuntimeWorldCloseDenial::AlreadyClosing));
+    assert_eq!(
+        owner
+            .close()
+            .expect_err("a live attempt blocks the close drain"),
+        RuntimeWorldCloseDenial::AlreadyClosing
+    );
     drop(attempt);
     assert_eq!(owner.state.history.reserved_len(), 0);
     assert_eq!(owner.state.recovery.reserved_slots(), 0);

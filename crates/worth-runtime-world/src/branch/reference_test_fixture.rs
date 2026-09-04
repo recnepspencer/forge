@@ -26,8 +26,8 @@ use crate::retention::RuntimeWorldRetentionOwner;
 mod artifacts;
 mod owner_inputs;
 pub(crate) use artifacts::{
-    bootstrap_product_head_protection, initial_snapshot, install_ordinary, installed_root,
-    product_head_protection, recovery_catalog, successor_snapshot,
+    bootstrap_product_head_protection, initial_snapshot, initial_snapshot_named, install_ordinary,
+    installed_root, product_head_protection, successor_snapshot,
 };
 
 #[derive(Clone)]

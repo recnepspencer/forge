@@ -52,20 +52,6 @@ impl CompositeAttemptProgress {
                 successor_basis,
                 result,
             ),
-            (
-                Some(RelationalProgressEvidence::Settled {
-                    commit_identity,
-                    successor_basis,
-                    result,
-                }),
-                Some(fork),
-                None,
-            ) => crate::publication::CompositeRelationalOwnerResult::settled_after_fork(
-                fork,
-                commit_identity,
-                successor_basis,
-                result,
-            ),
             (Some(RelationalProgressEvidence::SettlementPending { .. }), _, _) => {
                 unreachable!("pending Relational progress is rejected above")
             }
@@ -86,11 +72,6 @@ impl CompositeAttemptProgress {
             }
             Some(SignalProgressEvidence::Forked(forked)) => {
                 crate::publication::CompositeSignalOwnerResult::forked(forked)
-            }
-            Some(SignalProgressEvidence::ForkedAndAdvanced { forked, advanced }) => {
-                crate::publication::CompositeSignalOwnerResult::forked_and_advanced(
-                    forked, advanced,
-                )
             }
             _ => unreachable!("ready Signal progress carries matching evidence"),
         };

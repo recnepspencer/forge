@@ -1,20 +1,22 @@
+use worth_signal::facade::{SignalError, SignalTransaction};
+
 use crate::branch::ProductBranchReferenceCell;
 use crate::branch::{
-    ProductBranchObservation, RuntimeWorldBootstrapIntent, RuntimeWorldBootstrapOutcome,
-    RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
+    ProductBranchCreationIntent, ProductBranchObservation, ProductBranchRetirementReport,
+    RuntimeWorldBootstrapIntent, RuntimeWorldBootstrapOutcome, RuntimeWorldBranchAdmissionDenial,
+    RuntimeWorldBranchRetirementDenial,
 };
 use crate::identity::ProductBranchIdentity;
-use crate::lifecycle::RuntimeWorldCancellationToken;
 use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::{
-    CompositeExecutionBorrow, CompositeLateCancellationPosture, CompositePublicationCostCounters,
-    CompositePublicationReady, LoweredOwnerComponentPlan, NoEffectCompositePublication,
-    OwnerExecutionOutcome, ProductBranchIntent, ReservedCompositePublicationAttempt,
-    RuntimeWorldPublicationOutcome,
+    CompositeLateCancellationPosture, CompositePublicationIntent, CompositePublicationReady,
+    CompositePublicationStage, NoEffectCompositePublication, OwnerExecutionOutcome,
+    PreparedCompositePublicationWithSignal, PreparedCompositePublicationWithoutSignal,
+    ReservedBranchCreationAttempt, RuntimeWorldCancellationToken, RuntimeWorldPublicationOutcome,
 };
 use crate::recovery::{ProductUnpublishedOwnerEffects, RecoveryContinuationContract};
 
-use super::close::RuntimeWorldCloseDenial;
+use super::close::{RuntimeWorldCloseDenial, RuntimeWorldCloseReport};
 
 /// Lifecycle state of the managed Runtime World owner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,34 +40,24 @@ impl RuntimeWorldOwnerUnavailable {
 
 /// Owner-issued input for one composite branch-creation attempt. The source
 /// observation carries the exact source identity, reference occurrence, and
-/// component basis; the borrow carries only the synchronous Signal authority
-/// required by the requested posture.
-pub(crate) struct RuntimeWorldBranchCreationRequest<'a, D, I, E, Ctx, T = ()>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
+/// component basis. Creation never borrows a Signal transaction: forking a
+/// component branch is not a mutation of that branch.
+pub(crate) struct RuntimeWorldBranchCreationRequest<'a> {
     source: ProductBranchObservation,
-    intent: ProductBranchIntent,
-    signal: CompositeExecutionBorrow<'a, D, I, E, Ctx, T>,
+    intent: ProductBranchCreationIntent,
+    cancellation: &'a RuntimeWorldCancellationToken,
 }
 
-impl<'a, D, I, E, Ctx, T> RuntimeWorldBranchCreationRequest<'a, D, I, E, Ctx, T>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
+impl<'a> RuntimeWorldBranchCreationRequest<'a> {
     pub(crate) fn new(
         source: ProductBranchObservation,
-        intent: ProductBranchIntent,
-        signal: CompositeExecutionBorrow<'a, D, I, E, Ctx, T>,
+        intent: ProductBranchCreationIntent,
+        cancellation: &'a RuntimeWorldCancellationToken,
     ) -> Self {
         Self {
             source,
             intent,
-            signal,
+            cancellation,
         }
     }
 
@@ -73,10 +65,10 @@ where
         self,
     ) -> (
         ProductBranchObservation,
-        ProductBranchIntent,
-        CompositeExecutionBorrow<'a, D, I, E, Ctx, T>,
+        ProductBranchCreationIntent,
+        &'a RuntimeWorldCancellationToken,
     ) {
-        (self.source, self.intent, self.signal)
+        (self.source, self.intent, self.cancellation)
     }
 }
 
@@ -98,49 +90,49 @@ pub(crate) trait RuntimeWorldObservationService {
 }
 
 /// Shared internal seam for product-reference creation and retirement. The
-/// component posture pair lives in `ProductBranchIntent`; retirement cannot
-/// delete a component branch as a side effect.
+/// per-owner creation plans live in `ProductBranchCreationIntent`; retirement
+/// reports the component work it did not perform instead of silently
+/// deleting a component branch.
 pub(crate) trait RuntimeWorldBranchService {
-    type SignalDefinition: Copy + Ord + std::fmt::Debug + 'static;
-    type SignalIdentity: Copy + Ord;
-    type SignalEvent;
-    type SignalContext;
-    type SignalTransactionKey: Copy + Ord;
-
     fn create_product_branch(
         &self,
-        request: RuntimeWorldBranchCreationRequest<
-            '_,
-            Self::SignalDefinition,
-            Self::SignalIdentity,
-            Self::SignalEvent,
-            Self::SignalContext,
-            Self::SignalTransactionKey,
-        >,
+        request: RuntimeWorldBranchCreationRequest<'_>,
     ) -> Result<RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchAdmissionDenial>;
 
     fn retire_product_branch(
         &self,
         branch: ProductBranchIdentity,
-    ) -> Result<(), RuntimeWorldBranchRetirementDenial>;
+    ) -> Result<ProductBranchRetirementReport, RuntimeWorldBranchRetirementDenial>;
 }
 
-/// Shared internal seam for the serial owner execution pipeline.
+/// Shared internal seam for the serial owner execution pipeline. Preparation
+/// lowers and reserves in one step, so no caller can hold a lowered plan
+/// without the bounded capacities that authorize executing it.
 pub(crate) trait RuntimeWorldPreparationService {
-    fn prepare(
+    /// The prepared type is chosen by the intent's compile-visible stage: a
+    /// `WithoutSignal` intent cannot yield a Signal-advancing reservation.
+    fn prepare_publication<S>(
         &self,
         expected: ProductBranchObservation,
-        intent: ProductBranchIntent,
-    ) -> Result<LoweredOwnerComponentPlan, NoEffectCompositePublication>;
-
-    fn reserve(
-        &self,
-        plan: LoweredOwnerComponentPlan,
+        intent: CompositePublicationIntent<S>,
         cancellation: &RuntimeWorldCancellationToken,
         deadline: Option<RuntimeWorldInstant>,
-    ) -> Result<ReservedCompositePublicationAttempt, NoEffectCompositePublication>;
+    ) -> Result<S::Prepared, NoEffectCompositePublication>
+    where
+        S: CompositePublicationStage;
+
+    fn prepare_creation(
+        &self,
+        source: ProductBranchObservation,
+        intent: ProductBranchCreationIntent,
+        cancellation: &RuntimeWorldCancellationToken,
+        deadline: Option<RuntimeWorldInstant>,
+    ) -> Result<ReservedBranchCreationAttempt, RuntimeWorldBranchAdmissionDenial>;
 }
 
+/// Shared internal seam for the two owner-execution routes. There is one
+/// method per compile-visible Signal decision; neither can be reached with
+/// the other's prepared reservation.
 pub(crate) trait RuntimeWorldOwnerExecutionService {
     type SignalDefinition: Copy + Ord + std::fmt::Debug + 'static;
     type SignalIdentity: Copy + Ord;
@@ -148,19 +140,30 @@ pub(crate) trait RuntimeWorldOwnerExecutionService {
     type SignalContext;
     type SignalTransactionKey: Copy + Ord;
 
-    fn execute(
+    fn execute_without_signal(
         &self,
-        attempt: ReservedCompositePublicationAttempt,
-        borrow: CompositeExecutionBorrow<
-            '_,
-            Self::SignalDefinition,
-            Self::SignalIdentity,
-            Self::SignalEvent,
-            Self::SignalContext,
-            Self::SignalTransactionKey,
-        >,
+        prepared: PreparedCompositePublicationWithoutSignal,
         cancellation: &RuntimeWorldCancellationToken,
     ) -> OwnerExecutionOutcome;
+
+    fn execute_with_signal<F>(
+        &self,
+        prepared: PreparedCompositePublicationWithSignal,
+        runtime_ctx: &mut Self::SignalContext,
+        cancellation: &RuntimeWorldCancellationToken,
+        apply: F,
+    ) -> OwnerExecutionOutcome
+    where
+        F: FnOnce(
+            &mut SignalTransaction<
+                '_,
+                Self::SignalDefinition,
+                Self::SignalIdentity,
+                Self::SignalEvent,
+                Self::SignalContext,
+                Self::SignalTransactionKey,
+            >,
+        ) -> Result<(), SignalError>;
 }
 
 pub(crate) trait RuntimeWorldProductPublicationService {
@@ -169,7 +172,6 @@ pub(crate) trait RuntimeWorldProductPublicationService {
         ready: CompositePublicationReady,
         cell: &ProductBranchReferenceCell,
         late_cancellation: CompositeLateCancellationPosture,
-        cost_counters: CompositePublicationCostCounters,
     ) -> RuntimeWorldPublicationOutcome;
 }
 
@@ -182,9 +184,11 @@ pub(crate) trait RuntimeWorldRecoveryService {
     ) -> Result<RecoveryContinuationContract, RuntimeWorldOwnerUnavailable>;
 }
 
-/// Shared internal seam for one-shot root bootstrap and owner close.
+/// Shared internal seam for one-shot root bootstrap and owner close. Close
+/// reports what it drained and what it deliberately left to the component
+/// owners rather than returning a bare unit.
 pub(crate) trait RuntimeWorldLifecycleService {
     fn bootstrap_root(&self, intent: RuntimeWorldBootstrapIntent) -> RuntimeWorldBootstrapOutcome;
 
-    fn close(&self) -> Result<(), RuntimeWorldCloseDenial>;
+    fn close(&self) -> Result<RuntimeWorldCloseReport, RuntimeWorldCloseDenial>;
 }

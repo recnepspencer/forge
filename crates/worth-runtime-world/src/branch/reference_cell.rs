@@ -10,7 +10,6 @@ use super::observation::{
     ProductBranchObservationMismatch,
 };
 use super::reference_snapshot::ProductBranchReferenceSnapshot;
-pub(crate) use protection::ProductBranchHeadProtectionDenial;
 pub(crate) use protection::{
     ProductBranchHeadProtection, ProductBranchHeadProtectionAdmissionFailure,
 };

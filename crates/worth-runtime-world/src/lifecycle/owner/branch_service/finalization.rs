@@ -14,12 +14,12 @@ use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::branch::{ProductBranchObservation, RuntimeWorldBranchAdmissionDenial};
 use crate::history::{CompositeHistoryCatalog, CompositeRuntimeWorldCommit};
 use crate::identity::{
-    CompositePublicationAttemptIdentity, ProductBranchIdentity, ProductBranchLifecycleIncarnation,
+    CompositePublicationAttemptIdentity, ProductBranchIdentity, ProductBranchIncarnation,
     ProductUnpublishedOwnerEffectsIdentity,
 };
 use crate::lifecycle::{RuntimeWorldBranchCreationOutcome, RuntimeWorldInstant};
 use crate::publication::{
-    CompositeAttemptProgress, CompositeOwnerExecutionResults, ReservedCompositePublicationAttempt,
+    CompositeAttemptProgress, CompositeOwnerExecutionResults, ReservedBranchCreationAttempt,
 };
 use crate::recovery::ReservedProductUnpublishedSlot;
 
@@ -27,9 +27,9 @@ use super::super::super::RuntimeWorldOwnerRoot;
 
 pub(super) struct ForkedBranchInstallation {
     pub(super) branch: ProductBranchIdentity,
-    pub(super) lifecycle: ProductBranchLifecycleIncarnation,
+    pub(super) lifecycle: ProductBranchIncarnation,
     pub(super) reservation: crate::branch::registry::ProductBranchRegistryReservation,
-    pub(super) attempt: ReservedCompositePublicationAttempt,
+    pub(super) attempt: ReservedBranchCreationAttempt,
     pub(super) progress: CompositeAttemptProgress,
     pub(super) successor_basis: AdmittedCompositeRuntimeWorldBasis,
 }

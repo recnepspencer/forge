@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::{
-    CompositeCommitIdentity, ProductBranchIdentity, ProductBranchLifecycleIncarnation,
+    CompositeCommitIdentity, ProductBranchIdentity, ProductBranchIncarnation,
     ProductBranchReferenceGeneration, RuntimeWorldOwnerIdentity,
 };
 
@@ -14,7 +14,7 @@ use crate::identity::{
 pub struct ProductBranchReferenceSnapshot {
     owner: RuntimeWorldOwnerIdentity,
     branch: ProductBranchIdentity,
-    lifecycle: ProductBranchLifecycleIncarnation,
+    lifecycle: ProductBranchIncarnation,
     generation: ProductBranchReferenceGeneration,
     commit: Arc<CompositeRuntimeWorldCommit>,
 }
@@ -45,7 +45,7 @@ impl ProductBranchReferenceSnapshot {
     pub(crate) fn owner_issued(
         owner: RuntimeWorldOwnerIdentity,
         branch: ProductBranchIdentity,
-        lifecycle: ProductBranchLifecycleIncarnation,
+        lifecycle: ProductBranchIncarnation,
         generation: ProductBranchReferenceGeneration,
         commit: Arc<CompositeRuntimeWorldCommit>,
     ) -> Result<Self, ProductBranchReferenceSnapshotDenial> {
@@ -78,7 +78,7 @@ impl ProductBranchReferenceSnapshot {
         &self.branch
     }
 
-    pub(crate) const fn lifecycle(&self) -> ProductBranchLifecycleIncarnation {
+    pub(crate) const fn lifecycle(&self) -> ProductBranchIncarnation {
         self.lifecycle
     }
 
@@ -98,7 +98,7 @@ impl ProductBranchReferenceSnapshot {
         &self.branch
     }
 
-    pub fn lifecycle_incarnation(&self) -> ProductBranchLifecycleIncarnation {
+    pub fn lifecycle_incarnation(&self) -> ProductBranchIncarnation {
         self.lifecycle
     }
 

@@ -2,7 +2,7 @@
 
 Runtime World history has two separate meanings:
 
-- `CompositeBasisIdentity` binds one Runtime World owner to the exact
+- `CompositeBasisKey` binds one Runtime World owner to the exact
   owner-issued Relational, Signal, and Bridge admission identities. It is the
   composite equivalence key; descriptors are descriptive only.
 - `CompositeCommitIdentity` names one immutable commit occurrence.

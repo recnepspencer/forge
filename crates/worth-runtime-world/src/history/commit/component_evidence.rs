@@ -1,7 +1,4 @@
-use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::history::RelationalCommitIdentity;
-use worth_runtime_bridge::facade::AdmittedRuntimeWorldCorrespondenceBasis;
-use worth_signal::facade::branch::SignalBranchBasisAdmissionIdentity;
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::publication::CompositeOwnerExecutionResults;
@@ -35,16 +32,9 @@ impl CompositeComponentEvidence {
             if basis != successor.relational_basis().admission_identity() {
                 return Err(CompositeCommitConstructionDenial::BasisMismatch);
             }
-            match results.relational_publication_identity() {
-                Some(commit) => RelationalComponentEvidence::ForkedAndPublished {
-                    target: target.clone(),
-                    commit,
-                    basis: basis.clone(),
-                },
-                None => RelationalComponentEvidence::Forked {
-                    target: target.clone(),
-                    basis: basis.clone(),
-                },
+            RelationalComponentEvidence::Forked {
+                target: target.clone(),
+                basis: basis.clone(),
             }
         } else if let Some(commit) = results.relational_publication_identity() {
             let basis = results
@@ -103,8 +93,7 @@ impl CompositeComponentEvidence {
                 CompositeComponentChangePosture::RetainExact
             }
             RelationalComponentEvidence::Published { .. }
-            | RelationalComponentEvidence::Forked { .. }
-            | RelationalComponentEvidence::ForkedAndPublished { .. } => {
+            | RelationalComponentEvidence::Forked { .. } => {
                 CompositeComponentChangePosture::Published
             }
         }
@@ -123,8 +112,7 @@ impl CompositeComponentEvidence {
         match &self.relational {
             RelationalComponentEvidence::RetainedExact { .. }
             | RelationalComponentEvidence::Forked { .. } => None,
-            RelationalComponentEvidence::Published { commit, .. }
-            | RelationalComponentEvidence::ForkedAndPublished { commit, .. } => Some(commit),
+            RelationalComponentEvidence::Published { commit, .. } => Some(commit),
         }
     }
 
@@ -132,8 +120,7 @@ impl CompositeComponentEvidence {
         &self,
     ) -> Option<&worth_relational::facade::branch::RelationalBranchIdentity> {
         match &self.relational {
-            RelationalComponentEvidence::Forked { target, .. }
-            | RelationalComponentEvidence::ForkedAndPublished { target, .. } => Some(target),
+            RelationalComponentEvidence::Forked { target, .. } => Some(target),
             RelationalComponentEvidence::RetainedExact { .. }
             | RelationalComponentEvidence::Published { .. } => None,
         }

@@ -4,7 +4,6 @@ pub(crate) struct RelationalRecoveryRecordState {
     pub(super) commit_identity: worth_relational::facade::history::RelationalCommitIdentity,
     pub(super) successor_basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
     pub(super) route: Option<RelationalRecoveryRecordRoute>,
-    pub(super) fork: Option<worth_relational::facade::branch::RelationalForkOutcome>,
     pub(super) component_results: Option<CompositeOwnerExecutionResults>,
     pub(super) signal_posture: crate::publication::SignalAttemptProgressPosture,
 }
@@ -14,18 +13,15 @@ pub(super) enum RelationalRecoveryRecordRoute {
         commit_identity: worth_relational::facade::history::RelationalCommitIdentity,
         successor_basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
         performed: worth_relational::facade::mvcc::PerformedRelationalCommit,
-        fork: Option<worth_relational::facade::branch::RelationalForkOutcome>,
     },
     SettlementPending {
         commit_identity: worth_relational::facade::history::RelationalCommitIdentity,
         successor_basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
-        fork: Option<worth_relational::facade::branch::RelationalForkOutcome>,
         settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
     },
     IdentityRequired {
         commit_identity: worth_relational::facade::history::RelationalCommitIdentity,
         successor_basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
-        fork: Option<worth_relational::facade::branch::RelationalForkOutcome>,
     },
 }
 
@@ -39,14 +35,6 @@ impl RelationalRecoveryRecordRoute {
             Self::IdentityRequired { .. } => None,
         }
     }
-
-    fn fork(&self) -> Option<&worth_relational::facade::branch::RelationalForkOutcome> {
-        match self {
-            Self::Performed { fork, .. }
-            | Self::SettlementPending { fork, .. }
-            | Self::IdentityRequired { fork, .. } => fork.as_ref(),
-        }
-    }
 }
 
 impl RelationalRecoveryRecordState {
@@ -58,27 +46,24 @@ impl RelationalRecoveryRecordState {
         signal_posture: crate::publication::SignalAttemptProgressPosture,
     ) -> Self {
         let route = match recovery_route {
-            crate::publication::RelationalRecoveryRoute::Performed { performed, fork } => {
+            crate::publication::RelationalRecoveryRoute::Performed { performed } => {
                 RelationalRecoveryRecordRoute::Performed {
                     commit_identity: commit_identity.clone(),
                     successor_basis: successor_basis.clone(),
                     performed,
-                    fork,
                 }
             }
-            crate::publication::RelationalRecoveryRoute::SettlementPending { settlement, fork } => {
+            crate::publication::RelationalRecoveryRoute::SettlementPending { settlement } => {
                 RelationalRecoveryRecordRoute::SettlementPending {
                     commit_identity: commit_identity.clone(),
                     successor_basis: successor_basis.clone(),
-                    fork,
                     settlement,
                 }
             }
-            crate::publication::RelationalRecoveryRoute::IdentityRequired { fork } => {
+            crate::publication::RelationalRecoveryRoute::IdentityRequired => {
                 RelationalRecoveryRecordRoute::IdentityRequired {
                     commit_identity: commit_identity.clone(),
                     successor_basis: successor_basis.clone(),
-                    fork,
                 }
             }
         };
@@ -86,7 +71,6 @@ impl RelationalRecoveryRecordState {
             commit_identity,
             successor_basis,
             route: Some(route),
-            fork: None,
             component_results: Some(component_results),
             signal_posture,
         }
@@ -106,26 +90,12 @@ impl RelationalRecoveryRecordState {
             .and_then(RelationalRecoveryRecordRoute::settlement)
     }
 
-    fn fork_for_progress(&self) -> Option<worth_relational::facade::branch::RelationalForkOutcome> {
-        self.fork.clone().or_else(|| {
-            self.route
-                .as_ref()
-                .and_then(RelationalRecoveryRecordRoute::fork)
-                .cloned()
-        })
-    }
-
     pub(crate) fn take_performed(
         &mut self,
     ) -> Option<worth_relational::facade::mvcc::PerformedRelationalCommit> {
         let route = self.route.take()?;
         match route {
-            RelationalRecoveryRecordRoute::Performed {
-                performed, fork, ..
-            } => {
-                self.fork = fork;
-                Some(performed)
-            }
+            RelationalRecoveryRecordRoute::Performed { performed, .. } => Some(performed),
             route => {
                 self.route = Some(route);
                 None
@@ -139,13 +109,8 @@ impl RelationalRecoveryRecordState {
         let route = self.route.take()?;
         match route {
             RelationalRecoveryRecordRoute::IdentityRequired {
-                commit_identity,
-                fork,
-                ..
-            } => {
-                self.fork = fork;
-                Some(commit_identity)
-            }
+                commit_identity, ..
+            } => Some(commit_identity),
             route => {
                 self.route = Some(route);
                 None
@@ -158,7 +123,6 @@ impl RelationalRecoveryRecordState {
         self.route = Some(RelationalRecoveryRecordRoute::IdentityRequired {
             commit_identity: self.commit_identity.clone(),
             successor_basis: self.successor_basis.clone(),
-            fork: self.fork.take(),
         });
     }
 
@@ -169,17 +133,9 @@ impl RelationalRecoveryRecordState {
             .take()
             .expect("a recoverable route is restored exactly once")
         {
-            RelationalRecoveryRecordRoute::Performed { performed, fork, .. } => {
-                let progress = match fork {
-                    Some(fork) => {
-                        crate::publication::RelationalAttemptProgress::performed_after_fork(
-                            fork, performed,
-                        )
-                    }
-                    None => crate::publication::RelationalAttemptProgress::performed(performed),
-                };
+            RelationalRecoveryRecordRoute::Performed { performed, .. } => {
                 CompositeAttemptProgress::new(
-                    progress,
+                    crate::publication::RelationalAttemptProgress::performed(performed),
                     crate::publication::SignalAttemptProgress::summary(signal_posture),
                 )
             }
@@ -187,43 +143,22 @@ impl RelationalRecoveryRecordState {
                 commit_identity,
                 successor_basis,
                 settlement,
-                fork,
             } => CompositeAttemptProgress::new(
-                match fork {
-                    Some(fork) => {
-                        crate::publication::RelationalAttemptProgress::settlement_pending_after_fork(
-                            fork,
-                            commit_identity,
-                            successor_basis,
-                            settlement,
-                        )
-                    }
-                    None => crate::publication::RelationalAttemptProgress::settlement_pending(
-                        commit_identity,
-                        successor_basis,
-                        settlement,
-                    ),
-                },
+                crate::publication::RelationalAttemptProgress::settlement_pending(
+                    commit_identity,
+                    successor_basis,
+                    settlement,
+                ),
                 crate::publication::SignalAttemptProgress::summary(signal_posture),
             ),
             RelationalRecoveryRecordRoute::IdentityRequired {
                 commit_identity,
                 successor_basis,
-                fork,
             } => CompositeAttemptProgress::new(
-                match fork {
-                    Some(fork) => {
-                        crate::publication::RelationalAttemptProgress::settlement_required_after_fork(
-                            fork,
-                            commit_identity,
-                            successor_basis,
-                        )
-                    }
-                    None => crate::publication::RelationalAttemptProgress::settlement_required(
-                        commit_identity,
-                        successor_basis,
-                    ),
-                },
+                crate::publication::RelationalAttemptProgress::settlement_required(
+                    commit_identity,
+                    successor_basis,
+                ),
                 crate::publication::SignalAttemptProgress::summary(signal_posture),
             ),
         }
@@ -233,19 +168,11 @@ impl RelationalRecoveryRecordState {
         &self,
         result: worth_relational::facade::transactions::CommitResult,
     ) -> CompositeAttemptProgress {
-        let progress = match self.fork_for_progress() {
-            Some(fork) => crate::publication::RelationalAttemptProgress::settled_after_fork(
-                fork,
-                self.commit_identity.clone(),
-                self.successor_basis.clone(),
-                result,
-            ),
-            None => crate::publication::RelationalAttemptProgress::settled(
-                self.commit_identity.clone(),
-                self.successor_basis.clone(),
-                result,
-            ),
-        };
+        let progress = crate::publication::RelationalAttemptProgress::settled(
+            self.commit_identity.clone(),
+            self.successor_basis.clone(),
+            result,
+        );
         CompositeAttemptProgress::new(
             progress,
             crate::publication::SignalAttemptProgress::summary(self.signal_posture),
@@ -256,21 +183,11 @@ impl RelationalRecoveryRecordState {
         &self,
         settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
     ) -> CompositeAttemptProgress {
-        let progress = match self.fork_for_progress() {
-            Some(fork) => {
-                crate::publication::RelationalAttemptProgress::settlement_pending_after_fork(
-                    fork,
-                    self.commit_identity.clone(),
-                    self.successor_basis.clone(),
-                    settlement,
-                )
-            }
-            None => crate::publication::RelationalAttemptProgress::settlement_pending(
-                self.commit_identity.clone(),
-                self.successor_basis.clone(),
-                settlement,
-            ),
-        };
+        let progress = crate::publication::RelationalAttemptProgress::settlement_pending(
+            self.commit_identity.clone(),
+            self.successor_basis.clone(),
+            settlement,
+        );
         CompositeAttemptProgress::new(
             progress,
             crate::publication::SignalAttemptProgress::summary(self.signal_posture),
@@ -278,19 +195,10 @@ impl RelationalRecoveryRecordState {
     }
 
     pub(super) fn identity_required_progress(&self) -> CompositeAttemptProgress {
-        let progress = match self.fork_for_progress() {
-            Some(fork) => {
-                crate::publication::RelationalAttemptProgress::settlement_required_after_fork(
-                    fork,
-                    self.commit_identity.clone(),
-                    self.successor_basis.clone(),
-                )
-            }
-            None => crate::publication::RelationalAttemptProgress::settlement_required(
-                self.commit_identity.clone(),
-                self.successor_basis.clone(),
-            ),
-        };
+        let progress = crate::publication::RelationalAttemptProgress::settlement_required(
+            self.commit_identity.clone(),
+            self.successor_basis.clone(),
+        );
         CompositeAttemptProgress::new(
             progress,
             crate::publication::SignalAttemptProgress::summary(self.signal_posture),
@@ -301,21 +209,11 @@ impl RelationalRecoveryRecordState {
         &self,
         receipt: worth_relational::facade::history::RelationalCommitReceipt,
     ) -> CompositeAttemptProgress {
-        let progress = match self.fork_for_progress() {
-            Some(fork) => {
-                crate::publication::RelationalAttemptProgress::settled_receipt_after_fork(
-                    fork,
-                    self.commit_identity.clone(),
-                    self.successor_basis.clone(),
-                    receipt,
-                )
-            }
-            None => crate::publication::RelationalAttemptProgress::settled_receipt(
-                self.commit_identity.clone(),
-                self.successor_basis.clone(),
-                receipt,
-            ),
-        };
+        let progress = crate::publication::RelationalAttemptProgress::settled_receipt(
+            self.commit_identity.clone(),
+            self.successor_basis.clone(),
+            receipt,
+        );
         CompositeAttemptProgress::new(
             progress,
             crate::publication::SignalAttemptProgress::summary(self.signal_posture),

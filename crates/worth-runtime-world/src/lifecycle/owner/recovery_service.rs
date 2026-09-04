@@ -1,4 +1,3 @@
-use crate::publication::RelationalAttemptProgressPosture;
 use crate::recovery::{
     ProductUnpublishedOwnerEffects, ProductUnpublishedRecoveryHandle, RecoveryContinuationContract,
 };

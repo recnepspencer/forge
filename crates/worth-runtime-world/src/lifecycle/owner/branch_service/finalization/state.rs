@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::branch::{ProductBranchObservation, ProductBranchReferenceSnapshot};
 use crate::history::{CompositeHistoryCatalog, CompositeRuntimeWorldCommit};
 use crate::identity::{
-    ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
+    ProductBranchIdentity, ProductBranchIncarnation, ProductBranchReferenceGeneration,
 };
 use crate::lifecycle::owner::RuntimeWorldOperationReservation;
 use crate::lifecycle::RuntimeWorldBranchCreationOutcome;
@@ -17,7 +17,7 @@ use super::{ForkedBranchInstallation, ForkedBranchRecoveryContext};
 
 pub(super) struct ForkedBranchDestination {
     pub(super) branch: ProductBranchIdentity,
-    pub(super) lifecycle: ProductBranchLifecycleIncarnation,
+    pub(super) lifecycle: ProductBranchIncarnation,
     pub(super) reservation: crate::branch::registry::ProductBranchRegistryReservation,
 }
 
@@ -38,17 +38,27 @@ struct SettledForkedAttempt {
 
 impl SettledForkedAttempt {
     fn new(
-        attempt: crate::publication::ReservedCompositePublicationAttempt,
+        attempt: crate::publication::ReservedBranchCreationAttempt,
         progress: crate::publication::CompositeAttemptProgress,
     ) -> Self {
         let (progress, owner_results) = progress
             .into_ready_results()
             .expect("settled branch execution carries ready owner results");
-        let (
-            attempt_identity,
-            expected_head,
-            _predecessor_basis,
+        let crate::publication::ReservedBranchCreationParts {
+            identity,
+            source,
             plan,
+            capacities,
+            cancellation: _,
+            deadline,
+            progress: _reserved_progress,
+            counters: _,
+        } = attempt.into_parts();
+        assert!(
+            owner_results.matches_creation_plan(&plan),
+            "settled branch owner results must match the reserved creation plan"
+        );
+        let (
             reserved_commit_identity,
             product_unpublished_identity,
             reserved_commit_capacity,
@@ -57,18 +67,10 @@ impl SettledForkedAttempt {
             _reserved_publication_capacity,
             history,
             operation,
-            _cancellation,
-            deadline,
-            _order,
-            _reserved_progress,
-        ) = attempt.into_parts();
-        assert!(
-            owner_results.matches_plan(&plan),
-            "settled branch owner results must match the reserved component plan"
-        );
+        ) = capacities.into_parts();
         Self {
-            attempt_identity,
-            expected_head,
+            attempt_identity: identity,
+            expected_head: source,
             reserved_commit_identity,
             product_unpublished_identity,
             reserved_commit_capacity,

@@ -64,6 +64,7 @@ where
             Err(_) => return no_effect(RuntimeWorldBootstrapNoEffectCause::CapacityExhausted),
         };
 
+        let root_name = creation.name().clone();
         let (bootstrap_attempt, branch, lifecycle, commit_identity) = {
             let mut identities = self
                 .state
@@ -74,11 +75,9 @@ where
                 Ok(identity) => identity,
                 Err(_) => return no_effect(RuntimeWorldBootstrapNoEffectCause::IdentityExhausted),
             };
-            let branch = match identities.product_branch() {
-                Ok(identity) => identity,
-                Err(_) => return no_effect(RuntimeWorldBootstrapNoEffectCause::IdentityExhausted),
-            };
-            let lifecycle = match identities.branch_lifecycle() {
+            let branch =
+                crate::identity::ProductBranchIdentity::issued(self.owner_identity(), root_name);
+            let lifecycle = match identities.branch_incarnation() {
                 Ok(identity) => identity,
                 Err(_) => return no_effect(RuntimeWorldBootstrapNoEffectCause::IdentityExhausted),
             };
@@ -294,6 +293,6 @@ fn cell_branch(observation: &ProductBranchObservation) -> crate::identity::Produ
 
 fn cell_lifecycle(
     observation: &ProductBranchObservation,
-) -> crate::identity::ProductBranchLifecycleIncarnation {
+) -> crate::identity::ProductBranchIncarnation {
     observation.lifecycle_incarnation()
 }

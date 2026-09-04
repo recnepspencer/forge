@@ -7,7 +7,7 @@ fn publication_phase_vocabulary_is_complete_for_diagnostics() {
     // Phase 1 intentionally fences only the public diagnostic vocabulary.
     // Real consuming token progression belongs to the later owner lanes.
     let phases = [
-        RuntimeWorldPublicationPhase::ProductBranchIntent,
+        RuntimeWorldPublicationPhase::CompositePublicationIntent,
         RuntimeWorldPublicationPhase::ResolvedExpectedProductHead,
         RuntimeWorldPublicationPhase::AdmittedCompositeRuntimeWorldBasis,
         RuntimeWorldPublicationPhase::LoweredOwnerComponentPlan,

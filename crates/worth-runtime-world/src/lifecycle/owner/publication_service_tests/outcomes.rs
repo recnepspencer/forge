@@ -3,13 +3,18 @@ use super::*;
 #[test]
 fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
     let (fixture, owner, expected) = setup();
-    let ready = ready_relational(&fixture, &owner, expected);
+    let ready = ready_relational(&fixture, &owner, &expected, "publication-service");
     assert_eq!(owner.state.operation.active(), 1);
     assert_eq!(owner.state.publication_capacity.active(), 1);
     assert_eq!(owner.state.history.reserved_len(), 1);
     assert_eq!(owner.state.recovery.reserved_slots(), 1);
     assert_eq!(owner.recovery_record_count(), 0);
-    assert_eq!(owner.close(), Err(RuntimeWorldCloseDenial::AlreadyClosing));
+    assert_eq!(
+        owner
+            .close()
+            .expect_err("a live reserved attempt denies close"),
+        RuntimeWorldCloseDenial::AlreadyClosing
+    );
     assert_eq!(
         owner.lifecycle_observation(),
         crate::lifecycle::RuntimeWorldOwnerLifecycleObservation::Open
@@ -21,7 +26,7 @@ fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
     assert_eq!(owner.state.history.reserved_len(), 0);
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
     assert_eq!(owner.recovery_record_count(), 0);
-    owner
+    let _report = owner
         .close()
         .expect("close succeeds after attempt teardown");
     assert_eq!(
@@ -34,13 +39,12 @@ fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
 fn service_dispatch_records_one_exact_final_publication() {
     let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&fixture, &owner, expected.clone());
+    let ready = ready_relational(&fixture, &owner, &expected, "publication-service");
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
         ready,
         &cell,
         CompositeLateCancellationPosture::NotRequested,
-        CompositePublicationCostCounters::default(),
     );
     let performed = match outcome {
         RuntimeWorldPublicationOutcome::Performed(performed) => performed,
@@ -63,14 +67,13 @@ fn service_dispatch_records_one_exact_final_publication() {
 fn cancellation_after_owner_movement_retains_partial_until_explicit_cleanup() {
     let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&fixture, &owner, expected.clone());
+    let ready = ready_relational(&fixture, &owner, &expected, "publication-service");
     let before = cell.atomic_snapshot();
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
         ready,
         &cell,
         CompositeLateCancellationPosture::RequestedBeforeProductMovement,
-        CompositePublicationCostCounters::default(),
     );
     let retained = match outcome {
         RuntimeWorldPublicationOutcome::ProductUnpublished(retained) => retained,
@@ -86,7 +89,7 @@ fn cancellation_after_owner_movement_retains_partial_until_explicit_cleanup() {
     assert_eq!(owner.state.operation.active(), 0);
     assert!(owner.cleanup_recovery(retained));
     assert_eq!(owner.recovery_record_count(), 0);
-    owner
+    let _report = owner
         .close()
         .expect("close succeeds after recovery custody drops");
 }
@@ -95,14 +98,13 @@ fn cancellation_after_owner_movement_retains_partial_until_explicit_cleanup() {
 fn cancellation_before_product_movement_does_not_cas_current_head() {
     let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&fixture, &owner, expected.clone());
+    let ready = ready_relational(&fixture, &owner, &expected, "publication-service");
     let before = cell.atomic_snapshot();
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
         ready,
         &cell,
         CompositeLateCancellationPosture::RequestedBeforeProductMovement,
-        CompositePublicationCostCounters::default(),
     );
     let retained = match outcome {
         RuntimeWorldPublicationOutcome::ProductUnpublished(retained) => retained,
@@ -118,81 +120,28 @@ fn cancellation_before_product_movement_does_not_cas_current_head() {
     let handle = retained.recovery_handle();
     drop(retained);
     assert_eq!(
-        owner.close(),
-        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        owner
+            .close()
+            .expect_err("installed recovery custody denies close"),
+        RuntimeWorldCloseDenial::InFlightCriticalSection,
         "installed recovery custody must be cleaned before close"
     );
     assert!(owner.cleanup_recovery_handle(&handle));
-    owner
+    let _report = owner
         .close()
         .expect("close succeeds after cancellation custody drops");
-}
-
-#[test]
-fn cancelled_ready_loses_to_winner_and_retains_publication_loss() {
-    let (fixture, owner, expected) = setup_with_relational_source();
-    let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let competing_ready = ready_relational_fork_competitor(&fixture, &owner, &expected);
-    let ready = ready_relational(&fixture, &owner, expected.clone());
-    let loser_basis = ready.successor_basis().clone();
-    let winner = publish_ready_competing_head(&owner, competing_ready, &expected);
-    let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
-        owner.as_ref(),
-        ready,
-        &cell,
-        CompositeLateCancellationPosture::NotRequested,
-        CompositePublicationCostCounters::default(),
-    );
-    let retained = match outcome {
-        RuntimeWorldPublicationOutcome::ProductUnpublished(retained) => retained,
-        other => panic!("cancelled stale publication must retain loss: {other:?}"),
-    };
-    assert_eq!(
-        retained.cause(),
-        ProductUnpublishedCause::ProductPublicationLost
-    );
-    assert_eq!(
-        retained.last_observed_head().unwrap().selected_commit(),
-        winner.selected_commit()
-    );
-    assert_eq!(retained.successor_basis(), Some(&loser_basis));
-    assert_ne!(retained.successor_commit(), winner.selected_commit());
-    assert_eq!(
-        cell.atomic_snapshot().selected_commit(),
-        winner.selected_commit()
-    );
-    assert!(owner
-        .state
-        .history
-        .lookup(retained.successor_commit())
-        .is_some());
-    assert_eq!(owner.state.recovery.reserved_slots(), 0);
-    assert_eq!(owner.recovery_record_count(), 1);
-    assert_eq!(owner.state.operation.active(), 0);
-    let handle = retained.recovery_handle();
-    drop(retained);
-    assert_eq!(
-        owner.close(),
-        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
-        "installed recovery custody must be cleaned before close"
-    );
-    assert!(owner.cleanup_recovery_handle(&handle));
-    owner
-        .close()
-        .expect("close succeeds after stale cancellation custody drops");
 }
 
 #[test]
 fn cancellation_observed_after_movement_is_performed_with_evidence() {
     let (fixture, owner, expected) = setup();
     let cell = owner.state.branches.root_cell().expect("bootstrapped cell");
-    let ready = ready_relational(&fixture, &owner, expected);
+    let ready = ready_relational(&fixture, &owner, &expected, "publication-service");
     let outcome = crate::lifecycle::ports::RuntimeWorldProductPublicationService::publish(
         owner.as_ref(),
         ready,
         &cell,
         CompositeLateCancellationPosture::RequestedAfterProductMovement,
-        CompositePublicationCostCounters::default(),
     );
     let performed = match outcome {
         RuntimeWorldPublicationOutcome::Performed(performed) => performed,

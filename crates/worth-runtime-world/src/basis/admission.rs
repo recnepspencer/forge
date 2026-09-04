@@ -13,7 +13,7 @@ use worth_signal::facade::branch::{
 };
 
 use super::composite::CompositeRuntimeWorldBasis;
-use crate::identity::{CompositeBasisIdentity, RuntimeWorldIdentityIssuer};
+use crate::identity::{CompositeBasisKey, RuntimeWorldIdentityIssuer};
 
 worth_proof::authority_marker!(pub(crate) CompositeBasisAdmissionAuthorityMarker);
 
@@ -32,7 +32,7 @@ struct AdmittedCompositeRuntimeWorldBasisInner {
 
 #[derive(Debug, Clone)]
 struct CompositeBasisAdmissionBinding {
-    identity: CompositeBasisIdentity,
+    identity: CompositeBasisKey,
     _authority: Arc<AuthorityWitness<CompositeBasisAdmissionAuthorityMarker>>,
 }
 
@@ -45,7 +45,7 @@ impl PartialEq for AdmittedCompositeRuntimeWorldBasis {
 impl Eq for AdmittedCompositeRuntimeWorldBasis {}
 
 impl AdmittedCompositeRuntimeWorldBasis {
-    fn new(basis: CompositeRuntimeWorldBasis, identity: CompositeBasisIdentity) -> Self {
+    fn new(basis: CompositeRuntimeWorldBasis, identity: CompositeBasisKey) -> Self {
         let authority =
             AuthorityWitness::from_authority_marker(CompositeBasisAdmissionAuthorityMarker::seal());
         Self {
@@ -63,7 +63,7 @@ impl AdmittedCompositeRuntimeWorldBasis {
         self.identity().owner_identity()
     }
 
-    pub fn identity(&self) -> &CompositeBasisIdentity {
+    pub fn identity(&self) -> &CompositeBasisKey {
         &self.inner.admission.identity
     }
 

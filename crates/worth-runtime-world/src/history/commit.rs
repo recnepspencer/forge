@@ -66,11 +66,6 @@ enum RelationalComponentEvidence {
         target: worth_relational::facade::branch::RelationalBranchIdentity,
         basis: worth_relational::facade::branch::RelationalBranchBasisAdmissionIdentity,
     },
-    ForkedAndPublished {
-        target: worth_relational::facade::branch::RelationalBranchIdentity,
-        commit: RelationalCommitIdentity,
-        basis: worth_relational::facade::branch::RelationalBranchBasisAdmissionIdentity,
-    },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -89,15 +84,12 @@ enum SignalComponentEvidence {
 pub enum CompositeSignalPublicationIdentity {
     Advanced(SignalBranchBasisAdmissionIdentity),
     Forked(SignalBranchBasisAdmissionIdentity),
-    ForkedAndAdvanced(SignalBranchBasisAdmissionIdentity),
 }
 
 impl CompositeSignalPublicationIdentity {
     fn basis_identity(&self) -> &SignalBranchBasisAdmissionIdentity {
         match self {
-            Self::Advanced(identity)
-            | Self::Forked(identity)
-            | Self::ForkedAndAdvanced(identity) => identity,
+            Self::Advanced(identity) | Self::Forked(identity) => identity,
         }
     }
 }

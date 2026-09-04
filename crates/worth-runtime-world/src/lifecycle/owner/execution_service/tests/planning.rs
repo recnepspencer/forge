@@ -6,19 +6,8 @@ use super::*;
 #[test]
 fn relational_only_executes_the_canonical_relational_owner_path() {
     let (fixture, owner, expected) = setup();
-    let plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "relational-only",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-        None,
-    );
-    let settlement = settled(execute_without_signal(&owner, reserve(&owner, plan)));
+    let prepared = prepare_relational(&fixture, &owner, &expected, "relational-only");
+    let settlement = settled(execute_without_signal(&owner, prepared));
     assert_eq!(
         settlement.progress().relational_posture(),
         RelationalAttemptProgressPosture::Settled
@@ -39,20 +28,9 @@ fn relational_only_executes_the_canonical_relational_owner_path() {
 
 #[test]
 fn signal_only_uses_the_real_mutation_owner_without_relational_contact() {
-    let (fixture, owner, expected) = setup();
-    let plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "signal-only",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::signal_only(),
-        None,
-    );
-    let settlement = settled(execute_with_empty_signal(&owner, reserve(&owner, plan)));
+    let (_fixture, owner, expected) = setup();
+    let prepared = prepare_signal(&owner, &expected, None);
+    let settlement = settled(execute_with_empty_signal(&owner, prepared));
     assert_eq!(
         settlement.progress().relational_posture(),
         RelationalAttemptProgressPosture::Untouched
@@ -78,32 +56,30 @@ fn signal_only_uses_the_real_mutation_owner_without_relational_contact() {
 #[test]
 fn both_changed_settles_relational_before_signal_and_preserves_both_bases() {
     let (fixture, owner, expected) = setup();
-    let plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "both-changed",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::relational_and_signal(RelationalTransactionIntent::ordinary()),
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let prepared = RuntimeWorldPreparationService::prepare_publication(
+        owner.as_ref(),
+        expected.clone(),
+        CompositePublicationIntent::with_signal(Some(RelationalTransactionIntent::ordinary()))
+            .with_prepared_relational_candidate(
+                fixture.prepare_relational_owner_candidate("both-changed"),
+            ),
+        &cancellation.token(),
         None,
-    );
+    )
+    .expect("the exact observed head admits both owner legs");
     let relational_branch = expected.basis().relational_basis().identity().clone();
     let expected_relational = expected.basis().relational_basis().clone();
     let relational_was_observed = Arc::new(AtomicBool::new(false));
     let observed_for_callback = Arc::clone(&relational_was_observed);
     let owner_for_callback = Arc::clone(&owner);
-    let runtime_cancellation = RuntimeWorldCancellationSource::new();
-    let runtime_token = runtime_cancellation.token();
-    let signal_cancellation = SignalOwnerCancellationSource::new();
-    let signal_token = signal_cancellation.token();
     let mut context = ();
-    let settlement = settled(RuntimeWorldOwnerExecutionService::execute(
+    let settlement = settled(RuntimeWorldOwnerExecutionService::execute_with_signal(
         owner.as_ref(),
-        reserve(&owner, plan),
-        CompositeExecutionBorrow::signal(&mut context, &signal_token, move |_| {
+        prepared,
+        &mut context,
+        &cancellation.token(),
+        move |_| {
             let (_, observed) = owner_for_callback
                 .state
                 .relational
@@ -121,8 +97,7 @@ fn both_changed_settles_relational_before_signal_and_preserves_both_bases() {
             }
             observed_for_callback.store(true, Ordering::Release);
             Ok(())
-        }),
-        &runtime_token,
+        },
     ));
     assert!(
         relational_was_observed.load(Ordering::Acquire),
@@ -151,88 +126,10 @@ fn both_changed_settles_relational_before_signal_and_preserves_both_bases() {
 }
 
 #[test]
-fn relational_fork_exact_consumes_the_owner_reservation_and_returns_target_basis() {
-    let (fixture, owner, expected) = setup_with_relational_source();
-    let input = fixture.relational_fork_input("relational-fork-exact", None);
-    let plan = plan_with_relational_fork(
-        &owner,
-        &expected,
-        "relational-fork-exact",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ForkExact,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-        input,
-        None,
-    );
-    let settlement = settled(execute_without_signal(&owner, reserve(&owner, plan)));
-    assert_eq!(
-        settlement.progress().relational_posture(),
-        RelationalAttemptProgressPosture::Performed
-    );
-    assert_eq!(settlement.progress().owner_effect_count(), 1);
-    let successor = settlement.successor_basis().cloned().unwrap();
-    assert_ne!(
-        successor.relational_basis().identity(),
-        expected.basis().relational_basis().identity()
-    );
-    settlement
-        .ready(successor)
-        .expect("the exact fork evidence forms a ready publication");
-}
-
-#[test]
-fn relational_fork_and_advance_uses_the_real_admission_and_publication_path() {
-    let (fixture, owner, expected) = setup_with_relational_source();
-    let input = fixture.relational_fork_input(
-        "relational-fork-and-advance",
-        Some(WorkerIntentBatch::new("relational-fork-and-advance")),
-    );
-    let plan = plan_with_relational_fork(
-        &owner,
-        &expected,
-        "relational-fork-and-advance",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ForkAndAdvance,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-        input,
-        None,
-    );
-    let settlement = settled(execute_without_signal(&owner, reserve(&owner, plan)));
-    assert_eq!(
-        settlement.progress().relational_posture(),
-        RelationalAttemptProgressPosture::Settled
-    );
-    assert_eq!(settlement.progress().owner_effect_count(), 1);
-    let successor = settlement.successor_basis().cloned().unwrap();
-    assert_ne!(
-        successor.relational_basis().identity(),
-        expected.basis().relational_basis().identity()
-    );
-    settlement
-        .ready(successor)
-        .expect("the fork-and-advance evidence forms a ready publication");
-}
-
-#[test]
-fn reuse_exact_signal_does_not_contact_signal_when_relational_changes() {
+fn a_relational_publication_never_contacts_the_signal_owner() {
     let (fixture, owner, expected) = setup();
-    let plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "reuse-signal",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-        None,
-    );
-    let settlement = settled(execute_without_signal(&owner, reserve(&owner, plan)));
+    let prepared = prepare_relational(&fixture, &owner, &expected, "reuse-signal");
+    let settlement = settled(execute_without_signal(&owner, prepared));
     assert_eq!(
         settlement.progress().signal_posture(),
         SignalAttemptProgressPosture::Untouched
@@ -242,104 +139,4 @@ fn reuse_exact_signal_does_not_contact_signal_when_relational_changes() {
         1,
         "only the requested Relational owner moved"
     );
-}
-
-#[test]
-fn signal_fork_exact_reserves_then_consumes_without_an_advance() {
-    let (fixture, owner, expected) = setup();
-    let plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "signal-fork-exact",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ForkExact,
-        ),
-        CompositeComponentIntent::signal_only(),
-        Some("signal-fork-exact"),
-    );
-    let settlement = settled(execute_without_signal(&owner, reserve(&owner, plan)));
-    assert_eq!(
-        settlement.progress().signal_posture(),
-        SignalAttemptProgressPosture::Performed
-    );
-    let successor = settlement.successor_basis().cloned().unwrap();
-    assert_ne!(
-        successor.signal_basis().admission_identity(),
-        expected.basis().signal_basis().admission_identity()
-    );
-    settlement
-        .ready(successor)
-        .expect("ForkExact owner evidence is publishable");
-}
-
-#[test]
-fn signal_fork_and_advance_consumes_the_same_reservation_before_advance() {
-    let (fixture, owner, expected) = setup();
-    let plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "signal-fork-and-advance",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ForkAndAdvance,
-        ),
-        CompositeComponentIntent::signal_only(),
-        Some("signal-fork-and-advance"),
-    );
-    let settlement = settled(execute_with_empty_signal(&owner, reserve(&owner, plan)));
-    assert_eq!(
-        settlement.progress().signal_posture(),
-        SignalAttemptProgressPosture::Performed
-    );
-    let successor = settlement.successor_basis().cloned().unwrap();
-    assert_ne!(
-        successor.signal_basis().admission_identity(),
-        expected.basis().signal_basis().admission_identity()
-    );
-    settlement
-        .ready(successor)
-        .expect("ForkAndAdvance owner evidence is publishable");
-}
-
-#[test]
-fn signal_fork_and_advance_requires_the_signal_owner_borrow_and_releases_its_reservation() {
-    let (fixture, owner, expected) = setup();
-    let denied_plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "signal-fork-and-advance-without-signal",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ForkAndAdvance,
-        ),
-        CompositeComponentIntent::signal_only(),
-        Some("signal-fork-and-advance-without-signal"),
-    );
-    let denied = execute_without_signal(&owner, reserve(&owner, denied_plan));
-    assert!(matches!(
-        denied,
-        OwnerExecutionOutcome::NoEffect(no_effect)
-            if no_effect.cause() == crate::publication::NoEffectCause::OwnerUnavailable
-    ));
-
-    let retry_plan = plan(
-        &fixture,
-        &owner,
-        &expected,
-        "signal-fork-and-advance-without-signal-retry",
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ForkAndAdvance,
-        ),
-        CompositeComponentIntent::signal_only(),
-        Some("signal-fork-and-advance-without-signal"),
-    );
-    assert!(matches!(
-        execute_with_empty_signal(&owner, reserve(&owner, retry_plan)),
-        OwnerExecutionOutcome::Settled(_)
-    ));
 }

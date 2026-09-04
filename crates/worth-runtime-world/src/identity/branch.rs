@@ -1,31 +1,39 @@
 use super::{RuntimeWorldIdentityExhaustion, RuntimeWorldOwnerIdentity};
+use crate::branch::ProductBranchName;
 
-/// Owner-issued identity of one product reference cell.
+/// Owner-issued identity of one product branch, keyed by its normalized name.
+/// Retire and recreate of the same name yields the SAME identity with a NEW
+/// incarnation; the incarnation, not the identity, distinguishes occurrences.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProductBranchIdentity {
     owner: RuntimeWorldOwnerIdentity,
-    ordinal: u64,
+    name: ProductBranchName,
 }
 
 impl ProductBranchIdentity {
-    pub(super) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
-        Self { owner, ordinal }
+    pub(crate) const fn issued(owner: RuntimeWorldOwnerIdentity, name: ProductBranchName) -> Self {
+        Self { owner, name }
     }
 
     pub const fn owner_identity(&self) -> RuntimeWorldOwnerIdentity {
         self.owner
     }
+
+    pub const fn name(&self) -> &ProductBranchName {
+        &self.name
+    }
 }
 
-/// Lifecycle incarnation of a product reference. Retirement never permits
-/// the same branch name or cell identity to reuse this value.
+/// Occurrence of a product branch between creation and retirement. An
+/// incarnation value is never reused, so retire-then-recreate of one name is
+/// always distinguishable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ProductBranchLifecycleIncarnation {
+pub struct ProductBranchIncarnation {
     owner: RuntimeWorldOwnerIdentity,
     ordinal: u64,
 }
 
-impl ProductBranchLifecycleIncarnation {
+impl ProductBranchIncarnation {
     pub(super) const fn issued(owner: RuntimeWorldOwnerIdentity, ordinal: u64) -> Self {
         Self { owner, ordinal }
     }

@@ -1,3 +1,4 @@
+mod cancellation;
 mod component_plan;
 mod cost_counters;
 mod intent;
@@ -12,21 +13,27 @@ mod progress;
 mod progression;
 mod reservation;
 
+pub(crate) use cancellation::RuntimeWorldCancellationBoundary;
+pub use cancellation::{RuntimeWorldCancellationSource, RuntimeWorldCancellationToken};
 pub(crate) use component_plan::lower_component_plans;
 pub use component_plan::{
     LoweredOwnerComponentPlan, RelationalComponentPlan, RelationalComponentPlanPosture,
     SignalComponentPlan, SignalComponentPlanPosture,
 };
 pub use cost_counters::CompositePublicationCostCounters;
+pub(crate) use intent::CompositePublicationStage;
 pub use intent::{
-    CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent,
-    RelationalForkPlanInput, SignalTransactionMutation,
+    CompositeComponentIntent, CompositePublicationIntent, PreparedCompositePublicationWithSignal,
+    PreparedCompositePublicationWithoutSignal, WithSignal, WithoutSignal,
 };
 pub use no_effect::{NoEffectCause, NoEffectCompositePublication};
 pub(crate) use outcome::OwnerExecutionOutcome;
 pub use outcome::RuntimeWorldPublicationOutcome;
 pub use owner_execution::OwnerExecutionSettlement;
-pub(crate) use owner_execution::{recovery_actions, RETENTION_PENDING_LIVE_OBLIGATION_COUNT};
+pub(crate) use owner_execution::{
+    retain_attempt_effects, RetainedAttemptInputs, RetainedOwnerEffectInputs,
+    RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
+};
 pub use owner_results::{
     CompositeOwnerExecutionResults, CompositeRelationalOwnerResult, CompositeSignalOwnerResult,
 };
@@ -42,4 +49,8 @@ pub use progression::RuntimeWorldPublicationPhase;
 pub use reservation::{
     CompositeAttemptCancellationPosture, CompositePublicationOrder,
     ReservedCompositePublicationAttempt,
+};
+pub(crate) use reservation::{
+    ReservedAttemptCapacities, ReservedAttemptCapacityInputs, ReservedBranchCreationAttempt,
+    ReservedBranchCreationInputs, ReservedBranchCreationParts, ReservedPublicationAttemptParts,
 };

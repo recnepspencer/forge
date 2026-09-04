@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use crate::branch::reference_test_fixture;
-use crate::branch::{
-    ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchObservation, RuntimeWorldBootstrapOutcome,
-};
+use crate::branch::{ProductBranchObservation, RuntimeWorldBootstrapOutcome};
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
     RuntimeWorldCustodyBudgetInstallation, RuntimeWorldHistoryBudgetInstallation,
@@ -12,7 +9,7 @@ use crate::budget::{
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
 use crate::lifecycle::{RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant};
-use crate::publication::{CompositeComponentIntent, ProductBranchIntent};
+use crate::publication::{CompositePublicationIntent, WithSignal};
 
 pub(super) type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -75,26 +72,10 @@ pub(super) fn setup(publication_attempts: u64) -> (Arc<TestOwner>, ProductBranch
     (owner, performed.product_branch().clone())
 }
 
-pub(super) fn intent(
-    name: &str,
-    relational: ProductBranchComponentPosture,
-    signal: ProductBranchComponentPosture,
-    component: CompositeComponentIntent,
-) -> ProductBranchIntent {
-    ProductBranchIntent::new(
-        ProductBranchCreationIntent::named(name).expect("valid product operation name"),
-        ProductBranchComponentPostures::new(relational, signal),
-        component,
-    )
-}
-
-pub(super) fn signal_intent(name: &str) -> ProductBranchIntent {
-    intent(
-        name,
-        ProductBranchComponentPosture::ReuseExact,
-        ProductBranchComponentPosture::ReuseExact,
-        CompositeComponentIntent::signal_only(),
-    )
+/// The focused Signal-only publication meaning: an explicit Signal
+/// `AdvanceExact` with no Relational change.
+pub(super) fn signal_intent() -> CompositePublicationIntent<WithSignal> {
+    CompositePublicationIntent::with_signal(None)
 }
 
 pub(super) fn reservation_counts(owner: &TestOwner) -> (usize, usize, usize, usize, usize) {

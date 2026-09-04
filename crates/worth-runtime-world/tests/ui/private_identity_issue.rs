@@ -1,11 +1,11 @@
-use worth_runtime_world::facade::{CompositeBasisIdentity, RuntimeWorldOwnerIdentity};
+use worth_runtime_world::facade::{CompositeBasisKey, RuntimeWorldOwnerIdentity};
 
 fn placeholder<T>() -> T {
     loop {}
 }
 
-fn issue(owner: RuntimeWorldOwnerIdentity) -> CompositeBasisIdentity {
-    CompositeBasisIdentity::issued(
+fn issue(owner: RuntimeWorldOwnerIdentity) -> CompositeBasisKey {
+    CompositeBasisKey::issued(
         owner,
         placeholder(),
         placeholder(),

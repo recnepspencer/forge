@@ -1,4 +1,4 @@
-use crate::identity::{CompositeBasisIdentity, RuntimeWorldOwnerIdentity};
+use crate::identity::{CompositeBasisKey, RuntimeWorldOwnerIdentity};
 
 use super::component_obligation::ProductHeadRetentionObligation;
 use super::unique_component_pin::ExactComponentBasisKey;
@@ -78,7 +78,7 @@ pub(crate) enum RetentionTransferDenial {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RetentionTransferReceipt {
     owner: RuntimeWorldOwnerIdentity,
-    basis: CompositeBasisIdentity,
+    basis: CompositeBasisKey,
     relational: ExactComponentBasisKey,
     signal: ExactComponentBasisKey,
     source: ComponentBasisDependencyClass,
@@ -88,7 +88,7 @@ pub(crate) struct RetentionTransferReceipt {
 impl RetentionTransferReceipt {
     pub(super) fn product_head(
         owner: RuntimeWorldOwnerIdentity,
-        basis: CompositeBasisIdentity,
+        basis: CompositeBasisKey,
         relational: ExactComponentBasisKey,
         signal: ExactComponentBasisKey,
     ) -> Self {
@@ -106,7 +106,7 @@ impl RetentionTransferReceipt {
         self.owner
     }
 
-    pub(crate) fn basis(&self) -> &CompositeBasisIdentity {
+    pub(crate) fn basis(&self) -> &CompositeBasisKey {
         &self.basis
     }
 

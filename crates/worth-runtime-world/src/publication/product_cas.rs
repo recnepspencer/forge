@@ -7,8 +7,7 @@ use crate::branch::{
 use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::CompositePublicationAttemptIdentity;
 use crate::recovery::{
-    ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffectSummary,
-    ProductUnpublishedOwnerEffects,
+    ProductUnpublishedCause, ProductUnpublishedOwnerEffectSummary, ProductUnpublishedOwnerEffects,
 };
 use crate::retention::PublicationRetentionObligation;
 
@@ -37,7 +36,30 @@ pub struct CompositePublicationReady {
     publication_retention: PublicationRetentionObligation,
     cancellation: super::CompositeAttemptCancellationPosture,
     deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
-    order: super::CompositePublicationOrder,
+    counters: CompositePublicationCostCounters,
+}
+
+/// The exact reserved contents a ready publication owns. Cost counters travel
+/// with the attempt that accrued them, so no caller can hand the product CAS a
+/// separate counter image.
+pub(crate) struct CompositePublicationReadyInputs {
+    pub(crate) identity: CompositePublicationAttemptIdentity,
+    pub(crate) expected_head: ProductBranchObservation,
+    pub(crate) commit: Arc<CompositeRuntimeWorldCommit>,
+    pub(crate) owner_results: CompositeOwnerExecutionResults,
+    pub(crate) progress: super::CompositeAttemptProgress,
+    pub(crate) product_unpublished_identity:
+        crate::identity::ProductUnpublishedOwnerEffectsIdentity,
+    pub(crate) reserved_commit_capacity: crate::history::ReservedCompositeCommitCapacity,
+    pub(crate) reserved_recovery_slot: crate::recovery::ReservedProductUnpublishedSlot,
+    pub(crate) reserved_publication_capacity:
+        crate::lifecycle::owner::ReservedPublicationAttemptCapacity,
+    pub(crate) history: crate::history::CompositeHistoryCatalog,
+    pub(crate) operation: crate::lifecycle::owner::RuntimeWorldOperationReservation,
+    pub(crate) publication_retention: PublicationRetentionObligation,
+    pub(crate) cancellation: super::CompositeAttemptCancellationPosture,
+    pub(crate) deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
+    pub(crate) counters: CompositePublicationCostCounters,
 }
 
 impl std::fmt::Debug for CompositePublicationReady {
@@ -53,26 +75,9 @@ impl std::fmt::Debug for CompositePublicationReady {
 }
 
 impl CompositePublicationReady {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        attempt_identity: CompositePublicationAttemptIdentity,
-        expected_head: ProductBranchObservation,
-        commit: Arc<CompositeRuntimeWorldCommit>,
-        owner_results: CompositeOwnerExecutionResults,
-        progress: super::CompositeAttemptProgress,
-        product_unpublished_identity: crate::identity::ProductUnpublishedOwnerEffectsIdentity,
-        reserved_commit_capacity: crate::history::ReservedCompositeCommitCapacity,
-        reserved_recovery_slot: crate::recovery::ReservedProductUnpublishedSlot,
-        reserved_publication_capacity: crate::lifecycle::owner::ReservedPublicationAttemptCapacity,
-        history: crate::history::CompositeHistoryCatalog,
-        operation: crate::lifecycle::owner::RuntimeWorldOperationReservation,
-        publication_retention: PublicationRetentionObligation,
-        cancellation: super::CompositeAttemptCancellationPosture,
-        deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
-        order: super::CompositePublicationOrder,
-    ) -> Self {
-        Self {
-            attempt_identity,
+    pub(crate) fn new(inputs: CompositePublicationReadyInputs) -> Self {
+        let CompositePublicationReadyInputs {
+            identity,
             expected_head,
             commit,
             owner_results,
@@ -86,7 +91,24 @@ impl CompositePublicationReady {
             publication_retention,
             cancellation,
             deadline,
-            order,
+            counters,
+        } = inputs;
+        Self {
+            attempt_identity: identity,
+            expected_head,
+            commit,
+            owner_results,
+            progress,
+            product_unpublished_identity,
+            reserved_commit_capacity,
+            reserved_recovery_slot,
+            reserved_publication_capacity,
+            history,
+            operation,
+            publication_retention,
+            cancellation,
+            deadline,
+            counters,
         }
     }
 
@@ -113,7 +135,6 @@ impl CompositePublicationReady {
         self,
         cell: &ProductBranchReferenceCell,
         late_cancellation: CompositeLateCancellationPosture,
-        cost_counters: CompositePublicationCostCounters,
     ) -> RuntimeWorldPublicationOutcome {
         let Self {
             attempt_identity,
@@ -130,9 +151,8 @@ impl CompositePublicationReady {
             publication_retention,
             cancellation,
             deadline,
-            order: _order,
+            counters: mut cost_counters,
         } = self;
-        let mut cost_counters = cost_counters;
         assert!(
             commit.matches_owner_results(expected_head.basis(), &owner_results),
             "a ready publication carries the exact owner results embodied by its commit"
@@ -347,6 +367,7 @@ fn unpublished_from_protection(
         PRODUCT_UNPUBLISHED_LIVE_OBLIGATION_COUNT,
         0,
     );
+    let next_actions = crate::recovery::next_actions_for_progress(&progress);
     ProductUnpublishedOwnerEffects::new_retained(
         identity,
         attempt_identity,
@@ -360,10 +381,7 @@ fn unpublished_from_protection(
         recovery_slot,
         summary,
         cause,
-        vec![
-            ProductUnpublishedNextAction::Inspect,
-            ProductUnpublishedNextAction::ReleaseObligations,
-        ],
+        next_actions,
         deadline,
         0,
     )

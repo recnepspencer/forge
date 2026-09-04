@@ -1,6 +1,8 @@
 use super::ProductUnpublishedNextAction;
 
-const RETAINED_NEXT_ACTION_CAPACITY: usize = 3;
+/// The bound is the exact number of distinct actions a retained record can
+/// legally offer, so a retained list is never silently truncated.
+const RETAINED_NEXT_ACTION_CAPACITY: usize = 5;
 
 #[derive(Debug)]
 pub(crate) struct RetainedNextActions {
@@ -30,7 +32,7 @@ impl RetainedNextActions {
 pub(crate) fn next_actions_for_progress(
     progress: &crate::publication::CompositeAttemptProgress,
 ) -> Vec<ProductUnpublishedNextAction> {
-    let mut actions = Vec::with_capacity(3);
+    let mut actions = Vec::with_capacity(RETAINED_NEXT_ACTION_CAPACITY);
     if progress.relational_requires_settlement()
         && progress.signal_posture() == crate::publication::SignalAttemptProgressPosture::Untouched
     {
@@ -38,5 +40,9 @@ pub(crate) fn next_actions_for_progress(
     }
     actions.push(ProductUnpublishedNextAction::ReleaseObligations);
     actions.push(ProductUnpublishedNextAction::Inspect);
+    debug_assert!(
+        actions.len() <= RETAINED_NEXT_ACTION_CAPACITY,
+        "retained recovery actions exceed the fixed contract bound"
+    );
     actions
 }

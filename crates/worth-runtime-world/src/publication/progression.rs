@@ -1,8 +1,11 @@
 /// Compiler-visible phase names. Values are descriptive; the phase structs
-/// remain the authority-bearing transition tokens.
+/// remain the authority-bearing transition tokens. Preparation reaches the
+/// reserved attempt in one owner step and hands it back inside the
+/// stage-tagged prepared publication, so the lowered plan and the reserved
+/// attempt are named here as the stages they are, not as separate calls.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeWorldPublicationPhase {
-    ProductBranchIntent,
+    CompositePublicationIntent,
     ResolvedExpectedProductHead,
     AdmittedCompositeRuntimeWorldBasis,
     LoweredOwnerComponentPlan,
@@ -18,7 +21,7 @@ impl RuntimeWorldPublicationPhase {
     /// phase tokens remain the authority for actual transitions.
     pub const fn successor(self) -> Option<Self> {
         match self {
-            Self::ProductBranchIntent => Some(Self::ResolvedExpectedProductHead),
+            Self::CompositePublicationIntent => Some(Self::ResolvedExpectedProductHead),
             Self::ResolvedExpectedProductHead => Some(Self::AdmittedCompositeRuntimeWorldBasis),
             Self::AdmittedCompositeRuntimeWorldBasis => Some(Self::LoweredOwnerComponentPlan),
             Self::LoweredOwnerComponentPlan => Some(Self::ReservedCompositePublicationAttempt),

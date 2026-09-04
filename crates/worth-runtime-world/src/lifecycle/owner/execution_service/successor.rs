@@ -26,7 +26,7 @@ where
         basis::admit_validated(&identities, relational, signal, correspondence)
     }
 
-    pub(super) fn issue_successor_basis_from_progress(
+    pub(crate) fn issue_successor_basis_from_progress(
         &self,
         progress: &CompositeAttemptProgress,
         predecessor: &AdmittedCompositeRuntimeWorldBasis,
@@ -46,7 +46,7 @@ where
         )
     }
 
-    pub(super) fn successor_owners_are_current(
+    pub(crate) fn successor_owners_are_current(
         &self,
         successor: &AdmittedCompositeRuntimeWorldBasis,
     ) -> bool {

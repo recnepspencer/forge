@@ -26,7 +26,6 @@ enum CompositeRelationalOwnerResultKind {
     Published {
         commit_identity: RelationalCommitIdentity,
         successor_basis: AdmittedRelationalBranchBasis,
-        fork: Option<RelationalForkOutcome>,
         settlement: Option<worth_relational::facade::history::RelationalCommitReceipt>,
         result: Option<CommitResult>,
     },
@@ -37,12 +36,10 @@ enum CompositeRelationalOwnerResultKind {
     SettlementRequired {
         commit_identity: RelationalCommitIdentity,
         successor_basis: AdmittedRelationalBranchBasis,
-        fork: Option<RelationalForkOutcome>,
     },
     SettlementPending {
         commit_identity: RelationalCommitIdentity,
         successor_basis: AdmittedRelationalBranchBasis,
-        fork: Option<RelationalForkOutcome>,
         settlement: DeferredPublicationSettlement,
     },
 }
@@ -120,10 +117,9 @@ impl CompositeOwnerExecutionResults {
         successor_basis: AdmittedRelationalBranchBasis,
         result: CommitResult,
     ) -> Self {
-        let (relational, signal) = self.into_parts();
+        let (_relational, signal) = self.into_parts();
         Self {
-            relational: CompositeRelationalOwnerResult::settled_with_fork(
-                relational.into_fork(),
+            relational: CompositeRelationalOwnerResult::settled(
                 commit_identity,
                 successor_basis,
                 result,
@@ -138,10 +134,9 @@ impl CompositeOwnerExecutionResults {
         successor_basis: AdmittedRelationalBranchBasis,
         receipt: worth_relational::facade::history::RelationalCommitReceipt,
     ) -> Self {
-        let (relational, signal) = self.into_parts();
+        let (_relational, signal) = self.into_parts();
         Self {
-            relational: CompositeRelationalOwnerResult::settled_receipt_with_fork(
-                relational.into_fork(),
+            relational: CompositeRelationalOwnerResult::settled_receipt(
                 commit_identity,
                 successor_basis,
                 receipt,
@@ -156,10 +151,9 @@ impl CompositeOwnerExecutionResults {
         successor_basis: AdmittedRelationalBranchBasis,
         settlement: DeferredPublicationSettlement,
     ) -> Self {
-        let (relational, signal) = self.into_parts();
+        let (_relational, signal) = self.into_parts();
         Self {
-            relational: CompositeRelationalOwnerResult::settlement_pending_with_fork(
-                relational.into_fork(),
+            relational: CompositeRelationalOwnerResult::settlement_pending(
                 commit_identity,
                 successor_basis,
                 settlement,
@@ -177,16 +171,10 @@ impl CompositeOwnerExecutionResults {
             CompositeRelationalOwnerResultKind::RetainedExact => {
                 CompositeComponentChangePosture::RetainExact
             }
-            CompositeRelationalOwnerResultKind::Published { .. } => {
-                CompositeComponentChangePosture::Published
-            }
-            CompositeRelationalOwnerResultKind::Forked { .. } => {
-                CompositeComponentChangePosture::Published
-            }
-            CompositeRelationalOwnerResultKind::SettlementPending { .. } => {
-                CompositeComponentChangePosture::Published
-            }
-            CompositeRelationalOwnerResultKind::SettlementRequired { .. } => {
+            CompositeRelationalOwnerResultKind::Published { .. }
+            | CompositeRelationalOwnerResultKind::Forked { .. }
+            | CompositeRelationalOwnerResultKind::SettlementPending { .. }
+            | CompositeRelationalOwnerResultKind::SettlementRequired { .. } => {
                 CompositeComponentChangePosture::Published
             }
         }
@@ -227,8 +215,8 @@ impl CompositeOwnerExecutionResults {
             }
             | CompositeRelationalOwnerResultKind::SettlementRequired {
                 successor_basis, ..
-            } => Some(successor_basis.admission_identity()),
-            CompositeRelationalOwnerResultKind::Forked {
+            }
+            | CompositeRelationalOwnerResultKind::Forked {
                 successor_basis, ..
             } => Some(successor_basis.admission_identity()),
         }
@@ -238,20 +226,11 @@ impl CompositeOwnerExecutionResults {
         &self,
     ) -> Option<&worth_relational::facade::branch::RelationalBranchIdentity> {
         match &self.relational.result {
-            CompositeRelationalOwnerResultKind::Forked { fork, .. }
-            | CompositeRelationalOwnerResultKind::Published {
-                fork: Some(fork), ..
-            }
-            | CompositeRelationalOwnerResultKind::SettlementRequired {
-                fork: Some(fork), ..
-            }
-            | CompositeRelationalOwnerResultKind::SettlementPending {
-                fork: Some(fork), ..
-            } => Some(fork.target_identity()),
+            CompositeRelationalOwnerResultKind::Forked { fork, .. } => Some(fork.target_identity()),
             CompositeRelationalOwnerResultKind::RetainedExact
-            | CompositeRelationalOwnerResultKind::Published { fork: None, .. }
-            | CompositeRelationalOwnerResultKind::SettlementRequired { fork: None, .. }
-            | CompositeRelationalOwnerResultKind::SettlementPending { fork: None, .. } => None,
+            | CompositeRelationalOwnerResultKind::Published { .. }
+            | CompositeRelationalOwnerResultKind::SettlementRequired { .. }
+            | CompositeRelationalOwnerResultKind::SettlementPending { .. } => None,
         }
     }
 
@@ -293,33 +272,53 @@ impl CompositeOwnerExecutionResults {
             RelationalComponentPlanPosture::PublishPrepared => {
                 matches!(
                     self.relational.result,
-                    CompositeRelationalOwnerResultKind::Published { fork: None, .. }
-                        | CompositeRelationalOwnerResultKind::SettlementRequired { fork: None, .. }
-                        | CompositeRelationalOwnerResultKind::SettlementPending { fork: None, .. }
-                )
-            }
-            RelationalComponentPlanPosture::ForkExact => {
-                matches!(
-                    self.relational.result,
-                    CompositeRelationalOwnerResultKind::Forked { .. }
-                )
-            }
-            RelationalComponentPlanPosture::ForkAndAdvance => {
-                matches!(
-                    self.relational.result,
-                    CompositeRelationalOwnerResultKind::Published { fork: Some(_), .. }
-                        | CompositeRelationalOwnerResultKind::SettlementRequired {
-                            fork: Some(_),
-                            ..
-                        }
-                        | CompositeRelationalOwnerResultKind::SettlementPending {
-                            fork: Some(_),
-                            ..
-                        }
+                    CompositeRelationalOwnerResultKind::Published { .. }
+                        | CompositeRelationalOwnerResultKind::SettlementRequired { .. }
+                        | CompositeRelationalOwnerResultKind::SettlementPending { .. }
                 )
             }
         };
         let signal_matches = self.signal.matches_plan(plan.signal().posture());
         relational_matches && signal_matches
+    }
+
+    /// Whether both owner results are the exact evidence the creation plan
+    /// asked each owner to produce.
+    pub(crate) fn matches_creation_plan(
+        &self,
+        plan: &crate::branch::LoweredBranchCreationPlan,
+    ) -> bool {
+        let relational_matches = match plan.relational() {
+            crate::branch::RelationalBranchCreationPlan::ReuseExact => matches!(
+                self.relational.result,
+                CompositeRelationalOwnerResultKind::RetainedExact
+            ),
+            crate::branch::RelationalBranchCreationPlan::ForkExact { .. } => matches!(
+                self.relational.result,
+                CompositeRelationalOwnerResultKind::Forked { .. }
+            ),
+        };
+        relational_matches && self.signal.matches_creation_plan(plan.signal())
+    }
+
+    /// Whether both owner results are honest evidence for a creation that
+    /// stopped partway. A sibling denial leaves the later owner untouched, so
+    /// a retained leg is admissible here; a leg that did move must still be
+    /// exactly the evidence its creation plan asked for.
+    pub(crate) fn matches_partial_creation_plan(
+        &self,
+        plan: &crate::branch::LoweredBranchCreationPlan,
+    ) -> bool {
+        let relational_matches = matches!(
+            self.relational.result,
+            CompositeRelationalOwnerResultKind::RetainedExact
+        ) || match plan.relational() {
+            crate::branch::RelationalBranchCreationPlan::ReuseExact => true,
+            crate::branch::RelationalBranchCreationPlan::ForkExact { .. } => matches!(
+                self.relational.result,
+                CompositeRelationalOwnerResultKind::Forked { .. }
+            ),
+        };
+        relational_matches && self.signal.matches_partial_creation_plan(plan.signal())
     }
 }

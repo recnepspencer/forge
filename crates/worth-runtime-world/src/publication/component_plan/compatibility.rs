@@ -1,8 +1,8 @@
-use crate::branch::{ProductBranchComponentPosture, ProductBranchObservation};
+use crate::branch::ProductBranchObservation;
 
 use super::{
     LoweredOwnerComponentPlan, RelationalComponentPlan, RelationalComponentPlanPosture,
-    RelationalForkPlanInput, SignalComponentPlan, SignalComponentPlanPosture,
+    SignalComponentPlan, SignalComponentPlanPosture,
 };
 
 pub(super) fn plan_is_compatible_with(
@@ -23,89 +23,27 @@ pub(super) fn plan_is_compatible_with(
         return false;
     }
     let intent = plan.expected().intent();
-    relational_plan_is_compatible(
-        plan.relational(),
-        intent.component_postures().relational(),
-        intent.component_intent().changes_relational(),
-    ) && signal_plan_is_compatible(
-        plan.signal(),
-        intent.component_postures().signal(),
-        intent.component_intent().changes_signal(),
-    )
+    relational_plan_is_compatible(plan.relational(), intent.changes_relational())
+        && signal_plan_is_compatible(plan.signal(), intent.changes_signal())
 }
 
-fn relational_plan_is_compatible(
-    plan: &RelationalComponentPlan,
-    posture: ProductBranchComponentPosture,
-    changes: bool,
-) -> bool {
+fn relational_plan_is_compatible(plan: &RelationalComponentPlan, changes: bool) -> bool {
     match plan.posture() {
         RelationalComponentPlanPosture::RetainExact => {
-            posture == ProductBranchComponentPosture::ReuseExact
-                && !changes
-                && plan.prepared_candidate().is_none()
-                && plan.fork_input().is_none()
+            !changes && plan.prepared_candidate().is_none()
         }
         RelationalComponentPlanPosture::PublishPrepared => {
-            posture == ProductBranchComponentPosture::ReuseExact
-                && changes
+            changes
                 && plan.prepared_candidate().is_some_and(|candidate| {
                     candidate.branch() == plan.expected().identity().branch_id()
-                })
-        }
-        RelationalComponentPlanPosture::ForkExact => {
-            posture == ProductBranchComponentPosture::ForkExact
-                && changes
-                && plan.fork_input().is_some_and(|input| {
-                    matches!(input, RelationalForkPlanInput::ForkExact { .. })
-                        && fork_source_matches(input, plan)
-                })
-        }
-        RelationalComponentPlanPosture::ForkAndAdvance => {
-            posture == ProductBranchComponentPosture::ForkAndAdvance
-                && changes
-                && plan.fork_input().is_some_and(|input| {
-                    matches!(input, RelationalForkPlanInput::ForkAndAdvance { .. })
-                        && fork_source_matches(input, plan)
                 })
         }
     }
 }
 
-fn fork_source_matches(input: &RelationalForkPlanInput, plan: &RelationalComponentPlan) -> bool {
-    let source = input.source().descriptor();
-    let expected = plan.expected().descriptor();
-    source.runtime_instance_id() == expected.runtime_instance_id()
-        && source.source_branch() == expected.branch_id()
-        && source.observation() == expected.reference()
-        && source.truth_version() == expected.truth_version()
-}
-
-fn signal_plan_is_compatible(
-    plan: &SignalComponentPlan,
-    posture: ProductBranchComponentPosture,
-    changes: bool,
-) -> bool {
+fn signal_plan_is_compatible(plan: &SignalComponentPlan, changes: bool) -> bool {
     match plan.posture() {
-        SignalComponentPlanPosture::RetainExact => {
-            posture == ProductBranchComponentPosture::ReuseExact
-                && !changes
-                && plan.requested_branch_name().is_none()
-        }
-        SignalComponentPlanPosture::AdvanceExact => {
-            posture == ProductBranchComponentPosture::ReuseExact
-                && changes
-                && plan.requested_branch_name().is_none()
-        }
-        SignalComponentPlanPosture::ForkExact => {
-            posture == ProductBranchComponentPosture::ForkExact
-                && changes
-                && plan.requested_branch_name().is_some()
-        }
-        SignalComponentPlanPosture::ForkAndAdvance => {
-            posture == ProductBranchComponentPosture::ForkAndAdvance
-                && changes
-                && plan.requested_branch_name().is_some()
-        }
+        SignalComponentPlanPosture::RetainExact => !changes,
+        SignalComponentPlanPosture::AdvanceExact => changes,
     }
 }

@@ -1,7 +1,7 @@
 use crate::branch::{
-    ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchName, ProductBranchObservation, RuntimeWorldBootstrapOutcome,
-    RuntimeWorldBranchAdmissionDenial,
+    ProductBranchCreationIntent, ProductBranchCreationPlans, ProductBranchName,
+    ProductBranchObservation, RelationalBranchCreationPlan, RuntimeWorldBootstrapOutcome,
+    RuntimeWorldBranchAdmissionDenial, SignalBranchCreationPlan,
 };
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
@@ -13,8 +13,7 @@ use crate::lifecycle::{
     RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest,
     RuntimeWorldBranchService, RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldInstant,
 };
-use crate::publication::{CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchIntent};
-use worth_relational::facade::mvcc::RelationalTransactionIntent;
+use crate::publication::RuntimeWorldCancellationSource;
 
 type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -56,15 +55,15 @@ fn budgets() -> RuntimeWorldBudgets {
     .expect("branch service contract budgets")
 }
 
-fn reuse_intent(name: &str) -> ProductBranchIntent {
-    ProductBranchIntent::new(
-        ProductBranchCreationIntent::named(name).expect("valid product branch name"),
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ReuseExact,
+fn reuse_intent(name: &str) -> ProductBranchCreationIntent {
+    ProductBranchCreationIntent::from_source(
+        name,
+        ProductBranchCreationPlans::new(
+            RelationalBranchCreationPlan::ReuseExact,
+            SignalBranchCreationPlan::ReuseExact,
         ),
-        CompositeComponentIntent::signal_only(),
     )
+    .expect("valid product branch name")
 }
 
 fn setup() -> (
@@ -91,15 +90,12 @@ fn setup() -> (
 fn create_reused_branch(
     owner: &TestOwner,
     source: &ProductBranchObservation,
-    intent: ProductBranchIntent,
+    intent: ProductBranchCreationIntent,
 ) -> ProductBranchObservation {
+    let cancellation = RuntimeWorldCancellationSource::new();
     match RuntimeWorldBranchService::create_product_branch(
         owner,
-        RuntimeWorldBranchCreationRequest::new(
-            source.clone(),
-            intent,
-            CompositeExecutionBorrow::without_signal(),
-        ),
+        RuntimeWorldBranchCreationRequest::new(source.clone(), intent, &cancellation.token()),
     )
     .expect("exact reuse is admitted")
     {
@@ -113,6 +109,7 @@ fn create_reused_branch(
 #[test]
 fn installed_duplicate_name_maps_to_the_exact_branch_denial() {
     let (_fixture, owner, root) = setup();
+    let cancellation = RuntimeWorldCancellationSource::new();
     create_reused_branch(&owner, &root, reuse_intent("installed-duplicate"));
     let before = owner.state.branches.branch_count();
 
@@ -122,7 +119,7 @@ fn installed_duplicate_name_maps_to_the_exact_branch_denial() {
             RuntimeWorldBranchCreationRequest::new(
                 root.clone(),
                 reuse_intent("installed-duplicate"),
-                CompositeExecutionBorrow::without_signal(),
+                &cancellation.token(),
             ),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::DuplicateName)
@@ -133,6 +130,7 @@ fn installed_duplicate_name_maps_to_the_exact_branch_denial() {
 #[test]
 fn held_duplicate_name_maps_to_the_same_denial_and_drop_releases_it() {
     let (_fixture, owner, root) = setup();
+    let cancellation = RuntimeWorldCancellationSource::new();
     let held = owner
         .state
         .branches
@@ -148,7 +146,7 @@ fn held_duplicate_name_maps_to_the_same_denial_and_drop_releases_it() {
             RuntimeWorldBranchCreationRequest::new(
                 root.clone(),
                 reuse_intent("held-duplicate"),
-                CompositeExecutionBorrow::without_signal(),
+                &cancellation.token(),
             ),
         ),
         Err(RuntimeWorldBranchAdmissionDenial::DuplicateName)
@@ -158,30 +156,25 @@ fn held_duplicate_name_maps_to_the_same_denial_and_drop_releases_it() {
     create_reused_branch(&owner, &root, reuse_intent("held-duplicate"));
 }
 
+/// A fork plan always carries its own owner-issued destination, so the only
+/// way to reach creation without a per-owner plan is a bootstrap intent. That
+/// is denied by name before any owner is contacted.
 #[test]
-fn fork_without_owner_issued_plan_input_is_no_effect() {
+fn creation_without_per_owner_plans_is_denied_before_any_owner_effect() {
     let (_fixture, owner, root) = setup();
+    let cancellation = RuntimeWorldCancellationSource::new();
     let before_history = owner.state.history.counters();
     let before_retention = owner.state.retention.cost_snapshot();
 
-    let intent = ProductBranchIntent::new(
-        ProductBranchCreationIntent::named("missing-fork-input").expect("valid branch name"),
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ForkExact,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-    );
+    let intent =
+        ProductBranchCreationIntent::named("missing-creation-plans").expect("valid branch name");
+    assert!(intent.plans().is_none());
     assert!(matches!(
         RuntimeWorldBranchService::create_product_branch(
             &owner,
-            RuntimeWorldBranchCreationRequest::new(
-                root.clone(),
-                intent,
-                CompositeExecutionBorrow::without_signal(),
-            ),
+            RuntimeWorldBranchCreationRequest::new(root.clone(), intent, &cancellation.token()),
         ),
-        Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)
+        Err(RuntimeWorldBranchAdmissionDenial::PlansOmitted)
     ));
     assert_eq!(owner.state.branches.branch_count(), 1);
     assert_eq!(owner.state.branches.reserved_branch_count(), 0);

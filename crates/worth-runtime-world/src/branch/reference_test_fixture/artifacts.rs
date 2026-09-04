@@ -155,20 +155,29 @@ pub(crate) fn initial_snapshot(
     fixture: &mut RealReferenceFixture,
     commit: Arc<CompositeRuntimeWorldCommit>,
 ) -> ProductBranchReferenceSnapshot {
-    let branch = fixture
+    initial_snapshot_named(fixture, commit, "root")
+}
+
+/// An owner-issued identity is keyed by the normalized branch name, so a
+/// snapshot for a genuinely different product branch is named, not counted.
+pub(crate) fn initial_snapshot_named(
+    fixture: &mut RealReferenceFixture,
+    commit: Arc<CompositeRuntimeWorldCommit>,
+    name: &str,
+) -> ProductBranchReferenceSnapshot {
+    let branch = crate::identity::ProductBranchIdentity::issued(
+        fixture.owner_identity,
+        crate::branch::ProductBranchName::try_new(name).expect("valid product branch name"),
+    );
+    let incarnation = fixture
         .identities
         .issuer_mut()
-        .product_branch()
-        .expect("product branch identity");
-    let lifecycle = fixture
-        .identities
-        .issuer_mut()
-        .branch_lifecycle()
-        .expect("lifecycle identity");
+        .branch_incarnation()
+        .expect("branch incarnation identity");
     ProductBranchReferenceSnapshot::owner_issued(
         fixture.owner_identity,
         branch,
-        lifecycle,
+        incarnation,
         ProductBranchReferenceGeneration::initial(),
         commit,
     )

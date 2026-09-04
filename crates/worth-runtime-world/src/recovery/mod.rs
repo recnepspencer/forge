@@ -12,4 +12,5 @@ pub use product_unpublished::{
 
 pub(crate) use catalog::{RecoveryCatalog, RecoveryCatalogDenial, ReservedProductUnpublishedSlot};
 
+pub(crate) use product_unpublished::next_actions_for_progress;
 pub(crate) use progress::ProductUnpublishedOwnerEffectSummary;

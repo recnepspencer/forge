@@ -1,6 +1,8 @@
 mod bootstrap;
 mod creation;
-mod observation;
+mod custody;
+mod name;
+pub(crate) mod observation;
 mod reference_cell;
 mod reference_snapshot;
 #[cfg(test)]
@@ -12,17 +14,24 @@ pub use bootstrap::{
     NoEffectRuntimeWorldBootstrap, PerformedRuntimeWorldBootstrap, RuntimeWorldBootstrapIntent,
     RuntimeWorldBootstrapNoEffectCause, RuntimeWorldBootstrapOutcome,
 };
+pub(crate) use creation::LoweredBranchCreationPlan;
 pub use creation::{
-    ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchName, ProductBranchNameDenial,
+    ProductBranchCreationIntent, ProductBranchCreationPlans, RelationalBranchCreationPlan,
+    SignalBranchCreationPlan,
 };
+pub use custody::{
+    ComponentBranchTarget, CustodyComponent, OwnerCreatedComponentCustodyRecord,
+    OwnerRetirementWork, ProductBranchRetirementReport,
+};
+pub(crate) use custody::{OwnerCreatedComponentCustodyRegistry, ReservedCustodySlot};
+pub use name::{ProductBranchName, ProductBranchNameDenial};
 pub use observation::{
     ProductBranchObservation, ProductBranchObservationMismatch,
     ProductBranchObservationMismatchAxis, RuntimeWorldBranchAdmissionDenial,
 };
 pub(crate) use reference_cell::{
-    ProductBranchHeadProtection, ProductBranchHeadProtectionDenial, ProductBranchReferenceCell,
-    ProductBranchReferenceMovement, ProductBranchReferencePublishFailure,
+    ProductBranchHeadProtection, ProductBranchReferenceCell, ProductBranchReferenceMovement,
+    ProductBranchReferencePublishFailure,
 };
 pub use reference_snapshot::ProductBranchReferenceSnapshot;
 pub use retirement::RuntimeWorldBranchRetirementDenial;

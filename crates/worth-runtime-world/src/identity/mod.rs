@@ -1,5 +1,5 @@
 mod attempt;
-mod basis;
+mod basis_key;
 mod bootstrap;
 mod branch;
 mod commit;
@@ -7,10 +7,10 @@ mod owner;
 mod retained_partial;
 
 pub use attempt::CompositePublicationAttemptIdentity;
-pub use basis::CompositeBasisIdentity;
+pub use basis_key::CompositeBasisKey;
 pub use bootstrap::RuntimeWorldBootstrapAttemptIdentity;
 pub use branch::{
-    ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
+    ProductBranchIdentity, ProductBranchIncarnation, ProductBranchReferenceGeneration,
 };
 pub use commit::CompositeCommitIdentity;
 pub(crate) use owner::RuntimeWorldIdentityIssuer;

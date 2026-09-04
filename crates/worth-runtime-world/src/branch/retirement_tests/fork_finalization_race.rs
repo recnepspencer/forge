@@ -17,20 +17,22 @@
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 
-use crate::branch::ProductBranchComponentPosture;
 use crate::lifecycle::{
     RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest,
     RuntimeWorldBranchService, RuntimeWorldCloseDenial, RuntimeWorldOwnerLifecycleObservation,
 };
 use crate::publication::{
-    recovery_actions, CompositeExecutionBorrow, RelationalAttemptProgressPosture,
-    SignalAttemptProgressPosture, RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
+    RelationalAttemptProgressPosture, RuntimeWorldCancellationSource, SignalAttemptProgressPosture,
+    RETENTION_PENDING_LIVE_OBLIGATION_COUNT,
 };
 use crate::recovery::{
-    ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffects,
+    next_actions_for_progress, ProductUnpublishedCause, ProductUnpublishedNextAction,
+    ProductUnpublishedOwnerEffects,
 };
 
-use super::fork_creation::{fork_intent, setup_with_relational_source, ForkIntentSpec};
+use super::fork_creation::{
+    fork_intent, relational_fork, setup_with_relational_source, signal_fork,
+};
 
 const FORK_FINALIZATION_TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -39,27 +41,21 @@ fn forked_finalization_recovery_denies_close_until_its_record_is_installed() {
     let (fixture, owner, source) = setup_with_relational_source(3);
     let owner = Arc::new(owner);
     let branches_before = owner.state.branches.branch_count();
-    let intent = fork_intent(ForkIntentSpec {
-        name: "branch-fork-finalization-race",
-        relational_posture: ProductBranchComponentPosture::ForkExact,
-        signal_posture: ProductBranchComponentPosture::ForkExact,
-        relational_input: fixture
-            .relational_fork_input("relational-branch-fork-finalization-race", None),
-        signal_name: "signal-branch-fork-finalization-race",
-    });
+    let intent = fork_intent(
+        "branch-fork-finalization-race",
+        relational_fork("relational-branch-fork-finalization-race"),
+        signal_fork("signal-branch-fork-finalization-race"),
+    );
 
     let (reached_tx, reached_rx) = mpsc::sync_channel(1);
     let rehearsal = owner.rehearse_forked_finalization_recovery(reached_tx);
     let (finished_tx, finished_rx) = mpsc::sync_channel(1);
     let worker_owner = Arc::clone(&owner);
     let worker = std::thread::spawn(move || {
+        let cancellation = RuntimeWorldCancellationSource::new();
         let outcome = RuntimeWorldBranchService::create_product_branch(
             worker_owner.as_ref(),
-            RuntimeWorldBranchCreationRequest::new(
-                source,
-                intent,
-                CompositeExecutionBorrow::without_signal(),
-            ),
+            RuntimeWorldBranchCreationRequest::new(source, intent, &cancellation.token()),
         );
         finished_tx
             .send(outcome)
@@ -101,8 +97,10 @@ fn assert_close_denied_before_any_record(owner: &super::TestOwner) {
         "the paused attempt has not installed its record yet"
     );
     assert_eq!(
-        owner.close(),
-        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        owner
+            .close()
+            .expect_err("the recovering reservation alone must deny close"),
+        RuntimeWorldCloseDenial::InFlightCriticalSection,
         "the recovering reservation alone must deny close before the record exists"
     );
     assert_eq!(
@@ -124,8 +122,10 @@ fn assert_retained_custody_survives_the_reservation(
     assert_eq!(recovery_active(owner), 0);
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(
-        owner.close(),
-        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        owner
+            .close()
+            .expect_err("the installed record continues the close denial"),
+        RuntimeWorldCloseDenial::InFlightCriticalSection,
         "the installed record continues the close denial the reservation began"
     );
     assert_eq!(
@@ -145,7 +145,7 @@ fn assert_retained_custody_survives_the_reservation(
 fn assert_cleanup_reopens_close(owner: &super::TestOwner, effects: ProductUnpublishedOwnerEffects) {
     assert!(owner.cleanup_recovery(effects));
     assert_eq!(owner.recovery_record_count(), 0);
-    owner
+    let _report = owner
         .close()
         .expect("cleanup removes the final recovery close obligation");
     assert_eq!(
@@ -174,7 +174,7 @@ fn assert_finalization_record_contract(effects: &ProductUnpublishedOwnerEffects)
     );
     assert_eq!(
         effects.next_actions(),
-        recovery_actions(effects.progress()).as_slice(),
+        next_actions_for_progress(effects.progress()).as_slice(),
         "finalization derives its continuation instead of restating a literal"
     );
     assert_eq!(

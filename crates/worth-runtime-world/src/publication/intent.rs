@@ -1,13 +1,17 @@
-use crate::branch::ProductBranchCreationIntent;
-use worth_relational::facade::branch::{
-    AdmittedRelationalForkSourceBasis, RelationalForkTargetReservation,
+use std::marker::PhantomData;
+
+use worth_relational::facade::mvcc::{
+    PreparedRelationalCommitCandidate, RelationalTransactionIntent,
 };
-use worth_relational::facade::mvcc::PreparedRelationalCommitCandidate;
-use worth_relational::facade::mvcc::RelationalTransactionIntent;
-use worth_relational::facade::transactions::WorkerIntentBatch;
-use worth_signal::facade::branch::SignalOwnerCancellationToken;
-use worth_signal::facade::branch::ValidatedSignalBranchName;
-use worth_signal::facade::{SignalError, SignalTransaction};
+
+#[path = "intent/prepared.rs"]
+mod prepared;
+
+pub(crate) use prepared::CompositePublicationStage;
+pub use prepared::{
+    PreparedCompositePublicationWithSignal, PreparedCompositePublicationWithoutSignal, WithSignal,
+    WithoutSignal,
+};
 
 /// Which owner components a future operation is allowed to change. Omission
 /// is not interpreted as an implicit refresh or a latest-head lookup.
@@ -47,152 +51,47 @@ impl CompositeComponentIntent {
     }
 }
 
-/// The only mutation callback accepted by the Runtime World Signal seam. The
-/// callback is bound to the actual Signal transaction type and can live only
-/// for the synchronous owner call.
-pub type SignalTransactionMutation<'a, D, I, E, Ctx, T> = Box<
-    dyn for<'tx> FnOnce(&mut SignalTransaction<'tx, D, I, E, Ctx, T>) -> Result<(), SignalError>
-        + 'a,
->;
-
-/// Owner-issued evidence and mutation handoff for one Relational fork route.
-/// The source and destination are linear owner capabilities; the batch is the
-/// caller's real post-fork worker input and is never synthesized here.
+/// The only caller-facing publication meaning. The stage parameter is the
+/// compile-visible Signal decision: `WithoutSignal` is an explicit Signal
+/// `RetainExact`, never an omitted plan.
 #[derive(Debug)]
-pub enum RelationalForkPlanInput {
-    ForkExact {
-        source: AdmittedRelationalForkSourceBasis,
-        destination: RelationalForkTargetReservation,
-    },
-    ForkAndAdvance {
-        source: AdmittedRelationalForkSourceBasis,
-        destination: RelationalForkTargetReservation,
-        batch: WorkerIntentBatch,
-    },
-}
-
-impl RelationalForkPlanInput {
-    pub fn fork_exact(
-        source: AdmittedRelationalForkSourceBasis,
-        destination: RelationalForkTargetReservation,
-    ) -> Self {
-        Self::ForkExact {
-            source,
-            destination,
-        }
-    }
-
-    pub fn fork_and_advance(
-        source: AdmittedRelationalForkSourceBasis,
-        destination: RelationalForkTargetReservation,
-        batch: WorkerIntentBatch,
-    ) -> Self {
-        Self::ForkAndAdvance {
-            source,
-            destination,
-            batch,
-        }
-    }
-
-    pub(crate) fn source(&self) -> &AdmittedRelationalForkSourceBasis {
-        match self {
-            Self::ForkExact { source, .. } | Self::ForkAndAdvance { source, .. } => source,
-        }
-    }
-
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        AdmittedRelationalForkSourceBasis,
-        RelationalForkTargetReservation,
-        Option<WorkerIntentBatch>,
-    ) {
-        match self {
-            Self::ForkExact {
-                source,
-                destination,
-            } => (source, destination, None),
-            Self::ForkAndAdvance {
-                source,
-                destination,
-                batch,
-            } => (source, destination, Some(batch)),
-        }
-    }
-}
-
-/// The only synchronous Signal execution borrow accepted by the publication
-/// port. It cannot be cloned, erased to `()`, or stored as a `'static`
-/// callback.
-pub enum CompositeExecutionBorrow<'a, D, I, E, Ctx, T = ()>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    WithoutSignal,
-    Signal {
-        context: &'a mut Ctx,
-        mutation: SignalTransactionMutation<'a, D, I, E, Ctx, T>,
-        cancellation: &'a SignalOwnerCancellationToken,
-    },
-}
-
-impl<'a, D, I, E, Ctx, T> CompositeExecutionBorrow<'a, D, I, E, Ctx, T>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    pub fn without_signal() -> Self {
-        Self::WithoutSignal
-    }
-
-    pub fn signal<F>(
-        context: &'a mut Ctx,
-        cancellation: &'a SignalOwnerCancellationToken,
-        mutation: F,
-    ) -> Self
-    where
-        F: for<'tx> FnOnce(&mut SignalTransaction<'tx, D, I, E, Ctx, T>) -> Result<(), SignalError>
-            + 'a,
-    {
-        Self::Signal {
-            context,
-            mutation: Box::new(mutation),
-            cancellation,
-        }
-    }
-}
-
-/// First compiler-visible publication phase. Construction is owner-internal;
-/// callers submit a validated branch-creation meaning instead.
-#[derive(Debug)]
-pub struct ProductBranchIntent {
-    creation: ProductBranchCreationIntent,
-    component_postures: crate::branch::ProductBranchComponentPostures,
-    component_intent: CompositeComponentIntent,
+#[must_use = "a publication intent is prepared or dropped"]
+pub struct CompositePublicationIntent<S> {
+    change: CompositeComponentIntent,
     prepared_relational_candidate: Option<PreparedRelationalCommitCandidate>,
-    relational_fork_input: Option<RelationalForkPlanInput>,
-    signal_fork_name: Option<ValidatedSignalBranchName>,
+    _stage: PhantomData<S>,
 }
 
-impl ProductBranchIntent {
-    pub fn new(
-        creation: ProductBranchCreationIntent,
-        component_postures: crate::branch::ProductBranchComponentPostures,
-        component_intent: CompositeComponentIntent,
-    ) -> Self {
+impl CompositePublicationIntent<WithoutSignal> {
+    /// A Relational change with an explicit Signal `RetainExact`. Both
+    /// components retained is denied pre-effect, so there is no empty
+    /// constructor.
+    pub fn without_signal(change: RelationalTransactionIntent) -> Self {
         Self {
-            creation,
-            component_postures,
-            component_intent,
+            change: CompositeComponentIntent::RelationalOnly(change),
             prepared_relational_candidate: None,
-            relational_fork_input: None,
-            signal_fork_name: None,
+            _stage: PhantomData,
         }
     }
+}
 
+impl CompositePublicationIntent<WithSignal> {
+    /// An admitted Signal `AdvanceExact`, optionally alongside a Relational
+    /// change.
+    pub fn with_signal(change: Option<RelationalTransactionIntent>) -> Self {
+        let change = match change {
+            Some(change) => CompositeComponentIntent::RelationalAndSignal(change),
+            None => CompositeComponentIntent::SignalOnly,
+        };
+        Self {
+            change,
+            prepared_relational_candidate: None,
+            _stage: PhantomData,
+        }
+    }
+}
+
+impl<S> CompositePublicationIntent<S> {
     /// Attach the one owner-issued Relational candidate that corresponds to
     /// this intent. The candidate remains move-only and is consumed by plan
     /// lowering or dropped with the intent on a rejected route.
@@ -204,43 +103,16 @@ impl ProductBranchIntent {
         self
     }
 
-    /// Attach the complete owner-issued Relational fork route. A source alone
-    /// cannot lower to a fork plan because destination custody is also needed.
-    pub fn with_relational_fork_input(mut self, input: RelationalForkPlanInput) -> Self {
-        self.relational_fork_input = Some(input);
-        self
+    pub fn component_intent(&self) -> &CompositeComponentIntent {
+        &self.change
     }
 
-    /// Attach the owner-validated Signal destination for a fork route. A
-    /// product name is not promoted implicitly into a component identity.
-    pub fn with_signal_fork_name(mut self, name: ValidatedSignalBranchName) -> Self {
-        self.signal_fork_name = Some(name);
-        self
-    }
-
-    pub fn creation(&self) -> &ProductBranchCreationIntent {
-        &self.creation
-    }
-
-    pub fn component_intent(&self) -> CompositeComponentIntent {
-        self.component_intent.clone()
-    }
-
-    pub const fn component_postures(&self) -> crate::branch::ProductBranchComponentPostures {
-        self.component_postures
-    }
-
-    pub(crate) fn take_plan_inputs(
-        &mut self,
+    pub(crate) fn into_parts(
+        self,
     ) -> (
+        CompositeComponentIntent,
         Option<PreparedRelationalCommitCandidate>,
-        Option<RelationalForkPlanInput>,
-        Option<ValidatedSignalBranchName>,
     ) {
-        (
-            self.prepared_relational_candidate.take(),
-            self.relational_fork_input.take(),
-            self.signal_fork_name.take(),
-        )
+        (self.change, self.prepared_relational_candidate)
     }
 }

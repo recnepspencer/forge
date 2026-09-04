@@ -168,10 +168,6 @@ pub(super) enum SignalProgressEvidence {
     Prepared,
     Advanced(SignalBranchAdvanceOutcome),
     Forked(SignalBranchForkOutcome),
-    ForkedAndAdvanced {
-        forked: SignalBranchForkOutcome,
-        advanced: SignalBranchAdvanceOutcome,
-    },
 }
 
 #[derive(Debug)]
@@ -216,16 +212,6 @@ impl SignalAttemptProgress {
         }
     }
 
-    pub(crate) fn forked_and_advanced(
-        forked: SignalBranchForkOutcome,
-        advanced: SignalBranchAdvanceOutcome,
-    ) -> Self {
-        Self {
-            posture: SignalAttemptProgressPosture::Performed,
-            evidence: Some(SignalProgressEvidence::ForkedAndAdvanced { forked, advanced }),
-        }
-    }
-
     pub const fn posture(&self) -> SignalAttemptProgressPosture {
         self.posture
     }
@@ -236,9 +222,6 @@ impl SignalAttemptProgress {
         match self.evidence.as_ref() {
             Some(SignalProgressEvidence::Advanced(outcome)) => Some(outcome.advanced_basis()),
             Some(SignalProgressEvidence::Forked(outcome)) => Some(outcome.created_basis()),
-            Some(SignalProgressEvidence::ForkedAndAdvanced { advanced, .. }) => {
-                Some(advanced.advanced_basis())
-            }
             _ => None,
         }
     }

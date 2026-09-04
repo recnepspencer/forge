@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use crate::branch::{
-    ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceCell,
-    ProductBranchReferenceSnapshot, RuntimeWorldBranchAdmissionDenial,
-    RuntimeWorldBranchRetirementDenial,
+    ProductBranchHeadProtection, ProductBranchName, ProductBranchObservation,
+    ProductBranchReferenceCell, ProductBranchReferenceSnapshot, ProductBranchRetirementReport,
+    RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
 };
 use crate::identity::{
-    ProductBranchIdentity, ProductBranchLifecycleIncarnation, ProductBranchReferenceGeneration,
+    ProductBranchIdentity, ProductBranchIncarnation, ProductBranchReferenceGeneration,
 };
-use crate::publication::{CompositeExecutionBorrow, ProductBranchIntent};
 
 use super::super::ports::{RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest};
 use super::RuntimeWorldOwnerRoot;
@@ -38,33 +37,39 @@ where
             == super::super::close::RuntimeWorldCloseState::Open
     }
 
-    fn issue_branch_identities(
+    /// The branch identity is the owner plus the normalized name, so retiring
+    /// and recreating one name yields the same identity with a new
+    /// incarnation. Only the incarnation is drawn from the issuer.
+    pub(super) fn issue_branch_identities(
         &self,
-    ) -> Result<(ProductBranchIdentity, ProductBranchLifecycleIncarnation), ()> {
+        name: ProductBranchName,
+    ) -> Result<(ProductBranchIdentity, ProductBranchIncarnation), ()> {
         let mut identities = self
             .state
             .identities
             .lock()
             .unwrap_or_else(|error| error.into_inner());
-        let branch = identities.product_branch().map_err(|_| ())?;
-        let lifecycle = identities.branch_lifecycle().map_err(|_| ())?;
-        Ok((branch, lifecycle))
+        let incarnation = identities.branch_incarnation().map_err(|_| ())?;
+        Ok((
+            ProductBranchIdentity::issued(self.owner_identity(), name),
+            incarnation,
+        ))
     }
 
     fn create_reused_branch(
         &self,
         source: ProductBranchObservation,
-        intent: ProductBranchIntent,
+        name: ProductBranchName,
     ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
         let (basis, commit) = self.reused_commit(&source)?;
 
         let reservation = self
             .state
             .branches
-            .reserve_branch(self.owner_identity(), intent.creation().name().clone())
+            .reserve_branch(self.owner_identity(), name.clone())
             .map_err(map_registry_denial)?;
         let (branch, lifecycle) = self
-            .issue_branch_identities()
+            .issue_branch_identities(name)
             .map_err(|_| RuntimeWorldBranchAdmissionDenial::IdentityExhausted)?;
         let (cell, snapshot) =
             self.issue_reused_head(branch.clone(), lifecycle, &basis, Arc::clone(&commit))?;
@@ -106,7 +111,7 @@ where
     fn issue_reused_head(
         &self,
         branch: ProductBranchIdentity,
-        lifecycle: ProductBranchLifecycleIncarnation,
+        lifecycle: ProductBranchIncarnation,
         basis: &crate::basis::AdmittedCompositeRuntimeWorldBasis,
         commit: Arc<crate::history::CompositeRuntimeWorldCommit>,
     ) -> Result<
@@ -201,17 +206,11 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
-    type SignalDefinition = D;
-    type SignalIdentity = I;
-    type SignalEvent = E;
-    type SignalContext = Ctx;
-    type SignalTransactionKey = T;
-
     fn create_product_branch(
         &self,
-        request: RuntimeWorldBranchCreationRequest<'_, D, I, E, Ctx, T>,
+        request: RuntimeWorldBranchCreationRequest<'_>,
     ) -> Result<RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchAdmissionDenial> {
-        let (source, intent, signal) = request.into_parts();
+        let (source, intent, cancellation) = request.into_parts();
         if source.owner_identity() != self.owner_identity()
             || source.branch_identity().owner_identity() != self.owner_identity()
         {
@@ -220,22 +219,23 @@ where
         if !self.branch_service_is_available() {
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
-        let postures = intent.component_postures();
-        if postures.is_exact_reuse() {
-            if !matches!(signal, CompositeExecutionBorrow::WithoutSignal) {
-                return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
-            }
+        let plans = intent
+            .plans()
+            .ok_or(RuntimeWorldBranchAdmissionDenial::PlansOmitted)?;
+        if plans.is_exact_reuse() {
             return self
-                .create_reused_branch(source, intent)
+                .create_reused_branch(source, intent.name().clone())
                 .map(RuntimeWorldBranchCreationOutcome::Performed);
         }
-        creation::create_forked_branch(self, source, intent, signal)
+        creation::create_forked_branch(self, source, intent, cancellation)
     }
 
+    /// Retirement releases the product reference this world owns and reports
+    /// the component branches it created but must not delete itself.
     fn retire_product_branch(
         &self,
         branch: ProductBranchIdentity,
-    ) -> Result<(), RuntimeWorldBranchRetirementDenial> {
+    ) -> Result<ProductBranchRetirementReport, RuntimeWorldBranchRetirementDenial> {
         if branch.owner_identity() != self.owner_identity() {
             return Err(RuntimeWorldBranchRetirementDenial::OwnerUnavailable);
         }
@@ -250,7 +250,14 @@ where
         // Drop the product-head and history custody after the registry lock
         // has been released. No component lifecycle/delete port is called.
         drop(cell);
-        Ok(())
+        // LANE A owns turning this branch's custody records into typed owner
+        // work. The registry is installed on the owner state and
+        // `take_for_branch` already returns the exact records this branch
+        // created; what is still undecided is the retirement contract itself,
+        // so the records stay charged until Lane A claims them. Reporting an
+        // empty work list is the honest statement that this world names no
+        // component branch for deletion yet, not a fabricated one.
+        Ok(ProductBranchRetirementReport::new(branch, Vec::new()))
     }
 }
 

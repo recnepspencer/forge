@@ -1,9 +1,11 @@
 use worth_runtime_world::facade::{
-    AdmittedRelationalBranchBasis, AdmittedSignalBranchBasis,
-    AdmittedRuntimeWorldCorrespondenceBasis, CompositeAttemptProgress, CompositeExecutionBorrow,
-    RelationalOwnerServicePorts, RelationalTransactionIntent, ResolvedExpectedProductHead,
-    RuntimeWorldCorrespondencePort, RuntimeWorldOwnerInputs, RuntimeWorldPublicationOutcome,
-    SignalError, SignalOwnerCancellationToken, SignalOwnerServicePorts, SignalTransaction,
+    AdmittedRelationalBranchBasis, AdmittedRuntimeWorldCorrespondenceBasis,
+    AdmittedSignalBranchBasis, CompositeAttemptProgress, PreparedCompositePublicationWithSignal,
+    PreparedCompositePublicationWithoutSignal, RelationalOwnerServicePorts,
+    RelationalTransactionIntent, ResolvedExpectedProductHead, RuntimeWorldCancellationSource,
+    RuntimeWorldCancellationToken, RuntimeWorldCorrespondencePort, RuntimeWorldOwnerInputs,
+    RuntimeWorldPublicationOutcome, SignalError, SignalOwnerCancellationToken,
+    SignalOwnerServicePorts, SignalTransaction,
 };
 
 fn takes_public_return_types(
@@ -27,14 +29,33 @@ fn names_public_component_signatures(
     _token: Option<SignalOwnerCancellationToken>,
     _world_inputs: Option<RuntimeWorldOwnerInputs<(), (), (), u32, ()>>,
 ) {
-    let _mutation: Option<
-        worth_runtime_world::facade::SignalTransactionMutation<'static, (), (), (), u32, ()>,
-    > = None;
     let _error: Option<SignalError> = None;
     let _transaction: Option<SignalTransaction<'static, (), (), (), u32, ()>> = None;
 }
 
+/// The two prepared stages are separate public types. A caller can name both
+/// without any conversion between them existing.
+fn names_both_prepared_stages(
+    _without_signal: Option<PreparedCompositePublicationWithoutSignal>,
+    _with_signal: Option<PreparedCompositePublicationWithSignal>,
+) {
+}
+
+/// The Signal execution seam is an unboxed `FnOnce` carrying exactly the owner
+/// port's bound, so a public caller names it without a trait object.
+fn names_the_signal_execution_seam<F>(_mutation: F)
+where
+    F: FnOnce(&mut SignalTransaction<'_, (), (), (), u32, ()>) -> Result<(), SignalError>,
+{
+}
+
 fn main() {
-    let _borrow = CompositeExecutionBorrow::<(), (), (), u32, ()>::without_signal();
-    let _ = (takes_public_return_types, names_public_component_signatures);
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let _token: RuntimeWorldCancellationToken = cancellation.token();
+    names_the_signal_execution_seam(|_transaction| Ok(()));
+    let _ = (
+        takes_public_return_types,
+        names_public_component_signatures,
+        names_both_prepared_stages,
+    );
 }

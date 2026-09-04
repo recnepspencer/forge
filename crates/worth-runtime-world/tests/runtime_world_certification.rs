@@ -9,14 +9,15 @@ mod retention;
 
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
 use worth_runtime_world::facade::{
-    CompositeComponentIntent, CompositeExecutionBorrow, ProductBranchComponentPosture,
-    ProductBranchComponentPostures, ProductBranchName, RuntimeWorldBranchBudgetInstallation,
-    RuntimeWorldBudgetDenial, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
-    RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
-    RuntimeWorldCustodyBudgetInstallation, RuntimeWorldHistoryBudgetInstallation,
-    RuntimeWorldInstant, RuntimeWorldObservationBudgetInstallation,
-    RuntimeWorldPublicationBudgetInstallation, RuntimeWorldRecoveryBudgetInstallation,
-    RuntimeWorldRetentionBudgetInstallation,
+    CompositeComponentIntent, CompositePublicationIntent, ProductBranchCreationIntent,
+    ProductBranchCreationPlans, ProductBranchName, RelationalBranchCreationPlan,
+    RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetDenial, RuntimeWorldBudgetInstallation,
+    RuntimeWorldBudgets, RuntimeWorldCancellationSource, RuntimeWorldClock,
+    RuntimeWorldClockSource, RuntimeWorldCustodyBudgetInstallation,
+    RuntimeWorldHistoryBudgetInstallation, RuntimeWorldInstant,
+    RuntimeWorldObservationBudgetInstallation, RuntimeWorldPublicationBudgetInstallation,
+    RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
+    SignalBranchCreationPlan,
 };
 
 #[test]
@@ -90,20 +91,39 @@ fn installed_budgets_are_nonzero_and_cover_every_runtime_world_population() {
     assert!(matches!(denial, RuntimeWorldBudgetDenial::ZeroLimit { .. }));
 }
 
+/// Creation is a two-by-two matrix of independent per-owner plans, and every
+/// fork carries the owner-issued destination it names.
 #[test]
-fn branch_name_and_component_postures_are_explicit() {
+fn branch_name_and_per_owner_creation_plans_are_explicit() {
     assert!(ProductBranchName::try_new("main").is_ok());
     assert!(ProductBranchName::try_new("  ").is_err());
 
-    let postures = ProductBranchComponentPostures::new(
-        ProductBranchComponentPosture::ForkExact,
-        ProductBranchComponentPosture::ReuseExact,
+    let signal_target = worth_signal::facade::branch::validate_signal_branch_name("signal-child")
+        .expect("Signal branch name validates");
+    let plans = ProductBranchCreationPlans::new(
+        RelationalBranchCreationPlan::ForkExact {
+            target: worth_relational::facade::history::BranchId("relational-child".to_owned()),
+        },
+        SignalBranchCreationPlan::ReuseExact,
     );
-    assert_eq!(
-        postures.relational(),
-        ProductBranchComponentPosture::ForkExact
-    );
-    assert_eq!(postures.signal(), ProductBranchComponentPosture::ReuseExact);
+    assert!(plans.requires_relational_owner_effect());
+    assert!(!plans.requires_signal_owner_effect());
+    assert!(!plans.is_exact_reuse());
+    assert!(plans.relational().fork_target().is_some());
+    assert!(plans.signal().fork_target().is_none());
+    assert!(ProductBranchCreationPlans::new(
+        RelationalBranchCreationPlan::ReuseExact,
+        SignalBranchCreationPlan::ForkExact {
+            target: signal_target,
+        },
+    )
+    .requires_signal_owner_effect());
+
+    let bootstrap = ProductBranchCreationIntent::named("root").expect("valid root name");
+    assert!(bootstrap.plans().is_none());
+    let from_source =
+        ProductBranchCreationIntent::from_source("child", plans).expect("valid child branch name");
+    assert!(from_source.plans().is_some());
 }
 
 #[test]
@@ -120,31 +140,24 @@ fn component_intent_carries_owner_meaning_without_ambient_currentness() {
     assert!(signal.relational_change().is_none());
 }
 
+/// A publication declares at construction whether it contacts the Signal
+/// owner. The two stages are separate types, so the decision is visible to the
+/// compiler rather than re-read from a runtime posture.
 #[test]
-fn signal_execution_borrow_is_scoped_to_the_owner_call() {
-    let mut context = 7_u32;
-    let cancellation = worth_signal::facade::branch::SignalOwnerCancellationSource::new();
-    let signal_token = cancellation.token();
-    {
-        let borrow = CompositeExecutionBorrow::<(), (), (), u32, ()>::signal(
-            &mut context,
-            &signal_token,
-            |_transaction| Ok(()),
-        );
-        match borrow {
-            CompositeExecutionBorrow::Signal {
-                context: borrowed,
-                cancellation: borrowed_cancellation,
-                ..
-            } => {
-                assert!(!borrowed_cancellation.is_cancelled());
-                *borrowed += 1;
-            }
-            CompositeExecutionBorrow::WithoutSignal => panic!("signal borrow was required"),
-        }
-        assert!(!signal_token.is_cancelled());
-    }
-    assert_eq!(context, 8);
+fn publication_stage_is_declared_at_intent_construction() {
+    let without_signal =
+        CompositePublicationIntent::without_signal(RelationalTransactionIntent::ordinary());
+    assert!(without_signal.component_intent().changes_relational());
+    assert!(!without_signal.component_intent().changes_signal());
+
+    let signal_only = CompositePublicationIntent::with_signal(None);
+    assert!(!signal_only.component_intent().changes_relational());
+    assert!(signal_only.component_intent().changes_signal());
+
+    let both =
+        CompositePublicationIntent::with_signal(Some(RelationalTransactionIntent::ordinary()));
+    assert!(both.component_intent().changes_relational());
+    assert!(both.component_intent().changes_signal());
 }
 
 #[test]

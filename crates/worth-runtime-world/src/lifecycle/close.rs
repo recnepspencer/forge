@@ -1,3 +1,10 @@
+#[path = "close/drain.rs"]
+mod drain;
+#[path = "close/report.rs"]
+mod report;
+
+pub use report::{RuntimeWorldCloseReport, RuntimeWorldRetainedRecordReport};
+
 /// Internal close progression for a managed Runtime World owner. The state
 /// is explicit so close cannot be represented by a boolean with no transition
 /// semantics.
@@ -12,7 +19,8 @@ pub(crate) enum RuntimeWorldCloseState {
 pub enum RuntimeWorldCloseDenial {
     AlreadyClosing,
     AlreadyClosed,
-    RecoveryInProgress,
+    /// A declared in-flight critical section could not be drained.
+    InFlightCriticalSection,
 }
 
 use super::owner::RuntimeWorldOwnerRoot;
@@ -23,40 +31,19 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
-    pub fn close(&self) -> Result<(), RuntimeWorldCloseDenial> {
-        let bootstrap = self
-            .state
-            .bootstrap
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        if *bootstrap == super::owner::RuntimeWorldBootstrapState::InProgress {
-            return Err(RuntimeWorldCloseDenial::AlreadyClosing);
-        }
-        let operation = self
-            .state
-            .operation
-            .state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        if operation.recovery_active != 0 {
-            return Err(RuntimeWorldCloseDenial::RecoveryInProgress);
-        }
-        if self.state.recovery.installed_slots() != 0 {
-            return Err(RuntimeWorldCloseDenial::RecoveryInProgress);
-        }
-        if operation.active != 0 {
-            return Err(RuntimeWorldCloseDenial::AlreadyClosing);
-        }
-        if self.state.recovery.reserved_slots() != 0 {
-            return Err(RuntimeWorldCloseDenial::AlreadyClosing);
-        }
+    /// Close the owner and report what the drain settled, released, and
+    /// deliberately exposed. A retained obligation is never discarded.
+    pub fn close(&self) -> Result<RuntimeWorldCloseReport, RuntimeWorldCloseDenial> {
+        drain::admit_close(&self.state)?;
+        let report = drain::drain_for_close(&self.state)?;
         let mut close = self
             .state
             .close
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         close.begin()?;
-        close.finish()
+        close.finish()?;
+        Ok(report)
     }
 
     pub fn lifecycle_observation(&self) -> super::RuntimeWorldOwnerLifecycleObservation {
@@ -90,7 +77,7 @@ where
         RuntimeWorldOwnerRoot::bootstrap_root(self, intent)
     }
 
-    fn close(&self) -> Result<(), RuntimeWorldCloseDenial> {
+    fn close(&self) -> Result<RuntimeWorldCloseReport, RuntimeWorldCloseDenial> {
         RuntimeWorldOwnerRoot::close(self)
     }
 }

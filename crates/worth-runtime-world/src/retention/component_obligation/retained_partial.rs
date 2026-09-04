@@ -1,5 +1,5 @@
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
-use crate::identity::{CompositeBasisIdentity, RuntimeWorldOwnerIdentity};
+use crate::identity::{CompositeBasisKey, RuntimeWorldOwnerIdentity};
 
 use super::super::unique_component_pin::{ComponentBasisPinClaim, ExactComponentPinRequest};
 use super::super::ComponentBasisDependencyClass;
@@ -9,7 +9,7 @@ use super::{ComponentBasisPinObligation, IssuedComponentPinPair};
 #[derive(Debug)]
 pub(crate) struct RetainedPartialRetentionObligation {
     owner: RuntimeWorldOwnerIdentity,
-    basis: CompositeBasisIdentity,
+    basis: CompositeBasisKey,
     relational: ComponentBasisPinObligation,
     signal: ComponentBasisPinObligation,
 }
@@ -31,7 +31,7 @@ impl RetainedPartialRetentionObligation {
 
     pub(super) fn transferred(
         owner: RuntimeWorldOwnerIdentity,
-        basis: CompositeBasisIdentity,
+        basis: CompositeBasisKey,
         relational: ComponentBasisPinClaim,
         signal: ComponentBasisPinClaim,
     ) -> Self {
@@ -57,7 +57,7 @@ impl RetainedPartialRetentionObligation {
         self.owner
     }
 
-    pub(crate) fn basis(&self) -> &CompositeBasisIdentity {
+    pub(crate) fn basis(&self) -> &CompositeBasisKey {
         &self.basis
     }
 

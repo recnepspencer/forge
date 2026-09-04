@@ -14,9 +14,8 @@ impl RuntimeWorldOwnerIdentity {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeWorldIdentityFamily {
     Owner,
-    ProductBranch,
     ProductBranchReferenceGeneration,
-    BranchLifecycle,
+    ProductBranchIncarnation,
     CompositeCommit,
     BootstrapAttempt,
     PublicationAttempt,
@@ -51,8 +50,7 @@ static NEXT_OWNER_IDENTITY: AtomicU64 = AtomicU64::new(0);
 #[derive(Debug)]
 pub(crate) struct RuntimeWorldIdentityIssuer {
     owner: RuntimeWorldOwnerIdentity,
-    next_product_branch: u64,
-    next_branch_lifecycle: u64,
+    next_branch_incarnation: u64,
     next_composite_commit: u64,
     next_bootstrap_attempt: u64,
     next_publication_attempt: u64,
@@ -68,8 +66,7 @@ impl RuntimeWorldIdentityIssuer {
         Ok((
             Self {
                 owner,
-                next_product_branch: 0,
-                next_branch_lifecycle: 0,
+                next_branch_incarnation: 0,
                 next_composite_commit: 0,
                 next_bootstrap_attempt: 0,
                 next_publication_attempt: 0,
@@ -94,26 +91,14 @@ impl RuntimeWorldIdentityIssuer {
         Ok(current)
     }
 
-    pub(crate) fn product_branch(
+    pub(crate) fn branch_incarnation(
         &mut self,
-    ) -> Result<super::ProductBranchIdentity, RuntimeWorldIdentityExhaustion> {
-        Ok(super::ProductBranchIdentity::issued(
+    ) -> Result<super::ProductBranchIncarnation, RuntimeWorldIdentityExhaustion> {
+        Ok(super::ProductBranchIncarnation::issued(
             self.owner,
             Self::next(
-                &mut self.next_product_branch,
-                RuntimeWorldIdentityFamily::ProductBranch,
-            )?,
-        ))
-    }
-
-    pub(crate) fn branch_lifecycle(
-        &mut self,
-    ) -> Result<super::ProductBranchLifecycleIncarnation, RuntimeWorldIdentityExhaustion> {
-        Ok(super::ProductBranchLifecycleIncarnation::issued(
-            self.owner,
-            Self::next(
-                &mut self.next_branch_lifecycle,
-                RuntimeWorldIdentityFamily::BranchLifecycle,
+                &mut self.next_branch_incarnation,
+                RuntimeWorldIdentityFamily::ProductBranchIncarnation,
             )?,
         ))
     }
@@ -123,8 +108,8 @@ impl RuntimeWorldIdentityIssuer {
         relational: worth_relational::facade::branch::RelationalBranchBasisAdmissionIdentity,
         signal: worth_signal::facade::branch::SignalBranchBasisAdmissionIdentity,
         correspondence: worth_runtime_bridge::facade::BridgeCorrespondenceAdmissionIdentity,
-    ) -> super::CompositeBasisIdentity {
-        super::CompositeBasisIdentity::issued(self.owner, relational, signal, correspondence)
+    ) -> super::CompositeBasisKey {
+        super::CompositeBasisKey::issued(self.owner, relational, signal, correspondence)
     }
 
     pub(crate) fn composite_commit(

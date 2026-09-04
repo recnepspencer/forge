@@ -1,18 +1,18 @@
 use super::AdmittedCompositeRuntimeWorldBasis;
-use crate::identity::CompositeBasisIdentity;
+use crate::identity::CompositeBasisKey;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CompositeBasisMismatch {
-    expected: CompositeBasisIdentity,
-    observed: CompositeBasisIdentity,
+    expected: CompositeBasisKey,
+    observed: CompositeBasisKey,
 }
 
 impl CompositeBasisMismatch {
-    pub(crate) fn expected(&self) -> &CompositeBasisIdentity {
+    pub(crate) fn expected(&self) -> &CompositeBasisKey {
         &self.expected
     }
 
-    pub(crate) fn observed(&self) -> &CompositeBasisIdentity {
+    pub(crate) fn observed(&self) -> &CompositeBasisKey {
         &self.observed
     }
 }

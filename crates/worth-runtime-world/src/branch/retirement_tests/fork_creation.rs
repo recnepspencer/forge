@@ -1,7 +1,8 @@
 use super::super::*;
 
 use crate::branch::{
-    ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
+    ProductBranchCreationIntent, ProductBranchCreationPlans, RelationalBranchCreationPlan,
+    SignalBranchCreationPlan,
 };
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
@@ -12,21 +13,23 @@ use crate::budget::{
 use crate::history::CompositeCommitParent;
 use crate::lifecycle::{
     RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchCreationRequest,
-    RuntimeWorldBranchService, RuntimeWorldCancellationSource, RuntimeWorldClock,
-    RuntimeWorldObservationService, RuntimeWorldOwnerExecutionService,
-    RuntimeWorldPreparationService, RuntimeWorldProductPublicationService,
+    RuntimeWorldBranchService, RuntimeWorldClock, RuntimeWorldObservationService,
+    RuntimeWorldOwnerExecutionService, RuntimeWorldPreparationService,
+    RuntimeWorldProductPublicationService,
 };
 use crate::publication::{
-    CompositeComponentIntent, CompositeExecutionBorrow, CompositeLateCancellationPosture,
-    CompositePublicationCostCounters, OwnerExecutionOutcome, ProductBranchIntent,
-    RelationalForkPlanInput,
+    CompositeLateCancellationPosture, CompositePublicationIntent, OwnerExecutionOutcome,
+    RuntimeWorldCancellationSource,
 };
 use crate::recovery::ProductUnpublishedCause;
+use worth_relational::facade::history::BranchId;
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
-use worth_relational::facade::transactions::WorkerIntentBatch;
-use worth_signal::facade::branch::{validate_signal_branch_name, SignalOwnerCancellationSource};
+use worth_signal::facade::branch::validate_signal_branch_name;
 
 type TestOwner = super::TestOwner;
+
+#[path = "fork_creation/sibling_denial.rs"]
+mod sibling_denial;
 
 fn fork_budgets(live_branches: u64) -> RuntimeWorldBudgets {
     RuntimeWorldBudgets::install(RuntimeWorldBudgetInstallation {
@@ -96,34 +99,29 @@ fn bootstrap_root(
     }
 }
 
+/// Give the source product head one real Relational occurrence, so a later
+/// creation forks from a component commit the owner actually published.
 fn seed_relational_source(
     owner: &TestOwner,
     fixture: &mut crate::branch::reference_test_fixture::RealReferenceFixture,
     initial: ProductBranchObservation,
 ) {
-    let seed_intent = ProductBranchIntent::new(
-        ProductBranchCreationIntent::named("branch-fork-source-seed")
-            .expect("valid seed operation name"),
-        ProductBranchComponentPostures::new(
-            ProductBranchComponentPosture::ReuseExact,
-            ProductBranchComponentPosture::ReuseExact,
-        ),
-        CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-    )
-    .with_prepared_relational_candidate(
-        fixture.prepare_relational_owner_candidate("branch-fork-source-seed"),
-    );
-    let plan = RuntimeWorldPreparationService::prepare(owner, initial.clone(), seed_intent)
-        .expect("the source seed plan is admitted");
-    let cancellation_source = RuntimeWorldCancellationSource::new();
-    let cancellation = cancellation_source.token();
-    let attempt = RuntimeWorldPreparationService::reserve(owner, plan, &cancellation, None)
-        .expect("the source seed reserves its bounded publication resources");
-    let settlement = match RuntimeWorldOwnerExecutionService::execute(
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let prepared = RuntimeWorldPreparationService::prepare_publication(
         owner,
-        attempt,
-        CompositeExecutionBorrow::without_signal(),
-        &cancellation,
+        initial.clone(),
+        CompositePublicationIntent::without_signal(RelationalTransactionIntent::ordinary())
+            .with_prepared_relational_candidate(
+                fixture.prepare_relational_owner_candidate("branch-fork-source-seed"),
+            ),
+        &cancellation.token(),
+        None,
+    )
+    .expect("the source seed reserves its bounded publication resources");
+    let settlement = match RuntimeWorldOwnerExecutionService::execute_without_signal(
+        owner,
+        prepared,
+        &cancellation.token(),
     ) {
         OwnerExecutionOutcome::Settled(settlement) => settlement,
         other => panic!("source seed must settle: {other:?}"),
@@ -145,7 +143,6 @@ fn seed_relational_source(
         ready,
         &cell,
         CompositeLateCancellationPosture::NotRequested,
-        CompositePublicationCostCounters::default(),
     ) {
         crate::publication::RuntimeWorldPublicationOutcome::Performed(_) => {}
         other => panic!("source seed must publish: {other:?}"),
@@ -166,35 +163,42 @@ fn current_root_observation(owner: &TestOwner) -> ProductBranchObservation {
     .expect("the seeded root remains observable")
 }
 
-pub(super) struct ForkIntentSpec<'a> {
-    pub(super) name: &'a str,
-    pub(super) relational_posture: ProductBranchComponentPosture,
-    pub(super) signal_posture: ProductBranchComponentPosture,
-    pub(super) relational_input: RelationalForkPlanInput,
-    pub(super) signal_name: &'a str,
+/// One cell of the creation matrix: each owner is told, on its own, whether to
+/// reuse the component commit the source names or to fork an owner-issued
+/// destination.
+pub(super) fn fork_intent(
+    name: &str,
+    relational: RelationalBranchCreationPlan,
+    signal: SignalBranchCreationPlan,
+) -> ProductBranchCreationIntent {
+    ProductBranchCreationIntent::from_source(
+        name,
+        ProductBranchCreationPlans::new(relational, signal),
+    )
+    .expect("valid product branch name")
 }
 
-pub(super) fn fork_intent(spec: ForkIntentSpec<'_>) -> ProductBranchIntent {
-    ProductBranchIntent::new(
-        ProductBranchCreationIntent::named(spec.name).expect("valid product branch name"),
-        ProductBranchComponentPostures::new(spec.relational_posture, spec.signal_posture),
-        CompositeComponentIntent::relational_and_signal(RelationalTransactionIntent::ordinary()),
-    )
-    .with_relational_fork_input(spec.relational_input)
-    .with_signal_fork_name(
-        validate_signal_branch_name(spec.signal_name).expect("valid Signal name"),
-    )
+pub(super) fn relational_fork(target: &str) -> RelationalBranchCreationPlan {
+    RelationalBranchCreationPlan::ForkExact {
+        target: BranchId(target.to_owned()),
+    }
+}
+
+pub(super) fn signal_fork(target: &str) -> SignalBranchCreationPlan {
+    SignalBranchCreationPlan::ForkExact {
+        target: validate_signal_branch_name(target).expect("valid Signal name"),
+    }
 }
 
 fn create_forked_branch(
     owner: &TestOwner,
     source: &ProductBranchObservation,
-    intent: ProductBranchIntent,
-    signal: CompositeExecutionBorrow<'_, (), (), (), (), ()>,
+    intent: ProductBranchCreationIntent,
 ) -> ProductBranchObservation {
+    let cancellation = RuntimeWorldCancellationSource::new();
     match RuntimeWorldBranchService::create_product_branch(
         owner,
-        RuntimeWorldBranchCreationRequest::new(source.clone(), intent, signal),
+        RuntimeWorldBranchCreationRequest::new(source.clone(), intent, &cancellation.token()),
     )
     .expect("owner-issued fork reaches a performed branch outcome")
     {
@@ -243,83 +247,19 @@ fn assert_new_branch_observation(
     assert_eq!(owner.state.branches.reserved_branch_count(), 0);
 }
 
-fn create_partial_effects(
-    owner: &TestOwner,
-    source: &ProductBranchObservation,
-    intent: ProductBranchIntent,
-) -> crate::recovery::ProductUnpublishedOwnerEffects {
-    let outcome = RuntimeWorldBranchService::create_product_branch(
-        owner,
-        RuntimeWorldBranchCreationRequest::new(
-            source.clone(),
-            intent,
-            CompositeExecutionBorrow::without_signal(),
-        ),
-    )
-    .expect("the later sibling denial is a product-unpublished outcome");
-    match outcome {
-        RuntimeWorldBranchCreationOutcome::Performed(_) => {
-            panic!("Signal ForkAndAdvance without its borrow must deny")
-        }
-        RuntimeWorldBranchCreationOutcome::ProductUnpublished(effects) => effects,
-    }
-}
-
 #[test]
 fn fork_exact_creates_a_distinct_composite_branch_after_both_owner_forks() {
-    let (fixture, owner, source) = setup_with_relational_source(3);
+    let (_fixture, owner, source) = setup_with_relational_source(3);
     let history_before = owner.state.history.len();
     let costs_before = owner.state.retention.cost_snapshot();
-    let intent = fork_intent(ForkIntentSpec {
-        name: "branch-fork-exact",
-        relational_posture: ProductBranchComponentPosture::ForkExact,
-        signal_posture: ProductBranchComponentPosture::ForkExact,
-        relational_input: fixture.relational_fork_input("relational-branch-fork-exact", None),
-        signal_name: "signal-branch-fork-exact",
-    });
     let child = create_forked_branch(
         &owner,
         &source,
-        intent,
-        CompositeExecutionBorrow::without_signal(),
-    );
-    assert_new_branch_observation(&owner, &source, &child, history_before);
-    assert_ne!(
-        child.basis().relational_basis().identity(),
-        source.basis().relational_basis().identity()
-    );
-    assert_ne!(
-        child.basis().signal_basis().admission_identity(),
-        source.basis().signal_basis().admission_identity()
-    );
-    let costs_after = owner.state.retention.cost_snapshot();
-    assert!(costs_after.relational_contacts() > costs_before.relational_contacts());
-    assert!(costs_after.signal_contacts() > costs_before.signal_contacts());
-}
-
-#[test]
-fn fork_and_advance_creates_a_distinct_composite_branch_after_ordered_owner_work() {
-    let (fixture, owner, source) = setup_with_relational_source(3);
-    let history_before = owner.state.history.len();
-    let costs_before = owner.state.retention.cost_snapshot();
-    let intent = fork_intent(ForkIntentSpec {
-        name: "branch-fork-and-advance",
-        relational_posture: ProductBranchComponentPosture::ForkAndAdvance,
-        signal_posture: ProductBranchComponentPosture::ForkAndAdvance,
-        relational_input: fixture.relational_fork_input(
-            "relational-branch-fork-and-advance",
-            Some(WorkerIntentBatch::new("branch-fork-and-advance")),
+        fork_intent(
+            "branch-fork-exact",
+            relational_fork("relational-branch-fork-exact"),
+            signal_fork("signal-branch-fork-exact"),
         ),
-        signal_name: "signal-branch-fork-and-advance",
-    });
-    let signal_cancellation = SignalOwnerCancellationSource::new();
-    let signal_token = signal_cancellation.token();
-    let mut context = ();
-    let child = create_forked_branch(
-        &owner,
-        &source,
-        intent,
-        CompositeExecutionBorrow::signal(&mut context, &signal_token, |_| Ok(())),
     );
     assert_new_branch_observation(&owner, &source, &child, history_before);
     assert_ne!(
@@ -335,58 +275,54 @@ fn fork_and_advance_creates_a_distinct_composite_branch_after_ordered_owner_work
     assert!(costs_after.signal_contacts() > costs_before.signal_contacts());
 }
 
+/// The matrix cell where only the Relational owner is asked to move: the Signal
+/// component of the child names the exact commit the source already names.
 #[test]
-fn forked_relational_effect_is_retained_when_later_signal_sibling_denies() {
-    let (fixture, owner, source) = setup_with_relational_source(3);
+fn relational_fork_with_signal_reuse_moves_exactly_one_owner() {
+    let (_fixture, owner, source) = setup_with_relational_source(3);
     let history_before = owner.state.history.len();
-    let custody_before = owner.state.retention.active_component_obligation_count();
-    let input = fixture.relational_fork_input("relational-branch-partial", None);
-    let intent = fork_intent(ForkIntentSpec {
-        name: "branch-fork-partial",
-        relational_posture: ProductBranchComponentPosture::ForkExact,
-        signal_posture: ProductBranchComponentPosture::ForkAndAdvance,
-        relational_input: input,
-        signal_name: "signal-branch-partial",
-    });
-    let effects = create_partial_effects(&owner, &source, intent);
-    assert_eq!(effects.cause(), ProductUnpublishedCause::SiblingOwnerDenied);
-    assert_eq!(effects.owner_effect_count(), 1);
-    assert_eq!(
-        effects.progress().relational_posture(),
-        crate::publication::RelationalAttemptProgressPosture::Performed
+    let child = create_forked_branch(
+        &owner,
+        &source,
+        fork_intent(
+            "branch-relational-fork-only",
+            relational_fork("relational-branch-fork-only"),
+            SignalBranchCreationPlan::ReuseExact,
+        ),
     );
-    assert_eq!(
-        effects.progress().signal_posture(),
-        crate::publication::SignalAttemptProgressPosture::Untouched
-    );
-    assert_ne!(effects.successor_commit(), source.selected_commit());
+    assert_new_branch_observation(&owner, &source, &child, history_before);
     assert_ne!(
-        effects
-            .successor_basis()
-            .expect("retained fork successor basis")
-            .relational_basis()
-            .identity(),
+        child.basis().relational_basis().identity(),
         source.basis().relational_basis().identity()
     );
-    assert_eq!(owner.state.branches.branch_count(), 1);
-    assert_eq!(owner.state.branches.reserved_branch_count(), 0);
-    assert_eq!(owner.state.history.len(), history_before + 1);
-    assert_eq!(owner.recovery_record_count(), 1);
-    assert!(
-        owner.state.retention.active_component_obligation_count() > custody_before,
-        "partial owner effects retain bounded component custody"
-    );
-    let handle = effects.recovery_handle();
-    assert!(owner.inspect_recovery(&handle).is_some());
-    assert!(owner.cleanup_recovery(effects));
-    assert_eq!(owner.recovery_record_count(), 0);
     assert_eq!(
-        owner.state.retention.active_component_obligation_count(),
-        custody_before
+        child.basis().signal_basis().admission_identity(),
+        source.basis().signal_basis().admission_identity()
     );
-    let source_after =
-        RuntimeWorldObservationService::observe_product_branch(&owner, source.branch_identity())
-            .expect("source remains observable after recovery cleanup");
-    assert_eq!(source_after, source);
-    assert_eq!(owner.state.branches.branch_count(), 1);
+}
+
+/// The mirrored cell: only the Signal owner forks, and the Relational component
+/// is reused exactly.
+#[test]
+fn signal_fork_with_relational_reuse_moves_exactly_one_owner() {
+    let (_fixture, owner, source) = setup_with_relational_source(3);
+    let history_before = owner.state.history.len();
+    let child = create_forked_branch(
+        &owner,
+        &source,
+        fork_intent(
+            "branch-signal-fork-only",
+            RelationalBranchCreationPlan::ReuseExact,
+            signal_fork("signal-branch-fork-only"),
+        ),
+    );
+    assert_new_branch_observation(&owner, &source, &child, history_before);
+    assert_eq!(
+        child.basis().relational_basis().identity(),
+        source.basis().relational_basis().identity()
+    );
+    assert_ne!(
+        child.basis().signal_basis().admission_identity(),
+        source.basis().signal_basis().admission_identity()
+    );
 }

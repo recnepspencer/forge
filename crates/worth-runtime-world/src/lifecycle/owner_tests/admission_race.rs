@@ -1,12 +1,11 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, TryLockError};
 
 use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
-use crate::branch::{
-    ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchObservation, RuntimeWorldBootstrapOutcome,
-};
-use crate::lifecycle::{RuntimeWorldCancellationSource, RuntimeWorldCloseDenial};
-use crate::publication::{CompositeComponentIntent, NoEffectCause, ProductBranchIntent};
+use crate::branch::{ProductBranchObservation, RuntimeWorldBootstrapOutcome};
+use crate::lifecycle::RuntimeWorldCloseDenial;
+use crate::publication::RuntimeWorldCancellationSource;
+use crate::publication::{CompositePublicationIntent, NoEffectCause};
 
 type TestOwner = super::super::RuntimeWorldOwnerRoot<(), (), (), (), ()>;
 
@@ -32,28 +31,36 @@ fn setup() -> (
     (fixture, owner, performed.product_branch().clone())
 }
 
-fn plan(
+/// One Signal-only publication reservation off the given head. Preparation
+/// and reservation are a single owner step, so a racing caller cannot hold a
+/// lowered plan without the capacity that authorizes it.
+fn prepare(
     owner: &TestOwner,
     expected: ProductBranchObservation,
-    name: &str,
-) -> crate::publication::LoweredOwnerComponentPlan {
-    crate::lifecycle::RuntimeWorldPreparationService::prepare(
+) -> Result<
+    crate::publication::PreparedCompositePublicationWithSignal,
+    crate::publication::NoEffectCompositePublication,
+> {
+    let cancellation = RuntimeWorldCancellationSource::new();
+    crate::lifecycle::RuntimeWorldPreparationService::prepare_publication(
         owner,
         expected,
-        ProductBranchIntent::new(
-            ProductBranchCreationIntent::named(name).expect("valid operation name"),
-            ProductBranchComponentPostures::new(
-                ProductBranchComponentPosture::ReuseExact,
-                ProductBranchComponentPosture::ReuseExact,
-            ),
-            CompositeComponentIntent::signal_only(),
-        ),
+        CompositePublicationIntent::with_signal(None),
+        &cancellation.token(),
+        None,
     )
-    .expect("open owner prepares the exact observed head")
 }
 
+/// Wait for a reservation worker to reach the bootstrap admission lock.
+/// Reservation admission holds that lock across the operation ledger it then
+/// blocks on, so the hold is a real observable rather than a sampled instant.
+/// The budget is wall-clock, not a yield count: several Runtime World
+/// worktrees build and test on one machine, so a scheduler starved of cores
+/// must not be reported as a lost race. The wait fails by name, never hangs.
+#[track_caller]
 fn wait_until_bootstrap_is_held(owner: &TestOwner) {
-    for _ in 0..100_000 {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while std::time::Instant::now() < deadline {
         match owner.state.bootstrap.try_lock() {
             Err(TryLockError::WouldBlock) => return,
             Err(TryLockError::Poisoned(error)) => {
@@ -61,32 +68,35 @@ fn wait_until_bootstrap_is_held(owner: &TestOwner) {
             }
             Ok(guard) => drop(guard),
         }
-        std::thread::yield_now();
+        std::thread::sleep(std::time::Duration::from_millis(1));
     }
-    panic!("worker never reached the bootstrap admission lock");
+    panic!("reservation worker never reached the bootstrap admission lock");
+}
+
+/// Wait for a close worker to enter close admission. Close reads the bootstrap
+/// state and releases that lock again before it takes the operation ledger, so
+/// unlike a reservation it is never parked on a lock a test can observe. What
+/// can be observed is that the worker has entered `close()`; the settle window
+/// after that is bounded wall-clock, and the race it sets up still fails by
+/// name in the assertions that follow rather than hanging here.
+#[track_caller]
+fn wait_until_close_is_admitting(entered: &AtomicBool) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while !entered.load(Ordering::SeqCst) {
+        if std::time::Instant::now() >= deadline {
+            panic!("close worker never entered owner close admission");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    std::thread::sleep(std::time::Duration::from_millis(250));
 }
 
 #[test]
 fn publication_attempts_own_independent_phase_state() {
     let (_fixture, owner, expected) = setup();
-    let first = plan(&owner, expected.clone(), "first");
-    let second = plan(&owner, expected, "second");
-    let cancellation = RuntimeWorldCancellationSource::new();
-
-    let first = crate::lifecycle::RuntimeWorldPreparationService::reserve(
-        owner.as_ref(),
-        first,
-        &cancellation.token(),
-        None,
-    )
-    .expect("first attempt reserves");
-    let second = crate::lifecycle::RuntimeWorldPreparationService::reserve(
-        owner.as_ref(),
-        second,
-        &cancellation.token(),
-        None,
-    )
-    .expect("second attempt is not serialized behind the first");
+    let first = prepare(&owner, expected.clone()).expect("first attempt reserves");
+    let second =
+        prepare(&owner, expected).expect("second attempt is not serialized behind the first");
 
     assert_eq!(owner.state.operation.active(), 2);
     drop(first);
@@ -98,7 +108,6 @@ fn publication_attempts_own_independent_phase_state() {
 #[test]
 fn reserve_and_close_have_one_atomic_winner_in_both_lock_orders() {
     let (_fixture, owner, expected) = setup();
-    let candidate = plan(&owner, expected, "reserve-wins");
     let ledger_gate = owner
         .state
         .operation
@@ -106,15 +115,8 @@ fn reserve_and_close_have_one_atomic_winner_in_both_lock_orders() {
         .lock()
         .unwrap_or_else(|error| error.into_inner());
     let reserve_owner = Arc::clone(&owner);
-    let reserve = std::thread::spawn(move || {
-        let cancellation = RuntimeWorldCancellationSource::new();
-        crate::lifecycle::RuntimeWorldPreparationService::reserve(
-            reserve_owner.as_ref(),
-            candidate,
-            &cancellation.token(),
-            None,
-        )
-    });
+    let reserve_head = expected.clone();
+    let reserve = std::thread::spawn(move || prepare(reserve_owner.as_ref(), reserve_head));
     wait_until_bootstrap_is_held(&owner);
     let close_owner = Arc::clone(&owner);
     let close = std::thread::spawn(move || close_owner.close());
@@ -125,16 +127,18 @@ fn reserve_and_close_have_one_atomic_winner_in_both_lock_orders() {
         .expect("reserve worker does not panic")
         .expect("reserve wins after holding bootstrap admission");
     assert_eq!(
-        close.join().expect("close worker does not panic"),
-        Err(RuntimeWorldCloseDenial::AlreadyClosing)
+        close
+            .join()
+            .expect("close worker does not panic")
+            .expect_err("the reserving winner blocks the close drain"),
+        RuntimeWorldCloseDenial::AlreadyClosing
     );
     drop(attempt);
-    owner
+    let _report = owner
         .close()
         .expect("close succeeds after the winner settles");
 
     let (_fixture, owner, expected) = setup();
-    let candidate = plan(&owner, expected, "close-wins");
     let ledger_gate = owner
         .state
         .operation
@@ -142,21 +146,18 @@ fn reserve_and_close_have_one_atomic_winner_in_both_lock_orders() {
         .lock()
         .unwrap_or_else(|error| error.into_inner());
     let close_owner = Arc::clone(&owner);
-    let close = std::thread::spawn(move || close_owner.close());
-    wait_until_bootstrap_is_held(&owner);
-    let reserve_owner = Arc::clone(&owner);
-    let reserve = std::thread::spawn(move || {
-        let cancellation = RuntimeWorldCancellationSource::new();
-        crate::lifecycle::RuntimeWorldPreparationService::reserve(
-            reserve_owner.as_ref(),
-            candidate,
-            &cancellation.token(),
-            None,
-        )
+    let entered = Arc::new(AtomicBool::new(false));
+    let close_entered = Arc::clone(&entered);
+    let close = std::thread::spawn(move || {
+        close_entered.store(true, Ordering::SeqCst);
+        close_owner.close()
     });
+    wait_until_close_is_admitting(&entered);
+    let reserve_owner = Arc::clone(&owner);
+    let reserve = std::thread::spawn(move || prepare(reserve_owner.as_ref(), expected));
     drop(ledger_gate);
 
-    close
+    let _report = close
         .join()
         .expect("close worker does not panic")
         .expect("close wins after holding bootstrap admission");

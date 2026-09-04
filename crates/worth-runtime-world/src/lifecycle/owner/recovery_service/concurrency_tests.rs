@@ -9,22 +9,14 @@ use crate::publication::{
 };
 use crate::recovery::ProductUnpublishedNextAction;
 
-use super::settlement_catalog_tests::{relational_plan, setup, successor_basis};
+use super::settlement_catalog_tests::{relational_attempt, setup, successor_basis};
 
 const RECOVERY_CLOSE_TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[test]
 fn installed_and_updating_recovery_block_close_until_cleanup() {
     let (fixture, owner, expected) = setup();
-    let plan = relational_plan(&fixture, &owner, expected.clone());
-    let cancellation = crate::lifecycle::RuntimeWorldCancellationSource::new();
-    let mut attempt = crate::lifecycle::RuntimeWorldPreparationService::reserve(
-        owner.as_ref(),
-        plan,
-        &cancellation.token(),
-        None,
-    )
-    .expect("the owner reserves the recovery concurrency attempt");
+    let mut attempt = relational_attempt(&fixture, &owner, expected.clone());
     attempt.begin_owner_execution();
 
     let performed = fixture.perform_relational_owner_change();
@@ -43,8 +35,10 @@ fn installed_and_updating_recovery_block_close_until_cleanup() {
     assert_eq!(owner.recovery_handles(), vec![handle.clone()]);
     assert!(owner.inspect_recovery(&handle).is_some());
     assert_eq!(
-        owner.close(),
-        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        owner
+            .close()
+            .expect_err("installed recovery custody denies close"),
+        RuntimeWorldCloseDenial::InFlightCriticalSection,
         "installed recovery custody denies close before update begins"
     );
     assert_eq!(
@@ -91,8 +85,10 @@ fn installed_and_updating_recovery_block_close_until_cleanup() {
         RuntimeWorldOwnerLifecycleObservation::Open
     );
     assert_eq!(
-        owner.close(),
-        Err(RuntimeWorldCloseDenial::RecoveryInProgress)
+        owner
+            .close()
+            .expect_err("an updating recovery record denies close"),
+        RuntimeWorldCloseDenial::InFlightCriticalSection
     );
     assert_eq!(
         owner.lifecycle_observation(),
@@ -122,7 +118,7 @@ fn installed_and_updating_recovery_block_close_until_cleanup() {
 
     assert!(owner.cleanup_recovery_handle(&handle));
     assert_eq!(owner.recovery_record_count(), 0);
-    owner
+    let _report = owner
         .close()
         .expect("cleanup removes the final recovery close obligation");
     assert_eq!(

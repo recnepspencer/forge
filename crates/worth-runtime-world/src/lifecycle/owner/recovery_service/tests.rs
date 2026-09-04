@@ -6,10 +6,7 @@ use std::sync::Arc;
 use worth_relational::facade::mvcc::RelationalTransactionIntent;
 
 use crate::branch::reference_test_fixture::{self, RealReferenceFixture};
-use crate::branch::{
-    ProductBranchComponentPosture, ProductBranchComponentPostures, ProductBranchCreationIntent,
-    ProductBranchObservation, RuntimeWorldBootstrapOutcome,
-};
+use crate::branch::{ProductBranchObservation, RuntimeWorldBootstrapOutcome};
 use crate::budget::{
     RuntimeWorldBranchBudgetInstallation, RuntimeWorldBudgetInstallation, RuntimeWorldBudgets,
     RuntimeWorldCustodyBudgetInstallation, RuntimeWorldHistoryBudgetInstallation,
@@ -17,12 +14,12 @@ use crate::budget::{
     RuntimeWorldRecoveryBudgetInstallation, RuntimeWorldRetentionBudgetInstallation,
 };
 use crate::lifecycle::{
-    RuntimeWorldCancellationSource, RuntimeWorldClock, RuntimeWorldClockSource,
-    RuntimeWorldCloseDenial, RuntimeWorldPreparationService, RuntimeWorldRecoveryService,
+    RuntimeWorldClock, RuntimeWorldClockSource, RuntimeWorldCloseDenial,
+    RuntimeWorldPreparationService, RuntimeWorldRecoveryService,
 };
 use crate::publication::{
-    CompositeAttemptProgress, CompositeComponentIntent, ProductBranchIntent,
-    RelationalAttemptProgress, SignalAttemptProgress,
+    CompositeAttemptProgress, CompositePublicationIntent, RelationalAttemptProgress,
+    ReservedCompositePublicationAttempt, RuntimeWorldCancellationSource, SignalAttemptProgress,
 };
 use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 
@@ -99,28 +96,27 @@ pub(super) fn setup() -> (
     setup_with_recovery_limit(1)
 }
 
-pub(super) fn relational_plan(
+/// One Relational reservation off the observed head. Lowering and reservation
+/// are a single owner step; these custody tests then supply owner-issued
+/// effects by hand rather than driving production dispatch.
+pub(super) fn relational_attempt(
     fixture: &RealReferenceFixture,
     owner: &TestOwner,
     expected: ProductBranchObservation,
-) -> crate::publication::LoweredOwnerComponentPlan {
-    RuntimeWorldPreparationService::prepare(
+) -> ReservedCompositePublicationAttempt {
+    let cancellation = RuntimeWorldCancellationSource::new();
+    RuntimeWorldPreparationService::prepare_publication(
         owner,
         expected,
-        ProductBranchIntent::new(
-            ProductBranchCreationIntent::named("recovery-custody")
-                .expect("valid recovery operation name"),
-            ProductBranchComponentPostures::new(
-                ProductBranchComponentPosture::ReuseExact,
-                ProductBranchComponentPosture::ReuseExact,
+        CompositePublicationIntent::without_signal(RelationalTransactionIntent::ordinary())
+            .with_prepared_relational_candidate(
+                fixture.prepare_relational_owner_candidate("recovery-custody"),
             ),
-            CompositeComponentIntent::relational_only(RelationalTransactionIntent::ordinary()),
-        )
-        .with_prepared_relational_candidate(
-            fixture.prepare_relational_owner_candidate("recovery-custody"),
-        ),
+        &cancellation.token(),
+        None,
     )
-    .expect("the owner prepares the exact relational recovery test head")
+    .expect("the owner prepares and reserves the exact relational recovery attempt")
+    .into_attempt()
 }
 
 pub(super) fn successor_basis(
@@ -148,11 +144,7 @@ pub(super) fn successor_basis(
 #[test]
 fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
     let (fixture, owner, expected) = setup();
-    let plan = relational_plan(&fixture, &owner, expected.clone());
-    let cancellation = RuntimeWorldCancellationSource::new();
-    let mut attempt =
-        RuntimeWorldPreparationService::reserve(owner.as_ref(), plan, &cancellation.token(), None)
-            .expect("the owner reserves the complete recovery attempt");
+    let mut attempt = relational_attempt(&fixture, &owner, expected.clone());
     attempt.begin_owner_execution();
 
     let performed = fixture.perform_relational_owner_change();
@@ -171,8 +163,10 @@ fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
     assert_eq!(owner.recovery_record_count(), 1);
     assert_eq!(owner.recovery_handles(), vec![handle.clone()]);
     assert_eq!(
-        owner.close(),
-        Err(RuntimeWorldCloseDenial::RecoveryInProgress),
+        owner
+            .close()
+            .expect_err("installed recovery custody denies close"),
+        RuntimeWorldCloseDenial::InFlightCriticalSection,
         "installed recovery custody has its own close denial"
     );
     drop(retained);
@@ -200,11 +194,7 @@ fn caller_loss_preserves_relational_settlement_custody_and_catalog_capacity() {
 #[test]
 fn continuation_settles_relational_effects_without_signal_or_product_publication() {
     let (fixture, owner, expected) = setup();
-    let plan = relational_plan(&fixture, &owner, expected.clone());
-    let cancellation = RuntimeWorldCancellationSource::new();
-    let mut attempt =
-        RuntimeWorldPreparationService::reserve(owner.as_ref(), plan, &cancellation.token(), None)
-            .expect("the owner reserves the complete recovery attempt");
+    let mut attempt = relational_attempt(&fixture, &owner, expected.clone());
     attempt.begin_owner_execution();
 
     let before_product_head = owner
@@ -274,24 +264,16 @@ fn continuation_settles_relational_effects_without_signal_or_product_publication
 #[test]
 fn metadata_ceiling_rejects_second_charge_and_cleanup_releases_the_first() {
     let (mut fixture, owner, expected) = setup_with_recovery_limit(2);
-    let plan = RuntimeWorldPreparationService::prepare(
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let mut attempt = RuntimeWorldPreparationService::prepare_publication(
         owner.as_ref(),
         expected.clone(),
-        ProductBranchIntent::new(
-            ProductBranchCreationIntent::named("signal-recovery-custody")
-                .expect("valid signal recovery operation name"),
-            ProductBranchComponentPostures::new(
-                ProductBranchComponentPosture::ReuseExact,
-                ProductBranchComponentPosture::ReuseExact,
-            ),
-            CompositeComponentIntent::signal_only(),
-        ),
+        CompositePublicationIntent::with_signal(None),
+        &cancellation.token(),
+        None,
     )
-    .expect("the owner prepares the exact signal recovery test head");
-    let cancellation = RuntimeWorldCancellationSource::new();
-    let mut attempt =
-        RuntimeWorldPreparationService::reserve(owner.as_ref(), plan, &cancellation.token(), None)
-            .expect("the owner reserves the signal recovery attempt");
+    .expect("the owner prepares and reserves the exact signal recovery attempt")
+    .into_attempt();
     attempt.begin_owner_execution();
 
     let advanced = fixture.perform_signal_owner_change();

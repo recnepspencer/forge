@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::history::CompositeRuntimeWorldCommit;
-use crate::identity::{CompositeBasisIdentity, CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
+use crate::identity::{CompositeBasisKey, CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
 
 use super::super::obligation_transfer::{
     ProductHeadRetentionTransfer, RetentionTransferDenial, RetentionTransferReceipt,
@@ -19,7 +19,7 @@ use super::ComponentBasisPinObligation;
 #[derive(Debug)]
 pub(crate) struct IssuedComponentPinPair {
     owner: RuntimeWorldOwnerIdentity,
-    basis: CompositeBasisIdentity,
+    basis: CompositeBasisKey,
     dependency: ComponentBasisDependencyClass,
     relational: ComponentBasisPinObligation,
     signal: ComponentBasisPinObligation,
@@ -59,7 +59,7 @@ impl IssuedComponentPinPair {
         self,
     ) -> (
         RuntimeWorldOwnerIdentity,
-        CompositeBasisIdentity,
+        CompositeBasisKey,
         ComponentBasisDependencyClass,
         ComponentBasisPinObligation,
         ComponentBasisPinObligation,
@@ -81,7 +81,7 @@ pub(crate) struct ObservationRetentionObligation {
     relational: ComponentBasisPinObligation,
     signal: ComponentBasisPinObligation,
     captured_commit: CompositeCommitIdentity,
-    captured_basis: CompositeBasisIdentity,
+    captured_basis: CompositeBasisKey,
 }
 
 impl ObservationRetentionObligation {
@@ -124,7 +124,7 @@ impl ObservationRetentionObligation {
 #[derive(Debug)]
 pub(crate) struct PublicationRetentionObligation {
     owner: RuntimeWorldOwnerIdentity,
-    basis: CompositeBasisIdentity,
+    basis: CompositeBasisKey,
     relational: ComponentBasisPinObligation,
     signal: ComponentBasisPinObligation,
 }

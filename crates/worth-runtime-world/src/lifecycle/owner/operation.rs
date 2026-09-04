@@ -1,15 +1,16 @@
 use crate::branch::ProductBranchObservation;
-use crate::lifecycle::{
-    RuntimeWorldCancellationBoundary, RuntimeWorldCancellationToken, RuntimeWorldInstant,
-};
+use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::{
     lower_component_plans, LoweredOwnerComponentPlan, NoEffectCause, NoEffectCompositePublication,
-    ReservedCompositePublicationAttempt, ResolvedExpectedProductHead,
+    ReservedAttemptCapacities, ReservedAttemptCapacityInputs, ReservedCompositePublicationAttempt,
+    ResolvedExpectedProductHead, RuntimeWorldCancellationBoundary, RuntimeWorldCancellationToken,
 };
 
 use super::RuntimeWorldOwnerRoot;
 
 mod attempt;
+#[path = "operation/creation_reservation.rs"]
+mod creation_reservation;
 mod publication_capacity;
 mod reservation_steps;
 
@@ -28,7 +29,8 @@ pub(crate) use publication_capacity::{
     ReservedPublicationAttemptCapacity, RuntimeWorldPublicationCapacityLedger,
 };
 use reservation_steps::{
-    issue_publication_identities, reserve_publication_resources, IssuedPublicationIdentities,
+    assemble_reserved_attempt, issue_publication_identities, reserve_publication_resources,
+    ReservedAttemptAssembly,
 };
 
 struct ReservationContext<'a> {
@@ -90,20 +92,17 @@ where
         if let Some(denied) = self.reservation_denial(&expected_head, cancellation, deadline) {
             return Err(denied);
         }
-        let IssuedPublicationIdentities {
-            attempt_identity,
-            commit_identity,
-            product_unpublished_identity,
-        } = issue_publication_identities(self).map_err(|cause| {
+        let identities = issue_publication_identities(self).map_err(|cause| {
             NoEffectCompositePublication::new(cause, Some(expected_head.clone()))
         })?;
         if let Some(denied) = self.reservation_denial(&expected_head, cancellation, deadline) {
             return Err(denied);
         }
-        let resources = reserve_publication_resources(self, &expected_head, &commit_identity)
-            .map_err(|cause| {
-                NoEffectCompositePublication::new(cause, Some(expected_head.clone()))
-            })?;
+        let resources =
+            reserve_publication_resources(self, &expected_head, &identities.commit_identity)
+                .map_err(|cause| {
+                    NoEffectCompositePublication::new(cause, Some(expected_head.clone()))
+                })?;
         if let Some(denied) = self.reservation_denial(&expected_head, cancellation, deadline) {
             return Err(denied);
         }
@@ -113,28 +112,14 @@ where
                 Some(expected_head.clone()),
             ));
         }
-        let reservation_steps::ReservedPublicationResources {
-            history,
-            reserved_commit_capacity,
-            reserved_recovery_slot,
-            reserved_component_pin_pair,
-            reserved_publication_capacity,
-        } = resources;
-        Ok(ReservedCompositePublicationAttempt::new(
-            attempt_identity,
-            expected_head.clone(),
-            expected_head.basis().clone(),
+        Ok(assemble_reserved_attempt(ReservedAttemptAssembly {
+            identities,
+            resources,
             plan,
-            commit_identity,
-            product_unpublished_identity,
-            reserved_commit_capacity,
-            reserved_recovery_slot,
-            reserved_component_pin_pair,
-            reserved_publication_capacity,
-            history,
+            expected_head,
             deadline,
             operation,
-        ))
+        }))
     }
 
     fn validate_reservation_preconditions(
@@ -298,54 +283,95 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
-    fn prepare(
+    fn prepare_publication<S>(
         &self,
-        expected: crate::branch::ProductBranchObservation,
-        intent: crate::publication::ProductBranchIntent,
-    ) -> Result<LoweredOwnerComponentPlan, NoEffectCompositePublication> {
+        expected: ProductBranchObservation,
+        intent: crate::publication::CompositePublicationIntent<S>,
+        cancellation: &RuntimeWorldCancellationToken,
+        deadline: Option<RuntimeWorldInstant>,
+    ) -> Result<S::Prepared, NoEffectCompositePublication>
+    where
+        S: crate::publication::CompositePublicationStage,
+    {
+        let current = self.admit_publication_source(&expected)?;
+        let (component_intent, prepared_candidate) = intent.into_parts();
+        let resolved = match ResolvedExpectedProductHead::from_current(
+            component_intent.clone(),
+            expected.clone(),
+            &current,
+        ) {
+            Ok(resolved) => resolved,
+            Err(_) => {
+                drop(prepared_candidate);
+                return Err(NoEffectCompositePublication::new(
+                    NoEffectCause::StaleExpectedProductHead,
+                    Some(expected),
+                ));
+            }
+        };
+        let plan = lower_component_plans(resolved, component_intent, prepared_candidate)?;
+        let attempt = RuntimeWorldOwnerRoot::reserve(self, plan, cancellation, deadline)?;
+        Ok(S::seal(attempt))
+    }
+
+    fn prepare_creation(
+        &self,
+        source: ProductBranchObservation,
+        intent: crate::branch::ProductBranchCreationIntent,
+        cancellation: &RuntimeWorldCancellationToken,
+        deadline: Option<RuntimeWorldInstant>,
+    ) -> Result<
+        crate::publication::ReservedBranchCreationAttempt,
+        crate::branch::RuntimeWorldBranchAdmissionDenial,
+    > {
+        RuntimeWorldOwnerRoot::prepare_creation(self, source, intent, cancellation, deadline)
+    }
+}
+
+impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    /// The shared pre-lowering admission: this owner, an open world, and a
+    /// branch cell that still exists. It returns the exact current snapshot
+    /// the caller must compare its expected observation against.
+    fn admit_publication_source(
+        &self,
+        expected: &ProductBranchObservation,
+    ) -> Result<crate::branch::ProductBranchReferenceSnapshot, NoEffectCompositePublication> {
         if expected.owner_identity() != self.owner_identity() {
             return Err(NoEffectCompositePublication::new(
                 NoEffectCause::OwnerDeniedBeforeEffect,
-                Some(expected),
+                Some(expected.clone()),
             ));
         }
         if !self.is_open_and_bootstrapped() {
             return Err(NoEffectCompositePublication::new(
                 NoEffectCause::OwnerUnavailable,
-                Some(expected),
+                Some(expected.clone()),
             ));
         }
-        let Some(current) = self
-            .state
+        self.state
             .branches
             .branch_cell(expected.branch_identity())
             .map(|cell| cell.atomic_snapshot())
-        else {
-            return Err(NoEffectCompositePublication::new(
-                NoEffectCause::OwnerUnavailable,
-                Some(expected),
-            ));
-        };
-        let component_intent = intent.component_intent();
-        let resolved =
-            match ResolvedExpectedProductHead::from_current(intent, expected.clone(), &current) {
-                Ok(resolved) => resolved,
-                Err(_) => {
-                    return Err(NoEffectCompositePublication::new(
-                        NoEffectCause::StaleExpectedProductHead,
-                        Some(expected),
-                    ))
-                }
-            };
-        lower_component_plans(resolved, component_intent)
+            .ok_or_else(|| {
+                NoEffectCompositePublication::new(
+                    NoEffectCause::OwnerUnavailable,
+                    Some(expected.clone()),
+                )
+            })
     }
 
-    fn reserve(
+    pub(super) fn is_open_and_bootstrapped_for_creation(&self) -> bool {
+        self.is_open_and_bootstrapped()
+    }
+
+    pub(super) fn reserve_creation_operation(
         &self,
-        plan: LoweredOwnerComponentPlan,
-        cancellation: &RuntimeWorldCancellationToken,
-        deadline: Option<RuntimeWorldInstant>,
-    ) -> Result<ReservedCompositePublicationAttempt, NoEffectCompositePublication> {
-        RuntimeWorldOwnerRoot::reserve(self, plan, cancellation, deadline)
+    ) -> Result<RuntimeWorldOperationReservation, ()> {
+        self.reserve_operation_if_open_and_bootstrapped()
     }
 }

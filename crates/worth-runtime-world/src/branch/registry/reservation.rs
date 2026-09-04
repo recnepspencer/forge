@@ -1,4 +1,4 @@
-use crate::identity::{ProductBranchIdentity, ProductBranchLifecycleIncarnation};
+use crate::identity::{ProductBranchIdentity, ProductBranchIncarnation};
 
 use super::{
     ProductBranchName, ProductBranchReferenceCell, ProductBranchRegistry,
@@ -79,7 +79,7 @@ impl ProductBranchRegistryReservation {
         self,
         name: ProductBranchName,
         branch: ProductBranchIdentity,
-        lifecycle: ProductBranchLifecycleIncarnation,
+        lifecycle: ProductBranchIncarnation,
         cell: ProductBranchReferenceCell,
     ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
         self.install_reserved(name, branch, lifecycle, cell, true)
@@ -88,7 +88,7 @@ impl ProductBranchRegistryReservation {
     pub(crate) fn install(
         self,
         branch: ProductBranchIdentity,
-        lifecycle: ProductBranchLifecycleIncarnation,
+        lifecycle: ProductBranchIncarnation,
         cell: ProductBranchReferenceCell,
     ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
         let Some(name) = self.name.clone() else {
@@ -101,7 +101,7 @@ impl ProductBranchRegistryReservation {
         mut self,
         name: ProductBranchName,
         branch: ProductBranchIdentity,
-        lifecycle: ProductBranchLifecycleIncarnation,
+        lifecycle: ProductBranchIncarnation,
         cell: ProductBranchReferenceCell,
         root: bool,
     ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
