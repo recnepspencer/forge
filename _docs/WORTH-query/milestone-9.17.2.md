@@ -963,8 +963,11 @@ gate), fixed in `598bf7f88a` together with the Low findings. Re-review over
   `ProductPublicationLost` carries no owner-unavailable evidence, so a loser
   that later finds its owner gone must be re-observed, not inferred.
 
-**Residual-risk closure (2026-09-04, `e940dfd4c8`).** The two residual items that
-were code rather than design are closed on the same branch, facade untouched:
+**Residual-risk closure (2026-09-04, `e940dfd4c8`, `ed824c8f9a`,
+`b8f8137cc1`, `98ce88d85e`).** These commits are after the certified revision
+`598bf7f88a`; the closure review above does not cover them. They were
+reviewed separately, below. The two residual items that were code rather than
+design are closed on the same branch, facade untouched:
 
 - `CLS-007` and the transient re-index window. `ProductBranchRegistry` no
   longer keeps a basis-to-commit copy of the head. Exact reuse installs the
@@ -974,22 +977,95 @@ were code rather than design are closed on the same branch, facade untouched:
   cell. `record_published_head`, `commit_for_basis`, and the index helpers are
   deleted; `publish()` no longer reports to the registry. Proof:
   `exact_reuse_from_a_displaced_source_head_denies_as_stale_before_any_charge`
-  (mutation: dropping the head check fails it by name).
-- Observation issuance after the fork's product movement has its proof:
-  `fork_observation_issuance_adds_no_unique_pin_beyond_the_published_head`
-  pins the unique pin count at one new slot per forked owner across the whole
-  creation, observation included. The issuance stays reserved by construction
-  rather than by a token; the proof is what now holds that construction.
+  (mutation: dropping the head check fails it by name). This removes a
+  mechanism integration finding INT-001 introduced; INT-001's behavioural
+  proof, `exact_reuse_after_a_publication_selects_the_published_commit`,
+  stands unchanged.
+- Observation issuance after the fork's product movement has its proof.
+  `observation_issuance_adds_no_unique_pin_beyond_the_withheld_route` takes
+  the same both-owner fork twice in one world, once with the observation
+  authority withheld by the rehearsal seam and once issued, and pins each
+  route at exactly the pin pair the destination basis costs; the issuance
+  step itself adds no unique pin. (`fork_observation_issuance_adds_no_unique_pin_beyond_the_published_head`
+  pins the same total over a plain successful fork.) No route mutation can
+  make the observation pin a basis the world does not already hold, so the
+  proof is checked for exactness rather than against a failing mutant. The
+  issuance stays reserved by construction rather than by a token.
 - The publication figure above names `ProductBranchObservation +
   CompositePublicationIntent` as its entry, which is what
   `prepare_publication` takes.
 
-Gate on `e940dfd4c8` (shared `CARGO_TARGET_DIR`): lib 155, feature-lib 162,
+The review of `e940dfd4c8..ed824c8f9a` found two holes those commits left
+open, and `b8f8137cc1` closes them in code rather than recording them:
+
+- The check-then-act window between a creation's last source-head recheck
+  and its registry installation. Exact reuse checked the head before its
+  branch reservation and installed afterwards; a fork rechecked before its
+  first owner fork and installed after both. A publication landing in either
+  window installed a child from a head that was no longer current. Both
+  routes now install through `install_from_source`, which inserts inside
+  `ProductBranchReferenceCell::while_current`, holding the source cell's
+  read guard across the insertion under the registry lock (the lock order
+  `root_snapshot` already uses). A source displaced in the window is refused
+  at the install itself: reuse answers `StaleSourceHead` with nothing
+  installed and every pin released; a settled fork is retained as
+  `StaleProductHead` naming the head that won, its component branches kept in
+  custody, its protection taken back from the cell the registry refused.
+  Proofs, reached through a bounded rehearsal seam
+  (`lifecycle::owner::rehearsal`, shared with the creation boundary):
+  `while_current_holds_the_guard_across_its_section_and_refuses_a_displaced_head`,
+  `exact_reuse_whose_source_moves_before_install_is_refused_under_the_guard`,
+  `a_fork_whose_source_moves_before_install_retains_the_winner_instead_of_installing`.
+  Mutations: inserting without the guard fails both window proofs; dropping
+  the guard before the section fails the cell proof.
+- A source branch that holds no occurrence was `StaleSourceHead` on the
+  reuse route and `RetiredBranch` from observation. Every creation route now
+  names it `RetiredBranch` through one `admit_source_head` helper; a displaced
+  or recreated head stays `StaleSourceHead`. Proof:
+  `creation_from_a_retired_source_is_named_retired_on_every_route`
+  (mutation: naming a missing cell stale fails it by name).
+- Exact reuse held no operation reservation, so `close()` could drain the
+  registry underneath an installing reuse. It now holds one across the
+  installation; the reuse window proof asserts the active count while the
+  creation is held (mutation: dropping the reservation fails it by name).
+
+What `e940dfd4c8` changed beyond the two residuals, and still stands:
+
+- The rule "deny a reuse whose basis is installed on more than one branch" is
+  gone with the index. An observation names one exact occurrence, so the
+  ambiguity that rule guarded against cannot arise from an observation.
+- `insert_installed` no longer compares the installed cell's basis and commit
+  owner against the registry owner. `ProductBranchReferenceSnapshot::owner_issued`
+  refuses a commit or basis whose owner differs from the snapshot owner, and
+  the reservation already compares the snapshot owner, so the invariant holds
+  by construction; there is no registry-level test for it because no
+  foreign-owner snapshot can be built to exercise one.
+
+**Reviews of the post-certification commits.** `e940dfd4c8..ed824c8f9a`
+(review RR-001..006, APPROVE): the review confirmed the index removal and
+the withheld-route pin proof, and named the check-then-act window (RR-001),
+the retired-source naming (RR-002), the reuse operation reservation
+(RR-004), and one doc citing a superseded proof name (RR-003, corrected
+above). `ed824c8f9a..b8f8137cc1` (review SG-001..004, APPROVE, no High or
+Medium): the reviewer traced the lock order for every path that takes the
+registry mutex and a cell lock, the same-cell, recreated-name, and
+retired-between-admission-and-install cases, and every refused path's
+custody, pins, reservations, and operation ledger, and confirmed the window
+closed on both routes. Its four Low findings are closed in `98ce88d85e`: the
+unguarded named install `ProductBranchRegistryReservation::install` is
+deleted; the install-time retired arm is proven on both routes
+(`exact_reuse_whose_source_retires_before_install_is_named_retired_under_the_guard`,
+`a_fork_whose_source_retires_before_install_is_retained_without_a_winner`,
+mutations fail by name); the boundary gate doc names every way it closes;
+the reuse proofs measure obligations rather than unique slots.
+
+Gate on `98ce88d85e` (shared `CARGO_TARGET_DIR`): lib 162, feature-lib 169,
 certification 13, clippy deny gate 0 errors, fmt, diff-check, line caps (dirty
 and workspace), scrutiny 47 candidates (all pre-existing), boundary-check and
-agent-context green, lib test warning locations 69 (unchanged). The lane
-worktrees and branches `claude/9-17-2-lane-{a,b,c,d}` are removed; every
-commit they held was already on `codex/9-17-2-phase4-contract-sync`.
+agent-context green, lib test warning locations 68 (69 before; the deleted
+unguarded install was one of them). The lane worktrees and branches
+`claude/9-17-2-lane-{a,b,c,d}` are removed; every commit they held was
+already on `codex/9-17-2-phase4-contract-sync`.
 
 ### Phase 5: Serial progression and facade freeze
 
