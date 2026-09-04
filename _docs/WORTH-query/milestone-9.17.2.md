@@ -521,7 +521,7 @@ report it during close.
 The compiler-visible progression is:
 
 ```text
-ProductBranchIntent
+ProductBranchObservation + CompositePublicationIntent
     -> ResolvedExpectedProductHead
     -> AdmittedCompositeRuntimeWorldBasis
     -> LoweredOwnerComponentPlan
@@ -941,16 +941,11 @@ gate), fixed in `598bf7f88a` together with the Low findings. Re-review over
   condition; Phase 4 froze the crate-internal seams it cuts over.
 - `SPEC-P4-018` crate documentation (`COMPOSITE_HISTORY.md` branch-creation
   section, basis-identity naming) is a Phase 6 documentation item.
-- The Product Branch contract figure above still names `ProductBranchIntent`;
-  the frozen type is `ProductBranchCreationIntent`. Documentation item for
-  Phase 6.
-- `CLS-004`/`CLS-007`: two denial names are imprecise under the frozen facade.
-  The fork finalization retention route records `OwnerLost` for what is a
-  Runtime World bookkeeping failure (a usize overflow in the pin or protection
-  counts), and `OwnerUnavailable` covers both a closed owner and the transient
-  publication re-index window. Both are `RuntimeWorldBranchAdmissionDenial` /
-  `ProductUnpublishedCause` variant names and change with the Phase 5 facade
-  freeze.
+- `CLS-004`: the fork finalization retention route records `OwnerLost` for
+  what is a Runtime World bookkeeping failure (a usize overflow in the pin or
+  protection counts). The name is a `ProductUnpublishedCause` variant under
+  the frozen facade and changes with the Phase 5 facade freeze. (`CLS-007`,
+  the transient re-index `OwnerUnavailable`, is closed below.)
 - `INT-BLOCK-1`: `ProductBranchRegistry` keeps the set of retired names to
   tell `AlreadyRetired` from `UnknownBranch`; under the frozen
   `retire_product_branch(owner, branch)` seam that set grows with the number
@@ -959,23 +954,42 @@ gate), fixed in `598bf7f88a` together with the Low findings. Re-review over
   incarnation)`, which is a facade signature change and is therefore a Phase 5
   serial-gate item.
 
-**Accepted residual risk:**
+**Accepted residual risk (design contracts, not defects):**
 
-- A creation that observes a head between the product reference move and the
-  registry re-index resolves no commit for its basis and is denied
-  `OwnerUnavailable`; the denial is transient and retryable (see `CLS-007`).
 - Close releases every non-root product reference and drains custody into
   `outstanding_owner_retirement_work`; the caller must dispatch that work,
   close does not retire component branches.
-- Observation issuance after the fork's product movement is reserved only by
-  construction (the observation pair joins slots the publication already
-  installed on the same basis), not by a token; a change that makes the
-  observation basis differ from the publication basis would reintroduce a
-  post-effect capacity denial. A one-line proof pinning the unique pin count
-  across `issue_observation` is a Phase 5 entry item.
 - `next_actions_for_progress` derives `CloseOwner` only from `OwnerLost`;
   `ProductPublicationLost` carries no owner-unavailable evidence, so a loser
   that later finds its owner gone must be re-observed, not inferred.
+
+**Residual-risk closure (2026-09-04, `e940dfd4c8`).** The two residual items that
+were code rather than design are closed on the same branch, facade untouched:
+
+- `CLS-007` and the transient re-index window. `ProductBranchRegistry` no
+  longer keeps a basis-to-commit copy of the head. Exact reuse installs the
+  exact commit the source observation names, after the same current-head
+  admission the fork path applies, so a displaced source is `StaleSourceHead`
+  before any charge and there is no window in which a derived index lags the
+  cell. `record_published_head`, `commit_for_basis`, and the index helpers are
+  deleted; `publish()` no longer reports to the registry. Proof:
+  `exact_reuse_from_a_displaced_source_head_denies_as_stale_before_any_charge`
+  (mutation: dropping the head check fails it by name).
+- Observation issuance after the fork's product movement has its proof:
+  `fork_observation_issuance_adds_no_unique_pin_beyond_the_published_head`
+  pins the unique pin count at one new slot per forked owner across the whole
+  creation, observation included. The issuance stays reserved by construction
+  rather than by a token; the proof is what now holds that construction.
+- The publication figure above names `ProductBranchObservation +
+  CompositePublicationIntent` as its entry, which is what
+  `prepare_publication` takes.
+
+Gate on `e940dfd4c8` (shared `CARGO_TARGET_DIR`): lib 155, feature-lib 162,
+certification 13, clippy deny gate 0 errors, fmt, diff-check, line caps (dirty
+and workspace), scrutiny 47 candidates (all pre-existing), boundary-check and
+agent-context green, lib test warning locations 69 (unchanged). The lane
+worktrees and branches `claude/9-17-2-lane-{a,b,c,d}` are removed; every
+commit they held was already on `codex/9-17-2-phase4-contract-sync`.
 
 ### Phase 5: Serial progression and facade freeze
 
