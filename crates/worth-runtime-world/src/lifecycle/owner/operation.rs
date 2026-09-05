@@ -98,11 +98,13 @@ where
         if let Some(denied) = self.reservation_denial(&expected_head, cancellation, deadline) {
             return Err(denied);
         }
-        let resources =
-            reserve_publication_resources(self, &expected_head, &identities.commit_identity)
-                .map_err(|cause| {
-                    NoEffectCompositePublication::new(cause, Some(expected_head.clone()))
-                })?;
+        let resources = reserve_publication_resources(
+            self,
+            &expected_head,
+            &identities.commit_identity,
+            Some(&identities.attempt_identity),
+        )
+        .map_err(|cause| NoEffectCompositePublication::new(cause, Some(expected_head.clone())))?;
         if let Some(denied) = self.reservation_denial(&expected_head, cancellation, deadline) {
             return Err(denied);
         }

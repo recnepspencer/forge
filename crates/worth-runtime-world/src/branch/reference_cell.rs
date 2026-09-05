@@ -15,6 +15,10 @@ pub(crate) use protection::{
 };
 
 mod protection;
+#[cfg(test)]
+pub(crate) mod publication_unwind;
+mod successor_validation;
+use successor_validation::validate_successor;
 
 #[derive(Debug)]
 struct ProductBranchReferenceImage {
@@ -74,6 +78,18 @@ pub(crate) struct ProductBranchReferencePublishFailure {
     denial: ProductBranchReferenceCellDenial,
     observed_head: ProductBranchReferenceSnapshot,
     successor_protection: ProductBranchHeadProtection,
+}
+
+#[derive(Debug)]
+pub(crate) struct ProductBranchReferenceLoss {
+    denial: ProductBranchReferenceCellDenial,
+    observed_head: ProductBranchReferenceSnapshot,
+}
+
+impl ProductBranchReferenceLoss {
+    pub(crate) fn observed_head(&self) -> &ProductBranchReferenceSnapshot {
+        &self.observed_head
+    }
 }
 
 impl ProductBranchReferencePublishFailure {
@@ -236,38 +252,73 @@ impl ProductBranchReferenceCell {
     /// Replace only if the complete expected observation is still selected.
     /// Expected-currentness, successor validation, and pair replacement use
     /// one short branch-local lock; no owner call occurs while it is held.
+    #[cfg(test)]
     pub(crate) fn compare_and_publish(
         &self,
         expected: &ProductBranchObservation,
         successor: ProductBranchHeadProtection,
     ) -> Result<ProductBranchReferenceMovement, ProductBranchReferencePublishFailure> {
+        let mut held = Some(successor);
+        self.replace_expected(expected, &mut held, |held| held, None)
+            .map_err(|loss| ProductBranchReferencePublishFailure {
+                denial: loss.denial,
+                observed_head: loss.observed_head,
+                successor_protection: held
+                    .take()
+                    .expect("a losing test CAS retains its successor"),
+            })
+    }
+
+    pub(crate) fn publish_recorded<A>(
+        &self,
+        expected: &ProductBranchObservation,
+        argument: &mut A,
+        materialize: impl FnOnce(&mut A) -> &mut Option<ProductBranchHeadProtection>,
+        publication: crate::history::PreparedPublicationRecord,
+    ) -> Result<ProductBranchReferenceMovement, ProductBranchReferenceLoss> {
+        self.replace_expected(expected, argument, materialize, Some(publication))
+    }
+
+    fn replace_expected<A>(
+        &self,
+        expected: &ProductBranchObservation,
+        argument: &mut A,
+        materialize: impl FnOnce(&mut A) -> &mut Option<ProductBranchHeadProtection>,
+        publication: Option<crate::history::PreparedPublicationRecord>,
+    ) -> Result<ProductBranchReferenceMovement, ProductBranchReferenceLoss> {
         let expected_snapshot = expected.snapshot();
         let mut current = self.state.write();
         if &current.snapshot != expected_snapshot {
-            return Err(ProductBranchReferencePublishFailure {
+            return Err(ProductBranchReferenceLoss {
                 denial: ProductBranchReferenceCellDenial::ExpectedHeadMismatch(
                     expected
                         .mismatch_against_snapshot(&current.snapshot)
                         .expect("snapshot equality and observation comparison must agree"),
                 ),
                 observed_head: current.snapshot.clone(),
-                successor_protection: successor,
             });
         }
-        if let Err(denial) = validate_successor(&current.snapshot, &successor) {
-            return Err(ProductBranchReferencePublishFailure {
+        // Only an exactly current attempt may populate its reserved history
+        // storage and transfer already bound World pin claims. The callback
+        // must not allocate, contact a component owner, or touch this cell.
+        let successor_slot = materialize(argument);
+        #[cfg(test)]
+        publication_unwind::after_materialized();
+        let successor = successor_slot
+            .as_ref()
+            .expect("materialization retains complete custody");
+        if let Err(denial) = validate_successor(&current.snapshot, successor) {
+            return Err(ProductBranchReferenceLoss {
                 denial,
                 observed_head: current.snapshot.clone(),
-                successor_protection: successor,
             });
         }
 
         let successor_snapshot = successor.snapshot().clone();
         let Some(successor_receipt) = successor.transfer_receipt().cloned() else {
-            return Err(ProductBranchReferencePublishFailure {
+            return Err(ProductBranchReferenceLoss {
                 denial: ProductBranchReferenceCellDenial::SuccessorProtectionMismatch,
                 observed_head: current.snapshot.clone(),
-                successor_protection: successor,
             });
         };
         let movement = ProductBranchReferenceMovement {
@@ -275,14 +326,22 @@ impl ProductBranchReferenceCell {
             after: successor_snapshot.clone(),
             retention_transfer: successor_receipt,
         };
+        let publication = publication.map(|record| record.stage(&movement));
         let old_image = std::mem::replace(
             &mut *current,
             ProductBranchReferenceImage {
                 snapshot: successor_snapshot,
-                protection: successor,
+                protection: successor_slot
+                    .take()
+                    .expect("validated successor custody moves only at the cell swap"),
             },
         );
+        if let Some(publication) = publication.as_ref() {
+            publication.mark_committed();
+        }
         drop(current);
+        #[cfg(test)]
+        publication_unwind::after_committed();
         drop(old_image);
         Ok(movement)
     }
@@ -301,47 +360,6 @@ impl ProductBranchReferenceCell {
             Err(std::sync::TryLockError::WouldBlock)
         )
     }
-}
-
-fn validate_successor(
-    current: &ProductBranchReferenceSnapshot,
-    successor: &ProductBranchHeadProtection,
-) -> Result<(), ProductBranchReferenceCellDenial> {
-    let successor_snapshot = successor.snapshot();
-    if successor_snapshot.owner() != current.owner() {
-        return Err(ProductBranchReferenceCellDenial::SuccessorOwnerMismatch);
-    }
-    if successor_snapshot.branch() != current.branch() {
-        return Err(ProductBranchReferenceCellDenial::SuccessorBranchMismatch);
-    }
-    if successor_snapshot.lifecycle() != current.lifecycle() {
-        return Err(ProductBranchReferenceCellDenial::SuccessorLifecycleMismatch);
-    }
-    let expected_generation = current
-        .generation()
-        .advance()
-        .map_err(|_| ProductBranchReferenceCellDenial::GenerationExhausted)?;
-    if successor_snapshot.generation() != expected_generation {
-        return Err(
-            ProductBranchReferenceCellDenial::SuccessorGenerationMismatch {
-                expected: expected_generation,
-                actual: successor_snapshot.generation(),
-            },
-        );
-    }
-    if successor.product_head().owner_identity() != successor_snapshot.owner()
-        || !successor
-            .product_head()
-            .matches_basis(successor_snapshot.commit().basis())
-        || successor.product_head_history().owner_identity() != successor_snapshot.owner()
-        || !successor
-            .product_head_history()
-            .matches_commit(successor_snapshot.commit())
-        || successor.transfer_receipt().is_none()
-    {
-        return Err(ProductBranchReferenceCellDenial::SuccessorProtectionMismatch);
-    }
-    Ok(())
 }
 
 #[cfg(test)]

@@ -1,23 +1,3 @@
-/// Counts and byte accounting retained with a product-unpublished record.
-/// These are Runtime World metadata metrics, not relabeled owner byte totals.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ProductUnpublishedOwnerEffectSummary {
-    pub(crate) owner_effect_count: usize,
-    pub(crate) metadata_bytes: usize,
-}
-
-impl ProductUnpublishedOwnerEffectSummary {
-    pub(crate) fn from_progress(
-        progress: &crate::publication::CompositeAttemptProgress,
-        metadata_bytes: usize,
-    ) -> Self {
-        Self {
-            owner_effect_count: progress.owner_effect_count(),
-            metadata_bytes,
-        }
-    }
-}
-
 /// Every retained record is installed into exactly one recovery slot and
 /// occupies it until the record is cleaned up.
 const RECOVERY_SLOT: usize = 1;
@@ -25,8 +5,8 @@ const RECOVERY_SLOT: usize = 1;
 /// A retained record's live obligations, counted once from its own custody
 /// when the record is installed and divided by scope. The component half is
 /// the exact pin pair the record holds or reserved; the composite half is the
-/// recovery slot it occupies plus the successor history protection it holds
-/// when its attempt installed a successor occurrence. The halves are one value
+/// recovery slot it occupies plus its reserved history capacity or installed
+/// successor history protection. The halves are one value
 /// because they are only meaningful together: nothing outside this type may
 /// name a pair that does not sum to the record's own count, and no route may
 /// restate the count as a literal.
@@ -37,10 +17,19 @@ pub(crate) struct ProductUnpublishedLiveObligations {
 }
 
 impl ProductUnpublishedLiveObligations {
-    pub(crate) fn from_custody(component_pins: usize, successor_history_installed: bool) -> Self {
+    pub(crate) fn with_observation(
+        mut self,
+        _observation: &crate::branch::ProductBranchObservation,
+    ) -> Self {
+        self.component += 2;
+        self.composite += 1;
+        self
+    }
+
+    pub(crate) fn from_custody(component_pins: usize, history_custody_held: bool) -> Self {
         Self {
             component: component_pins,
-            composite: RECOVERY_SLOT + usize::from(successor_history_installed),
+            composite: RECOVERY_SLOT + usize::from(history_custody_held),
         }
     }
 

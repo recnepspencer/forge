@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
+fn ready_drop_retains_effects_and_allows_close_before_explicit_cleanup() {
     let (fixture, owner, expected) = setup();
     let ready = ready_relational(&fixture, &owner, &expected, "publication-service");
     assert_eq!(owner.state.operation.active(), 1);
@@ -23,12 +23,30 @@ fn close_denies_reserved_attempt_and_drop_releases_all_attempt_capacity() {
     drop(ready);
     assert_eq!(owner.state.operation.active(), 0);
     assert_eq!(owner.state.publication_capacity.active(), 0);
-    assert_eq!(owner.state.history.reserved_len(), 0);
+    assert_eq!(owner.state.history.reserved_len(), 1);
     assert_eq!(owner.state.recovery.reserved_slots(), 0);
-    assert_eq!(owner.recovery_record_count(), 0);
-    let _report = owner
+    assert_eq!(owner.recovery_record_count(), 1);
+    let report = owner
         .close()
         .expect("close succeeds after attempt teardown");
+    assert_eq!(report.retained_records().len(), 1);
+    let row = &report.retained_records()[0];
+    assert_eq!(row.cause(), ProductUnpublishedCause::CallerAbandoned);
+    assert_eq!(row.live_component_obligations(), 2);
+    assert_eq!(row.live_composite_obligations(), 2);
+    let handle = owner.recovery_handles().pop().unwrap();
+    let record = owner.inspect_recovery(&handle).unwrap();
+    assert_eq!(record.owner_effect_count(), 1);
+    assert_eq!(
+        record.retention_posture(),
+        crate::recovery::ProductUnpublishedRetentionPosture::PublicationPinsRetained
+    );
+    assert!(record.successor_commit().is_none());
+    drop(record);
+    assert!(owner.cleanup_recovery_handle(&handle).is_some());
+    assert_eq!(owner.state.history.reserved_len(), 0);
+    assert_eq!(owner.recovery_record_count(), 0);
+    assert_eq!(owner.state.recovery.metadata_bytes(), 0);
     assert_eq!(
         owner.lifecycle_observation(),
         crate::lifecycle::RuntimeWorldOwnerLifecycleObservation::Closed
@@ -61,7 +79,7 @@ fn service_dispatch_records_one_exact_final_publication() {
     assert_eq!(counters.cas_wins(), 1);
     assert_eq!(counters.cas_losses(), 0);
     assert_eq!(counters.cancellation_observations(), 0);
-    assert_eq!(performed.old_product_head().snapshot(), expected.snapshot());
+    assert_eq!(performed.old_product_head(), expected.snapshot());
     assert_eq!(performed.new_product_head(), &cell.atomic_snapshot());
     assert_eq!(owner.state.operation.active(), 0);
 }

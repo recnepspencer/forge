@@ -1,13 +1,12 @@
 use crate::branch::RuntimeWorldBranchAdmissionDenial;
 use crate::publication::{
-    retain_attempt_effects, CompositeAttemptProgress, ReservedBranchCreationAttempt,
-    ReservedBranchCreationParts, RetainedAttemptInputs, RetainedOwnerEffectInputs,
+    CompositeAttemptProgress, ReservedBranchCreationAttempt, RetainedCommitDisposition,
     RuntimeWorldCancellationToken,
 };
 use crate::recovery::ProductUnpublishedCause;
 
 use super::super::super::super::RuntimeWorldOwnerRoot;
-use super::{BranchCreationExecution, CreationDestination};
+use super::BranchCreationExecution;
 
 /// One creation attempt at the point where its owner legs are done with it:
 /// the reservations it still owns and the exact evidence it produced. Every
@@ -32,7 +31,6 @@ pub(super) fn retain_or_no_effect<D, I, E, Ctx, T>(
     owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
     settled: SettledCreationAttempt,
     naming: CreationDenialNaming,
-    destination: &CreationDestination,
 ) -> BranchCreationExecution
 where
     D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
@@ -46,6 +44,7 @@ where
     if progress.owner_effect_count() == 0 {
         return BranchCreationExecution::NoEffect(naming.denial);
     }
+    attempt.record_progress(&progress);
     attempt.begin_publication();
     // A head that moved under a performed fork is the one cause whose record
     // can name the occurrence that displaced it, so the retained evidence
@@ -64,7 +63,6 @@ where
             successor_basis,
             cause: naming.cause,
             last_observed_head,
-            destination: destination.retained_key(),
         },
     ))
 }
@@ -76,7 +74,6 @@ pub(super) fn settle_creation<D, I, E, Ctx, T>(
     owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
     settled: SettledCreationAttempt,
     cancellation: &RuntimeWorldCancellationToken,
-    destination: &CreationDestination,
 ) -> BranchCreationExecution
 where
     D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
@@ -87,9 +84,11 @@ where
         mut attempt,
         progress,
     } = settled;
+    attempt.record_progress(&progress);
     attempt.begin_publication();
     let successor_basis =
         owner.issue_successor_basis_from_progress(&progress, attempt.source().basis());
+    attempt.record_successor(successor_basis.clone());
     if cancellation.is_cancelled() {
         return BranchCreationExecution::ProductUnpublished(retain_creation_effects(
             attempt,
@@ -98,19 +97,17 @@ where
                 successor_basis,
                 cause: ProductUnpublishedCause::CancellationAfterEffect,
                 last_observed_head: None,
-                destination: destination.retained_key(),
             },
         ));
     }
-    if !owner.successor_owners_are_current(&successor_basis) {
+    if !owner.successor_correspondence_is_valid(&successor_basis) {
         return BranchCreationExecution::ProductUnpublished(retain_creation_effects(
             attempt,
             RetainedCreation {
                 progress,
                 successor_basis,
-                cause: ProductUnpublishedCause::OwnerLost,
+                cause: ProductUnpublishedCause::CorrespondenceRebindRequired,
                 last_observed_head: None,
-                destination: destination.retained_key(),
             },
         ));
     }
@@ -134,40 +131,21 @@ fn retain_creation_effects(
         successor_basis,
         cause,
         last_observed_head,
-        destination,
     } = retained;
-    let ReservedBranchCreationParts {
-        identity,
-        source,
-        plan,
-        capacities,
-        cancellation: _,
-        deadline,
-        progress: _reserved_progress,
-        counters: _,
-    } = attempt.into_parts();
-    let (progress, owner_results) = progress
+    let parts = attempt.into_parts();
+    let (_, owner_results) = progress
         .into_recovery_results()
         .expect("creation fork evidence is representable owner progress");
     assert!(
-        owner_results.matches_partial_creation_plan(&plan),
+        owner_results.matches_partial_creation_plan(&parts.plan),
         "every retained creation effect must be the evidence its plan asked for"
     );
-    retain_attempt_effects(
-        RetainedAttemptInputs {
-            attempt_identity: identity,
-            expected_head: source,
-            capacities,
-            deadline,
-        },
-        RetainedOwnerEffectInputs {
-            progress,
-            successor_basis,
-            owner_results,
-            cause,
-            last_observed_head,
-            destination,
-        },
+    let mut custody = parts.custody;
+    custody.prepare_commit(successor_basis, &owner_results);
+    custody.retain(
+        cause,
+        last_observed_head,
+        RetainedCommitDisposition::InstallSuccessor,
     )
 }
 
@@ -178,8 +156,4 @@ struct RetainedCreation {
     successor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
     cause: ProductUnpublishedCause,
     last_observed_head: Option<crate::branch::ProductBranchReferenceSnapshot>,
-    destination: Option<(
-        crate::identity::ProductBranchIdentity,
-        crate::identity::ProductBranchIncarnation,
-    )>,
 }

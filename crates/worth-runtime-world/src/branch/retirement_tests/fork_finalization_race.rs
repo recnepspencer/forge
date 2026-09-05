@@ -81,7 +81,10 @@ fn forked_finalization_recovery_denies_close_until_its_record_is_installed() {
         }
     };
 
-    assert_eq!(effects.cause(), ProductUnpublishedCause::OwnerLost);
+    assert_eq!(
+        effects.cause(),
+        ProductUnpublishedCause::DestinationAdmissionDenied
+    );
     assert_finalization_record_contract(&effects);
     assert_retained_custody_survives_the_reservation(&owner, branches_before);
     assert_cleanup_reopens_close(&owner, effects);
@@ -165,10 +168,8 @@ fn assert_cleanup_reopens_close(owner: &super::TestOwner, effects: ProductUnpubl
 /// assertion therefore pins the derived slice, not a literal, against the same
 /// authority the publication route uses.
 ///
-/// `CloseOwner` does appear: this route is reached only by losing an
-/// owner-issued authority the fork already depended on, so the record's cause
-/// is `OwnerLost` and the continuation the cause axis derives is appended to
-/// the two actions the progress alone justifies.
+/// Destination admission failure does not establish owner loss, so it must
+/// not advertise owner closure as a recovery action.
 fn assert_finalization_record_contract(effects: &ProductUnpublishedOwnerEffects) {
     assert_eq!(
         effects.progress().relational_posture(),
@@ -183,13 +184,15 @@ fn assert_finalization_record_contract(effects: &ProductUnpublishedOwnerEffects)
         next_actions_for_progress(effects.progress(), effects.cause()).as_slice(),
         "finalization derives its continuation instead of restating a literal"
     );
-    assert_eq!(effects.cause(), ProductUnpublishedCause::OwnerLost);
+    assert_eq!(
+        effects.cause(),
+        ProductUnpublishedCause::DestinationAdmissionDenied
+    );
     assert_eq!(
         effects.next_actions(),
         [
             ProductUnpublishedNextAction::ReleaseObligations,
             ProductUnpublishedNextAction::Inspect,
-            ProductUnpublishedNextAction::CloseOwner
         ]
     );
     assert_eq!(

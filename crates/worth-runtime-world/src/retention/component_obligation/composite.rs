@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::{CompositeBasisKey, CompositeCommitIdentity, RuntimeWorldOwnerIdentity};
@@ -82,14 +80,17 @@ pub(crate) struct ObservationRetentionObligation {
     signal: ComponentBasisPinObligation,
     captured_commit: CompositeCommitIdentity,
     captured_basis: CompositeBasisKey,
+    _capacity: crate::retention::ReservedObservationCapacity,
 }
 
 impl ObservationRetentionObligation {
     pub(crate) fn owner_issued(
         commit: &CompositeRuntimeWorldCommit,
         pair: IssuedComponentPinPair,
+        capacity: crate::retention::ReservedObservationCapacity,
     ) -> Self {
         let (owner, basis, dependency, relational, signal) = pair.into_parts();
+        assert_eq!(capacity.owner_identity(), owner);
         assert_eq!(commit.identity().owner_identity(), owner);
         assert_eq!(commit.basis().owner_identity(), owner);
         assert_eq!(basis, *commit.basis().identity());
@@ -102,6 +103,7 @@ impl ObservationRetentionObligation {
             signal,
             captured_commit: commit.identity().clone(),
             captured_basis: basis,
+            _capacity: capacity,
         }
     }
 
@@ -130,6 +132,27 @@ pub(crate) struct PublicationRetentionObligation {
 }
 
 impl PublicationRetentionObligation {
+    /// Retention after a denied publication does not need product-head
+    /// authority. Keep both original claims guarded through the direct retag.
+    pub(crate) fn try_transfer_retained(
+        &mut self,
+    ) -> Result<super::retained_partial::RetainedPartialRetentionObligation, RetentionTransferDenial>
+    {
+        let basis = self.basis.clone();
+        self.relational.transfer_pair_to(
+            &mut self.signal,
+            ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
+        )?;
+        Ok(
+            super::retained_partial::RetainedPartialRetentionObligation::transferred(
+                self.owner,
+                basis,
+                self.relational.take_transferred_claim(),
+                self.signal.take_transferred_claim(),
+            ),
+        )
+    }
+
     pub(crate) fn owner_issued(pair: IssuedComponentPinPair) -> Self {
         let (owner, basis, dependency, relational, signal) = pair.into_parts();
         assert_eq!(
@@ -175,46 +198,41 @@ impl PublicationRetentionObligation {
     /// Transfer publication custody into the sole product-head authority.
     /// The exact successor basis is checked before either claim changes class.
     pub(crate) fn into_product_head_transfer(
-        self,
+        mut self,
         successor_basis: &AdmittedCompositeRuntimeWorldBasis,
     ) -> Result<ProductHeadRetentionTransfer, (Self, RetentionTransferDenial)> {
+        match self.try_transfer_product_head(successor_basis) {
+            Ok(transfer) => Ok(transfer),
+            Err(denial) => Err((self, denial)),
+        }
+    }
+
+    /// Keep the original publication obligation in its owner's resource lease
+    /// while the pair transfer validates. Denial leaves both claims unchanged.
+    pub(crate) fn try_transfer_product_head(
+        &mut self,
+        successor_basis: &AdmittedCompositeRuntimeWorldBasis,
+    ) -> Result<ProductHeadRetentionTransfer, RetentionTransferDenial> {
         if !self.matches_basis(successor_basis) {
-            return Err((self, RetentionTransferDenial::BasisMismatch));
+            return Err(RetentionTransferDenial::BasisMismatch);
         }
-        let Self {
-            owner,
-            basis,
-            relational,
-            signal,
-        } = self;
-        let relational_claim = relational.into_claim();
-        let signal_claim = signal.into_claim();
-        let control = Arc::clone(&relational_claim.control);
-        match control.transfer_pair(
-            relational_claim,
-            signal_claim,
+        let receipt = RetentionTransferReceipt::product_head(
+            self.owner,
+            self.basis.clone(),
+            self.relational.key().clone(),
+            self.signal.key().clone(),
+        );
+        let successor_identity = self.basis.clone();
+        self.relational.transfer_pair_to(
+            &mut self.signal,
             ComponentBasisDependencyClass::ProductBranchHead,
-        ) {
-            Ok((relational, signal)) => {
-                let receipt = RetentionTransferReceipt::product_head(
-                    owner,
-                    basis.clone(),
-                    relational.key().clone(),
-                    signal.key().clone(),
-                );
-                let obligation =
-                    ProductHeadRetentionObligation::transferred(owner, basis, relational, signal);
-                Ok(ProductHeadRetentionTransfer::new(obligation, receipt))
-            }
-            Err((relational, signal, denial)) => Err((
-                Self {
-                    owner,
-                    basis,
-                    relational: ComponentBasisPinObligation::new(relational),
-                    signal: ComponentBasisPinObligation::new(signal),
-                },
-                denial,
-            )),
-        }
+        )?;
+        let obligation = ProductHeadRetentionObligation::transferred(
+            self.owner,
+            successor_identity,
+            self.relational.take_transferred_claim(),
+            self.signal.take_transferred_claim(),
+        );
+        Ok(ProductHeadRetentionTransfer::new(obligation, receipt))
     }
 }

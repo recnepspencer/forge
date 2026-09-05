@@ -99,9 +99,11 @@ pub(crate) trait RuntimeWorldBranchService {
         request: RuntimeWorldBranchCreationRequest<'_>,
     ) -> Result<RuntimeWorldBranchCreationOutcome, RuntimeWorldBranchAdmissionDenial>;
 
+    /// Retire the installed occurrence proved by this observation. Later head
+    /// movement is allowed; a recreated name is a different occurrence.
     fn retire_product_branch(
         &self,
-        branch: ProductBranchIdentity,
+        observed: &ProductBranchObservation,
     ) -> Result<ProductBranchRetirementReport, RuntimeWorldBranchRetirementDenial>;
 }
 

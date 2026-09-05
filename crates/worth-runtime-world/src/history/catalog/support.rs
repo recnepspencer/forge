@@ -46,7 +46,11 @@ pub(super) fn validate_parent_for_reservation(
             actual: parent.commit().owner_identity(),
         });
     }
-    if !state.entries.contains_key(parent.commit()) {
+    if !state
+        .entries
+        .get(parent.commit())
+        .is_some_and(Option::is_some)
+    {
         return Err(CompositeHistoryCatalogDenial::MissingParent(
             parent.commit().clone(),
         ));
@@ -62,9 +66,17 @@ pub(super) fn install_entry(
     let parent = entry.commit().parent().clone();
     {
         let mut reachability = lock_index(&state.reachability);
-        reachability.install(identity.clone());
+        reachability.install(&identity);
     }
-    assert!(state.entries.insert(identity.clone(), entry).is_none());
+    let slot = state
+        .entries
+        .get_mut(&identity)
+        .expect("admission allocated this history slot");
+    assert!(
+        slot.is_none(),
+        "one reservation populates one immutable occurrence"
+    );
+    *slot = Some(entry);
     if matches!(parent, CompositeCommitParent::Root) {
         state.root = Some(identity);
         state.root_ever_installed = true;
@@ -78,6 +90,8 @@ pub(super) fn release_reservation(
     let Some(reservation) = state.reservations.remove(identity) else {
         return;
     };
+    assert!(matches!(state.entries.remove(identity), Some(None)));
+    lock_index(&state.reachability).release_reservation(identity);
     state.metadata.release_reservation(&reservation);
     lock_counters(&state.counters).record_metadata_release();
     if let CompositeCommitParent::Ordinary(parent) = &reservation.parent {
@@ -119,7 +133,7 @@ pub(super) fn prevalidate_candidate_prefix(
         }
     }
     for candidate in candidates {
-        if !state.entries.contains_key(candidate) {
+        if !state.entries.get(candidate).is_some_and(Option::is_some) {
             return Err(HistoryReclamationDenial::UnknownCandidate(
                 candidate.clone(),
             ));
@@ -135,6 +149,7 @@ pub(super) fn remove_installed(
     let entry = state
         .entries
         .remove(identity)
+        .flatten()
         .expect("prevalidated candidate remains installed during reclamation");
     let parent = entry.commit().parent().clone();
     {

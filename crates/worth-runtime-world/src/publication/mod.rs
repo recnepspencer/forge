@@ -1,6 +1,10 @@
 mod cancellation;
 mod component_plan;
 mod cost_counters;
+mod custody;
+pub(crate) use custody::{
+    ActiveAttemptCustody, ActiveAttemptRecord, ActiveAttemptResources, RetainedCommitDisposition,
+};
 mod intent;
 mod no_effect;
 mod outcome;
@@ -30,9 +34,6 @@ pub use no_effect::{NoEffectCause, NoEffectCompositePublication};
 pub(crate) use outcome::OwnerExecutionOutcome;
 pub use outcome::RuntimeWorldPublicationOutcome;
 pub use owner_execution::OwnerExecutionSettlement;
-pub(crate) use owner_execution::{
-    retain_attempt_effects, RetainedAttemptInputs, RetainedOwnerEffectInputs,
-};
 pub use owner_results::{
     CompositeOwnerExecutionResults, CompositeRelationalOwnerResult, CompositeSignalOwnerResult,
 };
@@ -51,5 +52,5 @@ pub use reservation::{
 };
 pub(crate) use reservation::{
     ReservedAttemptCapacities, ReservedAttemptCapacityInputs, ReservedBranchCreationAttempt,
-    ReservedBranchCreationInputs, ReservedBranchCreationParts, ReservedPublicationAttemptParts,
+    ReservedBranchCreationInputs, ReservedPublicationAttemptParts,
 };

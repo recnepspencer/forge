@@ -20,14 +20,14 @@ pub struct CompositeRelationalOwnerResult {
     result: CompositeRelationalOwnerResultKind,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum CompositeRelationalOwnerResultKind {
     RetainedExact,
     Published {
         commit_identity: RelationalCommitIdentity,
         successor_basis: AdmittedRelationalBranchBasis,
         settlement: Option<worth_relational::facade::history::RelationalCommitReceipt>,
-        result: Option<CommitResult>,
+        result: Option<std::sync::Arc<CommitResult>>,
     },
     Forked {
         fork: RelationalForkOutcome,
@@ -54,6 +54,17 @@ pub struct CompositeOwnerExecutionResults {
 }
 
 impl CompositeOwnerExecutionResults {
+    /// Share immutable owner-issued evidence without duplicating a phase or
+    /// performed authority. The public result remains non-Clone.
+    pub(crate) fn evidence_image(&self) -> Self {
+        Self {
+            relational: CompositeRelationalOwnerResult {
+                result: self.relational.result.clone(),
+            },
+            signal: self.signal.evidence_image(),
+        }
+    }
+
     pub(super) fn from_components(
         relational: CompositeRelationalOwnerResult,
         signal: CompositeSignalOwnerResult,
@@ -105,7 +116,7 @@ impl CompositeOwnerExecutionResults {
             relational: CompositeRelationalOwnerResult::settled(
                 commit_identity,
                 successor_basis,
-                result,
+                std::sync::Arc::new(result),
             ),
             signal: CompositeSignalOwnerResult::retained(),
         }
@@ -122,7 +133,7 @@ impl CompositeOwnerExecutionResults {
             relational: CompositeRelationalOwnerResult::settled(
                 commit_identity,
                 successor_basis,
-                result,
+                std::sync::Arc::new(result),
             ),
             signal,
         }
@@ -248,7 +259,7 @@ impl CompositeOwnerExecutionResults {
 
     pub(crate) fn relational_commit_result(&self) -> Option<&CommitResult> {
         match &self.relational.result {
-            CompositeRelationalOwnerResultKind::Published { result, .. } => result.as_ref(),
+            CompositeRelationalOwnerResultKind::Published { result, .. } => result.as_deref(),
             CompositeRelationalOwnerResultKind::RetainedExact
             | CompositeRelationalOwnerResultKind::Forked { .. }
             | CompositeRelationalOwnerResultKind::SettlementPending { .. }

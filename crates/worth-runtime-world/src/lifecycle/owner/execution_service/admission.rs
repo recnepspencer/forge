@@ -1,4 +1,3 @@
-use crate::basis;
 use crate::branch::ProductBranchObservation;
 use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::{
@@ -44,22 +43,16 @@ where
         ) {
             return Err(NoEffectCause::PreEffectFailure);
         }
-        // A product publication is the only thing that moves an owner off the
-        // observed head, so a replaced product cell is the specific truth
-        // behind a stale attempt. It is named here, before the derived
-        // consequence that the component bases are no longer current.
+        // Owner-local movement does not invalidate a retained product basis.
+        // Only the product cell decides whether this expected head is stale;
+        // each changing owner admits its own exact mutation at execution.
         if !self.current_product_head_is(attempt.expected_head()) {
             return Err(NoEffectCause::StaleExpectedProductHead);
         }
-        basis::validate_current(
-            &self.state.relational.basis_port(),
-            &self.state.signal.basis_port(),
-            &self.state.bridge,
-            attempt.expected_head().basis().relational_basis(),
-            attempt.expected_head().basis().signal_basis(),
-            attempt.expected_head().basis().correspondence_basis(),
-        )
-        .map_err(|_| NoEffectCause::OwnerUnavailable)?;
+        self.state
+            .bridge
+            .compare_current_exact(attempt.predecessor_basis().correspondence_basis())
+            .map_err(|_| NoEffectCause::CorrespondenceRebindRequired)?;
         // The exact product cell is rechecked last, immediately before the
         // first owner effect, so a concurrent product publication cannot make
         // this attempt appear current after its earlier checks passed.

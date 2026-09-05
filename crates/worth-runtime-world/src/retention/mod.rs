@@ -1,6 +1,8 @@
 mod component_obligation;
 mod dependency_counts;
 mod obligation_transfer;
+mod observation_capacity;
+pub(crate) use observation_capacity::ReservedObservationCapacity;
 mod registry;
 mod unique_component_pin;
 
@@ -11,7 +13,9 @@ pub(crate) use component_obligation::{
 pub(crate) use dependency_counts::ComponentBasisDependencyClass;
 #[cfg(test)]
 pub(crate) use obligation_transfer::ComponentBasisObligationTransferDestination;
-pub(crate) use obligation_transfer::{ProductHeadRetentionTransfer, RetentionTransferReceipt};
+pub(crate) use obligation_transfer::{
+    ProductHeadRetentionTransfer, RetentionTransferDenial, RetentionTransferReceipt,
+};
 #[allow(unused_imports)]
 pub(crate) use registry::{
     ReservedComponentPinPairCapacity, RetentionCostSnapshot, RetentionObligationDenial,

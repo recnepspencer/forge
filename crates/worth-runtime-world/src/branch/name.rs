@@ -1,7 +1,7 @@
 /// Validated descriptive input. It is not a product branch identity and does
 /// not select an owner or a current head.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ProductBranchName(String);
+pub struct ProductBranchName(std::sync::Arc<str>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProductBranchNameDenial {
@@ -10,7 +10,7 @@ pub enum ProductBranchNameDenial {
 }
 
 impl ProductBranchName {
-    const MAXIMUM_LENGTH: usize = 256;
+    pub(crate) const MAXIMUM_LENGTH: usize = 256;
 
     pub fn try_new(name: impl Into<String>) -> Result<Self, ProductBranchNameDenial> {
         let name = name.into();
@@ -23,7 +23,7 @@ impl ProductBranchName {
                 actual: name.len(),
             });
         }
-        Ok(Self(name))
+        Ok(Self(name.into()))
     }
 
     pub fn as_str(&self) -> &str {

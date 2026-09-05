@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use crate::branch::{
-    OwnerCreatedComponentCustodyRecord, ProductBranchHeadProtection, ProductBranchName,
-    ProductBranchObservation, ProductBranchReferenceCell, ProductBranchReferenceSnapshot,
-    ProductBranchRetirementReport, RuntimeWorldBranchAdmissionDenial,
-    RuntimeWorldBranchRetirementDenial,
+    ProductBranchHeadProtection, ProductBranchName, ProductBranchObservation,
+    ProductBranchReferenceCell, ProductBranchReferenceSnapshot, ProductBranchRetirementReport,
+    RuntimeWorldBranchAdmissionDenial, RuntimeWorldBranchRetirementDenial,
 };
 use crate::identity::{
     ProductBranchIdentity, ProductBranchIncarnation, ProductBranchReferenceGeneration,
@@ -16,6 +15,7 @@ use super::RuntimeWorldOwnerRoot;
 mod creation;
 #[cfg(test)]
 mod install_control;
+mod retirement;
 
 impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
 where
@@ -86,6 +86,7 @@ where
         &self,
         source: ProductBranchObservation,
         name: ProductBranchName,
+        cancellation: &crate::publication::RuntimeWorldCancellationToken,
     ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
         // The reference cell is the only authority for a head. A source the
         // cell has moved past, or no longer holds, is refused here before any
@@ -95,6 +96,11 @@ where
         // reused as the exact commit the caller observed, which that
         // observation keeps alive in history.
         self.admit_source_head(&source)?;
+        let observation_capacity = self
+            .state
+            .retention
+            .reserve_observation()
+            .map_err(map_retention_denial)?;
         let commit = source.snapshot().shared_commit();
         // Reuse moves no owner, but it does install a product reference, and
         // close drains those. Holding an operation reservation across the
@@ -114,12 +120,12 @@ where
             .map_err(|_| RuntimeWorldBranchAdmissionDenial::IdentityExhausted)?;
         let (cell, snapshot) =
             self.issue_reused_head(branch.clone(), lifecycle, Arc::clone(&commit))?;
-        let observation = self.issue_reused_observation(snapshot, commit)?;
+        let observation = self.issue_reused_observation(snapshot, commit, observation_capacity)?;
 
         #[cfg(test)]
         install_control::pause_before_source_guarded_install(self.owner_identity());
         reservation
-            .install_from_source(&source, branch, lifecycle, cell)
+            .install_from_source(&source, branch, lifecycle, &mut Some(cell), cancellation)
             .map_err(|failure| map_source_install_denial(failure.denial))?;
         drop(operation);
         Ok(observation)
@@ -167,11 +173,12 @@ where
         &self,
         snapshot: ProductBranchReferenceSnapshot,
         commit: Arc<crate::history::CompositeRuntimeWorldCommit>,
+        observation_capacity: crate::retention::ReservedObservationCapacity,
     ) -> Result<ProductBranchObservation, RuntimeWorldBranchAdmissionDenial> {
         let observation_components = self
             .state
             .retention
-            .issue_observation(commit.as_ref())
+            .issue_reserved_observation(commit.as_ref(), observation_capacity)
             .map_err(map_retention_denial)?;
         let observation_history = self
             .state
@@ -205,6 +212,9 @@ where
         if !self.branch_service_is_available() {
             return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
         }
+        let _operation = self
+            .reserve_creation_operation()
+            .map_err(|()| RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
         let cell = self
             .state
             .branches
@@ -238,49 +248,22 @@ where
         let plans = intent
             .plans()
             .ok_or(RuntimeWorldBranchAdmissionDenial::PlansOmitted)?;
+        if cancellation.is_cancelled() {
+            return Err(RuntimeWorldBranchAdmissionDenial::CancelledBeforeEffect);
+        }
         if plans.is_exact_reuse() {
             return self
-                .create_reused_branch(source, intent.name().clone())
+                .create_reused_branch(source, intent.name().clone(), cancellation)
                 .map(RuntimeWorldBranchCreationOutcome::Performed);
         }
         creation::create_forked_branch(self, source, intent, cancellation)
     }
 
-    /// Retirement releases the product reference this world owns and reports
-    /// the component branches it created but must not delete itself.
     fn retire_product_branch(
         &self,
-        branch: ProductBranchIdentity,
+        observed: &ProductBranchObservation,
     ) -> Result<ProductBranchRetirementReport, RuntimeWorldBranchRetirementDenial> {
-        if branch.owner_identity() != self.owner_identity() {
-            return Err(RuntimeWorldBranchRetirementDenial::OwnerUnavailable);
-        }
-        if !self.branch_service_is_available() {
-            return Err(RuntimeWorldBranchRetirementDenial::OwnerUnavailable);
-        }
-        let (cell, incarnation) = self
-            .state
-            .branches
-            .retire(self.owner_identity(), &branch)
-            .map_err(map_retirement_denial)?;
-        // Drop the product-head and history custody after the registry lock
-        // has been released. No component lifecycle/delete port is called.
-        drop(cell);
-        // The component branches this exact occurrence asked its owners to
-        // create become typed work for those owners. Runtime World releases the
-        // custody charge by naming the work, never by deleting a component
-        // reference itself.
-        let owner_retirement_work = self
-            .state
-            .custody
-            .take_for_incarnation(&branch, incarnation)
-            .into_iter()
-            .map(OwnerCreatedComponentCustodyRecord::into_retirement_work)
-            .collect();
-        Ok(ProductBranchRetirementReport::new(
-            branch,
-            owner_retirement_work,
-        ))
+        self.retire_observed_branch(observed)
     }
 }
 
@@ -318,6 +301,9 @@ fn map_source_install_denial(
     use crate::branch::registry::ProductBranchSourceInstallDenial;
 
     match denial {
+        ProductBranchSourceInstallDenial::Cancelled => {
+            RuntimeWorldBranchAdmissionDenial::CancelledBeforeEffect
+        }
         ProductBranchSourceInstallDenial::Registry(denial) => map_registry_denial(denial),
         ProductBranchSourceInstallDenial::SourceRetired => {
             RuntimeWorldBranchAdmissionDenial::RetiredBranch
@@ -343,39 +329,12 @@ fn map_retention_denial(
         | RetentionObligationDenial::OwnerOperationPanicked => {
             RuntimeWorldBranchAdmissionDenial::OwnerUnavailable
         }
-        RetentionObligationDenial::InvalidComponentPair
+        RetentionObligationDenial::ObservationCapacityExhausted
+        | RetentionObligationDenial::InvalidComponentPair
         | RetentionObligationDenial::UniquePinCapacityExhausted { .. }
         | RetentionObligationDenial::InFlightAcquisitionCapacityExhausted { .. }
         | RetentionObligationDenial::DependencyCountExhausted => {
             RuntimeWorldBranchAdmissionDenial::CapacityExhausted
-        }
-    }
-}
-
-fn map_retirement_denial(
-    denial: crate::branch::registry::ProductBranchRegistryDenial,
-) -> RuntimeWorldBranchRetirementDenial {
-    use crate::branch::registry::ProductBranchRegistryDenial;
-
-    match denial {
-        ProductBranchRegistryDenial::UnknownBranch => {
-            RuntimeWorldBranchRetirementDenial::UnknownBranch
-        }
-        ProductBranchRegistryDenial::AlreadyRetired => {
-            RuntimeWorldBranchRetirementDenial::AlreadyRetired
-        }
-        ProductBranchRegistryDenial::CapacityExhausted => {
-            RuntimeWorldBranchRetirementDenial::CapacityExhausted
-        }
-        ProductBranchRegistryDenial::ForeignOwner
-        | ProductBranchRegistryDenial::AlreadyInstalled
-        | ProductBranchRegistryDenial::ReservationMissing
-        | ProductBranchRegistryDenial::IdentityMismatch
-        | ProductBranchRegistryDenial::NameAlreadyReserved
-        | ProductBranchRegistryDenial::NameAlreadyInstalled
-        | ProductBranchRegistryDenial::BranchAlreadyInstalled
-        | ProductBranchRegistryDenial::LifecycleAlreadyInstalled => {
-            RuntimeWorldBranchRetirementDenial::OwnerUnavailable
         }
     }
 }

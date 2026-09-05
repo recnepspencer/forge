@@ -15,7 +15,7 @@ impl CompositeRelationalOwnerResult {
     pub(crate) fn settled(
         commit_identity: RelationalCommitIdentity,
         successor_basis: AdmittedRelationalBranchBasis,
-        result: CommitResult,
+        result: std::sync::Arc<CommitResult>,
     ) -> Self {
         Self {
             result: CompositeRelationalOwnerResultKind::Published {

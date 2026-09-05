@@ -46,18 +46,13 @@ where
         )
     }
 
-    pub(crate) fn successor_owners_are_current(
+    pub(crate) fn successor_correspondence_is_valid(
         &self,
         successor: &AdmittedCompositeRuntimeWorldBasis,
     ) -> bool {
-        basis::validate_current(
-            &self.state.relational.basis_port(),
-            &self.state.signal.basis_port(),
-            &self.state.bridge,
-            successor.relational_basis(),
-            successor.signal_basis(),
-            successor.correspondence_basis(),
-        )
-        .is_ok()
+        self.state
+            .bridge
+            .compare_current_exact(successor.correspondence_basis())
+            .is_ok()
     }
 }

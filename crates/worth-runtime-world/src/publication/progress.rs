@@ -22,6 +22,7 @@ mod relational;
 
 #[path = "progress/ready.rs"]
 mod ready;
+mod retained_image;
 
 /// Exact Relational owner progress. A generic ordinal cannot say which owner
 /// evidence or settlement obligation is alive.
@@ -55,7 +56,7 @@ pub(super) enum RelationalProgressEvidence {
     Settled {
         commit_identity: RelationalCommitIdentity,
         successor_basis: AdmittedRelationalBranchBasis,
-        result: CommitResult,
+        result: std::sync::Arc<CommitResult>,
     },
 }
 
@@ -120,7 +121,7 @@ impl RelationalAttemptProgress {
             evidence: Some(RelationalProgressEvidence::Settled {
                 commit_identity,
                 successor_basis,
-                result,
+                result: std::sync::Arc::new(result),
             }),
             fork: None,
             fork_successor_basis: None,
@@ -166,7 +167,7 @@ pub enum SignalAttemptProgressPosture {
 #[derive(Debug)]
 pub(super) enum SignalProgressEvidence {
     Prepared,
-    Advanced(SignalBranchAdvanceOutcome),
+    Advanced(std::sync::Arc<SignalBranchAdvanceOutcome>),
     Forked(SignalBranchForkOutcome),
 }
 
@@ -201,7 +202,9 @@ impl SignalAttemptProgress {
     pub(crate) fn advanced(outcome: SignalBranchAdvanceOutcome) -> Self {
         Self {
             posture: SignalAttemptProgressPosture::Performed,
-            evidence: Some(SignalProgressEvidence::Advanced(outcome)),
+            evidence: Some(SignalProgressEvidence::Advanced(std::sync::Arc::new(
+                outcome,
+            ))),
         }
     }
 

@@ -145,3 +145,26 @@ fn missing_signal_sibling_after_relational_movement_retains_exact_progress() {
     );
     drop(record);
 }
+
+#[test]
+fn actual_owner_loss_during_successor_retention_remains_owner_lost() {
+    let (fixture, owner, expected) = setup();
+    let settlement = settled(execute_with_empty_signal(
+        &owner,
+        prepare_signal(&owner, &expected, None),
+    ));
+    let successor = settlement.successor_basis().unwrap().clone();
+    drop(fixture);
+    let retained = settlement
+        .ready(successor)
+        .expect_err("the dropped component owner cannot issue a new successor pin");
+    assert_eq!(retained.cause(), ProductUnpublishedCause::OwnerLost);
+    assert!(retained
+        .next_actions()
+        .contains(&ProductUnpublishedNextAction::CloseOwner));
+    assert_eq!(retained.owner_effect_count(), 1);
+    let handle = retained.recovery_handle();
+    drop(retained);
+    assert!(owner.cleanup_recovery_handle(&handle).is_some());
+    assert_eq!(owner.recovery_record_count(), 0);
+}

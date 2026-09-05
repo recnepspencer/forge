@@ -61,34 +61,6 @@ impl ReservedAttemptCapacities {
         }
     }
 
-    pub(crate) const fn reserved_commit_identity(&self) -> &CompositeCommitIdentity {
-        &self.reserved_commit_identity
-    }
-
-    pub(crate) const fn product_unpublished_identity(
-        &self,
-    ) -> &ProductUnpublishedOwnerEffectsIdentity {
-        &self.product_unpublished_identity
-    }
-
-    pub(crate) fn begin_owner_execution(&mut self) {
-        self.operation
-            .begin_owner_execution()
-            .expect("a reserved attempt begins owner execution exactly once");
-    }
-
-    pub(crate) fn begin_publication(&mut self) {
-        self.operation
-            .begin_publication()
-            .expect("settled owner execution advances into publication exactly once");
-    }
-
-    pub(crate) fn begin_recovery(&mut self) {
-        self.operation
-            .begin_recovery()
-            .expect("a publishing attempt enters recovery exactly once");
-    }
-
     pub(crate) fn into_parts(self) -> ReservedAttemptCapacityInputs {
         ReservedAttemptCapacityInputs {
             reserved_commit_identity: self.reserved_commit_identity,

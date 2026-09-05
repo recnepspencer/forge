@@ -14,16 +14,29 @@ use super::super::{
 pub(super) struct AllocationOracle;
 
 impl AllocationOracle {
+    pub(super) fn publication_resident(
+        commit: &CompositeRuntimeWorldCommit,
+        branch_name: &str,
+    ) -> usize {
+        sum([
+            Self::installed_resident(commit),
+            size_of::<crate::history::CanonicalPublicationEnvelope>(),
+            size_of::<Arc<crate::history::CanonicalPublicationEnvelope>>(),
+            size_of::<Arc<str>>(),
+            branch_name.len(),
+        ])
+    }
+
     pub(super) fn installed_resident(_commit: &CompositeRuntimeWorldCommit) -> usize {
         sum([
             size_of::<CompositeRuntimeWorldCommit>(),
             size_of::<Arc<CompositeRuntimeWorldCommit>>(),
             size_of::<CompositeCommitIdentity>(),
-            size_of::<CompositeHistoryCatalogEntry>(),
+            size_of::<Option<CompositeHistoryCatalogEntry>>(),
             size_of::<CompositeCommitIdentity>(),
-            size_of::<HistoryReachabilityRecord>(),
-            size_of::<Box<CompositeHistoryCatalogEntry>>(),
-            size_of::<Box<HistoryReachabilityRecord>>(),
+            size_of::<Option<HistoryReachabilityRecord>>(),
+            size_of::<Box<Option<CompositeHistoryCatalogEntry>>>(),
+            size_of::<Box<Option<HistoryReachabilityRecord>>>(),
         ])
     }
 

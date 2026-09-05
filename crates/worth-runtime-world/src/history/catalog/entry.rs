@@ -6,6 +6,7 @@ use super::CompositeRuntimeWorldCommit;
 #[derive(Debug, Clone)]
 pub(crate) struct CompositeHistoryCatalogEntry {
     pub(super) commit: Arc<CompositeRuntimeWorldCommit>,
+    pub(super) publication: Option<Arc<crate::history::CanonicalPublicationEnvelope>>,
     pub(super) metadata_charge: HistoryMetadataCharge,
 }
 

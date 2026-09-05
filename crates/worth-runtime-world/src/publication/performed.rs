@@ -1,11 +1,7 @@
-use std::sync::Arc;
-
 use worth_proof::AuthorityWitness;
 
-use crate::branch::{
-    ProductBranchObservation, ProductBranchReferenceMovement, ProductBranchReferenceSnapshot,
-};
-use crate::history::CompositeRuntimeWorldCommit;
+use crate::branch::ProductBranchReferenceSnapshot;
+use crate::history::{CompositeRuntimeWorldCommit, PublicationDeliveryClaim};
 use crate::identity::CompositePublicationAttemptIdentity;
 use crate::retention::RetentionTransferReceipt;
 
@@ -22,17 +18,12 @@ pub enum CompositeLateCancellationPosture {
     RequestedAfterProductMovement,
 }
 
-/// Linear proof that one immutable composite commit won the exact product
-/// compare-and-publish transition.
+/// Linear delivery of one canonical performed publication. Inspection borrows
+/// the history-owned facts. Dropping this unconsumed claim lets the live owner
+/// recover it through the same exclusive delivery lane.
 #[must_use = "a performed publication must be handed to the product owner"]
 pub struct PerformedCompositePublication {
-    old_product_head: ProductBranchObservation,
-    reference_movement: ProductBranchReferenceMovement,
-    commit: Arc<CompositeRuntimeWorldCommit>,
-    attempt_identity: CompositePublicationAttemptIdentity,
-    component_results: CompositeOwnerExecutionResults,
-    late_cancellation: CompositeLateCancellationPosture,
-    cost_counters: CompositePublicationCostCounters,
+    delivery: PublicationDeliveryClaim,
     _authority: AuthorityWitness<CompositePublicationAuthorityMarker>,
 }
 
@@ -40,57 +31,41 @@ impl std::fmt::Debug for PerformedCompositePublication {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("PerformedCompositePublication")
-            .field("commit", &self.commit.identity())
-            .field("old_product_head", &self.old_product_head)
-            .field("new_product_head", self.reference_movement.after())
-            .field("attempt_identity", &self.attempt_identity)
-            .field("component_results", &self.component_results)
-            .field("late_cancellation", &self.late_cancellation)
-            .field("cost_counters", &self.cost_counters)
+            .field("commit", self.commit().identity())
+            .field("old_product_head", self.old_product_head())
+            .field("new_product_head", self.new_product_head())
+            .field("attempt_identity", self.attempt_identity())
+            .field("component_results", self.component_results())
+            .field("late_cancellation", &self.late_cancellation())
+            .field("cost_counters", &self.cost_counters())
             .finish_non_exhaustive()
     }
 }
 
 impl PerformedCompositePublication {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn owner_issued(
-        old_product_head: ProductBranchObservation,
-        reference_movement: ProductBranchReferenceMovement,
-        commit: Arc<CompositeRuntimeWorldCommit>,
-        attempt_identity: CompositePublicationAttemptIdentity,
-        component_results: CompositeOwnerExecutionResults,
-        late_cancellation: CompositeLateCancellationPosture,
-        cost_counters: CompositePublicationCostCounters,
-    ) -> Self {
-        assert_eq!(reference_movement.before(), old_product_head.snapshot());
-        assert_eq!(
-            reference_movement.after().selected_commit(),
-            commit.identity()
+    pub(crate) fn owner_issued(delivery: PublicationDeliveryClaim) -> Self {
+        assert!(
+            delivery.envelope().facts().is_some(),
+            "only a committed envelope authorizes performed delivery"
         );
         Self {
-            old_product_head,
-            reference_movement,
-            commit,
-            attempt_identity,
-            component_results,
-            late_cancellation,
-            cost_counters,
+            delivery,
             _authority: AuthorityWitness::from_authority_marker(
                 CompositePublicationAuthorityMarker::seal(),
             ),
         }
     }
 
-    pub fn old_product_head(&self) -> &ProductBranchObservation {
-        &self.old_product_head
+    pub fn old_product_head(&self) -> &ProductBranchReferenceSnapshot {
+        self.facts().movement.before()
     }
 
     pub fn new_product_head(&self) -> &ProductBranchReferenceSnapshot {
-        self.reference_movement.after()
+        self.facts().movement.after()
     }
 
     pub fn commit(&self) -> &CompositeRuntimeWorldCommit {
-        &self.commit
+        self.new_product_head().commit()
     }
 
     pub fn product_head(&self) -> &ProductBranchReferenceSnapshot {
@@ -98,22 +73,35 @@ impl PerformedCompositePublication {
     }
 
     pub fn attempt_identity(&self) -> &CompositePublicationAttemptIdentity {
-        &self.attempt_identity
+        self.delivery.envelope().attempt_identity()
     }
 
     pub fn component_results(&self) -> &CompositeOwnerExecutionResults {
-        &self.component_results
+        &self.facts().component_results
     }
 
-    pub const fn late_cancellation(&self) -> CompositeLateCancellationPosture {
-        self.late_cancellation
+    pub fn late_cancellation(&self) -> CompositeLateCancellationPosture {
+        self.facts().late_cancellation
     }
 
     pub fn cost_counters(&self) -> CompositePublicationCostCounters {
-        self.cost_counters
+        self.facts().cost_counters
     }
 
     pub(crate) fn retention_transfer(&self) -> &RetentionTransferReceipt {
-        self.reference_movement.retention_transfer()
+        self.facts().movement.retention_transfer()
+    }
+
+    /// The product handoff consumes the delivery capability. Read-only facts
+    /// retained by history cannot reopen a consumed delivery.
+    pub(crate) fn consume(self) {
+        self.delivery.consume();
+    }
+
+    fn facts(&self) -> &crate::history::PerformedPublicationFacts {
+        self.delivery
+            .envelope()
+            .facts()
+            .expect("a performed delivery has canonical committed facts")
     }
 }

@@ -56,13 +56,22 @@ impl ReservedComponentPinPairCapacity {
         mut self,
         basis: &AdmittedCompositeRuntimeWorldBasis,
     ) -> Result<PublicationRetentionObligation, (Self, RetentionObligationDenial)> {
-        match self.control.bind_publication(basis) {
-            Ok(pair) => {
-                self.armed = false;
-                Ok(pair)
-            }
+        match self.try_bind_publication(basis) {
+            Ok(pair) => Ok(pair),
             Err(denial) => Err((self, denial)),
         }
+    }
+
+    /// The owner record retains the token across an acquisition unwind. The
+    /// underlying acquisition restores consumed credit before unwinding.
+    pub(crate) fn try_bind_publication(
+        &mut self,
+        basis: &AdmittedCompositeRuntimeWorldBasis,
+    ) -> Result<PublicationRetentionObligation, RetentionObligationDenial> {
+        assert!(self.armed, "a reserved pair binds exactly once");
+        let pair = self.control.bind_publication(basis)?;
+        self.armed = false;
+        Ok(pair)
     }
 }
 

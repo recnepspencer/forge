@@ -1,4 +1,8 @@
+mod installation;
+#[cfg(test)]
+pub(crate) mod installation_unwind;
 mod reservation;
+pub(crate) use installation::ProductBranchInstallationWitness;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -40,22 +44,6 @@ struct ProductBranchRegistryState {
     /// index and the branch index are one map rather than two authorities.
     entries: HashMap<ProductBranchIdentity, ProductBranchRegistryEntry>,
     lifecycles: HashSet<ProductBranchIncarnation>,
-    /// Identities that held an installed incarnation and no longer do. Under a
-    /// name-keyed identity this, not an ordinal high-water mark, is what
-    /// separates "retired" from "never installed". It is disjoint from
-    /// `entries`: recreating a name takes its identity back out.
-    ///
-    /// INT-BLOCK-1. This set is bounded by the number of distinct names ever
-    /// retired, not by the branch budget, so it grows over a long-lived owner.
-    /// It cannot be bounded under the frozen retirement seam: `retire` is given
-    /// only a name-keyed identity, and separating "retired" from "never
-    /// installed" from a name alone requires remembering the names. The seam
-    /// that bounds it is
-    /// `retire_product_branch(owner, branch, incarnation)` — with the
-    /// occurrence named, `AlreadyRetired` is derivable from the bounded
-    /// `lifecycles` set and the owner's monotonic incarnation cursor, and this
-    /// field is deleted rather than replaced.
-    retired: HashSet<ProductBranchIdentity>,
     root: Option<ProductBranchIdentity>,
 }
 
@@ -90,7 +78,6 @@ impl ProductBranchRegistry {
                 reserved_names: HashSet::new(),
                 entries: HashMap::new(),
                 lifecycles: HashSet::new(),
-                retired: HashSet::new(),
                 root: None,
             })),
         }
@@ -207,24 +194,25 @@ impl ProductBranchRegistry {
     /// the custody records of this occurrence are keyed by.
     pub(crate) fn retire(
         &self,
-        owner: RuntimeWorldOwnerIdentity,
-        branch: &ProductBranchIdentity,
+        observed: &ProductBranchObservation,
     ) -> Result<(ProductBranchReferenceCell, ProductBranchIncarnation), ProductBranchRegistryDenial>
     {
         let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        if owner != state.owner || branch.owner_identity() != state.owner {
+        if observed.owner_identity() != state.owner {
             return Err(ProductBranchRegistryDenial::ForeignOwner);
         }
-        let entry = match release_installed_entry(&mut state, branch) {
-            Some(entry) => entry,
-            None => {
-                return Err(if state.retired.contains(branch) {
-                    ProductBranchRegistryDenial::AlreadyRetired
-                } else {
-                    ProductBranchRegistryDenial::UnknownBranch
-                });
-            }
-        };
+        let branch = observed.branch_identity();
+        // The observation proves this occurrence was installed. Only the live
+        // occurrence index is needed to tell whether that same one remains.
+        if state
+            .entries
+            .get(branch)
+            .is_none_or(|entry| entry.lifecycle != observed.lifecycle_incarnation())
+        {
+            return Err(ProductBranchRegistryDenial::AlreadyRetired);
+        }
+        let entry = release_installed_entry(&mut state, branch)
+            .expect("the observed incarnation was checked under the registry guard");
         Ok((entry.cell, entry.lifecycle))
     }
 
@@ -245,10 +233,15 @@ impl ProductBranchRegistry {
             .filter(|branch| root.as_ref() != Some(*branch))
             .cloned()
             .collect();
-        for branch in &branches {
-            release_installed_entry(&mut state, branch)
-                .expect("a branch just read out of the index is still installed");
-        }
+        let released: Vec<_> = branches
+            .iter()
+            .map(|branch| {
+                release_installed_entry(&mut state, branch)
+                    .expect("a branch just read out of the index is still installed")
+            })
+            .collect();
+        drop(state);
+        drop(released);
         branches.len()
     }
 }
@@ -262,7 +255,6 @@ fn release_installed_entry(
 ) -> Option<ProductBranchRegistryEntry> {
     let entry = state.entries.remove(branch)?;
     state.lifecycles.remove(&entry.lifecycle);
-    state.retired.insert(branch.clone());
     if state.root.as_ref() == Some(branch) {
         state.root = None;
     }

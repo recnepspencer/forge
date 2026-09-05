@@ -38,7 +38,7 @@ fn budgets() -> RuntimeWorldBudgets {
         },
         history: RuntimeWorldHistoryBudgetInstallation {
             retained_composite_commits: 4,
-            history_metadata_bytes: 4096,
+            history_metadata_bytes: 16384,
         },
         observations: RuntimeWorldObservationBudgetInstallation {
             active_observations: 1,
@@ -149,3 +149,5 @@ fn ready_relational(
 
 #[path = "publication_service_tests/outcomes.rs"]
 mod outcomes;
+#[path = "publication_service_tests/performed_recovery.rs"]
+mod performed_recovery;

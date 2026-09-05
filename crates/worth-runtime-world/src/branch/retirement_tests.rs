@@ -159,9 +159,8 @@ fn observation_issues_the_current_exact_branch_image_and_retirement_denies_new_r
             .expect("live child observation");
     assert_eq!(observed, child);
 
-    let _report =
-        RuntimeWorldBranchService::retire_product_branch(&owner, child.branch_identity().clone())
-            .expect("product retirement removes only the product reference");
+    let _report = RuntimeWorldBranchService::retire_product_branch(&owner, &child)
+        .expect("product retirement removes only the product reference");
     assert!(matches!(
         RuntimeWorldObservationService::observe_product_branch(&owner, child.branch_identity()),
         Err(RuntimeWorldBranchAdmissionDenial::RetiredBranch)
@@ -203,8 +202,8 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
     let before_retirement = owner.state.retention.active_component_obligation_count();
     let lifecycles_before = owner_lifecycles(&owner);
 
-    let _report = RuntimeWorldBranchService::retire_product_branch(&owner, child_id.clone())
-        .expect("retire child");
+    let _report =
+        RuntimeWorldBranchService::retire_product_branch(&owner, &child).expect("retire child");
     assert_eq!(owner.state.branches.branch_count(), 1);
     assert_eq!(
         owner.state.retention.active_component_obligation_count(),
@@ -216,7 +215,7 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
         "retiring a product reference is not owner lifecycle movement"
     );
     assert!(matches!(
-        RuntimeWorldBranchService::retire_product_branch(&owner, child_id.clone()),
+        RuntimeWorldBranchService::retire_product_branch(&owner, &child),
         Err(RuntimeWorldBranchRetirementDenial::AlreadyRetired)
     ));
 
@@ -227,11 +226,8 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
     // Identity is keyed by name, incarnation by occurrence.
     assert_eq!(replacement.branch_identity(), &child_id);
     assert_ne!(replacement.lifecycle_incarnation(), child_lifecycle);
-    let _report = RuntimeWorldBranchService::retire_product_branch(
-        &owner,
-        replacement.branch_identity().clone(),
-    )
-    .expect("replacement retirement");
+    let _report = RuntimeWorldBranchService::retire_product_branch(&owner, &replacement)
+        .expect("replacement retirement");
     drop(replacement);
     assert_eq!(owner.state.branches.branch_count(), 1);
     assert_eq!(owner.state.branches.reserved_branch_count(), 0);
@@ -239,28 +235,24 @@ fn retirement_releases_product_capacity_without_releasing_live_observation_custo
 }
 
 #[test]
-fn every_retired_name_stays_already_retired_however_many_names_follow_it() {
+fn an_observed_retired_occurrence_needs_no_historical_name_index() {
     let (_fixture, owner, root) = setup(2);
     let first = create_reused_branch(&owner, &root, reuse_intent("first"));
-    let first_id = first.branch_identity().clone();
-    let _report = RuntimeWorldBranchService::retire_product_branch(&owner, first_id.clone())
-        .expect("first retirement");
-    drop(first);
-
-    let second = create_reused_branch(&owner, &root, reuse_intent("second"));
-    let second_id = second.branch_identity().clone();
-    let _report = RuntimeWorldBranchService::retire_product_branch(&owner, second_id)
-        .expect("second retirement");
-    drop(second);
-
-    let third = create_reused_branch(&owner, &root, reuse_intent("third"));
-    let third_id = third.branch_identity().clone();
-    let _report = RuntimeWorldBranchService::retire_product_branch(&owner, third_id)
-        .expect("third retirement");
-    drop(third);
-
+    assert!(owner
+        .retire_product_branch(&first)
+        .unwrap()
+        .owner_retirement_work()
+        .is_empty());
+    for index in 0..64 {
+        let child = create_reused_branch(&owner, &root, reuse_intent(&format!("child-{index}")));
+        assert!(owner
+            .retire_product_branch(&child)
+            .unwrap()
+            .owner_retirement_work()
+            .is_empty());
+    }
     assert!(matches!(
-        RuntimeWorldBranchService::retire_product_branch(&owner, first_id),
+        owner.retire_product_branch(&first),
         Err(RuntimeWorldBranchRetirementDenial::AlreadyRetired)
     ));
     assert_eq!(owner.state.branches.branch_count(), 1);
@@ -358,10 +350,7 @@ fn foreign_basis_is_rejected_before_branch_reservation() {
         Err(RuntimeWorldBranchAdmissionDenial::ForeignOwner)
     ));
     assert!(matches!(
-        RuntimeWorldBranchService::retire_product_branch(
-            &owner,
-            foreign_root.branch_identity().clone(),
-        ),
+        RuntimeWorldBranchService::retire_product_branch(&owner, &foreign_root,),
         Err(RuntimeWorldBranchRetirementDenial::OwnerUnavailable)
     ));
     assert_eq!(owner.state.branches.reserved_branch_count(), 0);
@@ -382,3 +371,9 @@ mod observation_issuance_pins;
 
 #[path = "retirement_tests/source_guarded_install.rs"]
 mod source_guarded_install;
+
+#[path = "retirement_tests/creation_cancellation.rs"]
+mod creation_cancellation;
+
+#[path = "retirement_tests/observation_budget.rs"]
+mod observation_budget;

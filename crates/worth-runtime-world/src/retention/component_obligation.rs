@@ -102,17 +102,10 @@ pub(super) trait RetentionControlSurface: Send + Sync {
 
     fn transfer_pair(
         &self,
-        relational: ComponentBasisPinClaim,
-        signal: ComponentBasisPinClaim,
+        relational: &mut ComponentBasisPinClaim,
+        signal: &mut ComponentBasisPinClaim,
         target: ComponentBasisDependencyClass,
-    ) -> Result<
-        (ComponentBasisPinClaim, ComponentBasisPinClaim),
-        (
-            ComponentBasisPinClaim,
-            ComponentBasisPinClaim,
-            RetentionTransferDenial,
-        ),
-    >;
+    ) -> Result<(), RetentionTransferDenial>;
 
     fn release_claim(
         &self,
@@ -168,6 +161,31 @@ impl ComponentBasisPinObligation {
             Some(claim) => claim.lease_identity,
             None => panic!("a live component obligation carries its claim"),
         }
+    }
+
+    /// Retag the actual held claims under the retention owner's pair lock.
+    /// No raw claim leaves either Drop guard while validation can deny/unwind.
+    pub(super) fn transfer_pair_to(
+        &mut self,
+        other: &mut Self,
+        target: ComponentBasisDependencyClass,
+    ) -> Result<(), RetentionTransferDenial> {
+        let relational = self
+            .claim
+            .as_mut()
+            .expect("a live pair retains its first claim");
+        let signal = other
+            .claim
+            .as_mut()
+            .expect("a live pair retains its second claim");
+        let control = Arc::clone(&relational.control);
+        control.transfer_pair(relational, signal, target)
+    }
+
+    pub(super) fn take_transferred_claim(&mut self) -> ComponentBasisPinClaim {
+        self.claim
+            .take()
+            .expect("a transferred obligation yields its claim once")
     }
 
     pub(super) fn into_claim(mut self) -> ComponentBasisPinClaim {

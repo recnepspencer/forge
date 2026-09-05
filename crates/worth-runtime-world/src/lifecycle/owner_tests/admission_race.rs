@@ -145,18 +145,48 @@ fn reserve_and_close_have_one_atomic_winner_in_both_lock_orders() {
     let close_owner = Arc::clone(&owner);
     let close = std::thread::spawn(move || close_owner.close());
     wait_until_close_is_admitting(&owner);
+    // A queued mutex waiter is not an acquired lock: Mutex promises no FIFO
+    // fairness. Hold the later close-contract lock so close can acquire and
+    // keep the operation ledger before the competing reservation starts.
+    let contract_gate = owner
+        .state
+        .close
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    drop(ledger_gate);
+    wait_until_close_holds_operation_admission(&owner);
     let reserve_owner = Arc::clone(&owner);
     let reserve = std::thread::spawn(move || prepare(reserve_owner.as_ref(), expected));
-    drop(ledger_gate);
+    drop(contract_gate);
 
     let _report = close
         .join()
         .expect("close worker does not panic")
-        .expect("close wins after holding bootstrap admission");
+        .expect("close wins after holding operation admission");
     let denial = reserve
         .join()
         .expect("reserve worker does not panic")
         .expect_err("closed owner denies the trailing reservation");
     assert_eq!(denial.cause(), NoEffectCause::OwnerUnavailable);
     assert_eq!(owner.state.operation.active(), 0);
+}
+
+/// The queued-close count falls to zero only after close owns the ledger.
+/// The caller holds the later close-contract lock, keeping this observable
+/// stable until the competing operation has been started.
+#[track_caller]
+pub(super) fn wait_until_close_holds_operation_admission(owner: &TestOwner) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while std::time::Instant::now() < deadline {
+        let queued = owner.close_admission_waiters();
+        let held = matches!(
+            owner.state.operation.state.try_lock(),
+            Err(TryLockError::WouldBlock)
+        );
+        if queued == 0 && held {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    panic!("close never held operation admission across its drain within 10s");
 }

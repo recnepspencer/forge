@@ -28,14 +28,22 @@ use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 
 use super::rehearsal::{ExecutionRehearsal, ExecutionRehearsalBoundary, ReachedExecutionBoundary};
 
+#[path = "tests/active_custody.rs"]
+mod active_custody;
 #[path = "tests/between_owners.rs"]
 mod between_owners;
 #[path = "tests/boundaries.rs"]
 mod boundaries;
 #[path = "tests/cancellation.rs"]
 mod cancellation;
+#[path = "tests/custody_final_cas.rs"]
+mod custody_final_cas;
+#[path = "tests/custody_phase_drop.rs"]
+mod custody_phase_drop;
 #[path = "tests/failures.rs"]
 mod failures;
+#[path = "tests/mixed_plans.rs"]
+mod mixed_plans;
 #[path = "tests/planning.rs"]
 mod planning;
 #[path = "tests/retained_next_actions.rs"]
@@ -86,7 +94,8 @@ fn budgets(publication_attempts: u64) -> RuntimeWorldBudgets {
         },
         history: RuntimeWorldHistoryBudgetInstallation {
             retained_composite_commits: 12,
-            history_metadata_bytes: 4096,
+            // Covers the declared history count including canonical publication envelopes.
+            history_metadata_bytes: 65536,
         },
         observations: RuntimeWorldObservationBudgetInstallation {
             active_observations: 4,

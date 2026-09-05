@@ -51,10 +51,15 @@ impl OwnerCreatedComponentCustodyRegistry {
         if state.installed.len().saturating_add(state.reserved) >= state.maximum {
             return Err(RuntimeWorldBranchAdmissionDenial::CustodyCapacityExhausted);
         }
-        state.reserved = state
+        let reserved = state
             .reserved
             .checked_add(1)
             .ok_or(RuntimeWorldBranchAdmissionDenial::CustodyCapacityExhausted)?;
+        state
+            .installed
+            .try_reserve(reserved)
+            .map_err(|_| RuntimeWorldBranchAdmissionDenial::CustodyCapacityExhausted)?;
+        state.reserved = reserved;
         drop(state);
         Ok(ReservedCustodySlot {
             registry: self.clone(),
@@ -74,7 +79,7 @@ impl OwnerCreatedComponentCustodyRegistry {
     ) -> Vec<OwnerCreatedComponentCustodyRecord> {
         let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         let mut taken = Vec::new();
-        let mut retained = Vec::with_capacity(state.installed.len());
+        let mut retained = Vec::with_capacity(state.installed.len() + state.reserved);
         for record in std::mem::take(&mut state.installed) {
             if record.product_branch() == branch && record.incarnation() == incarnation {
                 taken.push(record);

@@ -33,40 +33,35 @@ recheck, and final product publication. No Runtime World lock may be held over
 a component-owner call. Unchanged components are represented by `RetainExact`
 and do not imply a latest lookup or owner contact.
 
-The Phase 1 service traits are internal seams for the later managed owner. They
-do not implement bootstrap or publication and do not create an adapter around
-either component owner. The Phase 1 retention root likewise freezes its
-dependency classes, independent exact-component keys, opaque RAII obligations,
-and obligation-transfer destinations. The later retention lane owns the full
-unique-pin registry and component-owner lease calls.
+The managed owner implements the internal service seams. Public builder/port
+assembly and the 9.17.3 handoff remain Phase 5 work. Branch creation uses an
+explicit reuse/fork plan per component and checks cancellation before effects
+and at source-guarded installation. A performed fork denied by cancellation
+remains retained with its exact effects.
 
-All module declarations and integration-test submodules needed by the next
-wave are installed here. A lane adds implementation and focused tests only
-under its listed subtree; it does not edit workspace assembly, `lib.rs`, a
-module root, the sole facade, or shared phase/outcome definitions.
+The internal execution and reference boundaries support concurrent mixed plans:
+a parked Signal owner call cannot block the independent Relational leg, and
+only one of their product CAS operations can win. A losing attempt retains its
+actual owner effect without calling the sibling or retrying product movement.
 
-## Exclusive Phase 2 ownership
+The final branch write lock compares the complete expected observation before
+populating the preallocated history slot and transferring the bound component
+pin pair. A stale comparison does neither. The final cell swap records canonical performed facts in the preallocated
+history envelope before readers can see the moved head or old protection can
+drop. A caller lost at that boundary can recover the original linear delivery
+from the live owner. Recovery and the normal return read the same immutable
+facts and cannot deliver a consumed publication again.
 
-The following paths are reserved for the next parallel wave. They may consume
-the Phase 1 contracts but may not edit workspace assembly, module roots, the
-sole facade, or shared phase/outcome definitions.
+Ordinary reservation, settlement, readiness, and publication carry one caller
+capability to a preinstalled owner record. Relational identity is recorded
+before settlement consumes its performed capability; settled Relational
+progress is retained before entering Signal. Dropping or unwinding an affected
+phase abandons that capability without constructing history, acquiring pins,
+or executing recovery. Explicit retained terminals acquire their returned
+catalog view under the same lock that converts reservation accounting.
 
-| Lane | Exclusive implementation/evidence paths |
-| --- | --- |
-| Bridge admission | `crates/worth-runtime-bridge/src/correspondence/runtime_world_admission/{admission.rs,denial.rs,tests.rs}` and `crates/worth-runtime-world/tests/runtime_world_certification/bridge.rs` |
-| Basis/history | `crates/worth-runtime-world/src/identity/`, `src/basis/`, and `src/history/{catalog.rs,retention.rs,reclamation.rs}`, plus `tests/runtime_world_certification/basis_history.rs` |
-| Retention | `crates/worth-runtime-world/src/retention/{component_obligation.rs,registry.rs,unique_component_pin.rs,obligation_transfer.rs}`, plus `tests/runtime_world_certification/retention.rs` |
-| Reference | `crates/worth-runtime-world/src/branch/{reference_cell.rs,observation.rs}`, plus `tests/runtime_world_certification/reference.rs` |
-
-Focused commands for those lanes are respectively:
-
-```text
-cargo test -p worth-runtime-bridge runtime_world_admission
-cargo test -p worth-runtime-world --test runtime_world_certification basis_history
-cargo test -p worth-runtime-world --test runtime_world_certification retention
-cargo test -p worth-runtime-world --test runtime_world_certification reference
-```
-
-The named filters are the expected focused test families; a lane adds its
-tests under its exclusive path before using the command. The preinstalled
-contract tests ensure each filter already selects evidence in Phase 1.
+Branch creation carries the same custody across its real forks and finalization.
+The registry binds a destination witness before effects and records actual
+insertion under the source guard. A refused cell stays in the resource lease.
+Post-insertion unwind releases attempt admission without inventing an unpublished
+record, even if retirement and name reuse precede the caller's Drop.

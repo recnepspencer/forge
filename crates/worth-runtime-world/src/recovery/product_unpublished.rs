@@ -2,20 +2,15 @@ use std::sync::Arc;
 
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::branch::{ProductBranchObservation, ProductBranchReferenceSnapshot};
-use crate::history::ProductUnpublishedHistoryProtectionObligation;
+
 use crate::identity::{
     CompositePublicationAttemptIdentity, ProductBranchIdentity, ProductBranchIncarnation,
     ProductUnpublishedOwnerEffectsIdentity,
 };
 use crate::lifecycle::RuntimeWorldInstant;
 use crate::publication::{CompositeAttemptProgress, CompositeOwnerExecutionResults};
-use crate::retention::{
-    ReservedComponentPinPairCapacity, RetainedPartialRetentionObligation, RetentionObligationDenial,
-};
 
-use super::{
-    ProductUnpublishedLiveObligations, ProductUnpublishedNextAction, ReservedProductUnpublishedSlot,
-};
+use super::{ProductUnpublishedLiveObligations, ProductUnpublishedNextAction};
 
 #[path = "product_unpublished/custody.rs"]
 mod custody;
@@ -26,75 +21,20 @@ pub use handle::ProductUnpublishedRecoveryHandle;
 
 #[path = "product_unpublished/record_inputs.rs"]
 mod record_inputs;
-pub(crate) use record_inputs::{
-    InstalledSuccessorEvidence, PendingRetentionCustody, RetainedAttemptFacts,
-    RetainedRecordCharges, RetainedSuccessorEvidence,
-};
+pub(crate) use record_inputs::RetainedAttemptFacts;
 
 #[path = "product_unpublished/actions.rs"]
 mod actions;
 pub(crate) use actions::next_actions_for_progress;
 pub(crate) use actions::RetainedNextActions;
 
-/// Why at least one owner effect survived without a product-reference move.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProductUnpublishedCause {
-    SiblingOwnerDenied,
-    SettlementPending,
-    CancellationAfterEffect,
-    DeadlineAfterEffect,
-    StaleProductHead,
-    OwnerLost,
-    ProductPublicationLost,
-}
+mod cause;
+pub use cause::ProductUnpublishedCause;
 
-/// Whether recovery already owns exact successor pins or retains the reserved
-/// pair capacity needed to retry an owner-denied acquisition.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProductUnpublishedRetentionPosture {
-    RetainedExact,
-    ReacquisitionPending,
-}
+mod retention_custody;
 
-enum ProductUnpublishedRetentionCustody {
-    Retained(RetainedPartialRetentionObligation),
-    Pending {
-        capacity: ReservedComponentPinPairCapacity,
-        denial: RetentionObligationDenial,
-    },
-}
-
-/// A record in the `ReacquisitionPending` posture holds a
-/// `ReservedComponentPinPairCapacity` instead of issued pins: the reserved
-/// charge for exactly the relational and signal scopes it still owes.
-/// Pinned by `close_reports_a_pending_record_as_a_reserved_component_pair`.
-const RESERVED_COMPONENT_PIN_PAIR: usize = 2;
-
-impl ProductUnpublishedRetentionCustody {
-    /// The component-scoped pins this custody answers for: the exact pair the
-    /// retained posture holds, counted from the obligation itself, or the pair
-    /// the pending posture reserved to reacquire them.
-    fn component_pins(&self) -> usize {
-        match self {
-            Self::Retained(obligation) => [obligation.relational(), obligation.signal()].len(),
-            Self::Pending { .. } => RESERVED_COMPONENT_PIN_PAIR,
-        }
-    }
-}
-
-impl std::fmt::Debug for ProductUnpublishedRetentionCustody {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Retained(obligation) => {
-                formatter.debug_tuple("Retained").field(obligation).finish()
-            }
-            Self::Pending { denial, .. } => formatter
-                .debug_struct("Pending")
-                .field("denial", denial)
-                .finish_non_exhaustive(),
-        }
-    }
-}
+pub use retention_custody::ProductUnpublishedRetentionPosture;
+mod abandoned;
 
 /// Catalog-owned recovery custody. The public returned value below is only a
 /// view over this allocation, so dropping the caller capability cannot drop
@@ -108,12 +48,7 @@ pub(crate) struct ProductUnpublishedOwnerEffectsRecord {
     progress: CompositeAttemptProgress,
     successor_basis: Option<AdmittedCompositeRuntimeWorldBasis>,
     component_results: CompositeOwnerExecutionResults,
-    retention: ProductUnpublishedRetentionCustody,
-    /// History protection over an installed successor occurrence, held only by
-    /// a record whose attempt actually installed one. A pre-movement loser
-    /// releases its reserved slot instead of spending it on a commit no head
-    /// names, so its successor is evidence in the basis alone.
-    successor_history_protection: Option<ProductUnpublishedHistoryProtectionObligation>,
+    retention: crate::publication::ActiveAttemptResources,
     /// The exact product-branch occurrence whose creation charged this
     /// attempt's custody, when the attempt was a creation at all. A publication
     /// moves an existing head and creates no occurrence, so it carries `None`.
@@ -159,99 +94,16 @@ impl ProductUnpublishedOwnerEffects {
     /// Actions are stored in a fixed bounded array, so no allocator capacity or
     /// lower-bound vector hint can undercharge an installed record.
     pub(crate) const fn metadata_charge_hint() -> usize {
-        std::mem::size_of::<ProductUnpublishedOwnerEffectsRecord>()
+        let retained = std::mem::size_of::<ProductUnpublishedOwnerEffectsRecord>();
+        let active = crate::publication::ActiveAttemptRecord::metadata_charge_hint();
+        if active > retained {
+            active
+        } else {
+            retained
+        }
     }
 
     pub(crate) fn from_catalog_record(record: Arc<ProductUnpublishedOwnerEffectsRecord>) -> Self {
-        Self { record }
-    }
-
-    /// The retained posture: this attempt owns its component pins outright.
-    pub(crate) fn new_retained(
-        facts: RetainedAttemptFacts,
-        successor: RetainedSuccessorEvidence,
-        retention_obligation: RetainedPartialRetentionObligation,
-        charges: RetainedRecordCharges,
-    ) -> Self {
-        Self::install_new_record(
-            facts,
-            successor,
-            ProductUnpublishedRetentionCustody::Retained(retention_obligation),
-            charges,
-        )
-    }
-
-    /// The reacquisition-pending posture: the owner effects are just as real,
-    /// but the component pins could not be reacquired, so the record carries
-    /// the reserved capacity and the denial that names why.
-    pub(crate) fn new_reacquisition_pending(
-        facts: RetainedAttemptFacts,
-        successor: InstalledSuccessorEvidence,
-        retention: PendingRetentionCustody,
-        charges: RetainedRecordCharges,
-    ) -> Self {
-        let PendingRetentionCustody { capacity, denial } = retention;
-        Self::install_new_record(
-            facts,
-            successor.into(),
-            ProductUnpublishedRetentionCustody::Pending { capacity, denial },
-            charges,
-        )
-    }
-
-    /// Build and install the record both postures produce. The next actions
-    /// are derived here from the progress and the cause rather than supplied,
-    /// so no caller can install a record whose advertised actions disagree
-    /// with the evidence it carries.
-    fn install_new_record(
-        facts: RetainedAttemptFacts,
-        successor: RetainedSuccessorEvidence,
-        retention: ProductUnpublishedRetentionCustody,
-        charges: RetainedRecordCharges,
-    ) -> Self {
-        let RetainedAttemptFacts {
-            identity,
-            attempt_identity,
-            expected_head,
-            last_observed_head,
-            progress,
-            owner_results,
-            destination,
-        } = facts;
-        let RetainedRecordCharges {
-            recovery_slot,
-            summary,
-            cause,
-            deadline,
-        } = charges;
-        let catalog_affinity = recovery_slot.catalog_affinity();
-        let next_actions = next_actions_for_progress(&progress, cause);
-        let live_obligations = ProductUnpublishedLiveObligations::from_custody(
-            retention.component_pins(),
-            successor.history_protection.is_some(),
-        );
-        let mut record = Arc::new(ProductUnpublishedOwnerEffectsRecord {
-            identity: identity.clone(),
-            attempt_identity,
-            expected_head,
-            last_observed_head,
-            progress,
-            successor_basis: successor.basis,
-            component_results: owner_results,
-            retention,
-            successor_history_protection: successor.history_protection,
-            destination,
-            catalog_affinity,
-            live_obligations,
-            cause,
-            next_actions: RetainedNextActions::from_vec(next_actions),
-            deadline,
-            age_ticks: 0,
-            owner_effect_count: summary.owner_effect_count,
-            metadata_bytes: Self::metadata_charge_hint(),
-        });
-        finalize_metadata_charge(&mut record);
-        install_record(recovery_slot, identity, Arc::clone(&record));
         Self { record }
     }
 
@@ -289,10 +141,7 @@ impl ProductUnpublishedOwnerEffects {
     /// and names its successor by basis alone. The identity is evidence only;
     /// it grants no History or publication authority.
     pub fn successor_commit(&self) -> Option<&crate::identity::CompositeCommitIdentity> {
-        self.record
-            .successor_history_protection
-            .as_ref()
-            .map(ProductUnpublishedHistoryProtectionObligation::commit_identity)
+        self.record.retention.successor_commit()
     }
 
     /// The product-branch occurrence this record's owner effects were created
@@ -303,14 +152,7 @@ impl ProductUnpublishedOwnerEffects {
     }
 
     pub fn retention_posture(&self) -> ProductUnpublishedRetentionPosture {
-        match &self.record.retention {
-            ProductUnpublishedRetentionCustody::Retained(_) => {
-                ProductUnpublishedRetentionPosture::RetainedExact
-            }
-            ProductUnpublishedRetentionCustody::Pending { .. } => {
-                ProductUnpublishedRetentionPosture::ReacquisitionPending
-            }
-        }
+        self.record.retention.retention_posture()
     }
 
     /// Every obligation this record still holds live, counted from its own
@@ -354,21 +196,5 @@ impl ProductUnpublishedOwnerEffects {
             self.record.identity.clone(),
             self.record.catalog_affinity,
         )
-    }
-}
-
-fn finalize_metadata_charge(record: &mut Arc<ProductUnpublishedOwnerEffectsRecord>) {
-    let record = Arc::get_mut(record).expect("new recovery record is uniquely owned");
-    record.metadata_bytes = record.derived_metadata_bytes();
-}
-
-fn install_record(
-    recovery_slot: ReservedProductUnpublishedSlot,
-    identity: ProductUnpublishedOwnerEffectsIdentity,
-    record: Arc<ProductUnpublishedOwnerEffectsRecord>,
-) {
-    if let Err((slot, denial)) = recovery_slot.install_record(identity, record) {
-        drop(slot);
-        panic!("reserved recovery capacity could not install its record: {denial:?}");
     }
 }

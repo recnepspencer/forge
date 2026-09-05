@@ -1,9 +1,10 @@
 use crate::identity::{ProductBranchIdentity, ProductBranchIncarnation};
+use std::sync::Arc;
 
 use super::{
-    ProductBranchName, ProductBranchObservation, ProductBranchReferenceCell,
-    ProductBranchReferenceSnapshot, ProductBranchRegistry, ProductBranchRegistryDenial,
-    ProductBranchRegistryEntry, ProductBranchRegistryState,
+    ProductBranchInstallationWitness, ProductBranchName, ProductBranchObservation,
+    ProductBranchReferenceCell, ProductBranchReferenceSnapshot, ProductBranchRegistry,
+    ProductBranchRegistryDenial, ProductBranchRegistryEntry, ProductBranchRegistryState,
 };
 
 #[must_use = "a branch reservation must be installed or dropped"]
@@ -13,12 +14,12 @@ pub(crate) struct ProductBranchRegistryReservation {
     name: Option<ProductBranchName>,
     root: bool,
     armed: bool,
+    installation: Option<Arc<ProductBranchInstallationWitness>>,
 }
 
 impl std::fmt::Debug for ProductBranchRegistryReservation {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("ProductBranchRegistryReservation")
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProductBranchRegistryReservation")
             .field("owner", &self.owner)
             .field("name", &self.name)
             .field("root", &self.root)
@@ -48,28 +49,27 @@ impl Drop for ProductBranchRegistryReservation {
     }
 }
 
-/// Why an installation from a source observation was refused. The registry's
-/// own refusals pass through; the two source refusals are the ones only an
-/// installation made under the source head's guard can name.
 #[derive(Debug)]
 pub(crate) enum ProductBranchSourceInstallDenial {
+    Cancelled,
     Registry(ProductBranchRegistryDenial),
-    /// The source branch holds no installed occurrence: it was retired and
-    /// not recreated.
     SourceRetired,
-    /// The source branch carries a head other than the observed one. The
-    /// head it carries comes back so the caller can name what displaced it.
     SourceDisplaced(ProductBranchReferenceSnapshot),
 }
 
-/// A refused source-guarded installation hands back the reservation and the
-/// cell it was given. Whether the cell's custody is released or retained is
-/// the caller's decision, not the registry's.
+/// The failed reservation returns; the borrowed cell remains in caller custody.
 #[derive(Debug)]
 pub(crate) struct ProductBranchSourceInstallFailure {
     pub(crate) reservation: ProductBranchRegistryReservation,
     pub(crate) denial: ProductBranchSourceInstallDenial,
-    pub(crate) cell: ProductBranchReferenceCell,
+}
+
+struct BranchInstallation<'a> {
+    name: ProductBranchName,
+    branch: ProductBranchIdentity,
+    lifecycle: ProductBranchIncarnation,
+    cell: &'a mut Option<ProductBranchReferenceCell>,
+    snapshot: ProductBranchReferenceSnapshot,
 }
 
 impl ProductBranchRegistryReservation {
@@ -83,6 +83,7 @@ impl ProductBranchRegistryReservation {
             name: None,
             root: true,
             armed: true,
+            installation: None,
         }
     }
 
@@ -97,12 +98,29 @@ impl ProductBranchRegistryReservation {
             name: Some(name),
             root: false,
             armed: true,
+            installation: None,
         }
     }
 
-    /// Install the root occurrence. Every non-root occurrence is created
-    /// from a source and goes through `install_from_source`; there is no
-    /// named install that bypasses the source guard.
+    pub(crate) fn bind_creation_destination(
+        &mut self,
+        branch: ProductBranchIdentity,
+        incarnation: ProductBranchIncarnation,
+    ) -> Result<Arc<ProductBranchInstallationWitness>, ProductBranchRegistryDenial> {
+        if self.root
+            || !self.armed
+            || self.installation.is_some()
+            || branch.owner_identity() != self.owner
+            || incarnation.owner_identity() != self.owner
+            || self.name.as_ref() != Some(branch.name())
+        {
+            return Err(ProductBranchRegistryDenial::IdentityMismatch);
+        }
+        let witness = ProductBranchInstallationWitness::reserve(branch, incarnation);
+        self.installation = Some(Arc::clone(&witness));
+        Ok(witness)
+    }
+
     pub(crate) fn install_root(
         mut self,
         name: ProductBranchName,
@@ -110,230 +128,168 @@ impl ProductBranchRegistryReservation {
         lifecycle: ProductBranchIncarnation,
         cell: ProductBranchReferenceCell,
     ) -> Result<(), (Self, ProductBranchRegistryDenial)> {
-        let installed = InstalledBranch {
+        let snapshot = cell.atomic_snapshot();
+        let mut cell = Some(cell);
+        let mut installed = BranchInstallation {
             name,
             branch,
             lifecycle,
-            cell,
+            cell: &mut cell,
+            snapshot,
         };
         if let Err(denial) = self.admits_installation(&installed, true) {
             return Err((self, denial));
         }
-        let result = {
-            let mut state = self
-                .registry
-                .state
-                .lock()
-                .unwrap_or_else(|error| error.into_inner());
-            insert_installed(&mut state, installed, true)
-        };
-        if let Err((denial, _uninstalled)) = result {
-            return Err((self, denial));
-        }
-        self.armed = false;
-        self.name = None;
-        Ok(())
+        let registry = self.registry.clone();
+        let result = self.insert_installed(
+            &mut registry.state.lock().unwrap_or_else(|e| e.into_inner()),
+            &mut installed,
+        );
+        result.map_err(|denial| (self, denial))
     }
 
-    /// Install a non-root occurrence created from `source`, and only while
-    /// the source branch still carries the head `source` observed. The source
-    /// cell's read guard is taken under the registry lock and held across the
-    /// insertion, so no publication can move the source between the
-    /// currentness check and the installed child: the check and the act are
-    /// one step. The lock order, registry then cell, is the one
-    /// `root_snapshot` already uses; publication and observation take the
-    /// cell lock alone and never the registry's.
+    /// Keep the destination in the owner's lease through validation and the
+    /// source guard. Only actual insertion takes it. Registry then source-cell
+    /// is the existing lock order; neither lock spans a component-owner call.
     pub(crate) fn install_from_source(
         mut self,
         source: &ProductBranchObservation,
         branch: ProductBranchIdentity,
         lifecycle: ProductBranchIncarnation,
-        cell: ProductBranchReferenceCell,
+        cell: &mut Option<ProductBranchReferenceCell>,
+        cancellation: &crate::publication::RuntimeWorldCancellationToken,
     ) -> Result<(), ProductBranchSourceInstallFailure> {
-        let Some(name) = self.name.clone() else {
-            return Err(ProductBranchSourceInstallFailure {
-                reservation: self,
-                denial: ProductBranchSourceInstallDenial::Registry(
-                    ProductBranchRegistryDenial::ReservationMissing,
-                ),
-                cell,
-            });
-        };
-        let installed = InstalledBranch {
+        let result =
+            self.install_from_source_borrowed(source, branch, lifecycle, cell, cancellation);
+        result.map_err(|denial| ProductBranchSourceInstallFailure {
+            reservation: self,
+            denial,
+        })
+    }
+
+    fn install_from_source_borrowed(
+        &mut self,
+        source: &ProductBranchObservation,
+        branch: ProductBranchIdentity,
+        lifecycle: ProductBranchIncarnation,
+        cell: &mut Option<ProductBranchReferenceCell>,
+        cancellation: &crate::publication::RuntimeWorldCancellationToken,
+    ) -> Result<(), ProductBranchSourceInstallDenial> {
+        let name = self
+            .name
+            .clone()
+            .ok_or(ProductBranchSourceInstallDenial::Registry(
+                ProductBranchRegistryDenial::ReservationMissing,
+            ))?;
+        let snapshot = cell
+            .as_ref()
+            .expect("the caller retains its destination cell")
+            .atomic_snapshot();
+        let mut installed = BranchInstallation {
             name,
             branch,
             lifecycle,
             cell,
+            snapshot,
         };
-        if let Err(denial) = self.admits_installation(&installed, false) {
-            return Err(source_install_failure(
-                self,
-                ProductBranchSourceInstallDenial::Registry(denial),
-                installed,
-            ));
-        }
-        let result = {
-            let mut state = self
-                .registry
-                .state
-                .lock()
-                .unwrap_or_else(|error| error.into_inner());
-            insert_installed_from_source(&mut state, source, installed)
-        };
-        match result {
-            Ok(()) => {
-                self.armed = false;
-                self.name = None;
-                Ok(())
+        self.admits_installation(&installed, false)
+            .map_err(ProductBranchSourceInstallDenial::Registry)?;
+        let registry = self.registry.clone();
+        let mut state = registry.state.lock().unwrap_or_else(|e| e.into_inner());
+        let source_cell = state
+            .entries
+            .get(source.branch_identity())
+            .map(|entry| entry.cell.clone())
+            .ok_or(ProductBranchSourceInstallDenial::SourceRetired)?;
+        match source_cell.while_current(source, &mut installed, |installed| {
+            if cancellation.is_cancelled() {
+                return Err(ProductBranchSourceInstallDenial::Cancelled);
             }
-            Err((denial, installed)) => Err(source_install_failure(self, denial, installed)),
+            self.insert_installed(&mut state, installed)
+                .map_err(ProductBranchSourceInstallDenial::Registry)
+        }) {
+            Ok(result) => result,
+            Err((observed, _)) => Err(ProductBranchSourceInstallDenial::SourceDisplaced(observed)),
         }
     }
 
-    /// Every identity axis the reservation can settle on its own, before it
-    /// takes the registry lock: the posture it was issued for, the owner of
-    /// each identity, and the head the cell actually carries.
     fn admits_installation(
         &self,
-        installed: &InstalledBranch,
+        installed: &BranchInstallation<'_>,
         root: bool,
     ) -> Result<(), ProductBranchRegistryDenial> {
-        if self.root != root {
+        if self.root != root || !self.armed {
             return Err(ProductBranchRegistryDenial::ReservationMissing);
         }
         if installed.branch.owner_identity() != self.owner
             || installed.lifecycle.owner_identity() != self.owner
-        {
-            return Err(ProductBranchRegistryDenial::IdentityMismatch);
-        }
-        if !root && self.name.as_ref() != Some(&installed.name) {
-            return Err(ProductBranchRegistryDenial::IdentityMismatch);
-        }
-        // The identity is the owner plus this exact normalized name, so the
-        // installed key and the reserved name cannot disagree.
-        if installed.branch.name() != &installed.name {
-            return Err(ProductBranchRegistryDenial::IdentityMismatch);
-        }
-        let snapshot = installed.cell.atomic_snapshot();
-        if snapshot.owner_identity() != self.owner
-            || snapshot.branch_identity() != &installed.branch
-            || snapshot.lifecycle_incarnation() != installed.lifecycle
+            || (!root && self.name.as_ref() != Some(&installed.name))
+            || installed.branch.name() != &installed.name
+            || installed.snapshot.owner_identity() != self.owner
+            || installed.snapshot.branch_identity() != &installed.branch
+            || installed.snapshot.lifecycle_incarnation() != installed.lifecycle
+            || self
+                .installation
+                .as_ref()
+                .is_some_and(|w| !w.admits(&installed.snapshot))
         {
             return Err(ProductBranchRegistryDenial::IdentityMismatch);
         }
         Ok(())
     }
-}
 
-fn source_install_failure(
-    reservation: ProductBranchRegistryReservation,
-    denial: ProductBranchSourceInstallDenial,
-    installed: InstalledBranch,
-) -> ProductBranchSourceInstallFailure {
-    ProductBranchSourceInstallFailure {
-        reservation,
-        denial,
-        cell: installed.cell,
+    fn insert_installed(
+        &mut self,
+        state: &mut ProductBranchRegistryState,
+        installed: &mut BranchInstallation<'_>,
+    ) -> Result<(), ProductBranchRegistryDenial> {
+        if self.root && state.root.is_some() {
+            return Err(ProductBranchRegistryDenial::AlreadyInstalled);
+        }
+        if state.reserved_branches == 0 {
+            return Err(ProductBranchRegistryDenial::ReservationMissing);
+        }
+        if state.entries.contains_key(&installed.branch) {
+            return Err(ProductBranchRegistryDenial::BranchAlreadyInstalled);
+        }
+        if state.lifecycles.contains(&installed.lifecycle) {
+            return Err(ProductBranchRegistryDenial::LifecycleAlreadyInstalled);
+        }
+        if self.root && state.reserved_names.contains(installed.name.as_str()) {
+            return Err(ProductBranchRegistryDenial::NameAlreadyReserved);
+        }
+        if !self.root && !state.reserved_names.contains(installed.name.as_str()) {
+            return Err(ProductBranchRegistryDenial::ReservationMissing);
+        }
+        // Both maps' spare storage was reserved before effects. No allocation,
+        // callback or destructor separates taking custody and stamping success.
+        let cell = installed
+            .cell
+            .take()
+            .expect("validated destination remains borrowed");
+        state.entries.insert(
+            installed.branch.clone(),
+            ProductBranchRegistryEntry {
+                lifecycle: installed.lifecycle,
+                cell,
+            },
+        );
+        state.lifecycles.insert(installed.lifecycle);
+        state.reserved_branches -= 1;
+        self.armed = false;
+        if let Some(witness) = &self.installation {
+            witness.record_installation(installed.snapshot.selected_commit().clone());
+        }
+        state.reserved_names.remove(installed.name.as_str());
+        if self.root {
+            state.root = Some(installed.branch.clone());
+        }
+        #[cfg(test)]
+        if self.installation.is_some() {
+            super::installation_unwind::after_installed();
+        }
+        Ok(())
     }
-}
-
-/// One product-branch occurrence as it is handed to the registry: the name it
-/// was reserved under, the identity that name issues, the incarnation that
-/// distinguishes this occurrence, and the reference cell holding its head.
-pub(crate) struct InstalledBranch {
-    pub(crate) name: ProductBranchName,
-    pub(crate) branch: ProductBranchIdentity,
-    pub(crate) lifecycle: ProductBranchIncarnation,
-    pub(crate) cell: ProductBranchReferenceCell,
-}
-
-/// Insert under the registry lock while the source cell provably still
-/// carries the observed head. A source with no installed occurrence is
-/// retired; one whose cell carries another head, or another occurrence of the
-/// same name, is displaced. Either way the occurrence comes back uninstalled.
-fn insert_installed_from_source(
-    state: &mut ProductBranchRegistryState,
-    source: &ProductBranchObservation,
-    installed: InstalledBranch,
-) -> Result<(), (ProductBranchSourceInstallDenial, InstalledBranch)> {
-    let Some(source_cell) = state
-        .entries
-        .get(source.branch_identity())
-        .map(|entry| entry.cell.clone())
-    else {
-        return Err((ProductBranchSourceInstallDenial::SourceRetired, installed));
-    };
-    match source_cell.while_current(source, installed, |installed| {
-        insert_installed(state, installed, false)
-    }) {
-        Ok(Ok(())) => Ok(()),
-        Ok(Err((denial, installed))) => Err((
-            ProductBranchSourceInstallDenial::Registry(denial),
-            installed,
-        )),
-        Err((observed, installed)) => Err((
-            ProductBranchSourceInstallDenial::SourceDisplaced(observed),
-            installed,
-        )),
-    }
-}
-
-/// Take the reserved slot and install the occurrence, under the registry lock.
-/// A root installation consumes the root slot rather than a reserved name. A
-/// refused occurrence comes back untouched, with its cell.
-fn insert_installed(
-    state: &mut ProductBranchRegistryState,
-    installed: InstalledBranch,
-    root: bool,
-) -> Result<(), (ProductBranchRegistryDenial, InstalledBranch)> {
-    if let Err(denial) = admits_insertion(state, &installed, root) {
-        return Err((denial, installed));
-    }
-    let InstalledBranch {
-        name,
-        branch,
-        lifecycle,
-        cell,
-    } = installed;
-    state.reserved_branches -= 1;
-    state.reserved_names.remove(name.as_str());
-    let entry = ProductBranchRegistryEntry { lifecycle, cell };
-    // A recreated name is no longer retired: `retired` and `entries` are
-    // disjoint, so the two together classify every identity exactly once.
-    state.retired.remove(&branch);
-    assert!(state.entries.insert(branch.clone(), entry).is_none());
-    assert!(state.lifecycles.insert(lifecycle));
-    if root {
-        state.root = Some(branch);
-    }
-    Ok(())
-}
-
-fn admits_insertion(
-    state: &ProductBranchRegistryState,
-    installed: &InstalledBranch,
-    root: bool,
-) -> Result<(), ProductBranchRegistryDenial> {
-    if root && state.root.is_some() {
-        return Err(ProductBranchRegistryDenial::AlreadyInstalled);
-    }
-    if state.reserved_branches.checked_sub(1).is_none() {
-        return Err(ProductBranchRegistryDenial::ReservationMissing);
-    }
-    if state.entries.contains_key(&installed.branch) {
-        return Err(ProductBranchRegistryDenial::BranchAlreadyInstalled);
-    }
-    if state.lifecycles.contains(&installed.lifecycle) {
-        return Err(ProductBranchRegistryDenial::LifecycleAlreadyInstalled);
-    }
-    let name = installed.name.as_str();
-    if root && state.reserved_names.contains(name) {
-        return Err(ProductBranchRegistryDenial::NameAlreadyReserved);
-    }
-    if !root && !state.reserved_names.contains(name) {
-        return Err(ProductBranchRegistryDenial::ReservationMissing);
-    }
-    Ok(())
 }
 
 pub(super) fn reserve_slot(
@@ -342,9 +298,18 @@ pub(super) fn reserve_slot(
     if state.entries.len().saturating_add(state.reserved_branches) >= state.maximum_branches {
         return Err(ProductBranchRegistryDenial::CapacityExhausted);
     }
-    state.reserved_branches = state
+    let reserved = state
         .reserved_branches
         .checked_add(1)
         .ok_or(ProductBranchRegistryDenial::CapacityExhausted)?;
+    state
+        .entries
+        .try_reserve(reserved)
+        .map_err(|_| ProductBranchRegistryDenial::CapacityExhausted)?;
+    state
+        .lifecycles
+        .try_reserve(reserved)
+        .map_err(|_| ProductBranchRegistryDenial::CapacityExhausted)?;
+    state.reserved_branches = reserved;
     Ok(())
 }

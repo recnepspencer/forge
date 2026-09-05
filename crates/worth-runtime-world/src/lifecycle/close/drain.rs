@@ -114,8 +114,7 @@ where
         // close released. The root is the world's own reference, not a created
         // branch, so it is not counted here. Observation pins are held by
         // caller-owned observations that outlive this call and are not
-        // enumerable from the owner state, so that count stays the zero close
-        // actually released.
+        // released by close. Their live count is reported separately.
         released_product_head_pins,
         released_observation_pins: 0,
         // Every installed commit is still protected, either by a product head
@@ -131,6 +130,7 @@ where
     Ok(RuntimeWorldCloseReport::new(
         retained_records,
         counts,
+        state.retention.active_observation_count(),
         outstanding_owner_retirement_work,
     ))
 }

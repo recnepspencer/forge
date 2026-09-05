@@ -61,6 +61,7 @@ pub(super) fn reserve_publication_resources<D, I, E, Ctx, T>(
     owner: &RuntimeWorldOwnerRoot<D, I, E, Ctx, T>,
     expected: &crate::branch::ProductBranchObservation,
     commit_identity: &CompositeCommitIdentity,
+    publication_attempt: Option<&CompositePublicationAttemptIdentity>,
 ) -> Result<ReservedPublicationResources, NoEffectCause>
 where
     D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
@@ -68,7 +69,8 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     let history = owner.state.history.clone();
-    let reserved_commit_capacity = reserve_history(&history, expected, commit_identity)?;
+    let reserved_commit_capacity =
+        reserve_history(&history, expected, commit_identity, publication_attempt)?;
     let reserved_recovery_slot = reserve_recovery(owner)?;
     let reserved_component_pin_pair = reserve_component_pin_pair(owner)?;
     let reserved_publication_capacity = reserve_publication_capacity(owner)?;
@@ -85,7 +87,17 @@ fn reserve_history(
     history: &CompositeHistoryCatalog,
     expected: &crate::branch::ProductBranchObservation,
     commit_identity: &CompositeCommitIdentity,
+    publication_attempt: Option<&CompositePublicationAttemptIdentity>,
 ) -> Result<crate::history::ReservedCompositeCommitCapacity, NoEffectCause> {
+    if let Some(attempt) = publication_attempt {
+        return history
+            .reserve_publication_capacity(
+                commit_identity.clone(),
+                attempt.clone(),
+                expected.snapshot().clone(),
+            )
+            .map_err(|_| NoEffectCause::CapacityExhausted);
+    }
     let parent =
         CompositeCommitParent::Ordinary(OrdinaryParent::new(expected.selected_commit().clone()));
     history

@@ -1,7 +1,5 @@
 use crate::publication::RuntimeWorldCancellationToken;
-use crate::publication::{
-    LoweredOwnerComponentPlan, NoEffectCause, SignalAttemptProgress, SignalComponentPlanPosture,
-};
+use crate::publication::{NoEffectCause, SignalAttemptProgress, SignalComponentPlanPosture};
 use crate::recovery::ProductUnpublishedCause;
 
 use super::RuntimeWorldOwnerRoot;
@@ -40,14 +38,14 @@ where
     /// separate owner operation and never reaches this path.
     pub(super) fn execute_signal<F>(
         &self,
-        plan: &LoweredOwnerComponentPlan,
+        attempt: &mut crate::publication::ReservedCompositePublicationAttempt,
         request: SignalExecutionRequest<'_, Ctx, F>,
         runtime_cancellation: &RuntimeWorldCancellationToken,
     ) -> Result<SignalAttemptProgress, SignalExecutionFailure>
     where
         F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>,
     {
-        match (plan.signal().posture(), request) {
+        match (attempt.plan().signal().posture(), request) {
             (SignalComponentPlanPosture::RetainExact, _) => Ok(SignalAttemptProgress::untouched()),
             (
                 SignalComponentPlanPosture::AdvanceExact,
@@ -56,6 +54,7 @@ where
                 // SPEC-P4-005: the Signal owner is handed the token embedded in
                 // the Runtime World source, never a caller-supplied Signal
                 // token, so one `cancel()` reaches an in-flight advance.
+                attempt.counters_mut().record_signal_owner_contact();
                 let signal_cancellation = runtime_cancellation.signal_token();
                 #[cfg(test)]
                 super::rehearsal::reach_signal_advance(self.owner_identity(), signal_cancellation);
@@ -63,7 +62,7 @@ where
                     .signal
                     .mutation_port()
                     .advance_exact(
-                        plan.signal().expected(),
+                        attempt.plan().signal().expected(),
                         runtime_ctx,
                         signal_cancellation,
                         apply,

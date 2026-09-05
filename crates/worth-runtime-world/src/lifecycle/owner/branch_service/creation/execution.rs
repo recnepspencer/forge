@@ -15,6 +15,9 @@ use super::super::super::RuntimeWorldOwnerRoot;
 #[cfg(test)]
 #[path = "execution/boundary_control.rs"]
 mod boundary_control;
+#[cfg(test)]
+#[path = "execution/custody_tests.rs"]
+mod custody_tests;
 #[path = "execution/forks.rs"]
 mod forks;
 #[cfg(test)]
@@ -40,17 +43,9 @@ pub(super) enum BranchCreationExecution {
 /// issued before the first owner fork, so a performed fork is always
 /// attributable to an exact product-branch occurrence.
 pub(super) struct CreationDestination {
+    pub(super) witness: std::sync::Arc<crate::branch::registry::ProductBranchInstallationWitness>,
     pub(super) branch: ProductBranchIdentity,
     pub(super) incarnation: ProductBranchIncarnation,
-}
-
-impl CreationDestination {
-    /// The custody key a retained record carries. It is the same pair the
-    /// installed custody records are keyed by, so a cleanup drains exactly the
-    /// occurrence whose forks it is answering for and never a recreated name's.
-    fn retained_key(&self) -> Option<(ProductBranchIdentity, ProductBranchIncarnation)> {
-        Some((self.branch.clone(), self.incarnation))
-    }
 }
 
 /// Run the Relational fork, then the Signal fork, in that fixed order. No
@@ -67,6 +62,7 @@ where
     I: Copy + Ord + Send + Sync + 'static,
     T: Copy + Ord + Send + Sync + 'static,
 {
+    attempt.bind_destination(std::sync::Arc::clone(&destination.witness));
     attempt.begin_owner_execution();
     if let Err(denial) = owner.creation_execution_is_admissible(&attempt, cancellation) {
         return BranchCreationExecution::NoEffect(denial);
@@ -86,7 +82,6 @@ where
             owner,
             terminal::SettledCreationAttempt { attempt, progress },
             naming,
-            destination,
         );
     }
 
@@ -97,10 +92,13 @@ where
                 owner,
                 terminal::SettledCreationAttempt { attempt, progress },
                 terminal::CreationDenialNaming {
-                    cause: ProductUnpublishedCause::SiblingOwnerDenied,
+                    cause: if denial == RuntimeWorldBranchAdmissionDenial::CancelledBeforeEffect {
+                        ProductUnpublishedCause::CancellationAfterEffect
+                    } else {
+                        ProductUnpublishedCause::SiblingOwnerDenied
+                    },
                     denial,
                 },
-                destination,
             )
         }
     };
@@ -111,7 +109,6 @@ where
         owner,
         terminal::SettledCreationAttempt { attempt, progress },
         cancellation,
-        destination,
     )
 }
 
@@ -144,8 +141,11 @@ where
         attempt: &ReservedBranchCreationAttempt,
         cancellation: &RuntimeWorldCancellationToken,
     ) -> Result<(), RuntimeWorldBranchAdmissionDenial> {
-        if cancellation.is_cancelled() || self.deadline_expired(attempt.deadline()) {
-            return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+        if cancellation.is_cancelled() {
+            return Err(RuntimeWorldBranchAdmissionDenial::CancelledBeforeEffect);
+        }
+        if self.deadline_expired(attempt.deadline()) {
+            return Err(RuntimeWorldBranchAdmissionDenial::DeadlineBeforeEffect);
         }
         self.admit_source_head(attempt.source())
     }
@@ -161,10 +161,16 @@ where
         attempt: &ReservedBranchCreationAttempt,
         cancellation: &RuntimeWorldCancellationToken,
     ) -> Result<(), terminal::CreationDenialNaming> {
-        if cancellation.is_cancelled() || self.deadline_expired(attempt.deadline()) {
+        if cancellation.is_cancelled() {
             return Err(terminal::CreationDenialNaming {
                 cause: ProductUnpublishedCause::CancellationAfterEffect,
-                denial: RuntimeWorldBranchAdmissionDenial::OwnerUnavailable,
+                denial: RuntimeWorldBranchAdmissionDenial::CancelledBeforeEffect,
+            });
+        }
+        if self.deadline_expired(attempt.deadline()) {
+            return Err(terminal::CreationDenialNaming {
+                cause: ProductUnpublishedCause::DeadlineAfterEffect,
+                denial: RuntimeWorldBranchAdmissionDenial::DeadlineBeforeEffect,
             });
         }
         if let Err(denial) = self.admit_source_head(attempt.source()) {

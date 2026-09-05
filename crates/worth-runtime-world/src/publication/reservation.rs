@@ -1,4 +1,4 @@
-use crate::branch::{LoweredBranchCreationPlan, ProductBranchObservation, ReservedCustodySlot};
+use crate::branch::ProductBranchObservation;
 use crate::identity::CompositePublicationAttemptIdentity;
 use crate::lifecycle::RuntimeWorldInstant;
 
@@ -34,11 +34,11 @@ pub struct ReservedCompositePublicationAttempt {
     expected_head: ProductBranchObservation,
     predecessor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
     plan: LoweredOwnerComponentPlan,
-    capacities: ReservedAttemptCapacities,
+    custody: super::ActiveAttemptCustody,
     cancellation: CompositeAttemptCancellationPosture,
     deadline: Option<RuntimeWorldInstant>,
     order: CompositePublicationOrder,
-    progress: CompositeAttemptProgress,
+    progress: std::sync::Arc<CompositeAttemptProgress>,
     counters: CompositePublicationCostCounters,
 }
 
@@ -66,16 +66,23 @@ impl ReservedCompositePublicationAttempt {
         capacities: ReservedAttemptCapacities,
         deadline: Option<RuntimeWorldInstant>,
     ) -> Self {
+        let custody = super::ActiveAttemptCustody::register(
+            identity.clone(),
+            expected_head.clone(),
+            deadline,
+            capacities,
+        );
+        let progress = custody.progress();
         Self {
             identity,
             expected_head,
             predecessor_basis,
             plan,
-            capacities,
+            custody,
             cancellation: CompositeAttemptCancellationPosture::Open,
             deadline,
             order: CompositePublicationOrder::RelationalThenSignal,
-            progress: CompositeAttemptProgress::untouched(),
+            progress,
             counters: CompositePublicationCostCounters::zero(),
         }
     }
@@ -108,6 +115,10 @@ impl ReservedCompositePublicationAttempt {
         &self.progress
     }
 
+    pub(crate) fn record_progress(&mut self, progress: &CompositeAttemptProgress) {
+        self.progress = self.custody.record_progress(progress.retained_image());
+    }
+
     /// Structural counters are initialized when the attempt is reserved, before
     /// the first owner effect, so a caller can read an honest zeroed scope.
     pub fn counters(&self) -> &CompositePublicationCostCounters {
@@ -127,11 +138,11 @@ impl ReservedCompositePublicationAttempt {
     }
 
     pub(crate) fn begin_owner_execution(&mut self) {
-        self.capacities.begin_owner_execution();
+        self.custody.begin_owner_execution();
     }
 
     pub(crate) fn begin_recovery(&mut self) {
-        self.capacities.begin_recovery();
+        self.custody.begin_recovery();
     }
 
     pub(crate) fn take_relational_candidate(
@@ -143,6 +154,11 @@ impl ReservedCompositePublicationAttempt {
     /// Consume a still-pre-effect reservation into the only no-effect
     /// cancellation terminal. Dropping the attempt releases every capacity.
     pub fn cancel(self) -> NoEffectCompositePublication {
+        assert_eq!(
+            self.progress.owner_effect_count(),
+            0,
+            "only a pre-effect phase can cancel as no-effect"
+        );
         NoEffectCompositePublication::new(
             super::NoEffectCause::CancelledBeforeEffect,
             Some(self.expected_head),
@@ -150,7 +166,8 @@ impl ReservedCompositePublicationAttempt {
     }
 
     pub(crate) fn settle(mut self, progress: CompositeAttemptProgress) -> OwnerExecutionSettlement {
-        self.capacities.begin_publication();
+        self.record_progress(&progress);
+        self.custody.begin_publication();
         OwnerExecutionSettlement::new(self, progress)
     }
 
@@ -159,7 +176,9 @@ impl ReservedCompositePublicationAttempt {
         progress: CompositeAttemptProgress,
         successor_basis: crate::basis::AdmittedCompositeRuntimeWorldBasis,
     ) -> OwnerExecutionSettlement {
-        self.capacities.begin_publication();
+        self.record_progress(&progress);
+        self.custody.record_successor(successor_basis.clone());
+        self.custody.begin_publication();
         OwnerExecutionSettlement::with_successor_basis(self, progress, successor_basis)
     }
 
@@ -168,7 +187,7 @@ impl ReservedCompositePublicationAttempt {
             identity: self.identity,
             expected_head: self.expected_head,
             plan: self.plan,
-            capacities: self.capacities,
+            custody: self.custody,
             cancellation: self.cancellation,
             deadline: self.deadline,
             counters: self.counters,
@@ -182,166 +201,11 @@ pub(crate) struct ReservedPublicationAttemptParts {
     pub(crate) identity: CompositePublicationAttemptIdentity,
     pub(crate) expected_head: ProductBranchObservation,
     pub(crate) plan: LoweredOwnerComponentPlan,
-    pub(crate) capacities: ReservedAttemptCapacities,
+    pub(crate) custody: super::ActiveAttemptCustody,
     pub(crate) cancellation: CompositeAttemptCancellationPosture,
     pub(crate) deadline: Option<RuntimeWorldInstant>,
     pub(crate) counters: CompositePublicationCostCounters,
 }
 
-/// Branch creation reserves the same resources under the same rules and
-/// consumes into a creation terminal. Custody slots for every owner fork this
-/// creation will perform are charged here, before the first owner effect.
-#[must_use = "a reserved branch-creation attempt must be executed or cleaned up"]
-pub(crate) struct ReservedBranchCreationAttempt {
-    identity: CompositePublicationAttemptIdentity,
-    source: ProductBranchObservation,
-    plan: LoweredBranchCreationPlan,
-    capacities: ReservedAttemptCapacities,
-    relational_custody: Option<ReservedCustodySlot>,
-    signal_custody: Option<ReservedCustodySlot>,
-    cancellation: CompositeAttemptCancellationPosture,
-    deadline: Option<RuntimeWorldInstant>,
-    order: CompositePublicationOrder,
-    progress: CompositeAttemptProgress,
-    counters: CompositePublicationCostCounters,
-}
-
-impl std::fmt::Debug for ReservedBranchCreationAttempt {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("ReservedBranchCreationAttempt")
-            .field("identity", &self.identity)
-            .field("source", &self.source)
-            .field("plan", &self.plan)
-            .field("cancellation", &self.cancellation)
-            .field("deadline", &self.deadline)
-            .field("order", &self.order)
-            .field("progress", &self.progress)
-            .field("counters", &self.counters)
-            .finish_non_exhaustive()
-    }
-}
-
-pub(crate) struct ReservedBranchCreationInputs {
-    pub(crate) identity: CompositePublicationAttemptIdentity,
-    pub(crate) source: ProductBranchObservation,
-    pub(crate) plan: LoweredBranchCreationPlan,
-    pub(crate) capacities: ReservedAttemptCapacities,
-    pub(crate) relational_custody: Option<ReservedCustodySlot>,
-    pub(crate) signal_custody: Option<ReservedCustodySlot>,
-    pub(crate) deadline: Option<RuntimeWorldInstant>,
-}
-
-impl ReservedBranchCreationAttempt {
-    pub(crate) fn new(inputs: ReservedBranchCreationInputs) -> Self {
-        let ReservedBranchCreationInputs {
-            identity,
-            source,
-            plan,
-            capacities,
-            relational_custody,
-            signal_custody,
-            deadline,
-        } = inputs;
-        Self {
-            identity,
-            source,
-            plan,
-            capacities,
-            relational_custody,
-            signal_custody,
-            cancellation: CompositeAttemptCancellationPosture::Open,
-            deadline,
-            order: CompositePublicationOrder::RelationalThenSignal,
-            progress: CompositeAttemptProgress::untouched(),
-            counters: CompositePublicationCostCounters::zero(),
-        }
-    }
-
-    pub(crate) const fn identity(&self) -> &CompositePublicationAttemptIdentity {
-        &self.identity
-    }
-
-    pub(crate) const fn source(&self) -> &ProductBranchObservation {
-        &self.source
-    }
-
-    pub(crate) const fn plan(&self) -> &LoweredBranchCreationPlan {
-        &self.plan
-    }
-
-    pub(crate) const fn order(&self) -> CompositePublicationOrder {
-        self.order
-    }
-
-    /// The reservation-time deadline, if the caller set one. Creation checks it
-    /// before each owner effect, exactly as publication does.
-    pub(crate) const fn deadline(&self) -> Option<RuntimeWorldInstant> {
-        self.deadline
-    }
-
-    /// Structural counters are initialized when the attempt is reserved, before
-    /// the first owner effect.
-    pub(crate) const fn counters(&self) -> &CompositePublicationCostCounters {
-        &self.counters
-    }
-
-    /// The counters an owner leg records its contact on, taken before that
-    /// owner is asked for anything. Creation and publication charge the same
-    /// counter type, so a creation's cost is readable on the same axes.
-    pub(crate) fn counters_mut(&mut self) -> &mut CompositePublicationCostCounters {
-        &mut self.counters
-    }
-
-    pub(crate) fn take_relational_custody(&mut self) -> Option<ReservedCustodySlot> {
-        self.relational_custody.take()
-    }
-
-    pub(crate) fn take_signal_custody(&mut self) -> Option<ReservedCustodySlot> {
-        self.signal_custody.take()
-    }
-
-    pub(crate) fn begin_owner_execution(&mut self) {
-        self.capacities.begin_owner_execution();
-    }
-
-    /// A creation leaves its owner-effect phase when the last fork it will ever
-    /// attempt has returned. Installing the product reference, and retaining
-    /// the forks when installation cannot happen, are both publication-phase
-    /// work, so they share the publication posture with an ordinary attempt.
-    pub(crate) fn begin_publication(&mut self) {
-        self.capacities.begin_publication();
-    }
-
-    pub(crate) fn cancel(self) -> NoEffectCompositePublication {
-        NoEffectCompositePublication::new(
-            super::NoEffectCause::CancelledBeforeEffect,
-            Some(self.source),
-        )
-    }
-
-    pub(crate) fn into_parts(self) -> ReservedBranchCreationParts {
-        ReservedBranchCreationParts {
-            identity: self.identity,
-            source: self.source,
-            plan: self.plan,
-            capacities: self.capacities,
-            cancellation: self.cancellation,
-            deadline: self.deadline,
-            progress: self.progress,
-            counters: self.counters,
-        }
-    }
-}
-
-/// The exact linear contents of a consumed branch-creation attempt.
-pub(crate) struct ReservedBranchCreationParts {
-    pub(crate) identity: CompositePublicationAttemptIdentity,
-    pub(crate) source: ProductBranchObservation,
-    pub(crate) plan: LoweredBranchCreationPlan,
-    pub(crate) capacities: ReservedAttemptCapacities,
-    pub(crate) cancellation: CompositeAttemptCancellationPosture,
-    pub(crate) deadline: Option<RuntimeWorldInstant>,
-    pub(crate) progress: CompositeAttemptProgress,
-    pub(crate) counters: CompositePublicationCostCounters,
-}
+mod creation;
+pub(crate) use creation::{ReservedBranchCreationAttempt, ReservedBranchCreationInputs};

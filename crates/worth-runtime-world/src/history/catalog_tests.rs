@@ -12,3 +12,10 @@ mod reclamation;
 mod reservation;
 #[path = "catalog_tests/scale.rs"]
 mod scale;
+
+#[path = "catalog_tests/pending_storage.rs"]
+mod pending_storage;
+#[path = "catalog_tests/protected_installation.rs"]
+mod protected_installation;
+#[path = "catalog_tests/publication_metadata.rs"]
+mod publication_metadata;

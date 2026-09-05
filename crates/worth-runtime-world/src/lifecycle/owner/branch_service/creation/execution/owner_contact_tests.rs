@@ -26,6 +26,11 @@ fn settled_creation_counters(
     let (_fixture, owner, source) = setup_with_relational_source(3);
     let cancellation = RuntimeWorldCancellationSource::new();
     let intent = fork_intent(name, relational, signal);
+    let mut reservation = owner
+        .state
+        .branches
+        .reserve_branch(owner.owner_identity(), intent.name().clone())
+        .expect("the destination name is reserved before effects");
     let (branch, incarnation) = owner
         .issue_branch_identities(intent.name().clone())
         .expect("the destination identities are issued before any owner effect");
@@ -43,6 +48,9 @@ fn settled_creation_counters(
         "a reserved attempt has contacted no owner yet"
     );
     let destination = CreationDestination {
+        witness: reservation
+            .bind_creation_destination(branch.clone(), incarnation)
+            .expect("the reserved destination binds its exact witness"),
         branch,
         incarnation,
     };

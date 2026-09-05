@@ -114,6 +114,7 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     state: Arc<Mutex<RegistryState<D, I, T>>>,
+    observations: Arc<super::super::observation_capacity::ObservationCapacity>,
 }
 
 impl<D, I, T> Clone for RuntimeWorldRetentionOwner<D, I, T>
@@ -125,6 +126,7 @@ where
     fn clone(&self) -> Self {
         Self {
             state: Arc::clone(&self.state),
+            observations: Arc::clone(&self.observations),
         }
     }
 }
@@ -154,6 +156,7 @@ where
         signal_port: SignalBranchBasisPort<D, I, T>,
         unique_pin_limit: RuntimeWorldBudgetLimit,
         reservation_limit: RuntimeWorldBudgetLimit,
+        observation_limit: RuntimeWorldBudgetLimit,
     ) -> Self {
         let state = RegistryState {
             owner_identity,
@@ -173,6 +176,10 @@ where
         };
         Self {
             state: Arc::new(Mutex::new(state)),
+            observations: super::super::observation_capacity::ObservationCapacity::new(
+                owner_identity,
+                observation_limit,
+            ),
         }
     }
 
@@ -182,6 +189,7 @@ where
         signal: &SignalOwnerServicePorts<D, I, E, Ctx, T>,
         unique_pin_limit: RuntimeWorldBudgetLimit,
         reservation_limit: RuntimeWorldBudgetLimit,
+        observation_limit: RuntimeWorldBudgetLimit,
     ) -> Self {
         Self::new(
             owner_identity,
@@ -189,6 +197,7 @@ where
             signal.basis_port(),
             unique_pin_limit,
             reservation_limit,
+            observation_limit,
         )
     }
 
@@ -200,11 +209,31 @@ where
         &self,
         commit: &CompositeRuntimeWorldCommit,
     ) -> Result<ObservationRetentionObligation, RetentionObligationDenial> {
+        let capacity = self.reserve_observation()?;
+        self.issue_reserved_observation(commit, capacity)
+    }
+
+    pub(crate) fn active_observation_count(&self) -> usize {
+        self.observations.active()
+    }
+
+    pub(crate) fn reserve_observation(
+        &self,
+    ) -> Result<super::super::ReservedObservationCapacity, RetentionObligationDenial> {
+        self.observations.reserve()
+    }
+
+    pub(crate) fn issue_reserved_observation(
+        &self,
+        commit: &CompositeRuntimeWorldCommit,
+        capacity: super::super::ReservedObservationCapacity,
+    ) -> Result<ObservationRetentionObligation, RetentionObligationDenial> {
+        assert_eq!(capacity.owner_identity(), self.lock().owner_identity);
         self.issue_pair(
             commit.basis(),
             ComponentBasisDependencyClass::AdmittedObservation,
         )
-        .map(|pair| ObservationRetentionObligation::owner_issued(commit, pair))
+        .map(|pair| ObservationRetentionObligation::owner_issued(commit, pair, capacity))
     }
 
     pub(crate) fn issue_publication(

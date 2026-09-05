@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::basis::AdmittedCompositeRuntimeWorldBasis;
 use crate::identity::{CompositeBasisKey, RuntimeWorldOwnerIdentity};
 
@@ -100,23 +98,24 @@ impl ProductHeadRetentionObligation {
     /// The only product-head-to-recovery transition. Both live claims already
     /// passed owner, basis, and dependency admission, so a denial here would be
     /// registry corruption rather than a recoverable publication outcome.
-    pub(crate) fn transition_to_retained_partial(self) -> RetainedPartialRetentionObligation {
-        let Self {
-            owner,
+    pub(crate) fn transition_to_retained_partial(mut self) -> RetainedPartialRetentionObligation {
+        self.try_transfer_retained()
+            .expect("live product-head claims transition atomically into recovery custody")
+    }
+
+    pub(crate) fn try_transfer_retained(
+        &mut self,
+    ) -> Result<RetainedPartialRetentionObligation, crate::retention::RetentionTransferDenial> {
+        let basis = self.basis.clone();
+        self.relational.transfer_pair_to(
+            &mut self.signal,
+            ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
+        )?;
+        Ok(RetainedPartialRetentionObligation::transferred(
+            self.owner,
             basis,
-            relational,
-            signal,
-        } = self;
-        let relational_claim = relational.into_claim();
-        let signal_claim = signal.into_claim();
-        let control = Arc::clone(&relational_claim.control);
-        let (relational, signal) = control
-            .transfer_pair(
-                relational_claim,
-                signal_claim,
-                ComponentBasisDependencyClass::ProductUnpublishedOwnerEffects,
-            )
-            .expect("live product-head claims transition atomically into recovery custody");
-        RetainedPartialRetentionObligation::transferred(owner, basis, relational, signal)
+            self.relational.take_transferred_claim(),
+            self.signal.take_transferred_claim(),
+        ))
     }
 }

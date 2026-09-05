@@ -12,7 +12,7 @@ const RELATIONAL_TARGET: &str = "relational-branch-custody";
 const SIGNAL_TARGET: &str = "signal-branch-custody";
 
 fn retire(owner: &TestOwner, child: &ProductBranchObservation) -> ProductBranchRetirementReport {
-    RuntimeWorldBranchService::retire_product_branch(owner, child.branch_identity().clone())
+    RuntimeWorldBranchService::retire_product_branch(owner, child)
         .expect("a live product branch retires")
 }
 

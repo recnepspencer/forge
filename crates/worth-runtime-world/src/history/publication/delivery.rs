@@ -1,0 +1,64 @@
+//! Exclusive delivery of canonical publication facts. Dropping an unconsumed
+//! claim permits another delivery; consuming it permanently closes that lane.
+
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+
+use crate::history::ExplicitCommitHistoryProtectionObligation;
+
+use super::CanonicalPublicationEnvelope;
+
+pub(super) const AVAILABLE: u8 = 0;
+const CLAIMED: u8 = 1;
+const CONSUMED: u8 = 2;
+
+#[derive(Debug)]
+#[must_use = "a publication delivery claim is linear"]
+pub(crate) struct PublicationDeliveryClaim {
+    envelope: Arc<CanonicalPublicationEnvelope>,
+    _history: ExplicitCommitHistoryProtectionObligation,
+    consumed: bool,
+}
+
+impl CanonicalPublicationEnvelope {
+    /// The normal publisher reserves delivery before the CAS. Recovery uses
+    /// the same exclusive claim only after committed facts are visible.
+    pub(crate) fn claim_delivery(
+        self: &Arc<Self>,
+        history: ExplicitCommitHistoryProtectionObligation,
+    ) -> Option<PublicationDeliveryClaim> {
+        if history.commit_identity() != self.commit_identity() {
+            return None;
+        }
+        self.delivery
+            .compare_exchange(AVAILABLE, CLAIMED, Ordering::AcqRel, Ordering::Acquire)
+            .ok()?;
+        Some(PublicationDeliveryClaim {
+            envelope: Arc::clone(self),
+            _history: history,
+            consumed: false,
+        })
+    }
+}
+
+impl PublicationDeliveryClaim {
+    pub(crate) fn envelope(&self) -> &CanonicalPublicationEnvelope {
+        &self.envelope
+    }
+
+    /// The future product handoff must consume this claim, not an inspection
+    /// image. There is no transition back from consumed to available.
+    pub(crate) fn consume(mut self) {
+        assert!(self.envelope.facts().is_some());
+        self.envelope.delivery.store(CONSUMED, Ordering::Release);
+        self.consumed = true;
+    }
+}
+
+impl Drop for PublicationDeliveryClaim {
+    fn drop(&mut self) {
+        if !self.consumed {
+            self.envelope.delivery.store(AVAILABLE, Ordering::Release);
+        }
+    }
+}

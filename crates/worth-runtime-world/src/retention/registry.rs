@@ -16,6 +16,7 @@ pub(crate) enum RetentionObligationDenial {
         actual: RuntimeWorldOwnerIdentity,
     },
     InvalidComponentPair,
+    ObservationCapacityExhausted,
     UniquePinCapacityExhausted {
         maximum_unique_component_pins: usize,
     },

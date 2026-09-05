@@ -13,11 +13,8 @@ pub use product_unpublished::{
 pub(crate) use catalog::{RecoveryCatalog, RecoveryCatalogDenial, ReservedProductUnpublishedSlot};
 pub(crate) use cleanup::RecoveryCleanupOutcome;
 
+#[cfg(test)]
 pub(crate) use product_unpublished::next_actions_for_progress;
-pub(crate) use product_unpublished::{
-    InstalledSuccessorEvidence, PendingRetentionCustody, RetainedAttemptFacts,
-    RetainedRecordCharges, RetainedSuccessorEvidence,
-};
-pub(crate) use progress::{
-    ProductUnpublishedLiveObligations, ProductUnpublishedOwnerEffectSummary,
-};
+pub(crate) use product_unpublished::ProductUnpublishedOwnerEffectsRecord;
+pub(crate) use product_unpublished::RetainedAttemptFacts;
+pub(crate) use progress::ProductUnpublishedLiveObligations;

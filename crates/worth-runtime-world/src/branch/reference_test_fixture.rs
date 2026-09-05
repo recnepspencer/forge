@@ -187,7 +187,7 @@ pub(crate) fn real_fixture(unique_pin_limit: u64, reservation_limit: u64) -> Rea
                 history_metadata_bytes: 1,
             },
             observations: crate::budget::RuntimeWorldObservationBudgetInstallation {
-                active_observations: 1,
+                active_observations: 3,
             },
             publication: crate::budget::RuntimeWorldPublicationBudgetInstallation {
                 active_publication_attempts: 1,
@@ -212,6 +212,7 @@ pub(crate) fn real_fixture(unique_pin_limit: u64, reservation_limit: u64) -> Rea
         signal_port.clone(),
         budgets.unique_exact_component_pins(),
         budgets.in_flight_pin_acquisition_reservations(),
+        budgets.active_observations(),
     );
     RealReferenceFixture {
         owner,

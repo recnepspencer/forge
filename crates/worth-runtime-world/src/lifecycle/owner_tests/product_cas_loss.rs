@@ -5,24 +5,18 @@
 //! ready attempt reaches `publish` against a cell that has already moved and
 //! must terminate as retained owner effects naming the winner it observed.
 //!
-//! The winner is issued from the owner's own identity issuer, history catalog
-//! and retention registry rather than from a second `CompositePublicationReady`
-//! because two composite attempts cannot coexist off one product head: the
-//! second attempt's owner execution is denied `OwnerUnavailable` once the first
-//! attempt's execution has advanced the relational component owner. See the
-//! lane report for the exact mechanism.
+//! Both attempts execute through the real owner services. Relational and
+//! Signal move independently before competing for one product reference.
 
 use std::sync::Arc;
 
 use crate::branch::reference_test_fixture::RealReferenceFixture;
 use crate::branch::{
-    ProductBranchHeadProtection, ProductBranchObservation, ProductBranchReferenceCell,
-    ProductBranchReferenceSnapshot,
+    ProductBranchObservation, ProductBranchReferenceCell, ProductBranchReferenceSnapshot,
 };
-use crate::history::CompositeRuntimeWorldCommit;
 use crate::publication::{
-    CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
-    RuntimeWorldPublicationOutcome,
+    CompositeLateCancellationPosture, CompositePublicationIntent, OwnerExecutionOutcome,
+    RuntimeWorldCancellationSource, RuntimeWorldPublicationOutcome,
 };
 use crate::recovery::{
     ProductUnpublishedCause, ProductUnpublishedNextAction, ProductUnpublishedOwnerEffects,
@@ -96,76 +90,38 @@ fn race_from(
     }
 }
 
-/// Move the product reference with a second owner-issued publication, built
-/// from the owner's own identity issuer, history catalog and retention
-/// registry. It retains both component bases, so it is an ordinary successor
-/// publication that changes only the product reference.
+/// Execute the independent Signal-only competitor through the same production
+/// preparation, execution, retention and CAS path as the Relational loser.
 fn publish_competing_head(
     owner: &TestOwner,
     current: &ProductBranchObservation,
     cell: &ProductBranchReferenceCell,
 ) -> ProductBranchReferenceSnapshot {
-    let commit = Arc::new(competing_commit(owner, current));
-    owner
-        .state
-        .history
-        .append(Arc::clone(&commit))
-        .expect("the competing successor commit installs into owner history");
-    let history = owner
-        .state
-        .history
-        .protect_product_head(&commit)
-        .expect("the installed competing commit admits product-head protection");
-    let transfer = owner
-        .state
-        .retention
-        .issue_publication(commit.basis())
-        .expect("the owner issues real publication retention for the competing basis")
-        .into_product_head_transfer(commit.basis())
-        .expect("competing publication retention binds its exact basis");
-    let snapshot = ProductBranchReferenceSnapshot::owner_issued(
-        current.owner_identity(),
-        current.branch_identity().clone(),
-        current.lifecycle_incarnation(),
-        current
-            .reference_generation()
-            .advance()
-            .expect("the bootstrapped reference has generation capacity"),
-        Arc::clone(&commit),
-    )
-    .expect("the competing snapshot shares the owner and branch lineage");
-    let protection = ProductBranchHeadProtection::owner_issued(snapshot.clone(), transfer, history)
-        .expect("competing component and history custody match its successor image");
-    cell.compare_and_publish(current, protection)
-        .expect("the competing publication holds the current product head");
-    snapshot
-}
-
-fn competing_commit(
-    owner: &TestOwner,
-    current: &ProductBranchObservation,
-) -> CompositeRuntimeWorldCommit {
-    let mut issuer = owner
-        .state
-        .identities
-        .lock()
-        .unwrap_or_else(|error| error.into_inner());
-    let commit_identity = issuer
-        .composite_commit()
-        .expect("the owner issues a competing commit identity");
-    let attempt_identity = issuer
-        .publication_attempt()
-        .expect("the owner issues a competing publication attempt identity");
-    drop(issuer);
-    CompositeRuntimeWorldCommit::from_ordinary_publication(
-        commit_identity,
-        current.snapshot().commit(),
-        current.basis().clone(),
-        attempt_identity,
-        &CompositeOwnerExecutionResults::retained(),
-        None,
-    )
-    .expect("a competing ordinary publication off the current product head")
+    use crate::lifecycle::{RuntimeWorldOwnerExecutionService, RuntimeWorldPreparationService};
+    let cancellation = RuntimeWorldCancellationSource::new();
+    let prepared = owner
+        .prepare_publication(
+            current.clone(),
+            CompositePublicationIntent::with_signal(None),
+            &cancellation.token(),
+            None,
+        )
+        .expect("the exact product head admits the independent Signal attempt");
+    let settlement =
+        match owner.execute_with_signal(prepared, &mut (), &cancellation.token(), |_| Ok(())) {
+            OwnerExecutionOutcome::Settled(settlement) => settlement,
+            other => panic!("the Signal competitor must settle its real effect: {other:?}"),
+        };
+    let successor = settlement.successor_basis().unwrap().clone();
+    let ready = settlement
+        .ready(successor)
+        .expect("the exact Signal successor is retained");
+    match ready.publish(cell, CompositeLateCancellationPosture::NotRequested) {
+        RuntimeWorldPublicationOutcome::Performed(performed) => {
+            performed.new_product_head().clone()
+        }
+        other => panic!("the Signal competitor must win product publication: {other:?}"),
+    }
 }
 
 /// SPEC-P4-016. The expected-observation comparison precedes materialization,

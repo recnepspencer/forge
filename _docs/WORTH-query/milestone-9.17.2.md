@@ -544,7 +544,7 @@ the only ordinary continuation authority.
 
 `PerformedCompositePublication` proves that the exact reserved commit was
 installed and the expected product reference moved once. It carries the
-canonical commit, old observation and exact reference movement, component
+canonical commit, exact old observation snapshot and reference movement, component
 results, late-cancellation posture, retention transfer, and cost counters. It
 is linear private authority consumed by Query 9.17.3. A cloneable inspection
 projection may describe it but cannot authorize a Query committed terminal.
@@ -937,22 +937,78 @@ gate), fixed in `598bf7f88a` together with the Low findings. Re-review over
 **Deferred with reason (not Phase 4 defects):**
 
 - `SPEC-P4-017` facade cutover (`RuntimeWorldOwner`/`builder()`, public
-  `CompositePublicationIntent`, facade-driveable ports) is the Phase 5 entry
-  condition; Phase 4 froze the crate-internal seams it cuts over.
+  `CompositePublicationIntent`, facade-driveable ports) is Phase 5 implementation
+  work; Phase 4 froze the crate-internal seams it cuts over.
 - `SPEC-P4-018` crate documentation (`COMPOSITE_HISTORY.md` branch-creation
   section, basis-identity naming) is a Phase 6 documentation item.
-- `CLS-004`: the fork finalization retention route records `OwnerLost` for
-  what is a Runtime World bookkeeping failure (a usize overflow in the pin or
-  protection counts). The name is a `ProductUnpublishedCause` variant under
-  the frozen facade and changes with the Phase 5 facade freeze. (`CLS-007`,
-  the transient re-index `OwnerUnavailable`, is closed below.)
-- `INT-BLOCK-1`: `ProductBranchRegistry` keeps the set of retired names to
-  tell `AlreadyRetired` from `UnknownBranch`; under the frozen
-  `retire_product_branch(owner, branch)` seam that set grows with the number
-  of distinct names ever retired and not recreated. Bounding it needs the
-  occurrence named at retirement, `retire_product_branch(owner, branch,
-  incarnation)`, which is a facade signature change and is therefore a Phase 5
-  serial-gate item.
+**Pre-Phase-5 corrections (completed in the working change, 2026-09-04).** The earlier deferrals
+`CLS-004` and `INT-BLOCK-1` are implementation prerequisites and have now been
+corrected in the working change. Retention failures preserve actual
+owner-unavailable evidence; bookkeeping and destination-admission failures
+cannot derive owner closure. Retirement takes a `ProductBranchObservation`,
+which proves an installed occurrence, and checks owner/name/incarnation against
+the live registry. This removes the historical retired-name set and prevents an
+old request from retiring a recreated name.
+
+The same correction enforces active-observation capacity before creation
+effects, reports live observations at close, preserves cancellation at both
+World and Signal cutoffs, and records actual per-component execution contacts.
+Retained exact component bases remain usable by a mixed plan after another
+owner-local attempt advances a component; the real product CAS selects the
+winner. Crate documentation now describes these implemented boundaries.
+
+Ordinary publication now carries immediate owner-managed custody through
+reservation, settlement, readiness, and final product movement. Relational
+identity is recorded before settlement consumes its performed capability, and
+settled progress is recorded before entering Signal. Production tests cover
+two-owner settlement Drop, actual Signal apply unwind, invalid ready evidence,
+ready Drop/close/cleanup, and materialization-boundary unwind. The shared custody
+owner also has focused real-owner proofs for abandonment accounting, exclusive
+resource-lease unwind, concurrent inspection, close, and exact identity repair.
+Explicit retained delivery acquires its caller view atomically with catalog
+accounting, preventing concurrent cleanup from removing the terminal before
+return. Pin-pair transfers now keep their guarded claims through
+validation, and publication/retained history installation issues protection in
+the same catalog transition. Post-CAS caller loss now recovers the canonical
+performed envelope beside its bounded history entry, including complete owner
+results, exact movement, late cancellation, and final cost counters. Its
+allocation and conservative shared-name retention charge are reserved before
+effects. The cell records committed facts before releasing its write lock or
+dropping old protection. Normal delivery and recovery share one linear claim;
+caller Drop releases that claim, while consumption prevents another delivery.
+The exact old snapshot is descriptive evidence and does not permanently hold
+an active-observation permit. Real committed-boundary unwind, concurrent claim,
+exact-budget, and reclamation tests cover this terminal. History admission now
+allocates pending slots in the eventual catalog and reachability maps;
+promotion fills them in place. The final branch write lock compares the exact
+expected observation before history promotion and bound-pin transfer. A real
+competing-winner test proves that the final losing comparison performs neither.
+Pending entries remain invisible to lookup, protection, parent admission, and
+reclamation, and their capacity releases once on Drop.
+
+Branch creation now carries the same custody through both actual owner forks,
+settled finalization, observation, and destination installation. Each returned
+fork is recorded before custody bookkeeping. Registry admission binds an exact
+destination witness before effects; insertion stamps its commit under the
+source and registry guards. The cell stays borrowed until actual insertion,
+and retirement cannot erase the witness. Caller abandonment preserves the
+original pin classes, history, and any assembled observation. Explicit cleanup
+returns the exact destination's component-retirement work. Obsolete independent
+retention constructors and their catalog installation lane are removed.
+
+Five real-owner tests cover first-fork unwind, settled two-fork Drop, assembled
+cell/observation unwind, post-insertion unwind, and retirement/recreation before
+caller Drop. The assembled abandoned creation reports all seven held
+obligations; actual insertion never produces a false unpublished record.
+Inspection remains non-authorizing. Independent review found no remaining
+creation correctness, test, or topology gap.
+
+The working-change gate is 195 default owner tests, 202 with operation control,
+and 13 certification tests, plus clippy, formatting, diff, dirty line caps,
+boundary-check, and agent-context. Composition/function advisories were reviewed
+as coherent transactions and focused real-owner evidence, with no hard scoped
+violation. These corrections are ready for Phase 5; the broader Phase 6
+certification and documentation work remains in Phase 6.
 
 **Accepted residual risk (design contracts, not defects):**
 

@@ -43,8 +43,8 @@ impl RuntimeWorldRetainedRecordReport {
         self.obligations.component()
     }
 
-    /// The recovery slot the record occupies plus the successor history
-    /// protection it holds when its attempt installed a successor occurrence.
+    /// The recovery slot plus any reserved history capacity or installed
+    /// successor history protection the record still owns.
     pub const fn live_composite_obligations(&self) -> usize {
         self.obligations.composite()
     }
@@ -60,6 +60,7 @@ impl RuntimeWorldRetainedRecordReport {
 #[must_use = "a close report enumerates obligations the caller must still address"]
 pub struct RuntimeWorldCloseReport {
     retained_records: Vec<RuntimeWorldRetainedRecordReport>,
+    outstanding_observations: usize,
     settled_records: usize,
     released_product_head_pins: usize,
     released_observation_pins: usize,
@@ -85,6 +86,7 @@ impl RuntimeWorldCloseReport {
     pub(crate) fn new(
         retained_records: Vec<RuntimeWorldRetainedRecordReport>,
         counts: RuntimeWorldCloseReleaseCounts,
+        outstanding_observations: usize,
         outstanding_owner_retirement_work: Vec<OwnerRetirementWork>,
     ) -> Self {
         let RuntimeWorldCloseReleaseCounts {
@@ -97,6 +99,7 @@ impl RuntimeWorldCloseReport {
         } = counts;
         Self {
             retained_records,
+            outstanding_observations,
             settled_records,
             released_product_head_pins,
             released_observation_pins,
@@ -105,6 +108,12 @@ impl RuntimeWorldCloseReport {
             retired_owner_created_custody,
             outstanding_owner_retirement_work,
         }
+    }
+
+    /// Observation obligations still alive at the close snapshot. Clones share
+    /// one obligation; callers may release them after close returns.
+    pub const fn outstanding_observations(&self) -> usize {
+        self.outstanding_observations
     }
 
     pub fn retained_records(&self) -> &[RuntimeWorldRetainedRecordReport] {

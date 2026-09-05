@@ -118,6 +118,7 @@ pub(crate) struct ReservedCompositeCommitCapacity {
     state: Arc<Mutex<CompositeHistoryCatalogState>>,
     identity: crate::identity::CompositeCommitIdentity,
     reservation: HistoryReservationMetadata,
+    publication: Option<Arc<crate::history::CanonicalPublicationEnvelope>>,
     armed: bool,
 }
 
@@ -144,15 +145,23 @@ impl Drop for ReservedCompositeCommitCapacity {
 }
 
 impl ReservedCompositeCommitCapacity {
+    pub(crate) fn publication_envelope(
+        &self,
+    ) -> Option<&Arc<crate::history::CanonicalPublicationEnvelope>> {
+        self.publication.as_ref()
+    }
+
     pub(super) fn new(
         state: Arc<Mutex<CompositeHistoryCatalogState>>,
         identity: crate::identity::CompositeCommitIdentity,
         reservation: HistoryReservationMetadata,
+        publication: Option<Arc<crate::history::CanonicalPublicationEnvelope>>,
     ) -> Self {
         Self {
             state,
             identity,
             reservation,
+            publication,
             armed: true,
         }
     }
@@ -161,9 +170,116 @@ impl ReservedCompositeCommitCapacity {
         mut self,
         commit: Arc<CompositeRuntimeWorldCommit>,
     ) -> Result<CompositeHistoryCatalogEntry, CompositeHistoryCatalogDenial> {
-        let actual_charge = HistoryMetadataCharge::for_commit(commit.as_ref())
-            .map_err(|_| CompositeHistoryCatalogDenial::ArithmeticOverflow)?;
         let mut state = lock_state(&self.state);
+        self.validate_installation(&state, &commit)?;
+        let entry =
+            promote_reserved_commit(&mut state, &self.identity, commit, self.publication.clone());
+        self.armed = false;
+        Ok(entry)
+    }
+
+    /// Install and protect under the same history-owner lock. Denial preserves
+    /// this reservation; a successful result already owns the new entry's
+    /// first direct protection, so reclamation cannot enter an unprotected gap.
+    pub(crate) fn try_install_product_head(
+        &mut self,
+        commit: Arc<CompositeRuntimeWorldCommit>,
+    ) -> Result<crate::history::ProductHeadHistoryProtectionObligation, CompositeHistoryCatalogDenial>
+    {
+        use crate::history::retention::{
+            CompositeHistoryProtectionObligation, HistoryProtectionClass,
+            ProductHeadHistoryProtectionObligation,
+        };
+        let mut state = lock_state(&self.state);
+        self.validate_installation(&state, &commit)?;
+        let identity = self.identity.clone();
+        let reachability = Arc::clone(&state.reachability);
+        promote_reserved_commit(&mut state, &self.identity, commit, self.publication.clone());
+        super::lock_index(&reachability).protect_newly_installed(&identity);
+        self.armed = false;
+        Ok(ProductHeadHistoryProtectionObligation::issued(
+            CompositeHistoryProtectionObligation::new(
+                reachability,
+                identity,
+                HistoryProtectionClass::ProductHead,
+            ),
+        ))
+    }
+
+    /// Install the publisher's delivery protection in the same transaction as
+    /// the new head protection. Both counts are fixed for this fresh entry;
+    /// no protection capacity is acquired after a successful product CAS.
+    pub(crate) fn try_install_publication(
+        &mut self,
+        commit: Arc<CompositeRuntimeWorldCommit>,
+    ) -> Result<
+        (
+            crate::history::ProductHeadHistoryProtectionObligation,
+            crate::history::PublicationDeliveryClaim,
+        ),
+        CompositeHistoryCatalogDenial,
+    > {
+        use crate::history::retention::{
+            CompositeHistoryProtectionObligation, ExplicitCommitHistoryProtectionObligation,
+            HistoryProtectionClass, ProductHeadHistoryProtectionObligation,
+        };
+        let publication = self
+            .publication
+            .as_ref()
+            .ok_or(CompositeHistoryCatalogDenial::ReservationCommitMismatch)?;
+        let mut state = lock_state(&self.state);
+        self.validate_installation(&state, &commit)?;
+        if commit.provenance()
+            != &crate::history::CompositeCommitProvenance::Publication(
+                publication.attempt_identity().clone(),
+            )
+        {
+            return Err(CompositeHistoryCatalogDenial::ReservationCommitMismatch);
+        }
+        let identity = self.identity.clone();
+        let delivery_identity = identity.clone();
+        let reachability = Arc::clone(&state.reachability);
+        let delivery_reachability = Arc::clone(&reachability);
+        promote_reserved_commit(&mut state, &self.identity, commit, self.publication.clone());
+        {
+            let mut index = super::lock_index(&reachability);
+            index.protect_newly_installed(&identity);
+            index
+                .increment_direct_protection(&identity)
+                .expect("a new entry with one head protection has room for its delivery");
+        }
+        self.armed = false;
+        let head = ProductHeadHistoryProtectionObligation::issued(
+            CompositeHistoryProtectionObligation::new(
+                reachability,
+                identity,
+                HistoryProtectionClass::ProductHead,
+            ),
+        );
+        let delivery_history = ExplicitCommitHistoryProtectionObligation::issued(
+            CompositeHistoryProtectionObligation::new(
+                delivery_reachability,
+                delivery_identity,
+                HistoryProtectionClass::ExplicitObligation,
+            ),
+        );
+        let delivery = publication
+            .claim_delivery(delivery_history)
+            .expect("a newly installed publication has no earlier delivery claim");
+        Ok((head, delivery))
+    }
+
+    fn validate_installation(
+        &self,
+        state: &CompositeHistoryCatalogState,
+        commit: &CompositeRuntimeWorldCommit,
+    ) -> Result<(), CompositeHistoryCatalogDenial> {
+        if !self.armed {
+            return Err(CompositeHistoryCatalogDenial::ReservationMissing);
+        }
+        let actual_charge = HistoryMetadataCharge::for_commit(commit)
+            .and_then(|charge| charge.with_publication(self.publication.as_deref()))
+            .map_err(|_| CompositeHistoryCatalogDenial::ArithmeticOverflow)?;
         let Some(reservation) = state.reservations.get(&self.identity) else {
             return Err(CompositeHistoryCatalogDenial::ReservationMissing);
         };
@@ -178,24 +294,32 @@ impl ReservedCompositeCommitCapacity {
         {
             return Err(CompositeHistoryCatalogDenial::ReservationChargeMismatch);
         }
-
-        let reservation = state
-            .reservations
-            .remove(&self.identity)
-            .expect("the reservation was present immediately before installation");
-        state
-            .metadata
-            .promote(reservation.reservation_charge, reservation.commit_charge);
-        super::counters::lock_counters(&state.counters).record_metadata_promotion();
-        if matches!(reservation.parent, super::CompositeCommitParent::Root) {
-            state.root_reserved = false;
-        }
-        let entry = CompositeHistoryCatalogEntry {
-            commit,
-            metadata_charge: reservation.commit_charge,
-        };
-        install_entry(&mut state, entry.clone());
-        self.armed = false;
-        Ok(entry)
+        Ok(())
     }
+}
+
+fn promote_reserved_commit(
+    state: &mut CompositeHistoryCatalogState,
+    identity: &crate::identity::CompositeCommitIdentity,
+    commit: Arc<CompositeRuntimeWorldCommit>,
+    publication: Option<Arc<crate::history::CanonicalPublicationEnvelope>>,
+) -> CompositeHistoryCatalogEntry {
+    let reservation = state
+        .reservations
+        .remove(identity)
+        .expect("validated live reservation");
+    state
+        .metadata
+        .promote(reservation.reservation_charge, reservation.commit_charge);
+    super::counters::lock_counters(&state.counters).record_metadata_promotion();
+    if matches!(reservation.parent, super::CompositeCommitParent::Root) {
+        state.root_reserved = false;
+    }
+    let entry = CompositeHistoryCatalogEntry {
+        commit,
+        publication,
+        metadata_charge: reservation.commit_charge,
+    };
+    install_entry(state, entry.clone());
+    entry
 }

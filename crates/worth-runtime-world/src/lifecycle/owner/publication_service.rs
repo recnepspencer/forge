@@ -6,6 +6,28 @@ use crate::publication::{
     CompositeLateCancellationPosture, CompositePublicationReady, RuntimeWorldPublicationOutcome,
 };
 
+impl<D, I, E, Ctx, T> RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + Send + Sync + 'static,
+    I: Copy + Ord + Send + Sync + 'static,
+    T: Copy + Ord + Send + Sync + 'static,
+{
+    /// Recover the original committed delivery after caller loss. This reads
+    /// history and claims delivery; it performs no component work or CAS.
+    pub(crate) fn recover_performed_publication(
+        &self,
+        identity: &crate::identity::CompositeCommitIdentity,
+    ) -> Result<
+        Option<crate::publication::PerformedCompositePublication>,
+        crate::history::CompositeHistoryCatalogDenial,
+    > {
+        self.state
+            .history
+            .claim_performed_publication(identity)
+            .map(|claim| claim.map(crate::publication::PerformedCompositePublication::owner_issued))
+    }
+}
+
 impl<D, I, E, Ctx, T> RuntimeWorldProductPublicationService
     for RuntimeWorldOwnerRoot<D, I, E, Ctx, T>
 where

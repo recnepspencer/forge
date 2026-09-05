@@ -13,15 +13,6 @@ impl ProductUnpublishedOwnerEffectsRecord {
         self.metadata_bytes
     }
 
-    pub(crate) fn derived_metadata_bytes(&self) -> usize {
-        // The record is fully inline; allocator capacity is not part of its charge.
-        std::mem::size_of_val(self)
-    }
-
-    pub(crate) const fn catalog_affinity(&self) -> usize {
-        self.catalog_affinity
-    }
-
     pub(crate) fn settlement_required(&self) -> bool {
         self.progress.relational_requires_settlement()
     }

@@ -32,13 +32,15 @@ where
                 let candidate = attempt
                     .take_relational_candidate()
                     .ok_or_else(|| pre_effect_failure(NoEffectCause::PreEffectFailure))?;
-                self.publish_relational_candidate(candidate)
+                attempt.counters_mut().record_relational_owner_contact();
+                self.publish_relational_candidate(attempt, candidate)
             }
         }
     }
 
     fn publish_relational_candidate(
         &self,
+        attempt: &mut crate::publication::ReservedCompositePublicationAttempt,
         candidate: worth_relational::facade::mvcc::PreparedRelationalCommitCandidate,
     ) -> Result<RelationalAttemptProgress, RelationalExecutionFailure> {
         match self
@@ -50,6 +52,16 @@ where
             RelationalPublicationOutcome::Performed(performed) => {
                 let commit_identity = performed.commit_identity();
                 let successor_basis = performed.next_basis().clone();
+                // Persist the owner-issued identity before the settlement
+                // service consumes the linear performed capability. An unwind
+                // can then repair this exact occurrence without repeating it.
+                attempt.record_progress(&crate::publication::CompositeAttemptProgress::new(
+                    RelationalAttemptProgress::settlement_required(
+                        commit_identity.clone(),
+                        successor_basis.clone(),
+                    ),
+                    crate::publication::SignalAttemptProgress::untouched(),
+                ));
                 match self
                     .state
                     .relational

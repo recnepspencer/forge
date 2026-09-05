@@ -3,14 +3,15 @@
 //! Close settles what it can, exposes every retained owner obligation it
 //! cannot, and denies only a critical section that is still in flight.
 
-use std::sync::{Arc, TryLockError};
-use std::time::{Duration, Instant};
+use std::sync::Arc;
 
 use crate::lifecycle::{RuntimeWorldCloseDenial, RuntimeWorldOwnerLifecycleObservation};
 use crate::publication::CompositeLateCancellationPosture;
 use crate::recovery::{ProductUnpublishedCause, ProductUnpublishedNextAction};
 
-use super::admission_race::wait_until_close_is_admitting;
+use super::admission_race::{
+    wait_until_close_holds_operation_admission, wait_until_close_is_admitting,
+};
 use super::product_cas_loss::{
     resolve_one_race, resolve_one_race_after_a_completed_publication, ResolvedRace,
 };
@@ -300,23 +301,4 @@ fn spawn_recovery_reservation(owner: &Arc<TestOwner>) -> std::thread::JoinHandle
             .reserve_recovery_operation_if_open_and_bootstrapped()
             .is_ok()
     })
-}
-
-/// Wait until close is past its ledger check and still holding it. The waiter
-/// count returns to zero once close owns the ledger, and the ledger stays
-/// unavailable for as long as close holds admission.
-fn wait_until_close_holds_operation_admission(owner: &TestOwner) {
-    let deadline = Instant::now() + Duration::from_secs(10);
-    while Instant::now() < deadline {
-        let queued = owner.close_admission_waiters();
-        let held = matches!(
-            owner.state.operation.state.try_lock(),
-            Err(TryLockError::WouldBlock)
-        );
-        if queued == 0 && held {
-            return;
-        }
-        std::thread::sleep(Duration::from_millis(1));
-    }
-    panic!("close never held operation admission across its drain within 10s");
 }

@@ -61,12 +61,17 @@ where
     let (fork, target_basis) = fork_port
         .fork_reserved_with_basis(reservation, source)
         .map_err(|denial| relational_fork_failure(&denial))?;
+    let progress = RelationalAttemptProgress::forked(fork, target_basis);
+    attempt.record_progress(&crate::publication::CompositeAttemptProgress::new(
+        progress.retained_image(),
+        SignalAttemptProgress::untouched(),
+    ));
     install_custody(
         custody,
         destination,
         ComponentBranchTarget::Relational(target),
     );
-    Ok(RelationalAttemptProgress::forked(fork, target_basis))
+    Ok(progress)
 }
 
 /// Observe the fork source the admitted basis names and prove it is still that
@@ -177,11 +182,19 @@ where
     let reservation = mutation_port
         .reserve_fork_exact(target.clone(), attempt.source().basis().signal_basis())
         .map_err(|denial| signal_fork_failure(&denial))?;
+    #[cfg(test)]
+    super::boundary_control::pause_at_signal_fork_cutoff(owner.owner_identity());
     let fork = mutation_port
         .fork_reserved_exact(reservation, cancellation.signal_token())
         .map_err(|denial| signal_fork_failure(&denial))?;
+    let progress = SignalAttemptProgress::forked(fork);
+    let (relational, _) = attempt.progress().retained_image().into_parts();
+    attempt.record_progress(&crate::publication::CompositeAttemptProgress::new(
+        relational,
+        progress.retained_image(),
+    ));
     install_custody(custody, destination, ComponentBranchTarget::Signal(target));
-    Ok(SignalAttemptProgress::forked(fork))
+    Ok(progress)
 }
 
 fn relational_fork_failure(denial: &RelationalForkDenial) -> ForkFailure {
@@ -199,6 +212,9 @@ fn signal_fork_failure(
     denial: &worth_signal::facade::branch::SignalBranchForkOperationDenial,
 ) -> ForkFailure {
     let denial = match super::super::super::super::execution_service::map_fork_no_effect(denial) {
+        crate::publication::NoEffectCause::CancelledBeforeEffect => {
+            RuntimeWorldBranchAdmissionDenial::CancelledBeforeEffect
+        }
         crate::publication::NoEffectCause::CapacityExhausted => {
             RuntimeWorldBranchAdmissionDenial::CapacityExhausted
         }

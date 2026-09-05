@@ -53,12 +53,12 @@ where
         }
         let successor =
             self.issue_successor_basis_from_progress(&progress, attempt.predecessor_basis());
-        if !self.successor_owners_are_current(&successor) {
+        if !self.successor_correspondence_is_valid(&successor) {
             return self.retain_or_no_effect(
                 attempt,
                 progress,
-                ProductUnpublishedCause::OwnerLost,
-                NoEffectCause::OwnerUnavailable,
+                ProductUnpublishedCause::CorrespondenceRebindRequired,
+                NoEffectCause::CorrespondenceRebindRequired,
             );
         }
         OwnerExecutionOutcome::Settled(attempt.settle_with_successor_basis(progress, successor))
@@ -99,6 +99,11 @@ where
         attempt: ReservedCompositePublicationAttempt,
         cause: NoEffectCause,
     ) -> OwnerExecutionOutcome {
+        assert_eq!(
+            attempt.progress().owner_effect_count(),
+            0,
+            "performed owner evidence cannot become no-effect"
+        );
         let expected = attempt.expected_head().clone();
         let observed = (cause == NoEffectCause::StaleExpectedProductHead)
             .then(|| self.current_product_head_snapshot(&expected))

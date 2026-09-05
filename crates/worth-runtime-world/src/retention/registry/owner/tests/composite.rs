@@ -215,3 +215,51 @@ fn product_head_transfer_and_recovery_change_both_exact_classes_once() {
     assert_eq!(fixture.owner.active_component_obligation_count(), 0);
     assert_eq!(fixture.owner.reclaim(2).reclaimed(), 2);
 }
+
+#[test]
+fn borrowed_product_transfer_denial_preserves_the_original_pair_for_retry() {
+    let fixture = real_fixture(4, 4);
+    let foreign = real_fixture(4, 4);
+    let mut publication = fixture.owner.issue_publication(&fixture.basis).unwrap();
+    let before_relational = fixture.relational_runtime.branch_basis_cost_counters();
+    let before_signal = fixture.signal_port.owner_service_cost_snapshot().unwrap();
+    assert!(publication
+        .try_transfer_product_head(&foreign.basis)
+        .is_err());
+    assert!(publication.matches_basis(&fixture.basis));
+    assert_eq!(
+        publication.relational().dependency(),
+        ComponentBasisDependencyClass::ActivePublicationAttempt
+    );
+    assert_eq!(
+        publication.signal().dependency(),
+        ComponentBasisDependencyClass::ActivePublicationAttempt
+    );
+    assert_eq!(fixture.owner.active_component_obligation_count(), 2);
+    let transfer = publication
+        .try_transfer_product_head(&fixture.basis)
+        .unwrap();
+    drop(publication);
+    assert_eq!(
+        fixture.owner.active_component_obligation_count(),
+        2,
+        "the consumed source wrapper no longer owns either count"
+    );
+    let (head, _) = transfer.into_parts();
+    assert!(head.matches_basis(&fixture.basis));
+    assert_eq!(
+        fixture.relational_runtime.branch_basis_cost_counters(),
+        before_relational
+    );
+    assert_eq!(
+        fixture
+            .signal_port
+            .owner_service_cost_snapshot()
+            .unwrap()
+            .retention_registry_contacts(),
+        before_signal.retention_registry_contacts()
+    );
+    drop(head);
+    assert_eq!(fixture.owner.active_component_obligation_count(), 0);
+    assert_eq!(fixture.owner.reclaim(2).reclaimed(), 2);
+}

@@ -16,6 +16,8 @@ pub(super) struct HistoryMetadataCharge {
     reachability_key: usize,
     reachability_row: usize,
     owner_controlled_boxes: usize,
+    publication_envelope: usize,
+    publication_branch_name: usize,
     total: usize,
 }
 
@@ -26,12 +28,12 @@ impl HistoryMetadataCharge {
         let commit_record = size_of::<CompositeRuntimeWorldCommit>();
         let arc_history = size_of::<Arc<CompositeRuntimeWorldCommit>>();
         let ordered_index_key = size_of::<CompositeCommitIdentity>();
-        let ordered_index_value = size_of::<CompositeHistoryCatalogEntry>();
+        let ordered_index_value = size_of::<Option<CompositeHistoryCatalogEntry>>();
         let reachability_key = size_of::<CompositeCommitIdentity>();
-        let reachability_row = size_of::<HistoryReachabilityRecord>();
+        let reachability_row = size_of::<Option<HistoryReachabilityRecord>>();
         let owner_controlled_boxes = checked_sum([
-            size_of::<Box<CompositeHistoryCatalogEntry>>(),
-            size_of::<Box<HistoryReachabilityRecord>>(),
+            size_of::<Box<Option<CompositeHistoryCatalogEntry>>>(),
+            size_of::<Box<Option<HistoryReachabilityRecord>>>(),
         ])?;
         let total = checked_sum([
             commit_record,
@@ -50,6 +52,8 @@ impl HistoryMetadataCharge {
             reachability_key,
             reachability_row,
             owner_controlled_boxes,
+            publication_envelope: 0,
+            publication_branch_name: 0,
             total,
         })
     }
@@ -58,6 +62,30 @@ impl HistoryMetadataCharge {
         commit: &CompositeRuntimeWorldCommit,
     ) -> Result<Self, HistoryMetadataArithmeticOverflow> {
         Self::for_parent(commit.parent())
+    }
+
+    pub(super) fn with_publication(
+        mut self,
+        publication: Option<&crate::history::CanonicalPublicationEnvelope>,
+    ) -> Result<Self, HistoryMetadataArithmeticOverflow> {
+        if let Some(publication) = publication {
+            self.publication_envelope = checked_sum([
+                size_of::<crate::history::CanonicalPublicationEnvelope>(),
+                size_of::<Arc<crate::history::CanonicalPublicationEnvelope>>(),
+            ])?;
+            // A conservative per-envelope charge for its retained shared
+            // name, not a claim to measure unique allocator-resident bytes.
+            self.publication_branch_name = checked_sum([
+                size_of::<Arc<str>>(),
+                publication.branch_name().as_str().len(),
+            ])?;
+            self.total = checked_sum([
+                self.total,
+                self.publication_envelope,
+                self.publication_branch_name,
+            ])?;
+        }
+        Ok(self)
     }
 
     pub(super) const fn total(self) -> usize {

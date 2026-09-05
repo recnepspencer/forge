@@ -136,7 +136,7 @@ fn complete_ready_publish_path_derives_and_installs_the_successor_snapshot() {
         other => panic!("the uncontended ready publication must perform: {other:?}"),
     };
 
-    assert_eq!(performed.old_product_head().snapshot(), expected.snapshot());
+    assert_eq!(performed.old_product_head(), expected.snapshot());
     assert_eq!(performed.new_product_head(), &cell.atomic_snapshot());
     assert_eq!(
         performed.new_product_head().selected_commit(),
@@ -219,7 +219,13 @@ fn post_effect_retention_denial_installs_recovery_and_preserves_retry_capacity()
         retained,
     } = resolve_post_effect_retention_denial();
 
-    assert_eq!(retained.cause(), ProductUnpublishedCause::OwnerLost);
+    assert_eq!(
+        retained.cause(),
+        ProductUnpublishedCause::RetentionAdmissionDenied
+    );
+    assert!(!retained
+        .next_actions()
+        .contains(&crate::recovery::ProductUnpublishedNextAction::CloseOwner));
     assert_eq!(
         retained.retention_posture(),
         ProductUnpublishedRetentionPosture::ReacquisitionPending

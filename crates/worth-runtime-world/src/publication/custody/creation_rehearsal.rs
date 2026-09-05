@@ -5,7 +5,7 @@
 //! withheld after the destination commit is already installed. Every such
 //! denial is worst-case reserved capacity, so no honest fixture can starve one
 //! deterministically. This control withholds exactly the observation authority
-//! `issue_observation_authority` already models as `Err(())`, then holds the
+//! `issue_observation_authority` already models as a typed admission denial, then holds the
 //! diverted attempt at the recovery-record construction boundary so another
 //! thread can read the close-admission ledger while the operation reservation
 //! is the only custody standing between recovery and `close()`.
@@ -62,8 +62,8 @@ where
 /// attempt. Every other attempt keeps the authority its owner issued.
 pub(super) fn withhold_observation_authority_under_rehearsal<A>(
     identity: &ProductUnpublishedOwnerEffectsIdentity,
-    authority: Result<A, ()>,
-) -> Result<A, ()> {
+    authority: Result<A, crate::recovery::ProductUnpublishedCause>,
+) -> Result<A, crate::recovery::ProductUnpublishedCause> {
     let Some(rehearsal) = armed_rehearsal(identity) else {
         return authority;
     };
@@ -71,7 +71,7 @@ pub(super) fn withhold_observation_authority_under_rehearsal<A>(
         return authority;
     }
     drop(authority);
-    Err(())
+    Err(crate::recovery::ProductUnpublishedCause::DestinationAdmissionDenied)
 }
 
 /// Hold the rehearsed attempt after `begin_recovery` and before its record is

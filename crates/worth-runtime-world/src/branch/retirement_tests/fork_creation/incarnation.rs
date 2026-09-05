@@ -16,9 +16,8 @@ fn retire_and_recreate_the_same_name_keeps_the_identity_and_advances_the_incarna
     let (_fixture, owner, source) = super::super::setup(3);
     let first =
         super::super::create_reused_branch(&owner, &source, super::super::reuse_intent(ABA_NAME));
-    let report =
-        RuntimeWorldBranchService::retire_product_branch(&owner, first.branch_identity().clone())
-            .expect("the first occurrence retires");
+    let report = RuntimeWorldBranchService::retire_product_branch(&owner, &first)
+        .expect("the first occurrence retires");
     assert!(report.owner_retirement_work().is_empty());
 
     let second =
@@ -38,6 +37,16 @@ fn retire_and_recreate_the_same_name_keeps_the_identity_and_advances_the_incarna
             .expect("the recreated name is observable"),
         second,
         "the identity alone resolves to the current occurrence"
+    );
+    assert!(matches!(
+        owner.retire_product_branch(&first),
+        Err(crate::branch::RuntimeWorldBranchRetirementDenial::AlreadyRetired)
+    ));
+    assert_eq!(
+        owner
+            .observe_product_branch(second.branch_identity())
+            .unwrap(),
+        second
     );
     assert_aba_observation_is_refused(&owner, &first, &second);
 }
@@ -97,11 +106,8 @@ fn custody_is_keyed_to_the_occurrence_that_created_it_not_the_reused_name() {
         ),
     );
     assert_eq!(owner.state.custody.installed(), 2);
-    let report = RuntimeWorldBranchService::retire_product_branch(
-        &owner,
-        recreated.branch_identity().clone(),
-    )
-    .expect("the recreated occurrence retires");
+    let report = RuntimeWorldBranchService::retire_product_branch(&owner, &recreated)
+        .expect("the recreated occurrence retires");
     assert_eq!(
         report.owner_retirement_work(),
         [OwnerRetirementWork::RelationalBranchRetirement {

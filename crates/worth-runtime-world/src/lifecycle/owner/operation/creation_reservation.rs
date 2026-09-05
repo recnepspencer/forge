@@ -76,6 +76,11 @@ where
         plan: LoweredBranchCreationPlan,
         deadline: Option<RuntimeWorldInstant>,
     ) -> Result<ReservedBranchCreationAttempt, RuntimeWorldBranchAdmissionDenial> {
+        let observation_capacity = self
+            .state
+            .retention
+            .reserve_observation()
+            .map_err(|_| RuntimeWorldBranchAdmissionDenial::CapacityExhausted)?;
         let operation = self
             .reserve_creation_operation()
             .map_err(|()| RuntimeWorldBranchAdmissionDenial::OwnerUnavailable)?;
@@ -90,7 +95,7 @@ where
             reserved_recovery_slot,
             reserved_component_pin_pair,
             reserved_publication_capacity,
-        } = reserve_publication_resources(self, &source, &commit_identity)
+        } = reserve_publication_resources(self, &source, &commit_identity, None)
             .map_err(map_reservation_cause)?;
         let relational_custody = reserve_custody(
             self,
@@ -117,6 +122,7 @@ where
                     history,
                     operation,
                 }),
+                observation_capacity,
                 relational_custody,
                 signal_custody,
                 deadline,
@@ -152,10 +158,10 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     if cancellation.is_cancelled() {
-        return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+        return Err(RuntimeWorldBranchAdmissionDenial::CancelledBeforeEffect);
     }
     if owner.deadline_expired(deadline) {
-        return Err(RuntimeWorldBranchAdmissionDenial::OwnerUnavailable);
+        return Err(RuntimeWorldBranchAdmissionDenial::DeadlineBeforeEffect);
     }
     Ok(())
 }

@@ -4,42 +4,55 @@ impl CompositeAttemptProgress {
     pub(crate) fn into_ready_results(
         self,
     ) -> Result<(Self, crate::publication::CompositeOwnerExecutionResults), Self> {
-        let relational_ready = match (&self.relational.posture, &self.relational.evidence) {
-            (RelationalAttemptProgressPosture::Untouched, None)
-            | (
-                RelationalAttemptProgressPosture::Settled,
-                Some(RelationalProgressEvidence::Settled { .. }),
-            ) => true,
-            _ => self.relational.is_fork_only(),
-        };
-        let signal_ready = matches!(
-            self.signal.posture,
-            SignalAttemptProgressPosture::Untouched | SignalAttemptProgressPosture::Performed
-        );
-        if !relational_ready || !signal_ready || self.owner_effect_count() == 0 {
-            return Err(self);
-        }
+        self.ready_results().ok_or(self)
+    }
 
-        let Self { relational, signal } = self;
-        let signal_posture = signal.posture;
-        let RelationalAttemptProgress {
-            posture: relational_posture,
-            evidence: relational_evidence,
-            fork,
-            fork_successor_basis,
-        } = relational;
-        let relational_result = match (relational_evidence, fork, fork_successor_basis) {
-            (None, None, None)
-                if relational_posture == RelationalAttemptProgressPosture::Untouched =>
-            {
-                crate::publication::CompositeRelationalOwnerResult::retained()
+    /// A read-only projection of settled evidence. The owner registry can keep
+    /// the original progress while a linear phase borrows its result view.
+    pub(crate) fn ready_results(
+        &self,
+    ) -> Option<(Self, crate::publication::CompositeOwnerExecutionResults)> {
+        if self.owner_effect_count() == 0 {
+            return None;
+        }
+        let relational_result = self.relational.ready_result()?;
+        let signal_result = self.signal.ready_result()?;
+        let summary = Self {
+            relational: RelationalAttemptProgress {
+                posture: self.relational.posture,
+                evidence: None,
+                fork: None,
+                fork_successor_basis: None,
+            },
+            signal: SignalAttemptProgress::summary(self.signal.posture),
+        };
+        Some((
+            summary,
+            crate::publication::CompositeOwnerExecutionResults::from_components(
+                relational_result,
+                signal_result,
+            ),
+        ))
+    }
+}
+
+impl RelationalAttemptProgress {
+    fn ready_result(&self) -> Option<crate::publication::CompositeRelationalOwnerResult> {
+        use crate::publication::CompositeRelationalOwnerResult as ResultEvidence;
+        match (
+            self.posture,
+            &self.evidence,
+            &self.fork,
+            &self.fork_successor_basis,
+        ) {
+            (RelationalAttemptProgressPosture::Untouched, None, None, None) => {
+                Some(ResultEvidence::retained())
             }
-            (None, Some(fork), Some(successor_basis))
-                if relational_posture == RelationalAttemptProgressPosture::Performed =>
-            {
-                crate::publication::CompositeRelationalOwnerResult::forked(fork, successor_basis)
+            (RelationalAttemptProgressPosture::Performed, None, Some(fork), Some(basis)) => {
+                Some(ResultEvidence::forked(fork.clone(), basis.clone()))
             }
             (
+                RelationalAttemptProgressPosture::Settled,
                 Some(RelationalProgressEvidence::Settled {
                     commit_identity,
                     successor_basis,
@@ -47,52 +60,30 @@ impl CompositeAttemptProgress {
                 }),
                 None,
                 None,
-            ) => crate::publication::CompositeRelationalOwnerResult::settled(
-                commit_identity,
-                successor_basis,
-                result,
-            ),
-            (Some(RelationalProgressEvidence::SettlementPending { .. }), _, _) => {
-                unreachable!("pending Relational progress is rejected above")
-            }
-            (Some(RelationalProgressEvidence::SettlementRequired { .. }), _, _) => {
-                unreachable!("required Relational settlement is rejected above")
-            }
-            (Some(RelationalProgressEvidence::SettledReceipt { .. }), _, _) => {
-                unreachable!("receipt-only settlement is recovery evidence")
-            }
-            _ => unreachable!("ready Relational progress carries matching evidence"),
-        };
-        let signal_result = match signal.evidence {
-            None if signal_posture == SignalAttemptProgressPosture::Untouched => {
-                crate::publication::CompositeSignalOwnerResult::retained()
-            }
-            Some(SignalProgressEvidence::Advanced(advanced)) => {
-                crate::publication::CompositeSignalOwnerResult::advanced(advanced)
-            }
-            Some(SignalProgressEvidence::Forked(forked)) => {
-                crate::publication::CompositeSignalOwnerResult::forked(forked)
-            }
-            _ => unreachable!("ready Signal progress carries matching evidence"),
-        };
-        let summary = Self {
-            relational: RelationalAttemptProgress {
-                posture: relational_posture,
-                evidence: None,
-                fork: None,
-                fork_successor_basis: None,
-            },
-            signal: SignalAttemptProgress {
-                posture: signal_posture,
-                evidence: None,
-            },
-        };
-        Ok((
-            summary,
-            crate::publication::CompositeOwnerExecutionResults::from_components(
-                relational_result,
-                signal_result,
-            ),
-        ))
+            ) => Some(ResultEvidence::settled(
+                commit_identity.clone(),
+                successor_basis.clone(),
+                std::sync::Arc::clone(result),
+            )),
+            _ => None,
+        }
+    }
+}
+
+impl SignalAttemptProgress {
+    fn ready_result(&self) -> Option<crate::publication::CompositeSignalOwnerResult> {
+        use crate::publication::CompositeSignalOwnerResult as ResultEvidence;
+        match (self.posture, &self.evidence) {
+            (SignalAttemptProgressPosture::Untouched, None) => Some(ResultEvidence::retained()),
+            (
+                SignalAttemptProgressPosture::Performed,
+                Some(SignalProgressEvidence::Advanced(outcome)),
+            ) => Some(ResultEvidence::advanced(std::sync::Arc::clone(outcome))),
+            (
+                SignalAttemptProgressPosture::Performed,
+                Some(SignalProgressEvidence::Forked(outcome)),
+            ) => Some(ResultEvidence::forked(outcome.clone())),
+            _ => None,
+        }
     }
 }

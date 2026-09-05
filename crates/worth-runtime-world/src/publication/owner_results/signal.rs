@@ -11,21 +11,27 @@ pub struct CompositeSignalOwnerResult {
     result: CompositeSignalOwnerResultKind,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum CompositeSignalOwnerResultKind {
     RetainedExact,
-    Advanced(SignalBranchAdvanceOutcome),
+    Advanced(std::sync::Arc<SignalBranchAdvanceOutcome>),
     Forked(SignalBranchForkOutcome),
 }
 
 impl CompositeSignalOwnerResult {
+    pub(super) fn evidence_image(&self) -> Self {
+        Self {
+            result: self.result.clone(),
+        }
+    }
+
     pub(crate) fn retained() -> Self {
         Self {
             result: CompositeSignalOwnerResultKind::RetainedExact,
         }
     }
 
-    pub(crate) fn advanced(result: SignalBranchAdvanceOutcome) -> Self {
+    pub(crate) fn advanced(result: std::sync::Arc<SignalBranchAdvanceOutcome>) -> Self {
         Self {
             result: CompositeSignalOwnerResultKind::Advanced(result),
         }

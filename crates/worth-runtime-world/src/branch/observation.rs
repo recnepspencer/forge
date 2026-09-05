@@ -143,6 +143,8 @@ impl ProductBranchObservationMismatch {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeWorldBranchAdmissionDenial {
+    CancelledBeforeEffect,
+    DeadlineBeforeEffect,
     OwnerUnavailable,
     ForeignOwner,
     RetiredBranch,

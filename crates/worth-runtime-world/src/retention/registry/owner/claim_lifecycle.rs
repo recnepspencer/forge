@@ -56,23 +56,16 @@ where
 
     fn transfer_pair(
         &self,
-        mut relational: ComponentBasisPinClaim,
-        mut signal: ComponentBasisPinClaim,
+        relational: &mut ComponentBasisPinClaim,
+        signal: &mut ComponentBasisPinClaim,
         target: ComponentBasisDependencyClass,
-    ) -> Result<
-        (ComponentBasisPinClaim, ComponentBasisPinClaim),
-        (
-            ComponentBasisPinClaim,
-            ComponentBasisPinClaim,
-            RetentionTransferDenial,
-        ),
-    > {
+    ) -> Result<(), RetentionTransferDenial> {
         if relational.key == signal.key {
-            return Err((relational, signal, RetentionTransferDenial::BasisMismatch));
+            return Err(RetentionTransferDenial::BasisMismatch);
         }
         let mut state = self.lock();
         if relational.owner != state.owner_identity || signal.owner != state.owner_identity {
-            return Err((relational, signal, RetentionTransferDenial::ForeignOwner));
+            return Err(RetentionTransferDenial::ForeignOwner);
         }
         let relational_valid = state.entries.get(&relational.key).is_some_and(|entry| {
             entry.lease_identity == relational.lease_identity
@@ -85,7 +78,7 @@ where
                 && entry.counts.get(signal.dependency) > 0
         });
         if !relational_valid || !signal_valid {
-            return Err((relational, signal, RetentionTransferDenial::UnknownPin));
+            return Err(RetentionTransferDenial::UnknownPin);
         }
         let relational_target_full = relational.dependency != target
             && state
@@ -98,11 +91,7 @@ where
                 .get(&signal.key)
                 .is_some_and(|entry| entry.counts.get(target) == usize::MAX);
         if relational_target_full || signal_target_full {
-            return Err((
-                relational,
-                signal,
-                RetentionTransferDenial::DependencyCountExhausted,
-            ));
+            return Err(RetentionTransferDenial::DependencyCountExhausted);
         }
         for claim in [&relational, &signal] {
             if claim.dependency == target {
@@ -123,7 +112,7 @@ where
         }
         relational.dependency = target;
         signal.dependency = target;
-        Ok((relational, signal))
+        Ok(())
     }
 
     fn release_claim(

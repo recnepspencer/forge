@@ -18,18 +18,44 @@ does not authorize a commit.
 selected commit remain separate meanings. `ProductBranchObservation` compares
 all of them together with the exact owner-issued composite admission. A branch
 name, commit id, generation, digest, or descriptor alone is not a product-head
-observation. Signal currentness is admitted only through the Signal owner basis
-port's exact current comparison.
+observation. The product reference selects its retained exact tuple even if a
+component owner has since advanced. Only a requested component mutation checks
+that owner's current exact basis; unchanged components require no owner contact.
 
-Repeated admission of the same live owner-issued tuple reuses its composite
-identity. Equal descriptors with a distinct component admission identity do
-not compare as the same composite basis.
+The same exact owner-issued tuple has the same `CompositeBasisKey`; no separate
+lookup index authorizes equivalence. Equal descriptors with distinct component
+admission identities do not compare as the same composite basis.
 
 Root bootstrap is the only operation that can establish the initial product
 reference. Later history is single-parent in this milestone. The mutable
 product reference is not the immutable commit, and history insertion alone is
 not a product-reference movement.
 
-The Phase 1 contract intentionally exposes no catalog, traversal, persistence,
-or reclamation implementation. Those responsibilities must consume these
-types without introducing a second history or currentness authority.
+Ordinary publication reserves a canonical performed envelope beside its history
+entry before component effects. Its logical metadata charge includes the
+preallocated facts and a conservative per-envelope charge for the retained
+shared branch name; it is not a measurement of unique allocator-resident bytes.
+The immutable commit remains separate from the later movement. The envelope
+retains the exact old/new snapshots, full component results, transfer receipt,
+late cancellation, and final publication counters only after the cell commits.
+It is reclaimed with its entry, with final evidence destructors outside the
+history lock. A live delivery claim carries explicit history protection; the
+envelope stored inside the entry does not protect itself.
+
+Admission allocates pending slots in the eventual ordered history and
+reachability maps. Pending slots count once against capacity but remain hidden
+from lookup, protection, parent admission, and reclamation. Installation fills
+those slots in place, preserving the parent dependency acquired at reservation.
+Reservation Drop removes both pending slots and releases its charge. Ordinary
+publication performs promotion inside the branch's final comparison lock;
+a stale comparison leaves the reserved storage uninstalled.
+
+Exact branch reuse installs the source observation's existing commit while its
+source reference still matches, without a new commit or owner effect. Explicit
+fork plans create the requested component branches and a single-parent composite
+commit; performed forks remain recoverable if the destination cannot install.
+
+Retirement accepts an existing `ProductBranchObservation` as proof of the
+installed occurrence. It compares owner, name, and incarnation, allowing later
+head movement within that occurrence. An older occurrence cannot retire a
+recreated name. The live registry needs no historical retired-name set.

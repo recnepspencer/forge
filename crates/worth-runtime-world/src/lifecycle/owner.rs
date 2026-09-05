@@ -123,6 +123,7 @@ where
             &signal,
             budgets.unique_exact_component_pins(),
             budgets.in_flight_pin_acquisition_reservations(),
+            budgets.active_observations(),
         );
         let branches = ProductBranchRegistry::new(owner_identity, budgets.live_product_branches());
         let custody = crate::branch::OwnerCreatedComponentCustodyRegistry::new(

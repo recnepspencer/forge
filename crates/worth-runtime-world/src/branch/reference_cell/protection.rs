@@ -109,6 +109,15 @@ impl ProductBranchHeadProtection {
         &self.product_head
     }
 
+    pub(crate) fn retain_component_pins(
+        &mut self,
+    ) -> Result<
+        crate::retention::RetainedPartialRetentionObligation,
+        crate::retention::RetentionTransferDenial,
+    > {
+        self.product_head.try_transfer_retained()
+    }
+
     pub(crate) fn product_head_history(&self) -> &ProductHeadHistoryProtectionObligation {
         &self.product_head_history
     }

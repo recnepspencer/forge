@@ -80,10 +80,11 @@ fn bootstrap_budgets() -> RuntimeWorldBudgets {
         },
         history: RuntimeWorldHistoryBudgetInstallation {
             retained_composite_commits: 4,
-            history_metadata_bytes: 4096,
+            // This fixture tests lifecycle limits, with room for performed history facts.
+            history_metadata_bytes: 16384,
         },
         observations: RuntimeWorldObservationBudgetInstallation {
-            active_observations: 1,
+            active_observations: 2,
         },
         publication: RuntimeWorldPublicationBudgetInstallation {
             active_publication_attempts: 2,

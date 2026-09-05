@@ -1,7 +1,9 @@
+mod admission;
 mod counters;
 mod denial;
 mod entry;
 mod metadata;
+mod publication;
 mod reachability;
 mod reservation;
 mod support;
@@ -32,10 +34,7 @@ pub(in crate::history) use reachability::{
     lock_index, HistoryReachabilityHandle, HistoryReachabilityIndex,
 };
 pub(crate) use reservation::ReservedCompositeCommitCapacity;
-use support::{
-    lock_state, prevalidate_candidate_prefix, remove_installed, validate_owner,
-    validate_parent_for_reservation,
-};
+use support::{lock_state, prevalidate_candidate_prefix, remove_installed, validate_owner};
 pub(crate) use traversal::CompositeHistoryTraversal;
 
 /// Installed limits consumed by the immutable history owner.
@@ -79,7 +78,9 @@ pub(crate) struct CompositeHistoryCatalog {
 pub(super) struct CompositeHistoryCatalogState {
     owner: RuntimeWorldOwnerIdentity,
     limits: RuntimeWorldHistoryCatalogContract,
-    entries: BTreeMap<CompositeCommitIdentity, CompositeHistoryCatalogEntry>,
+    // Reservation allocates the eventual ordered slot before owner effects.
+    // Only a populated slot is an installed occurrence.
+    entries: BTreeMap<CompositeCommitIdentity, Option<CompositeHistoryCatalogEntry>>,
     reservations: BTreeMap<CompositeCommitIdentity, HistoryReservationMetadata>,
     metadata: HistoryMetadataLedger,
     reachability: HistoryReachabilityHandle,
@@ -114,97 +115,6 @@ impl CompositeHistoryCatalog {
         }
     }
 
-    pub(crate) fn reserve(
-        &self,
-        commit: &CompositeRuntimeWorldCommit,
-    ) -> Result<ReservedCompositeCommitCapacity, CompositeHistoryCatalogDenial> {
-        self.reserve_commit_capacity(commit.identity().clone(), commit.parent().clone())
-    }
-
-    /// Reserve immutable commit and metadata capacity before a commit exists.
-    /// The owner supplies the identity and exact parent; installation later
-    /// accepts only the matching immutable commit.
-    pub(crate) fn reserve_commit_capacity(
-        &self,
-        identity: CompositeCommitIdentity,
-        parent: CompositeCommitParent,
-    ) -> Result<ReservedCompositeCommitCapacity, CompositeHistoryCatalogDenial> {
-        let mut state = lock_state(&self.state);
-        validate_owner(&state, identity.owner_identity())?;
-        if state.entries.contains_key(&identity) || state.reservations.contains_key(&identity) {
-            return Err(CompositeHistoryCatalogDenial::DuplicateCommit);
-        }
-        if matches!(parent, CompositeCommitParent::Root)
-            && (state.root.is_some() || state.root_reserved || state.root_ever_installed)
-        {
-            return Err(CompositeHistoryCatalogDenial::RootAlreadyInstalled);
-        }
-        validate_parent_for_reservation(&mut state, &parent)?;
-        let maximum_commits = state.limits.maximum_commits().get();
-        let installed_commits = state.entries.len();
-        let reserved_commits = state.reservations.len();
-        if installed_commits >= maximum_commits
-            || reserved_commits >= maximum_commits.saturating_sub(installed_commits)
-        {
-            return Err(CompositeHistoryCatalogDenial::CommitCapacityExhausted {
-                maximum: maximum_commits,
-            });
-        }
-
-        let commit_charge = metadata::HistoryMetadataCharge::for_parent(&parent)
-            .map_err(|_| CompositeHistoryCatalogDenial::ArithmeticOverflow)?;
-        let reservation_charge = metadata::HistoryReservationCharge::for_parent(&parent)
-            .map_err(|_| CompositeHistoryCatalogDenial::ArithmeticOverflow)?;
-        let preview = {
-            counters::lock_counters(&state.counters).record_metadata_reservation_check();
-            state
-                .metadata
-                .preview_reservation(
-                    reservation_charge,
-                    commit_charge,
-                    state.limits.maximum_metadata_bytes().get(),
-                )
-                .map_err(|denial| match denial {
-                    metadata::HistoryMetadataLedgerDenial::ArithmeticOverflow => {
-                        CompositeHistoryCatalogDenial::ArithmeticOverflow
-                    }
-                    metadata::HistoryMetadataLedgerDenial::Capacity {
-                        maximum,
-                        used,
-                        requested,
-                    } => CompositeHistoryCatalogDenial::MetadataCapacityExhausted {
-                        maximum,
-                        used,
-                        requested,
-                    },
-                })?
-        };
-
-        if let CompositeCommitParent::Ordinary(parent) = &parent {
-            let mut reachability = lock_index(&state.reachability);
-            reachability.increment_descendant_dependency(parent.commit())?;
-        }
-        state.metadata.reserve_confirmed(preview);
-        counters::lock_counters(&state.counters).record_metadata_reservation();
-        let reservation = HistoryReservationMetadata {
-            parent: parent.clone(),
-            commit_charge,
-            reservation_charge,
-        };
-        assert!(state
-            .reservations
-            .insert(identity.clone(), reservation.clone())
-            .is_none());
-        if matches!(parent, CompositeCommitParent::Root) {
-            state.root_reserved = true;
-        }
-        Ok(ReservedCompositeCommitCapacity::new(
-            Arc::clone(&self.state),
-            identity,
-            reservation,
-        ))
-    }
-
     pub(crate) fn append(
         &self,
         commit: Arc<CompositeRuntimeWorldCommit>,
@@ -222,6 +132,7 @@ impl CompositeHistoryCatalog {
         state
             .entries
             .get(identity)
+            .and_then(Option::as_ref)
             .map(|entry| Arc::clone(&entry.commit))
     }
 
@@ -230,7 +141,8 @@ impl CompositeHistoryCatalog {
     }
 
     pub(crate) fn len(&self) -> usize {
-        lock_state(&self.state).entries.len()
+        let state = lock_state(&self.state);
+        state.entries.len() - state.reservations.len()
     }
 
     pub(crate) fn reserved_len(&self) -> usize {
@@ -243,10 +155,14 @@ impl CompositeHistoryCatalog {
     ) -> reservation::InstalledRootCommitRollback {
         let state = lock_state(&self.state);
         assert!(
-            state.entries.get(identity).is_some_and(|entry| matches!(
-                entry.commit().parent(),
-                CompositeCommitParent::Root
-            )),
+            state
+                .entries
+                .get(identity)
+                .and_then(Option::as_ref)
+                .is_some_and(|entry| matches!(
+                    entry.commit().parent(),
+                    CompositeCommitParent::Root
+                )),
             "root rollback must be armed for an installed root entry"
         );
         reservation::InstalledRootCommitRollback::new(Arc::clone(&self.state), identity.clone())
@@ -257,7 +173,10 @@ impl CompositeHistoryCatalog {
         identity: &CompositeCommitIdentity,
     ) -> reservation::InstalledCommitRollback {
         assert!(
-            lock_state(&self.state).entries.contains_key(identity),
+            lock_state(&self.state)
+                .entries
+                .get(identity)
+                .is_some_and(Option::is_some),
             "commit rollback must be armed for an installed entry"
         );
         reservation::InstalledCommitRollback::new(Arc::clone(&self.state), identity.clone())
@@ -284,7 +203,7 @@ impl CompositeHistoryCatalog {
     ) -> Result<CompositeHistoryProtectionObligation, CompositeHistoryCatalogDenial> {
         let state = lock_state(&self.state);
         validate_owner(&state, identity.owner_identity())?;
-        if !state.entries.contains_key(&identity) {
+        if !state.entries.get(&identity).is_some_and(Option::is_some) {
             return Err(CompositeHistoryCatalogDenial::UnknownProtectionTarget(
                 identity,
             ));
@@ -341,6 +260,7 @@ impl CompositeHistoryCatalog {
             let entry = state
                 .entries
                 .get(&current)
+                .and_then(Option::as_ref)
                 .ok_or_else(|| CompositeHistoryCatalogDenial::MissingParent(current.clone()))?;
             commits.push(Arc::clone(&entry.commit));
             let Some(parent) = support::ordinary_parent_identity(entry.commit().parent()) else {
@@ -361,13 +281,20 @@ impl CompositeHistoryCatalog {
         &self,
         request: CompositeHistoryReclamationRequest,
     ) -> Result<HistoryReclamationOutcome, HistoryReclamationDenial> {
+        let candidate_count = request
+            .candidate_commits()
+            .len()
+            .min(request.maximum_reclaims());
+        // Removed entries can own the last immutable component-result image.
+        // Allocate the bounded release list before taking the catalog lock,
+        // and release those images only after that lock is gone.
+        let mut released_entries = Vec::with_capacity(candidate_count);
         let mut state = lock_state(&self.state);
         validate_owner(&state, request.owner()).map_err(HistoryReclamationDenial::Catalog)?;
         let maximum_reclaims = request.maximum_reclaims();
         if maximum_reclaims == 0 {
             return Ok(HistoryReclamationOutcome::new(0));
         }
-        let candidate_count = request.candidate_commits().len().min(maximum_reclaims);
         let candidates = &request.candidate_commits()[..candidate_count];
         prevalidate_candidate_prefix(&mut state, candidates)?;
 
@@ -394,7 +321,10 @@ impl CompositeHistoryCatalog {
             }
             let entry = remove_installed(&mut state, candidate);
             outcome.reclaimed_one(candidate.clone(), entry.metadata_charge().total());
+            released_entries.push(entry);
         }
+        drop(state);
+        drop(released_entries);
         Ok(outcome)
     }
 }

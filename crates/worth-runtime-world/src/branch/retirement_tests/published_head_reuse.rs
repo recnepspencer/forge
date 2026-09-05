@@ -78,3 +78,29 @@ fn exact_reuse_from_a_displaced_source_head_denies_as_stale_before_any_charge() 
     // across the assertions so that its release is not mistaken for a charge.
     drop(held_source);
 }
+
+#[test]
+fn retirement_accepts_an_older_head_from_the_same_installed_occurrence() {
+    let (mut fixture, owner, first) = setup_with_relational_source(3);
+    seed_relational_source(&owner, &mut fixture, first.clone());
+    let current = super::RuntimeWorldObservationService::observe_product_branch(
+        &owner,
+        first.branch_identity(),
+    )
+    .unwrap();
+    assert_ne!(first.selected_commit(), current.selected_commit());
+    assert_eq!(
+        first.lifecycle_incarnation(),
+        current.lifecycle_incarnation()
+    );
+    assert!(owner
+        .retire_product_branch(&first)
+        .unwrap()
+        .owner_retirement_work()
+        .is_empty());
+    assert!(matches!(
+        owner.retire_product_branch(&current),
+        Err(super::RuntimeWorldBranchRetirementDenial::AlreadyRetired)
+    ));
+    assert_eq!(owner.state.branches.branch_count(), 0);
+}

@@ -1,6 +1,7 @@
 mod catalog;
 mod commit;
 mod parentage;
+mod publication;
 mod reclamation;
 mod retention;
 
@@ -19,9 +20,12 @@ pub use commit::{
     CompositeSignalPublicationIdentity,
 };
 pub use parentage::OrdinaryParent;
+pub(crate) use publication::{
+    CanonicalPublicationEnvelope, PerformedPublicationFacts, PreparedPublicationRecord,
+    PublicationDeliveryClaim,
+};
 #[cfg(test)]
 pub(crate) use reclamation::CompositeHistoryReclamationRequest;
 pub(crate) use retention::{
     ExplicitCommitHistoryProtectionObligation, ProductHeadHistoryProtectionObligation,
-    ProductUnpublishedHistoryProtectionObligation,
 };

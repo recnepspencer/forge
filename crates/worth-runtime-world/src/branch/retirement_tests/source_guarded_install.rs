@@ -84,9 +84,8 @@ fn creation_interrupted_before_install(
 
 /// Retire `branch` while a creation from it is held at the guard.
 fn retire_while_held(owner: &TestOwner, branch: &ProductBranchObservation) {
-    let report =
-        RuntimeWorldBranchService::retire_product_branch(owner, branch.branch_identity().clone())
-            .expect("the source retires while the creation is held");
+    let report = RuntimeWorldBranchService::retire_product_branch(owner, branch)
+        .expect("the source retires while the creation is held");
     assert!(report.owner_retirement_work().is_empty());
 }
 
@@ -328,9 +327,8 @@ fn assert_fork_retained_nothing_else(owner: &TestOwner, branches: usize) {
 fn creation_from_a_retired_source_is_named_retired_on_every_route() {
     let (_fixture, owner, root) = setup_with_relational_source(3);
     let child = create_reused_branch(&owner, &root, reuse_intent("retired-source"));
-    let report =
-        RuntimeWorldBranchService::retire_product_branch(&owner, child.branch_identity().clone())
-            .expect("the child retires");
+    let report = RuntimeWorldBranchService::retire_product_branch(&owner, &child)
+        .expect("the child retires");
     assert!(report.owner_retirement_work().is_empty());
     assert_eq!(
         RuntimeWorldObservationService::observe_product_branch(&owner, child.branch_identity())

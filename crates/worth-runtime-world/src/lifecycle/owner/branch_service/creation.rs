@@ -30,7 +30,7 @@ where
     T: Copy + Ord + Send + Sync + 'static,
 {
     let name = intent.name().clone();
-    let reservation = owner
+    let mut reservation = owner
         .state
         .branches
         .reserve_branch(owner.owner_identity(), name.clone())
@@ -39,6 +39,9 @@ where
         .issue_branch_identities(name)
         .map_err(|()| RuntimeWorldBranchAdmissionDenial::IdentityExhausted)?;
     let destination = CreationDestination {
+        witness: reservation
+            .bind_creation_destination(branch.clone(), incarnation)
+            .map_err(super::map_registry_denial)?,
         branch: branch.clone(),
         incarnation,
     };
@@ -69,6 +72,7 @@ where
                 progress,
                 successor_basis,
             },
+            cancellation,
         ),
     }
 }

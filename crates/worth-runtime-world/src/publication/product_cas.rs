@@ -6,7 +6,6 @@ use crate::branch::{
 use crate::history::CompositeRuntimeWorldCommit;
 use crate::identity::CompositePublicationAttemptIdentity;
 use crate::recovery::ProductUnpublishedCause;
-use crate::retention::PublicationRetentionObligation;
 
 use super::{
     CompositeLateCancellationPosture, CompositeOwnerExecutionResults,
@@ -19,7 +18,7 @@ mod movement;
 mod retained;
 
 use movement::attempt_product_movement;
-use retained::{AttemptTerminal, RetainedSuccessorCustody};
+use retained::retain_before_product_movement;
 
 /// Final pre-publication phase. It owns all real reservations and the
 /// successor-basis publication retention until the product CAS resolves.
@@ -29,13 +28,7 @@ pub struct CompositePublicationReady {
     commit: Arc<CompositeRuntimeWorldCommit>,
     owner_results: CompositeOwnerExecutionResults,
     progress: super::CompositeAttemptProgress,
-    product_unpublished_identity: crate::identity::ProductUnpublishedOwnerEffectsIdentity,
-    reserved_commit_capacity: crate::history::ReservedCompositeCommitCapacity,
-    reserved_recovery_slot: crate::recovery::ReservedProductUnpublishedSlot,
-    reserved_publication_capacity: crate::lifecycle::owner::ReservedPublicationAttemptCapacity,
-    history: crate::history::CompositeHistoryCatalog,
-    operation: crate::lifecycle::owner::RuntimeWorldOperationReservation,
-    publication_retention: PublicationRetentionObligation,
+    custody: super::ActiveAttemptCustody,
     cancellation: super::CompositeAttemptCancellationPosture,
     deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
     counters: CompositePublicationCostCounters,
@@ -50,15 +43,7 @@ pub(crate) struct CompositePublicationReadyInputs {
     pub(crate) commit: Arc<CompositeRuntimeWorldCommit>,
     pub(crate) owner_results: CompositeOwnerExecutionResults,
     pub(crate) progress: super::CompositeAttemptProgress,
-    pub(crate) product_unpublished_identity:
-        crate::identity::ProductUnpublishedOwnerEffectsIdentity,
-    pub(crate) reserved_commit_capacity: crate::history::ReservedCompositeCommitCapacity,
-    pub(crate) reserved_recovery_slot: crate::recovery::ReservedProductUnpublishedSlot,
-    pub(crate) reserved_publication_capacity:
-        crate::lifecycle::owner::ReservedPublicationAttemptCapacity,
-    pub(crate) history: crate::history::CompositeHistoryCatalog,
-    pub(crate) operation: crate::lifecycle::owner::RuntimeWorldOperationReservation,
-    pub(crate) publication_retention: PublicationRetentionObligation,
+    pub(crate) custody: super::ActiveAttemptCustody,
     pub(crate) cancellation: super::CompositeAttemptCancellationPosture,
     pub(crate) deadline: Option<crate::lifecycle::RuntimeWorldInstant>,
     pub(crate) counters: CompositePublicationCostCounters,
@@ -84,13 +69,7 @@ impl CompositePublicationReady {
             commit,
             owner_results,
             progress,
-            product_unpublished_identity,
-            reserved_commit_capacity,
-            reserved_recovery_slot,
-            reserved_publication_capacity,
-            history,
-            operation,
-            publication_retention,
+            custody,
             cancellation,
             deadline,
             counters,
@@ -101,13 +80,7 @@ impl CompositePublicationReady {
             commit,
             owner_results,
             progress,
-            product_unpublished_identity,
-            reserved_commit_capacity,
-            reserved_recovery_slot,
-            reserved_publication_capacity,
-            history,
-            operation,
-            publication_retention,
+            custody,
             cancellation,
             deadline,
             counters,
@@ -135,13 +108,7 @@ impl CompositePublicationReady {
             commit: self.commit,
             owner_results: self.owner_results,
             progress: self.progress,
-            product_unpublished_identity: self.product_unpublished_identity,
-            reserved_commit_capacity: self.reserved_commit_capacity,
-            reserved_recovery_slot: self.reserved_recovery_slot,
-            reserved_publication_capacity: self.reserved_publication_capacity,
-            history: self.history,
-            operation: self.operation,
-            publication_retention: self.publication_retention,
+            custody: self.custody,
             cancellation: self.cancellation,
             deadline: self.deadline,
             counters: self.counters,
@@ -180,22 +147,6 @@ impl CompositePublicationReady {
             None => attempt_product_movement(ready, cell, late_cancellation),
         }
     }
-}
-
-/// Terminate an attempt that has already lost, before it materializes anything.
-/// It still owns its reserved history slot, so the retained record installs the
-/// successor for recovery custody alone and takes no product-head authority.
-fn retain_before_product_movement(
-    ready: CompositePublicationReadyInputs,
-    observed_head: ProductBranchReferenceSnapshot,
-    cause: ProductUnpublishedCause,
-) -> RuntimeWorldPublicationOutcome {
-    let (successor, terminal) = AttemptTerminal::split(ready);
-    terminal.retain(
-        observed_head,
-        cause,
-        RetainedSuccessorCustody::Unmaterialized(successor),
-    )
 }
 
 fn cancellation_observed(
